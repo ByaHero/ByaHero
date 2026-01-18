@@ -128,3 +128,9 @@ See [LICENSE](LICENSE) file for details.
 Run this to terminal
 
 php -S localhost:8000 -t public
+
+want to run on phone?
+
+php -S 0.0.0.0:8000 -t public
+
+change the 0.0.0.0 with the current IP address of your device
