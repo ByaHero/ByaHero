@@ -14,7 +14,8 @@
 
   <style>
     :root {
-      --navbar-h: 56px; /* Bootstrap navbar default */
+      --topbar-h: 56px; /* top title bar height */
+      --bottombar-h: 66px; /* bottom navigation height */
       --accent-start: #667eea;
       --accent-end: #764ba2;
     }
@@ -28,9 +29,9 @@
       color: #111;
     }
 
-    /* Ensure the map has a deterministic height so Leaflet renders reliably on mobile */
+    /* Map height accounts for top + bottom nav */
     .map-container {
-      height: calc(100vh - var(--navbar-h));
+      height: calc(100vh - var(--topbar-h) - var(--bottombar-h));
       min-height: 320px;
     }
 
@@ -72,6 +73,66 @@
       align-items: center;
     }
 
+    /* Bottom fixed navigation (Life360-like) */
+    .bottom-nav {
+      position: fixed;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: var(--bottombar-h);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
+      color: #fff;
+      z-index: 1100;
+      box-shadow: 0 -6px 18px rgba(2, 6, 23, 0.12);
+      gap: 6px;
+      /* respect safe area inset on iOS */
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    }
+
+    .bottom-nav .btn {
+      min-width: 56px;
+      background: rgba(255,255,255,0.08);
+      border: 0;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 10px;
+    }
+
+    .bottom-nav .btn:active {
+      transform: translateY(1px);
+    }
+
+    .bottom-nav .btn .label {
+      font-size: 11px;
+      opacity: 0.95;
+      margin-top: 4px;
+    }
+
+    /* Modal bottom-sheet styling for active buses */
+    .modal-bottom .modal-dialog {
+      position: fixed;
+      bottom: 0;
+      margin: 0;
+      width: 100%;
+      max-width: 720px;
+      left: 50%;
+      transform: translateX(-50%);
+      transition: transform .2s ease-out;
+    }
+
+    .modal-bottom .modal-content {
+      border-radius: 12px 12px 0 0;
+      overflow: hidden;
+    }
+
     @media (min-width: 992px) {
       /* On large screens allow a sidebar next to the map (non-offcanvas) */
       .map-and-sidebar {
@@ -81,7 +142,7 @@
       }
 
       .map-container {
-        height: calc(100vh - var(--navbar-h) - 32px);
+        height: calc(100vh - var(--topbar-h) - 32px);
         margin: 16px;
         border-radius: 10px;
         box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
@@ -90,18 +151,18 @@
       .desktop-sidebar {
         margin: 16px;
       }
+
+      /* Desktop: hide bottom nav and keep the floating controls for map */
+      .bottom-nav { display: none; }
+      .map-controls { display: flex; }
     }
   </style>
 </head>
 
 <body>
-  <!-- Navbar -->
-  <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, var(--accent-start), var(--accent-end)); height:56px">
+  <!-- Top title bar -->
+  <nav class="navbar navbar-dark" style="background: linear-gradient(135deg, var(--accent-start), var(--accent-end)); height:var(--topbar-h)">
     <div class="container-fluid">
-      <button class="btn btn-outline-light d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas" aria-label="Open sidebar">
-        ☰
-      </button>
-
       <div class="d-flex align-items-center gap-3">
         <span class="navbar-brand mb-0 h6">ByaHero: Prototype V3</span>
         <small class="text-white-50 d-none d-sm-inline">Real-time bus tracking</small>
@@ -185,6 +246,44 @@
     </div>
   </main>
 
+  <!-- Active Buses modal (bottom sheet style on mobile) -->
+  <div class="modal fade" id="activeBusesModal" tabindex="-1" aria-labelledby="activeBusesModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-bottom">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="activeBusesModalLabel">Active Buses</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div id="activeBusesList" class="list-group"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom navigation (mobile-first) -->
+  <nav class="bottom-nav" role="navigation" aria-label="Bottom navigation">
+    <button class="btn" id="menuBtn" title="Open menu" aria-label="Open menu" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
+      <div class="icon">☰</div>
+      <div class="label">Menu</div>
+    </button>
+
+    <button class="btn" id="activeBusesBtn" title="Active buses" aria-label="Active buses">
+      <div class="icon">🚌</div>
+      <div class="label">Active</div>
+    </button>
+
+    <button class="btn" id="locateBtn" title="Locate me" aria-label="Locate me">
+      <div class="icon">🧭</div>
+      <div class="label">Locate</div>
+    </button>
+
+    <button class="btn" id="refreshBtn" title="Refresh" aria-label="Refresh">
+      <div class="icon">⟳</div>
+      <div class="label">Refresh</div>
+    </button>
+  </nav>
+
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <!-- Bootstrap JS bundle (includes Popper) -->
@@ -214,9 +313,10 @@
     window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 300));
     window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 250));
 
-    // Data structures and utils (kept from original)
+    // Data structures and utils
     const busMarkers = {};
     let selectedRoute = '';
+    let _lastFetchedBuses = [];
     const statusColors = {
       available: '#10b981',
       on_stop: '#f59e0b',
@@ -305,6 +405,103 @@
       return `<div style="min-width:170px"><strong>${escapeHtml(bus.code)}</strong><br><strong>Route:</strong> ${route}<br><strong>Location:</strong> ${loc}<br><strong>Status:</strong> ${status}<br><strong>Seats:</strong> ${escapeHtml(bus.seats_available)} / ${escapeHtml(bus.seats_total)}<br><small style="color:#666;">Updated: ${escapeHtml(updated)}</small></div>`;
     }
 
+    // Render active buses into the bottom-sheet modal
+    function renderActiveBusesModal(buses) {
+      const listEl = document.getElementById('activeBusesList');
+      if (!listEl) return;
+      const filtered = (buses || []).filter(b => !selectedRoute || selectedRoute === '' || b.route === selectedRoute);
+      const visible = filtered.filter(b => getBusCoordinates(b) !== null);
+      if (visible.length === 0) {
+        listEl.innerHTML = '<div class="text-center text-muted small py-3">No active buses available</div>';
+        return;
+      }
+      listEl.innerHTML = visible.map(b => {
+        const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
+        const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
+        const status = escapeHtml(b.status || '');
+        return `<button type="button" class="list-group-item list-group-item-action active-bus-item d-flex justify-content-between align-items-start" data-bus-id="${escapeHtml(b.id)}">
+            <div class="ms-2 me-auto">
+              <div class="fw-bold">${escapeHtml(b.code)}</div>
+              <div class="small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</div>
+              <div class="small text-muted">Location: ${loc}</div>
+            </div>
+            <div class="text-end small text-muted">
+              <div>${seats}</div>
+              <div>${status}</div>
+            </div>
+          </button>`;
+      }).join('');
+      // wire up clicks
+      listEl.querySelectorAll('.active-bus-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const id = item.getAttribute('data-bus-id');
+          const marker = busMarkers[id];
+          const modalInstance = bootstrap.Modal.getInstance(document.getElementById('activeBusesModal'));
+          if (marker) {
+            map.flyTo(marker.getLatLng(), 16, { duration: 0.7 });
+            setTimeout(() => marker.openPopup(), 700);
+          } else {
+            alert('Location for this bus is not available on the map.');
+          }
+          if (modalInstance) modalInstance.hide();
+        });
+      });
+    }
+
+    // Toggleable modal instance for Active Buses (prevents multiple backdrops)
+    const activeBusesModalEl = document.getElementById('activeBusesModal');
+    let activeBusesModalInstance = null;
+    if (activeBusesModalEl) {
+      // Clear stored instance when modal is fully hidden
+      activeBusesModalEl.addEventListener('hidden.bs.modal', () => {
+        activeBusesModalInstance = null;
+      });
+    }
+
+    // Bottom nav handlers (Active button now toggles modal)
+    const activeBtn = document.getElementById('activeBusesBtn');
+    activeBtn?.addEventListener('click', () => {
+      if (!activeBusesModalEl) return;
+      // If modal is already visible, hide it (toggle off)
+      if (activeBusesModalEl.classList.contains('show')) {
+        const inst = bootstrap.Modal.getInstance(activeBusesModalEl) || activeBusesModalInstance;
+        if (inst) {
+          inst.hide();
+        } else {
+          // fallback: remove show class and backdrop if any (defensive)
+          activeBusesModalEl.classList.remove('show');
+          document.querySelectorAll('.modal-backdrop').forEach(b => b.remove());
+        }
+        return;
+      }
+
+      // otherwise render and show (toggle on)
+      renderActiveBusesModal(_lastFetchedBuses || []);
+      // reuse existing instance if present
+      if (!activeBusesModalInstance) {
+        activeBusesModalInstance = new bootstrap.Modal(activeBusesModalEl, { backdrop: true });
+      }
+      activeBusesModalInstance.show();
+    });
+
+    document.getElementById('locateBtn')?.addEventListener('click', () => {
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported by your browser.');
+        return;
+      }
+      navigator.geolocation.getCurrentPosition(pos => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        map.setView([lat, lng], 16);
+        // optionally add a temporary marker
+        const t = L.circleMarker([lat, lng], { radius: 8, color: '#fff', fillColor: '#2563eb', fillOpacity: 0.9 }).addTo(map);
+        setTimeout(() => { try { map.removeLayer(t); } catch (e) {} }, 4000);
+      }, err => {
+        console.warn('geo error', err);
+        alert('Unable to determine location.');
+      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+    });
+
     // Fetch + update loop
     async function updateBuses() {
       try {
@@ -313,11 +510,17 @@
         const json = await res.json();
         if (json && json.buses) {
           const buses = json.buses;
+          _lastFetchedBuses = buses;
           updateMap(buses);
           updateBusLists(buses);
           updateRouteFilters(buses);
+          // update active buses modal content (keeps it in sync)
+          // Only re-render; do not open/close modal automatically
+          renderActiveBusesModal(buses);
           const ts = new Date().toLocaleTimeString();
-          document.getElementById('lastUpdateHeader').textContent = ts;
+          // Keep backwards compatibility if header element exists
+          const headerEl = document.getElementById('lastUpdateHeader');
+          if (headerEl) headerEl.textContent = ts;
           document.getElementById('lastUpdateFooter') && (document.getElementById('lastUpdateFooter').textContent = ts);
           document.getElementById('lastUpdateFooterDesktop') && (document.getElementById('lastUpdateFooterDesktop').textContent = ts);
         }
