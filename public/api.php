@@ -1,74 +1,109 @@
 <?php
 /**
- * ByaHero Bus Tracking API (update: persist current_location_name)
+ * ByaHero Bus Tracking API (MySQL/XAMPP version)
+ *
+ * Behavior:
+ * - Database column `current_location` stores the friendly name (string).
+ * - Per-bus GeoJSON files are stored at data/current_locations/bus_{id}.geojson and used to supply coordinates in API responses.
+ *
+ * GET /api.php?action=get_buses  -> returns buses[] where:
+ *    - current_location is the GeoJSON (string) when a file exists
+ *    - current_location_name is the friendly name (from DB current_location column)
+ *
+ * POST /api.php?action=update_location  -> accepts geojson or lat/lng and:
+ *    - writes data/current_locations/bus_{id}.geojson (full geojson with properties)
+ *    - updates DB current_location column to the friendly name (string)
  */
 
-header('Content-Type: application/json');
+declare(strict_types=1);
+
+header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
-define('DB_PATH', __DIR__ . '/../data/db.sqlite');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
-function getDB() {
-    try {
-        $db = new PDO('sqlite:' . DB_PATH);
-        $db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $db;
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo json_encode(['error' => 'Database connection failed: ' . $e->getMessage()]);
-        exit;
-    }
+require __DIR__ . '/config/db.php';
+
+/** Helpers **/
+function loadGeojsonFileForBus(int $busId): ?array {
+    $file = __DIR__ . '/../data/current_locations/bus_' . $busId . '.geojson';
+    if (!is_file($file)) return null;
+    $txt = @file_get_contents($file);
+    if ($txt === false) return null;
+    $j = json_decode($txt, true);
+    if (!is_array($j)) return null;
+    return $j;
 }
 
-function initDB() {
-    $db = getDB();
-
-    // Create buses table with current_location and current_location_name
-    $db->exec("
-        CREATE TABLE IF NOT EXISTS buses (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            code TEXT UNIQUE NOT NULL,
-            route TEXT,
-            current_location TEXT,
-            current_location_name TEXT,
-            seats_total INTEGER NOT NULL DEFAULT 40,
-            seats_available INTEGER NOT NULL DEFAULT 40,
-            status TEXT NOT NULL DEFAULT 'available',
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )
-    ");
-
-    $count = $db->query("SELECT COUNT(*) FROM buses")->fetchColumn();
-    if ($count == 0) {
-        $stmt = $db->prepare("
-            INSERT INTO buses (code, seats_total, seats_available, status) 
-            VALUES (?, 40, 40, 'available')
-        ");
-        $buses = ['BUS-001', 'BUS-002', 'BUS-003'];
-        foreach ($buses as $busCode) $stmt->execute([$busCode]);
+function extractFriendlyNameFromGeojson(array $geojson): ?string {
+    if (isset($geojson['properties']) && is_array($geojson['properties'])) {
+        $p = $geojson['properties'];
+        if (!empty($p['current_location_name']) && is_string($p['current_location_name'])) return trim($p['current_location_name']);
+        if (!empty($p['Current Location']) && is_string($p['Current Location'])) return trim($p['Current Location']);
+        if (!empty($p['name']) && is_string($p['name'])) return trim($p['name']);
+        foreach ($p as $k => $v) {
+            if (is_string($v) && trim($v) !== '') return trim($v);
+            if ($v === '') return $k;
+        }
     }
-
-    return ['success' => true, 'message' => 'Database initialized successfully'];
+    // FeatureCollection fallback
+    if (!empty($geojson['type']) && $geojson['type'] === 'FeatureCollection' && !empty($geojson['features']) && is_array($geojson['features'])) {
+        $f = $geojson['features'][0];
+        if (isset($f['properties']) && is_array($f['properties'])) {
+            return extractFriendlyNameFromGeojson(['properties' => $f['properties']]);
+        }
+    }
+    return null;
 }
 
-function getBuses() {
-    $db = getDB();
-    $stmt = $db->query("
-        SELECT id, code, route, current_location, current_location_name, seats_total, seats_available, status, updated_at 
-        FROM buses 
+/** API actions **/
+function getBuses(): array {
+    $pdo = db();
+    // Select DB fields (current_location stores friendly name string)
+    $stmt = $pdo->query("
+        SELECT
+          Bus_ID,
+          code,
+          route,
+          current_location AS current_location_name,
+          total_seats,
+          seat_availability,
+          status,
+          updated
+        FROM busses
         ORDER BY code
     ");
-    $buses = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    return ['success' => true, 'buses' => $buses];
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $out = [];
+    foreach ($rows as $r) {
+        $busId = isset($r['Bus_ID']) ? (int)$r['Bus_ID'] : (int)($r['id'] ?? 0);
+        // try to load geojson file for coordinates
+        $geo = loadGeojsonFileForBus($busId);
+        if ($geo !== null) {
+            // current_location should be returned as JSON string to keep compatibility
+            $r['current_location'] = json_encode($geo, JSON_UNESCAPED_SLASHES);
+            // derive friendly name from geo file if present, else fallback to DB value
+            $friendly = extractFriendlyNameFromGeojson($geo);
+            if ($friendly) $r['current_location_name'] = $friendly;
+        } else {
+            // no file: try to leave current_location as null and current_location_name from DB as-is
+            $r['current_location'] = null;
+            // r['current_location_name'] is already the DB string (selected above)
+        }
+        $out[] = $r;
+    }
+
+    return ['success' => true, 'buses' => $out];
 }
 
 /**
- * Update bus location and details
- * Accepts geojson (preferred) or lat/lng. Stores current_location (JSON string) and current_location_name when provided.
+ * Update bus location and details.
+ * Accepts geojson or lat/lng. Stores friendly name in DB.current_location and writes full GeoJSON to file.
  */
-function updateLocation() {
+function updateLocation(): array {
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
         http_response_code(400);
@@ -79,7 +114,7 @@ function updateLocation() {
         return ['success' => false, 'error' => 'Missing required field: bus_id'];
     }
 
-    $busId = intval($data['bus_id']);
+    $busId = (int)$data['bus_id'];
 
     // Build GeoJSON if provided; if only lat/lng given, convert to a Point GeoJSON
     $geojson = null;
@@ -94,59 +129,58 @@ function updateLocation() {
         }
         $geojson = [
             'type' => 'Feature',
-            'geometry' => [
-                'type' => 'Point',
-                'coordinates' => [$lng, $lat]
-            ],
-            'properties' => [
-                'timestamp' => gmdate('c')
-            ]
+            'geometry' => ['type' => 'Point', 'coordinates' => [$lng, $lat]],
+            'properties' => ['timestamp' => gmdate('c')]
         ];
     } else {
         http_response_code(400);
         return ['success' => false, 'error' => 'Provide geojson or lat & lng'];
     }
 
-    // Try to extract friendly name from geojson properties
-    $locationName = null;
-    if (isset($geojson['properties'])) {
-        if (!empty($geojson['properties']['current_location_name'])) $locationName = $geojson['properties']['current_location_name'];
-        elseif (!empty($geojson['properties']['Current Location'])) $locationName = $geojson['properties']['Current Location'];
-        elseif (!empty($geojson['properties']['name'])) $locationName = $geojson['properties']['name'];
-        else {
-            // if properties like {"Bugaan East":"Laurel"} pick the first non-empty value or the key
-            foreach ($geojson['properties'] as $k => $v) {
-                if (is_string($v) && trim($v) !== '') { $locationName = trim($v); break; }
-                if ($v === '') { $locationName = $k; break; }
-            }
-        }
+    // Prefer friendly name from geojson properties, else try server resolution or provided field
+    $locationName = extractFriendlyNameFromGeojson($geojson);
+    if (empty($locationName) && !empty($data['current_location_name'])) {
+        $locationName = trim($data['current_location_name']);
     }
 
+    // Allow server-side resolution (optional) — if not present, leave as null
+    // (If you want server polygon-resolve, could call debug_resolve or map_data polygons)
+    // For now prefer provided properties.
+
+    // Save geojson file for coordinates (keep full GeoJSON)
+    $dir = __DIR__ . '/../data/current_locations';
+    if (!is_dir($dir)) @mkdir($dir, 0755, true);
+    $file = $dir . "/bus_{$busId}.geojson";
+    @file_put_contents($file, json_encode($geojson, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+
+    // Update DB: store friendly name string in current_location column (no schema change)
+    $pdo = db();
+
+    $fields = [];
     $params = [];
-    $fields = ['current_location = ?', 'updated_at = CURRENT_TIMESTAMP'];
-    $params[] = json_encode($geojson, JSON_UNESCAPED_SLASHES);
 
-    if (!empty($locationName)) {
-        $fields[] = 'current_location_name = ?';
-        $params[] = $locationName;
-    }
+    // Store friendly name (string) in current_location column
+    $fields[] = 'current_location = ?';
+    $params[] = $locationName !== null ? $locationName : null;
 
     if (isset($data['route'])) {
         $fields[] = 'route = ?';
         $params[] = $data['route'];
     }
+
     if (isset($data['seats_available'])) {
         $sa = filter_var($data['seats_available'], FILTER_VALIDATE_INT);
         if ($sa === false || $sa < 0) {
             http_response_code(400);
             return ['success' => false, 'error' => 'Invalid seats_available value'];
         }
-        $fields[] = 'seats_available = ?';
+        $fields[] = 'seat_availability = ?';
         $params[] = $sa;
     }
+
     if (isset($data['status'])) {
         $allowed = ['available','on_stop','full','unavailable'];
-        if (!in_array($data['status'], $allowed)) {
+        if (!in_array($data['status'], $allowed, true)) {
             http_response_code(400);
             return ['success' => false, 'error' => 'Invalid status value'];
         }
@@ -154,16 +188,17 @@ function updateLocation() {
         $params[] = $data['status'];
     }
 
+    $fields[] = 'updated = CURRENT_TIMESTAMP';
     $params[] = $busId;
-    $sql = "UPDATE buses SET " . implode(', ', $fields) . " WHERE id = ?";
-    $db = getDB();
-    $stmt = $db->prepare($sql);
-    $stmt->execute($params);
+
+    $sql = "UPDATE busses SET " . implode(', ', $fields) . " WHERE Bus_ID = ?";
+    $st = $pdo->prepare($sql);
+    $st->execute($params);
 
     return ['success' => true, 'message' => 'Location updated successfully', 'current_location_name' => $locationName];
 }
 
-function stopTracking() {
+function stopTracking(): array {
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
         http_response_code(400);
@@ -173,24 +208,25 @@ function stopTracking() {
         return ['success' => false, 'error' => 'Missing bus_id'];
     }
 
-    $db = getDB();
-    $stmt = $db->prepare("
-        UPDATE buses
-        SET current_location = NULL, current_location_name = NULL, status = 'unavailable', updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+    $pdo = db();
+    $stmt = $pdo->prepare("
+        UPDATE busses
+        SET current_location = NULL, status = 'unavailable', updated = CURRENT_TIMESTAMP
+        WHERE Bus_ID = ?
     ");
-    $stmt->execute([$data['bus_id']]);
+    $stmt->execute([(int)$data['bus_id']]);
+
+    // remove file as well
+    $file = __DIR__ . '/../data/current_locations/bus_' . ((int)$data['bus_id']) . '.geojson';
+    if (is_file($file)) @unlink($file);
 
     return ['success' => true, 'message' => 'Stopped tracking for bus'];
 }
 
-// Dispatch remains the same...
+// Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 try {
     switch ($action) {
-        case 'init_db':
-            $response = initDB();
-            break;
         case 'get_buses':
             $response = getBuses();
             break;
@@ -205,7 +241,7 @@ try {
             $response = ['success' => false, 'error' => 'Invalid action'];
     }
     echo json_encode($response);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     http_response_code(500);
     echo json_encode(['success' => false, 'error' => $e->getMessage()]);
 }

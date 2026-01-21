@@ -334,10 +334,35 @@
       });
     }
 
+    // Normalize API bus object to expected keys used by the UI
+    function normalizeBus(raw) {
+      const bus = Object.assign({}, raw);
+      const id = bus.id ?? bus.Bus_ID ?? bus.id ?? bus.BusId ?? bus.bus_id;
+      const seats_total = bus.seats_total ?? bus.total_seats ?? bus.totalSeats ?? 25;
+      const seats_available = bus.seats_available ?? bus.seat_availability ?? bus.seatAvailability ?? seats_total;
+      const updated_at = bus.updated_at ?? bus.updated ?? null;
+
+      return {
+        id: (typeof id !== 'undefined' && id !== null) ? String(id) : (bus.code ? String(bus.code) : null),
+        code: bus.code ?? bus.Code ?? null,
+        route: bus.route ?? null,
+        seats_total: Number.isFinite(Number(seats_total)) ? Number(seats_total) : null,
+        seats_available: Number.isFinite(Number(seats_available)) ? Number(seats_available) : null,
+        current_location: bus.current_location ?? bus.currentLocation ?? null,
+        lat: (typeof bus.lat !== 'undefined') ? bus.lat : (bus.latitude ?? null),
+        lng: (typeof bus.lng !== 'undefined') ? bus.lng : (bus.longitude ?? null),
+        updated_at: updated_at,
+        status: bus.status ?? (bus.__raw && bus.__raw.status) ?? null,
+        __raw: bus
+      };
+    }
+
+    // Parse GeoJSON stored in current_location to extract coordinates and friendly name
     function parseCurrentLocationField(bus) {
-      if (!bus.current_location) return { coords: null, name: null };
+      const cl = bus.current_location;
+      if (!cl) return { coords: null, name: null };
       try {
-        const gj = (typeof bus.current_location === 'string') ? JSON.parse(bus.current_location) : bus.current_location;
+        const gj = (typeof cl === 'string') ? JSON.parse(cl) : cl;
         if (!gj) return { coords: null, name: null };
         if (gj.type === 'Feature') {
           const props = gj.properties || {};
@@ -376,9 +401,12 @@
     }
 
     function getBusCoordinates(bus) {
+      // bus is normalized
       const parsed = parseCurrentLocationField(bus);
       if (parsed.coords) return parsed.coords;
       if (bus.lat && bus.lng) return [parseFloat(bus.lat), parseFloat(bus.lng)];
+      const raw = bus.__raw || {};
+      if (raw.lat && raw.lng) return [parseFloat(raw.lat), parseFloat(raw.lng)];
       return null;
     }
 
@@ -400,7 +428,7 @@
     function createPopupContent(bus) {
       const loc = escapeHtml(getBusLocationName(bus) || 'Location not available');
       const route = escapeHtml(bus.route || 'Not set');
-      const status = escapeHtml(bus.status || '');
+      const status = escapeHtml(bus.status || (bus.__raw && bus.__raw.status) || '');
       const updated = bus.updated_at ? new Date(bus.updated_at).toLocaleString() : '';
       return `<div style="min-width:170px"><strong>${escapeHtml(bus.code)}</strong><br><strong>Route:</strong> ${route}<br><strong>Location:</strong> ${loc}<br><strong>Status:</strong> ${status}<br><strong>Seats:</strong> ${escapeHtml(bus.seats_available)} / ${escapeHtml(bus.seats_total)}<br><small style="color:#666;">Updated: ${escapeHtml(updated)}</small></div>`;
     }
@@ -418,7 +446,7 @@
       listEl.innerHTML = visible.map(b => {
         const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
         const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
-        const status = escapeHtml(b.status || '');
+        const status = escapeHtml(b.status || (b.__raw && b.__raw.status) || '');
         return `<button type="button" class="list-group-item list-group-item-action active-bus-item d-flex justify-content-between align-items-start" data-bus-id="${escapeHtml(b.id)}">
             <div class="ms-2 me-auto">
               <div class="fw-bold">${escapeHtml(b.code)}</div>
@@ -502,27 +530,28 @@
       }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
     });
 
-    // Fetch + update loop
+    // Fetch + update loop — NOTE: relative URLs (no leading slash)
     async function updateBuses() {
       try {
-        const res = await fetch('/api.php?action=get_buses', { cache: 'no-store' });
-        if (!res.ok) throw new Error('Network response was not ok');
+        const res = await fetch('api.php?action=get_buses', { cache: 'no-store' });
+        if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
         const json = await res.json();
         if (json && json.buses) {
-          const buses = json.buses;
+          // Normalize all buses for UI
+          const buses = json.buses.map(normalizeBus);
           _lastFetchedBuses = buses;
           updateMap(buses);
           updateBusLists(buses);
           updateRouteFilters(buses);
-          // update active buses modal content (keeps it in sync)
-          // Only re-render; do not open/close modal automatically
           renderActiveBusesModal(buses);
           const ts = new Date().toLocaleTimeString();
-          // Keep backwards compatibility if header element exists
           const headerEl = document.getElementById('lastUpdateHeader');
           if (headerEl) headerEl.textContent = ts;
           document.getElementById('lastUpdateFooter') && (document.getElementById('lastUpdateFooter').textContent = ts);
           document.getElementById('lastUpdateFooterDesktop') && (document.getElementById('lastUpdateFooterDesktop').textContent = ts);
+        } else {
+          // no buses property — log for debugging
+          console.warn('api.php returned no buses:', json);
         }
       } catch (e) {
         console.error('Failed to update buses', e);
@@ -544,7 +573,7 @@
         const pos = getBusCoordinates(bus);
         if (!pos) return;
         const id = String(bus.id);
-        const icon = createBusIcon(bus.status);
+        const icon = createBusIcon(bus.status || (bus.__raw && bus.__raw.status) || 'unavailable');
         if (busMarkers[id]) {
           busMarkers[id].setLatLng(pos);
           busMarkers[id].setIcon(icon);
@@ -584,7 +613,7 @@
         listEl.innerHTML = visible.map(b => {
           const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
           const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
-          const status = escapeHtml(b.status || '');
+          const status = escapeHtml(b.status || (b.__raw && b.__raw.status) || '');
           return `<div class="bus-item border" data-bus-id="${escapeHtml(b.id)}"><strong>${escapeHtml(b.code)}</strong><div class="small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</div><div class="small text-muted">Location: ${loc}</div><div class="small text-muted">Seats: ${seats} · ${status}</div></div>`;
         }).join('');
 
@@ -621,7 +650,7 @@
         listEl.innerHTML = visible.map(b => {
           const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
           const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
-          const status = escapeHtml(b.status || '');
+          const status = escapeHtml(b.status || (b.__raw && b.__raw.status) || '');
           return `<div class="bus-item border" data-bus-id="${escapeHtml(b.id)}"><strong>${escapeHtml(b.code)}</strong><div class="small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</div><div class="small text-muted">Location: ${loc}</div><div class="small text-muted">Seats: ${seats} · ${status}</div></div>`;
         }).join('');
 

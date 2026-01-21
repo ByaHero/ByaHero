@@ -168,10 +168,10 @@
     const el = (id) => document.getElementById(id);
     const alertBox = el('alertBox');
 
-    // Load route polygons/features for point-in-polygon name resolution
+    // Load route polygons/features for point-in-polygon name resolution (relative path)
     async function loadRouteFeatures() {
       try {
-        const res = await fetch('/map_data.php', { cache: 'no-store' });
+        const res = await fetch('map_data.php', { cache: 'no-store' });
         const json = await res.json();
         if (json && Array.isArray(json.features)) {
           routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
@@ -200,7 +200,7 @@
       return keys.length ? keys[0] : null;
     }
 
-    // Ray-casting algorithm for point-in-polygon
+    // Ray-casting algorithm for point-in-polygon (same as index)
     function pointInRing(x, y, ring) {
       let inside = false;
       for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -220,7 +220,7 @@
         if (!rings || rings.length === 0) return false;
         if (!pointInRing(lng, lat, rings[0])) return false;
         for (let i = 1; i < rings.length; i++) {
-          if (pointInRing(lng, lat, rings[i])) return false; // inside hole -> outside
+          if (pointInRing(lng, lat, rings[i])) return false;
         }
         return true;
       } else if (g.type === 'MultiPolygon') {
@@ -249,16 +249,39 @@
       return null;
     }
 
-    // Load available buses into the select dropdown
+    // Normalize a bus object returned by API (handles SQLite & MySQL shapes)
+    function normalizeBus(raw) {
+      const bus = Object.assign({}, raw);
+      const id = bus.id ?? bus.Bus_ID ?? bus.id ?? bus.bus_id;
+      const seats_total = bus.seats_total ?? bus.total_seats ?? 25;
+      const seats_available = bus.seats_available ?? bus.seat_availability ?? seats_total;
+      const updated_at = bus.updated_at ?? bus.updated ?? null;
+      return {
+        id: (typeof id !== 'undefined' && id !== null) ? String(id) : null,
+        code: bus.code ?? null,
+        route: bus.route ?? null,
+        seats_total: Number(seats_total),
+        seats_available: Number(seats_available),
+        current_location: bus.current_location ?? null,
+        lat: bus.lat ?? null,
+        lng: bus.lng ?? null,
+        updated_at: updated_at,
+        status: bus.status ?? null,
+        __raw: bus
+      };
+    }
+
+    // Load available buses into the select dropdown (relative path)
     async function loadBuses() {
       try {
-        const r = await fetch('/api.php?action=get_buses', { cache: 'no-store' });
+        const r = await fetch('api.php?action=get_buses', { cache: 'no-store' });
+        if (!r.ok) throw new Error('Network error: ' + r.status);
         const json = await r.json();
         if (json && Array.isArray(json.buses)) {
           const sel = el('busSelect');
           // remove existing options except the placeholder
           [...sel.options].forEach(o => { if (o.value !== '') o.remove(); });
-          json.buses.forEach(b => {
+          json.buses.map(normalizeBus).forEach(b => {
             const o = document.createElement('option');
             o.value = b.id;
             o.textContent = `${b.code} (${b.seats_total ?? 'N/A'} seats)`;
@@ -266,6 +289,8 @@
             o.dataset.route = b.route ?? '';
             sel.appendChild(o);
           });
+        } else {
+          console.warn('api.php returned no buses:', json);
         }
       } catch (e) {
         console.error('loadBuses error', e);
@@ -296,7 +321,6 @@
         miniMap.setView(latlng, 15);
         miniMapHasCentered = true;
       }
-      // small ensure render on some mobile devices
       setTimeout(() => miniMap.invalidateSize(), 150);
     }
 
@@ -345,7 +369,7 @@
       if (trackingInterval) { clearInterval(trackingInterval); trackingInterval = null; }
 
       if (currentBus && currentBus.id) {
-        fetch('/api.php?action=stop_tracking', {
+        fetch('api.php?action=stop_tracking', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({ bus_id: currentBus.id })
@@ -412,8 +436,8 @@
             }
           };
 
-          // Send to new endpoint (stores file + DB)
-          fetch('/update_geo_location.php', {
+          // Send to new endpoint (stores file + DB) — relative path
+          fetch('update_geo_location.php', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bus_id: currentBus.id, geojson: geojsonFeature, route: currentBus.route, seats_available: seatsAvailable, status })
@@ -421,8 +445,8 @@
             if (!res || !res.success) console.error('GeoJSON update error', res);
           }).catch(err => console.error('GeoJSON send error', err));
 
-          // Also update legacy API endpoint
-          fetch('/api.php?action=update_location', {
+          // Also update legacy API endpoint (relative path)
+          fetch('api.php?action=update_location', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ bus_id: currentBus.id, geojson: geojsonFeature, route: currentBus.route, seats_available: seatsAvailable, status })
