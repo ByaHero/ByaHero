@@ -1,15 +1,13 @@
 <?php
 /**
- * Updated Admin UI with real-time bus indicators on the map.
- * Now responsive and using Bootstrap for mobile-first layout.
+ * Admin UI (MySQL/XAMPP version)
  */
-
 declare(strict_types=1);
 
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-define('DB_PATH', __DIR__ . '/../../data/db.sqlite');
+require __DIR__ . '/../config/db.php';
 
 $envUser = getenv('ADMIN_USER');
 $envPass = getenv('ADMIN_PASS');
@@ -18,7 +16,7 @@ define('ADMIN_USER', $envUser !== false ? $envUser : 'admin');
 define('ADMIN_PASS', $envPass !== false ? $envPass : 'password');
 
 /* --- Basic Auth --- */
-if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])
+if (!isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
     || $_SERVER['PHP_AUTH_USER'] !== ADMIN_USER
     || $_SERVER['PHP_AUTH_PW'] !== ADMIN_PASS) {
     header('WWW-Authenticate: Basic realm="ByaHero Admin"');
@@ -27,40 +25,45 @@ if (!isset($_SERVER['PHP_AUTH_USER']) || !isset($_SERVER['PHP_AUTH_PW'])
     exit;
 }
 
-function getDB(): PDO {
-    try {
-        $pdo = new PDO('sqlite:' . DB_PATH);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-        return $pdo;
-    } catch (PDOException $e) {
-        http_response_code(500);
-        echo "DB connection failed: " . htmlspecialchars($e->getMessage());
-        exit;
-    }
-}
-
-function h($s) { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+function h($s): string { return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 session_start();
 
 /* --- Fetch active buses and their locations --- */
-$pdo = getDB();
-$activeBuses = $pdo->query("SELECT id, code, route, current_location_name, seats_total, seats_available, status, updated_at FROM buses WHERE status IN ('available', 'on_stop', 'full')")->fetchAll(PDO::FETCH_ASSOC);
-$locations = []; // To store live geo-coordinates for buses
+$pdo = db();
 
+// NOTE: if you did NOT add current_location_name, this query will still work.
+$activeBuses = $pdo->query("
+    SELECT
+      Bus_ID,
+      code,
+      route,
+      total_seats,
+      seat_availability,
+      status,
+      updated
+    FROM busses
+    WHERE status IN ('available', 'on_stop', 'full')
+")->fetchAll();
+
+$locations = []; // live geo-coordinates for buses (from GeoJSON files if you use them)
 foreach ($activeBuses as $bus) {
-    $locationFile = __DIR__ . "/../../data/current_locations/bus_{$bus['id']}.geojson";
+    $id = $bus['Bus_ID'];
+
+    // existing file-based geojson location (kept because your original admin used it)
+    $locationFile = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
     if (is_file($locationFile)) {
-        $geoData = json_decode(file_get_contents($locationFile), true);
-        if (isset($geoData['geometry']['coordinates'])) {
+        $geoData = json_decode((string)file_get_contents($locationFile), true);
+        if (isset($geoData['geometry']['coordinates']) && is_array($geoData['geometry']['coordinates'])) {
+            $coords = $geoData['geometry']['coordinates']; // [lng, lat]
             $locations[] = [
-                'id' => $bus['id'],
+                'id' => $id,
                 'code' => $bus['code'],
                 'route' => $bus['route'],
-                'location' => $bus['current_location_name'] ?? 'Unknown',
-                'seats' => "{$bus['seats_available']} / {$bus['seats_total']}",
+                'location' => 'Unknown',
+                'seats' => "{$bus['seat_availability']} / {$bus['total_seats']}",
                 'status' => $bus['status'],
-                'updated_at' => $bus['updated_at'],
-                'coordinates' => $geoData['geometry']['coordinates'] // [longitude, latitude]
+                'updated_at' => $bus['updated'],
+                'coordinates' => $coords
             ];
         }
     }
@@ -72,27 +75,20 @@ foreach ($activeBuses as $bus) {
 <meta charset="utf-8">
 <title>ByaHero — ADMIN</title>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<!-- Bootstrap CSS (mobile-first) -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<!-- Leaflet -->
 <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
 <style>
-    :root {
-        --brand: #2563eb;
-    }
-    body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7fb; color:#111; padding-bottom:40px; }
-    .navbar-brand { font-weight:700; color:#fff !important; }
-    .map-card { height: calc(60vh); min-height: 320px; border-radius: .5rem; overflow:hidden; }
-    @media (max-width: 576px) {
-        .map-card { height: 48vh; min-height: 260px; }
-    }
-    .status-badge-available { background:#10b981; color:#fff; }
-    .status-badge-on_stop { background:#f59e0b; color:#fff; }
-    .status-badge-full { background:#ef4444; color:#fff; }
-    .table-responsive { max-height: 48vh; overflow:auto; }
-    .small-muted { font-size:.85rem; color:#6b7280; }
-    /* keep Leaflet controls visible on bootstrap containers */
-    .leaflet-container { background: #fff; }
+  :root { --brand: #2563eb; }
+  body { font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial; background:#f6f7fb; color:#111; padding-bottom:40px; }
+  .navbar-brand { font-weight:700; color:#fff !important; }
+  .map-card { height: calc(60vh); min-height: 320px; border-radius: .5rem; overflow:hidden; }
+  @media (max-width: 576px) { .map-card { height: 48vh; min-height: 260px; } }
+  .status-badge-available { background:#10b981; color:#fff; }
+  .status-badge-on_stop { background:#f59e0b; color:#fff; }
+  .status-badge-full { background:#ef4444; color:#fff; }
+  .table-responsive { max-height: 48vh; overflow:auto; }
+  .small-muted { font-size:.85rem; color:#6b7280; }
+  .leaflet-container { background: #fff; }
 </style>
 </head>
 <body>
@@ -120,7 +116,6 @@ foreach ($activeBuses as $bus) {
   <div class="tab-content">
     <div class="tab-pane fade show active" id="view" role="tabpanel">
       <div class="row g-3">
-        <!-- Left: table -->
         <div class="col-12 col-lg-5">
           <div class="card shadow-sm">
             <div class="card-body">
@@ -132,29 +127,16 @@ foreach ($activeBuses as $bus) {
                       <th scope="col">ID</th>
                       <th scope="col">Code</th>
                       <th scope="col">Route</th>
-                      <th scope="col">Location</th>
+                      <th scope="col">Seats</th>
                     </tr>
                   </thead>
                   <tbody>
                     <?php foreach ($activeBuses as $bus): ?>
                     <tr>
-                      <td class="small"><?= h($bus['id']) ?></td>
+                      <td class="small"><?= h($bus['Bus_ID']) ?></td>
                       <td class="fw-bold"><?= h($bus['code']) ?></td>
                       <td class="small-muted"><?= h($bus['route']) ?></td>
-                      <td class="small"><?= h($bus['current_location_name']) ?></td>
-                    </tr>
-                    <tr class="d-lg-none">
-                      <!-- On small screens show secondary details below each row -->
-                      <td colspan="4" class="small text-muted">
-                        Seats: <?= h("{$bus['seats_available']} / {$bus['seats_total']}") ?> •
-                        Status:
-                        <?php
-                          $s = $bus['status'];
-                          $badgeClass = $s === 'available' ? 'status-badge-available' : ($s === 'on_stop' ? 'status-badge-on_stop' : 'status-badge-full');
-                        ?>
-                        <span class="badge <?= h($badgeClass) ?>"><?= h($s) ?></span>
-                        • Updated: <?= h($bus['updated_at']) ?>
-                      </td>
+                      <td class="small"><?= h("{$bus['seat_availability']} / {$bus['total_seats']}") ?></td>
                     </tr>
                     <?php endforeach; ?>
                   </tbody>
@@ -162,20 +144,19 @@ foreach ($activeBuses as $bus) {
               </div>
 
               <div class="mt-3">
-                <small class="text-muted">Tap or click a bus on the map for details. Table hides extra details on small screens to save space.</small>
+                <small class="text-muted">Tap or click a bus on the map for details.</small>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Right: map -->
         <div class="col-12 col-lg-7">
           <div class="card shadow-sm">
             <div class="card-body p-0">
               <div id="map" class="map-card"></div>
             </div>
             <div class="card-footer small text-muted">
-              Live locations (last update shown in popup). Map tiles by OpenStreetMap.
+              Live locations (from saved GeoJSON files, if present).
             </div>
           </div>
         </div>
@@ -196,12 +177,12 @@ foreach ($activeBuses as $bus) {
               <input name="route" class="form-control" required>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Seats Total</label>
-              <input name="seats_total" type="number" class="form-control" required>
+              <label class="form-label">Total Seats</label>
+              <input name="total_seats" type="number" class="form-control" value="25" required>
             </div>
             <div class="col-md-4">
-              <label class="form-label">Seats Available</label>
-              <input name="seats_available" type="number" class="form-control" required>
+              <label class="form-label">Seat Availability</label>
+              <input name="seat_availability" type="number" class="form-control" value="25" required>
             </div>
             <div class="col-md-4">
               <label class="form-label">Status</label>
@@ -209,84 +190,61 @@ foreach ($activeBuses as $bus) {
                 <option value="available">available</option>
                 <option value="on_stop">on_stop</option>
                 <option value="full">full</option>
+                <option value="unavailable">unavailable</option>
               </select>
             </div>
             <div class="col-12">
               <button class="btn btn-primary">Create Bus</button>
             </div>
           </form>
+          <div class="small text-muted mt-2">Note: make sure ADMIN/add_bus.php is updated to insert into MySQL table <code>busses</code>.</div>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Leaflet JS -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-<!-- Bootstrap JS bundle -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // Safely encoded PHP data for use in JS
-    const buses = <?= json_encode($locations, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?> || [];
+  const buses = <?= json_encode($locations, JSON_HEX_TAG|JSON_HEX_AMP|JSON_HEX_APOS|JSON_HEX_QUOT) ?> || [];
 
-    // Initialize map when DOM ready
-    (function() {
-        const defaultCenter = [14.5995, 120.9842]; // Manila
-        const map = L.map('map', { center: defaultCenter, zoom: 11, preferCanvas: true });
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+  (function() {
+    const defaultCenter = [14.5995, 120.9842];
+    const map = L.map('map', { center: defaultCenter, zoom: 11, preferCanvas: true });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
 
-        const busIcons = {
-            'available': L.icon({ iconUrl: 'green-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            'on_stop': L.icon({ iconUrl: 'orange-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
-            'full': L.icon({ iconUrl: 'red-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] })
-        };
+    const busIcons = {
+      'available': L.icon({ iconUrl: 'green-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+      'on_stop': L.icon({ iconUrl: 'orange-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] }),
+      'full': L.icon({ iconUrl: 'red-marker.png', iconSize: [25, 41], iconAnchor: [12, 41], popupAnchor: [1, -34] })
+    };
 
-        if (buses.length === 0) {
-            // center remains default
-        } else {
-            // Fit map bounds to bus locations when multiple
-            const latlngs = [];
-            buses.forEach(bus => {
-                if (bus.coordinates && Array.isArray(bus.coordinates)) {
-                    const [lng, lat] = bus.coordinates;
-                    latlngs.push([lat, lng]);
-                }
-            });
-            if (latlngs.length === 1) {
-                map.setView(latlngs[0], 13);
-            } else if (latlngs.length > 1) {
-                map.fitBounds(latlngs, { padding: [40, 40] });
-            }
-        }
+    buses.forEach(bus => {
+      if (!bus.coordinates || !Array.isArray(bus.coordinates)) return;
+      const [lng, lat] = bus.coordinates;
+      const icon = busIcons[bus.status] || busIcons['available'];
+      const popupHtml = `<div>
+        <strong>Bus Code:</strong> ${escapeHtml(bus.code)}<br>
+        <strong>Route:</strong> ${escapeHtml(bus.route)}<br>
+        <strong>Seats:</strong> ${escapeHtml(bus.seats)}<br>
+        <strong>Status:</strong> ${escapeHtml(bus.status)}<br>
+        <small class="text-muted">Updated: ${escapeHtml(bus.updated_at)}</small>
+      </div>`;
+      L.marker([lat, lng], { icon }).addTo(map).bindPopup(popupHtml);
+    });
 
-        buses.forEach(bus => {
-            if (bus.coordinates && Array.isArray(bus.coordinates)) {
-                const [lng, lat] = bus.coordinates;
-                const icon = busIcons[bus.status] || busIcons['available'];
-                const popupHtml = `<div>
-                    <strong>Bus Code:</strong> ${escapeHtml(bus.code)}<br>
-                    <strong>Route:</strong> ${escapeHtml(bus.route)}<br>
-                    <strong>Location:</strong> ${escapeHtml(bus.location)}<br>
-                    <strong>Seats:</strong> ${escapeHtml(bus.seats)}<br>
-                    <strong>Status:</strong> ${escapeHtml(bus.status)}<br>
-                    <small class="text-muted">Updated: ${escapeHtml(bus.updated_at)}</small>
-                </div>`;
-                L.marker([lat, lng], { icon }).addTo(map).bindPopup(popupHtml);
-            }
-        });
-
-        // Basic client-side escape for strings coming from server
-        function escapeHtml(s) {
-            if (!s && s !== 0) return '';
-            return String(s)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#039;');
-        }
-    })();
+    function escapeHtml(s) {
+      if (!s && s !== 0) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  })();
 </script>
 </body>
 </html>
