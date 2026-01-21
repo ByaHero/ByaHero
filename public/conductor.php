@@ -90,19 +90,15 @@
             <div class="form-group">
               <label for="routeSelect">Fixed Routes</label>
               <select id="routeSelect" class="form-select" aria-label="Choose a fixed route (optional)">
-                <option value="">Custom / Other...</option>
+                <option value="">-- Select a route --</option>
                 <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
                 <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
               </select>
-
-              <label for="routeInput" class="mt-2">Or enter custom route name</label>
-              <input id="routeInput" type="text" class="form-control" placeholder="e.g. LAUREL ⇄ MARKET" aria-label="Custom route name" />
             </div>
           </div>
 
           <div class="btn-space">
             <button class="btn btn-primary" id="startBtn" type="button">Start Tracking</button>
-            <button class="btn btn-outline-secondary" id="prefillBtn" type="button">Refresh Buses</button>
           </div>
         </section>
 
@@ -145,7 +141,6 @@
 
           <div class="btn-space mt-3">
             <button class="btn btn-danger" id="stopBtn" type="button">Stop Tracking</button>
-            <button class="btn btn-outline-secondary" id="sendNowBtn" type="button">Send Location Now</button>
           </div>
         </section>
       </div>
@@ -320,8 +315,7 @@
       await loadRouteFeatures(); // ensure polygons loaded
       const busId = el('busSelect').value;
       const fixed = el('routeSelect').value || '';
-      const custom = el('routeInput').value.trim();
-      const route = custom || fixed;
+      const route = fixed;
       if (!busId) { showAlert('Please select a bus', 'danger'); return; }
       if (!route) { showAlert('Please choose or enter a route', 'danger'); return; }
       if (!navigator.geolocation) { showAlert('Geolocation not supported by this browser', 'danger'); return; }
@@ -371,7 +365,6 @@
       currentPosition = null;
       el('setupSection').style.display = '';
       el('trackingSection').style.display = 'none';
-      el('routeInput').value = '';
       el('routeSelect').value = '';
       el('currentBusCode').textContent = '-';
       el('currentRoute').textContent = '-';
@@ -385,12 +378,6 @@
         miniMarker = null;
         miniMapHasCentered = false;
       }
-    }
-
-    // Trigger a single immediate location send
-    function sendLocationNow() {
-      if (!currentBus) { showAlert('Start tracking first', 'warning'); return; }
-      updateLocation();
     }
 
     // Main location update: reads geolocation, resolves friendly location, sends to server
@@ -464,8 +451,6 @@
       // Buttons
       el('startBtn').addEventListener('click', startTracking);
       el('stopBtn').addEventListener('click', stopTracking);
-      el('sendNowBtn').addEventListener('click', sendLocationNow);
-      el('prefillBtn').addEventListener('click', () => { loadBuses().then(()=>showAlert('Bus list refreshed', 'success')); });
 
       // Seats control
       el('seatPlus').addEventListener('click', () => { setSeatsValue(getSeatsValue() + 1); if (currentBus) updateLocation(); });
@@ -479,17 +464,9 @@
         if (ev.key === 'ArrowDown') { setSeatsValue(getSeatsValue() - 1); if (currentBus) updateLocation(); ev.preventDefault(); }
       });
 
-      // Route select behavior: pick fixed route -> populate text input and disable it
+      // Route select behavior: no custom input now
       el('routeSelect').addEventListener('change', () => {
-        const v = el('routeSelect').value || '';
-        if (v) {
-          el('routeInput').value = v;
-          el('routeInput').setAttribute('disabled', 'disabled');
-        } else {
-          el('routeInput').removeAttribute('disabled');
-          el('routeInput').value = '';
-          el('routeInput').focus();
-        }
+        // no-op: only fixed routes supported now
       });
 
       // Status change should trigger immediate update when tracking
