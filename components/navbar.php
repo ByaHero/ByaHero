@@ -1,20 +1,4 @@
-<?php
-/**
- * Bottom navigation component for ByaHero (mobile-first).
- *
- * Copy this file to public/components/navbar.php and include it from your
- * index.php where the bottom navigation used to be:
- *
- *   <?php include __DIR__ . '/components/navbar.php'; ?>
- *
- * Important:
- * - Keep the Bootstrap and Leaflet <link> tags in your <head> (do NOT duplicate them here).
- * - This component contains the bottom-nav CSS copied from index.php so you can
- *   edit the navbar styling and markup in one place.
- */
-?>
 <style>
-  /* Bottom fixed navigation (copied from index.php) */
   .bottom-nav {
     position: fixed;
     left: 0;
@@ -57,10 +41,9 @@
     margin-top: 4px;
   }
 
-  /* Mirror index.php behavior: hide bottom-nav on large screens */
   @media (min-width: 992px) {
     .bottom-nav { display: none; }
-    .map-controls { display: flex; } /* kept for parity with index page */
+    .map-controls { display: flex; } 
   }
 </style>
 
