@@ -6,6 +6,9 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ByaHero - Bus Tracker (Passenger View)</title>
 
+  <!-- Material Symbols (required by integrated navbar) -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+
   <!-- Bootstrap CSS (mobile-first) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -73,49 +76,6 @@
       align-items: center;
     }
 
-    /* Bottom fixed navigation (Life360-like) */
-    .bottom-nav {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      height: var(--bottombar-h);
-      display: flex;
-      align-items: center;
-      justify-content: space-around;
-      padding: 8px 12px;
-      background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-      color: #fff;
-      z-index: 1100;
-      box-shadow: 0 -6px 18px rgba(2, 6, 23, 0.12);
-      gap: 6px;
-      /* respect safe area inset on iOS */
-      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
-    }
-
-    .bottom-nav .btn {
-      min-width: 56px;
-      background: rgba(255,255,255,0.08);
-      border: 0;
-      color: #fff;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 8px;
-      border-radius: 10px;
-    }
-
-    .bottom-nav .btn:active {
-      transform: translateY(1px);
-    }
-
-    .bottom-nav .btn .label {
-      font-size: 11px;
-      opacity: 0.95;
-      margin-top: 4px;
-    }
-
     /* Modal bottom-sheet styling for active buses */
     .modal-bottom .modal-dialog {
       position: fixed;
@@ -153,7 +113,6 @@
       }
 
       /* Desktop: hide bottom nav and keep the floating controls for map */
-      .bottom-nav { display: none; }
       .map-controls { display: flex; }
     }
   </style>
@@ -262,7 +221,7 @@
   </div>
 
   <!-- Bottom navigation (included component) -->
-  <?php include __DIR__ . '/../components/navbar.php'; ?>
+  <?php include("../components/navbar.php"); ?>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
