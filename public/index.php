@@ -261,28 +261,8 @@
     </div>
   </div>
 
-  <!-- Bottom navigation (mobile-first) -->
-  <nav class="bottom-nav" role="navigation" aria-label="Bottom navigation">
-    <button class="btn" id="menuBtn" title="Open menu" aria-label="Open menu" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
-      <div class="icon">☰</div>
-      <div class="label">Menu</div>
-    </button>
-
-    <button class="btn" id="activeBusesBtn" title="Active buses" aria-label="Active buses">
-      <div class="icon">🚌</div>
-      <div class="label">Active</div>
-    </button>
-
-    <button class="btn" id="locateBtn" title="Locate me" aria-label="Locate me">
-      <div class="icon">🧭</div>
-      <div class="label">Locate</div>
-    </button>
-
-    <button class="btn" id="refreshBtn" title="Refresh" aria-label="Refresh">
-      <div class="icon">⟳</div>
-      <div class="label">Refresh</div>
-    </button>
-  </nav>
+  <!-- Bottom navigation (included component) -->
+  <?php include __DIR__ . '/../components/navbar.php'; ?>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
