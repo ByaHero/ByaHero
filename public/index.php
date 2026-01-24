@@ -124,7 +124,6 @@
     <div class="container-fluid">
       <div class="d-flex align-items-center gap-3">
         <span class="navbar-brand mb-0 h6">ByaHero: Prototype V3</span>
-        <small class="text-white-50 d-none d-sm-inline">Real-time bus tracking</small>
       </div>
     </div>
   </nav>
@@ -235,7 +234,7 @@
     }).setView([14.5995, 120.9842], 13);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors',
+      attribution: 'Maps',
       maxZoom: 19
     }).addTo(map);
 
