@@ -1,20 +1,4 @@
 <?php
-/**
- * ByaHero Bus Tracking API (MySQL/XAMPP version)
- *
- * Behavior:
- * - Database column `current_location` stores the friendly name (string).
- * - Per-bus GeoJSON files are stored at data/current_locations/bus_{id}.geojson and used to supply coordinates in API responses.
- *
- * GET /api.php?action=get_buses  -> returns buses[] where:
- *    - current_location is the GeoJSON (string) when a file exists
- *    - current_location_name is the friendly name (from DB current_location column)
- *
- * POST /api.php?action=update_location  -> accepts geojson or lat/lng and:
- *    - writes data/current_locations/bus_{id}.geojson (full geojson with properties)
- *    - updates DB current_location column to the friendly name (string)
- */
-
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
@@ -198,6 +182,9 @@ function updateLocation(): array {
     return ['success' => true, 'message' => 'Location updated successfully', 'current_location_name' => $locationName];
 }
 
+/**
+ * Stop tracking for a bus, clearing all relevant fields and removing GeoJSON file.
+ */
 function stopTracking(): array {
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
@@ -211,7 +198,12 @@ function stopTracking(): array {
     $pdo = db();
     $stmt = $pdo->prepare("
         UPDATE busses
-        SET current_location = NULL, status = 'unavailable', updated = CURRENT_TIMESTAMP
+        SET 
+            current_location = NULL,
+            status = 'unavailable',
+            route = NULL,
+            seat_availability = NULL,
+            updated = NULL
         WHERE Bus_ID = ?
     ");
     $stmt->execute([(int)$data['bus_id']]);
