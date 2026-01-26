@@ -79,11 +79,14 @@ if (!empty($locationName)) {
     $geojson['properties']['Current Location'] = $locationName;
 }
 
-// Save file (full geojson)
+// Save file (full geojson) — write atomically (tmp + rename)
 $dir = __DIR__ . '/../data/current_locations';
 if (!is_dir($dir)) @mkdir($dir, 0755, true);
 $file = $dir . "/bus_{$busId}.geojson";
-file_put_contents($file, json_encode($geojson, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES));
+$data = json_encode($geojson, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
+$tmp = $file . '.tmp';
+@file_put_contents($tmp, $data, LOCK_EX);
+@rename($tmp, $file);
 
 // Update DB: store friendly name into current_location column (no DB schema change)
 $pdo = db();

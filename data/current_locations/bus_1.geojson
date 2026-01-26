@@ -1,0 +1,20 @@
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "Point",
+        "coordinates": [
+            121.17159190842749,
+            14.231263021575112
+        ]
+    },
+    "properties": {
+        "bus_id": 1,
+        "code": "BUS-001",
+        "route": "LAUREL - TANAUAN",
+        "seats_available": 25,
+        "status": "available",
+        "timestamp": "2026-01-26T11:12:35.974Z",
+        "current_location_name": "14.231263, 121.171592",
+        "Current Location": "14.231263, 121.171592"
+    }
+}
