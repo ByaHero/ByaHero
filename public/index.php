@@ -15,10 +15,18 @@
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
+  <link rel="manifest" href="/ByaHero-Prototype-V3/public/manifest.webmanifest">
+  <meta name="theme-color" content="#667eea">
+  <link rel="apple-touch-icon" href="/ByaHero-Prototype-V3/public/icons/icon-192x192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
   <style>
     :root {
-      --topbar-h: 56px; /* top title bar height */
-      --bottombar-h: 66px; /* bottom navigation height */
+      --topbar-h: 56px;
+      /* top title bar height */
+      --bottombar-h: 66px;
+      /* bottom navigation height */
       --accent-start: #667eea;
       --accent-end: #764ba2;
     }
@@ -94,6 +102,7 @@
     }
 
     @media (min-width: 992px) {
+
       /* On large screens allow a sidebar next to the map (non-offcanvas) */
       .map-and-sidebar {
         display: grid;
@@ -113,7 +122,9 @@
       }
 
       /* Desktop: hide bottom nav and keep the floating controls for map */
-      .map-controls { display: flex; }
+      .map-controls {
+        display: flex;
+      }
     }
   </style>
 </head>
@@ -298,21 +309,42 @@
     // Parse GeoJSON stored in current_location to extract coordinates and friendly name
     function parseCurrentLocationField(bus) {
       const cl = bus.current_location;
-      if (!cl) return { coords: null, name: null };
+      if (!cl) return {
+        coords: null,
+        name: null
+      };
       try {
         const gj = (typeof cl === 'string') ? JSON.parse(cl) : cl;
-        if (!gj) return { coords: null, name: null };
+        if (!gj) return {
+          coords: null,
+          name: null
+        };
         if (gj.type === 'Feature') {
           const props = gj.properties || {};
           const coords = gj.geometry && gj.geometry.coordinates ? [parseFloat(gj.geometry.coordinates[1]), parseFloat(gj.geometry.coordinates[0])] : null;
-          if (props.current_location_name) return { coords, name: props.current_location_name };
-          if (props['Current Location']) return { coords, name: props['Current Location'] };
-          if (props.name) return { coords, name: props.name };
+          if (props.current_location_name) return {
+            coords,
+            name: props.current_location_name
+          };
+          if (props['Current Location']) return {
+            coords,
+            name: props['Current Location']
+          };
+          if (props.name) return {
+            coords,
+            name: props.name
+          };
           const keys = Object.keys(props);
           if (keys.length === 1) {
             const v = props[keys[0]];
-            if (typeof v === 'string' && v.trim() !== '') return { coords, name: v.trim() };
-            return { coords, name: keys[0] };
+            if (typeof v === 'string' && v.trim() !== '') return {
+              coords,
+              name: v.trim()
+            };
+            return {
+              coords,
+              name: keys[0]
+            };
           }
         }
         if (gj.type === 'FeatureCollection' && Array.isArray(gj.features) && gj.features.length > 0) {
@@ -320,22 +352,43 @@
           if (f.geometry && f.geometry.type === 'Point' && f.geometry.coordinates) {
             const coords = [parseFloat(f.geometry.coordinates[1]), parseFloat(f.geometry.coordinates[0])];
             const props = f.properties || {};
-            if (props.current_location_name) return { coords, name: props.current_location_name };
-            if (props['Current Location']) return { coords, name: props['Current Location'] };
+            if (props.current_location_name) return {
+              coords,
+              name: props.current_location_name
+            };
+            if (props['Current Location']) return {
+              coords,
+              name: props['Current Location']
+            };
             const keys = Object.keys(props);
             if (keys.length > 0) {
               const v = props[keys[0]];
-              if (typeof v === 'string' && v.trim() !== '') return { coords, name: v.trim() };
-              return { coords, name: keys[0] };
+              if (typeof v === 'string' && v.trim() !== '') return {
+                coords,
+                name: v.trim()
+              };
+              return {
+                coords,
+                name: keys[0]
+              };
             }
-            return { coords, name: null };
+            return {
+              coords,
+              name: null
+            };
           }
         }
-        if (gj.type && gj.coordinates && gj.type === 'Point') return { coords: [parseFloat(gj.coordinates[1]), parseFloat(gj.coordinates[0])], name: null };
+        if (gj.type && gj.coordinates && gj.type === 'Point') return {
+          coords: [parseFloat(gj.coordinates[1]), parseFloat(gj.coordinates[0])],
+          name: null
+        };
       } catch (e) {
         console.warn('parse error', e);
       }
-      return { coords: null, name: null };
+      return {
+        coords: null,
+        name: null
+      };
     }
 
     function getBusCoordinates(bus) {
@@ -404,7 +457,9 @@
           const marker = busMarkers[id];
           const modalInstance = bootstrap.Modal.getInstance(document.getElementById('activeBusesModal'));
           if (marker) {
-            map.flyTo(marker.getLatLng(), 16, { duration: 0.7 });
+            map.flyTo(marker.getLatLng(), 16, {
+              duration: 0.7
+            });
             setTimeout(() => marker.openPopup(), 700);
           } else {
             alert('Location for this bus is not available on the map.');
@@ -445,7 +500,9 @@
       renderActiveBusesModal(_lastFetchedBuses || []);
       // reuse existing instance if present
       if (!activeBusesModalInstance) {
-        activeBusesModalInstance = new bootstrap.Modal(activeBusesModalEl, { backdrop: true });
+        activeBusesModalInstance = new bootstrap.Modal(activeBusesModalEl, {
+          backdrop: true
+        });
       }
       activeBusesModalInstance.show();
     });
@@ -460,18 +517,33 @@
         const lng = pos.coords.longitude;
         map.setView([lat, lng], 16);
         // optionally add a temporary marker
-        const t = L.circleMarker([lat, lng], { radius: 8, color: '#fff', fillColor: '#2563eb', fillOpacity: 0.9 }).addTo(map);
-        setTimeout(() => { try { map.removeLayer(t); } catch (e) {} }, 4000);
+        const t = L.circleMarker([lat, lng], {
+          radius: 8,
+          color: '#fff',
+          fillColor: '#2563eb',
+          fillOpacity: 0.9
+        }).addTo(map);
+        setTimeout(() => {
+          try {
+            map.removeLayer(t);
+          } catch (e) {}
+        }, 4000);
       }, err => {
         console.warn('geo error', err);
         alert('Unable to determine location.');
-      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 0,
+        timeout: 10000
+      });
     });
 
     // Fetch + update loop — NOTE: relative URLs (no leading slash)
     async function updateBuses() {
       try {
-        const res = await fetch('api.php?action=get_buses', { cache: 'no-store' });
+        const res = await fetch('api.php?action=get_buses', {
+          cache: 'no-store'
+        });
         if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
         const json = await res.json();
         if (json && json.buses) {
@@ -502,7 +574,11 @@
       // remove markers that are no longer present
       Object.keys(busMarkers).forEach(id => {
         if (!filtered.find(b => String(b.id) === String(id))) {
-          try { map.removeLayer(busMarkers[id]); } catch (e) { /* ignore */ }
+          try {
+            map.removeLayer(busMarkers[id]);
+          } catch (e) {
+            /* ignore */
+          }
           delete busMarkers[id];
         }
       });
@@ -517,7 +593,9 @@
           busMarkers[id].setIcon(icon);
           busMarkers[id].setPopupContent(createPopupContent(bus));
         } else {
-          const marker = L.marker(pos, { icon }).addTo(map);
+          const marker = L.marker(pos, {
+            icon
+          }).addTo(map);
           marker.bindPopup(createPopupContent(bus));
           busMarkers[id] = marker;
         }
@@ -536,7 +614,7 @@
 
     function updateBusLists(buses) {
       // Mobile list
-      (function () {
+      (function() {
         const listEl = document.getElementById('busList');
         const countEl = document.getElementById('busCount');
         const filtered = buses.filter(b => !selectedRoute || selectedRoute === '' || b.route === selectedRoute);
@@ -560,7 +638,9 @@
             const id = item.getAttribute('data-bus-id');
             const marker = busMarkers[id];
             if (marker) {
-              map.flyTo(marker.getLatLng(), 16, { duration: 0.7 });
+              map.flyTo(marker.getLatLng(), 16, {
+                duration: 0.7
+              });
               setTimeout(() => marker.openPopup(), 700);
               // Close offcanvas on mobile to reveal the map
               const off = bootstrap.Offcanvas.getInstance(offcanvasEl);
@@ -573,7 +653,7 @@
       })();
 
       // Desktop list
-      (function () {
+      (function() {
         const listEl = document.getElementById('busListDesktop');
         const countEl = document.getElementById('busCountDesktop');
         const filtered = buses.filter(b => !selectedRoute || selectedRoute === '' || b.route === selectedRoute);
@@ -597,7 +677,9 @@
             const id = item.getAttribute('data-bus-id');
             const marker = busMarkers[id];
             if (marker) {
-              map.flyTo(marker.getLatLng(), 16, { duration: 0.7 });
+              map.flyTo(marker.getLatLng(), 16, {
+                duration: 0.7
+              });
               setTimeout(() => marker.openPopup(), 700);
             } else {
               alert('Location for this bus is not available on the map.');
@@ -649,6 +731,20 @@
 
     // Ensure initial invalidation so Leaflet draws correctly on some mobile browsers
     setTimeout(() => map.invalidateSize(), 300);
+  </script>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function() {
+        navigator.serviceWorker.register('/ByaHero-Prototype-V3/public/sw.js')
+          .then(function(reg) {
+            console.log('SW registered', reg);
+          })
+          .catch(function(err) {
+            console.warn('SW registration failed', err);
+          });
+      });
+    }
   </script>
 </body>
 
