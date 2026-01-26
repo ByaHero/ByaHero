@@ -62,6 +62,25 @@
       cursor: pointer;
     }
 
+    /* User location marker (person icon inside circular background) */
+    .user-marker-icon {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #2563eb;
+      color: #fff;
+      border-radius: 50%;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.18);
+    }
+    .user-marker-icon svg {
+      width: 16px;
+      height: 16px;
+      fill: #fff;
+      display: block;
+    }
+
     /* Floating controls over the map (desktop/tablet) */
     .map-controls {
       position: absolute;
@@ -121,10 +140,15 @@
 
           <!-- Floating controls (desktop/tablet) -->
           <div class="map-controls d-none d-lg-flex">
-            <div class="btn-group" role="group" aria-label="Map controls">
-              <button class="btn btn-sm btn-light" id="zoomIn" title="Zoom in">+</button>
-              <button class="btn btn-sm btn-light" id="zoomOut" title="Zoom out">−</button>
-            </div>
+              <div class="btn-group" role="group" aria-label="Map controls">
+                <button class="btn btn-sm btn-light" id="zoomIn" title="Zoom in">+</button>
+                <button class="btn btn-sm btn-light" id="zoomOut" title="Zoom out">−</button>
+              </div>
+              <div class="btn-group ms-2" role="group" aria-label="User controls">
+                <button class="btn btn-sm btn-light" id="locateBtnDesktop" title="Locate me" aria-label="Locate me">
+                  <span class="material-symbols-rounded">my_location</span>
+                </button>
+              </div>
           </div>
         </div>
       </div>
@@ -240,6 +264,10 @@
     const busMarkers = {};
     let selectedRoute = '';
     let _lastFetchedBuses = [];
+    // user location tracking
+    let userMarker = null;
+    let userCircle = null;
+    let userWatchId = null;
     const statusColors = {
       available: '#10b981',
       on_stop: '#f59e0b',
@@ -435,22 +463,65 @@
       activeBusesModalInstance.show();
     });
 
-    document.getElementById('locateBtn')?.addEventListener('click', () => {
-      if (!navigator.geolocation) {
-        alert('Geolocation is not supported by your browser.');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(pos => {
+    // Toggle user location tracking: starts a watchPosition and shows a persistent marker + accuracy circle.
+    function startUserLocationTracking(center = true) {
+      if (!navigator.geolocation) { alert('Geolocation is not supported by your browser.'); return; }
+      if (userWatchId !== null) return; // already tracking
+      userWatchId = navigator.geolocation.watchPosition(pos => {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        map.setView([lat, lng], 16);
-        // optionally add a temporary marker
-        const t = L.circleMarker([lat, lng], { radius: 8, color: '#fff', fillColor: '#2563eb', fillOpacity: 0.9 }).addTo(map);
-        setTimeout(() => { try { map.removeLayer(t); } catch (e) {} }, 4000);
+        const accuracy = pos.coords.accuracy || 0;
+
+        // add or update marker
+        if (!userMarker) {
+          const icon = L.divIcon({
+            className: 'user-marker-icon',
+            html: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>',
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+          });
+          userMarker = L.marker([lat, lng], { icon }).addTo(map);
+          userMarker.bindTooltip('You are here', { permanent: false, direction: 'top' });
+        } else {
+          userMarker.setLatLng([lat, lng]);
+        }
+
+        // accuracy circle
+        if (!userCircle) {
+          userCircle = L.circle([lat, lng], { radius: Math.max(5, accuracy), color: '#2563eb', opacity: 0.15, fillOpacity: 0.08 }).addTo(map);
+        } else {
+          userCircle.setLatLng([lat, lng]);
+          userCircle.setRadius(Math.max(5, accuracy));
+        }
+
+        if (center) map.setView([lat, lng], Math.max(map.getZoom(), 15));
       }, err => {
         console.warn('geo error', err);
         alert('Unable to determine location.');
-      }, { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 });
+      }, { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 });
+      // mark button active
+      document.getElementById('locateBtn')?.classList.add('active');
+    }
+
+    function stopUserLocationTracking() {
+      if (userWatchId !== null) {
+        try { navigator.geolocation.clearWatch(userWatchId); } catch (e) {}
+        userWatchId = null;
+      }
+      if (userMarker) { try { map.removeLayer(userMarker); } catch (e) {} userMarker = null; }
+      if (userCircle) { try { map.removeLayer(userCircle); } catch (e) {} userCircle = null; }
+      document.getElementById('locateBtn')?.classList.remove('active');
+    }
+
+    document.getElementById('locateBtn')?.addEventListener('click', () => {
+      if (userWatchId === null) startUserLocationTracking(true);
+      else stopUserLocationTracking();
+    });
+
+    // wire desktop locate button (visible on lg+)
+    document.getElementById('locateBtnDesktop')?.addEventListener('click', () => {
+      if (userWatchId === null) startUserLocationTracking(true);
+      else stopUserLocationTracking();
     });
 
     // Fetch + update loop — NOTE: relative URLs (no leading slash)
