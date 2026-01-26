@@ -9,10 +9,18 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 
+  <link rel="manifest" href="/ByaHero-Prototype-V3/public/manifest.webmanifest">
+  <meta name="theme-color" content="#667eea">
+  <link rel="apple-touch-icon" href="/ByaHero-Prototype-V3/public/icons/icon-192x192.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
   <style>
     :root {
-      --topbar-h: 56px; /* top title bar height */
-      --bottombar-h: 66px; /* bottom navigation height */
+      --topbar-h: 56px;
+      /* top title bar height */
+      --bottombar-h: 66px;
+      /* bottom navigation height */
       --accent-start: #667eea;
       --accent-end: #764ba2;
     }
