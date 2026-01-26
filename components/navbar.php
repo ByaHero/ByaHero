@@ -1,70 +1,42 @@
 <style>
-  .bottom-nav {
+  /* Minimal custom styles — rely on Bootstrap utilities where possible */
+  .bottom-nav-custom {
     position: fixed;
     left: 0;
     right: 0;
     bottom: 0;
-    height: var(--bottombar-h);
-    display: flex;
-    align-items: center;
-    justify-content: space-around;
-    padding: 8px 12px;
-    background: linear-gradient(135deg, var(--accent-start), var(--accent-end));
-    color: #fff;
     z-index: 1100;
-    box-shadow: 0 -6px 18px rgba(2, 6, 23, 0.12);
-    gap: 6px;
     /* respect safe area inset on iOS */
-    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 6px);
+    box-shadow: 0 -6px 18px rgba(2, 6, 23, 0.08);
   }
 
-  .bottom-nav .btn {
-    min-width: 56px;
-    background: rgba(255,255,255,0.08);
-    border: 0;
-    color: #fff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 8px;
-    border-radius: 10px;
-  }
-
-  .bottom-nav .btn:active {
-    transform: translateY(1px);
-  }
-
-  .bottom-nav .btn .label {
-    font-size: 11px;
-    opacity: 0.95;
-    margin-top: 4px;
-  }
+  .bottom-nav-btn { min-width: 56px; border-radius: 10px; }
 
   @media (min-width: 992px) {
-    .bottom-nav { display: none; }
-    .map-controls { display: flex; } 
+    .bottom-nav-custom { display: none; }
+    .map-controls { display: flex; }
   }
 </style>
 
-<nav class="bottom-nav" role="navigation" aria-label="Bottom navigation">
-  <button class="btn" id="menuBtn" title="Open menu" aria-label="Open menu" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="sidebarOffcanvas">
-    <div class="icon">☰</div>
-    <div class="label">Menu</div>
+<nav class="bottom-nav-custom d-flex d-lg-none justify-content-around align-items-center px-2 py-2" role="navigation" aria-label="Bottom navigation" style="background: linear-gradient(135deg, var(--accent-start), var(--accent-end)); color:#fff;">
+  <button class="btn btn-outline-light btn-sm d-flex flex-column align-items-center gap-1 bottom-nav-btn" id="menuBtn" title="Open menu" aria-label="Open menu" data-bs-toggle="offcanvas" data-bs-target="#sidebarOffcanvas" aria-controls="#sidebarOffcanvas">
+    <span class="material-symbols-rounded">menu</span>
+    <small class="text-nowrap">Menu</small>
   </button>
 
-  <button class="btn" id="activeBusesBtn" title="Active buses" aria-label="Active buses">
-    <div class="icon">🚌</div>
-    <div class="label">Active</div>
+  <button class="btn btn-outline-light btn-sm d-flex flex-column align-items-center gap-1 bottom-nav-btn" id="activeBusesBtn" title="Active buses" aria-label="Active buses">
+    <span class="material-symbols-rounded">directions_bus</span>
+    <small class="text-nowrap">Active</small>
   </button>
 
-  <button class="btn" id="locateBtn" title="Locate me" aria-label="Locate me">
-    <div class="icon">🧭</div>
-    <div class="label">Locate</div>
+  <button class="btn btn-outline-light btn-sm d-flex flex-column align-items-center gap-1 bottom-nav-btn" id="locateBtn" title="Locate me" aria-label="Locate me">
+    <span class="material-symbols-rounded">my_location</span>
+    <small class="text-nowrap">Locate</small>
   </button>
 
-  <button class="btn" id="refreshBtn" title="Refresh" aria-label="Refresh">
-    <div class="icon">⟳</div>
-    <div class="label">Refresh</div>
+  <button class="btn btn-outline-light btn-sm d-flex flex-column align-items-center gap-1 bottom-nav-btn" id="refreshBtn" title="Refresh" aria-label="Refresh">
+    <span class="material-symbols-rounded">refresh</span>
+    <small class="text-nowrap">Refresh</small>
   </button>
 </nav>

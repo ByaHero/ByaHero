@@ -57,11 +57,8 @@
       line-height: 1.25;
     }
 
-    /* Small touch target improvements */
-    .bus-item {
-      padding: 10px;
-      border-radius: 8px;
-      margin-bottom: 8px;
+    /* Small touch target improvements — prefer Bootstrap list-group items */
+    .bus-list-item {
       cursor: pointer;
     }
 
@@ -94,25 +91,11 @@
     }
 
     @media (min-width: 992px) {
-      /* On large screens allow a sidebar next to the map (non-offcanvas) */
-      .map-and-sidebar {
-        display: grid;
-        grid-template-columns: 1fr 340px;
-        gap: 16px;
-      }
-
       .map-container {
         height: calc(100vh - var(--topbar-h) - 32px);
-        margin: 16px;
-        border-radius: 10px;
-        box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
       }
 
-      .desktop-sidebar {
-        margin: 16px;
-      }
-
-      /* Desktop: hide bottom nav and keep the floating controls for map */
+      /* Desktop: keep the floating controls for map */
       .map-controls { display: flex; }
     }
   </style>
@@ -130,23 +113,25 @@
 
   <!-- Main content: map + offcanvas sidebar (mobile) / grid (desktop) -->
   <main class="container-fluid p-0">
-    <div class="map-and-sidebar">
-      <!-- Map -->
-      <div id="mapWrapper" class="position-relative">
-        <div id="map" class="map-container"></div>
+    <div class="row g-0">
+      <div class="col-12 col-lg-10">
+        <!-- Map -->
+        <div id="mapWrapper" class="position-relative">
+          <div id="map" class="map-container rounded-3 shadow-sm"></div>
 
-        <!-- Floating controls (desktop/tablet) -->
-        <div class="map-controls d-none d-lg-flex">
-          <div class="btn-group" role="group" aria-label="Map controls">
-            <button class="btn btn-sm btn-light" id="zoomIn" title="Zoom in">+</button>
-            <button class="btn btn-sm btn-light" id="zoomOut" title="Zoom out">−</button>
+          <!-- Floating controls (desktop/tablet) -->
+          <div class="map-controls d-none d-lg-flex">
+            <div class="btn-group" role="group" aria-label="Map controls">
+              <button class="btn btn-sm btn-light" id="zoomIn" title="Zoom in">+</button>
+              <button class="btn btn-sm btn-light" id="zoomOut" title="Zoom out">−</button>
+            </div>
           </div>
         </div>
       </div>
 
       <!-- Desktop sidebar: visible on lg+; hidden on small screens because offcanvas is used -->
-      <aside class="desktop-sidebar d-none d-lg-block">
-        <div class="card">
+      <aside class="desktop-sidebar col-12 col-lg-2 d-none d-lg-block">
+        <div class="card h-100">
           <div class="card-body">
             <h5 class="card-title">Filters & Active Buses</h5>
 
@@ -166,7 +151,7 @@
             </div>
 
             <h6>Active Buses (<span id="busCountDesktop">0</span>)</h6>
-            <div id="busListDesktop" class="mt-2" aria-live="polite"></div>
+            <div id="busListDesktop" class="list-group mt-2" aria-live="polite"></div>
 
             <div class="mt-3 text-muted small">Last updated: <span id="lastUpdateFooterDesktop">Never</span></div>
           </div>
@@ -498,16 +483,28 @@
 
     function updateMap(buses) {
       const filtered = buses.filter(b => !selectedRoute || selectedRoute === '' || b.route === selectedRoute);
+      const visible = filtered.filter(b => getBusCoordinates(b) !== null);
 
-      // remove markers that are no longer present
+      // If there are no visible buses (e.g., tracking stopped), remove all existing markers.
+      if (visible.length === 0) {
+        Object.keys(busMarkers).forEach(id => {
+          try { map.removeLayer(busMarkers[id]); } catch (e) { /* ignore */ }
+          delete busMarkers[id];
+        });
+        return;
+      }
+
+      // remove markers that are no longer present in the visible set
+      const visibleIds = visible.map(b => String(b.id));
       Object.keys(busMarkers).forEach(id => {
-        if (!filtered.find(b => String(b.id) === String(id))) {
+        if (!visibleIds.includes(String(id))) {
           try { map.removeLayer(busMarkers[id]); } catch (e) { /* ignore */ }
           delete busMarkers[id];
         }
       });
 
-      filtered.forEach(bus => {
+      // add/update visible markers
+      visible.forEach(bus => {
         const pos = getBusCoordinates(bus);
         if (!pos) return;
         const id = String(bus.id);
@@ -552,10 +549,17 @@
           const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
           const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
           const status = escapeHtml(b.status || (b.__raw && b.__raw.status) || '');
-          return `<div class="bus-item border" data-bus-id="${escapeHtml(b.id)}"><strong>${escapeHtml(b.code)}</strong><div class="small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</div><div class="small text-muted">Location: ${loc}</div><div class="small text-muted">Seats: ${seats} · ${status}</div></div>`;
+          return `<button type="button" class="list-group-item list-group-item-action bus-list-item" data-bus-id="${escapeHtml(b.id)}">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${escapeHtml(b.code)}</h6>
+                <small class="text-muted">${seats}</small>
+              </div>
+              <p class="mb-1 small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</p>
+              <p class="mb-0 small text-muted">Location: ${loc} · ${status}</p>
+            </button>`;
         }).join('');
 
-        listEl.querySelectorAll('.bus-item').forEach(item => {
+        listEl.querySelectorAll('.bus-list-item').forEach(item => {
           item.addEventListener('click', () => {
             const id = item.getAttribute('data-bus-id');
             const marker = busMarkers[id];
@@ -589,10 +593,17 @@
           const loc = escapeHtml(getBusLocationName(b) || 'Unknown');
           const seats = `${escapeHtml(b.seats_available)} / ${escapeHtml(b.seats_total)}`;
           const status = escapeHtml(b.status || (b.__raw && b.__raw.status) || '');
-          return `<div class="bus-item border" data-bus-id="${escapeHtml(b.id)}"><strong>${escapeHtml(b.code)}</strong><div class="small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</div><div class="small text-muted">Location: ${loc}</div><div class="small text-muted">Seats: ${seats} · ${status}</div></div>`;
+          return `<button type="button" class="list-group-item list-group-item-action bus-list-item" data-bus-id="${escapeHtml(b.id)}">
+              <div class="d-flex w-100 justify-content-between">
+                <h6 class="mb-1">${escapeHtml(b.code)}</h6>
+                <small class="text-muted">${seats}</small>
+              </div>
+              <p class="mb-1 small text-muted">Route: ${escapeHtml(b.route || 'Not set')}</p>
+              <p class="mb-0 small text-muted">Location: ${loc} · ${status}</p>
+            </button>`;
         }).join('');
 
-        listEl.querySelectorAll('.bus-item').forEach(item => {
+        listEl.querySelectorAll('.bus-list-item').forEach(item => {
           item.addEventListener('click', () => {
             const id = item.getAttribute('data-bus-id');
             const marker = busMarkers[id];
@@ -643,9 +654,52 @@
     // Refresh button
     document.getElementById('refreshBtn')?.addEventListener('click', () => updateBuses());
 
-    // Start polling
-    updateBuses();
-    setInterval(updateBuses, 3000);
+    // Real-time update: prefer Server-Sent Events (SSE) and fall back to polling.
+    let pollingIntervalId = null;
+    let sse = null;
+
+    function startPolling() {
+      if (pollingIntervalId) return;
+      updateBuses();
+      pollingIntervalId = setInterval(updateBuses, 3000);
+    }
+
+    if (window.EventSource) {
+      try {
+        sse = new EventSource('stream_buses.php');
+        sse.onmessage = (e) => {
+          try {
+            const json = JSON.parse(e.data);
+            if (json && json.buses) {
+              const buses = json.buses.map(normalizeBus);
+              _lastFetchedBuses = buses;
+              updateMap(buses);
+              updateBusLists(buses);
+              updateRouteFilters(buses);
+              renderActiveBusesModal(buses);
+              const ts = new Date().toLocaleTimeString();
+              document.getElementById('lastUpdateFooter') && (document.getElementById('lastUpdateFooter').textContent = ts);
+              document.getElementById('lastUpdateFooterDesktop') && (document.getElementById('lastUpdateFooterDesktop').textContent = ts);
+            }
+          } catch (err) {
+            console.error('SSE parse error', err);
+          }
+        };
+        sse.onerror = (err) => {
+          console.warn('SSE error, falling back to polling', err);
+          if (sse) try { sse.close(); } catch (e) {}
+          sse = null;
+          startPolling();
+        };
+        // initial fetch as a safety net
+        updateBuses();
+      } catch (e) {
+        console.warn('SSE init failed, using polling', e);
+        startPolling();
+      }
+    } else {
+      startPolling();
+    }
 
     // Ensure initial invalidation so Leaflet draws correctly on some mobile browsers
     setTimeout(() => map.invalidateSize(), 300);
