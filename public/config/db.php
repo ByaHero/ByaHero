@@ -1,13 +1,5 @@
 <?php
 declare(strict_types=1);
-
-/**
- * Central PDO connection for XAMPP MySQL/MariaDB.
- * Database: byahero
- * Default XAMPP user: root (often blank password)
- *
- * Save as: public/config/db.php
- */
 function db(): PDO {
     static $pdo = null;
     if ($pdo instanceof PDO) return $pdo;
