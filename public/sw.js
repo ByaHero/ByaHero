@@ -1,4 +1,4 @@
-const CACHE_NAME = "byahero-v1";
+const CACHE_NAME = "byahero-v2";
 const APP_SHELL = [
   "/index.php",
   "/conductor.php",

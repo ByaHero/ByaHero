@@ -20,7 +20,18 @@ try {
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['name'];
             $_SESSION['user_role'] = $user['role'];
-            $response = ['success' => true];
+            
+            // Check role and set redirect URL if necessary
+            $redirect = null;
+            if (in_array($user['role'], ['conductor', 'driver'])) {
+                $redirect = 'conductor.php';
+            }
+
+            $response = [
+                'success' => true, 
+                'message' => 'Login successful',
+                'redirect' => $redirect
+            ];
         } else {
             $response['message'] = 'Invalid email or password.';
         }

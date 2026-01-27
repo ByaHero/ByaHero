@@ -1,348 +1,469 @@
 <?php
-
 /**
- * Admin UI (MySQL/XAMPP version)
+ * Admin UI - ByaHero
+ * Features: View Active Buses, Add Buses, Manage Conductors/Drivers
  */
 
 declare(strict_types=1);
 
+// Error reporting for debugging (disable in production)
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require __DIR__ . '/../config/db.php';
 
+// --- Authentication ---
 $envUser = getenv('ADMIN_USER');
 $envPass = getenv('ADMIN_PASS');
-
 define('ADMIN_USER', $envUser !== false ? $envUser : 'admin');
 define('ADMIN_PASS', $envPass !== false ? $envPass : 'password');
 
-/* --- Basic Auth --- */
 if (
-  !isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
-  || $_SERVER['PHP_AUTH_USER'] !== ADMIN_USER
-  || $_SERVER['PHP_AUTH_PW'] !== ADMIN_PASS
+    !isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
+    || $_SERVER['PHP_AUTH_USER'] !== ADMIN_USER
+    || $_SERVER['PHP_AUTH_PW'] !== ADMIN_PASS
 ) {
-  header('WWW-Authenticate: Basic realm="ByaHero Admin"');
-  header('HTTP/1.0 401 Unauthorized');
-  echo 'Authentication required';
-  exit;
+    header('WWW-Authenticate: Basic realm="ByaHero Admin"');
+    header('HTTP/1.0 401 Unauthorized');
+    echo 'Authentication required';
+    exit;
 }
 
-function h($s): string
-{
-  return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
 session_start();
-
-/* --- Fetch active buses and their locations --- */
 $pdo = db();
+$message = '';
+$error = '';
 
-// NOTE: if you did NOT add current_location_name, this query will still work.
-$activeBuses = $pdo->query("
-    SELECT
-      Bus_ID,
-      code,
-      route,
-      total_seats,
-      seat_availability,
-      status,
-      updated
-    FROM busses
-    WHERE status IN ('available', 'on_stop', 'full')
-")->fetchAll();
+// --- Handle Form Submissions ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = $_POST['action'] ?? '';
 
-$locations = []; // live geo-coordinates for buses (from GeoJSON files if you use them)
-foreach ($activeBuses as $bus) {
-  $id = $bus['Bus_ID'];
+    try {
+        // 1. Add New Bus
+        if ($action === 'add_bus') {
+            $code = trim($_POST['code'] ?? '');
+            $route = trim($_POST['route'] ?? '');
+            $seats = (int)($_POST['total_seats'] ?? 25);
+            $status = $_POST['status'] ?? 'unavailable';
 
-  // existing file-based geojson location (kept because your original admin used it)
-  $locationFile = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
-  if (is_file($locationFile)) {
-    $geoData = json_decode((string)file_get_contents($locationFile), true);
-    if (isset($geoData['geometry']['coordinates']) && is_array($geoData['geometry']['coordinates'])) {
-      $coords = $geoData['geometry']['coordinates']; // [lng, lat]
-      $locations[] = [
-        'id' => $id,
-        'code' => $bus['code'],
-        'route' => $bus['route'],
-        'location' => 'Unknown',
-        'seats' => "{$bus['seat_availability']} / {$bus['total_seats']}",
-        'status' => $bus['status'],
-        'updated_at' => $bus['updated'],
-        'coordinates' => $coords
-      ];
+            if ($code && $route) {
+                $stmt = $pdo->prepare("INSERT INTO busses (code, route, total_seats, seat_availability, status) VALUES (?, ?, ?, ?, ?)");
+                // Default seat availability equals total seats
+                $stmt->execute([$code, $route, $seats, $seats, $status]);
+                $message = "Bus <strong>" . htmlspecialchars($code) . "</strong> added successfully!";
+            } else {
+                $error = "Bus Code and Route are required.";
+            }
+        }
+        // 2. Add Conductor / Driver
+        elseif ($action === 'add_user') {
+            $name = trim($_POST['name'] ?? '');
+            $email = trim($_POST['email'] ?? '');
+            $password = $_POST['password'] ?? '';
+            $role = $_POST['role'] ?? 'conductor';
+
+            if ($name && $email && $password) {
+                // Check if email exists
+                $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
+                $check->execute([$email]);
+                if ($check->fetch()) {
+                    $error = "Email is already registered.";
+                } else {
+                    $hash = password_hash($password, PASSWORD_DEFAULT);
+                    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
+                    $stmt->execute([$name, $email, $hash, $role]);
+                    $message = "New " . htmlspecialchars($role) . " <strong>" . htmlspecialchars($name) . "</strong> added!";
+                }
+            } else {
+                $error = "All fields are required for adding a user.";
+            }
+        }
+        // 3. Delete Bus
+        elseif ($action === 'delete_bus') {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?")->execute([$id]);
+                // Also remove associated geojson file
+                $file = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
+                if (is_file($file)) @unlink($file);
+                $message = "Bus deleted.";
+            }
+        }
+        // 4. Delete User
+        elseif ($action === 'delete_user') {
+            $id = $_POST['id'] ?? null;
+            if ($id) {
+                $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$id]);
+                $message = "User deleted.";
+            }
+        }
+    } catch (Exception $e) {
+        $error = "Database Error: " . $e->getMessage();
     }
-  }
+}
+
+// --- Fetch Data ---
+function h($s): string {
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+// Fetch Buses
+$buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll();
+
+// Fetch Staff (Conductors & Drivers)
+$staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') ORDER BY role, name")->fetchAll();
+
+// Prepare Map Data (Active Buses)
+$mapLocations = [];
+foreach ($buses as $bus) {
+    if (in_array($bus['status'], ['available', 'on_stop', 'full'])) {
+        $id = $bus['Bus_ID'] ?? $bus['id']; // Handle potential schema variations
+        $locationFile = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
+        if (is_file($locationFile)) {
+            $geoData = json_decode((string)file_get_contents($locationFile), true);
+            if (isset($geoData['geometry']['coordinates'])) {
+                $mapLocations[] = [
+                    'id' => $id,
+                    'code' => $bus['code'],
+                    'route' => $bus['route'],
+                    'status' => $bus['status'],
+                    'seats' => "{$bus['seat_availability']}/{$bus['total_seats']}",
+                    'coordinates' => [
+                        $geoData['geometry']['coordinates'][1], // Lat
+                        $geoData['geometry']['coordinates'][0]  // Lng
+                    ]
+                ];
+            }
+        }
+    }
 }
 ?>
 <!doctype html>
 <html lang="en">
-
 <head>
-  <meta charset="utf-8">
-  <title>ByaHero — ADMIN</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
-  <link rel="manifest" href="/ByaHero-Prototype-V3/public/manifest.webmanifest">
-  <meta name="theme-color" content="#667eea">
-  <link rel="apple-touch-icon" href="/ByaHero-Prototype-V3/public/icons/icon-192x192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <style>
-    :root {
-      --brand: #2563eb;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial;
-      background: #f6f7fb;
-      color: #111;
-      padding-bottom: 40px;
-    }
-
-    .navbar-brand {
-      font-weight: 700;
-      color: #fff !important;
-    }
-
-    .map-card {
-      height: calc(60vh);
-      min-height: 320px;
-      border-radius: .5rem;
-      overflow: hidden;
-    }
-
-    @media (max-width: 576px) {
-      .map-card {
-        height: 48vh;
-        min-height: 260px;
-      }
-    }
-
-    .status-badge-available {
-      background: #10b981;
-      color: #fff;
-    }
-
-    .status-badge-on_stop {
-      background: #f59e0b;
-      color: #fff;
-    }
-
-    .status-badge-full {
-      background: #ef4444;
-      color: #fff;
-    }
-
-    .table-responsive {
-      max-height: 48vh;
-      overflow: auto;
-    }
-
-    .small-muted {
-      font-size: .85rem;
-      color: #6b7280;
-    }
-
-    .leaflet-container {
-      background: #fff;
-    }
-  </style>
+    <meta charset="utf-8">
+    <title>ByaHero — Admin Dashboard</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    
+    <style>
+        :root { --brand: #2563eb; }
+        body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
+        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
+        .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
+        .nav-link.active { color: #fff !important; background: rgba(255,255,255,0.15); border-radius: 6px; }
+        .card { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
+        .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
+        .btn-brand { background-color: var(--brand); color: white; }
+        .btn-brand:hover { background-color: #1d4ed8; color: white; }
+        .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .badge-avail { background: #10b981; }
+        .badge-stop { background: #f59e0b; }
+        .badge-full { background: #ef4444; }
+        .badge-none { background: #64748b; }
+        .table > :not(caption) > * > * { padding: 0.75rem 1rem; vertical-align: middle; }
+    </style>
 </head>
-
 <body>
-  <nav class="navbar navbar-expand-lg" style="background:var(--brand);">
-    <div class="container-fluid">
-      <a class="navbar-brand" href="#">ByaHero — ADMIN</a>
-      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#adminNav" aria-controls="adminNav" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon" style="filter: invert(1);"></span>
-      </button>
 
-      <div class="collapse navbar-collapse" id="adminNav">
-        <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
-          <li class="nav-item">
-            <a class="nav-link text-white active" data-bs-toggle="tab" href="#view" role="tab">View Active Buses</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link text-white" data-bs-toggle="tab" href="#add" role="tab">Add New Bus</a>
-          </li>
-        </ul>
-      </div>
+<nav class="navbar navbar-expand-lg navbar-dark mb-4">
+    <div class="container">
+        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
+            <span class="material-icons-round">directions_bus</span> ByaHero Admin
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navContent">
+            <ul class="nav nav-pills ms-auto gap-2" id="adminTabs" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-dashboard">Dashboard & Map</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-buses">Manage Buses</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-staff">Conductors & Drivers</button>
+                </li>
+            </ul>
+        </div>
     </div>
-  </nav>
+</nav>
 
-  <div class="container my-4">
+<div class="container">
+    <?php if($message): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+            <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
+            <?= $message ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if($error): ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+            <span class="material-icons-round fs-5 align-middle me-2">error</span>
+            <?= $error ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+
     <div class="tab-content">
-      <div class="tab-pane fade show active" id="view" role="tabpanel">
-        <div class="row g-3">
-          <div class="col-12 col-lg-5">
-            <div class="card shadow-sm">
-              <div class="card-body">
-                <h5 class="card-title mb-3">Active Buses</h5>
-                <div class="table-responsive">
-                  <table class="table table-hover table-sm align-middle">
-                    <thead class="table-light small">
-                      <tr>
-                        <th scope="col">ID</th>
-                        <th scope="col">Code</th>
-                        <th scope="col">Route</th>
-                        <th scope="col">Seats</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <?php foreach ($activeBuses as $bus): ?>
-                        <tr>
-                          <td class="small"><?= h($bus['Bus_ID']) ?></td>
-                          <td class="fw-bold"><?= h($bus['code']) ?></td>
-                          <td class="small-muted"><?= h($bus['route']) ?></td>
-                          <td class="small"><?= h("{$bus['seat_availability']} / {$bus['total_seats']}") ?></td>
-                        </tr>
-                      <?php endforeach; ?>
-                    </tbody>
-                  </table>
+        
+        <div class="tab-pane fade show active" id="tab-dashboard">
+            <div class="row g-4">
+                <div class="col-lg-3 col-md-6">
+                    <div class="card bg-primary text-white h-100">
+                        <div class="card-body">
+                            <h6 class="opacity-75 mb-2">Total Buses</h6>
+                            <h2 class="display-5 fw-bold mb-0"><?= count($buses) ?></h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card bg-success text-white h-100">
+                        <div class="card-body">
+                            <h6 class="opacity-75 mb-2">Active Now</h6>
+                            <h2 class="display-5 fw-bold mb-0"><?= count($mapLocations) ?></h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card bg-info text-white h-100">
+                        <div class="card-body">
+                            <h6 class="opacity-75 mb-2">Conductors</h6>
+                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => $u['role'] === 'conductor')) ?></h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6">
+                    <div class="card bg-warning text-dark h-100">
+                        <div class="card-body">
+                            <h6 class="opacity-75 mb-2">Drivers</h6>
+                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => $u['role'] === 'driver')) ?></h2>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mt-3">
-                  <small class="text-muted">Tap or click a bus on the map for details.</small>
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Live Fleet Map</span>
+                            <small class="text-muted">Shows buses with status: Available, On Stop, Full</small>
+                        </div>
+                        <div class="card-body p-0">
+                            <div id="map" class="map-wrapper"></div>
+                        </div>
+                    </div>
                 </div>
-              </div>
             </div>
-          </div>
+        </div>
 
-          <div class="col-12 col-lg-7">
-            <div class="card shadow-sm">
-              <div class="card-body p-0">
-                <div id="map" class="map-card"></div>
-              </div>
-              <div class="card-footer small text-muted">
-                Live locations (from saved GeoJSON files, if present).
-              </div>
+        <div class="tab-pane fade" id="tab-buses">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light text-primary">
+                            <span class="material-icons-round align-middle me-1">add_circle</span> Add New Bus
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="add_bus">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Bus Code / Plate</label>
+                                    <input type="text" name="code" class="form-control" placeholder="e.g. BUS-001" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Default Route</label>
+                                    <select name="route" class="form-select" required>
+                                        <option value="">-- Select Route --</option>
+                                        <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
+                                        <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Total Seats</label>
+                                    <input type="number" name="total_seats" class="form-control" value="25" min="10" max="60" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Initial Status</label>
+                                    <select name="status" class="form-select">
+                                        <option value="unavailable">Unavailable</option>
+                                        <option value="available">Available</option>
+                                    </select>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-brand">Create Bus</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card h-100">
+                        <div class="card-header">Existing Fleet</div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light text-muted small text-uppercase">
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Route</th>
+                                        <th>Status</th>
+                                        <th>Seats</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if(empty($buses)): ?>
+                                        <tr><td colspan="5" class="text-center text-muted py-4">No buses found.</td></tr>
+                                    <?php else: foreach($buses as $bus): 
+                                        $s = $bus['status'];
+                                        $badgeClass = match($s) { 'available'=>'badge-avail', 'on_stop'=>'badge-stop', 'full'=>'badge-full', default=>'badge-none' };
+                                    ?>
+                                        <tr>
+                                            <td class="fw-bold"><?= h($bus['code']) ?></td>
+                                            <td class="small"><?= h($bus['route']) ?: '<em class="text-muted">None</em>' ?></td>
+                                            <td><span class="badge rounded-pill <?= $badgeClass ?>"><?= ucfirst(h($s)) ?></span></td>
+                                            <td class="small font-monospace"><?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?></td>
+                                            <td>
+                                                <form method="POST" onsubmit="return confirm('Delete bus <?= h($bus['code']) ?>?');">
+                                                    <input type="hidden" name="action" value="delete_bus">
+                                                    <input type="hidden" name="id" value="<?= h($bus['Bus_ID']??$bus['id']) ?>">
+                                                    <button class="btn btn-sm btn-outline-danger px-2 py-0" title="Delete"><small>Delete</small></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
             </div>
-          </div>
         </div>
-      </div>
 
-      <div class="tab-pane fade" id="add" role="tabpanel">
-        <div class="card shadow-sm">
-          <div class="card-body">
-            <h5 class="card-title">Add New Bus</h5>
-            <form method="post" action="add_bus.php" class="row g-3">
-              <div class="col-md-6">
-                <label class="form-label">Code</label>
-                <input name="code" class="form-control" required>
-              </div>
-              <div class="col-md-6">
-                <label class="form-label">Route</label>
-                <input name="route" class="form-control" required>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Total Seats</label>
-                <input name="total_seats" type="number" class="form-control" value="25" required>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Seat Availability</label>
-                <input name="seat_availability" type="number" class="form-control" value="25" required>
-              </div>
-              <div class="col-md-4">
-                <label class="form-label">Status</label>
-                <select name="status" class="form-select">
-                  <option value="available">available</option>
-                  <option value="on_stop">on_stop</option>
-                  <option value="full">full</option>
-                  <option value="unavailable">unavailable</option>
-                </select>
-              </div>
-              <div class="col-12">
-                <button class="btn btn-primary">Create Bus</button>
-              </div>
-            </form>
-            <div class="small text-muted mt-2">Note: make sure ADMIN/add_bus.php is updated to insert into MySQL table <code>busses</code>.</div>
-          </div>
+        <div class="tab-pane fade" id="tab-staff">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="card h-100">
+                        <div class="card-header bg-light text-primary">
+                            <span class="material-icons-round align-middle me-1">person_add</span> Add Conductor / Driver
+                        </div>
+                        <div class="card-body">
+                            <form method="POST">
+                                <input type="hidden" name="action" value="add_user">
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Full Name</label>
+                                    <input type="text" name="name" class="form-control" placeholder="John Doe" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Email Address</label>
+                                    <input type="email" name="email" class="form-control" placeholder="staff@byahero.com" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Password</label>
+                                    <input type="password" name="password" class="form-control" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold text-uppercase">Role</label>
+                                    <select name="role" class="form-select" required>
+                                        <option value="conductor">Conductor</option>
+                                        <option value="driver">Driver</option>
+                                    </select>
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-brand">Create Account</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-8">
+                    <div class="card h-100">
+                        <div class="card-header">Registered Staff</div>
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light text-muted small text-uppercase">
+                                    <tr>
+                                        <th>Role</th>
+                                        <th>Name</th>
+                                        <th>Email</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if(empty($staff)): ?>
+                                        <tr><td colspan="4" class="text-center text-muted py-4">No staff accounts found.</td></tr>
+                                    <?php else: foreach($staff as $u): ?>
+                                        <tr>
+                                            <td><span class="badge bg-secondary text-uppercase"><?= h($u['role']) ?></span></td>
+                                            <td class="fw-bold"><?= h($u['name']) ?></td>
+                                            <td class="small text-muted"><?= h($u['email']) ?></td>
+                                            <td>
+                                                <form method="POST" onsubmit="return confirm('Delete user <?= h($u['name']) ?>?');">
+                                                    <input type="hidden" name="action" value="delete_user">
+                                                    <input type="hidden" name="id" value="<?= h($u['id']) ?>">
+                                                    <button class="btn btn-sm btn-outline-danger px-2 py-0" title="Delete"><small>Remove</small></button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
+
     </div>
-  </div>
+</div>
 
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Initialize Map
+    const map = L.map('map').setView([14.0905, 121.0550], 12); // Centered on Tanauan/Talisay area
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '© OpenStreetMap'
+    }).addTo(map);
 
-  <script>
-    const buses = <?= json_encode($locations, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?> || [];
+    // Bus Markers
+    const locations = <?= json_encode($mapLocations) ?>;
+    
+    locations.forEach(bus => {
+        let color = '#64748b'; // default
+        if(bus.status === 'available') color = '#10b981';
+        if(bus.status === 'on_stop') color = '#f59e0b';
+        if(bus.status === 'full') color = '#ef4444';
 
-    (function() {
-      const defaultCenter = [14.5995, 120.9842];
-      const map = L.map('map', {
-        center: defaultCenter,
-        zoom: 11,
-        preferCanvas: true
-      });
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 18
-      }).addTo(map);
+        const icon = L.divIcon({
+            className: 'custom-bus-marker',
+            html: `<div style="background-color:${color}; width:24px; height:24px; border:2px solid white; border-radius:50%; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div>`,
+            iconSize: [24, 24],
+            iconAnchor: [12, 12]
+        });
 
-      const busIcons = {
-        'available': L.icon({
-          iconUrl: 'green-marker.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34]
-        }),
-        'on_stop': L.icon({
-          iconUrl: 'orange-marker.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34]
-        }),
-        'full': L.icon({
-          iconUrl: 'red-marker.png',
-          iconSize: [25, 41],
-          iconAnchor: [12, 41],
-          popupAnchor: [1, -34]
-        })
-      };
+        L.marker(bus.coordinates, {icon: icon})
+            .addTo(map)
+            .bindPopup(`
+                <div class="fw-bold">${bus.code}</div>
+                <div class="small text-muted">${bus.route || 'No Route'}</div>
+                <div class="badge mt-1" style="background:${color}">${bus.status}</div>
+                <div class="small mt-1">Seats: ${bus.seats}</div>
+            `);
+    });
 
-      buses.forEach(bus => {
-        if (!bus.coordinates || !Array.isArray(bus.coordinates)) return;
-        const [lng, lat] = bus.coordinates;
-        const icon = busIcons[bus.status] || busIcons['available'];
-        const popupHtml = `<div>
-        <strong>Bus Code:</strong> ${escapeHtml(bus.code)}<br>
-        <strong>Route:</strong> ${escapeHtml(bus.route)}<br>
-        <strong>Seats:</strong> ${escapeHtml(bus.seats)}<br>
-        <strong>Status:</strong> ${escapeHtml(bus.status)}<br>
-        <small class="text-muted">Updated: ${escapeHtml(bus.updated_at)}</small>
-      </div>`;
-        L.marker([lat, lng], {
-          icon
-        }).addTo(map).bindPopup(popupHtml);
-      });
-
-      function escapeHtml(s) {
-        if (!s && s !== 0) return '';
-        return String(s)
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#039;');
-      }
-    })();
-  </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/ByaHero-Prototype-V3/public/sw.js')
-          .then(function(reg) {
-            console.log('SW registered', reg);
-          })
-          .catch(function(err) {
-            console.warn('SW registration failed', err);
-          });
-      });
-    }
-  </script>
+    // Fix map layout on tab switch
+    const tabEl = document.querySelector('button[data-bs-target="#tab-dashboard"]');
+    tabEl.addEventListener('shown.bs.tab', function (event) {
+        map.invalidateSize();
+    });
+});
+</script>
 </body>
-
 </html>

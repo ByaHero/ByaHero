@@ -282,7 +282,16 @@ if (isset($_SESSION['user_id'])) {
                     const d = await r.json();
                     if(d.success) {
                         alert.innerHTML = `<div class="alert alert-success py-1 small">${d.message||'Success'}</div>`;
-                        if(reload) setTimeout(() => location.reload(), 800);
+                        
+                        // Check if server provided a specific redirect URL (e.g. for conductors)
+                        if (d.redirect) {
+                            setTimeout(() => window.location.href = d.redirect, 800);
+                        } 
+                        // Otherwise fallback to simple reload if requested
+                        else if(reload) {
+                            setTimeout(() => location.reload(), 800);
+                        }
+                        
                         f.reset();
                     } else {
                         alert.innerHTML = `<div class="alert alert-danger py-1 small">${d.message||'Error'}</div>`;
@@ -290,6 +299,7 @@ if (isset($_SESSION['user_id'])) {
                 } catch(err) { alert.innerHTML = `<div class="alert alert-danger py-1 small">Error</div>`; }
             });
         };
+        
         ajaxSubmit('loginForm', 'loginAlert', true);
         ajaxSubmit('signupForm', 'signupAlert');
         ajaxSubmit('updateProfileForm', 'settingsAlert', true);
