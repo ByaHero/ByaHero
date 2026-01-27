@@ -2,19 +2,19 @@
   "name": "ByaHero Bus Tracker",
   "short_name": "ByaHero",
   "description": "Real-time bus location, seat, and route tracker for passengers and conductors.",
-  "start_url": "/index.php",
-  "scope": "/",
+  "start_url": "/ByaHero-Prototype-V3/public/index.php",
+  "scope": "/ByaHero-Prototype-V3/public/",
   "display": "standalone",
   "background_color": "#f6f9ff",
   "theme_color": "#667eea",
   "icons": [
     {
-      "src": "/icons/icon-192x192.png",
+      "src": "/ByaHero-Prototype-V3/public/icons/icon-192x192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/icons/icon-512x512.png",
+      "src": "/ByaHero-Prototype-V3/public/icons/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
