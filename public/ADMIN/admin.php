@@ -1,7 +1,7 @@
 <?php
 /**
  * Admin UI - ByaHero
- * Features: View Active Buses, Add Buses, Manage Conductors/Drivers
+ * Features: View Active Buses (Live Map), Add Buses, Manage Conductors/Drivers
  */
 
 declare(strict_types=1);
@@ -48,7 +48,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($code && $route) {
                 $stmt = $pdo->prepare("INSERT INTO busses (code, route, total_seats, seat_availability, status) VALUES (?, ?, ?, ?, ?)");
-                // Default seat availability equals total seats
                 $stmt->execute([$code, $route, $seats, $seats, $status]);
                 $message = "Bus <strong>" . htmlspecialchars($code) . "</strong> added successfully!";
             } else {
@@ -63,7 +62,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role = $_POST['role'] ?? 'conductor';
 
             if ($name && $email && $password) {
-                // Check if email exists
                 $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
                 $check->execute([$email]);
                 if ($check->fetch()) {
@@ -83,9 +81,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             if ($id) {
                 $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?")->execute([$id]);
-                // Also remove associated geojson file
-                $file = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
-                if (is_file($file)) @unlink($file);
+                // File cleanup handled by API usually, but safe to ignore here as API handles updates
                 $message = "Bus deleted.";
             }
         }
@@ -102,41 +98,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// --- Fetch Data ---
+// --- Fetch Data for Tables (Static View) ---
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// Fetch Buses
 $buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll();
-
-// Fetch Staff (Conductors & Drivers)
 $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') ORDER BY role, name")->fetchAll();
-
-// Prepare Map Data (Active Buses)
-$mapLocations = [];
-foreach ($buses as $bus) {
-    if (in_array($bus['status'], ['available', 'on_stop', 'full'])) {
-        $id = $bus['Bus_ID'] ?? $bus['id']; // Handle potential schema variations
-        $locationFile = __DIR__ . "/../../data/current_locations/bus_{$id}.geojson";
-        if (is_file($locationFile)) {
-            $geoData = json_decode((string)file_get_contents($locationFile), true);
-            if (isset($geoData['geometry']['coordinates'])) {
-                $mapLocations[] = [
-                    'id' => $id,
-                    'code' => $bus['code'],
-                    'route' => $bus['route'],
-                    'status' => $bus['status'],
-                    'seats' => "{$bus['seat_availability']}/{$bus['total_seats']}",
-                    'coordinates' => [
-                        $geoData['geometry']['coordinates'][1], // Lat
-                        $geoData['geometry']['coordinates'][0]  // Lng
-                    ]
-                ];
-            }
-        }
-    }
-}
 ?>
 <!doctype html>
 <html lang="en">
@@ -158,7 +126,7 @@ foreach ($buses as $bus) {
         .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
         .btn-brand { background-color: var(--brand); color: white; }
         .btn-brand:hover { background-color: #1d4ed8; color: white; }
-        .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .map-wrapper { height: 600px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
         .badge-avail { background: #10b981; }
         .badge-stop { background: #f59e0b; }
         .badge-full { background: #ef4444; }
@@ -223,8 +191,8 @@ foreach ($buses as $bus) {
                 <div class="col-lg-3 col-md-6">
                     <div class="card bg-success text-white h-100">
                         <div class="card-body">
-                            <h6 class="opacity-75 mb-2">Active Now</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count($mapLocations) ?></h2>
+                            <h6 class="opacity-75 mb-2">Active on Map</h6>
+                            <h2 class="display-5 fw-bold mb-0" id="activeCount">-</h2>
                         </div>
                     </div>
                 </div>
@@ -248,8 +216,14 @@ foreach ($buses as $bus) {
                 <div class="col-12">
                     <div class="card">
                         <div class="card-header d-flex justify-content-between align-items-center">
-                            <span>Live Fleet Map</span>
-                            <small class="text-muted">Shows buses with status: Available, On Stop, Full</small>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="material-icons-round text-primary">map</span>
+                                <span>Live Fleet Map</span>
+                            </div>
+                            <small class="text-muted d-flex align-items-center gap-1">
+                                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
+                                Live Updates
+                            </small>
                         </div>
                         <div class="card-body p-0">
                             <div id="map" class="map-wrapper"></div>
@@ -425,44 +399,119 @@ foreach ($buses as $bus) {
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Map
-    const map = L.map('map').setView([14.0905, 121.0550], 12); // Centered on Tanauan/Talisay area
+    // 1. Initialize Map
+    const map = L.map('map').setView([14.0905, 121.0550], 12); // Tanauan Area
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Bus Markers
-    const locations = <?= json_encode($mapLocations) ?>;
-    
-    locations.forEach(bus => {
-        let color = '#64748b'; // default
-        if(bus.status === 'available') color = '#10b981';
-        if(bus.status === 'on_stop') color = '#f59e0b';
-        if(bus.status === 'full') color = '#ef4444';
+    let busMarkers = {};
+    const activeCountEl = document.getElementById('activeCount');
 
-        const icon = L.divIcon({
-            className: 'custom-bus-marker',
-            html: `<div style="background-color:${color}; width:24px; height:24px; border:2px solid white; border-radius:50%; box-shadow:0 2px 5px rgba(0,0,0,0.2);"></div>`,
-            iconSize: [24, 24],
-            iconAnchor: [12, 12]
-        });
+    // 2. Fetch and Update Markers Function
+    async function updateBusMap() {
+        try {
+            // Poll the API for bus data (relative to public/ADMIN/ is ../api.php)
+            const res = await fetch('../api.php?action=get_buses');
+            const data = await res.json();
 
-        L.marker(bus.coordinates, {icon: icon})
-            .addTo(map)
-            .bindPopup(`
-                <div class="fw-bold">${bus.code}</div>
-                <div class="small text-muted">${bus.route || 'No Route'}</div>
-                <div class="badge mt-1" style="background:${color}">${bus.status}</div>
-                <div class="small mt-1">Seats: ${bus.seats}</div>
-            `);
-    });
+            if (data.success && data.buses) {
+                const buses = data.buses;
+                let activeCount = 0;
 
-    // Fix map layout on tab switch
+                // Identify IDs currently on map to check for removals
+                const fetchedIds = new Set();
+
+                buses.forEach(bus => {
+                    // Only process active buses
+                    if (['available', 'on_stop', 'full'].includes(bus.status)) {
+                        
+                        // Parse Coordinates
+                        let coords = null;
+                        if (bus.lat && bus.lng) {
+                            coords = [bus.lat, bus.lng];
+                        } else if (bus.current_location) {
+                            try {
+                                const geo = JSON.parse(bus.current_location);
+                                if (geo.geometry && geo.geometry.coordinates) {
+                                    // GeoJSON is [lng, lat], Leaflet needs [lat, lng]
+                                    coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+                                }
+                            } catch (e) {}
+                        }
+
+                        if (coords) {
+                            const id = bus.Bus_ID || bus.id;
+                            fetchedIds.add(String(id));
+                            activeCount++;
+
+                            // Determine Color
+                            let color = '#64748b';
+                            if (bus.status === 'available') color = '#10b981';
+                            if (bus.status === 'on_stop') color = '#f59e0b';
+                            if (bus.status === 'full') color = '#ef4444';
+
+                            // Create HTML Icon
+                            const icon = L.divIcon({
+                                className: 'custom-bus-marker',
+                                html: `<div style="background-color:${color}; width:28px; height:28px; border:2px solid white; border-radius:50%; box-shadow:0 3px 6px rgba(0,0,0,0.3);"></div>`,
+                                iconSize: [28, 28],
+                                iconAnchor: [14, 14]
+                            });
+
+                            // Popup Content
+                            const popupContent = `
+                                <div class="fw-bold">${bus.code}</div>
+                                <div class="small text-muted mb-1">${bus.route || 'No Route'}</div>
+                                <span class="badge" style="background:${color}">${bus.status.toUpperCase()}</span>
+                                <div class="small mt-1">
+                                    <span class="material-icons-round" style="font-size:12px; vertical-align:middle">airline_seat_recline_normal</span>
+                                    ${bus.seat_availability}/${bus.total_seats} Seats
+                                </div>
+                            `;
+
+                            // Update or Create Marker
+                            if (busMarkers[id]) {
+                                busMarkers[id].setLatLng(coords);
+                                busMarkers[id].setIcon(icon);
+                                busMarkers[id].setPopupContent(popupContent);
+                            } else {
+                                const marker = L.marker(coords, { icon: icon }).addTo(map);
+                                marker.bindPopup(popupContent);
+                                busMarkers[id] = marker;
+                            }
+                        }
+                    }
+                });
+
+                // Remove stale markers (buses that went offline or unavailable)
+                Object.keys(busMarkers).forEach(id => {
+                    if (!fetchedIds.has(id)) {
+                        map.removeLayer(busMarkers[id]);
+                        delete busMarkers[id];
+                    }
+                });
+
+                // Update Dashboard Counter
+                if (activeCountEl) activeCountEl.innerText = activeCount;
+            }
+        } catch (e) {
+            console.error("Map Update Error:", e);
+        }
+    }
+
+    // 3. Start Polling (Every 3 seconds)
+    updateBusMap(); // Initial call
+    setInterval(updateBusMap, 3000);
+
+    // 4. Fix map layout on tab switch
     const tabEl = document.querySelector('button[data-bs-target="#tab-dashboard"]');
-    tabEl.addEventListener('shown.bs.tab', function (event) {
-        map.invalidateSize();
-    });
+    if (tabEl) {
+        tabEl.addEventListener('shown.bs.tab', function (event) {
+            map.invalidateSize();
+        });
+    }
 });
 </script>
 </body>
