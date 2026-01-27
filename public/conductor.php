@@ -1,3 +1,12 @@
+<?php
+session_start();
+
+// Enforce Access Control: Only 'conductor' or 'driver' roles allowed
+if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
+    header("Location: index.php");
+    exit;
+}
+?>
 <!doctype html>
 <html lang="en">
 
@@ -6,558 +15,276 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>ByaHero - Conductor Dashboard</title>
 
-  <!-- Bootstrap CSS (mobile-first) -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-  <!-- Leaflet CSS for the mini map -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
   <link rel="manifest" href="/ByaHero-Prototype-V3/public/manifest.webmanifest">
   <meta name="theme-color" content="#667eea">
-  <link rel="apple-touch-icon" href="/ByaHero-Prototype-V3/public/icons/icon-192x192.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
   <style>
-    :root {
-      --navbar-h: 56px;
-    }
+    :root { --navbar-h: 56px; }
+    html, body { height: 100%; margin: 0; font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #eef2ff 0%, #f3f7ff 100%); }
+    .page-wrapper { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; box-sizing: border-box; }
+    .dashboard-card { width: 100%; max-width: 880px; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 30px rgba(2, 6, 23, 0.12); background: #fff; }
+    
+    .dashboard-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #fff; padding: 1.25rem 1.5rem; display: flex; justify-content: space-between; align-items: center; }
+    .user-profile { text-align: right; line-height: 1.2; }
+    .user-name { font-weight: 700; font-size: 0.9rem; }
+    .user-role { font-size: 0.75rem; opacity: 0.9; text-transform: uppercase; background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 4px; }
 
-    html,
-    body {
-      height: 100%;
-      margin: 0;
-      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-      background: linear-gradient(135deg, #eef2ff 0%, #f3f7ff 100%);
-    }
+    .card-body { padding: 1rem 1.25rem; }
+    .form-row { display: flex; flex-wrap: wrap; gap: .75rem; margin-bottom: .75rem; }
+    .form-group { flex: 1 1 220px; min-width: 180px; }
+    label { font-weight: 600; font-size: .95rem; margin-bottom: .25rem; display: block; }
 
-    .page-wrapper {
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1rem;
-      box-sizing: border-box;
-    }
+    .status-indicator { padding: .7rem 0.9rem; border-radius: 8px; margin-bottom: .75rem; font-weight: 600; display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+    .status-inactive { background: #fff7ed; color: #92400e; border-left: 4px solid #fb923c; }
+    .status-active { background: #ecfdf5; color: #065f46; border-left: 4px solid #10b981; }
 
-    .dashboard-card {
-      width: 100%;
-      max-width: 880px;
-      border-radius: 12px;
-      overflow: hidden;
-      box-shadow: 0 10px 30px rgba(2, 6, 23, 0.12);
-      background: #fff;
+    @keyframes pulse-green {
+      0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4); }
+      70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
     }
+    .status-icon-active { animation: pulse-green 2s infinite; border-radius: 50%; }
 
-    .dashboard-header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: #fff;
-      padding: 1.25rem 1.5rem;
-      display: flex;
-      gap: 1rem;
-      align-items: center;
-    }
+    .info-box { background: #f8fafc; padding: .9rem; border-radius: 8px; margin-top: .75rem; }
+    .info-item { display: flex; justify-content: space-between; padding: .45rem 0; border-bottom: 1px solid #eef2f6; font-size: .95rem; }
+    .info-item:last-child { border-bottom: 0; }
 
-    .dashboard-header h1 {
-      margin: 0;
-      font-size: 1.15rem;
-      font-weight: 700;
-    }
-
-    .dashboard-header p {
-      margin: 0;
-      opacity: 0.92;
-      font-size: .9rem;
-    }
-
-    .card-body {
-      padding: 1rem 1.25rem;
-    }
-
-    .form-row {
-      display: flex;
-      flex-wrap: wrap;
-      gap: .75rem;
-      margin-bottom: .75rem;
-    }
-
-    .form-group {
-      flex: 1 1 220px;
-      min-width: 180px;
-    }
-
-    label {
-      font-weight: 600;
-      font-size: .95rem;
-      margin-bottom: .25rem;
-      display: block;
-    }
-
-    /* Status indicators */
-    .status-indicator {
-      padding: .7rem 0.9rem;
-      border-radius: 8px;
-      margin-bottom: .75rem;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      gap: .5rem;
-    }
-
-    .status-inactive {
-      background: #fff7ed;
-      color: #92400e;
-      border-left: 4px solid #fb923c;
-    }
-
-    .status-active {
-      background: #ecfdf5;
-      color: #065f46;
-      border-left: 4px solid #10b981;
-    }
-
-    .info-box {
-      background: #f8fafc;
-      padding: .9rem;
-      border-radius: 8px;
-      margin-top: .75rem;
-    }
-
-    .info-item {
-      display: flex;
-      justify-content: space-between;
-      padding: .45rem 0;
-      border-bottom: 1px solid #eef2f6;
-      font-size: .95rem;
-    }
-
-    .info-item:last-child {
-      border-bottom: 0;
-    }
-
-    /* Mini map */
-    #miniMapWrap {
-      margin-top: .75rem;
-      border-radius: 8px;
-      overflow: hidden;
-      border: 1px solid #e6eefc;
-    }
-
-    #miniMap {
-      width: 100%;
-      height: 240px;
-      display: block;
-    }
-
-    @media (max-width:560px) {
-      #miniMap {
-        height: 200px;
-      }
-    }
-
-    /* Seats control */
-    .seat-control {
-      display: flex;
-      gap: .5rem;
-      align-items: center;
-      justify-content: center;
-      max-width: 260px;
-    }
-
-    .seat-btn {
-      width: 44px;
-      height: 44px;
-      border-radius: 8px;
-      border: 0;
-      background: #f3f4f6;
-      font-weight: 700;
-      font-size: 1.1rem;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
-    .seat-count {
-      min-width: 64px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 8px;
-      background: #fff;
-      border: 1px solid #e8eefc;
-      font-weight: 700;
-      font-size: 1.05rem;
-    }
-
-    .routes-list {
-      display: flex;
-      gap: .5rem;
-      flex-wrap: wrap;
-      margin-top: .4rem;
-    }
-
-    .route-pill {
-      padding: .35rem .6rem;
-      border-radius: 999px;
-      background: #f3f4f6;
-      border: 1px solid #eef2ff;
-      cursor: pointer;
-      font-weight: 600;
-      font-size: .9rem;
-    }
-
-    .route-pill.active {
-      background: linear-gradient(135deg, #667eea, #764ba2);
-      color: #fff;
-      border-color: transparent;
-    }
-
-    .visually-hidden {
-      position: absolute !important;
-      height: 1px;
-      width: 1px;
-      overflow: hidden;
-      clip: rect(1px, 1px, 1px, 1px);
-      white-space: nowrap;
-    }
-
-    .btn-space {
-      display: flex;
-      gap: .6rem;
-      flex-wrap: wrap;
-      align-items: center;
-    }
-
-    /* small helper for alerts */
-    .alert-placeholder {
-      min-height: 2rem;
-      margin-bottom: .5rem;
-    }
+    #miniMapWrap { margin-top: .75rem; border-radius: 8px; overflow: hidden; border: 1px solid #e6eefc; position: relative; }
+    #miniMap { width: 100%; height: 240px; display: block; }
+    
+    .seat-control { display: flex; gap: .5rem; align-items: center; justify-content: center; max-width: 260px; }
+    .seat-btn { width: 44px; height: 44px; border-radius: 8px; border: 0; background: #f3f4f6; font-weight: 700; font-size: 1.1rem; cursor: pointer; }
+    .seat-count { min-width: 64px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 8px; background: #fff; border: 1px solid #e8eefc; font-weight: 700; font-size: 1.05rem; }
+    
+    .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px, 1px, 1px, 1px); white-space: nowrap; }
+    .btn-space { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; }
+    .alert-placeholder { min-height: 2rem; margin-bottom: .5rem; }
   </style>
 </head>
 
 <body>
   <div class="page-wrapper">
-    <article class="dashboard-card" role="application" aria-labelledby="pageTitle">
+    <article class="dashboard-card">
       <header class="dashboard-header">
-        <div style="font-size:1.6rem">🚌</div>
-        <div>
-          <h1 id="pageTitle">Conductor Dashboard</h1>
-          <p>Manage your bus and share location with passengers</p>
+        <div class="d-flex align-items-center gap-3">
+            <div style="font-size:1.6rem">🚌</div>
+            <div>
+              <h1 id="pageTitle">Conductor</h1>
+              <p class="d-none d-sm-block m-0">Manage bus & share location</p>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-3">
+          <div class="user-profile d-none d-sm-block">
+            <div class="user-name"><?= htmlspecialchars($_SESSION['user_name'] ?? 'User') ?></div>
+            <div class="user-role"><?= htmlspecialchars($_SESSION['user_role'] ?? 'Staff') ?></div>
+          </div>
+          <a href="logout.php" class="btn btn-sm btn-outline-light d-flex align-items-center gap-1" style="border-radius:8px;">
+            <span class="material-icons-round" style="font-size:1.1rem">logout</span> 
+          </a>
         </div>
       </header>
 
       <div class="card-body">
-        <div class="alert-placeholder" id="alertBox" aria-live="polite"></div>
+        <div class="alert-placeholder" id="alertBox"></div>
 
-        <!-- Setup -->
-        <section id="setupSection" aria-labelledby="setupTitle">
-          <div class="status-indicator status-inactive" id="setupStatus">⚠️ Please select your bus and configure route to start tracking</div>
-
+        <section id="setupSection">
+          <div class="status-indicator status-inactive" id="setupStatus">
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-icons-round">warning_amber</span>
+                <span>Select bus to start tracking</span>
+            </div>
+          </div>
           <div class="form-row">
             <div class="form-group">
               <label for="busSelect">Select Your Bus</label>
-              <select id="busSelect" class="form-select" aria-label="Select bus">
-                <option value="">-- Select Bus --</option>
-              </select>
+              <select id="busSelect" class="form-select"><option value="">-- Select Bus --</option></select>
             </div>
-
             <div class="form-group">
               <label for="routeSelect">Fixed Routes</label>
-              <select id="routeSelect" class="form-select" aria-label="Choose a fixed route (optional)">
+              <select id="routeSelect" class="form-select">
                 <option value="">-- Select a route --</option>
                 <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
                 <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
               </select>
             </div>
           </div>
-
           <div class="btn-space">
-            <button class="btn btn-primary" id="startBtn" type="button">Start Tracking</button>
+            <button class="btn btn-primary w-100" id="startBtn" type="button">Start Tracking</button>
           </div>
         </section>
 
-        <!-- Tracking (hidden initially) -->
-        <section id="trackingSection" style="display:none" aria-labelledby="trackingTitle">
-          <div class="status-indicator status-active" id="trackingStatus">✅ Location tracking is inactive</div>
+        <section id="trackingSection" style="display:none">
+          <div class="status-indicator status-active" id="trackingStatus">
+             <div class="d-flex align-items-center gap-2">
+                <span class="material-icons-round status-icon-active">my_location</span>
+                <span>Live Tracking Active</span>
+             </div>
+             <div id="netStatus" class="badge bg-light text-secondary border fw-normal" style="font-size:0.75rem">Ready</div>
+          </div>
 
           <div class="form-row">
             <div class="form-group">
               <label for="statusSelect">Bus Status</label>
-              <select id="statusSelect" class="form-select" aria-label="Bus status">
-                <option value="available">Available</option>
-                <option value="on_stop">On Stop</option>
-                <option value="full">Full</option>
-                <option value="unavailable">Unavailable</option>
+              <select id="statusSelect" class="form-select">
+                <option value="available">🟢 Available</option>
+                <option value="on_stop">🟠 On Stop</option>
+                <option value="full">🔴 Full</option>
+                <option value="unavailable">⚫ Unavailable</option>
               </select>
             </div>
-
             <div class="form-group">
               <label>Seats Available</label>
-              <div class="seat-control" role="group" aria-label="Seats control">
-                <button type="button" id="seatMinus" class="seat-btn" aria-label="Decrease seats">−</button>
-                <div id="seatsCount" class="seat-count" role="status" aria-live="polite">25</div>
-                <button type="button" id="seatPlus" class="seat-btn" aria-label="Increase seats">+</button>
+              <div class="seat-control">
+                <button type="button" id="seatMinus" class="seat-btn">−</button>
+                <div id="seatsCount" class="seat-count">25</div>
+                <button type="button" id="seatPlus" class="seat-btn">+</button>
               </div>
-              <input id="seatsInput" type="number" class="visually-hidden" min="0" max="999" value="25" />
+              <input id="seatsInput" type="number" class="visually-hidden" value="25" />
             </div>
           </div>
 
-          <div id="miniMapWrap" aria-label="Your current location preview">
-            <div id="miniMap" role="img" aria-label="Mini map showing your location"></div>
-          </div>
+          <div id="miniMapWrap"><div id="miniMap"></div></div>
 
-          <div class="info-box" aria-live="polite">
-            <div class="info-item">
-              <div>Bus Code</div>
-              <div id="currentBusCode">-</div>
-            </div>
-            <div class="info-item">
-              <div>Route</div>
-              <div id="currentRoute">-</div>
-            </div>
-            <div class="info-item">
-              <div>Current Location</div>
-              <div id="currentLocation">-</div>
-            </div>
-            <div class="info-item">
-              <div>Last Update</div>
-              <div id="lastUpdate">-</div>
-            </div>
+          <div class="info-box">
+            <div class="info-item"><div>Bus Code</div><div id="currentBusCode">-</div></div>
+            <div class="info-item"><div>Route</div><div id="currentRoute">-</div></div>
+            <div class="info-item"><div>Location</div><div id="currentLocation" class="fw-bold text-primary">Waiting for GPS...</div></div>
+            <div class="info-item"><div>Last Update</div><div id="lastUpdate">-</div></div>
           </div>
 
           <div class="btn-space mt-3">
-            <button class="btn btn-danger" id="stopBtn" type="button">Stop Tracking</button>
+            <button class="btn btn-danger w-100" id="stopBtn" type="button">Stop Tracking</button>
           </div>
         </section>
       </div>
     </article>
   </div>
 
-  <!-- Leaflet JS for mini map -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <!-- Bootstrap JS bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    // Conductor client script (Bootstrap + Leaflet friendly)
-    let trackingInterval = null;
-    let currentBus = null;
-    let currentPosition = null;
-    let routeFeatures = [];
+    let watchId = null, wakeLock = null, currentBus = null, routeFeatures = [];
+    let miniMap = null, miniMarker = null, miniMapHasCentered = false;
+    let lastNetworkSync = 0;
+    
+    // Track the last known position to allow instant manual updates
+    let lastKnownLocation = null;
+    
+    // Sync GPS updates every 1 second
+    const SYNC_INTERVAL = 1000; 
 
-    // Mini map state
-    let miniMap = null;
-    let miniMarker = null;
-    let miniMapHasCentered = false;
-
-    // Cached DOM nodes
     const el = (id) => document.getElementById(id);
     const alertBox = el('alertBox');
+    const netStatus = el('netStatus');
 
-    // Load route polygons/features for point-in-polygon name resolution (relative path)
+    function showAlert(message, type = 'info') {
+      const bsType = (type === 'danger' || type === 'error') ? 'danger' : (type === 'success' ? 'success' : 'primary');
+      alertBox.innerHTML = `<div class="alert alert-${bsType} py-2 mb-0" role="alert">${message}</div>`;
+      setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 4500);
+    }
+
     async function loadRouteFeatures() {
       try {
-        const res = await fetch('map_data.php', {
-          cache: 'no-store'
-        });
+        const res = await fetch('map_data.php', { cache: 'no-store' });
         const json = await res.json();
         if (json && Array.isArray(json.features)) {
           routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
-        } else {
-          routeFeatures = [];
         }
-      } catch (e) {
-        console.warn('Failed to load route features', e);
-        routeFeatures = [];
-      }
+      } catch (e) { console.warn('Failed to load route features', e); }
     }
 
-    function getFeatureName(feature) {
-      if (!feature || !feature.properties) return null;
-      const p = feature.properties;
-      if (p['Current Location']) return p['Current Location'];
-      if (p.current_location_name) return p.current_location_name;
-      if (p.name) return p.name;
-      if (p.title) return p.title;
-      const keys = Object.keys(p);
-      if (keys.length === 1) {
-        const v = p[keys[0]];
-        if (typeof v === 'string' && v.trim() !== '') return v.trim();
-        return keys[0];
-      }
-      return keys.length ? keys[0] : null;
-    }
-
-    // Ray-casting algorithm for point-in-polygon (same as index)
     function pointInRing(x, y, ring) {
       let inside = false;
       for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const xi = ring[i][0],
-          yi = ring[i][1];
-        const xj = ring[j][0],
-          yj = ring[j][1];
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
         const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
         if (intersect) inside = !inside;
       }
       return inside;
     }
 
-    function pointInFeature(lng, lat, feature) {
-      if (!feature || !feature.geometry) return false;
-      const g = feature.geometry;
-      if (g.type === 'Polygon') {
-        const rings = g.coordinates;
-        if (!rings || rings.length === 0) return false;
-        if (!pointInRing(lng, lat, rings[0])) return false;
-        for (let i = 1; i < rings.length; i++) {
-          if (pointInRing(lng, lat, rings[i])) return false;
-        }
-        return true;
-      } else if (g.type === 'MultiPolygon') {
-        for (const poly of g.coordinates) {
-          if (poly && poly.length > 0) {
-            if (pointInRing(lng, lat, poly[0])) {
-              let inHole = false;
-              for (let i = 1; i < poly.length; i++)
-                if (pointInRing(lng, lat, poly[i])) {
-                  inHole = true;
-                  break;
-                }
-              if (!inHole) return true;
-            }
-          }
-        }
-        return false;
-      }
-      return false;
-    }
-
-    function findLocationNameForPoint(lat, lng) {
+    function resolveLocationName(lat, lng) {
       if (!routeFeatures || routeFeatures.length === 0) return null;
       for (const f of routeFeatures) {
-        if (pointInFeature(lng, lat, f)) {
-          const name = getFeatureName(f);
-          if (name) return name;
-        }
+         if (f.geometry.type === 'Polygon' && f.geometry.coordinates && f.geometry.coordinates[0]) {
+             if (pointInRing(lng, lat, f.geometry.coordinates[0])) {
+                 return f.properties['Current Location'] || f.properties.name || null;
+             }
+         }
       }
       return null;
     }
 
-    // Normalize a bus object returned by API (handles SQLite & MySQL shapes)
     function normalizeBus(raw) {
       const bus = Object.assign({}, raw);
       const id = bus.id ?? bus.Bus_ID ?? bus.id ?? bus.bus_id;
       const seats_total = bus.seats_total ?? bus.total_seats ?? 25;
-      const seats_available = bus.seats_available ?? bus.seat_availability ?? seats_total;
-      const updated_at = bus.updated_at ?? bus.updated ?? null;
       return {
         id: (typeof id !== 'undefined' && id !== null) ? String(id) : null,
         code: bus.code ?? null,
         route: bus.route ?? null,
-        seats_total: Number(seats_total),
-        seats_available: Number(seats_available),
-        current_location: bus.current_location ?? null,
-        lat: bus.lat ?? null,
-        lng: bus.lng ?? null,
-        updated_at: updated_at,
-        status: bus.status ?? null,
-        __raw: bus
+        seats_total: Number(seats_total)
       };
     }
 
-    // Load available buses into the select dropdown (relative path)
     async function loadBuses() {
       try {
-        const r = await fetch('api.php?action=get_buses', {
-          cache: 'no-store'
-        });
-        if (!r.ok) throw new Error('Network error: ' + r.status);
+        const r = await fetch('api.php?action=get_buses', { cache: 'no-store' });
         const json = await r.json();
         if (json && Array.isArray(json.buses)) {
           const sel = el('busSelect');
-          // remove existing options except the placeholder
-          [...sel.options].forEach(o => {
-            if (o.value !== '') o.remove();
-          });
+          [...sel.options].forEach(o => { if (o.value !== '') o.remove(); });
           json.buses.map(normalizeBus).forEach(b => {
             const o = document.createElement('option');
             o.value = b.id;
             o.textContent = `${b.code} (${b.seats_total ?? 'N/A'} seats)`;
             o.dataset.code = b.code ?? `BUS-${b.id}`;
             o.dataset.route = b.route ?? '';
+            o.dataset.seats = b.seats_total;
             sel.appendChild(o);
           });
-        } else {
-          console.warn('api.php returned no buses:', json);
         }
-      } catch (e) {
-        console.error('loadBuses error', e);
-        showAlert('Unable to load buses', 'warning');
-      }
+      } catch (e) { console.error(e); }
     }
 
-    // Initialize mini map
     function initMiniMap() {
       if (miniMap) return;
       try {
-        miniMap = L.map('miniMap', {
-          attributionControl: false,
-          zoomControl: false
-        }).setView([14.5995, 120.9842], 13);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          maxZoom: 19
-        }).addTo(miniMap);
-      } catch (e) {
-        console.warn('Leaflet init failed', e);
-      }
+        miniMap = L.map('miniMap', { attributionControl: false, zoomControl: false, dragging: false }).setView([14.0905, 121.0550], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(miniMap);
+      } catch (e) {}
     }
 
     function updateMiniMarker(lat, lng) {
       if (!miniMap) return;
       const latlng = [lat, lng];
-      if (miniMarker) {
-        miniMarker.setLatLng(latlng);
-      } else {
-        miniMarker = L.marker(latlng).addTo(miniMap);
-      }
-      if (!miniMapHasCentered) {
-        miniMap.setView(latlng, 15);
-        miniMapHasCentered = true;
-      }
-      setTimeout(() => miniMap.invalidateSize(), 150);
+      if (miniMarker) { miniMarker.setLatLng(latlng); } else { miniMarker = L.marker(latlng).addTo(miniMap); }
+      if (!miniMapHasCentered) { miniMap.setView(latlng, 15); miniMapHasCentered = true; } else { miniMap.panTo(latlng); }
     }
 
-    // Controls: seats
-    function getSeatsValue() {
-      return parseInt(el('seatsCount').textContent || '0', 10);
-    }
-
+    function getSeatsValue() { return parseInt(el('seatsCount').textContent || '0', 10); }
     function setSeatsValue(v) {
       const n = Math.max(0, Math.min(999, Number(v) || 0));
       el('seatsCount').textContent = n;
       el('seatsInput').value = n;
+      triggerManualUpdate();
     }
 
-    // Start tracking workflow
     async function startTracking() {
-      await loadRouteFeatures(); // ensure polygons loaded
+      await loadRouteFeatures();
       const busId = el('busSelect').value;
-      const fixed = el('routeSelect').value || '';
-      const route = fixed;
-      if (!busId) {
-        showAlert('Please select a bus', 'danger');
-        return;
-      }
-      if (!route) {
-        showAlert('Please choose or enter a route', 'danger');
-        return;
-      }
-      if (!navigator.geolocation) {
-        showAlert('Geolocation not supported by this browser', 'danger');
-        return;
+      const route = el('routeSelect').value;
+      if (!busId) { showAlert('Please select a bus', 'danger'); return; }
+      if (!route) { showAlert('Please choose a route', 'danger'); return; }
+
+      if ('wakeLock' in navigator) {
+          try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
       }
 
       const sel = el('busSelect');
@@ -565,237 +292,146 @@
 
       currentBus = {
         id: busId,
-        code: selectedOption.dataset.code || ('BUS-' + busId),
-        route
+        code: selectedOption.dataset.code,
+        route: route,
+        totalSeats: selectedOption.dataset.seats || 25
       };
 
       el('currentBusCode').textContent = currentBus.code;
       el('currentRoute').textContent = currentBus.route;
+      setSeatsValue(currentBus.totalSeats);
 
       el('setupSection').style.display = 'none';
       el('trackingSection').style.display = 'block';
-      el('trackingStatus').textContent = '🔄 Location tracking is active';
 
       initMiniMap();
-      // immediate send then interval
-      updateLocation();
-      trackingInterval = setInterval(updateLocation, 3000);
+
+      if (!navigator.geolocation) { showAlert('Geolocation not supported', 'danger'); return; }
+
+      watchId = navigator.geolocation.watchPosition(
+          onLocationUpdate,
+          (err) => showAlert('GPS Error: ' + err.message, 'warning'),
+          { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+      );
 
       showAlert('Tracking started', 'success');
     }
 
-    // Stop tracking workflow
-    function stopTracking() {
-      if (trackingInterval) {
-        clearInterval(trackingInterval);
-        trackingInterval = null;
-      }
+    function onLocationUpdate(pos) {
+        const { latitude: lat, longitude: lng } = pos.coords;
+        const now = Date.now();
+        
+        const locName = resolveLocationName(lat, lng) || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        
+        // CACHE THE LOCATION for manual updates
+        lastKnownLocation = { lat, lng, locName };
 
-      if (currentBus && currentBus.id) {
-        fetch('api.php?action=stop_tracking', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            bus_id: currentBus.id
-          })
-        }).then(r => r.json()).then(res => {
-          if (!res || !res.success) showAlert('Failed to notify server when stopping', 'warning');
-          else showAlert('Stopped tracking and notified server', 'success');
-        }).catch(err => {
-          console.error(err);
-          showAlert('Error notifying server when stopping', 'warning');
-        });
-      } else {
-        showAlert('Stopped tracking', 'info');
-      }
+        // Update UI
+        el('currentLocation').textContent = locName;
+        el('lastUpdate').textContent = new Date().toLocaleTimeString();
+        updateMiniMarker(lat, lng);
 
-      // reset UI
-      currentBus = null;
-      currentPosition = null;
-      el('setupSection').style.display = '';
-      el('trackingSection').style.display = 'none';
-      el('routeSelect').value = '';
-      el('currentBusCode').textContent = '-';
-      el('currentRoute').textContent = '-';
-      el('currentLocation').textContent = '-';
-      el('lastUpdate').textContent = '-';
-      el('trackingStatus').textContent = '✅ Location tracking is inactive';
-
-      // remove mini marker
-      if (miniMarker && miniMap) {
-        miniMap.removeLayer(miniMarker);
-        miniMarker = null;
-        miniMapHasCentered = false;
-      }
+        // Throttle automatic GPS updates
+        if (now - lastNetworkSync > SYNC_INTERVAL) {
+            sendDataToServer(lat, lng, locName);
+            lastNetworkSync = now;
+        }
     }
 
-    // Main location update: reads geolocation, resolves friendly location, sends to server
-    function updateLocation() {
-      if (!navigator.geolocation) {
-        showAlert('Geolocation not available', 'danger');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-            currentPosition = {
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude
-            };
-
-            const locationName = findLocationNameForPoint(currentPosition.lat, currentPosition.lng) || `${currentPosition.lat.toFixed(6)}, ${currentPosition.lng.toFixed(6)}`;
-
-            el('currentLocation').textContent = locationName;
-            el('lastUpdate').textContent = new Date().toLocaleTimeString();
-
-            const seatsAvailable = getSeatsValue();
-            const status = el('statusSelect').value;
-
-            updateMiniMarker(currentPosition.lat, currentPosition.lng);
-
-            const geojsonFeature = {
-              type: "Feature",
-              geometry: {
-                type: "Point",
-                coordinates: [currentPosition.lng, currentPosition.lat]
-              },
-              properties: {
+    async function sendDataToServer(lat, lng, locName) {
+        if(netStatus) {
+            netStatus.textContent = 'Saving...';
+            netStatus.className = 'badge bg-warning text-dark border fw-normal';
+        }
+        const seatsAvailable = getSeatsValue();
+        const status = el('statusSelect').value;
+        const geojsonFeature = {
+            type: "Feature",
+            geometry: { type: "Point", coordinates: [lng, lat] },
+            properties: {
                 bus_id: parseInt(currentBus.id, 10),
                 code: currentBus.code,
                 route: currentBus.route,
                 seats_available: seatsAvailable,
                 status: status,
                 timestamp: new Date().toISOString(),
-                current_location_name: locationName,
-                "Current Location": locationName
-              }
-            };
+                current_location_name: locName
+            }
+        };
 
-            // Send to new endpoint (stores file + DB) — relative path
-            fetch('update_geo_location.php', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                bus_id: currentBus.id,
-                geojson: geojsonFeature,
-                route: currentBus.route,
-                seats_available: seatsAvailable,
-                status
-              })
-            }).then(r => r.json()).then(res => {
-              if (!res || !res.success) console.error('GeoJSON update error', res);
-            }).catch(err => console.error('GeoJSON send error', err));
-
-            // Also update legacy API endpoint (relative path)
-            fetch('api.php?action=update_location', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                bus_id: currentBus.id,
-                geojson: geojsonFeature,
-                route: currentBus.route,
-                seats_available: seatsAvailable,
-                status
-              })
-            }).then(r => r.json()).then(res => {
-              if (!res || !res.success) console.error('Legacy update failed', res);
-            }).catch(err => console.error(err));
-          },
-          (err) => {
-            console.error('Geolocation error', err);
-            showAlert('Unable to get location. Check permissions.', 'danger');
-          }, {
-            enableHighAccuracy: true,
-            timeout: 5000,
-            maximumAge: 0
-          }
-      );
+        try {
+            await fetch('update_geo_location.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bus_id: currentBus.id,
+                    geojson: geojsonFeature,
+                    route: currentBus.route,
+                    seats_available: seatsAvailable,
+                    status,
+                    current_location_name: locName
+                })
+            });
+            if(netStatus) {
+                netStatus.textContent = 'Live';
+                netStatus.className = 'badge bg-success text-white border fw-normal';
+            }
+        } catch (e) {
+            if(netStatus) {
+                netStatus.textContent = 'Offline';
+                netStatus.className = 'badge bg-secondary text-white border fw-normal';
+            }
+        }
     }
 
-    // UI interactions
-    function showAlert(message, type = 'info') {
-      // type: success, danger, warning, info
-      const bsType = (type === 'danger' || type === 'error') ? 'danger' : (type === 'success' ? 'success' : (type === 'warning' ? 'warning' : 'info'));
-      alertBox.innerHTML = `<div class="alert alert-${bsType} py-2 mb-0" role="alert">${message}</div>`;
-      setTimeout(() => {
-        if (alertBox) alertBox.innerHTML = '';
-      }, 4500);
+    // UPDATED: Use cached location to send immediately
+    function triggerManualUpdate() { 
+        if (lastKnownLocation && currentBus) {
+            // Send immediately using the last known GPS coordinates
+            sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
+            // Reset the throttle timer so we don't double-send if GPS ticks right after
+            lastNetworkSync = Date.now();
+        } else {
+            // If no GPS lock yet, just force the next check to pass
+            lastNetworkSync = 0; 
+        }
     }
 
-    // Event wiring
+    function stopTracking() {
+      if (watchId !== null) navigator.geolocation.clearWatch(watchId);
+      if (wakeLock !== null) wakeLock.release();
+      watchId = null;
+      wakeLock = null;
+      lastKnownLocation = null; // Clear cache
+      
+      if (currentBus && currentBus.id) {
+        fetch('api.php?action=stop_tracking', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ bus_id: currentBus.id })
+        });
+      }
+      currentBus = null;
+      el('setupSection').style.display = '';
+      el('trackingSection').style.display = 'none';
+      if (miniMarker && miniMap) { miniMap.removeLayer(miniMarker); miniMarker = null; miniMapHasCentered = false; }
+      showAlert('Tracking stopped', 'info');
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
-      // Buttons
       el('startBtn').addEventListener('click', startTracking);
       el('stopBtn').addEventListener('click', stopTracking);
-
-      // Seats control
-      el('seatPlus').addEventListener('click', () => {
-        setSeatsValue(getSeatsValue() + 1);
-        if (currentBus) updateLocation();
-      });
-      el('seatMinus').addEventListener('click', () => {
-        setSeatsValue(getSeatsValue() - 1);
-        if (currentBus) updateLocation();
-      });
-
-      // Accessibility: arrow up/down for seat count
-      const seatsCountEl = el('seatsCount');
-      seatsCountEl.tabIndex = 0;
-      seatsCountEl.addEventListener('keydown', (ev) => {
-        if (ev.key === 'ArrowUp') {
-          setSeatsValue(getSeatsValue() + 1);
-          if (currentBus) updateLocation();
-          ev.preventDefault();
-        }
-        if (ev.key === 'ArrowDown') {
-          setSeatsValue(getSeatsValue() - 1);
-          if (currentBus) updateLocation();
-          ev.preventDefault();
+      el('seatPlus').addEventListener('click', () => setSeatsValue(getSeatsValue() + 1));
+      el('seatMinus').addEventListener('click', () => setSeatsValue(getSeatsValue() - 1));
+      el('statusSelect').addEventListener('change', triggerManualUpdate);
+      loadRouteFeatures();
+      loadBuses();
+      document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
         }
       });
-
-      // Route select behavior: no custom input now
-      el('routeSelect').addEventListener('change', () => {
-        // no-op: only fixed routes supported now
-      });
-
-      // Status change should trigger immediate update when tracking
-      el('statusSelect').addEventListener('change', () => {
-        if (currentBus) updateLocation();
-      });
-
-      // Ensure map reflow on orientation/resizes
-      window.addEventListener('orientationchange', () => setTimeout(() => {
-        if (miniMap) miniMap.invalidateSize();
-      }, 300));
-      window.addEventListener('resize', () => setTimeout(() => {
-        if (miniMap) miniMap.invalidateSize();
-      }, 250));
-
-      // initial setup
-      setSeatsValue(25);
-      loadRouteFeatures().catch(() => {});
-      loadBuses().catch(() => {});
     });
   </script>
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', function() {
-        navigator.serviceWorker.register('/ByaHero-Prototype-V3/public/sw.js')
-          .then(function(reg) {
-            console.log('SW registered', reg);
-          })
-          .catch(function(err) {
-            console.warn('SW registration failed', err);
-          });
-      });
-    }
-  </script>
 </body>
-
 </html>
