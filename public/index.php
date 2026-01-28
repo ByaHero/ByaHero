@@ -458,6 +458,26 @@ if (isset($_SESSION['user_id'])) {
       return `<div style="min-width:170px"><strong>${escapeHtml(bus.code)}</strong><br><strong>Route:</strong> ${route}<br><strong>Location:</strong> ${loc}<br><strong>Status:</strong> ${status}<br><strong>Seats:</strong> ${escapeHtml(bus.seats_available)} / ${escapeHtml(bus.seats_total)}<br><small style="color:#666;">Updated: ${escapeHtml(updated)}</small></div>`;
     }
 
+    function isActiveBus(bus) {
+      // If explicit status indicates 'unavailable' or 'stopped', treat as inactive
+      const rawStatus = (bus.status || (bus.__raw && (bus.__raw.status || bus.__raw.tracking_state || '')) || '').toString().toLowerCase();
+      const inactiveStatuses = ['unavailable', 'stopped', 'inactive', 'off', 'not_tracking', 'stopped_tracking', 'disabled', 'offline'];
+      if (inactiveStatuses.includes(rawStatus)) return false;
+
+      // If raw flags indicate tracking false, treat as inactive
+      const raw = bus.__raw || {};
+      if (raw.tracking === false || raw.is_tracking === false || raw.is_active === false) return false;
+
+      // If there's an updated_at and it's stale (older than 5 minutes), consider it inactive
+      if (bus.updated_at) {
+        const ts = Date.parse(bus.updated_at);
+        if (!isNaN(ts) && (Date.now() - ts) > (5 * 60 * 1000)) return false;
+      }
+
+      // Otherwise active
+      return true;
+    }
+
     function renderActiveBusesModal(buses) {
       const listEl = document.getElementById('activeBusesList');
       if (!listEl) return;
@@ -523,7 +543,9 @@ if (isset($_SESSION['user_id'])) {
         if (!res.ok) throw new Error('Network response was not ok: ' + res.status);
         const json = await res.json();
         if (json && json.buses) {
-          const buses = json.buses.map(normalizeBus);
+          // Normalize and filter inactive buses client-side as a safety net.
+          const busesRaw = json.buses.map(normalizeBus);
+          const buses = busesRaw.filter(isActiveBus);
           _lastFetchedBuses = buses;
           updateMap(buses);
           updateBusLists(buses);
@@ -539,18 +561,25 @@ if (isset($_SESSION['user_id'])) {
     }
 
     function updateMap(buses) {
+      // Only include buses for display (respecting selectedRoute)
       const filtered = buses.filter(b => !selectedRoute || selectedRoute === '' || b.route === selectedRoute);
+
+      // Remove markers for buses that are no longer in the filtered set OR no longer have coordinates
       Object.keys(busMarkers).forEach(id => {
-        if (!filtered.find(b => String(b.id) === String(id))) {
+        const found = filtered.find(b => String(b.id) === String(id));
+        const hasCoords = found ? (getBusCoordinates(found) !== null) : false;
+        if (!found || !hasCoords) {
           try { map.removeLayer(busMarkers[id]); } catch (e) {}
           delete busMarkers[id];
         }
       });
+
+      // Add/update markers for buses that have coordinates
       filtered.forEach(bus => {
         const pos = getBusCoordinates(bus);
         if (!pos) return;
         const id = String(bus.id);
-        const icon = createBusIcon(bus.status || (bus.__raw && bus.__raw.status) || 'unavailable');
+        const icon = createBusIcon((bus.status || (bus.__raw && bus.__raw.status) || 'unavailable').toLowerCase());
         if (busMarkers[id]) {
           busMarkers[id].setLatLng(pos);
           busMarkers[id].setIcon(icon);
@@ -561,6 +590,7 @@ if (isset($_SESSION['user_id'])) {
           busMarkers[id] = marker;
         }
       });
+
       if (!window._mapHasBeenFitted && Object.keys(busMarkers).length > 0) {
         const group = L.featureGroup(Object.values(busMarkers));
         map.fitBounds(group.getBounds().pad(0.08));
