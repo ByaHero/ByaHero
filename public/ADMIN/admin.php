@@ -1,35 +1,18 @@
 <?php
-/**
- * Admin UI - ByaHero
- * Features: View Active Buses (Live Map), Add Buses, Manage Conductors/Drivers
- */
-
 declare(strict_types=1);
 
-// Error reporting for debugging (disable in production)
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require __DIR__ . '/../config/db.php';
 
-// --- Authentication ---
-$envUser = getenv('ADMIN_USER');
-$envPass = getenv('ADMIN_PASS');
-define('ADMIN_USER', $envUser !== false ? $envUser : 'admin');
-define('ADMIN_PASS', $envPass !== false ? $envPass : 'password');
-
-if (
-    !isset($_SERVER['PHP_AUTH_USER'], $_SERVER['PHP_AUTH_PW'])
-    || $_SERVER['PHP_AUTH_USER'] !== ADMIN_USER
-    || $_SERVER['PHP_AUTH_PW'] !== ADMIN_PASS
-) {
-    header('WWW-Authenticate: Basic realm="ByaHero Admin"');
-    header('HTTP/1.0 401 Unauthorized');
-    echo 'Authentication required';
+// Use session-based auth handled by admin/index.php
+session_start();
+if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header('Location: index.php');
     exit;
 }
 
-session_start();
 $pdo = db();
 $message = '';
 $error = '';
@@ -81,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id'] ?? null;
             if ($id) {
                 $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?")->execute([$id]);
-                // File cleanup handled by API usually, but safe to ignore here as API handles updates
                 $message = "Bus deleted.";
             }
         }
@@ -115,7 +97,6 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
@@ -132,6 +113,12 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
         .badge-full { background: #ef4444; }
         .badge-none { background: #64748b; }
         .table > :not(caption) > * > * { padding: 0.75rem 1rem; vertical-align: middle; }
+        @media (max-width: 767px) {
+            .map-wrapper { height: 420px; }
+            .card-header { padding: .75rem; }
+            .card { margin-bottom: 1rem; }
+            .display-5 { font-size: 1.5rem; }
+        }
     </style>
 </head>
 <body>
@@ -156,6 +143,12 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                     <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-staff">Conductors & Drivers</button>
                 </li>
             </ul>
+
+            <?php if (!empty($_SESSION['admin_logged_in'])): ?>
+                <div class="ms-3">
+                    <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </nav>
@@ -291,7 +284,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                                 <tbody>
                                     <?php if(empty($buses)): ?>
                                         <tr><td colspan="5" class="text-center text-muted py-4">No buses found.</td></tr>
-                                    <?php else: foreach($buses as $bus): 
+                                    <?php else: foreach($buses as $bus):
                                         $s = $bus['status'];
                                         $badgeClass = match($s) { 'available'=>'badge-avail', 'on_stop'=>'badge-stop', 'full'=>'badge-full', default=>'badge-none' };
                                     ?>
@@ -399,8 +392,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Initialize Map
-    const map = L.map('map').setView([14.0905, 121.0550], 12); // Tanauan Area
+    const map = L.map('map').setView([14.0905, 121.0550], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
@@ -409,35 +401,24 @@ document.addEventListener('DOMContentLoaded', () => {
     let busMarkers = {};
     const activeCountEl = document.getElementById('activeCount');
 
-    // 2. Fetch and Update Markers Function
     async function updateBusMap() {
         try {
-            // Poll the API for bus data (relative to public/ADMIN/ is ../api.php)
             const res = await fetch('../api.php?action=get_buses');
             const data = await res.json();
 
             if (data.success && data.buses) {
                 const buses = data.buses;
                 let activeCount = 0;
-
-                // Identify IDs currently on map to check for removals
                 const fetchedIds = new Set();
 
                 buses.forEach(bus => {
-                    // Only process active buses
                     if (['available', 'on_stop', 'full'].includes(bus.status)) {
-                        
-                        // Parse Coordinates
                         let coords = null;
-                        if (bus.lat && bus.lng) {
-                            coords = [bus.lat, bus.lng];
-                        } else if (bus.current_location) {
+                        if (bus.lat && bus.lng) coords = [bus.lat, bus.lng];
+                        else if (bus.current_location) {
                             try {
                                 const geo = JSON.parse(bus.current_location);
-                                if (geo.geometry && geo.geometry.coordinates) {
-                                    // GeoJSON is [lng, lat], Leaflet needs [lat, lng]
-                                    coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-                                }
+                                if (geo.geometry && geo.geometry.coordinates) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
                             } catch (e) {}
                         }
 
@@ -446,13 +427,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             fetchedIds.add(String(id));
                             activeCount++;
 
-                            // Determine Color
                             let color = '#64748b';
                             if (bus.status === 'available') color = '#10b981';
                             if (bus.status === 'on_stop') color = '#f59e0b';
                             if (bus.status === 'full') color = '#ef4444';
 
-                            // Create HTML Icon
                             const icon = L.divIcon({
                                 className: 'custom-bus-marker',
                                 html: `<div style="background-color:${color}; width:28px; height:28px; border:2px solid white; border-radius:50%; box-shadow:0 3px 6px rgba(0,0,0,0.3);"></div>`,
@@ -460,7 +439,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 iconAnchor: [14, 14]
                             });
 
-                            // Popup Content
                             const popupContent = `
                                 <div class="fw-bold">${bus.code}</div>
                                 <div class="small text-muted mb-1">${bus.route || 'No Route'}</div>
@@ -471,7 +449,6 @@ document.addEventListener('DOMContentLoaded', () => {
                                 </div>
                             `;
 
-                            // Update or Create Marker
                             if (busMarkers[id]) {
                                 busMarkers[id].setLatLng(coords);
                                 busMarkers[id].setIcon(icon);
@@ -485,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // Remove stale markers (buses that went offline or unavailable)
                 Object.keys(busMarkers).forEach(id => {
                     if (!fetchedIds.has(id)) {
                         map.removeLayer(busMarkers[id]);
@@ -493,7 +469,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // Update Dashboard Counter
                 if (activeCountEl) activeCountEl.innerText = activeCount;
             }
         } catch (e) {
@@ -501,16 +476,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 3. Start Polling (Every 3 seconds)
-    updateBusMap(); // Initial call
+    updateBusMap();
     setInterval(updateBusMap, 3000);
 
-    // 4. Fix map layout on tab switch
     const tabEl = document.querySelector('button[data-bs-target="#tab-dashboard"]');
     if (tabEl) {
-        tabEl.addEventListener('shown.bs.tab', function (event) {
-            map.invalidateSize();
-        });
+        tabEl.addEventListener('shown.bs.tab', function () { map.invalidateSize(); });
     }
 });
 </script>
