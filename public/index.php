@@ -447,12 +447,32 @@ if (isset($_SESSION['user_id'])) {
       const modals = ['safetyModal', 'infoModal', 'profileModal', 'filterModal', 'settingsModal'];
       const locationBtn = document.querySelector('button[onclick*="location"]');
       modals.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('hidden.bs.modal', () => { if (locationBtn) selectNav(locationBtn, 'location'); }); });
-      document.getElementById('loginForm')?.addEventListener('submit', async (e) => { e.preventDefault(); const fd = new FormData(e.target); const alertBox = document.getElementById('loginAlert'); try { const res = await fetch('auth_api.php', { method: 'POST', body: fd }); const data = await res.json(); if (data.success) { alertBox.innerHTML = '<div class="alert alert-success py-1">Success! Redirecting...</div>'; setTimeout(() => location.reload(), 1000); } else { alertBox.innerHTML = `<div class="alert alert-danger py-1">${data.message}</div>`; } } catch (err) { alertBox.innerHTML = '<div class="alert alert-danger py-1">Connection Error</div>'; } });
+
+      // FIXED: LOGIN LOGIC HANDLES REDIRECT
+      document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const alertBox = document.getElementById('loginAlert');
+        try {
+          const res = await fetch('auth_api.php', { method: 'POST', body: fd });
+          const data = await res.json();
+          if (data.success) {
+            alertBox.innerHTML = '<div class="alert alert-success py-1">Success! Redirecting...</div>';
+            // NEW LOGIC: Follow the redirect URL from server if present
+            if (data.redirect) {
+              window.location.href = data.redirect;
+            } else {
+              setTimeout(() => location.reload(), 1000);
+            }
+          } else {
+            alertBox.innerHTML = `<div class="alert alert-danger py-1">${data.message}</div>`;
+          }
+        } catch (err) { alertBox.innerHTML = '<div class="alert alert-danger py-1">Connection Error</div>'; }
+      });
 
       // Init pins with the main map instance
       if (typeof initPinsFeature === 'function') initPinsFeature(map);
     });
-
     startUserLocationWatch();
     updateBuses();
     setInterval(updateBuses, 4000);
