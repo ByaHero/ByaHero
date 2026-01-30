@@ -154,6 +154,8 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
             <div class="info-item"><div>Route</div><div id="currentRoute">-</div></div>
             <div class="info-item"><div>Location</div><div id="currentLocation" class="fw-bold text-primary">Waiting for GPS...</div></div>
             <div class="info-item"><div>Last Update</div><div id="lastUpdate">-</div></div>
+            <div class="info-item"><div>Arrival</div><div id="arrivalTime">-</div></div>
+            <div class="info-item"><div>My Location</div><div id="myLocation">-</div></div>
           </div>
 
           <div class="btn-space mt-3">
@@ -229,7 +231,11 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
         id: (typeof id !== 'undefined' && id !== null) ? String(id) : null,
         code: bus.code ?? null,
         route: bus.route ?? null,
-        seats_total: Number(seats_total)
+        seats_total: Number(seats_total),
+        // optional fields to be filled in after normalization
+        coords: null,
+        status: bus.status ?? 'unavailable',
+        locName: bus.current_location_name ?? bus.current_location ?? null
       };
     }
 
@@ -330,6 +336,10 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
         el('currentLocation').textContent = locName;
         el('lastUpdate').textContent = new Date().toLocaleTimeString();
         updateMiniMarker(lat, lng);
+
+        // Update myLocation display for conductor
+        const myLocEl = el('myLocation');
+        if (myLocEl) myLocEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
         // Throttle automatic GPS updates
         if (now - lastNetworkSync > SYNC_INTERVAL) {
