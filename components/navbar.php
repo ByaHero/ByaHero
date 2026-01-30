@@ -1,3 +1,8 @@
+<div
+  class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm h-60px w-100 position-absolute top-0 start-0 z-3">
+  <img src="../images/topBarLogo.png" alt="ByaHero" height="30">
+</div>
+
 <div class="fixed-bottom bg-white border-top shadow-lg" style="height: 80px; z-index: 1060;">
   <div class="row h-100 m-0">
 
