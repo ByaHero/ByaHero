@@ -1,6 +1,6 @@
 <?php
 session_start();
-require __DIR__ . '/config/db.php';
+require __DIR__ . '/../config/db.php';
 
 // Fetch user details if logged in
 $currentUser = null;
@@ -25,7 +25,7 @@ if (isset($_SESSION['user_id'])) {
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="manifest" href="../manifest.webmanifest">
   <meta name="theme-color" content="#1e3a8a">
 
   <style>
@@ -120,7 +120,7 @@ if (isset($_SESSION['user_id'])) {
       <div id="map"></div>
 
       <div
-        class="position-absolute mt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
+        class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
         <button
           class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0"
           data-bs-toggle="modal" data-bs-target="#settingsModal">
@@ -188,8 +188,8 @@ if (isset($_SESSION['user_id'])) {
         </div>
       </div>
 
-      <?php include '../components/group_view.php'; ?>
-      <?php include '../components/pins_list_view.php'; ?>
+      <?php include 'groupView.php'; ?>
+      <?php include 'pinsListView.php'; ?>
 
       <div id="view-alerts" class="d-none mt-5 text-center text-muted">
         <span class="material-symbols-rounded display-1 opacity-25">notifications_off</span>
@@ -199,17 +199,6 @@ if (isset($_SESSION['user_id'])) {
   </div>
 
   <div class="d-none d-lg-block h-100">
-    <nav class="navbar navbar-dark bg-primary px-3" style="height:56px">
-      <span class="navbar-brand mb-0 h1">ByaHero Desktop</span>
-      <div class="ms-auto">
-        <?php if (isset($_SESSION['user_id'])): ?>
-          <span class="text-white me-3">Welcome, <?= htmlspecialchars($_SESSION['user_name']) ?></span>
-          <a href="logout.php" class="btn btn-sm btn-light">Logout</a>
-        <?php else: ?>
-          <button class="btn btn-sm btn-light" data-bs-toggle="modal" data-bs-target="#loginModal">Login</button>
-        <?php endif; ?>
-      </div>
-    </nav>
     <div class="map-and-sidebar">
       <div id="map-desktop-placeholder" class="h-100"></div>
       <div class="overflow-y-auto bg-white border-start">
@@ -277,7 +266,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
         <div class="modal-body text-center"><?php if (isset($_SESSION['user_id'])): ?>
-            <h6><?= htmlspecialchars($_SESSION['user_name']) ?></h6><a href="logout.php"
+            <h6><?= htmlspecialchars($_SESSION['user_name']) ?></h6><a href="../logout.php"
               class="btn btn-sm btn-outline-danger mt-2">Logout</a><?php else: ?>
             <p>Please log in.</p><button class="btn btn-primary btn-sm" data-bs-toggle="modal"
               data-bs-target="#loginModal">Login</button><?php endif; ?>
@@ -286,7 +275,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 
-  <?php include("../components/navbar.php"); ?>
+  <?php include "../../components/navbar.php"; ?>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -310,9 +299,6 @@ if (isset($_SESSION['user_id'])) {
     function switchSheetTab(tabName) {
       const tabs = ['location', 'groups', 'pins'];
       const sheet = document.querySelector('.bottom-sheet');
-
-      // 1. Resize Bottom Sheet
-      if (sheet) sheet.style.height = (tabName === 'location') ? '40%' : '55%';
 
       // 2. Tab Styling & View Toggling
       tabs.forEach(t => {
@@ -359,7 +345,7 @@ if (isset($_SESSION['user_id'])) {
     // --- BUS TRACKING ---
     async function updateBuses() {
       try {
-        const res = await fetch('api.php?action=get_buses');
+        const res = await fetch('../api.php?action=get_buses');
         const json = await res.json();
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
@@ -454,7 +440,7 @@ if (isset($_SESSION['user_id'])) {
         const fd = new FormData(e.target);
         const alertBox = document.getElementById('loginAlert');
         try {
-          const res = await fetch('auth_api.php', { method: 'POST', body: fd });
+          const res = await fetch('../auth_api.php', { method: 'POST', body: fd });
           const data = await res.json();
           if (data.success) {
             alertBox.innerHTML = '<div class="alert alert-success py-1">Success! Redirecting...</div>';

@@ -127,7 +127,7 @@
         fd.append('lng', currentDroppedPinData.lng);
 
         try {
-            const res = await fetch('api_pins.php?action=save', { method: 'POST', body: fd });
+            const res = await fetch('../api_pins.php?action=save', { method: 'POST', body: fd });
             const data = await res.json();
             if(data.success) {
                 clearActivePin();
@@ -147,7 +147,7 @@
         if(!listContainer) return;
 
         try {
-            const res = await fetch('api_pins.php?action=list');
+            const res = await fetch('../public/api_pins.php?action=list');
             const data = await res.json();
             
             // Clear existing markers
@@ -207,7 +207,7 @@
         const fd = new FormData();
         fd.append('id', id);
         try {
-            const res = await fetch('api_pins.php?action=delete', { method: 'POST', body: fd });
+            const res = await fetch('../api_pins.php?action=delete', { method: 'POST', body: fd });
             const data = await res.json();
             if(data.success) loadSavedPins();
             else alert("Failed: " + data.message);

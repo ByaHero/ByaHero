@@ -1,7 +1,7 @@
 const CACHE_NAME = "byahero-v2";
 const APP_SHELL = [
-  "/index.php",
-  "/conductor.php",
+  "/passenger/index.php",
+  "/conductor/conductor.php",
   "/ADMIN/admin.php",
   "/manifest.webmanifest",
   "/icons/icon-192x192.png",
