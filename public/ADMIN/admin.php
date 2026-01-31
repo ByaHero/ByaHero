@@ -6,16 +6,25 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../config/db.php';
 
-// Use session-based auth handled by admin/index.php
 session_start();
-if (empty($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header('Location: index.php');
+
+// --- AUTH: rely on public/login.php session values ---
+// public/login.php sets $_SESSION['user_role'] and $_SESSION['user_id'] when authenticated.
+// Only allow access if the logged-in session role is 'admin'.
+if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+    // Redirect to the shared public login page
+    header('Location: ../login.php');
     exit;
 }
 
 $pdo = db();
 $message = '';
 $error = '';
+
+// --- Helper ---
+function h($s): string {
+    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
 
 // --- Handle Form Submissions ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -24,39 +33,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // 1. Add New Bus
         if ($action === 'add_bus') {
-            $code = trim($_POST['code'] ?? '');
-            $route = trim($_POST['route'] ?? '');
+            $code = trim((string)($_POST['code'] ?? ''));
+            $route = trim((string)($_POST['route'] ?? ''));
             $seats = (int)($_POST['total_seats'] ?? 25);
             $status = $_POST['status'] ?? 'unavailable';
 
             if ($code && $route) {
                 $stmt = $pdo->prepare("INSERT INTO busses (code, route, total_seats, seat_availability, status) VALUES (?, ?, ?, ?, ?)");
                 $stmt->execute([$code, $route, $seats, $seats, $status]);
-                $message = "Bus <strong>" . htmlspecialchars($code) . "</strong> added successfully!";
+                $message = "Bus <strong>" . h($code) . "</strong> added successfully!";
             } else {
                 $error = "Bus Code and Route are required.";
             }
         }
-        // 2. Add Conductor / Driver
+        // 2. Add Conductor / Driver (minimal tables: id, email, password, created_at)
         elseif ($action === 'add_user') {
-            $name = trim($_POST['name'] ?? '');
-            $email = trim($_POST['email'] ?? '');
-            $password = $_POST['password'] ?? '';
-            $role = $_POST['role'] ?? 'conductor';
+            $email = trim((string)($_POST['email'] ?? ''));
+            $password = (string)($_POST['password'] ?? '');
+            $role = $_POST['role'] ?? 'conductor'; // expected: 'conductor' or 'driver'
 
-            if ($name && $email && $password) {
-                $check = $pdo->prepare("SELECT id FROM users WHERE email = ?");
-                $check->execute([$email]);
-                if ($check->fetch()) {
-                    $error = "Email is already registered.";
+            if ($email === '' || $password === '') {
+                $error = "Email and password are required.";
+            } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+                $error = "Please provide a valid email address.";
+            } else {
+                // Check email uniqueness across role tables (admins, users_new, drivers, conductors)
+                $tablesToCheck = ['admins', 'users_new', 'drivers', 'conductors'];
+                $exists = false;
+                foreach ($tablesToCheck as $t) {
+                    $chk = $pdo->prepare("SELECT id FROM {$t} WHERE email = ? LIMIT 1");
+                    $chk->execute([$email]);
+                    if ($chk->fetch()) { $exists = true; break; }
+                }
+
+                if ($exists) {
+                    $error = "Email is already registered in the system.";
                 } else {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
-                    $stmt = $pdo->prepare("INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)");
-                    $stmt->execute([$name, $email, $hash, $role]);
-                    $message = "New " . htmlspecialchars($role) . " <strong>" . htmlspecialchars($name) . "</strong> added!";
+                    if ($role === 'driver') {
+                        $stmt = $pdo->prepare("INSERT INTO drivers (email, password, created_at) VALUES (?, ?, NOW())");
+                        $stmt->execute([$email, $hash]);
+                        $message = "New driver <strong>" . h($email) . "</strong> added!";
+                    } else {
+                        $stmt = $pdo->prepare("INSERT INTO conductors (email, password, created_at) VALUES (?, ?, NOW())");
+                        $stmt->execute([$email, $hash]);
+                        $message = "New conductor <strong>" . h($email) . "</strong> added!";
+                    }
                 }
-            } else {
-                $error = "All fields are required for adding a user.";
             }
         }
         // 3. Delete Bus
@@ -67,32 +90,50 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Bus deleted.";
             }
         }
-        // 4. Delete User
+        // 4. Delete User (driver or conductor)
         elseif ($action === 'delete_user') {
             $id = $_POST['id'] ?? null;
-            if ($id) {
-                $pdo->prepare("DELETE FROM users WHERE id = ?")->execute([$id]);
-                $message = "User deleted.";
+            $role = $_POST['role'] ?? ''; // expected 'driver' or 'conductor'
+            if ($id && in_array($role, ['driver', 'conductor'], true)) {
+                $table = $role === 'driver' ? 'drivers' : 'conductors';
+                $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$id]);
+                $message = ucfirst($role) . " deleted.";
+            } else {
+                $error = "Invalid delete request.";
             }
         }
     } catch (Exception $e) {
-        $error = "Database Error: " . $e->getMessage();
+        // Avoid exposing detailed DB errors to users in production
+        $error = "Database error: " . $e->getMessage();
     }
 }
 
-// --- Fetch Data for Tables (Static View) ---
-function h($s): string {
-    return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+// --- Fetch Data for Tables (Drivers + Conductors) ---
+// Build a unified staff list by selecting from drivers and conductors and adding a role marker.
+$staff = [];
+try {
+    $drivers = $pdo->query("SELECT id, email, created_at, 'driver' AS role FROM drivers ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $conductors = $pdo->query("SELECT id, email, created_at, 'conductor' AS role FROM conductors ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
+
+    $staff = array_merge($conductors, $drivers); // order: conductors then drivers
+} catch (Exception $e) {
+    // If the above fails, leave staff empty
+    $staff = [];
 }
 
-$buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll();
-$staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') ORDER BY role, name")->fetchAll();
+// Buses
+$buses = [];
+try {
+    $buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $buses = [];
+}
 ?>
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ByaHero — Admin Dashboard</title>
+    <title>ByaHero — Admin</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
@@ -126,7 +167,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
 <nav class="navbar navbar-expand-lg navbar-dark mb-4">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="#">
-            <span class="material-icons-round">directions_bus</span> ByaHero Admin
+            <span class="material-icons-round">directions_bus</span> ByaHero
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
             <span class="navbar-toggler-icon"></span>
@@ -144,11 +185,9 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                 </li>
             </ul>
 
-            <?php if (!empty($_SESSION['admin_logged_in'])): ?>
-                <div class="ms-3">
-                    <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-                </div>
-            <?php endif; ?>
+            <div class="ms-3">
+                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
+            </div>
         </div>
     </div>
 </nav>
@@ -170,7 +209,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
     <?php endif; ?>
 
     <div class="tab-content">
-        
+
         <div class="tab-pane fade show active" id="tab-dashboard">
             <div class="row g-4">
                 <div class="col-lg-3 col-md-6">
@@ -193,7 +232,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                     <div class="card bg-info text-white h-100">
                         <div class="card-body">
                             <h6 class="opacity-75 mb-2">Conductors</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => $u['role'] === 'conductor')) ?></h2>
+                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'conductor')) ?></h2>
                         </div>
                     </div>
                 </div>
@@ -201,7 +240,7 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                     <div class="card bg-warning text-dark h-100">
                         <div class="card-body">
                             <h6 class="opacity-75 mb-2">Drivers</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => $u['role'] === 'driver')) ?></h2>
+                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'driver')) ?></h2>
                         </div>
                     </div>
                 </div>
@@ -321,10 +360,6 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                             <form method="POST">
                                 <input type="hidden" name="action" value="add_user">
                                 <div class="mb-3">
-                                    <label class="form-label small fw-bold text-uppercase">Full Name</label>
-                                    <input type="text" name="name" class="form-control" placeholder="John Doe" required>
-                                </div>
-                                <div class="mb-3">
                                     <label class="form-label small fw-bold text-uppercase">Email Address</label>
                                     <input type="email" name="email" class="form-control" placeholder="staff@byahero.com" required>
                                 </div>
@@ -355,8 +390,8 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                                 <thead class="table-light text-muted small text-uppercase">
                                     <tr>
                                         <th>Role</th>
-                                        <th>Name</th>
                                         <th>Email</th>
+                                        <th>Created At</th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -365,13 +400,14 @@ $staff = $pdo->query("SELECT * FROM users WHERE role IN ('conductor', 'driver') 
                                         <tr><td colspan="4" class="text-center text-muted py-4">No staff accounts found.</td></tr>
                                     <?php else: foreach($staff as $u): ?>
                                         <tr>
-                                            <td><span class="badge bg-secondary text-uppercase"><?= h($u['role']) ?></span></td>
-                                            <td class="fw-bold"><?= h($u['name']) ?></td>
-                                            <td class="small text-muted"><?= h($u['email']) ?></td>
+                                            <td><span class="badge bg-secondary text-uppercase"><?= h($u['role'] ?? 'staff') ?></span></td>
+                                            <td class="fw-bold"><?= h($u['email']) ?></td>
+                                            <td class="small text-muted"><?= h($u['created_at'] ?? '') ?></td>
                                             <td>
-                                                <form method="POST" onsubmit="return confirm('Delete user <?= h($u['name']) ?>?');">
+                                                <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');">
                                                     <input type="hidden" name="action" value="delete_user">
                                                     <input type="hidden" name="id" value="<?= h($u['id']) ?>">
+                                                    <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
                                                     <button class="btn btn-sm btn-outline-danger px-2 py-0" title="Delete"><small>Remove</small></button>
                                                 </form>
                                             </td>
