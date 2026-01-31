@@ -215,27 +215,6 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 
-  <div class="modal fade" id="loginModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="fw-bold">Login</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-        </div>
-        <div class="modal-body">
-          <div id="loginAlert"></div>
-          <form id="loginForm">
-            <input type="hidden" name="action" value="login">
-            <div class="mb-3"><input type="email" name="email" class="form-control" placeholder="Email" required></div>
-            <div class="mb-3"><input type="password" name="password" class="form-control" placeholder="Password"
-                required></div>
-            <button type="submit" class="btn btn-primary w-100">Sign In</button>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
-
   <div class="modal fade" id="filterModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered modal-sm">
       <div class="modal-content">
@@ -275,8 +254,10 @@ if (isset($_SESSION['user_id'])) {
         <div class="modal-body text-center"><?php if (isset($_SESSION['user_id'])): ?>
             <h6><?= htmlspecialchars($_SESSION['user_name']) ?></h6><a href="../logout.php"
               class="btn btn-sm btn-outline-danger mt-2">Logout</a><?php else: ?>
-            <p>Please log in.</p><button class="btn btn-primary btn-sm" data-bs-toggle="modal"
-              data-bs-target="#loginModal">Login</button><?php endif; ?>
+            <p>Please log in.</p>
+            <a href="../../index.php" class="btn btn-primary btn-sm">
+              Login
+            </a><?php endif; ?>
         </div>
       </div>
     </div>
@@ -352,7 +333,7 @@ if (isset($_SESSION['user_id'])) {
     // --- BUS TRACKING ---
     async function updateBuses() {
       try {
-        const res = await fetch('../api.php?action=get_buses');
+        const res = await fetch('../../public/api.php?action=get_buses');
         const json = await res.json();
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
@@ -447,7 +428,7 @@ if (isset($_SESSION['user_id'])) {
         const fd = new FormData(e.target);
         const alertBox = document.getElementById('loginAlert');
         try {
-          const res = await fetch('../auth_api.php', { method: 'POST', body: fd });
+          const res = await fetch('../../auth_api.php', { method: 'POST', body: fd });
           const data = await res.json();
           if (data.success) {
             alertBox.innerHTML = '<div class="alert alert-success py-1">Success! Redirecting...</div>';
