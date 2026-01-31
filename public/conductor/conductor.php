@@ -38,7 +38,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
         .top-dashboard-header {
             background-color: var(--primary-blue);
             color: white;
-            /* Adjusted padding: Normal spacing, no huge bottom gap */
             padding: 30px 25px 40px 25px; 
             border-bottom-left-radius: 30px;
             border-bottom-right-radius: 30px;
@@ -48,6 +47,13 @@ $userName = $_SESSION['user_name'] ?? 'User';
             position: relative;
             z-index: 0;
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        /* Right side container for Avatar + Logout */
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 15px; /* Space between avatar and logout */
         }
 
         .user-avatar {
@@ -60,20 +66,31 @@ $userName = $_SESSION['user_name'] ?? 'User';
             box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
 
+        .logout-btn {
+            color: rgba(255, 255, 255, 0.8);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: color 0.2s;
+        }
+        .logout-btn:hover {
+            color: white;
+        }
+
         /* 2. MAIN WRAPPER */
         .main-content-wrapper {
-            /* CHANGED: Positive margin to push content DOWN away from header */
             margin-top: 20px; 
             padding: 0 20px;
             position: relative;
             z-index: 10;
         }
 
-        /* 3. FILTER SECTION (Row 1) */
+        /* 3. FILTER SECTION */
         .filter-section {
             display: flex;
             justify-content: center;
-            margin-bottom: 20px; /* Space between Filter and Map */
+            margin-bottom: 20px; 
         }
         
         .filter-pill {
@@ -91,14 +108,14 @@ $userName = $_SESSION['user_name'] ?? 'User';
             border: 1px solid rgba(0,0,0,0.05);
         }
 
-        /* 4. MAP CARD (Row 2) */
+        /* 4. MAP CARD */
         .map-card-wrapper {
             position: relative;
             border-radius: 20px;
             overflow: hidden;
             box-shadow: 0 8px 20px rgba(0,0,0,0.08);
             background: white;
-            height: 350px; /* Fixed height */
+            height: 350px; 
             margin-bottom: 20px;
             border: 4px solid white; 
         }
@@ -109,7 +126,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
             z-index: 1;
         }
 
-        /* 5. CONTROLS (Row 3) */
+        /* 5. CONTROLS */
         .selection-card {
             background: white;
             border-radius: 16px;
@@ -164,8 +181,14 @@ $userName = $_SESSION['user_name'] ?? 'User';
             <h2 class="m-0 fw-bold" style="font-size: 1.5rem;">Hello, <?= htmlspecialchars($userName) ?>!</h2>
             <p class="m-0 small opacity-75" style="margin-top: 4px;">You are assigned in bus 00002 today</p>
         </div>
-        <div class="user-avatar">
-            <span class="material-icons-round">person</span>
+        
+        <div class="header-actions">
+            <div class="user-avatar">
+                <span class="material-icons-round">person</span>
+            </div>
+            <a href="../logout.php" class="logout-btn" title="Logout">
+                <span class="material-icons-round" style="font-size: 28px;">logout</span>
+            </a>
         </div>
     </header>
 
