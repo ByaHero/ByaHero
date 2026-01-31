@@ -1,7 +1,7 @@
 <?php
 session_start();
 // Adjust path to config based on your folder structure
-require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../../config/db.php';
 ?>
 <!doctype html>
 <html lang="en">
@@ -111,7 +111,7 @@ require __DIR__ . '/../config/db.php';
   </div>
 
   <div class="nav-wrapper">
-      <?php include '../../components/navbarPasssenger.php'; ?>
+      <?php include '../../components/navbarPassenger.php'; ?>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
