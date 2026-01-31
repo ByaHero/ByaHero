@@ -172,6 +172,13 @@ $userName = $_SESSION['user_name'] ?? 'User';
         .visually-hidden { position: absolute !important; height: 1px; width: 1px; overflow: hidden; clip: rect(1px 1px 1px 1px); }
         .alert-area { position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 900; pointer-events: none; }
         .alert-area .alert { pointer-events: auto; }
+
+        /* small info box for tracking */
+        .info-box { padding: 12px; background: #f8fafc; border-radius: 12px; }
+        .info-item { display:flex; justify-content:space-between; padding:6px 0; border-bottom: 1px solid #eef2f6; }
+        .info-item:last-child { border-bottom:0; }
+        .location-link { color:#0d6efd; font-weight:700; text-decoration:none; }
+        .location-link:hover { text-decoration:underline; }
     </style>
 </head>
 <body>
@@ -240,7 +247,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                         <h4 class="fw-bold m-0 text-primary" id="activeBusCode">-</h4>
                         <small class="text-muted" id="activeRoute">-</small>
                     </div>
-                    <div class="badge bg-success" id="netStatus">Live</div>
+                    <div class="badge bg-success" id="netStatus">Ready</div>
                 </div>
 
                 <div class="d-flex align-items-center justify-content-between bg-light p-3 rounded-3 mb-3">
@@ -260,6 +267,26 @@ $userName = $_SESSION['user_name'] ?? 'User';
                         <option value="full">🔴 Full</option>
                         <option value="unavailable">⚫ Unavailable</option>
                     </select>
+                </div>
+
+                <!-- Added info box: Location, Last Update, Arrival, My Location -->
+                <div class="info-box mb-3">
+                    <div class="info-item">
+                        <div>Location</div>
+                        <div><a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a></div>
+                    </div>
+                    <div class="info-item">
+                        <div>Last Update</div>
+                        <div id="lastUpdate">-</div>
+                    </div>
+                    <!-- <div class="info-item">
+                        <div>Arrival</div>
+                        <div id="arrivalTime">-</div>
+                    </div>
+                    <div class="info-item">
+                        <div>My Location</div>
+                        <div id="myLocation">-</div>
+                    </div> -->
                 </div>
 
                 <button class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm" id="stopBtn">
@@ -315,32 +342,70 @@ $userName = $_SESSION['user_name'] ?? 'User';
         const latlng = [lat, lng];
         if (!marker) { marker = L.marker(latlng).addTo(map); } 
         else { marker.setLatLng(latlng); }
-        map.panTo(latlng);
+        try { map.panTo(latlng); } catch(e){}
     }
 
+    // Load route features (polygons) used to resolve named locations
     async function loadRouteFeatures() {
         try {
-            const res = await fetch('../map_data.php');
+            const res = await fetch('../map_data.php', { cache: 'no-store' });
             const json = await res.json();
-            if (json && Array.isArray(json.features)) routeFeatures = json.features.filter(f => f.geometry);
-        } catch (e) { console.warn(e); }
+            if (json && Array.isArray(json.features)) {
+                // Keep only Polygon / MultiPolygon features that have coordinates
+                routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
+            }
+        } catch (e) { console.warn('Failed to load route features', e); }
     }
 
-    function resolveLocationName(lat, lng) { return null; }
+    // point-in-polygon helper (ray-casting)
+    function pointInRing(x, y, ring) {
+      let inside = false;
+      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+        const xi = ring[i][0], yi = ring[i][1];
+        const xj = ring[j][0], yj = ring[j][1];
+        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
+        if (intersect) inside = !inside;
+      }
+      return inside;
+    }
+
+    // Resolve a named location from loaded polygons (returns null if none)
+    function resolveLocationName(lat, lng) {
+      if (!routeFeatures || routeFeatures.length === 0) return null;
+      for (const f of routeFeatures) {
+        if (!f.geometry) continue;
+        // Handle Polygon
+        if (f.geometry.type === 'Polygon' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates[0]) {
+          // coordinates for ring are in [lng, lat] order
+          if (pointInRing(lng, lat, f.geometry.coordinates[0])) {
+            return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
+          }
+        }
+        // Handle MultiPolygon
+        if (f.geometry.type === 'MultiPolygon' && Array.isArray(f.geometry.coordinates)) {
+          for (const poly of f.geometry.coordinates) {
+            if (poly && poly[0] && pointInRing(lng, lat, poly[0])) {
+              return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
+            }
+          }
+        }
+      }
+      return null;
+    }
 
     async function loadBuses() {
         try {
-            const r = await fetch('../api.php?action=get_buses');
+            const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
             const json = await r.json();
             if (json && Array.isArray(json.buses)) {
                 const sel = el('busSelect');
                 sel.innerHTML = '<option value="">-- Choose --</option>'; 
                 json.buses.forEach(b => {
-                    const id = b.id || b.Bus_ID;
+                    const id = b.id || b.Bus_ID || b.bus_id;
                     const o = document.createElement('option');
                     o.value = id;
-                    o.textContent = `${b.code} (${b.seats_total || 25} seats)`;
-                    o.dataset.code = b.code;
+                    o.textContent = `${b.code || 'BUS-' + id} (${b.seats_total || 25} seats)`;
+                    o.dataset.code = b.code || `BUS-${id}`;
                     o.dataset.seats = b.seats_total || 25;
                     sel.appendChild(o);
                 });
@@ -376,22 +441,40 @@ $userName = $_SESSION['user_name'] ?? 'User';
         if ('wakeLock' in navigator) { try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){} }
         if (!navigator.geolocation) return showAlert('No GPS support', 'danger');
 
+        // ensure map resizes correctly after showing
+        setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 300);
+
         watchId = navigator.geolocation.watchPosition(
             onLocationUpdate,
             (err) => showAlert('GPS Error: ' + err.message, 'danger'),
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
         );
-        showAlert('Tracking Started!', 'success');
-        
-        setTimeout(() => { map.invalidateSize(); }, 300);
+        showAlert('Tracking Started!', 'primary');
     }
 
     function onLocationUpdate(pos) {
         const { latitude: lat, longitude: lng } = pos.coords;
-        const locName = resolveLocationName(lat, lng) || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-        
+        const resolved = resolveLocationName(lat, lng);
+        const locName = resolved || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
         lastKnownLocation = { lat, lng, locName };
+
+        // update map marker
         updateMarker(lat, lng);
+
+        // update UI fields
+        const currentLocationEl = el('currentLocation');
+        if (currentLocationEl) {
+            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + ',' + lng)}`;
+            currentLocationEl.textContent = locName;
+            currentLocationEl.href = mapsUrl;
+            currentLocationEl.title = `Open in Google Maps`;
+        }
+        el('lastUpdate').textContent = new Date().toLocaleTimeString();
+        el('myLocation').textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+
+        // arrivalTime left to app logic — keep placeholder or compute if you have an algorithm
+        // el('arrivalTime').textContent = computeEstimatedArrival(...);
 
         const now = Date.now();
         if (now - lastNetworkSync > SYNC_INTERVAL) {
@@ -403,8 +486,8 @@ $userName = $_SESSION['user_name'] ?? 'User';
     async function sendDataToServer(lat, lng, locName) {
         if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.className = 'badge bg-warning text-dark'; }
 
-        const seats = parseInt(el('seatsCount').textContent);
-        const status = el('statusSelect').value;
+        const seats = parseInt(el('seatsCount').textContent) || 0;
+        const status = el('statusSelect').value || 'available';
 
         const payload = {
             bus_id: currentBus.id,
@@ -442,23 +525,59 @@ $userName = $_SESSION['user_name'] ?? 'User';
     function triggerManualUpdate() {
         if(lastKnownLocation && currentBus) {
             sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
+            // reset throttle so it can send again soon after
+            lastNetworkSync = Date.now();
+        } else {
+            // no GPS lock yet — clear throttle so next tick will send
+            lastNetworkSync = 0;
+            showAlert('Waiting for GPS fix...', 'info');
         }
     }
 
     function stopTracking() {
-        if (watchId !== null) navigator.geolocation.clearWatch(watchId);
-        if (wakeLock !== null) wakeLock.release();
+        if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+        }
+        if (wakeLock !== null && typeof wakeLock.release === 'function') {
+            try { wakeLock.release(); } catch (e) {}
+        }
         watchId = null;
+        wakeLock = null;
+        lastKnownLocation = null;
 
         if(currentBus) {
-            fetch('../api.php?action=stop_tracking', {
-                method: 'POST',
-                body: JSON.stringify({ bus_id: currentBus.id })
-            });
+            try {
+                fetch('../api.php?action=stop_tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ bus_id: currentBus.id })
+                }).catch(()=>{});
+            } catch(e){}
         }
 
+        // reset UI
         el('setupSection').style.display = 'block';
         el('trackingSection').style.display = 'none';
+        el('activeBusCode').textContent = '-';
+        el('activeRoute').textContent = '-';
+        if (marker && map) {
+            try { map.removeLayer(marker); } catch(e){}
+            marker = null;
+        }
+        // reset info box
+        const currentLocationEl = el('currentLocation');
+        if (currentLocationEl) {
+            currentLocationEl.textContent = 'Waiting for GPS...';
+            currentLocationEl.href = '#';
+            currentLocationEl.removeAttribute('title');
+        }
+        el('lastUpdate').textContent = '-';
+        el('arrivalTime').textContent = '-';
+        el('myLocation').textContent = '-';
+        el('seatsCount').textContent = '25';
+        el('seatsInput').value = '25';
+        if (netStatus) { netStatus.textContent = 'Ready'; netStatus.className = 'badge bg-success'; }
+
         currentBus = null;
         showAlert('Tracking Stopped', 'primary');
     }
@@ -478,6 +597,29 @@ $userName = $_SESSION['user_name'] ?? 'User';
         el('seatMinus').addEventListener('click', () => {
             el('seatsCount').textContent = Math.max(0, parseInt(el('seatsCount').textContent) - 1);
             triggerManualUpdate();
+        });
+
+        // Make location link open maps only when it has a real href
+        const currentLocationEl = el('currentLocation');
+        if (currentLocationEl) {
+            currentLocationEl.addEventListener('click', (ev) => {
+                const href = currentLocationEl.getAttribute('href');
+                if (!href || href === '#') {
+                    ev.preventDefault();
+                    if (lastKnownLocation) {
+                        showAlert(`Location: ${lastKnownLocation.locName}`, 'info');
+                    } else {
+                        showAlert('Waiting for GPS fix...', 'info');
+                    }
+                }
+            });
+        }
+
+        // Re-request wakeLock when visible again
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible') {
+                try { wakeLock = await navigator.wakeLock.request('screen'); } catch (e) {}
+            }
         });
     });
     </script>
