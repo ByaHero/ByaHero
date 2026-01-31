@@ -147,7 +147,7 @@
         if(!listContainer) return;
 
         try {
-            const res = await fetch('../public/api_pins.php?action=list');
+            const res = await fetch('../api_pins.php?action=list');
             const data = await res.json();
             
             // Clear existing markers

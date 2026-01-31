@@ -134,10 +134,17 @@ if (isset($_SESSION['user_id'])) {
           <span class="material-symbols-rounded fs-6">tune</span>
         </div>
 
-        <button
-          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0">
+        <a href="notifications.php"
+          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative">
+
+          <span
+            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+            style="margin-left: -10px; margin-top: 10px;">
+            <span class="visually-hidden">New alerts</span>
+          </span>
+
           <span class="material-symbols-rounded">notifications</span>
-        </button>
+        </a>
       </div>
 
       <button
