@@ -1,3 +1,11 @@
+<style>
+  :root {
+    --bs-primary: #1e3a8a;
+    --bs-primary-rgb: 30, 58, 138;
+    --bs-bg-light: #f3f4f6;
+  }
+</style>
+
 <div
   class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
   style="height: 40px;">
