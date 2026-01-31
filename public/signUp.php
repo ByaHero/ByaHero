@@ -1,11 +1,36 @@
 <?php
 session_start();
-// [Path] Config is inside public/config/
-require __DIR__ . '../config/db.php';
+
+// Robust config loader — tries likely locations to avoid fatal require() errors across environments.
+$configPaths = [
+    __DIR__ . '/config/db.php',       // public/config/db.php (if you keep config inside public/)
+    __DIR__ . '/../config/db.php',    // project-root/config/db.php (your current location)
+    __DIR__ . '/../../config/db.php', // alternate layouts
+];
+
+$loaded = false;
+foreach ($configPaths as $p) {
+    if (file_exists($p)) {
+        require_once $p;
+        $loaded = true;
+        break;
+    }
+}
+
+if (!$loaded) {
+    // Friendly development error (avoid fatal). In production, log and show generic message.
+    http_response_code(500);
+    echo "Configuration error: db.php not found. Checked paths:<ul>";
+    foreach ($configPaths as $p) {
+        echo "<li>" . htmlspecialchars($p) . "</li>";
+    }
+    echo "</ul>";
+    exit;
+}
 
 // If user is already logged in, redirect them
 if (isset($_SESSION['user_id'])) {
-    if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
+    if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
         header("Location: /conductor/conductor.php");
     } else {
         header("Location: /passenger/index.php");
@@ -27,11 +52,9 @@ if (isset($_SESSION['user_id'])) {
 
     <style>
         :root {
-            /* Matching the blue from your logo */
             --bs-primary: #1e40af;
             --bs-primary-hover: #172e6e;
         }
-
         body {
             font-family: 'Poppins', sans-serif;
             background-color: #ffffff;
@@ -41,13 +64,7 @@ if (isset($_SESSION['user_id'])) {
             justify-content: center;
             padding: 20px;
         }
-
-        .signup-container {
-            width: 100%;
-            max-width: 420px;
-        }
-
-        /* Rounded Gray Inputs */
+        .signup-container { width: 100%; max-width: 420px; }
         .form-control {
             background-color: #f3f4f6;
             border: none;
@@ -55,17 +72,11 @@ if (isset($_SESSION['user_id'])) {
             font-size: 0.95rem;
             border-radius: 12px;
         }
-
         .form-control:focus {
             background-color: #fff;
             box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1);
         }
-
-        /* Password Eye Icon */
-        .password-wrapper {
-            position: relative;
-        }
-
+        .password-wrapper { position: relative; }
         .password-toggle {
             position: absolute;
             right: 15px;
@@ -77,8 +88,6 @@ if (isset($_SESSION['user_id'])) {
             background: none;
             padding: 0;
         }
-
-        /* Pill Button */
         .btn-primary {
             background-color: var(--bs-primary);
             border: none;
@@ -87,36 +96,18 @@ if (isset($_SESSION['user_id'])) {
             border-radius: 50px;
             transition: all 0.3s ease;
         }
-
         .btn-primary:hover {
             background-color: var(--bs-primary-hover);
             transform: translateY(-1px);
         }
-
-        .logo-img {
-            width: 150px;
-            height: auto;
-            margin-bottom: 5px;
-        }
-
+        .logo-img { width: 150px; height: auto; margin-bottom: 5px; }
         .google-btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            border: 1px solid #dee2e6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: white;
-            transition: all 0.2s;
-            margin: 0 auto;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+            width: 50px; height: 50px; border-radius: 50%; border: 1px solid #dee2e6;
+            display:flex; align-items:center; justify-content:center; background:white; transition: all .2s;
+            margin:0 auto; box-shadow:0 4px 6px rgba(0,0,0,0.05);
         }
-
-        .google-btn:hover {
-            background-color: #f8f9fa;
-            transform: translateY(-2px);
-        }
+        .google-btn:hover { background-color:#f8f9fa; transform:translateY(-2px); }
+        .small-muted { margin-top: 0.75rem; }
     </style>
 </head>
 
@@ -125,7 +116,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="container signup-container text-center">
 
         <div class="mb-3">
-            <img src="images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="logo-img">
+            <img src="../images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="logo-img">
             <h5 class="fw-bold text-dark mt-1" style="letter-spacing: 1px; font-size: 14px;">BYAHERO</h5>
         </div>
 
@@ -134,11 +125,12 @@ if (isset($_SESSION['user_id'])) {
 
             <div id="signupAlert"></div>
 
-            <form id="signupForm">
+            <!-- Note: users CANNOT choose a role here. Admins create drivers/conductors. -->
+            <form id="signupForm" autocomplete="off">
                 <input type="hidden" name="action" value="signup">
 
                 <div class="mb-3">
-                    <input type="text" name="name" class="form-control" placeholder="Full Name" required>
+                    <input type="text" name="name" class="form-control" placeholder="Full Name (optional)">
                 </div>
 
                 <div class="mb-3">
@@ -147,16 +139,16 @@ if (isset($_SESSION['user_id'])) {
 
                 <div class="mb-3 password-wrapper">
                     <input type="password" name="password" id="passInput" class="form-control" placeholder="Password"
-                        required minlength="6">
-                    <button type="button" class="password-toggle" onclick="togglePass('passInput', 'iconPass')">
+                        required minlength="6" autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePass('passInput', 'iconPass')" aria-label="Toggle password">
                         <span class="material-symbols-rounded fs-5" id="iconPass">visibility_off</span>
                     </button>
                 </div>
 
                 <div class="mb-4 password-wrapper">
                     <input type="password" name="confirm_password" id="confirmInput" class="form-control"
-                        placeholder="Confirm Password" required minlength="6">
-                    <button type="button" class="password-toggle" onclick="togglePass('confirmInput', 'iconConfirm')">
+                        placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
+                    <button type="button" class="password-toggle" onclick="togglePass('confirmInput', 'iconConfirm')" aria-label="Toggle confirm password">
                         <span class="material-symbols-rounded fs-5" id="iconConfirm">visibility_off</span>
                     </button>
                 </div>
@@ -175,14 +167,14 @@ if (isset($_SESSION['user_id'])) {
         </div>
 
         <div class="d-flex justify-content-center mb-4">
-            <a href="#" class="google-btn text-decoration-none">
+            <a href="#" class="google-btn text-decoration-none" aria-label="Sign up with Google">
                 <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="24"
                     height="24">
             </a>
         </div>
 
-        <div class="text-center">
-            <p class="text-muted small mb-0">Already have an account? <a href="index.php"
+        <div class="text-center small-muted">
+            <p class="text-muted small mb-0">Already have an account? <a href="login.php"
                     class="fw-bold text-primary text-decoration-none">Login</a></p>
         </div>
 
@@ -202,6 +194,7 @@ if (isset($_SESSION['user_id'])) {
                 input.type = 'password';
                 icon.textContent = 'visibility_off';
             }
+            input.focus();
         }
 
         // Handle Signup Submission
@@ -218,7 +211,7 @@ if (isset($_SESSION['user_id'])) {
             const p2 = document.getElementById('confirmInput').value;
 
             if (p1 !== p2) {
-                alertBox.innerHTML = '<div class="alert alert-danger d-flex align-items-center small py-2 border-0 bg-danger-subtle text-danger fw-bold">Passwords do not match.</div>';
+                alertBox.innerHTML = '<div class="alert alert-danger small py-2">Passwords do not match.</div>';
                 return;
             }
 
@@ -229,7 +222,8 @@ if (isset($_SESSION['user_id'])) {
 
             try {
                 const fd = new FormData(form);
-                const res = await fetch('public/auth_api.php', {
+                // POST to auth_api.php in the same public directory
+                const res = await fetch('auth_api.php', {
                     method: 'POST',
                     body: fd
                 });
@@ -238,22 +232,25 @@ if (isset($_SESSION['user_id'])) {
                 let data;
                 try {
                     data = JSON.parse(text);
-                } catch (e) {
+                } catch (err) {
                     throw new Error("Server Error");
                 }
 
                 if (data.success) {
-                    alertBox.innerHTML = '<div class="alert alert-success d-flex align-items-center small py-2 border-0 bg-success-subtle text-success fw-bold">Success! Redirecting to login...</div>';
+                    alertBox.innerHTML = '<div class="alert alert-success small py-2">Success! Redirecting...</div>';
                     form.reset();
+
+                    // Use redirect returned by server (auth_api should return redirect on signup)
+                    const redirect = data.redirect || 'passenger/index.php';
                     setTimeout(() => {
-                        window.location.href = 'index.php';
-                    }, 1500)
+                        window.location.href = redirect;
+                    }, 900);
                 } else {
                     throw new Error(data.message || 'Signup failed');
                 }
 
             } catch (err) {
-                alertBox.innerHTML = `<div class="alert alert-danger d-flex align-items-center small py-2 border-0 bg-danger-subtle text-danger fw-bold">${err.message}</div>`;
+                alertBox.innerHTML = `<div class="alert alert-danger small py-2">${err.message}</div>`;
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }

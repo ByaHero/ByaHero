@@ -2,24 +2,98 @@
 declare(strict_types=1);
 session_start();
 
-// Credentials from env with sensible defaults
-$envUser = getenv('ADMIN_USER');
-$envPass = getenv('ADMIN_PASS');
-$ADMIN_USER = $envUser !== false ? $envUser : 'admin';
-$ADMIN_PASS = $envPass !== false ? $envPass : 'password';
+/**
+ * public/login.php
+ *
+ * Login page that authenticates against the new role tables:
+ * - admins
+ * - drivers
+ * - conductors
+ * - users
+ *
+ * Requires config/db.php (expects a db() function that returns a PDO instance).
+ * Adjust redirects for each role below as needed.
+ */
+
+require __DIR__ . '/../config/db.php';
 
 $err = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
-    $password = $_POST['password'] ?? '';
+$redirectAfter = $_GET['redirect'] ?? ($_POST['redirect'] ?? 'passenger/index.php');
 
-    if ($username === $ADMIN_USER && $password === $ADMIN_PASS) {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_user'] = $ADMIN_USER;
-        header('Location: admin.php');
-        exit;
+// Map table => role info (role name + default redirect)
+$roleTables = [
+    'admins'     => ['role' => 'admin',     'redirect' => 'admin/admin.php'],
+    'drivers'    => ['role' => 'driver',    'redirect' => 'driver/dashboard.php'],
+    'conductors' => ['role' => 'conductor', 'redirect' => 'conductor/conductor.php'],
+    'users'      => ['role' => 'user',      'redirect' => 'passenger/index.php'],
+];
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
+    $password = (string)($_POST['password'] ?? '');
+
+    if ($email === '' || $password === '') {
+        $err = 'Email and password are required.';
     } else {
-        $err = 'Invalid username or password.';
+        try {
+            $pdo = db();
+
+            $authenticated = false;
+            $userRecord = null;
+            $userRole = null;
+            $targetRedirect = $redirectAfter;
+
+            foreach ($roleTables as $table => $info) {
+                $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+                $stmt->execute([$email]);
+                $row = $stmt->fetch(PDO::FETCH_ASSOC);
+                if (!$row) continue;
+
+                $hash = $row['password'] ?? '';
+
+                // Prefer secure verification (password_verify for hashed passwords)
+                if ($hash && password_verify($password, $hash)) {
+                    $authenticated = true;
+                } elseif ($hash === $password) {
+                    // Legacy fallback: password stored in plaintext (NOT recommended).
+                    // Authenticate but immediately re-hash and store the secure hash.
+                    $authenticated = true;
+                    $newHash = password_hash($password, PASSWORD_DEFAULT);
+                    try {
+                        $up = $pdo->prepare("UPDATE {$table} SET password = ? WHERE id = ? LIMIT 1");
+                        $up->execute([$newHash, $row['id']]);
+                    } catch (Exception $ignore) {
+                        // If update fails, continue without breaking login.
+                    }
+                }
+
+                if ($authenticated) {
+                    $userRecord = $row;
+                    $userRole = $info['role'];
+                    $targetRedirect = $info['redirect'] ?? $targetRedirect;
+                    break;
+                }
+            }
+
+            if ($authenticated && $userRecord) {
+                // Set session values (keep minimal info)
+                $_SESSION['user_id'] = $userRecord['id'];
+                $_SESSION['user_email'] = $userRecord['email'];
+                $_SESSION['user_role'] = $userRole;
+                // If table has a name column use it otherwise fallback to email
+                $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
+
+                // Redirect to page for the role or to redirectAfter param
+                header('Location: ' . $targetRedirect);
+                exit;
+            } else {
+                $err = 'Invalid email or password.';
+            }
+        } catch (Exception $e) {
+            // Don't reveal DB errors to users
+            $err = 'Server error. Please try again later.';
+            // Optionally log $e->getMessage() to your logs
+        }
     }
 }
 ?>
@@ -27,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>ByaHero — Admin Login</title>
+    <title>ByaHero — Login</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
@@ -189,9 +263,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-outer">
         <div class="login-card">
             <div class="brand-wrap">
-                <!-- logo path relative to admin/ directory -->
-                <img src="../../images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <div class="brand-title">BYAHERO ADMIN</div>
+                <img src="../images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
+                <div class="brand-title">BYAHERO</div>
             </div>
 
             <div class="form-card">
@@ -203,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form method="POST" novalidate>
                     <div class="mb-3">
-                        <input name="username" type="email" inputmode="email" autocomplete="username" placeholder="Email" class="form-control input-pill" required />
+                        <input name="email" type="email" inputmode="email" autocomplete="username" placeholder="Email" class="form-control input-pill" required value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>" />
                     </div>
 
                     <div class="mb-2 input-group-pill">
@@ -217,10 +290,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <a class="forgot" href="#" tabindex="-1">Forgot Password?</a>
                     </div>
 
-                    <button type="submit" class="submit-pill">Login</button>
+                    <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectAfter) ?>" />
 
-                    <!-- <div class="small-muted">Username: <strong>admin</strong> • Password: <strong>password</strong></div> -->
+                    <button type="submit" class="submit-pill">Login</button>
                 </form>
+
+                <!-- Sign up link added below the form -->
+                <div class="small-muted">
+                    Don't have an account? <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
+                </div>
             </div>
         </div>
     </div>
@@ -231,15 +309,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const toggle = document.getElementById('togglePwd');
     const eye = document.getElementById('eyeIcon');
 
-    // Initialize icon based on input type
     function syncIcon() {
         if (pwd.type === 'password') {
-            eye.textContent = 'visibility_off'; // closed eye when hidden
+            eye.textContent = 'visibility_off';
             toggle.setAttribute('aria-pressed', 'false');
             toggle.setAttribute('title', 'Show password');
             toggle.setAttribute('aria-label', 'Show password');
         } else {
-            eye.textContent = 'visibility'; // open eye when revealed
+            eye.textContent = 'visibility';
             toggle.setAttribute('aria-pressed', 'true');
             toggle.setAttribute('title', 'Hide password');
             toggle.setAttribute('aria-label', 'Hide password');
@@ -249,22 +326,17 @@ document.addEventListener('DOMContentLoaded', function () {
     syncIcon();
 
     toggle.addEventListener('click', function (e) {
-        // Toggle password visibility
         if (pwd.type === 'password') {
             pwd.type = 'text';
         } else {
             pwd.type = 'password';
         }
         syncIcon();
-        // keep focus on password field for convenience
         pwd.focus();
-        // keep cursor at end
         const val = pwd.value;
         pwd.value = '';
         pwd.value = val;
     });
-
-    // Allow pressing Enter in either field to submit naturally.
 });
 </script>
 </body>

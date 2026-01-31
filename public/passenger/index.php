@@ -1,17 +1,20 @@
 <?php
-session_start();
-require __DIR__ . '/../../config/db.php';
+// public/passenger/index.php
+// Lightweight passenger index that does NOT require DB access on page load.
+// Users can access the site without logging in. If a session exists we read
+// only session values (no DB queries), so the page works even if you drop the old users table.
 
-// Fetch user details if logged in
+session_start();
+
+// Do NOT require DB here so the page still works if you drop the old `users` table.
+// If you later need DB access on this page, re-add require __DIR__ . '/../../config/db.php';
 $currentUser = null;
 if (isset($_SESSION['user_id'])) {
-  try {
-    $pdo = db();
-    $stmt = $pdo->prepare("SELECT * FROM users WHERE id = ?");
-    $stmt->execute([$_SESSION['user_id']]);
-    $currentUser = $stmt->fetch();
-  } catch (Exception $e) {
-  }
+  $currentUser = [
+    'id' => $_SESSION['user_id'],
+    'name' => $_SESSION['user_name'] ?? null,
+    'email' => $_SESSION['user_email'] ?? null
+  ];
 }
 ?>
 <!doctype html>
@@ -251,13 +254,15 @@ if (isset($_SESSION['user_id'])) {
   <div class="modal fade" id="profileModal" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">
-        <div class="modal-body text-center"><?php if (isset($_SESSION['user_id'])): ?>
-            <h6><?= htmlspecialchars($_SESSION['user_name']) ?></h6><a href="../logout.php"
-              class="btn btn-sm btn-outline-danger mt-2">Logout</a><?php else: ?>
+        <div class="modal-body text-center">
+          <?php if ($currentUser): ?>
+            <h6><?= htmlspecialchars($currentUser['name'] ?? $currentUser['email']) ?></h6>
+            <a href="../logout.php" class="btn btn-sm btn-outline-danger mt-2">Logout</a>
+          <?php else: ?>
             <p>Please log in.</p>
-            <a href="../../index.php" class="btn btn-primary btn-sm">
-              Login
-            </a><?php endif; ?>
+            <!-- Redirect to the public login page -->
+            <a href="../login.php" class="btn btn-primary btn-sm">Login</a>
+          <?php endif; ?>
         </div>
       </div>
     </div>
@@ -421,28 +426,6 @@ if (isset($_SESSION['user_id'])) {
       const modals = ['safetyModal', 'infoModal', 'profileModal', 'filterModal', 'settingsModal'];
       const locationBtn = document.querySelector('button[onclick*="location"]');
       modals.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('hidden.bs.modal', () => { if (locationBtn) selectNav(locationBtn, 'location'); }); });
-
-      // FIXED: LOGIN LOGIC HANDLES REDIRECT
-      document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const fd = new FormData(e.target);
-        const alertBox = document.getElementById('loginAlert');
-        try {
-          const res = await fetch('../../auth_api.php', { method: 'POST', body: fd });
-          const data = await res.json();
-          if (data.success) {
-            alertBox.innerHTML = '<div class="alert alert-success py-1">Success! Redirecting...</div>';
-            // NEW LOGIC: Follow the redirect URL from server if present
-            if (data.redirect) {
-              window.location.href = data.redirect;
-            } else {
-              setTimeout(() => location.reload(), 1000);
-            }
-          } else {
-            alertBox.innerHTML = `<div class="alert alert-danger py-1">${data.message}</div>`;
-          }
-        } catch (err) { alertBox.innerHTML = '<div class="alert alert-danger py-1">Connection Error</div>'; }
-      });
 
       // Init pins with the main map instance
       if (typeof initPinsFeature === 'function') initPinsFeature(map);
