@@ -12,7 +12,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-require __DIR__ . '/config/db.php';
+require __DIR__ . '/../config/db.php';
 
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
