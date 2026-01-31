@@ -333,7 +333,7 @@ if (isset($_SESSION['user_id'])) {
     // --- BUS TRACKING ---
     async function updateBuses() {
       try {
-        const res = await fetch('../../public/api.php?action=get_buses');
+        const res = await fetch('../api.php?action=get_buses');
         const json = await res.json();
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
