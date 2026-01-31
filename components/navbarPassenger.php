@@ -27,7 +27,7 @@
     <div class="col-3 h-100 p-0">
       <button
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        onclick="selectNav(this, 'safety')" data-bs-toggle="modal" data-bs-target="#safetyModal">
+        onclick="window.location.href='/Byahero-Prototype-v3/public/passenger/safety/safety.php'">
         <span class="material-symbols-rounded fs-1 mb-1">security</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">SAFETY</span>
       </button>
@@ -36,7 +36,9 @@
     <div class="col-3 h-100 p-0">
       <button
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        onclick="selectNav(this, 'info')" data-bs-toggle="modal" data-bs-target="#infoModal">
+        onclick="selectNav(this, 'info')"
+        data-bs-toggle="modal"
+        data-bs-target="#infoModal">
         <span class="material-symbols-rounded fs-1 mb-1">directions_bus</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">INFO</span>
       </button>
@@ -45,7 +47,9 @@
     <div class="col-3 h-100 p-0">
       <button
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        onclick="selectNav(this, 'profile')" data-bs-toggle="modal" data-bs-target="#profileModal">
+        onclick="selectNav(this, 'profile')"
+        data-bs-toggle="modal"
+        data-bs-target="#profileModal">
         <span class="material-symbols-rounded fs-1 mb-1">person</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">PROFILE</span>
       </button>
