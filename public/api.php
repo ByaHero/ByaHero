@@ -8,7 +8,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
-require __DIR__ . '/config/db.php';
+require __DIR__ . '/../../config/db.php';
 
 /** Helpers **/
 function loadGeojsonFileForBus(int $busId): ?array {

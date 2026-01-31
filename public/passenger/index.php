@@ -1,6 +1,6 @@
 <?php
 session_start();
-require __DIR__ . '/../config/db.php';
+require __DIR__ . '/../../config/db.php';
 
 // Fetch user details if logged in
 $currentUser = null;
@@ -282,7 +282,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 
-  <?php include "../../components/navbar.php"; ?>
+  <?php include "../../components/navbarPassenger.php"; ?>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

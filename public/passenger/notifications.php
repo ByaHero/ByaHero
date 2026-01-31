@@ -111,7 +111,7 @@ require __DIR__ . '/../config/db.php';
   </div>
 
   <div class="nav-wrapper">
-      <?php include '../../components/navbar.php'; ?>
+      <?php include '../../components/navbarPasssenger.php'; ?>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

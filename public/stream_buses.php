@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Server-Sent Events endpoint that streams bus list whenever it changes.
 // Uses short polling on the server-side to detect DB/file changes and push them to connected clients.
 
-require __DIR__ . '/config/db.php';
+require __DIR__ . '/../../config/db.php';
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
