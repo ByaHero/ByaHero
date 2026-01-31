@@ -126,7 +126,7 @@ if (isset($_SESSION['user_id'])) {
         class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
         <button
           class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0"
-          data-bs-toggle="modal" data-bs-target="#settingsModal">
+          onclick="window.location.href='./passengerSettings/settings.php';">
           <span class="material-symbols-rounded">settings</span>
         </button>
 

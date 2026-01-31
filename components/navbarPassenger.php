@@ -9,7 +9,8 @@
 <div
   class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
   style="height: 40px;">
-  <img src="../../images/topBarLogo.svg" alt="ByaHero" height="30">
+  <!-- Updated Path to Logo -->
+  <img src="/ByaHero-Prototype-V3/images/topBarLogo.svg" alt="ByaHero" height="30">
 </div>
 
 <div class="fixed-bottom bg-white border-top shadow-lg" style="height: 60px; z-index: 1060;">
