@@ -4,7 +4,7 @@
   <img src="../../images/topBarLogo.svg" alt="ByaHero" height="30">
 </div>
 
-<div class="fixed-bottom bg-white border-top shadow-lg" style="height: 80px; z-index: 1060;">
+<div class="fixed-bottom bg-white border-top shadow-lg" style="height: 60px; z-index: 1060;">
   <div class="row h-100 m-0">
 
     <div class="col-3 h-100 p-0">

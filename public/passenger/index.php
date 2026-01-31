@@ -148,38 +148,38 @@ if (isset($_SESSION['user_id'])) {
       </div>
 
       <button
-        class="position-absolute start-50 translate-middle-x bottom-0 mb-4 btn btn-light rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 text-primary fw-bold border-0 map-overlay"
-        style="z-index: 1000;">
-        <span class="material-symbols-rounded fs-4">security</span>
-        <span>SOS</span>
+        class="position-absolute start-50 translate-middle-x btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0 map-overlay"
+        style="z-index: 1000; bottom: 45%;">
+        <span class="material-symbols-rounded fs-2 text-black" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+        <span class="text-primary fw-bold">SOS</span>
       </button>
     </div>
   </div>
 
   <div
     class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column overflow-hidden position-absolute start-0 w-100"
-    style="bottom: 80px; height: 40%; z-index: 1050;">
+    style="bottom: 0; height: 40%; z-index: 1050;">
 
     <div class="flex-shrink-0 w-100 bg-white rounded-top-4">
       <div class="bg-secondary opacity-25 rounded-pill mx-auto mt-3" style="width: 40px; height: 5px;"></div>
 
-      <div class="container-fluid px-3 pt-3 pb-2">
+      <div class="container-fluid px-3 pt-3">
         <div class="row g-2">
           <div class="col-4" onclick="switchSheetTab('location')">
             <div id="tab-location"
-              class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-100 cursor-pointer">
+              class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer">
               <span class="material-symbols-rounded fs-3">location_on</span>
             </div>
           </div>
           <div class="col-4" onclick="switchSheetTab('groups')">
             <div id="tab-groups"
-              class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-100 cursor-pointer">
+              class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
               <span class="material-symbols-rounded fs-3">groups</span>
             </div>
           </div>
           <div class="col-4" onclick="switchSheetTab('pins')">
             <div id="tab-pins"
-              class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-100 cursor-pointer">
+              class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
               <span class="material-symbols-rounded fs-3">push_pin</span>
             </div>
           </div>
@@ -293,8 +293,8 @@ if (isset($_SESSION['user_id'])) {
         const el = document.getElementById('tab-' + t);
         const view = document.getElementById('view-' + t);
         if (el) el.className = (t === tabName)
-          ? 'sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-100 cursor-pointer'
-          : 'sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-100 cursor-pointer';
+          ? 'sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer'
+          : 'sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer';
         if (view) view.classList.add('d-none');
       });
       const selectedView = document.getElementById('view-' + tabName);

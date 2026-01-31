@@ -24,7 +24,7 @@ try {
             // Check role and set redirect URL if necessary
             $redirect = null;
             if (in_array($user['role'], ['conductor', 'driver'])) {
-                $redirect = '../conductor/conductor.php';
+                $redirect = 'public/conductor/conductor.php';
             }
 
             $response = [
