@@ -4,14 +4,62 @@
     --bs-primary-rgb: 30, 58, 138;
     --bs-bg-light: #f3f4f6;
   }
+
+  .hover-bg-white-10:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
 </style>
 
-<div
-  class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
-  style="height: 40px;">
-  <!-- Updated Path to Logo -->
-  <img src="/ByaHero-Prototype-V3/images/topBarLogo.svg" alt="ByaHero" height="30">
-</div>
+<?php
+/*   Eto yung bahagi ng navbarPassenger.php na nag-aadjust depende sa pageType variable 
+  na dine-define sa mga page files tulad ng settings.php at notifications.php.
+
+  Halimbawa mula sa settings.php:
+<?php
+  $pageType = 'settings';        // Triggers the "Settings" header
+  $backLink = '../index.php';    // Tells the arrow where to go
+  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
+  include "../../../components/navbarPassenger.php";
+  ?> */
+// 1. NOTIFICATIONS HEADER
+if (isset($pageType) && $pageType === 'notifications'): ?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
+    <a href="index.php"
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+      <span class="material-symbols-rounded text-white">close</span>
+    </a>
+    <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
+  </div>
+
+<?php
+  // 2. SETTINGS HEADER (New Addition)
+elseif (isset($pageType) && $pageType === 'settings'):
+  // Default back link if not set
+  $backTarget = isset($backLink) ? $backLink : '../index.php';
+  ?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
+    <a href="<?php echo $backTarget; ?>"
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+      <span class="material-symbols-rounded text-white">arrow_back</span>
+    </a>
+    <h6 class="h5 mb-0 text-white fw-normal ms-2">Settings</h6>
+  </div>
+
+
+<!-- --------------------------------------------------------------------------- -->
+<?php
+  // DEFAULT LOGO HEADER (All other pages)
+else: ?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
+    <img src="<?php echo isset($pageDepth) ? $pageDepth : '../../'; ?>images/topBarLogo.svg" alt="ByaHero" height="30">
+  </div>
+<?php endif; ?>
 
 <div class="fixed-bottom bg-white border-top shadow-lg" style="height: 60px; z-index: 1060;">
   <div class="row h-100 m-0">
@@ -37,9 +85,7 @@
     <div class="col-3 h-100 p-0">
       <button
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        onclick="selectNav(this, 'info')"
-        data-bs-toggle="modal"
-        data-bs-target="#infoModal">
+        onclick="selectNav(this, 'info')" data-bs-toggle="modal" data-bs-target="#infoModal">
         <span class="material-symbols-rounded fs-1 mb-1">directions_bus</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">INFO</span>
       </button>
@@ -48,9 +94,7 @@
     <div class="col-3 h-100 p-0">
       <button
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        onclick="selectNav(this, 'profile')"
-        data-bs-toggle="modal"
-        data-bs-target="#profileModal">
+        onclick="selectNav(this, 'profile')" data-bs-toggle="modal" data-bs-target="#profileModal">
         <span class="material-symbols-rounded fs-1 mb-1">person</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">PROFILE</span>
       </button>

@@ -20,7 +20,8 @@
     }
 
     .settings-container {
-      margin-top: 70px; /* Ensures no overlap with navbar */
+      margin-top: 70px;
+      /* Ensures no overlap with navbar */
     }
 
     .settings-section-header {
@@ -52,7 +53,8 @@
 
     .back-button {
       position: fixed;
-      top: 55px; /* Positioned below navbar */
+      top: 55px;
+      /* Positioned below navbar */
       left: 16px;
       z-index: 1080;
       background: transparent;
@@ -65,13 +67,12 @@
 
 <body>
 
-  <!-- Navbar (Bus logo and global topbar) -->
-  <?php include "../../../components/navbarPassenger.php"; ?>
-
-  <!-- Back Button (Top Left Below Navbar) -->
-  <button class="back-button" onclick="window.location.href='/ByaHero-Prototype-V3/public/passenger/index.php';">
-    <span class="material-symbols-rounded">arrow_back</span>
-  </button>
+  <?php
+  $pageType = 'settings';        // Triggers the "Settings" header
+  $backLink = '../index.php';    // Tells the arrow where to go
+  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
+  include "../../../components/navbarPassenger.php";
+  ?>
 
   <!-- Main Content -->
   <div class="container settings-container">
