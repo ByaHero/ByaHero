@@ -50,7 +50,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
       <span class="material-symbols-rounded text-white">arrow_back</span>
     </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2">Settings</h6>
+    <h6 class="h5 mb-0 text-white fw-normal ms-2"></h6>
   </div>
 
   <?php

@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Passenger Settings - ByaHero</title>
+  <title>Settings - ByaHero</title>
 
   <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
@@ -20,8 +20,7 @@
     }
 
     .settings-container {
-      margin-top: 70px;
-      /* Ensures no overlap with navbar */
+      margin-top: 70px; /* Ensures spacing between navbar and content */
     }
 
     .settings-section-header {
@@ -39,6 +38,11 @@
       display: flex;
       align-items: center;
       cursor: pointer;
+      justify-content: space-between;
+    }
+
+    .settings-item:hover {
+      background: #e8eaf6;
     }
 
     .settings-item .settings-icon {
@@ -47,30 +51,17 @@
       color: #4b5563;
     }
 
-    .settings-item:hover {
-      background: #e8eaf6;
-    }
-
-    .back-button {
-      position: fixed;
-      top: 55px;
-      /* Positioned below navbar */
-      left: 16px;
-      z-index: 1080;
-      background: transparent;
-      border: none;
-      font-size: 1.5rem;
-      color: #1e3a8a;
+    .settings-item .chevron-icon {
+      color: #6b7280;
     }
   </style>
 </head>
 
 <body>
-
   <?php
-  $pageType = 'settings';        // Triggers the "Settings" header
-  $backLink = '../index.php';    // Tells the arrow where to go
-  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
+  $pageType = 'settings';        // Configures navbar for Settings page
+  $backLink = '../index.php';    // Back button navigates to index page
+  $pageDepth = "../../../";      // Fixes the logo path if needed
   include "../../../components/navbarPassenger.php";
   ?>
 
@@ -81,24 +72,30 @@
     <div class="settings-section">
       <div class="settings-section-header">Settings</div>
 
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">notifications</span>
-        Smart Notification
-      </div>
-
-      <div class="settings-item">
+      <!-- Navigates to Account Settings -->
+      <div class="settings-item" onclick="window.location.href='accountSettings.php';">
         <span class="material-symbols-rounded settings-icon">account_circle</span>
         Account Settings
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
+      </div>
+
+      <!-- Navigates to Smart Notification -->
+      <div class="settings-item" onclick="window.location.href='smartNotification.php';">
+        <span class="material-symbols-rounded settings-icon">notifications</span>
+        Smart Notification
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon">accessibility</span>
         Accessibility
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon">location_on</span>
         Share My Location
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
     </div>
 
@@ -109,36 +106,38 @@
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon">share</span>
         Share ByaHero
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <!-- Privacy and Security Button -->
+      <!-- Navigates to Privacy and Security -->
       <div class="settings-item" onclick="window.location.href='privacySecurity.php';">
         <span class="material-symbols-rounded settings-icon">lock</span>
         Privacy and Security
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <!-- Feedback Button -->
+      <!-- Navigates to Feedback -->
       <div class="settings-item" onclick="window.location.href='feedback.php';">
         <span class="material-symbols-rounded settings-icon">help</span>
         Feedback
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon">support_agent</span>
         Chat with Support
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon">info</span>
         About
+        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <!-- Logout -->
       <div class="settings-item">
         <span class="material-symbols-rounded settings-icon text-danger">logout</span>
-        <a href="../logout.php" class="text-danger fw-semibold text-decoration-none">
-          Logout
-        </a>
+        <a href="../logout.php" class="text-danger fw-semibold text-decoration-none">Logout</a>
       </div>
     </div>
 
@@ -146,7 +145,6 @@
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 
 </html>
