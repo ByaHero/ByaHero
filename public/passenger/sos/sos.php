@@ -23,14 +23,7 @@
         body {
             font-family: "Poppins", sans-serif;
             background-color: var(--bs-bg-light);
-            padding-bottom: 40px;
-        }
-
-        /* Header Overlay Style (Matching your prototype) */
-        .header-bar {
-            background-color: var(--bs-primary);
-            border-bottom-left-radius: 1.5rem;
-            border-bottom-right-radius: 1.5rem;
+            /* Padding bottom is now handled by navbarPassenger.php globally */
         }
 
         /* Pulse Animation for SOS Button */
@@ -86,14 +79,14 @@
 
         @keyframes pulse {
             0% {
-                width: 100%;
-                height: 100%;
+                width: 50%;
+                height: 50%;
                 opacity: 1;
             }
 
             100% {
-                width: 220%;
-                height: 220%;
+                width: 200%;
+                height: 200%;
                 opacity: 0;
             }
         }
@@ -109,98 +102,102 @@
     include "../../../components/navbarPassenger.php";
     ?>
 
-    <div class="container pt-5 mt-4">
+    <div class="container pt-5 mt-2">
+        <div class="row justify-content-center">
+            <div class="col-12 col-md-8 col-lg-5">
 
-        <div class="card border-0 shadow-sm rounded-4 mb-5">
-            <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                <div class="d-flex align-items-center">
-                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-3">
-                        <span class="material-symbols-rounded">my_location</span>
-                    </div>
-                    <div>
-                        <small class="text-muted fw-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">YOUR
-                            LOCATION</small>
-                        <span class="fw-bold text-dark" id="location-text">Locating...</span>
-                    </div>
-                </div>
-                <button class="btn btn-sm btn-light rounded-pill border fw-bold" onclick="shareLocation()">
-                    Share
-                </button>
-            </div>
-        </div>
-
-        <div class="sos-btn-container mb-5">
-            <div class="sos-ring"></div>
-            <div class="sos-ring"></div>
-            <button class="sos-btn" onclick="triggerSOS()">
-                <span class="material-symbols-rounded text-white display-1 mb-0"
-                    style="font-variation-settings: 'FILL' 1;">sos</span>
-                <span class="text-white fw-bold mt-1">CALL 911</span>
-            </button>
-        </div>
-
-        <h6 class="fw-bold text-secondary small mb-3 ps-2">QUICK DIAL</h6>
-        <div class="row g-3">
-
-            <div class="col-6">
-                <a href="tel:911" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body text-center py-4">
-                            <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle d-inline-block mb-3">
-                                <span class="material-symbols-rounded fs-2">local_police</span>
+                <div class="card border-0 shadow-sm rounded-4 mb-5">
+                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center overflow-hidden">
+                            <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-3 flex-shrink-0">
+                                <span class="material-symbols-rounded">my_location</span>
                             </div>
-                            <h6 class="fw-bold text-dark mb-0">Police</h6>
-                            <small class="text-muted">Nearest Station</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-6">
-                <a href="tel:911" class="text-decoration-none">
-                    <div class="card border-0 shadow-sm rounded-4 h-100">
-                        <div class="card-body text-center py-4">
-                            <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle d-inline-block mb-3">
-                                <span class="material-symbols-rounded fs-2">ambulance</span>
-                            </div>
-                            <h6 class="fw-bold text-dark mb-0">Medical</h6>
-                            <small class="text-muted">Ambulance</small>
-                        </div>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-12">
-                <div class="card border-0 shadow-sm rounded-4 mt-1">
-                    <div class="card-body p-3 d-flex align-items-center">
-
-                        <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle me-3">
-                            <span class="material-symbols-rounded">groups</span>
-                        </div>
-
-                        <div class="flex-grow-1">
-                            <h6 class="fw-bold text-dark mb-1">Friend Group</h6>
-
-                            <div class="d-flex align-items-center">
-                                <div class="rounded-circle bg-secondary border border-2 border-white d-flex align-items-center justify-content-center text-white"
-                                    style="width: 24px; height: 24px; margin-right: -8px; font-size: 10px;">JD</div>
-                                <div class="rounded-circle bg-success border border-2 border-white d-flex align-items-center justify-content-center text-white"
-                                    style="width: 24px; height: 24px; margin-right: -8px; font-size: 10px;">AM</div>
-                                <div class="rounded-circle bg-warning border border-2 border-white d-flex align-items-center justify-content-center text-white"
-                                    style="width: 24px; height: 24px; font-size: 10px;">KD</div>
-
-                                <small class="text-muted ms-2" style="font-size: 0.75rem;">Alert sent</small>
+                            <div class="overflow-hidden">
+                                <small class="text-muted fw-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">YOUR
+                                    LOCATION</small>
+                                <span class="fw-bold text-dark text-truncate d-block" id="location-text">Locating...</span>
                             </div>
                         </div>
-
-                        <button class="btn btn-outline-info rounded-circle p-2 d-flex" onclick="shareLocation()">
-                            <span class="material-symbols-rounded">send</span>
+                        <button class="btn btn-sm btn-light rounded-pill border fw-bold flex-shrink-0 ms-2" onclick="shareLocation()">
+                            Share
                         </button>
-
                     </div>
                 </div>
-            </div>
 
+                <div class="sos-btn-container mb-5">
+                    <div class="sos-ring"></div>
+                    <div class="sos-ring"></div>
+                    <button class="sos-btn" onclick="triggerSOS()">
+                        <span class="material-symbols-rounded text-white display-1 mb-0"
+                            style="font-variation-settings: 'FILL' 1;">sos</span>
+                        <span class="text-white fw-bold mt-1">CALL 911</span>
+                    </button>
+                </div>
+
+                <h6 class="fw-bold text-secondary small mb-3 ps-2">QUICK DIAL</h6>
+                <div class="row g-3">
+
+                    <div class="col-6">
+                        <a href="tel:911" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm rounded-4 h-100 hover-scale">
+                                <div class="card-body text-center py-4">
+                                    <div class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle d-inline-block mb-3">
+                                        <span class="material-symbols-rounded fs-2">local_police</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0">Police</h6>
+                                    <small class="text-muted">Nearest Station</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-6">
+                        <a href="tel:911" class="text-decoration-none">
+                            <div class="card border-0 shadow-sm rounded-4 h-100 hover-scale">
+                                <div class="card-body text-center py-4">
+                                    <div class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle d-inline-block mb-3">
+                                        <span class="material-symbols-rounded fs-2">ambulance</span>
+                                    </div>
+                                    <h6 class="fw-bold text-dark mb-0">Medical</h6>
+                                    <small class="text-muted">Ambulance</small>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="col-12">
+                        <div class="card border-0 shadow-sm rounded-4 mt-1">
+                            <div class="card-body p-3 d-flex align-items-center">
+
+                                <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle me-3 flex-shrink-0">
+                                    <span class="material-symbols-rounded">groups</span>
+                                </div>
+
+                                <div class="flex-grow-1 overflow-hidden">
+                                    <h6 class="fw-bold text-dark mb-1">Friend Group</h6>
+
+                                    <div class="d-flex align-items-center">
+                                        <div class="rounded-circle bg-secondary border border-2 border-white d-flex align-items-center justify-content-center text-white"
+                                            style="width: 24px; height: 24px; margin-right: -8px; font-size: 10px;">JD</div>
+                                        <div class="rounded-circle bg-success border border-2 border-white d-flex align-items-center justify-content-center text-white"
+                                            style="width: 24px; height: 24px; margin-right: -8px; font-size: 10px;">AM</div>
+                                        <div class="rounded-circle bg-warning border border-2 border-white d-flex align-items-center justify-content-center text-white"
+                                            style="width: 24px; height: 24px; font-size: 10px;">KD</div>
+
+                                        <small class="text-muted ms-3 text-truncate" style="font-size: 0.75rem;">Alert sent</small>
+                                    </div>
+                                </div>
+
+                                <button class="btn btn-outline-info rounded-circle p-2 d-flex flex-shrink-0 ms-2" onclick="shareLocation()">
+                                    <span class="material-symbols-rounded">send</span>
+                                </button>
+
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
         </div>
     </div>
 
@@ -211,23 +208,21 @@
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 (pos) => {
-                    // Placeholder formatting
                     const lat = pos.coords.latitude.toFixed(4);
                     const lng = pos.coords.longitude.toFixed(4);
                     document.getElementById('location-text').innerText = `${lat}, ${lng}`;
                 },
                 (err) => {
                     document.getElementById('location-text').innerText = "Unknown Location";
-                },
-                { enableHighAccuracy: true }
+                }, {
+                    enableHighAccuracy: true
+                }
             );
         }
 
         // 2. SOS Trigger
         function triggerSOS() {
-            // Add vibration for haptic feedback if supported
             if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
-
             if (confirm("Confirm Emergency Call to 911?")) {
                 window.location.href = "tel:911";
             }
@@ -236,7 +231,7 @@
         // 3. Share Location
         function shareLocation() {
             const locText = document.getElementById('location-text').innerText;
-            const url = `https://www.google.com/maps/search/?api=1&query=${locText}`;
+            const url = `https://maps.google.com/?q=${locText}`;
 
             if (navigator.share) {
                 navigator.share({

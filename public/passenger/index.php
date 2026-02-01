@@ -113,6 +113,17 @@ if (isset($_SESSION['user_id'])) {
         height: calc(100vh - 56px);
       }
     }
+
+    .sheet-transition {
+      transition: height 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    /* Update bottom-sheet to ensure it handles touches well */
+    .bottom-sheet {
+      /* ... existing styles ... */
+      touch-action: none;
+      /* Prevents browser default scrolling on the drag handle */
+    }
   </style>
 </head>
 
@@ -149,22 +160,23 @@ if (isset($_SESSION['user_id'])) {
           <span class="material-symbols-rounded">notifications</span>
         </a>
       </div>
+    </div>
+  </div>
 
+  <div id="bottomSheet"
+    class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"
+    style="bottom: 60px; height: 40%; z-index: 1050;">
+
+    <div class="position-absolute start-50 translate-middle-x" style="top: -60px; z-index: 1060;">
       <button onclick="window.location.href='sos/sos.php'"
-        class="position-absolute start-50 translate-middle-x btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0 map-overlay"
-        style="z-index: 1000; bottom: 50%;">
+        class="btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0">
         <span class="material-symbols-rounded fs-2 text-primary"
           style="font-variation-settings: 'FILL' 1;">verified_user</span>
         <span class="text-primary fw-bold">SOS</span>
       </button>
     </div>
-  </div>
 
-  <div
-    class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column overflow-hidden position-absolute start-0 w-100"
-    style="bottom: 60px; height: 40%; z-index: 1050;">
-
-    <div class="flex-shrink-0 w-100 bg-white rounded-top-4">
+    <div id="sheetHeader" class="flex-shrink-0 w-100 bg-white rounded-top-4 cursor-pointer">
       <div class="bg-secondary opacity-25 rounded-pill mx-auto mt-3" style="width: 40px; height: 5px;"></div>
 
       <div class="container-fluid px-3 pt-3">
@@ -192,21 +204,15 @@ if (isset($_SESSION['user_id'])) {
     </div>
 
     <div class="flex-grow-1 overflow-y-auto pb-4 px-3" style="min-height: 0;">
-
       <div id="view-location" class="mt-2">
         <div id="busListMobile">
           <div class="text-center text-muted mt-4 small">Loading buses...</div>
         </div>
       </div>
-
       <?php include 'groupView.php'; ?>
       <?php include 'pinsListView.php'; ?>
-
-      <div id="view-alerts" class="d-none mt-5 text-center text-muted">
-        <span class="material-symbols-rounded display-1 opacity-25">notifications_off</span>
-        <p class="mt-2">No active alerts</p>
-      </div>
     </div>
+
   </div>
 
   <div class="d-none d-lg-block h-100">
@@ -275,6 +281,62 @@ if (isset($_SESSION['user_id'])) {
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
+    // --- BOTTOM SHEET SWIPE LOGIC ---
+    document.addEventListener('DOMContentLoaded', () => {
+      const sheet = document.getElementById('bottomSheet');
+      const header = document.getElementById('sheetHeader');
+
+      let startY = 0;
+      let startHeight = 0;
+      let isDragging = false;
+
+      // 1. Touch Start: Record initial position
+      header.addEventListener('touchstart', (e) => {
+        isDragging = true;
+        startY = e.touches[0].clientY;
+        startHeight = sheet.clientHeight;
+        sheet.classList.remove('sheet-transition'); // Disable animation while dragging for instant response
+      }, { passive: false });
+
+      // 2. Touch Move: Follow finger
+      header.addEventListener('touchmove', (e) => {
+        if (!isDragging) return;
+        e.preventDefault(); // Stop page scrolling while dragging sheet
+
+        const currentY = e.touches[0].clientY;
+        const deltaY = startY - currentY; // Up is positive
+        const newHeight = startHeight + deltaY;
+
+        // Limits: Don't go below 10% or above 95%
+        const maxHeight = window.innerHeight * 0.95;
+        const minHeight = window.innerHeight * 0.10;
+
+        if (newHeight >= minHeight && newHeight <= maxHeight) {
+          sheet.style.height = `${newHeight}px`;
+        }
+      }, { passive: false });
+
+      // 3. Touch End: Snap to nearest breakpoint
+      header.addEventListener('touchend', () => {
+        isDragging = false;
+        sheet.classList.add('sheet-transition'); // Re-enable smooth animation
+
+        const currentHeight = sheet.clientHeight;
+        const windowHeight = window.innerHeight;
+
+        // Snap Points Logic
+        if (currentHeight > windowHeight * 0.65) {
+          // If dragged high, snap to Full (85%)
+          sheet.style.height = '85%';
+        } else if (currentHeight < windowHeight * 0.25) {
+          // If dragged low, snap to Minimized (15%)
+          sheet.style.height = '15%';
+        } else {
+          // Otherwise, snap back to Default (40%)
+          sheet.style.height = '40%';
+        }
+      });
+    });
     // --- GLOBAL VARIABLES ---
     const isMobile = document.querySelector('.d-lg-none').offsetParent !== null;
     const mapId = isMobile ? 'map' : 'map-desktop-placeholder';
