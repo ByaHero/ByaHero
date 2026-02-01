@@ -9,10 +9,7 @@ require __DIR__ . '/../../config/db.php';
 session_start();
 
 // --- AUTH: rely on public/login.php session values ---
-// public/login.php sets $_SESSION['user_role'] and $_SESSION['user_id'] when authenticated.
-// Only allow access if the logged-in session role is 'admin'.
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    // Redirect to the shared public login page
     header('Location: ../login.php');
     exit;
 }
@@ -46,18 +43,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Bus Code and Route are required.";
             }
         }
-        // 2. Add Conductor / Driver (minimal tables: id, email, password, created_at)
+        // 2. Add Conductor / Driver
         elseif ($action === 'add_user') {
             $email = trim((string)($_POST['email'] ?? ''));
             $password = (string)($_POST['password'] ?? '');
-            $role = $_POST['role'] ?? 'conductor'; // expected: 'conductor' or 'driver'
+            $role = $_POST['role'] ?? 'conductor';
 
             if ($email === '' || $password === '') {
                 $error = "Email and password are required.";
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "Please provide a valid email address.";
             } else {
-                // Check email uniqueness across role tables (admins, users_new, drivers, conductors)
                 $tablesToCheck = ['admins', 'users_new', 'drivers', 'conductors'];
                 $exists = false;
                 foreach ($tablesToCheck as $t) {
@@ -90,10 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $message = "Bus deleted.";
             }
         }
-        // 4. Delete User (driver or conductor)
+        // 4. Delete User
         elseif ($action === 'delete_user') {
             $id = $_POST['id'] ?? null;
-            $role = $_POST['role'] ?? ''; // expected 'driver' or 'conductor'
+            $role = $_POST['role'] ?? '';
             if ($id && in_array($role, ['driver', 'conductor'], true)) {
                 $table = $role === 'driver' ? 'drivers' : 'conductors';
                 $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$id]);
@@ -103,25 +99,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } catch (Exception $e) {
-        // Avoid exposing detailed DB errors to users in production
         $error = "Database error: " . $e->getMessage();
     }
 }
 
-// --- Fetch Data for Tables (Drivers + Conductors) ---
-// Build a unified staff list by selecting from drivers and conductors and adding a role marker.
+// --- Fetch Data ---
 $staff = [];
 try {
     $drivers = $pdo->query("SELECT id, email, created_at, 'driver' AS role FROM drivers ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
     $conductors = $pdo->query("SELECT id, email, created_at, 'conductor' AS role FROM conductors ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
-
-    $staff = array_merge($conductors, $drivers); // order: conductors then drivers
+    $staff = array_merge($conductors, $drivers);
 } catch (Exception $e) {
-    // If the above fails, leave staff empty
     $staff = [];
 }
 
-// Buses
 $buses = [];
 try {
     $buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
@@ -144,22 +135,82 @@ try {
         .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
         .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
         .nav-link.active { color: #fff !important; background: rgba(255,255,255,0.15); border-radius: 6px; }
-        .card { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.1); margin-bottom: 1.5rem; }
-        .card-header { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
+        
+        /* Custom Dashboard Card Styles */
+        .stat-card {
+            border-radius: 20px;
+            border: none;
+            color: white;
+            padding: 1.25rem;
+            position: relative;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            height: 160px; /* Fixed height for consistency */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-3px); }
+        
+        /* Specific Card Colors */
+        .card-total { background: #4e85c5; } /* Muted Blue */
+        .card-active { background: #15b77e; } /* Green */
+        .card-drivers { background: #addbea; } /* Light Blue */
+        .card-conductors { background: #2666be; } /* Royal Blue */
+
+        .stat-card-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            z-index: 2;
+        }
+        .stat-card-number {
+            font-size: 3.5rem;
+            font-weight: 700;
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: 10px;
+            z-index: 2;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .btn-manage-pill {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            color: #333;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-decoration: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            cursor: pointer;
+            z-index: 3;
+            border: none;
+            transition: background 0.2s;
+        }
+        .btn-manage-pill:hover { background: #f1f5f9; color: var(--brand); }
+        .card-drivers .btn-manage-pill { color: #555; }
+
+        /* Media query to ensure cards look good when split 2 per row on mobile */
+        @media (max-width: 767px) {
+            .stat-card { height: 140px; padding: 1rem; }
+            .stat-card-number { font-size: 2.5rem; }
+            .stat-card-title { font-size: 0.95rem; }
+            .btn-manage-pill { padding: 3px 10px; font-size: 0.7rem; top: 15px; right: 15px; }
+        }
+
+        /* Existing Styles */
+        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; background: #fff; }
+        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
         .btn-brand { background-color: var(--brand); color: white; }
-        .btn-brand:hover { background-color: #1d4ed8; color: white; }
-        .map-wrapper { height: 600px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
         .badge-avail { background: #10b981; }
         .badge-stop { background: #f59e0b; }
         .badge-full { background: #ef4444; }
         .badge-none { background: #64748b; }
         .table > :not(caption) > * > * { padding: 0.75rem 1rem; vertical-align: middle; }
-        @media (max-width: 767px) {
-            .map-wrapper { height: 420px; }
-            .card-header { padding: .75rem; }
-            .card { margin-bottom: 1rem; }
-            .display-5 { font-size: 1.5rem; }
-        }
     </style>
 </head>
 <body>
@@ -175,16 +226,15 @@ try {
         <div class="collapse navbar-collapse" id="navContent">
             <ul class="nav nav-pills ms-auto gap-2" id="adminTabs" role="tablist">
                 <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-dashboard">Dashboard & Map</button>
+                    <button class="nav-link active" id="btn-tab-dashboard" data-bs-toggle="pill" data-bs-target="#tab-dashboard">Dashboard & Map</button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-buses">Manage Buses</button>
+                    <button class="nav-link" id="btn-tab-buses" data-bs-toggle="pill" data-bs-target="#tab-buses">Manage Buses</button>
                 </li>
                 <li class="nav-item">
-                    <button class="nav-link" data-bs-toggle="pill" data-bs-target="#tab-staff">Conductors & Drivers</button>
+                    <button class="nav-link" id="btn-tab-staff" data-bs-toggle="pill" data-bs-target="#tab-staff">Conductors & Drivers</button>
                 </li>
             </ul>
-
             <div class="ms-3">
                 <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
             </div>
@@ -211,56 +261,54 @@ try {
     <div class="tab-content">
 
         <div class="tab-pane fade show active" id="tab-dashboard">
-            <div class="row g-4">
-                <div class="col-lg-3 col-md-6">
-                    <div class="card bg-primary text-white h-100">
-                        <div class="card-body">
-                            <h6 class="opacity-75 mb-2">Total Buses</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count($buses) ?></h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card bg-success text-white h-100">
-                        <div class="card-body">
-                            <h6 class="opacity-75 mb-2">Active on Map</h6>
-                            <h2 class="display-5 fw-bold mb-0" id="activeCount">-</h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card bg-info text-white h-100">
-                        <div class="card-body">
-                            <h6 class="opacity-75 mb-2">Conductors</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'conductor')) ?></h2>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-3 col-md-6">
-                    <div class="card bg-warning text-dark h-100">
-                        <div class="card-body">
-                            <h6 class="opacity-75 mb-2">Drivers</h6>
-                            <h2 class="display-5 fw-bold mb-0"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'driver')) ?></h2>
-                        </div>
+            <div class="row g-3 g-lg-4 mb-4">
+                
+                <div class="col-6 col-md-6 col-lg-3">
+                    <div class="stat-card card-total">
+                        <div class="stat-card-title">Total Buses</div>
+                        <button class="btn-manage-pill" onclick="switchTab('#tab-buses')">Manage</button>
+                        <div class="stat-card-number"><?= count($buses) ?></div>
                     </div>
                 </div>
 
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <div class="d-flex align-items-center gap-2">
-                                <span class="material-icons-round text-primary">map</span>
-                                <span>Live Fleet Map</span>
-                            </div>
-                            <small class="text-muted d-flex align-items-center gap-1">
-                                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
-                                Live Updates
-                            </small>
-                        </div>
-                        <div class="card-body p-0">
-                            <div id="map" class="map-wrapper"></div>
-                        </div>
+                <div class="col-6 col-md-6 col-lg-3">
+                    <div class="stat-card card-active">
+                        <div class="stat-card-title">Active Buses</div>
+                        <button class="btn-manage-pill" onclick="switchTab('#tab-buses')">Manage</button>
+                        <div class="stat-card-number" id="activeCount">-</div>
                     </div>
+                </div>
+
+                <div class="col-6 col-md-6 col-lg-3">
+                    <div class="stat-card card-drivers">
+                        <div class="stat-card-title">Drivers</div>
+                        <button class="btn-manage-pill" onclick="switchTab('#tab-staff')">Manage</button>
+                        <div class="stat-card-number"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'driver')) ?></div>
+                    </div>
+                </div>
+
+                <div class="col-6 col-md-6 col-lg-3">
+                    <div class="stat-card card-conductors">
+                        <div class="stat-card-title">Conductors</div>
+                        <button class="btn-manage-pill" onclick="switchTab('#tab-staff')">Manage</button>
+                        <div class="stat-card-number"><?= count(array_filter($staff, fn($u) => ($u['role'] ?? '') === 'conductor')) ?></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card card-standard">
+                <div class="card-header-std d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="material-icons-round text-primary">map</span>
+                        <span>Live Fleet Map</span>
+                    </div>
+                    <small class="text-muted d-flex align-items-center gap-1">
+                        <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
+                        Live Updates
+                    </small>
+                </div>
+                <div class="card-body p-0">
+                    <div id="map" class="map-wrapper"></div>
                 </div>
             </div>
         </div>
@@ -268,8 +316,8 @@ try {
         <div class="tab-pane fade" id="tab-buses">
             <div class="row g-4">
                 <div class="col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header bg-light text-primary">
+                    <div class="card card-standard h-100">
+                        <div class="card-header-std text-primary">
                             <span class="material-icons-round align-middle me-1">add_circle</span> Add New Bus
                         </div>
                         <div class="card-body">
@@ -307,8 +355,8 @@ try {
                 </div>
 
                 <div class="col-lg-8">
-                    <div class="card h-100">
-                        <div class="card-header">Existing Fleet</div>
+                    <div class="card card-standard h-100">
+                        <div class="card-header-std">Existing Fleet</div>
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light text-muted small text-uppercase">
@@ -352,8 +400,8 @@ try {
         <div class="tab-pane fade" id="tab-staff">
             <div class="row g-4">
                 <div class="col-lg-4">
-                    <div class="card h-100">
-                        <div class="card-header bg-light text-primary">
+                    <div class="card card-standard h-100">
+                        <div class="card-header-std text-primary">
                             <span class="material-icons-round align-middle me-1">person_add</span> Add Conductor / Driver
                         </div>
                         <div class="card-body">
@@ -383,8 +431,8 @@ try {
                 </div>
 
                 <div class="col-lg-8">
-                    <div class="card h-100">
-                        <div class="card-header">Registered Staff</div>
+                    <div class="card card-standard h-100">
+                        <div class="card-header-std">Registered Staff</div>
                         <div class="table-responsive">
                             <table class="table table-hover mb-0">
                                 <thead class="table-light text-muted small text-uppercase">
@@ -427,6 +475,14 @@ try {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
 <script>
+// Helper to switch tabs via the "Manage" buttons
+function switchTab(tabSelector) {
+    const triggerEl = document.querySelector(`button[data-bs-target="${tabSelector}"]`);
+    if(triggerEl) {
+        bootstrap.Tab.getOrCreateInstance(triggerEl).show();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     const map = L.map('map').setView([14.0905, 121.0550], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -439,6 +495,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     async function updateBusMap() {
         try {
+            // Note: Ensure api.php is returning correct JSON format
             const res = await fetch('../api.php?action=get_buses');
             const data = await res.json();
 
