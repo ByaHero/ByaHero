@@ -8,6 +8,10 @@
   .hover-bg-white-10:hover {
     background-color: rgba(255, 255, 255, 0.1);
   }
+
+  body {
+    padding-bottom: 100px !important; 
+  }
 </style>
 
 <?php
@@ -33,7 +37,7 @@ if (isset($pageType) && $pageType === 'notifications'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
 
-<?php
+  <?php
   // 2. SETTINGS HEADER (New Addition)
 elseif (isset($pageType) && $pageType === 'settings'):
   // Default back link if not set
@@ -49,9 +53,28 @@ elseif (isset($pageType) && $pageType === 'settings'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Settings</h6>
   </div>
 
+  <?php
+  // 3. SOS HEADER (Fixed)
+elseif (isset($pageType) && $pageType === 'sos'):
+  // Default back link if not set
+  $backTarget = isset($backLink) ? $backLink : '../index.php';
+  ?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100">
 
-<!-- --------------------------------------------------------------------------- -->
-<?php
+    <a href="<?php echo $backTarget; ?>"
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10 me-3"
+      style="height: 40px;">
+      <span class="material-symbols-rounded text-white">arrow_back</span>
+    </a>
+
+    <div class="text-white lh-1">
+      <h6 class="mb-1 fw-bold">Emergency Center</h6>
+    </div>
+  </div>
+
+  <!-- --------------------------------------------------------------------------- -->
+  <?php
   // DEFAULT LOGO HEADER (All other pages)
 else: ?>
   <div

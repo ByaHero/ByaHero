@@ -150,10 +150,11 @@ if (isset($_SESSION['user_id'])) {
         </a>
       </div>
 
-      <button
+      <button onclick="window.location.href='sos/sos.php'"
         class="position-absolute start-50 translate-middle-x btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0 map-overlay"
-        style="z-index: 1000; bottom: 45%;">
-        <span class="material-symbols-rounded fs-2 text-black" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+        style="z-index: 1000; bottom: 50%;">
+        <span class="material-symbols-rounded fs-2 text-primary"
+          style="font-variation-settings: 'FILL' 1;">verified_user</span>
         <span class="text-primary fw-bold">SOS</span>
       </button>
     </div>
@@ -161,7 +162,7 @@ if (isset($_SESSION['user_id'])) {
 
   <div
     class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column overflow-hidden position-absolute start-0 w-100"
-    style="bottom: 0; height: 40%; z-index: 1050;">
+    style="bottom: 60px; height: 40%; z-index: 1050;">
 
     <div class="flex-shrink-0 w-100 bg-white rounded-top-4">
       <div class="bg-secondary opacity-25 rounded-pill mx-auto mt-3" style="width: 40px; height: 5px;"></div>
