@@ -50,17 +50,6 @@
       background: #e8eaf6;
     }
 
-    .back-button {
-      position: fixed;
-      top: 55px; /* Positioned below navbarPassenger */
-      left: 16px; /* Aligns horizontally to match settings.php */
-      z-index: 1080;
-      background: transparent;
-      border: none;
-      font-size: 1.5rem;
-      color: #1e3a8a;
-    }
-
     .blue-box {
       padding: 16px;
       background: #1e3a8a;
@@ -76,13 +65,12 @@
 </head>
 
 <body>
-  <!-- Navbar -->
-  <?php include "../../../components/navbarPassenger.php"; ?>
-
-<!-- Back Button -->
-<button class="back-button" onclick="window.location.href='settings.php';">
-  <span class="material-symbols-rounded">arrow_back</span>
-</button>
+  <?php
+  $pageType = 'settings';        // Triggers "Privacy and Security" header
+  $backLink = 'settings.php';    // Ensures proper navigation to settings.php
+  $pageDepth = "../../../";      // Fixes the logo path (if needed)
+  include "../../../components/navbarPassenger.php";
+  ?>
 
   <!-- Main Content -->
   <div class="container privacy-container">
@@ -129,5 +117,4 @@
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
-
 </html>

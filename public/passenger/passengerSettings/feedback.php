@@ -63,13 +63,12 @@
 </head>
 
 <body>
-  <!-- Navbar -->
-  <?php include "../../../components/navbarPassenger.php"; ?>
-
-  <!-- Back Button (Top Left Below Navbar) -->
-  <button class="btn btn-link position-fixed text-primary fs-4" style="top: 55px; left: 16px; z-index: 1080;" onclick="window.location.href='settings.php';">
-    <span class="material-symbols-rounded">arrow_back</span>
-  </button>
+  <?php
+  $pageType = 'settings';        // Triggers the back button (no header text visible)
+  $backLink = 'settings.php';    // Ensures proper navigation to settings.php
+  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
+  include "../../../components/navbarPassenger.php";
+  ?>
 
   <!-- Main Content -->
   <div class="container feedback-container">
@@ -140,5 +139,4 @@
     }
   </script>
 </body>
-
 </html>
