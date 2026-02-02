@@ -20,7 +20,8 @@
     }
 
     .settings-container {
-      margin-top: 70px; /* Ensures spacing between navbar and content */
+      margin-top: 70px;
+      /* Ensures spacing between navbar and content */
     }
 
     .settings-section-header {
@@ -59,10 +60,9 @@
 
 <body>
   <?php
-  $pageType = 'settings';        // Configures navbar for Settings page
-  $backLink = '../index.php';    // Back button navigates to index page
-  $pageDepth = "../../../";      // Fixes the logo path if needed
-  include "../../../components/navbarPassenger.php";
+  $pageTitle = 'settings';
+  $backLink = '../index.php'; // Optional: defaults to index
+  include '../../../components/navbarPassenger.php';
   ?>
 
   <!-- Main Content -->

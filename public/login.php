@@ -263,7 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="login-outer">
         <div class="login-card">
             <div class="brand-wrap">
-                <img src="../images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
+                <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
                 <div class="brand-title">BYAHERO</div>
             </div>
 

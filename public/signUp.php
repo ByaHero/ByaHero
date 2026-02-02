@@ -116,7 +116,7 @@ if (isset($_SESSION['user_id'])) {
     <div class="container signup-container text-center">
 
         <div class="mb-3">
-            <img src="../images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="logo-img">
+            <img src="../assets/images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="logo-img">
             <h5 class="fw-bold text-dark mt-1" style="letter-spacing: 1px; font-size: 14px;">BYAHERO</h5>
         </div>
 

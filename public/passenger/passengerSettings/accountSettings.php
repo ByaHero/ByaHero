@@ -96,7 +96,6 @@
   <?php
   $pageType = 'settings';        // Configures navbar for Account Settings page with back button
   $backLink = 'settings.php';    // Navigates back to `settings.php` in the same directory
-  $pageDepth = "../../../";      // Fixes the logo path if needed
   include "../../../components/navbarPassenger.php";
   ?>
 

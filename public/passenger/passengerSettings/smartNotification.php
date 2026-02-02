@@ -74,7 +74,6 @@
   <?php
   $pageType = 'settings';        // Configures navbar for Smart Notifications page
   $backLink = 'settings.php';    // Correct back navigation to `settings.php` in the same directory
-  $pageDepth = "../../../";      // Fixes the logo path if needed
   include "../../../components/navbarPassenger.php";
   ?>
 

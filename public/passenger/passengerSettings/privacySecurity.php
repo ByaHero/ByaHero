@@ -68,7 +68,6 @@
   <?php
   $pageType = 'settings';        // Triggers "Privacy and Security" header
   $backLink = 'settings.php';    // Ensures proper navigation to settings.php
-  $pageDepth = "../../../";      // Fixes the logo path (if needed)
   include "../../../components/navbarPassenger.php";
   ?>
 

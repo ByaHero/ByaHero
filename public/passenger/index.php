@@ -379,25 +379,6 @@ if (isset($_SESSION['user_id'])) {
       }
     }
 
-    function selectNav(element, section) {
-      document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.classList.remove('text-primary');
-        btn.classList.add('text-dark');
-      });
-      element.classList.remove('text-dark');
-      element.classList.add('text-primary');
-      const bottomSheet = document.querySelector('.bottom-sheet');
-      if (bottomSheet) {
-        if (section === 'location') {
-          bottomSheet.classList.remove('d-none');
-          bottomSheet.classList.add('d-flex');
-        } else {
-          bottomSheet.classList.remove('d-flex');
-          bottomSheet.classList.add('d-none');
-        }
-      }
-    }
-
     // --- BUS TRACKING ---
     async function updateBuses() {
       try {

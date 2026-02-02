@@ -42,10 +42,9 @@ require __DIR__ . '/../../config/db.php';
 <body>
 
   <?php
-  $pageType = 'notifications';        // Triggers the "Notifications" header
-  $backLink = '../index.php';    // Tells the arrow where to go
-  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
-  include "../../components/navbarPassenger.php";
+  $pageTitle = 'notifications';
+  $backLink = 'index.php'; // Optional: defaults to index
+  include '../../components/navbarPassenger.php';
   ?>
 
   <div class="list-group list-group-flush">

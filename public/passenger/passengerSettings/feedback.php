@@ -66,7 +66,6 @@
   <?php
   $pageType = 'settings';        // Triggers the back button (no header text visible)
   $backLink = 'settings.php';    // Ensures proper navigation to settings.php
-  $pageDepth = "../../../";      // Fixes the logo path (for the bottom nav if needed)
   include "../../../components/navbarPassenger.php";
   ?>
 
