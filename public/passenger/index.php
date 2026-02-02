@@ -117,6 +117,11 @@ if (isset($_SESSION['user_id'])) {
       touch-action: none;
       /* Prevents browser default scrolling on the drag handle */
     }
+
+    /* optional: slightly reduce default marker image pointer-events so clicks hit the marker properly */
+    .leaflet-marker-icon {
+      pointer-events: auto;
+    }
   </style>
 </head>
 
@@ -289,7 +294,9 @@ if (isset($_SESSION['user_id'])) {
         startY = e.touches[0].clientY;
         startHeight = sheet.clientHeight;
         sheet.classList.remove('sheet-transition'); // Disable animation while dragging for instant response
-      }, { passive: false });
+      }, {
+        passive: false
+      });
 
       // 2. Touch Move: Follow finger
       header.addEventListener('touchmove', (e) => {
@@ -307,7 +314,9 @@ if (isset($_SESSION['user_id'])) {
         if (newHeight >= minHeight && newHeight <= maxHeight) {
           sheet.style.height = `${newHeight}px`;
         }
-      }, { passive: false });
+      }, {
+        passive: false
+      });
 
       // 3. Touch End: Snap to nearest breakpoint
       header.addEventListener('touchend', () => {
@@ -333,16 +342,64 @@ if (isset($_SESSION['user_id'])) {
     // --- GLOBAL VARIABLES ---
     const isMobile = document.querySelector('.d-lg-none').offsetParent !== null;
     const mapId = isMobile ? 'map' : 'map-desktop-placeholder';
-    const map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '', maxZoom: 19 }).addTo(map);
+    const map = L.map(mapId, {
+      zoomControl: false
+    }).setView([14.0905, 121.0550], 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '',
+      maxZoom: 19
+    }).addTo(map);
 
     const busMarkers = {};
     let userLocation = null;
     let userMarker = null;
     let selectedRoute = '';
-    const statusColors = { available: '#10b981', on_stop: '#f59e0b', full: '#ef4444', unavailable: '#6b7280' };
+    const statusColors = {
+      available: '#10b981',
+      on_stop: '#f59e0b',
+      full: '#ef4444',
+      unavailable: '#6b7280'
+    };
     const AVG_SPEED_MPS = (30 * 1000) / 3600;
     const MAX_DISTANCE_METERS = 5000;
+
+    // ICON configuration - adjust ICON_BASE if your project base path changes
+    // ICON configuration - adjust ICON_BASE if your project base path changes
+    const ICON_BASE = '/Byahero-Prototype-V3/assets/images/icons'; // root-relative path to icons
+
+    // Use bottom-center anchor so the image "sits" on the location (not centered)
+    const ICON_CACHE = {
+      available: L.icon({
+        iconUrl: ICON_BASE + '/BusAvailable.png',
+        iconSize: [36, 36], // width, height in px
+        iconAnchor: [18, 36], // anchor at bottom-center (width/2, height)
+        popupAnchor: [0, -36] // popup opens above the icon
+      }),
+      full: L.icon({
+        iconUrl: ICON_BASE + '/BusFull.png',
+        iconSize: [36, 36],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+      })
+    };
+
+    // createBusIcon now picks one of the two image icons (or falls back to the colored dot)
+    function createBusIcon(status) {
+      if (!status) status = '';
+      const s = String(status).toLowerCase();
+
+      if (s === 'available') return ICON_CACHE.available;
+      if (s === 'full') return ICON_CACHE.full;
+
+      // Fallback: small colored dot for other statuses (keeps previous look)
+      const color = statusColors[s] || '#999';
+      return L.divIcon({
+        html: `<div style="background:${color};width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>`,
+        className: 'bus-marker-dot',
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
+      });
+    }
 
     // --- TAB SWITCHING ---
     function switchSheetTab(tabName) {
@@ -353,9 +410,9 @@ if (isset($_SESSION['user_id'])) {
       tabs.forEach(t => {
         const el = document.getElementById('tab-' + t);
         const view = document.getElementById('view-' + t);
-        if (el) el.className = (t === tabName)
-          ? 'sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer'
-          : 'sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer';
+        if (el) el.className = (t === tabName) ?
+          'sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer' :
+          'sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer';
         if (view) view.classList.add('d-none');
       });
       const selectedView = document.getElementById('view-' + tabName);
@@ -390,28 +447,42 @@ if (isset($_SESSION['user_id'])) {
           renderBusList(buses);
           updateFilters(buses);
         }
-      } catch (e) { console.error("Bus fetch error:", e); }
+      } catch (e) {
+        console.error("Bus fetch error:", e);
+      }
     }
 
     function updateMap(buses) {
       const filtered = buses.filter(b => (!selectedRoute || b.route === selectedRoute) && b.status !== 'unavailable' && b.coords !== null);
       const currentIds = new Set(filtered.map(b => String(b.id)));
       Object.keys(busMarkers).forEach(id => {
-        if (!currentIds.has(id)) { map.removeLayer(busMarkers[id]); delete busMarkers[id]; }
+        if (!currentIds.has(id)) {
+          map.removeLayer(busMarkers[id]);
+          delete busMarkers[id];
+        }
       });
       filtered.forEach(b => {
-        const color = statusColors[b.status] || '#999';
+        // Use icon based on status (available/full) and fall back to colored dot
+        const iconForBus = createBusIcon(b.status);
+
         if (busMarkers[b.id]) {
-          busMarkers[b.id].setLatLng(b.coords).setIcon(createBusIcon(color));
+          busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
           busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
         } else {
-          const m = L.marker(b.coords, { icon: createBusIcon(color) }).addTo(map);
+          const m = L.marker(b.coords, {
+            icon: iconForBus
+          }).addTo(map);
           m.bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
           busMarkers[b.id] = m;
         }
       });
       if (userLocation) {
-        if (!userMarker) userMarker = L.circleMarker([userLocation.lat, userLocation.lng], { radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9 }).addTo(map);
+        if (!userMarker) userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
+          radius: 8,
+          color: '#2563eb',
+          fillColor: '#60a5fa',
+          fillOpacity: 0.9
+        }).addTo(map);
         else userMarker.setLatLng([userLocation.lat, userLocation.lng]);
       }
     }
@@ -439,30 +510,92 @@ if (isset($_SESSION['user_id'])) {
 
     function normalizeBus(bus) {
       let coords = null;
-      if (bus.current_location) { try { const geo = JSON.parse(bus.current_location); if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]]; } catch (e) { } }
+      if (bus.current_location) {
+        try {
+          const geo = JSON.parse(bus.current_location);
+          if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+        } catch (e) {}
+      }
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
-      return { id: bus.Bus_ID || bus.id, code: bus.code || 'BUS', route: bus.route || '', status: bus.status || 'unavailable', coords: coords, locName: bus.current_location_name || 'Updating...', seats: `${bus.seat_availability}/${bus.total_seats}`, eta: null, progress: 0 };
+      return {
+        id: bus.Bus_ID || bus.id,
+        code: bus.code || 'BUS',
+        route: bus.route || '',
+        status: bus.status || 'unavailable',
+        coords: coords,
+        locName: bus.current_location_name || 'Updating...',
+        seats: `${bus.seat_availability}/${bus.total_seats}`,
+        eta: null,
+        progress: 0
+      };
     }
-    function createBusIcon(color) { return L.divIcon({ html: `<div style="background:${color};width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>`, className: 'bus-marker-dot', iconSize: [20, 20], iconAnchor: [10, 10] }); }
-    function distanceMeters(lat1, lon1, lat2, lon2) { const R = 6371000; const dLat = (lat2 - lat1) * Math.PI / 180; const dLon = (lon2 - lon1) * Math.PI / 180; const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2); return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); }
-    function formatArrivalBySeconds(seconds) { const dt = new Date(Date.now() + Math.max(0, seconds * 1000)); let h = dt.getHours(), m = dt.getMinutes().toString().padStart(2, '0'), ampm = h >= 12 ? 'PM' : 'AM'; h = h % 12; h = h ? h : 12; return `${h}:${m} ${ampm}`; }
-    window.focusBus = (id) => { const m = busMarkers[id]; if (m) { map.flyTo(m.getLatLng(), 15); m.openPopup(); } };
-    window.setRoute = (r) => { selectedRoute = r; const label = document.getElementById('filterLabelMobile'); if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES'; bootstrap.Modal.getInstance(document.getElementById('filterModal'))?.hide(); updateBuses(); }
-    function updateFilters(buses) { const routes = [...new Set(buses.map(b => b.route).filter(r => r))]; const list = document.getElementById('routeFilterList'); if (!list) return; let html = `<button class="list-group-item list-group-item-action ${selectedRoute === '' ? 'active' : ''}" onclick="setRoute('')">All Routes</button>`; routes.forEach(r => html += `<button class="list-group-item list-group-item-action ${selectedRoute === r ? 'active' : ''}" onclick="setRoute('${r}')">${r}</button>`); list.innerHTML = html; }
+
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    function formatArrivalBySeconds(seconds) {
+      const dt = new Date(Date.now() + Math.max(0, seconds * 1000));
+      let h = dt.getHours(),
+        m = dt.getMinutes().toString().padStart(2, '0'),
+        ampm = h >= 12 ? 'PM' : 'AM';
+      h = h % 12;
+      h = h ? h : 12;
+      return `${h}:${m} ${ampm}`;
+    }
+    window.focusBus = (id) => {
+      const m = busMarkers[id];
+      if (m) {
+        map.flyTo(m.getLatLng(), 15);
+        m.openPopup();
+      }
+    };
+    window.setRoute = (r) => {
+      selectedRoute = r;
+      const label = document.getElementById('filterLabelMobile');
+      if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
+      bootstrap.Modal.getInstance(document.getElementById('filterModal'))?.hide();
+      updateBuses();
+    }
+
+    function updateFilters(buses) {
+      const routes = [...new Set(buses.map(b => b.route).filter(r => r))];
+      const list = document.getElementById('routeFilterList');
+      if (!list) return;
+      let html = `<button class="list-group-item list-group-item-action ${selectedRoute === '' ? 'active' : ''}" onclick="setRoute('')">All Routes</button>`;
+      routes.forEach(r => html += `<button class="list-group-item list-group-item-action ${selectedRoute === r ? 'active' : ''}" onclick="setRoute('${r}')">${r}</button>`);
+      list.innerHTML = html;
+    }
 
     function startUserLocationWatch() {
       if (!navigator.geolocation) return;
       navigator.geolocation.watchPosition(pos => {
-        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        userLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
         if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         updateBuses();
-      }, (e) => { }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+      }, (e) => {}, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
       const modals = ['safetyModal', 'infoModal', 'profileModal', 'filterModal', 'settingsModal'];
       const locationBtn = document.querySelector('button[onclick*="location"]');
-      modals.forEach(id => { const el = document.getElementById(id); if (el) el.addEventListener('hidden.bs.modal', () => { if (locationBtn) selectNav(locationBtn, 'location'); }); });
+      modals.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('hidden.bs.modal', () => {
+          if (locationBtn) selectNav(locationBtn, 'location');
+        });
+      });
 
       // Init pins with the main map instance
       if (typeof initPinsFeature === 'function') initPinsFeature(map);
