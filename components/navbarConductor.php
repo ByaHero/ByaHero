@@ -9,6 +9,10 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $script = basename($_SERVER['PHP_SELF']);
+
+// Use the project-rooted path you gave: http://localhost/Byahero-Prototype-V3/images/logoutButton.png
+// Root-relative so it resolves correctly from any page.
+$logoutImageUrl = '/Byahero-Prototype-V3/images/logoutButton.png';
 ?>
 <style>
 /* CRITICAL: This hides the default Top Logo Bar from navbar.php */
@@ -67,17 +71,27 @@ $script = basename($_SERVER['PHP_SELF']);
     box-shadow: 0 6px 18px rgba(0,0,0,0.12);
 }
 
-/* Logout button (visible in selection page) */
+/* Logout button (visible in selection page) - uses an image */
 .logout-btn {
     display:inline-flex;
     align-items:center;
-    gap:6px;
-    padding:6px 10px;
+    justify-content:center;
+    padding:0;
     border-radius:8px;
     color:#0f3878;
-    background:#fff;
+    background:transparent;
     text-decoration:none;
     font-weight:700;
+    line-height:0;
+    border: none;
+}
+
+/* Ensure the logout image fits nicely */
+.logout-btn img {
+    display:block;
+    height:36px;
+    width:auto;
+    border-radius:6px;
 }
 
 /* small button used in live topbar for close control */
@@ -85,6 +99,15 @@ $script = basename($_SERVER['PHP_SELF']);
     display:inline-flex; align-items:center; justify-content:center;
     gap:6px; padding:6px 8px; border-radius:8px;
     background: rgba(255,255,255,0.06); color: #fff; text-decoration:none;
+}
+
+/* Screen-reader-only helper */
+.sr-only {
+    position: absolute !important;
+    height: 1px; width: 1px;
+    overflow: hidden;
+    clip: rect(1px, 1px, 1px, 1px);
+    white-space: nowrap;
 }
 
 /* Ensure pages that use this include can use the variable to offset content */
@@ -110,8 +133,10 @@ if ($script === 'conductor.php'):
                 <span class="material-icons-round" aria-hidden="true">person</span>
             </div>
 
-            <a class="logout-btn" href="../logout.php" title="Logout">
-                <span style="font-weight:800; font-size:0.9rem;">Logout</span>
+            <!-- Logout uses the provided image. -->
+            <a class="logout-btn" href="../logout.php" title="Logout" aria-label="Logout">
+                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="" />
+                <span class="sr-only">Logout</span>
             </a>
         </div>
     </header>
@@ -145,8 +170,9 @@ else:
             <div class="user-avatar" title="<?= htmlspecialchars($userName) ?>">
                 <span class="material-icons-round">person</span>
             </div>
-            <a class="logout-btn" href="../logout.php" title="Logout">
-                <span style="font-weight:800; font-size:0.9rem;">Logout</span>
+            <a class="logout-btn" href="../logout.php" title="Logout" aria-label="Logout">
+                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="" />
+                <span class="sr-only">Logout</span>
             </a>
         </div>
     </header>

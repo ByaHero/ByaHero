@@ -1,13 +1,6 @@
 <?php
-// public/passenger/index.php
-// Lightweight passenger index that does NOT require DB access on page load.
-// Users can access the site without logging in. If a session exists we read
-// only session values (no DB queries), so the page works even if you drop the old users table.
-
 session_start();
 
-// Do NOT require DB here so the page still works if you drop the old `users` table.
-// If you later need DB access on this page, re-add require __DIR__ . '/../../config/db.php';
 $currentUser = null;
 if (isset($_SESSION['user_id'])) {
   $currentUser = [
