@@ -298,13 +298,15 @@ include "../../../components/navbarPassenger.php";
                 </div>
             </div>
 
-            <div class="slider-track w-100 rounded-pill shadow mb-4" id="sliderContainer" style="width: 90%;">
-                <span class="position-absolute w-100 text-center text-danger fw-bold fs-5 pe-5 z-1 user-select-none"
-                    style="top: 20px;">
-                    Slide to cancel SOS
-                </span>
-                <div class="slider-handle bg-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center"
-                    id="sliderHandle">
+            <div class="slider-track w-100 shadow mb-4 rounded-pill position-relative" id="sliderContainer" style="width: 90%;">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
+                    <span class="text-danger fw-bold fs-5 user-select-none">
+                        Slide to cancel SOS
+                    </span>
+                </div>
+
+                <div class="slider-handle bg-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center z-2" id="sliderHandle">
+                    <i class="bi bi-chevron-left text-white opacity-50"></i>
                 </div>
             </div>
 
