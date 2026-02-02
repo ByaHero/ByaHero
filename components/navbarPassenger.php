@@ -83,7 +83,7 @@ elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'settings')):
 // CASE D: DEFAULT / HOME (Logo only)
 else: ?>
   <div class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100" style="height: 40px;">
-    <img src="<?php echo $depth; ?>images/topBarLogo.svg" alt="ByaHero" height="30">
+    <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
   </div>
 <?php endif; ?>
 
