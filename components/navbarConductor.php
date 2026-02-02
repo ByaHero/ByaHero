@@ -10,9 +10,8 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 $userName = $_SESSION['user_name'] ?? 'User';
 $script = basename($_SERVER['PHP_SELF']);
 
-// Use the project-rooted path you gave: http://localhost/Byahero-Prototype-V3/images/logoutButton.png
-// Root-relative so it resolves correctly from any page.
-$logoutImageUrl = '/Byahero-Prototype-V3/images/logoutButton.png';
+// Use the exact project-rooted path you provided (root-relative so it resolves from any page)
+$logoutImageUrl = '/Byahero-Prototype-V3/assets/images/logoutButton.png';
 ?>
 <style>
 /* CRITICAL: This hides the default Top Logo Bar from navbar.php */
@@ -135,7 +134,7 @@ if ($script === 'conductor.php'):
 
             <!-- Logout uses the provided image. -->
             <a class="logout-btn" href="../logout.php" title="Logout" aria-label="Logout">
-                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="" />
+                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="Logout" />
                 <span class="sr-only">Logout</span>
             </a>
         </div>
@@ -171,7 +170,7 @@ else:
                 <span class="material-icons-round">person</span>
             </div>
             <a class="logout-btn" href="../logout.php" title="Logout" aria-label="Logout">
-                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="" />
+                <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="Logout" />
                 <span class="sr-only">Logout</span>
             </a>
         </div>
