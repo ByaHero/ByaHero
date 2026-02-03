@@ -20,8 +20,7 @@
     }
 
     .settings-container {
-      margin-top: 70px;
-      /* Ensures spacing between navbar and content */
+      margin-top: 70px; /* Ensures spacing between navbar and content */
     }
 
     .settings-section-header {
@@ -60,9 +59,10 @@
 
 <body>
   <?php
-  $pageTitle = 'settings';
-  $backLink = '../index.php'; // Optional: defaults to index
-  include '../../../components/navbarPassenger.php';
+  $pageType = 'settings';        // Configures navbar for Settings page
+  $backLink = '../index.php';    // Back button navigates to index.php
+  $pageDepth = "../../../";      // Fixes logo path if needed
+  include "../../../components/navbarPassenger.php";
   ?>
 
   <!-- Main Content -->
@@ -86,13 +86,15 @@
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="settings-item">
+      <!-- Navigates to Accessibility Settings -->
+      <div class="settings-item" onclick="window.location.href='accessibilitySettings.php';">
         <span class="material-symbols-rounded settings-icon">accessibility</span>
         Accessibility
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="settings-item">
+      <!-- Navigates to Share Location -->
+      <div class="settings-item" onclick="window.location.href='shareLocation.php';">
         <span class="material-symbols-rounded settings-icon">location_on</span>
         Share My Location
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
@@ -103,7 +105,8 @@
     <div class="settings-section">
       <div class="settings-section-header">Universal Settings</div>
 
-      <div class="settings-item">
+      <!-- Navigates to Share -->
+      <div class="settings-item" onclick="window.location.href='share.php';">
         <span class="material-symbols-rounded settings-icon">share</span>
         Share ByaHero
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
@@ -123,21 +126,25 @@
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="settings-item">
+      <!-- Navigates to Chat Support -->
+      <div class="settings-item" onclick="window.location.href='chatSupport.php';">
         <span class="material-symbols-rounded settings-icon">support_agent</span>
         Chat with Support
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="settings-item">
+      <!-- Navigates to About -->
+      <div class="settings-item" onclick="window.location.href='about.php';">
         <span class="material-symbols-rounded settings-icon">info</span>
         About
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="settings-item">
+      <!-- Navigates to Logout -->
+      <div class="settings-item" onclick="window.location.href='logout.php';">
         <span class="material-symbols-rounded settings-icon text-danger">logout</span>
-        <a href="../logout.php" class="text-danger fw-semibold text-decoration-none">Logout</a>
+        Logout
+        <span class="material-symbols-rounded chevron-icon"></span>
       </div>
     </div>
 
