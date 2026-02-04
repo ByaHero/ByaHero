@@ -20,7 +20,8 @@
     }
 
     .feedback-container {
-      margin-top: 70px; /* Spacing between navbar and content */
+      margin-top: 70px;
+      /* Spacing between navbar and content */
     }
 
     .feedback-header {
@@ -31,6 +32,7 @@
       width: 86px;
       height: 86px;
       background: white;
+      font-size: 40px;
       border-radius: 10px;
       box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
       display: flex;
@@ -79,33 +81,24 @@
     </div>
 
     <!-- Feedback Reaction Cards -->
-    <div class="row text-center g-3">
-      <div class="col-4">
-        <div class="feedback-card">
-          😊
-        </div>
+    <div class="row text-center g-3 justify-content-center">
+      <div class="col-auto">
+        <div class="feedback-card">😊</div>
       </div>
-      <div class="col-4">
-        <div class="feedback-card">
-          😐
-        </div>
+      <div class="col-auto">
+        <div class="feedback-card">😐</div>
       </div>
-      <div class="col-4">
-        <div class="feedback-card">
-          😟
-        </div>
+      <div class="col-auto">
+        <div class="feedback-card">😟</div>
       </div>
-      <div class="col-6">
-        <div class="feedback-card">
-          👍
-        </div>
+      <div class="col-auto">
+        <div class="feedback-card">👍</div>
       </div>
-      <div class="col-6">
-        <div class="feedback-card">
-          👎
-        </div>
+      <div class="col-auto">
+        <div class="feedback-card">👎</div>
       </div>
     </div>
+
 
     <!-- Feedback Form -->
     <div class="feedback-form">
@@ -138,4 +131,5 @@
     }
   </script>
 </body>
+
 </html>
