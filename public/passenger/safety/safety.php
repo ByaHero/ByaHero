@@ -6,92 +6,134 @@
   <title>Safety - Emergency Contacts</title>
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <style>
-    :root{
-      --max-contacts:5;
-    }
-    /* Page */
+    /* Global body styling */
     body {
       background: #f7fafc;
       color: #102a43;
       font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding-bottom: 100px !important; /* Space for navbar */
     }
 
-    /* Appbar */
-    .appbar {
-      background: linear-gradient(180deg,#1e5aa3,#295f9d);
-      color: white;
-      padding: 14px 12px;
-      border-bottom-left-radius: 16px;
-      border-bottom-right-radius: 16px;
-      box-shadow: 0 4px 8px rgba(2,6,23,0.12);
-      display:flex;
-      align-items:center;
-      gap:12px;
-    }
-    .appbar .back {
-      width:36px; height:36px; display:flex; align-items:center; justify-content:center;
-      border-radius:8px; background:rgba(255,255,255,0.08);
-      color:#fff; font-size:18px;
-    }
-    .appbar .title { font-weight:700; font-size:16px; }
-
-    .container-wrap { max-width:520px; margin:20px auto; padding:0 12px; }
-
-    h2.h5 { color:#123e6c; font-weight:700; margin-bottom:10px; }
-
-    .card-list { gap:12px; display:flex; flex-direction:column; }
-
-    .card.ui-card {
-      border-radius:14px;
-      padding:14px;
-      display:flex;
-      align-items:center;
-      box-shadow: 0 6px 10px rgba(15,23,42,0.06);
-      background:white;
-      border:0;
+    /* Scope all page styles */
+    .safety-page {
+      --max-contacts: 5;
     }
 
-    /* Add card */
-    .addCard { cursor:pointer; user-select:none; }
-    .avatar {
-      width:56px; height:56px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:20px; color:#fff; border-radius:50%;
-      box-shadow: 0 3px 8px rgba(2,6,23,0.08);
-      flex-shrink:0;
-    }
-    .av-gray { background:#f0f2f4; color:#102a43; font-size:28px; font-weight:800; }
-    .av-blue{ background:#5fb0ff; }
-    .av-green{ background:#41d18a; }
-    .av-yellow{ background:#ffd166; color:#072a15; }
-    .av-pink{ background:#ff7aa2; }
-    .av-red{ background:#ff6b6b; }
-
-    .card-content { flex:1; margin-left:12px; }
-    .card-content .name { font-weight:700; font-size:16px; }
-    .card-content .phone { font-size:13px; color:#6b7280; margin-top:2px; display:flex; align-items:center; gap:8px; }
-
-    .three-dot-btn {
-      background:transparent; border:0; width:40px; height:40px; display:flex; align-items:center; justify-content:center; border-radius:10px;
+    /* Appbar - HIDDEN since we use navbar */
+    .safety-page .appbar {
+      display: none;
     }
 
-    .opacity-50 { opacity:0.45; }
+    .safety-page .container-wrap {
+      max-width: 520px;
+      margin: 60px auto 20px; /* Top margin for navbar */
+      padding: 0 12px;
+    }
 
-    /* Responsive bottom spacing like mobile */
-    @media (max-width:420px){
-      .container-wrap{ padding-bottom:72px; }
+    .safety-page h2.h5 {
+      color: #123e6c;
+      font-weight: 700;
+      margin-bottom: 10px;
+    }
+
+    .safety-page .card-list {
+      gap: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .safety-page .card.ui-card {
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 6px 10px rgba(15, 23, 42, 0.06);
+      background: white;
+      border: 0;
+    }
+
+    .safety-page .addCard {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .safety-page .avatar {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(2, 6, 23, 0.08);
+      flex-shrink: 0;
+    }
+
+    .safety-page .av-gray {
+      background: #f0f2f4;
+      color: #102a43;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .safety-page .av-blue { background: #5fb0ff; }
+    .safety-page .av-green { background: #41d18a; }
+    .safety-page .av-yellow { background: #ffd166; color: #072a15; }
+    .safety-page .av-pink { background: #ff7aa2; }
+    .safety-page .av-red { background: #ff6b6b; }
+
+    .safety-page .card-content {
+      flex: 1;
+      margin-left: 12px;
+    }
+
+    .safety-page .card-content .name {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .safety-page .card-content .phone {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .safety-page .three-dot-btn {
+      background: transparent;
+      border: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    .safety-page .opacity-50 {
+      opacity: 0.45;
     }
   </style>
 </head>
 <body>
 
-  <header class="appbar">
-    <button class="back" id="closeBtn" aria-label="Close">✕</button>
-    <div class="title">Safety</div>
-  </header>
+<?php 
+$pageTitle = 'Safety';
+$backLink = '../index.php';
+$pageDepth = '../../../';
+include __DIR__ . "/../../../components/navbarPassenger.php"; 
+?>
 
+<div class="safety-page">
   <main class="container-wrap">
     <h2 class="h5">Emergency Contact</h2>
 
@@ -137,191 +179,181 @@
       </div>
     </div>
   </div>
+</div>
 
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+<script>
+  // UI-only in-memory behavior (no persistence)
+  const MAX_CONTACTS = 5;
+  const contactsContainer = document.getElementById('contactsList');
+  const addNewCard = document.getElementById('addNewCard');
 
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  const modalEl = document.getElementById('contactModal');
+  const modalTitle = document.getElementById('modalTitle');
+  const contactNameInput = document.getElementById('contactName');
+  const contactPhoneInput = document.getElementById('contactPhone');
+  const saveContactBtn = document.getElementById('saveContact');
 
-  <script>
-    // UI-only in-memory behavior (no persistence)
-    const MAX_CONTACTS = 5;
-    const contactsContainer = document.getElementById('contactsList');
-    const addNewCard = document.getElementById('addNewCard');
+  const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
 
-    const modalEl = document.getElementById('contactModal');
-    const modalTitle = document.getElementById('modalTitle');
-    const contactNameInput = document.getElementById('contactName');
-    const contactPhoneInput = document.getElementById('contactPhone');
-    const saveContactBtn = document.getElementById('saveContact');
+  let contacts = [
+    { name: 'Ate', phone: '+63 9123456789' },
+    { name: 'Daddy Rob', phone: '+63 9174445555' },
+    { name: 'Kuya', phone: '+63 9211112222' },
+    { name: 'Mommy Oni', phone: '+63 9183334444' },
+  ];
+  let editingIndex = -1;
 
-    const bsModal = new bootstrap.Modal(modalEl, { backdrop: 'static', keyboard: false });
+  function maskPhone(phone) {
+    const digits = (phone || '').replace(/\D/g, '');
+    if (digits.length <= 4) return phone || '';
+    const keep = 3;
+    const endKeep = 3;
+    const start = digits.slice(0, keep);
+    const end = digits.slice(-endKeep);
+    const middleCount = Math.max(0, digits.length - keep - endKeep);
+    return start + '•'.repeat(middleCount) + end;
+  }
 
-    let contacts = [
-      { name: 'Ate', phone: '+63 9123456789' },
-      { name: 'Daddy Rob', phone: '+63 9174445555' },
-      { name: 'Kuya', phone: '+63 9211112222' },
-      { name: 'Mommy Oni', phone: '+63 9183334444' },
-    ];
-    let editingIndex = -1;
+  function pickAvatarColor(index) {
+    const classes = ['av-pink', 'av-blue', 'av-green', 'av-yellow', 'av-red'];
+    return classes[index % classes.length];
+  }
 
-    function maskPhone(phone){
-      const digits = (phone || '').replace(/\D/g,'');
-      if(digits.length <= 4) return phone || '';
-      const keep = 3;
-      const endKeep = 3;
-      const start = digits.slice(0, keep);
-      const end = digits.slice(-endKeep);
-      const middleCount = Math.max(0, digits.length - keep - endKeep);
-      return start + '•'.repeat(middleCount) + end;
+  function render() {
+    while (contactsContainer.children.length > 1) {
+      contactsContainer.removeChild(contactsContainer.lastChild);
     }
 
-    function pickAvatarColor(index){
-      const classes = ['av-pink','av-blue','av-green','av-yellow','av-red'];
-      return classes[index % classes.length];
-    }
+    contacts.forEach((c, i) => {
+      const item = document.createElement('div');
+      item.className = 'card ui-card';
+      item.setAttribute('data-index', i);
 
-    function render(){
-      // Remove existing contact cards (keep Add New which is first child)
-      // Remove all children except the first (Add New)
-      while(contactsContainer.children.length > 1){
-        contactsContainer.removeChild(contactsContainer.lastChild);
-      }
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar ' + pickAvatarColor(i);
+      avatar.textContent = (c.name && c.name.length > 0) ? c.name.trim().charAt(0).toUpperCase() : '?';
 
-      contacts.forEach((c, i) => {
-        const item = document.createElement('div');
-        item.className = 'card ui-card';
-        item.setAttribute('data-index', i);
+      const content = document.createElement('div');
+      content.className = 'card-content';
 
-        const avatar = document.createElement('div');
-        avatar.className = 'avatar ' + pickAvatarColor(i);
-        avatar.textContent = (c.name && c.name.length>0) ? c.name.trim().charAt(0).toUpperCase() : '?';
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = c.name || 'Unnamed';
 
-        const content = document.createElement('div');
-        content.className = 'card-content';
+      const phoneEl = document.createElement('div');
+      phoneEl.className = 'phone';
+      phoneEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.08 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72c.12.9.36 1.78.72 2.6a2 2 0 0 1-.45 2.11L9.91 9.91a16 16 0 0 0 6 6l1.48-1.48a2 2 0 0 1 2.11-.45c.82.36 1.71.6 2.6.72A2 2 0 0 1 22 16.92z" stroke="#102a43" stroke-width="1" stroke-linejoin="round"/></svg>' + '<span>' + maskPhone(c.phone) + '</span>';
 
-        const nameEl = document.createElement('div');
-        nameEl.className = 'name';
-        nameEl.textContent = c.name || 'Unnamed';
+      content.appendChild(nameEl);
+      content.appendChild(phoneEl);
 
-        const phoneEl = document.createElement('div');
-        phoneEl.className = 'phone';
-        phoneEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.08 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72c.12.9.36 1.78.72 2.6a2 2 0 0 1-.45 2.11L9.91 9.91a16 16 0 0 0 6 6l1.48-1.48a2 2 0 0 1 2.11-.45c.82.36 1.71.6 2.6.72A2 2 0 0 1 22 16.92z" stroke="#102a43" stroke-width="1" stroke-linejoin="round"/></svg>' + '<span>' + maskPhone(c.phone) + '</span>';
+      const dropdownWrap = document.createElement('div');
+      dropdownWrap.className = 'ms-2 dropdown';
 
-        content.appendChild(nameEl);
-        content.appendChild(phoneEl);
+      const menuBtn = document.createElement('button');
+      menuBtn.className = 'three-dot-btn';
+      menuBtn.setAttribute('type', 'button');
+      menuBtn.setAttribute('data-bs-toggle', 'dropdown');
+      menuBtn.setAttribute('aria-expanded', 'false');
+      menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="1.6" fill="#102a43"/><circle cx="12" cy="12" r="1.6" fill="#102a43"/><circle cx="12" cy="19" r="1.6" fill="#102a43"/></svg>';
 
-        // three-dot menu (native dropdown)
-        const dropdownWrap = document.createElement('div');
-        dropdownWrap.className = 'ms-2 dropdown';
+      const menu = document.createElement('ul');
+      menu.className = 'dropdown-menu dropdown-menu-end';
+      const editItem = document.createElement('li');
+      const editLink = document.createElement('button');
+      editLink.className = 'dropdown-item';
+      editLink.type = 'button';
+      editLink.textContent = 'Edit';
+      editItem.appendChild(editLink);
 
-        const menuBtn = document.createElement('button');
-        menuBtn.className = 'three-dot-btn';
-        menuBtn.setAttribute('type','button');
-        menuBtn.setAttribute('data-bs-toggle','dropdown');
-        menuBtn.setAttribute('aria-expanded','false');
-        menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="1.6" fill="#102a43"/><circle cx="12" cy="12" r="1.6" fill="#102a43"/><circle cx="12" cy="19" r="1.6" fill="#102a43"/></svg>';
+      const delItem = document.createElement('li');
+      const delLink = document.createElement('button');
+      delLink.className = 'dropdown-item text-danger';
+      delLink.type = 'button';
+      delLink.textContent = 'Delete';
+      delItem.appendChild(delLink);
 
-        const menu = document.createElement('ul');
-        menu.className = 'dropdown-menu dropdown-menu-end';
-        const editItem = document.createElement('li');
-        const editLink = document.createElement('button');
-        editLink.className = 'dropdown-item';
-        editLink.type = 'button';
-        editLink.textContent = 'Edit';
-        editItem.appendChild(editLink);
+      menu.appendChild(editItem);
+      menu.appendChild(delItem);
 
-        const delItem = document.createElement('li');
-        const delLink = document.createElement('button');
-        delLink.className = 'dropdown-item text-danger';
-        delLink.type = 'button';
-        delLink.textContent = 'Delete';
-        delItem.appendChild(delLink);
-
-        menu.appendChild(editItem);
-        menu.appendChild(delItem);
-
-        editLink.addEventListener('click', () => openModal('Edit Contact', c.name, c.phone, i));
-        delLink.addEventListener('click', () => {
-          if(confirm('Delete this contact?')){
-            contacts.splice(i,1);
-            render();
-          }
-        });
-
-        dropdownWrap.appendChild(menuBtn);
-        dropdownWrap.appendChild(menu);
-
-        item.appendChild(avatar);
-        item.appendChild(content);
-        item.appendChild(dropdownWrap);
-
-        contactsContainer.appendChild(item);
+      editLink.addEventListener('click', () => openModal('Edit Contact', c.name, c.phone, i));
+      delLink.addEventListener('click', () => {
+        if (confirm('Delete this contact?')) {
+          contacts.splice(i, 1);
+          render();
+        }
       });
 
-      // manage add state
-      if(contacts.length >= MAX_CONTACTS){
-        addNewCard.classList.add('opacity-50');
-        addNewCard.setAttribute('aria-disabled','true');
-        addNewCard.style.pointerEvents = 'none';
-      } else {
-        addNewCard.classList.remove('opacity-50');
-        addNewCard.removeAttribute('aria-disabled');
-        addNewCard.style.pointerEvents = '';
-      }
-    }
+      dropdownWrap.appendChild(menuBtn);
+      dropdownWrap.appendChild(menu);
 
-    function openModal(title='Add Contact', name='', phone='', index=-1){
-      modalTitle.textContent = title;
-      contactNameInput.value = name || '';
-      contactPhoneInput.value = phone || '';
-      editingIndex = index;
-      bsModal.show();
-      setTimeout(()=> contactNameInput.focus(), 150);
-    }
+      item.appendChild(avatar);
+      item.appendChild(content);
+      item.appendChild(dropdownWrap);
 
-    function closeModal(){
-      bsModal.hide();
-      editingIndex = -1;
-      contactNameInput.value = '';
-      contactPhoneInput.value = '';
-    }
-
-    // basic input sanitation for phone (digits and +)
-    contactPhoneInput.addEventListener('input', () => {
-      const val = contactPhoneInput.value;
-      // allow + at start and digits thereafter
-      let sanitized = val.replace(/[^\d+]/g, '');
-      if(sanitized.indexOf('+') > 0){
-        sanitized = sanitized.replace(/\+/g, '');
-      }
-      contactPhoneInput.value = sanitized;
+      contactsContainer.appendChild(item);
     });
 
-    addNewCard.addEventListener('click', () => openModal('Add Contact'));
-    addNewCard.addEventListener('keydown', (e) => { if(e.key === 'Enter' || e.key === ' ') openModal('Add Contact'); });
+    if (contacts.length >= MAX_CONTACTS) {
+      addNewCard.classList.add('opacity-50');
+      addNewCard.setAttribute('aria-disabled', 'true');
+      addNewCard.style.pointerEvents = 'none';
+    } else {
+      addNewCard.classList.remove('opacity-50');
+      addNewCard.removeAttribute('aria-disabled');
+      addNewCard.style.pointerEvents = '';
+    }
+  }
 
-    saveContactBtn.addEventListener('click', () => {
-      const name = contactNameInput.value.trim();
-      const phone = contactPhoneInput.value.trim();
-      if(!name){ alert('Please enter a name.'); contactNameInput.focus(); return; }
-      if(!phone){ alert('Please enter a phone number.'); contactPhoneInput.focus(); return; }
+  function openModal(title = 'Add Contact', name = '', phone = '', index = -1) {
+    modalTitle.textContent = title;
+    contactNameInput.value = name || '';
+    contactPhoneInput.value = phone || '';
+    editingIndex = index;
+    bsModal.show();
+    setTimeout(() => contactNameInput.focus(), 150);
+  }
 
-      if(editingIndex >= 0){
-        contacts[editingIndex] = { name, phone };
-      } else {
-        if(contacts.length >= MAX_CONTACTS){ alert('Maximum of ' + MAX_CONTACTS + ' contacts reached.'); return; }
-        contacts.push({ name, phone });
-      }
-      render();
-      closeModal();
-    });
+  function closeModal() {
+    bsModal.hide();
+    editingIndex = -1;
+    contactNameInput.value = '';
+    contactPhoneInput.value = '';
+  }
 
-    document.getElementById('closeBtn').addEventListener('click', () => {
-      if(confirm('Close Safety?')) { /* mimic navigate back */ }
-    });
+  contactPhoneInput.addEventListener('input', () => {
+    const val = contactPhoneInput.value;
+    let sanitized = val.replace(/[^\d+]/g, '');
+    if (sanitized.indexOf('+') > 0) {
+      sanitized = sanitized.replace(/\+/g, '');
+    }
+    contactPhoneInput.value = sanitized;
+  });
 
-    // init
+  addNewCard.addEventListener('click', () => openModal('Add Contact'));
+  addNewCard.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') openModal('Add Contact');
+  });
+
+  saveContactBtn.addEventListener('click', () => {
+    const name = contactNameInput.value.trim();
+    const phone = contactPhoneInput.value.trim();
+    if (!name) { alert('Please enter a name.'); contactNameInput.focus(); return; }
+    if (!phone) { alert('Please enter a phone number.'); contactPhoneInput.focus(); return; }
+
+    if (editingIndex >= 0) {
+      contacts[editingIndex] = { name, phone };
+    } else {
+      if (contacts.length >= MAX_CONTACTS) { alert('Maximum of ' + MAX_CONTACTS + ' contacts reached.'); return; }
+      contacts.push({ name, phone });
+    }
     render();
-  </script>
+    closeModal();
+  });
+
+  render();
+</script>
 </body>
 </html>
