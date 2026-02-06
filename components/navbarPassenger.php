@@ -20,7 +20,12 @@
   .nav-btn.active-nav {
     color: var(--bs-primary) !important;
   }
+  
 </style>
+
+<!-- Global Accessibility -->
+<link rel="stylesheet" href="<?php echo $pageDepth ?? '../../'; ?>assets/images/css/accessibility.css">
+<script src="<?php echo $pageDepth ?? '../../'; ?>assets/images/js/accessibility.js"></script>
 
 <?php
 /* FLEXIBLE PASSENGER NAVBAR

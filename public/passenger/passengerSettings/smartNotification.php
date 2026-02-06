@@ -1,34 +1,41 @@
+<?php
+session_start();
+
+// Redirect to login if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
+    exit;
+}
+?>
 <!doctype html>
 <html lang="en">
-
+<!-- Rest of your existing code -->
+<!doctype html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Smart Notifications - ByaHero</title>
-
-  <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
-
-  <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
-
+  
+  <!-- Global Accessibility -->
+  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+  
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-
     .notification-container {
-      margin-top: 70px; /* Ensures spacing between navbar and content */
+      margin-top: 70px;
     }
-
     .section-heading {
       font-weight: bold;
       font-size: 1.2rem;
       color: #1e3a8a;
     }
-
     .notification-description {
       background-color: white;
       padding: 16px;
@@ -39,7 +46,6 @@
       font-size: 0.9rem;
       color: #6b7280;
     }
-
     .notification-item {
       padding: 12px 16px;
       background-color: #f3f4f6;
@@ -50,7 +56,6 @@
       align-items: center;
       justify-content: space-between;
     }
-
     .notification-item .icon-wrapper {
       width: 40px;
       height: 40px;
@@ -62,32 +67,26 @@
       color: white;
       font-size: 1.5rem;
     }
-
     .form-check .form-check-input[type='checkbox'] {
       width: 1.5em;
       height: 1.5em;
     }
   </style>
 </head>
-
 <body>
   <?php
-  $pageType = 'settings';        // Configures navbar for Smart Notifications page
-  $backLink = 'settings.php';    // Correct back navigation to `settings.php` in the same directory
+  $pageType = 'settings';
+  $backLink = 'settings.php';
+  $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <!-- Main Content -->
   <div class="container notification-container">
-    <!-- Heading -->
     <div class="section-heading">Smart Notifications</div>
-
-    <!-- Description -->
     <div class="notification-description">
-      Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and seat availability. These notifications ensure you never miss important updates while using the ByaHero app.
+      Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and seat availability.
     </div>
 
-    <!-- Notification Settings -->
     <div class="notification-item">
       <div class="d-flex align-items-center">
         <div class="icon-wrapper">
@@ -96,7 +95,7 @@
         <span class="ms-2">Bus Schedule Update</span>
       </div>
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" checked>
+        <input class="form-check-input" type="checkbox" id="notify_bus_schedule" onchange="updateSetting('notify_bus_schedule', this.checked)">
       </div>
     </div>
 
@@ -108,7 +107,7 @@
         <span class="ms-2">Bus Arrival</span>
       </div>
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" checked>
+        <input class="form-check-input" type="checkbox" id="notify_bus_arrival" onchange="updateSetting('notify_bus_arrival', this.checked)">
       </div>
     </div>
 
@@ -120,13 +119,48 @@
         <span class="ms-2">Seat Availability</span>
       </div>
       <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" checked>
+        <input class="form-check-input" type="checkbox" id="notify_seat_availability" onchange="updateSetting('notify_seat_availability', this.checked)">
       </div>
     </div>
   </div>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+  <script src="../../../assets/images/js/accessibility.js"></script>
+  <script>
+    // Fetch settings on page load
+    window.onload = function() {
+      fetch('../../../backend/fetchSettings.php')
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            document.getElementById('notify_bus_schedule').checked = data.settings.notify_bus_schedule == 1;
+            document.getElementById('notify_bus_arrival').checked = data.settings.notify_bus_arrival == 1;
+            document.getElementById('notify_seat_availability').checked = data.settings.notify_seat_availability == 1;
+          }
+        })
+        .catch(error => console.error('Error fetching settings:', error));
+    };
 
+    // Update setting
+    function updateSetting(settingName, value) {
+      const formData = new FormData();
+      formData.append('setting_name', settingName);
+      formData.append('setting_value', value ? 1 : 0);
+
+      fetch('../../../backend/updateSettings.php', {
+        method: 'POST',
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          console.log('Setting updated successfully');
+        } else {
+          alert('Failed to update setting: ' + data.message);
+        }
+      })
+      .catch(error => console.error('Error updating setting:', error));
+    }
+  </script>
+</body>
 </html>

@@ -1,3 +1,15 @@
+<?php
+session_start();
+
+// Redirect to login if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
+    exit;
+}
+?>
+<!doctype html>
+<html lang="en">
+<!-- Rest of your existing code -->
 <!doctype html>
 <html lang="en">
 

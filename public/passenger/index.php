@@ -27,6 +27,10 @@ if (isset($_SESSION['user_id'])) {
   <!-- Bottom sheet component CSS (FIXED PATH) -->
   <link rel="stylesheet" href="../../assets/images/css/passengerBottomSheet.css">
 
+  <!-- Global Accessibility CSS and JS -->
+  <link rel="stylesheet" href="../../assets/images/css/accessibility.css">
+  <script src="../../assets/images/js/accessibility.js"></script>
+
   <style>
     :root {
       --bs-primary: #1e3a8a;
