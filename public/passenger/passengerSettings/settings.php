@@ -21,6 +21,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
   <!-- Global Accessibility -->
   <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
 
+  <script src="../../assets/images/js/analytics.js"></script>
+
   <style>
     body {
       font-family: "Segoe UI", sans-serif;

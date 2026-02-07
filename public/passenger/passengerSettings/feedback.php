@@ -158,13 +158,14 @@ $isLoggedIn = isset($_SESSION['user_id']);
     </div>
 
     <div class="mt-3 d-flex justify-content-center gap-2">
-      <button class="btn btn-secondary px-4" onclick="window.location.href='settings.php';">Cancel</button>
+      <button class="btn btn-secondary px-4" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Cancel Feedback'); window.location.href='settings.php';">Cancel</button>
       <button class="btn btn-primary px-4" onclick="submitFeedback()" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>>Submit Feedback</button>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/images/js/accessibility.js"></script>
+  <script src="../../../assets/images/js/analytics.js"></script>
   <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
     let selectedRating = null;
@@ -182,6 +183,11 @@ $isLoggedIn = isset($_SESSION['user_id']);
       
       element.classList.add('selected');
       selectedRating = rating;
+      
+      // Track rating selection
+      if (typeof analytics !== 'undefined') {
+        analytics.featureUsed('Feedback Rating Selected', { rating: rating });
+      }
     }
 
     function submitFeedback() {
@@ -195,12 +201,25 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
       if (!selectedRating) {
         alert("Please select a rating before submitting.");
+        
+        // Track validation error
+        if (typeof analytics !== 'undefined') {
+          analytics.error('Feedback submission failed: No rating selected');
+        }
         return;
       }
 
       const formData = new FormData();
       formData.append('rating', selectedRating);
       formData.append('feedback', feedbackText.trim());
+
+      // Track feedback submission attempt
+      if (typeof analytics !== 'undefined') {
+        analytics.featureUsed('Feedback Submitted', { 
+          rating: selectedRating,
+          has_text: feedbackText.trim().length > 0
+        });
+      }
 
       fetch('../../../backend/submitFeedback.php', {
         method: 'POST',
@@ -210,14 +229,30 @@ $isLoggedIn = isset($_SESSION['user_id']);
       .then(data => {
         if (data.success) {
           alert("Thank you for your feedback!");
+          
+          // Track successful submission
+          if (typeof analytics !== 'undefined') {
+            analytics.featureUsed('Feedback Submission Success', { rating: selectedRating });
+          }
+          
           window.location.href = "settings.php";
         } else {
           alert("Failed to submit feedback: " + data.message);
+          
+          // Track failure
+          if (typeof analytics !== 'undefined') {
+            analytics.error('Feedback submission failed: ' + data.message);
+          }
         }
       })
       .catch(error => {
         console.error('Error:', error);
         alert("An error occurred while submitting feedback.");
+        
+        // Track error
+        if (typeof analytics !== 'undefined') {
+          analytics.error('Feedback submission error: ' + error.message);
+        }
       });
     }
   </script>

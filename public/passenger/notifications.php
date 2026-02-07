@@ -44,6 +44,8 @@ $any_notification_enabled = $notify_bus_schedule || $notify_bus_arrival || $noti
   <!-- Global Accessibility -->
   <link rel="stylesheet" href="../../assets/images/css/accessibility.css">
 
+  <script src="../../assets/images/js/analytics.js"></script>
+
   <style>
     /* Padding to prevent content from being hidden behind fixed bars */
     body {
