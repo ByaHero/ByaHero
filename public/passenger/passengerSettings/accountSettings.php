@@ -38,6 +38,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
     .account-container {
       margin-top: 70px;
+      padding: 0 1rem;
     }
 
     .account-heading {
@@ -58,111 +59,204 @@ $userEmail = $_SESSION['user_email'] ?? '';
     }
 
     .account-section-header {
-      font-weight: bold;
+      font-weight: 600;
       color: #1e3a8a;
-      margin-bottom: 0.5rem;
-      font-size: 1.1rem;
+      margin-bottom: 0.75rem;
+      font-size: 1rem;
+      padding-left: 0.25rem;
     }
 
     .settings-item {
-      padding: 14px 16px;
+      padding: 16px;
       background-color: white;
-      margin: 0.5rem 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      margin-bottom: 0.5rem;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .settings-item .settings-icon {
-      font-size: 1.3rem;
-      margin-right: 12px;
-      color: #4b5563;
+      transition: all 0.2s;
+      border: 1px solid #e5e7eb;
     }
 
     .settings-item:hover {
-      background: #e8eaf6;
+      background: #f0f4ff;
+      border-color: #c7d2fe;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+    }
+
+    .settings-item:active {
+      transform: translateY(0);
+    }
+
+    .settings-item .settings-icon {
+      font-size: 24px;
+      margin-right: 14px;
+      color: #6366f1;
+      flex-shrink: 0;
     }
 
     .settings-item .item-label {
       display: flex;
       align-items: center;
       flex: 1;
+      min-width: 0;
     }
 
     .settings-item .item-text {
       display: flex;
       flex-direction: column;
+      min-width: 0;
+      flex: 1;
     }
 
     .settings-item .item-title {
       font-weight: 500;
       color: #1f2937;
+      font-size: 0.95rem;
+      margin-bottom: 2px;
     }
 
     .settings-item .item-subtitle {
       font-size: 0.8rem;
       color: #6b7280;
-      margin-top: 2px;
+      line-height: 1.3;
+    }
+
+    .settings-item .chevron {
+      color: #9ca3af;
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-left: 8px;
     }
 
     .user-profile-card {
       background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      border-radius: 14px;
+      padding: 1.25rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
       margin-bottom: 1.5rem;
       display: flex;
       align-items: center;
       gap: 1rem;
+      border: 1px solid #e5e7eb;
     }
 
     .user-avatar {
-      width: 60px;
-      height: 60px;
+      width: 64px;
+      height: 64px;
       border-radius: 50%;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       display: flex;
       align-items: center;
       justify-content: center;
       color: white;
-      font-size: 1.5rem;
+      font-size: 1.6rem;
       font-weight: bold;
+      flex-shrink: 0;
     }
 
     .user-info {
       flex: 1;
+      min-width: 0;
     }
 
     .user-name {
       font-weight: 600;
       color: #1f2937;
-      font-size: 1.1rem;
+      font-size: 1.05rem;
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .user-email {
       color: #6b7280;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .btn-edit-profile {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      flex-shrink: 0;
+    }
+
+    .btn-edit-profile:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      color: white;
     }
 
     .danger-zone {
       background: #fef2f2;
       border: 1px solid #fecaca;
-      border-radius: 10px;
-      padding: 1rem;
+      border-radius: 12px;
+      padding: 1.25rem;
       margin-top: 2rem;
     }
 
     .danger-zone-title {
       color: #dc2626;
       font-weight: 600;
+      font-size: 0.95rem;
       margin-bottom: 0.5rem;
       display: flex;
       align-items: center;
       gap: 0.5rem;
+    }
+
+    .danger-zone-description {
+      color: #991b1b;
+      font-size: 0.85rem;
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+
+    .btn-delete {
+      background: #dc2626;
+      color: white;
+      border: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-delete:hover {
+      background: #b91c1c;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+    }
+
+    @media (max-width: 576px) {
+      .user-profile-card {
+        flex-direction: column;
+        text-align: center;
+      }
+
+      .user-info {
+        width: 100%;
+      }
+
+      .btn-edit-profile {
+        width: 100%;
+      }
     }
   </style>
 </head>
@@ -191,7 +285,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
         <div class="user-name"><?= htmlspecialchars($userName ?: 'User') ?></div>
         <div class="user-email"><?= htmlspecialchars($userEmail) ?></div>
       </div>
-      <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='editProfile.php'">
+      <button class="btn btn-edit-profile" onclick="window.location.href='editProfile.php'">
         Edit Profile
       </button>
     </div>
@@ -208,18 +302,18 @@ $userEmail = $_SESSION['user_email'] ?? '';
             <div class="item-subtitle">Name, email, and profile details</div>
           </div>
         </div>
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+        <span class="material-symbols-rounded chevron">chevron_right</span>
       </div>
 
       <div class="settings-item" onclick="window.location.href='changePassword.php'">
         <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">key</span>
+          <span class="material-symbols-rounded settings-icon">lock</span>
           <div class="item-text">
             <div class="item-title">Change Password</div>
             <div class="item-subtitle">Update your password</div>
           </div>
         </div>
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+        <span class="material-symbols-rounded chevron">chevron_right</span>
       </div>
 
       <div class="settings-item" onclick="window.location.href='loginActivity.php'">
@@ -230,7 +324,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
             <div class="item-subtitle">Recent login sessions</div>
           </div>
         </div>
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+        <span class="material-symbols-rounded chevron">chevron_right</span>
       </div>
     </div>
 
@@ -240,36 +334,36 @@ $userEmail = $_SESSION['user_email'] ?? '';
       
       <div class="settings-item" onclick="window.location.href='privacySecurity.php'">
         <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">lock</span>
+          <span class="material-symbols-rounded settings-icon">shield</span>
           <div class="item-text">
             <div class="item-title">Privacy Settings</div>
             <div class="item-subtitle">Control your data and permissions</div>
           </div>
         </div>
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+        <span class="material-symbols-rounded chevron">chevron_right</span>
       </div>
 
       <div class="settings-item" onclick="window.location.href='dataDownload.php'">
         <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">download</span>
+          <span class="material-symbols-rounded settings-icon">cloud_download</span>
           <div class="item-text">
             <div class="item-title">Download Your Data</div>
             <div class="item-subtitle">Get a copy of your information</div>
           </div>
         </div>
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+        <span class="material-symbols-rounded chevron">chevron_right</span>
       </div>
     </div>
 
     <!-- Danger Zone -->
     <div class="danger-zone">
       <div class="danger-zone-title">
-        <span class="material-symbols-rounded">warning</span>
+        <span class="material-symbols-rounded" style="font-size:20px">warning</span>
         Danger Zone
       </div>
-      <p class="text-muted small mb-3">Once you delete your account, there is no going back. Please be certain.</p>
-      <button class="btn btn-danger btn-sm" onclick="confirmDeleteAccount()">
-        <span class="material-symbols-rounded" style="font-size:16px; vertical-align:middle">delete_forever</span>
+      <p class="danger-zone-description">Once you delete your account, there is no going back. Please be certain.</p>
+      <button class="btn btn-delete" onclick="confirmDeleteAccount()">
+        <span class="material-symbols-rounded" style="font-size:18px">delete_forever</span>
         Delete Account
       </button>
     </div>
@@ -282,15 +376,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
   <script src="../../../assets/images/js/analytics.js"></script>
   
   <script>
-    // Track page view
-    if (typeof analytics !== 'undefined') {
-      // Analytics already auto-tracks page view
-    }
-
     // Delete account confirmation
     function confirmDeleteAccount() {
       if (confirm('⚠️ Are you absolutely sure?\n\nThis will permanently delete your account and all associated data. This action cannot be undone.')) {
-        if (confirm('🔴 Final confirmation: Type your email to confirm deletion\n\nYour email: <?= htmlspecialchars($userEmail) ?>')) {
+        if (confirm('🔴 Final confirmation: Delete my account permanently?\n\nYour email: <?= htmlspecialchars($userEmail) ?>')) {
           // Track deletion attempt
           if (typeof analytics !== 'undefined') {
             analytics.featureUsed('Account Deletion Requested');
