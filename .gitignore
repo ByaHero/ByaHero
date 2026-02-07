@@ -1,0 +1,6 @@
+# Dependencies
+/vendor/
+
+# Composer files (keep these)
+!composer.json
+!composer.lock

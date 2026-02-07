@@ -6,10 +6,12 @@ if (!isset($_SESSION['user_id'])) {
     header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
     exit;
 }
+
+// Get user data from session
+$userId = $_SESSION['user_id'];
+$userName = $_SESSION['user_name'] ?? '';
+$userEmail = $_SESSION['user_email'] ?? '';
 ?>
-<!doctype html>
-<html lang="en">
-<!-- Rest of your existing code -->
 <!doctype html>
 <html lang="en">
 
@@ -24,6 +26,9 @@ if (!isset($_SESSION['user_id'])) {
   <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
 
+  <!-- Global Accessibility -->
+  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
@@ -32,13 +37,20 @@ if (!isset($_SESSION['user_id'])) {
     }
 
     .account-container {
-      margin-top: 70px; /* Ensures spacing between navbar and content */
+      margin-top: 70px;
     }
 
     .account-heading {
       font-weight: bold;
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       color: #1e3a8a;
+      margin-bottom: 0.5rem;
+    }
+
+    .account-description {
+      color: #6b7280;
+      font-size: 0.9rem;
+      margin-bottom: 1.5rem;
     }
 
     .account-section {
@@ -49,10 +61,11 @@ if (!isset($_SESSION['user_id'])) {
       font-weight: bold;
       color: #1e3a8a;
       margin-bottom: 0.5rem;
+      font-size: 1.1rem;
     }
 
     .settings-item {
-      padding: 12px 16px;
+      padding: 14px 16px;
       background-color: white;
       margin: 0.5rem 0;
       border-radius: 10px;
@@ -61,10 +74,11 @@ if (!isset($_SESSION['user_id'])) {
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
+      transition: background 0.2s;
     }
 
     .settings-item .settings-icon {
-      font-size: 1.2rem;
+      font-size: 1.3rem;
       margin-right: 12px;
       color: #4b5563;
     }
@@ -73,41 +87,91 @@ if (!isset($_SESSION['user_id'])) {
       background: #e8eaf6;
     }
 
-    .search-bar {
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-    }
-
-    .search-input-wrapper {
+    .settings-item .item-label {
       display: flex;
       align-items: center;
-      padding: 8px 12px;
+      flex: 1;
+    }
+
+    .settings-item .item-text {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .settings-item .item-title {
+      font-weight: 500;
+      color: #1f2937;
+    }
+
+    .settings-item .item-subtitle {
+      font-size: 0.8rem;
+      color: #6b7280;
+      margin-top: 2px;
+    }
+
+    .user-profile-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 1.5rem;
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 1.5rem;
+      font-weight: bold;
+    }
+
+    .user-info {
+      flex: 1;
+    }
+
+    .user-name {
+      font-weight: 600;
+      color: #1f2937;
+      font-size: 1.1rem;
+    }
+
+    .user-email {
+      color: #6b7280;
+      font-size: 0.9rem;
+    }
+
+    .danger-zone {
+      background: #fef2f2;
+      border: 1px solid #fecaca;
       border-radius: 10px;
-      background-color: #f3f3f5;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+      padding: 1rem;
+      margin-top: 2rem;
     }
 
-    .search-input-wrapper .material-symbols-rounded {
-      color: #6b7280;
-      font-size: 1.2rem;
-    }
-
-    .search-input-wrapper input {
-      border: none;
-      outline: none;
-      background: none;
-      margin-left: 8px;
-      color: #6b7280;
-      font-size: 1rem;
-      flex-grow: 1;
+    .danger-zone-title {
+      color: #dc2626;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
   </style>
 </head>
 
 <body>
   <?php
-  $pageType = 'settings';        // Configures navbar for Account Settings page with back button
-  $backLink = 'settings.php';    // Navigates back to `settings.php` in the same directory
+  $pageType = 'settings';
+  $backLink = 'settings.php';
+  $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>
 
@@ -116,56 +180,137 @@ if (!isset($_SESSION['user_id'])) {
 
     <!-- Heading -->
     <div class="account-heading">Account Settings</div>
+    <p class="account-description">Manage your account information and security</p>
 
-    <!-- Search Bar -->
-    <div class="search-bar">
-      <div class="search-input-wrapper">
-        <span class="material-symbols-rounded">menu</span>
-        <input type="text" placeholder="Search">
-        <span class="material-symbols-rounded">search</span>
+    <!-- User Profile Card -->
+    <div class="user-profile-card">
+      <div class="user-avatar">
+        <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
       </div>
+      <div class="user-info">
+        <div class="user-name"><?= htmlspecialchars($userName ?: 'User') ?></div>
+        <div class="user-email"><?= htmlspecialchars($userEmail) ?></div>
+      </div>
+      <button class="btn btn-outline-primary btn-sm" onclick="window.location.href='editProfile.php'">
+        Edit Profile
+      </button>
     </div>
-
-    <p class="text-muted">Update your info to keep your account.</p>
 
     <!-- Account Section -->
     <div class="account-section">
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">person</span>Account
+      <div class="account-section-header">Account</div>
+      
+      <div class="settings-item" onclick="window.location.href='editProfile.php'">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon">person</span>
+          <div class="item-text">
+            <div class="item-title">Personal Information</div>
+            <div class="item-subtitle">Name, email, and profile details</div>
+          </div>
+        </div>
         <span class="material-symbols-rounded text-muted">chevron_right</span>
       </div>
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">groups</span>Friends
+
+      <div class="settings-item" onclick="window.location.href='changePassword.php'">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon">key</span>
+          <div class="item-text">
+            <div class="item-title">Change Password</div>
+            <div class="item-subtitle">Update your password</div>
+          </div>
+        </div>
         <span class="material-symbols-rounded text-muted">chevron_right</span>
       </div>
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">notifications</span>Notifications
+
+      <div class="settings-item" onclick="window.location.href='loginActivity.php'">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon">history</span>
+          <div class="item-text">
+            <div class="item-title">Login Activity</div>
+            <div class="item-subtitle">Recent login sessions</div>
+          </div>
+        </div>
         <span class="material-symbols-rounded text-muted">chevron_right</span>
       </div>
     </div>
 
-    <!-- Privacy Section -->
+    <!-- Privacy & Security Section -->
     <div class="account-section">
-      <div class="account-section-header">Privacy</div>
-      <p class="text-muted">Customize privacy to make experience better.</p>
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">lock</span>Security
+      <div class="account-section-header">Privacy & Security</div>
+      
+      <div class="settings-item" onclick="window.location.href='privacySecurity.php'">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon">lock</span>
+          <div class="item-text">
+            <div class="item-title">Privacy Settings</div>
+            <div class="item-subtitle">Control your data and permissions</div>
+          </div>
+        </div>
         <span class="material-symbols-rounded text-muted">chevron_right</span>
       </div>
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">login</span>Login Details
+
+      <div class="settings-item" onclick="window.location.href='dataDownload.php'">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon">download</span>
+          <div class="item-text">
+            <div class="item-title">Download Your Data</div>
+            <div class="item-subtitle">Get a copy of your information</div>
+          </div>
+        </div>
         <span class="material-symbols-rounded text-muted">chevron_right</span>
       </div>
-      <div class="settings-item">
-        <span class="material-symbols-rounded settings-icon">key</span>Change Password
-        <span class="material-symbols-rounded text-muted">chevron_right</span>
+    </div>
+
+    <!-- Danger Zone -->
+    <div class="danger-zone">
+      <div class="danger-zone-title">
+        <span class="material-symbols-rounded">warning</span>
+        Danger Zone
       </div>
+      <p class="text-muted small mb-3">Once you delete your account, there is no going back. Please be certain.</p>
+      <button class="btn btn-danger btn-sm" onclick="confirmDeleteAccount()">
+        <span class="material-symbols-rounded" style="font-size:16px; vertical-align:middle">delete_forever</span>
+        Delete Account
+      </button>
     </div>
 
   </div>
 
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="../../../assets/images/js/accessibility.js"></script>
+  <script src="../../../assets/images/js/analytics.js"></script>
+  
+  <script>
+    // Track page view
+    if (typeof analytics !== 'undefined') {
+      // Analytics already auto-tracks page view
+    }
+
+    // Delete account confirmation
+    function confirmDeleteAccount() {
+      if (confirm('⚠️ Are you absolutely sure?\n\nThis will permanently delete your account and all associated data. This action cannot be undone.')) {
+        if (confirm('🔴 Final confirmation: Type your email to confirm deletion\n\nYour email: <?= htmlspecialchars($userEmail) ?>')) {
+          // Track deletion attempt
+          if (typeof analytics !== 'undefined') {
+            analytics.featureUsed('Account Deletion Requested');
+          }
+          
+          window.location.href = '../../../backend/deleteAccount.php';
+        }
+      }
+    }
+
+    // Track button clicks
+    document.querySelectorAll('.settings-item').forEach(item => {
+      item.addEventListener('click', function() {
+        const title = this.querySelector('.item-title')?.textContent;
+        if (typeof analytics !== 'undefined' && title) {
+          analytics.buttonClick('Account Settings - ' + title);
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

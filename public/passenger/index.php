@@ -24,12 +24,15 @@ if (isset($_SESSION['user_id'])) {
   <link rel="manifest" href="../manifest.webmanifest">
   <meta name="theme-color" content="#1e3a8a">
 
-  <!-- Bottom sheet component CSS (FIXED PATH) -->
+  <!-- Bottom sheet component CSS -->
   <link rel="stylesheet" href="../../assets/images/css/passengerBottomSheet.css">
 
   <!-- Global Accessibility CSS and JS -->
   <link rel="stylesheet" href="../../assets/images/css/accessibility.css">
   <script src="../../assets/images/js/accessibility.js"></script>
+
+  <!-- Analytics JS -->
+  <script src="../../assets/images/js/analytics.js"></script>
 
   <style>
     :root {
@@ -87,6 +90,22 @@ if (isset($_SESSION['user_id'])) {
     .leaflet-marker-icon {
       pointer-events: auto;
     }
+
+    /* Location notice styles */
+    .location-notice {
+      animation: slideUp 0.3s ease-out;
+    }
+
+    @keyframes slideUp {
+      from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+      }
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
+    }
   </style>
 </head>
 
@@ -100,19 +119,21 @@ if (isset($_SESSION['user_id'])) {
         class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
         <button
           class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0"
-          onclick="window.location.href='./passengerSettings/settings.php';">
+          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Settings Button'); window.location.href='./passengerSettings/settings.php';">
           <span class="material-symbols-rounded">settings</span>
         </button>
 
         <div
           class="bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 fw-bold text-dark filter-pill"
-          data-bs-toggle="modal" data-bs-target="#filterModal">
+          data-bs-toggle="modal" data-bs-target="#filterModal"
+          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Filter Routes Button');">
           <span id="filterLabelMobile">FILTER ROUTES</span>
           <span class="material-symbols-rounded fs-6">tune</span>
         </div>
 
         <a href="notifications.php"
-          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative">
+          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative"
+          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
           <span
             class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
@@ -126,7 +147,7 @@ if (isset($_SESSION['user_id'])) {
     </div>
   </div>
 
-  <!-- Bottom sheet component (refactored) -->
+  <!-- Bottom sheet component -->
   <?php include __DIR__ . '/../../components/passengerBottomSheet.php'; ?>
 
   <div class="d-none d-lg-block h-100">
@@ -197,7 +218,7 @@ if (isset($_SESSION['user_id'])) {
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Bottom sheet component JS (FIXED PATH) -->
+  <!-- Bottom sheet component JS -->
   <script src="../../assets/images/js/passengerBottomSheet.js"></script>
 
   <script>
@@ -217,6 +238,7 @@ if (isset($_SESSION['user_id'])) {
     let userLocation = null;
     let userMarker = null;
     let selectedRoute = '';
+    let locationPermissionGranted = true;
 
     const statusColors = {
       available: '#10b981',
@@ -228,7 +250,7 @@ if (isset($_SESSION['user_id'])) {
     const AVG_SPEED_MPS = (30 * 1000) / 3600;
     const MAX_DISTANCE_METERS = 5000;
 
-    // ICON configuration - adjust ICON_BASE if your project base path changes
+    // ICON configuration
     const ICON_BASE = '/Byahero-Prototype-V3/assets/images/icons';
 
     const ICON_CACHE = {
@@ -262,6 +284,115 @@ if (isset($_SESSION['user_id'])) {
       });
     }
 
+    // --- LOCATION PERMISSION HANDLING ---
+    function showLocationDisabledNotice() {
+      // Only show once per session
+      if (sessionStorage.getItem('location_notice_shown')) return;
+      
+      const notice = document.createElement('div');
+      notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-warning text-dark rounded shadow-lg d-flex align-items-center gap-2';
+      notice.style.zIndex = '9999';
+      notice.style.maxWidth = '90%';
+      notice.innerHTML = `
+        <span class="material-symbols-rounded">location_off</span>
+        <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
+        <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+      `;
+      
+      document.body.appendChild(notice);
+      sessionStorage.setItem('location_notice_shown', '1');
+      
+      // Auto-hide after 5 seconds
+      setTimeout(() => {
+        if (notice.parentElement) notice.remove();
+      }, 5000);
+    }
+
+    function showLocationPermissionDenied() {
+      const notice = document.createElement('div');
+      notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-danger text-white rounded shadow-lg d-flex align-items-center gap-2';
+      notice.style.zIndex = '9999';
+      notice.style.maxWidth = '90%';
+      notice.innerHTML = `
+        <span class="material-symbols-rounded">error</span>
+        <span class="small">Location permission denied. Please enable it in your browser settings.</span>
+        <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
+      `;
+      
+      document.body.appendChild(notice);
+    }
+
+    function startUserLocationWatch() {
+      // Check localStorage for location permission
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      
+      if (!locationEnabled) {
+        console.log('Location services disabled by user');
+        locationPermissionGranted = false;
+        showLocationDisabledNotice();
+        return;
+      }
+
+      if (!navigator.geolocation) {
+        console.log('Geolocation not supported');
+        locationPermissionGranted = false;
+        return;
+      }
+
+      locationPermissionGranted = true;
+
+      navigator.geolocation.watchPosition(pos => {
+        userLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
+
+        // Update user marker on map
+        if (!userMarker) {
+          userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
+            radius: 8,
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.9
+          }).addTo(map);
+        } else {
+          userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+        }
+        
+        updateBuses();
+      }, (error) => {
+        console.error('Location error:', error);
+        if (error.code === error.PERMISSION_DENIED) {
+          locationPermissionGranted = false;
+          showLocationPermissionDenied();
+        }
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      });
+    }
+
+    // Listen for localStorage changes (when settings change in another tab/page)
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'byahero_location_services') {
+        const isEnabled = e.newValue !== '0';
+        
+        if (isEnabled && !locationPermissionGranted) {
+          // Location re-enabled, restart tracking
+          startUserLocationWatch();
+        } else if (!isEnabled && locationPermissionGranted) {
+          // Location disabled, stop tracking
+          locationPermissionGranted = false;
+          if (userMarker) {
+            map.removeLayer(userMarker);
+            userMarker = null;
+          }
+          userLocation = null;
+        }
+      }
+    });
+
     // --- BUS TRACKING ---
     async function updateBuses() {
       try {
@@ -271,13 +402,16 @@ if (isset($_SESSION['user_id'])) {
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
 
-          buses.forEach(b => {
-            if (b.coords && userLocation) {
-              const dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
-              b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
-              b.progress = Math.round(Math.max(0, Math.min(100, 100 - (dist / MAX_DISTANCE_METERS) * 100)));
-            }
-          });
+          // Only calculate ETA if location permission is granted
+          if (locationPermissionGranted && userLocation) {
+            buses.forEach(b => {
+              if (b.coords) {
+                const dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
+                b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
+                b.progress = Math.round(Math.max(0, Math.min(100, 100 - (dist / MAX_DISTANCE_METERS) * 100)));
+              }
+            });
+          }
 
           updateMap(buses);
           renderBusList(buses);
@@ -285,6 +419,11 @@ if (isset($_SESSION['user_id'])) {
         }
       } catch (e) {
         console.error("Bus fetch error:", e);
+        
+        // Track errors
+        if (typeof analytics !== 'undefined') {
+          analytics.error('Bus fetch error: ' + e.message);
+        }
       }
     }
 
@@ -320,7 +459,8 @@ if (isset($_SESSION['user_id'])) {
         }
       });
 
-      if (userLocation) {
+      // Only show user marker if location permission is granted
+      if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
             radius: 8,
@@ -331,6 +471,10 @@ if (isset($_SESSION['user_id'])) {
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
+      } else if (userMarker && !locationPermissionGranted) {
+        // Remove user marker if permission is revoked
+        map.removeLayer(userMarker);
+        userMarker = null;
       }
     }
 
@@ -355,7 +499,7 @@ if (isset($_SESSION['user_id'])) {
         const arrivalText = b.eta ? `Arriving by ${b.eta}` : '';
 
         if (isMobile) {
-          return `<div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')"><div class="card-body py-3 px-4"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span><div style="width: 30px; height: 12px; border-radius: 6px; background:${color}"></div></div><div class="d-flex justify-content-between small text-muted"><span>${b.locName}</span><span>${b.seats} Seats</span></div><div class="small text-muted mb-2">${arrivalText}</div><div class="timeline-container bg-secondary-subtle position-relative"><div class="timeline-progress bg-primary position-absolute top-0 bottom-0 start-0 rounded-pill" style="width: ${progress}%"></div><span class="material-symbols-rounded timeline-icon position-absolute bg-white rounded-circle text-primary border" style="left: ${progress}%; font-size:18px">directions_bus</span><span class="material-symbols-rounded timeline-icon stop-point stop-commuter position-absolute bg-white rounded-circle" style="right:6px; transform: translateX(0);">place</span></div></div></div>`;
+          return `<div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')"><div class="card-body py-3 px-4"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span><div style="width: 30px; height: 12px; border-radius: 6px; background:${color}"></div></div><div class="d-flex justify-content-between small text-muted"><span>${b.locName}</span><span>${b.seats} Seats</span></div>${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}<div class="timeline-container bg-secondary-subtle position-relative"><div class="timeline-progress bg-primary position-absolute top-0 bottom-0 start-0 rounded-pill" style="width: ${progress}%"></div><span class="material-symbols-rounded timeline-icon position-absolute bg-white rounded-circle text-primary border" style="left: ${progress}%; font-size:18px">directions_bus</span><span class="material-symbols-rounded timeline-icon stop-point stop-commuter position-absolute bg-white rounded-circle" style="right:6px; transform: translateX(0);">place</span></div></div></div>`;
         }
 
         return `<button class="list-group-item list-group-item-action" onclick="focusBus('${b.id}')"><h6 class="mb-1 fw-bold">${b.code}</h6><small>${b.locName}</small></button>`;
@@ -409,19 +553,33 @@ if (isset($_SESSION['user_id'])) {
       return `${h}:${m} ${ampm}`;
     }
 
+    // Focus on bus marker and track analytics
     window.focusBus = (id) => {
       const m = busMarkers[id];
       if (m) {
         map.flyTo(m.getLatLng(), 15);
         m.openPopup();
+        
+        // Track bus click
+        if (typeof analytics !== 'undefined') {
+          analytics.busTracked(id);
+          analytics.featureUsed('Bus Tracking', { bus_id: id });
+        }
       }
     };
 
+    // Set route filter and track analytics
     window.setRoute = (r) => {
       selectedRoute = r;
       const label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
       bootstrap.Modal.getInstance(document.getElementById('filterModal'))?.hide();
+      
+      // Track filter usage
+      if (typeof analytics !== 'undefined') {
+        analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
+      }
+      
       updateBuses();
     };
 
@@ -433,24 +591,6 @@ if (isset($_SESSION['user_id'])) {
       let html = `<button class="list-group-item list-group-item-action ${selectedRoute === '' ? 'active' : ''}" onclick="setRoute('')">All Routes</button>`;
       routes.forEach(r => html += `<button class="list-group-item list-group-item-action ${selectedRoute === r ? 'active' : ''}" onclick="setRoute('${r}')">${r}</button>`);
       list.innerHTML = html;
-    }
-
-    function startUserLocationWatch() {
-      if (!navigator.geolocation) return;
-
-      navigator.geolocation.watchPosition(pos => {
-        userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-
-        if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
-        updateBuses();
-      }, () => {}, {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 10000
-      });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -465,6 +605,12 @@ if (isset($_SESSION['user_id'])) {
       });
 
       if (typeof initPinsFeature === 'function') initPinsFeature(map);
+      
+      // Check if location services are enabled
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      if (!locationEnabled) {
+        locationPermissionGranted = false;
+      }
     });
 
     startUserLocationWatch();
