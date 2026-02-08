@@ -1,13 +1,4 @@
 <?php
-/**
- * update_geo_location.php (updated)
- *
- * - Writes a full GeoJSON file to data/current_locations/bus_{id}.geojson (keeps coordinates)
- * - Updates DB `busses`.`current_location` to the friendly name (string) — no schema changes
- *
- * Clients should call this endpoint (relative URL under project) to report location.
- */
-
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');

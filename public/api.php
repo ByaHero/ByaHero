@@ -10,7 +10,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
 require __DIR__ . '/../config/db.php';
 
-/** Helpers **/
 function loadGeojsonFileForBus(int $busId): ?array {
     $file = __DIR__ . '/../data/current_locations/bus_' . $busId . '.geojson';
     if (!is_file($file)) return null;
