@@ -19,21 +19,24 @@
         <div class="col-4" onclick="switchSheetTab('location')">
           <div id="tab-location"
             class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-3">location_on</span>
+            <!-- enlarged icon -->
+            <span class="material-symbols-rounded fs-2">location_on</span>
           </div>
         </div>
 
         <div class="col-4" onclick="switchSheetTab('groups')">
           <div id="tab-groups"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-3">groups</span>
+            <!-- enlarged icon -->
+            <span class="material-symbols-rounded fs-2">groups</span>
           </div>
         </div>
 
         <div class="col-4" onclick="switchSheetTab('pins')">
           <div id="tab-pins"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-3">push_pin</span>
+            <!-- enlarged icon -->
+            <span class="material-symbols-rounded fs-2">push_pin</span>
           </div>
         </div>
       </div>
