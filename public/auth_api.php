@@ -1,16 +1,8 @@
 <?php
 declare(strict_types=1);
-/**
- * public/auth_api.php
- * - Robust config loader (tries public/config and project-root/config)
- * - Actions: login, signup (auto-login), change_password, logout
- * - Returns JSON: { success: bool, message: string, redirect?: string }
- */
-
 header('Content-Type: application/json; charset=utf-8');
 session_start();
 
-// Try config in likely locations
 $configPaths = [
     __DIR__ . '/config/db.php',
     __DIR__ . '/../config/db.php',

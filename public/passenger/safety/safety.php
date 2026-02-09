@@ -9,118 +9,169 @@
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <style>
-    body{
-      background:#f7fafc;
-      color:#102a43;
-      font-family:Inter,"Segoe UI",Roboto,system-ui,-apple-system,"Helvetica Neue",Arial;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
-
-      /* keep space for your bottom navbar (as you had) */
-      padding-bottom:100px !important;
+    /* Global body styling */
+    body {
+      background: #f7fafc;
+      color: #102a43;
+      font-family: Inter, "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      padding-bottom: 100px !important; /* Space for navbar */
     }
 
-    /* NEW: space for the TOP navbar */
-    :root{
-      --top-nav-offset: 76px; /* adjust if your navbar is taller/shorter */
+    /* Scope all page styles */
+    .safety-page {
+      --max-contacts: 5;
     }
 
-    .safety-page .container-wrap{
-      max-width:560px;
+    /* Appbar - HIDDEN since we use navbar */
+    .safety-page .appbar {
+      display: none;
     }
 
-    .avatar{
-      width:56px;height:56px;
-      display:flex;align-items:center;justify-content:center;
-      border-radius:50%;
-      font-weight:800;
-      box-shadow:0 .5rem 1rem rgba(15,23,42,.06);
-      flex:0 0 auto;
-      user-select:none;
-    }
-    .av-gray{ background:#f0f2f4; color:#102a43; font-size:28px; }
-    .av-blue{ background:#5fb0ff; color:#fff; }
-    .av-green{ background:#41d18a; color:#fff; }
-    .av-yellow{ background:#ffd166; color:#072a15; }
-    .av-pink{ background:#ff7aa2; color:#fff; }
-    .av-red{ background:#ff6b6b; color:#fff; }
-
-    .contact-card{
-      border:0;
-      border-radius:14px;
-      box-shadow:0 6px 10px rgba(15, 23, 42, 0.06);
+    .safety-page .container-wrap {
+      max-width: 520px;
+      margin: 60px auto 20px; /* Top margin for navbar */
+      padding: 0 12px;
     }
 
-    .three-dot-btn{
-      width:40px;height:40px;
-      display:inline-flex;align-items:center;justify-content:center;
+    .safety-page h2.h5 {
+      color: #123e6c;
+      font-weight: 700;
+      margin-bottom: 10px;
     }
 
-    .opacity-50x{ opacity:.45; }
+    .safety-page .card-list {
+      gap: 12px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .safety-page .card.ui-card {
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      align-items: center;
+      box-shadow: 0 6px 10px rgba(15, 23, 42, 0.06);
+      background: white;
+      border: 0;
+    }
+
+    .safety-page .addCard {
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .safety-page .avatar {
+      width: 56px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 20px;
+      color: #fff;
+      border-radius: 50%;
+      box-shadow: 0 3px 8px rgba(2, 6, 23, 0.08);
+      flex-shrink: 0;
+    }
+
+    .safety-page .av-gray {
+      background: #f0f2f4;
+      color: #102a43;
+      font-size: 28px;
+      font-weight: 800;
+    }
+
+    .safety-page .av-blue { background: #5fb0ff; }
+    .safety-page .av-green { background: #41d18a; }
+    .safety-page .av-yellow { background: #ffd166; color: #072a15; }
+    .safety-page .av-pink { background: #ff7aa2; }
+    .safety-page .av-red { background: #ff6b6b; }
+
+    .safety-page .card-content {
+      flex: 1;
+      margin-left: 12px;
+    }
+
+    .safety-page .card-content .name {
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .safety-page .card-content .phone {
+      font-size: 13px;
+      color: #6b7280;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .safety-page .three-dot-btn {
+      background: transparent;
+      border: 0;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+    }
+
+    .safety-page .opacity-50 {
+      opacity: 0.45;
+    }
   </style>
 </head>
-
 <body>
-<?php
-  $pageTitle = 'Safety';
-  $backLink = '../index.php';
-  $pageDepth = '../../../';
-  include __DIR__ . "/../../../components/navbarPassenger.php";
+
+<?php 
+$pageTitle = 'Safety';
+$backLink = '../index.php';
+$pageDepth = '../../../';
+include __DIR__ . "/../../../components/navbarPassenger.php"; 
 ?>
 
 <div class="safety-page">
-  <!-- UPDATED: added top padding to clear navbar -->
-  <main class="container container-wrap pt-4" style="padding-top: calc(var(--top-nav-offset) + 1rem) !important;">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-      <div>
-        <h1 class="h5 mb-1 fw-bold text-primary-emphasis">Emergency Contacts</h1>
-        <div class="text-muted small">Add up to 5 trusted people.</div>
-      </div>
-    </div>
+  <main class="container-wrap">
+    <h2 class="h5">Emergency Contact</h2>
 
-    <div id="contactsList" class="vstack gap-3" aria-live="polite">
-      <div id="addNewCard" role="button" tabindex="0" class="card contact-card">
-        <div class="card-body d-flex align-items-center gap-3 p-3">
-          <div class="avatar av-gray">+</div>
-
-          <div class="flex-grow-1">
-            <div class="fw-semibold">Add New</div>
-            <div class="text-muted small">Maximum of 5 contacts</div>
-          </div>
-
-          <div class="text-muted">
-            <span class="material-symbols-rounded" style="font-size:22px;">chevron_right</span>
-          </div>
+    <div id="contactsList" class="card-list" aria-live="polite">
+      <!-- Add New card -->
+      <div id="addNewCard" role="button" tabindex="0" class="card ui-card addCard">
+        <div class="avatar av-gray">+</div>
+        <div class="card-content">
+          <div class="name">Add New</div>
+          <div class="text-muted small">Maximum of 5 contacts</div>
         </div>
       </div>
 
-      <!-- contact cards are rendered here (JS) -->
+      <!-- contact cards are rendered here -->
     </div>
   </main>
 
+  <!-- Modal -->
   <div class="modal fade" id="contactModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" style="max-width:420px;">
-      <div class="modal-content border-0 shadow">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+      <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="modalTitle">Add Contact</h5>
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-
         <div class="modal-body">
-          <form id="contactForm" class="vstack gap-3" onsubmit="return false;">
-            <div>
+          <form id="contactForm" onsubmit="return false;">
+            <div class="mb-3">
               <label for="contactName" class="form-label">Name</label>
               <input id="contactName" type="text" class="form-control" placeholder="e.g. Ate Jane" maxlength="60" />
             </div>
-
-            <div>
+            <div class="mb-2">
               <label for="contactPhone" class="form-label">Phone</label>
               <input id="contactPhone" type="tel" inputmode="numeric" pattern="\d*" class="form-control" placeholder="09XXXXXXXXX" maxlength="11" />
-              <div class="form-text">Phone numbers shown partially masked for privacy.</div>
             </div>
+            <div class="text-muted small">Phone numbers shown partially masked for privacy.</div>
           </form>
         </div>
-
         <div class="modal-footer">
           <button id="cancelModal" type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
           <button id="saveContact" type="button" class="btn btn-primary">Save</button>
@@ -133,6 +184,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+  // UI-only in-memory behavior (no persistence)
   const MAX_CONTACTS = 5;
   const contactsContainer = document.getElementById('contactsList');
   const addNewCard = document.getElementById('addNewCard');
@@ -151,7 +203,6 @@
     { name: 'Kuya', phone: '+63 9211112222' },
     { name: 'Mommy Oni', phone: '+63 9183334444' },
   ];
-
   let editingIndex = -1;
 
   function maskPhone(phone) {
@@ -170,79 +221,58 @@
     return classes[index % classes.length];
   }
 
-  function createPhoneRow(masked) {
-    const wrap = document.createElement('div');
-    wrap.className = 'text-muted small d-flex align-items-center gap-2 mt-1';
-
-    const icon = document.createElement('span');
-    icon.className = 'material-symbols-rounded';
-    icon.style.fontSize = '18px';
-    icon.textContent = 'call';
-
-    const txt = document.createElement('span');
-    txt.textContent = masked;
-
-    wrap.appendChild(icon);
-    wrap.appendChild(txt);
-    return wrap;
-  }
-
   function render() {
     while (contactsContainer.children.length > 1) {
       contactsContainer.removeChild(contactsContainer.lastChild);
     }
 
     contacts.forEach((c, i) => {
-      const card = document.createElement('div');
-      card.className = 'card contact-card';
-      card.setAttribute('data-index', i);
-
-      const body = document.createElement('div');
-      body.className = 'card-body d-flex align-items-center gap-3 p-3';
+      const item = document.createElement('div');
+      item.className = 'card ui-card';
+      item.setAttribute('data-index', i);
 
       const avatar = document.createElement('div');
       avatar.className = 'avatar ' + pickAvatarColor(i);
       avatar.textContent = (c.name && c.name.length > 0) ? c.name.trim().charAt(0).toUpperCase() : '?';
 
       const content = document.createElement('div');
-      content.className = 'flex-grow-1';
+      content.className = 'card-content';
 
       const nameEl = document.createElement('div');
-      nameEl.className = 'fw-semibold';
+      nameEl.className = 'name';
       nameEl.textContent = c.name || 'Unnamed';
 
-      const phoneRow = createPhoneRow(maskPhone(c.phone));
+      const phoneEl = document.createElement('div');
+      phoneEl.className = 'phone';
+      phoneEl.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="opacity:0.9"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6A19.79 19.79 0 0 1 2.08 4.18 2 2 0 0 1 4 2h3a2 2 0 0 1 2 1.72c.12.9.36 1.78.72 2.6a2 2 0 0 1-.45 2.11L9.91 9.91a16 16 0 0 0 6 6l1.48-1.48a2 2 0 0 1 2.11-.45c.82.36 1.71.6 2.6.72A2 2 0 0 1 22 16.92z" stroke="#102a43" stroke-width="1" stroke-linejoin="round"/></svg>' + '<span>' + maskPhone(c.phone) + '</span>';
 
       content.appendChild(nameEl);
-      content.appendChild(phoneRow);
+      content.appendChild(phoneEl);
 
       const dropdownWrap = document.createElement('div');
-      dropdownWrap.className = 'dropdown';
+      dropdownWrap.className = 'ms-2 dropdown';
 
       const menuBtn = document.createElement('button');
-      menuBtn.className = 'btn btn-light three-dot-btn dropdown-toggle p-0';
-      menuBtn.type = 'button';
+      menuBtn.className = 'three-dot-btn';
+      menuBtn.setAttribute('type', 'button');
       menuBtn.setAttribute('data-bs-toggle', 'dropdown');
       menuBtn.setAttribute('aria-expanded', 'false');
-      menuBtn.style.setProperty('--bs-btn-bg', '#ffffff');
-      menuBtn.style.setProperty('--bs-btn-border-color', 'transparent');
-      menuBtn.innerHTML = '<span class="material-symbols-rounded" style="font-size:22px;">more_vert</span>';
+      menuBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="1.6" fill="#102a43"/><circle cx="12" cy="12" r="1.6" fill="#102a43"/><circle cx="12" cy="19" r="1.6" fill="#102a43"/></svg>';
 
       const menu = document.createElement('ul');
-      menu.className = 'dropdown-menu dropdown-menu-end shadow-sm';
-
+      menu.className = 'dropdown-menu dropdown-menu-end';
       const editItem = document.createElement('li');
       const editLink = document.createElement('button');
       editLink.className = 'dropdown-item';
       editLink.type = 'button';
-      editLink.innerHTML = '<span class="material-symbols-rounded me-2" style="font-size:18px; vertical-align:middle;">edit</span>Edit';
+      editLink.textContent = 'Edit';
       editItem.appendChild(editLink);
 
       const delItem = document.createElement('li');
       const delLink = document.createElement('button');
       delLink.className = 'dropdown-item text-danger';
       delLink.type = 'button';
-      delLink.innerHTML = '<span class="material-symbols-rounded me-2" style="font-size:18px; vertical-align:middle;">delete</span>Delete';
+      delLink.textContent = 'Delete';
       delItem.appendChild(delLink);
 
       menu.appendChild(editItem);
@@ -259,20 +289,19 @@
       dropdownWrap.appendChild(menuBtn);
       dropdownWrap.appendChild(menu);
 
-      body.appendChild(avatar);
-      body.appendChild(content);
-      body.appendChild(dropdownWrap);
+      item.appendChild(avatar);
+      item.appendChild(content);
+      item.appendChild(dropdownWrap);
 
-      card.appendChild(body);
-      contactsContainer.appendChild(card);
+      contactsContainer.appendChild(item);
     });
 
     if (contacts.length >= MAX_CONTACTS) {
-      addNewCard.classList.add('opacity-50x');
+      addNewCard.classList.add('opacity-50');
       addNewCard.setAttribute('aria-disabled', 'true');
       addNewCard.style.pointerEvents = 'none';
     } else {
-      addNewCard.classList.remove('opacity-50x');
+      addNewCard.classList.remove('opacity-50');
       addNewCard.removeAttribute('aria-disabled');
       addNewCard.style.pointerEvents = '';
     }
@@ -297,7 +326,9 @@
   contactPhoneInput.addEventListener('input', () => {
     const val = contactPhoneInput.value;
     let sanitized = val.replace(/[^\d+]/g, '');
-    if (sanitized.indexOf('+') > 0) sanitized = sanitized.replace(/\+/g, '');
+    if (sanitized.indexOf('+') > 0) {
+      sanitized = sanitized.replace(/\+/g, '');
+    }
     contactPhoneInput.value = sanitized;
   });
 
@@ -318,7 +349,6 @@
       if (contacts.length >= MAX_CONTACTS) { alert('Maximum of ' + MAX_CONTACTS + ' contacts reached.'); return; }
       contacts.push({ name, phone });
     }
-
     render();
     closeModal();
   });
