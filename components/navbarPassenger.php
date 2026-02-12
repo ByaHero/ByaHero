@@ -1,3 +1,26 @@
+<?php
+// --- SESSION CHECK ---
+// Ensure session is started so we can check if the user is logged in
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// 1. Resolve Paths
+// We use $pageDepth to fix links (e.g. if file is in passenger/subfolder/, depth is "../../")
+$depth = isset($pageDepth) ? $pageDepth : '../../';
+$defaultBack = $depth . 'passenger/index.php';
+$backTarget = isset($backLink) ? $backLink : $defaultBack;
+
+// 2. Determine Profile Button Destination
+// If user is logged in -> Go to Profile Page
+// If user is NOT logged in -> Go to Login Page
+if (isset($_SESSION['user_id'])) {
+    $profileUrl = $depth . 'public/passenger/profile/profile.php';
+} else {
+    $profileUrl = $depth . 'public/login.php';
+}
+?>
+
 <style>
   :root {
     --bs-primary: #1e3a8a;
@@ -20,34 +43,12 @@
   .nav-btn.active-nav {
     color: var(--bs-primary) !important;
   }
-  
 </style>
 
-<!-- Global Accessibility -->
-<link rel="stylesheet" href="<?php echo $pageDepth ?? '../../'; ?>assets/images/css/accessibility.css">
-<script src="<?php echo $pageDepth ?? '../../'; ?>assets/images/js/accessibility.js"></script>
+<link rel="stylesheet" href="<?php echo $depth; ?>assets/images/css/accessibility.css">
+<script src="<?php echo $depth; ?>assets/images/js/accessibility.js"></script>
 
 <?php
-/* FLEXIBLE PASSENGER NAVBAR
-  
-  How to use for new pages:
-  1. Define $pageTitle before including this file.
-     example: 
-     $pageTitle = 'Ride History';
-     $backLink = 'index.php'; // Optional: defaults to index
-     include 'components/navbarPassenger.php';
-     
-     -> This will automatically render a Blue Header with 'Ride History' and a Back Arrow.
-
-  2. For special styles (like SOS red header), use $pageType = 'sos';
-*/
-
-// 1. Resolve Paths
-// We use $pageDepth to fix links (e.g. if file is in passenger/subfolder/, depth is "../../")
-$depth = isset($pageDepth) ? $pageDepth : '../../';
-$defaultBack = $depth . 'passenger/index.php';
-$backTarget = isset($backLink) ? $backLink : $defaultBack;
-
 // --- TOP BAR RENDERING (PHP) ---
 
 // CASE A: NOTIFICATIONS (Custom Design)
@@ -130,9 +131,8 @@ else: ?>
     <div class="col-3 h-100 p-0">
       <button id="nav-profile" 
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark" 
-        data-action="modal" 
-        data-target="#profileModal"
-        data-url="<?php echo $depth; ?>#">
+        data-action="link" 
+        data-url="<?php echo $profileUrl; ?>">
         <span class="material-symbols-rounded fs-1 mb-1">person</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">PROFILE</span>
       </button>
@@ -160,15 +160,15 @@ document.addEventListener('DOMContentLoaded', () => {
         // Highlight logic: Check if current URL matches button URL
         const btnUrl = btn.getAttribute('data-url');
         if (btnUrl && window.location.href.includes(btnUrl.split('/').pop())) {
-             setActive(btn);
+              setActive(btn);
         } else if (isIndex && btn.id === 'nav-location') {
-             setActive(btn);
+              setActive(btn);
         }
 
         btn.addEventListener('click', (e) => {
             const action = btn.getAttribute('data-action');
             
-            // Type A: Direct Link (e.g. Safety, Location)
+            // Type A: Direct Link (e.g. Safety, Location, Profile)
             if (action === 'link') {
                 const url = btn.getAttribute('data-url');
                 // If we are already here, do nothing (or specific home logic)
@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.href = url;
             }
 
-            // Type B: Modal Trigger (e.g. Info, Profile)
+            // Type B: Modal Trigger (e.g. Info)
             else if (action === 'modal') {
                 const targetId = btn.getAttribute('data-target');
 
@@ -208,7 +208,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 openBootstrapModal('#' + modalToOpen);
                 
                 // Highlight the correct button
-                if (modalToOpen === 'profileModal') setActive(document.getElementById('nav-profile'));
                 if (modalToOpen === 'infoModal') setActive(document.getElementById('nav-info'));
                 
                 // Clean the URL so refresh doesn't reopen it
