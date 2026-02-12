@@ -3,7 +3,10 @@
 // session_start();
 
 $pageTitle = 'Create Emergency Contact';
-$backLink  = '../safety.php';
+
+// Always go back to safety.php (same folder level as this file)
+$backLink  = './safety.php';
+
 $pageDepth = '../../../';
 ?>
 <!doctype html>
@@ -19,15 +22,13 @@ $pageDepth = '../../../';
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
 
   <style>
-    /* Global resets that won't conflict */
     body {
       background: linear-gradient(180deg, #eef2f7, #fff);
       font-family: system-ui, -apple-system, "Segoe UI", Roboto;
       padding: 16px;
-      padding-bottom: 100px !important; /* Space for navbar */
+      padding-bottom: 100px !important;
     }
 
-    /* Scope all page-specific styles to .add-contact-page */
     .add-contact-page {
       --brand-blue: #1e56a4;
       --bg-soft: #f4f6fa;
@@ -35,10 +36,9 @@ $pageDepth = '../../../';
       --input-shadow: 0 4px 10px rgba(16, 24, 40, .06);
     }
 
-    /* Phone container */
     .add-contact-page .phone-frame {
       max-width: 390px;
-      margin: 60px auto 0; /* Top margin for navbar */
+      margin: 60px auto 0;
       background: #fff;
       border-radius: 20px;
       box-shadow: 0 20px 50px rgba(0, 0, 0, .12);
@@ -46,7 +46,6 @@ $pageDepth = '../../../';
       min-height: 720px;
     }
 
-    /* Avatar */
     .add-contact-page .avatar-camera {
       width: 110px;
       height: 110px;
@@ -66,10 +65,7 @@ $pageDepth = '../../../';
       color: #333;
     }
 
-    /* Content */
-    .add-contact-page .content {
-      padding: 0 22px 28px;
-    }
+    .add-contact-page .content { padding: 0 22px 28px; }
 
     .add-contact-page .form-card {
       background: #fff;
@@ -101,7 +97,6 @@ $pageDepth = '../../../';
       box-shadow: 0 0 0 3px rgba(30, 86, 164, .15);
     }
 
-    /* Save button */
     .add-contact-page .save-btn {
       width: 100%;
       height: 48px;
@@ -113,32 +108,27 @@ $pageDepth = '../../../';
       box-shadow: 0 10px 20px rgba(30, 86, 164, .25);
     }
 
-    .add-contact-page .save-btn:active {
-      transform: translateY(1px);
-    }
+    .add-contact-page .save-btn:active { transform: translateY(1px); }
   </style>
 </head>
 
 <body>
 
 <?php
-// Navbar include (same as your original)
+// Navbar include
 include __DIR__ . "/../../../components/navbarPassenger.php";
 ?>
 
 <div class="add-contact-page">
   <div class="phone-frame">
 
-    <!-- Avatar (optional UI only) -->
     <div class="avatar-camera" aria-hidden="true">
       <i class="bi bi-camera-fill"></i>
     </div>
 
-    <!-- Content -->
     <div class="content">
 
       <div class="form-card">
-        <!-- This is a FULL PAGE form (not a popup). -->
         <form id="emergencyContactForm"
               class="row g-3"
               action="save_emergency_contact.php"
@@ -180,6 +170,7 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
         </button>
       </div>
 
+      <!-- Back always returns to safety.php -->
       <div class="mt-3 text-center">
         <a class="text-decoration-none" href="<?= htmlspecialchars($backLink) ?>">
           <small class="text-muted">Back</small>
