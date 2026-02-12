@@ -35,7 +35,6 @@
         <div class="col-4" onclick="switchSheetTab('pins')">
           <div id="tab-pins"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <!-- enlarged icon -->
             <span class="material-symbols-rounded fs-2">push_pin</span>
           </div>
         </div>
