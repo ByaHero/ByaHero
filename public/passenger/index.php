@@ -73,10 +73,44 @@ if (isset($_SESSION['user_id'])) {
       z-index: 1000;
     }
 
-    .filter-pill {
+    /* --- FILTER ROUTES pill dropdown styling --- */
+    .route-pill {
       cursor: pointer;
-      font-size: 0.8rem;
+      font-size: 0.85rem;
       letter-spacing: 0.5px;
+    }
+
+    /* Remove Bootstrap caret from dropdown-toggle */
+    .route-pill.dropdown-toggle::after {
+      display: none;
+    }
+
+    /* Modern dropdown menu */
+    .route-menu {
+      border: 0;
+      border-radius: 16px;
+      padding: 8px;
+      min-width: 220px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .route-menu .dropdown-item {
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-weight: 600;
+    }
+
+    .route-menu .dropdown-item.active,
+    .route-menu .dropdown-item:active {
+      background: #1e3a8a;
+    }
+
+    /* ✅ Center dropdown under the pill button */
+    .route-menu-centered {
+      left: 50% !important;
+      right: auto !important;
+      transform: translateX(-50%) !important;
     }
 
     @media (min-width: 992px) {
@@ -101,6 +135,7 @@ if (isset($_SESSION['user_id'])) {
         transform: translate(-50%, 20px);
         opacity: 0;
       }
+
       to {
         transform: translate(-50%, 0);
         opacity: 1;
@@ -115,28 +150,40 @@ if (isset($_SESSION['user_id'])) {
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
 
-      <div
-        class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
+      <div class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
         <button
           class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0"
           onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Settings Button'); window.location.href='./passengerSettings/settings.php';">
           <span class="material-symbols-rounded">settings</span>
         </button>
 
-        <div
-          class="bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 fw-bold text-dark filter-pill"
-          data-bs-toggle="modal" data-bs-target="#filterModal"
-          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Filter Routes Button');">
-          <span id="filterLabelMobile">FILTER ROUTES</span>
-          <span class="material-symbols-rounded fs-6">tune</span>
+        <!-- ✅ FILTER ROUTES dropdown (pill style + centered menu) -->
+        <div class="dropdown">
+          <button
+            class="route-pill bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 fw-bold text-dark border-0 dropdown-toggle"
+            type="button"
+            id="routeDropdownBtn"
+            data-bs-toggle="dropdown"
+            aria-expanded="false"
+            onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Filter Routes Button');">
+            <span id="filterLabelMobile" class="text-truncate" style="max-width: 140px;">FILTER ROUTES</span>
+            <span class="material-symbols-rounded fs-6">tune</span>
+          </button>
+
+          <!-- NOTE: removed dropdown-menu-end so it can center -->
+          <ul class="dropdown-menu route-menu route-menu-centered shadow" id="routeDropdownMenu" aria-labelledby="routeDropdownBtn">
+            <li>
+              <button class="dropdown-item active" type="button" onclick="setRoute('')">All Routes</button>
+            </li>
+            <!-- routes inserted by updateFilters() -->
+          </ul>
         </div>
 
         <a href="notifications.php"
           class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative"
           onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
-          <span
-            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
             style="margin-left: -10px; margin-top: 10px;">
             <span class="visually-hidden">New alerts</span>
           </span>
@@ -156,19 +203,6 @@ if (isset($_SESSION['user_id'])) {
       <div class="overflow-y-auto bg-white border-start">
         <h6 class="p-3 border-bottom bg-light m-0 sticky-top">Active Buses</h6>
         <div id="busListDesktop" class="list-group list-group-flush"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="filterModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-sm">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h6 class="modal-title fw-bold">Select Route</h6>
-        </div>
-        <div class="modal-body p-0">
-          <div class="list-group list-group-flush" id="routeFilterList"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -286,9 +320,8 @@ if (isset($_SESSION['user_id'])) {
 
     // --- LOCATION PERMISSION HANDLING ---
     function showLocationDisabledNotice() {
-      // Only show once per session
       if (sessionStorage.getItem('location_notice_shown')) return;
-      
+
       const notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-warning text-dark rounded shadow-lg d-flex align-items-center gap-2';
       notice.style.zIndex = '9999';
@@ -298,11 +331,10 @@ if (isset($_SESSION['user_id'])) {
         <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
         <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
       `;
-      
+
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-      
-      // Auto-hide after 5 seconds
+
       setTimeout(() => {
         if (notice.parentElement) notice.remove();
       }, 5000);
@@ -318,14 +350,13 @@ if (isset($_SESSION['user_id'])) {
         <span class="small">Location permission denied. Please enable it in your browser settings.</span>
         <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
       `;
-      
+
       document.body.appendChild(notice);
     }
 
     function startUserLocationWatch() {
-      // Check localStorage for location permission
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
-      
+
       if (!locationEnabled) {
         console.log('Location services disabled by user');
         locationPermissionGranted = false;
@@ -347,7 +378,6 @@ if (isset($_SESSION['user_id'])) {
           lng: pos.coords.longitude
         };
 
-        // Update user marker on map
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
             radius: 8,
@@ -358,7 +388,7 @@ if (isset($_SESSION['user_id'])) {
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
-        
+
         updateBuses();
       }, (error) => {
         console.error('Location error:', error);
@@ -373,16 +403,13 @@ if (isset($_SESSION['user_id'])) {
       });
     }
 
-    // Listen for localStorage changes (when settings change in another tab/page)
     window.addEventListener('storage', (e) => {
       if (e.key === 'byahero_location_services') {
         const isEnabled = e.newValue !== '0';
-        
+
         if (isEnabled && !locationPermissionGranted) {
-          // Location re-enabled, restart tracking
           startUserLocationWatch();
         } else if (!isEnabled && locationPermissionGranted) {
-          // Location disabled, stop tracking
           locationPermissionGranted = false;
           if (userMarker) {
             map.removeLayer(userMarker);
@@ -402,7 +429,6 @@ if (isset($_SESSION['user_id'])) {
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
 
-          // Only calculate ETA if location permission is granted
           if (locationPermissionGranted && userLocation) {
             buses.forEach(b => {
               if (b.coords) {
@@ -419,8 +445,6 @@ if (isset($_SESSION['user_id'])) {
         }
       } catch (e) {
         console.error("Bus fetch error:", e);
-        
-        // Track errors
         if (typeof analytics !== 'undefined') {
           analytics.error('Bus fetch error: ' + e.message);
         }
@@ -450,16 +474,12 @@ if (isset($_SESSION['user_id'])) {
           busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
           busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
         } else {
-          const m = L.marker(b.coords, {
-            icon: iconForBus
-          }).addTo(map);
-
+          const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
           m.bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
           busMarkers[b.id] = m;
         }
       });
 
-      // Only show user marker if location permission is granted
       if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
@@ -472,7 +492,6 @@ if (isset($_SESSION['user_id'])) {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
       } else if (userMarker && !locationPermissionGranted) {
-        // Remove user marker if permission is revoked
         map.removeLayer(userMarker);
         userMarker = null;
       }
@@ -553,14 +572,12 @@ if (isset($_SESSION['user_id'])) {
       return `${h}:${m} ${ampm}`;
     }
 
-    // Focus on bus marker and track analytics
     window.focusBus = (id) => {
       const m = busMarkers[id];
       if (m) {
         map.flyTo(m.getLatLng(), 15);
         m.openPopup();
-        
-        // Track bus click
+
         if (typeof analytics !== 'undefined') {
           analytics.busTracked(id);
           analytics.featureUsed('Bus Tracking', { bus_id: id });
@@ -568,45 +585,52 @@ if (isset($_SESSION['user_id'])) {
       }
     };
 
-    // Set route filter and track analytics
     window.setRoute = (r) => {
       selectedRoute = r;
+
       const label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
-      bootstrap.Modal.getInstance(document.getElementById('filterModal'))?.hide();
-      
-      // Track filter usage
+
       if (typeof analytics !== 'undefined') {
         analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
       }
-      
+
       updateBuses();
     };
 
     function updateFilters(buses) {
-      const routes = [...new Set(buses.map(b => b.route).filter(r => r))];
-      const list = document.getElementById('routeFilterList');
-      if (!list) return;
+      const manualRoutes = ['Laurel - Tanauan', 'Tanauan - Laurel'];
+      const apiRoutes = buses.map(b => b.route).filter(r => r);
+      const routes = [...new Set([...manualRoutes, ...apiRoutes])];
 
-      let html = `<button class="list-group-item list-group-item-action ${selectedRoute === '' ? 'active' : ''}" onclick="setRoute('')">All Routes</button>`;
-      routes.forEach(r => html += `<button class="list-group-item list-group-item-action ${selectedRoute === r ? 'active' : ''}" onclick="setRoute('${r}')">${r}</button>`);
-      list.innerHTML = html;
+      const menu = document.getElementById('routeDropdownMenu');
+      if (!menu) return;
+
+      let html = `
+        <li>
+          <button class="dropdown-item ${selectedRoute === '' ? 'active' : ''}" type="button" onclick="setRoute('')">
+            All Routes
+          </button>
+        </li>
+      `;
+
+      routes.forEach(r => {
+        const safe = String(r).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
+        html += `
+          <li>
+            <button class="dropdown-item ${selectedRoute === r ? 'active' : ''}" type="button" onclick="setRoute('${safe}')">
+              ${r}
+            </button>
+          </li>
+        `;
+      });
+
+      menu.innerHTML = html;
     }
 
     document.addEventListener('DOMContentLoaded', () => {
-      const modals = ['safetyModal', 'infoModal', 'profileModal', 'filterModal', 'settingsModal'];
-      const locationBtn = document.querySelector('button[onclick*="location"]');
-
-      modals.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.addEventListener('hidden.bs.modal', () => {
-          if (locationBtn) selectNav(locationBtn, 'location');
-        });
-      });
-
       if (typeof initPinsFeature === 'function') initPinsFeature(map);
-      
-      // Check if location services are enabled
+
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) {
         locationPermissionGranted = false;
