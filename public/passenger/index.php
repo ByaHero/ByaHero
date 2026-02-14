@@ -141,6 +141,25 @@ if (isset($_SESSION['user_id'])) {
         opacity: 1;
       }
     }
+
+    /* -----------------------------
+       TOP ICON BUTTON SIZE FIX
+       (Settings + Notifications)
+       ----------------------------- */
+
+    /* 1) OPTIONAL: makes the circle button bigger */
+    .topbar-btn {
+      width: 46px !important;
+      height: 46px !important;
+    }
+
+    /* 2) THIS is what increases the symbol size */
+    /* ...existing styles... */
+
+    .map-overlay .topbar-btn .material-symbols-rounded.topbar-icon {
+      font-size: 30px !important;
+      line-height: 1 !important;
+    }
   </style>
 </head>
 
@@ -152,9 +171,9 @@ if (isset($_SESSION['user_id'])) {
 
       <div class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
         <button
-          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0"
+          class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 h-40px w-40px topbar-btn"
           onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Settings Button'); window.location.href='./passengerSettings/settings.php';">
-          <span class="material-symbols-rounded">settings</span>
+          <span class="material-symbols-rounded topbar-icon">settings</span>
         </button>
 
         <!-- ✅ FILTER ROUTES dropdown (pill style + centered menu) -->
@@ -180,7 +199,7 @@ if (isset($_SESSION['user_id'])) {
         </div>
 
         <a href="notifications.php"
-          class="btn btn-light rounded-circle shadow p-0 h-40px w-40px d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative"
+          class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative h-40px w-40px topbar-btn"
           onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
           <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
@@ -188,7 +207,7 @@ if (isset($_SESSION['user_id'])) {
             <span class="visually-hidden">New alerts</span>
           </span>
 
-          <span class="material-symbols-rounded">notifications</span>
+          <span class="material-symbols-rounded topbar-icon">notifications</span>
         </a>
       </div>
     </div>
@@ -474,7 +493,9 @@ if (isset($_SESSION['user_id'])) {
           busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
           busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
         } else {
-          const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
+          const m = L.marker(b.coords, {
+            icon: iconForBus
+          }).addTo(map);
           m.bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
           busMarkers[b.id] = m;
         }
@@ -580,7 +601,9 @@ if (isset($_SESSION['user_id'])) {
 
         if (typeof analytics !== 'undefined') {
           analytics.busTracked(id);
-          analytics.featureUsed('Bus Tracking', { bus_id: id });
+          analytics.featureUsed('Bus Tracking', {
+            bus_id: id
+          });
         }
       }
     };
@@ -592,7 +615,9 @@ if (isset($_SESSION['user_id'])) {
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
 
       if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
+        analytics.featureUsed('Route Filter', {
+          route: r || 'All Routes'
+        });
       }
 
       updateBuses();
