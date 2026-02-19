@@ -264,7 +264,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
 <body>
   <?php
   $pageType = 'settings';
-  $backLink = 'settings.php';
+  $backLink = 'profile.php';
   $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>
@@ -274,7 +274,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
     <!-- Heading -->
     <div class="account-heading">Account Settings</div>
-    <p class="account-description">Manage your account information and security</p>
+    <p class="account-description">Manage your account security and preferences</p>
 
     <!-- User Profile Card -->
     <div class="user-profile-card">
@@ -290,20 +290,9 @@ $userEmail = $_SESSION['user_email'] ?? '';
       </button>
     </div>
 
-    <!-- Account Section -->
+    <!-- Security Section -->
     <div class="account-section">
-      <div class="account-section-header">Account</div>
-      
-      <div class="settings-item" onclick="window.location.href='editProfile.php'">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">person</span>
-          <div class="item-text">
-            <div class="item-title">Personal Information</div>
-            <div class="item-subtitle">Name, email, and profile details</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded chevron">chevron_right</span>
-      </div>
+      <div class="account-section-header">Security</div>
 
       <div class="settings-item" onclick="window.location.href='changePassword.php'">
         <div class="item-label">
@@ -322,33 +311,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
           <div class="item-text">
             <div class="item-title">Login Activity</div>
             <div class="item-subtitle">Recent login sessions</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded chevron">chevron_right</span>
-      </div>
-    </div>
-
-    <!-- Privacy & Security Section -->
-    <div class="account-section">
-      <div class="account-section-header">Privacy & Security</div>
-      
-      <div class="settings-item" onclick="window.location.href='privacySecurity.php'">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">shield</span>
-          <div class="item-text">
-            <div class="item-title">Privacy Settings</div>
-            <div class="item-subtitle">Control your data and permissions</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded chevron">chevron_right</span>
-      </div>
-
-      <div class="settings-item" onclick="window.location.href='dataDownload.php'">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">cloud_download</span>
-          <div class="item-text">
-            <div class="item-title">Download Your Data</div>
-            <div class="item-subtitle">Get a copy of your information</div>
           </div>
         </div>
         <span class="material-symbols-rounded chevron">chevron_right</span>

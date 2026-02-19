@@ -1,11 +1,28 @@
 <?php
 session_start();
 
-// Mock data (Replace with your actual session logic)
+// Redirect to login if not logged in
+if (!isset($_SESSION['user_id'])) {
+    header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
+    exit;
+}
+
+require_once '../../../config/db_connection.php';
+
+$userId = $_SESSION['user_id'];
+
+// Fetch user data from database
+$stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$result = $stmt->get_result();
+$userData = $result->fetch_assoc();
+$stmt->close();
+
 $currentUser = [
-    'name' => $_SESSION['user_name'] ?? 'Name Name',
-    'phone' => '+63 911XXXXXX',
-    'email' => $_SESSION['user_email'] ?? 'yourname@gmail.com'
+    'name' => $userData['name'] ?? 'User',
+    'phone' => '+63 911XXXXXX', // TODO: Add phone to database
+    'email' => $userData['email'] ?? 'user@email.com'
 ];
 ?>
 <!doctype html>
@@ -18,6 +35,7 @@ $currentUser = [
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
 
     <style>
         :root {
@@ -62,8 +80,14 @@ $currentUser = [
         .avatar-circle {
             width: 80px;
             height: 80px;
-            background-color: #d1d5db;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
         }
 
         .user-name-text {
@@ -144,7 +168,9 @@ $currentUser = [
     </div>
 
     <div class="profile-identity">
-        <div class="avatar-circle"></div>
+        <div class="avatar-circle">
+            <?= strtoupper(substr($currentUser['name'], 0, 1)) ?>
+        </div>
         <div class="user-name-text"><?php echo htmlspecialchars($currentUser['name']); ?></div>
     </div>
 
@@ -172,17 +198,10 @@ $currentUser = [
 
         <div class="section-label">Account Management</div>
 
-        <a href="#" class="custom-card">
-            <span class="material-symbols-rounded card-icon">delete</span>
+        <a href="accountSettings.php" class="custom-card">
+            <span class="material-symbols-rounded card-icon">settings</span>
             <div class="d-flex align-items-center h-100">
-                <p class="card-value">Delete Account</p>
-            </div>
-        </a>
-
-        <a href="#" class="custom-card">
-            <span class="material-symbols-rounded card-icon">map</span>
-            <div class="d-flex align-items-center h-100">
-                <p class="card-value">Send Location Feedback</p>
+                <p class="card-value">Account Settings</p>
             </div>
         </a>
 
@@ -200,6 +219,7 @@ $currentUser = [
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/images/js/accessibility.js"></script>
+    <script src="../../../assets/images/js/analytics.js"></script>
 </body>
 </html>
-
