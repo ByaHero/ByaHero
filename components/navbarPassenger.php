@@ -120,9 +120,8 @@ else: ?>
     <div class="col-3 h-100 p-0">
       <button id="nav-info" 
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark" 
-        data-action="modal" 
-        data-target="#infoModal"
-        data-url="<?php echo $depth; ?>#">
+        data-action="link" 
+        data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
         <span class="material-symbols-rounded fs-1 mb-1">directions_bus</span>
         <span class="fw-bold small" style="font-size: 0.75rem;">INFO</span>
       </button>
