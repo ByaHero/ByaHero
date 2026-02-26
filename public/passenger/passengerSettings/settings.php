@@ -178,8 +178,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
       <div class="settings-section">
         <div class="settings-section-header">Account Settings</div>
 
-        <!-- Account Settings -->
-        <div class="settings-item" onclick="window.location.href='accountSettings.php';">
+        <!-- My Account - Now goes to profile.php -->
+        <div class="settings-item" onclick="window.location.href='../profile/profile.php';">
           <span class="material-symbols-rounded settings-icon">account_circle</span>
           My Account
           <span class="material-symbols-rounded chevron-icon">chevron_right</span>
@@ -200,7 +200,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
         </div>
 
         <!-- Logout -->
-        <div class="settings-item" onclick="window.location.href='logout.php';">
+        <div class="settings-item" onclick="window.location.href='../../logout.php';">
           <span class="material-symbols-rounded settings-icon text-danger">logout</span>
           Logout
           <span class="material-symbols-rounded chevron-icon"></span>

@@ -33,7 +33,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $stmt->execute();
         $result = $stmt->get_result();
         
-        // ✅ FIX 1: Check if user exists
         if ($result->num_rows === 0) {
             $error = "User not found. Please log in again.";
             $stmt->close();
@@ -53,16 +52,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = "Password changed successfully!";
                     $stmt->close();
                     
-                    // ✅ FIX 2: Always track password change (it's a security event)
+                    // Track password change (security event)
                     try {
                         $stmt = $conn->prepare("INSERT INTO analytics_events (user_id, event_type, event_data, page) VALUES (?, 'setting_changed', ?, ?)");
                         $eventData = json_encode(['setting' => 'Password', 'value' => 'Changed']);
-                        $page = '/passengerSettings/changePassword.php';
+                        $page = '/profile/changePassword';
                         $stmt->bind_param("iss", $userId, $eventData, $page);
                         $stmt->execute();
                         $stmt->close();
                     } catch (Exception $e) {
-                        // Analytics error shouldn't break password change
                         error_log("Analytics error: " . $e->getMessage());
                     }
                 } else {
