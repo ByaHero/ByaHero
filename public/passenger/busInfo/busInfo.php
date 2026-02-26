@@ -205,7 +205,8 @@ if (session_status() === PHP_SESSION_NONE) {
             </div>
 
             <div class="price-display">
-                <i class="fa-solid fa-peso-sign peso-sign"></i> 0
+                <span class="peso-sign">Php</span>
+                <span id="fareAmount" class="fare-amount">0.00</span>
             </div>
         </div>
     </div>
