@@ -101,12 +101,6 @@ if (isset($_SESSION['user_id'])) {
             transform: translateY(-1px);
         }
         .logo-img { width: 150px; height: auto; margin-bottom: 5px; }
-        .google-btn {
-            width: 50px; height: 50px; border-radius: 50%; border: 1px solid #dee2e6;
-            display:flex; align-items:center; justify-content:center; background:white; transition: all .2s;
-            margin:0 auto; box-shadow:0 4px 6px rgba(0,0,0,0.05);
-        }
-        .google-btn:hover { background-color:#f8f9fa; transform:translateY(-2px); }
         .small-muted { margin-top: 0.75rem; }
     </style>
 </head>
@@ -137,6 +131,21 @@ if (isset($_SESSION['user_id'])) {
                     <input type="email" name="email" class="form-control" placeholder="Email" required>
                 </div>
 
+                <!-- NEW: Contact Number -->
+                <div class="mb-3">
+                    <input
+                        type="tel"
+                        name="contacts"
+                        class="form-control"
+                        placeholder="Contact Number"
+                        required
+                        inputmode="tel"
+                        autocomplete="tel"
+                        minlength="7"
+                        maxlength="20"
+                    >
+                </div>
+
                 <div class="mb-3 password-wrapper">
                     <input type="password" name="password" id="passInput" class="form-control" placeholder="Password"
                         required minlength="6" autocomplete="new-password">
@@ -159,19 +168,7 @@ if (isset($_SESSION['user_id'])) {
             </form>
         </div>
 
-        <div class="position-relative mb-4">
-            <hr class="text-secondary opacity-25">
-            <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">
-                Or sign up with
-            </span>
-        </div>
-
-        <div class="d-flex justify-content-center mb-4">
-            <a href="#" class="google-btn text-decoration-none" aria-label="Sign up with Google">
-                <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" width="24"
-                    height="24">
-            </a>
-        </div>
+        <!-- Google signup section REMOVED -->
 
         <div class="text-center small-muted">
             <p class="text-muted small mb-0">Already have an account? <a href="login.php"
@@ -222,6 +219,7 @@ if (isset($_SESSION['user_id'])) {
 
             try {
                 const fd = new FormData(form);
+
                 // POST to auth_api.php in the same public directory
                 const res = await fetch('auth_api.php', {
                     method: 'POST',

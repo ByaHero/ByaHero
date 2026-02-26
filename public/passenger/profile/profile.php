@@ -11,8 +11,8 @@ require_once '../../../config/db_connection.php';
 
 $userId = $_SESSION['user_id'];
 
-// Fetch user data from database
-$stmt = $conn->prepare("SELECT name, email FROM users WHERE id = ?");
+// Fetch user data from database (NOW includes contacts)
+$stmt = $conn->prepare("SELECT name, email, contacts FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -21,7 +21,7 @@ $stmt->close();
 
 $currentUser = [
     'name' => $userData['name'] ?? 'User',
-    'phone' => '+63 911XXXXXX', // TODO: Add phone to database
+    'phone' => $userData['contacts'] ?? '', // pulled from DB
     'email' => $userData['email'] ?? 'user@email.com'
 ];
 ?>
@@ -182,7 +182,9 @@ $currentUser = [
             <span class="material-symbols-rounded card-icon">call</span>
             <div>
                 <p class="card-label">Phone Number</p>
-                <p class="card-value"><?php echo htmlspecialchars($currentUser['phone']); ?></p>
+                <p class="card-value">
+                    <?php echo htmlspecialchars($currentUser['phone'] !== '' ? $currentUser['phone'] : 'Not set'); ?>
+                </p>
             </div>
         </div>
 

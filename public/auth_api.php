@@ -57,19 +57,31 @@ $action = (string)($_POST['action'] ?? '');
 try {
     $pdo = db();
 
-    // LOGIN (kept minimal)
+    // LOGIN (allow email OR contact number in the same field)
     if ($action === 'login') {
-        $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
+        // Keep using the existing "email" field from your login form,
+        // but interpret it as an identifier: email OR contact number.
+        $identifierRaw = trim((string)($_POST['email'] ?? ''));
+        $identifierLower = mb_strtolower($identifierRaw);
         $password = (string)($_POST['password'] ?? '');
-        if ($email === '' || $password === '') respond(false, 'Email and password required');
+
+        if ($identifierRaw === '' || $password === '') respond(false, 'Email/contact and password required');
 
         foreach ($roleTables as $role => $table) {
             try {
-                $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
-                $stmt->execute([$email]);
+                $hasContacts = tableHasColumn($pdo, $table, 'contacts');
+
+                if ($hasContacts) {
+                    $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? OR contacts = ? LIMIT 1");
+                    $stmt->execute([$identifierLower, $identifierRaw]);
+                } else {
+                    $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+                    $stmt->execute([$identifierLower]);
+                }
             } catch (\Throwable $e) {
                 continue; // table may not exist
             }
+
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$user) continue;
 
@@ -93,18 +105,23 @@ try {
             respond(true, 'Login successful', ['redirect' => ($roleRedirects[$role] ?? null)]);
         }
 
-        respond(false, 'Invalid email or password');
+        respond(false, 'Invalid email/contact or password');
     }
 
     // SIGNUP (passengers only) -> creates user, sets session (auto-login) and returns redirect
     if ($action === 'signup') {
         $name = trim((string)($_POST['name'] ?? ''));
         $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
+        $contact = trim((string)($_POST['contacts'] ?? '')); // from signUp.php, save into users.contacts
         $password = (string)($_POST['password'] ?? '');
         $confirm = (string)($_POST['confirm_password'] ?? '');
 
         if ($email === '' || $password === '' || $confirm === '') respond(false, 'Email and password required');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) respond(false, 'Invalid email');
+
+        // Require contact number (since you said it "should be in contacts")
+        if ($contact === '') respond(false, 'Contact number is required');
+
         if ($password !== $confirm) respond(false, 'Passwords do not match');
         if (mb_strlen($password) < 6) respond(false, 'Password must be at least 6 characters');
 
@@ -119,12 +136,33 @@ try {
             }
         }
 
+        // Check contact uniqueness (only where contacts column exists)
+        foreach ($roleTables as $table) {
+            try {
+                if (!tableHasColumn($pdo, $table, 'contacts')) continue;
+                $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? LIMIT 1");
+                $chk->execute([$contact]);
+                if ($chk->fetch()) respond(false, 'Contact number is already registered');
+            } catch (\Throwable $e) {
+                // ignore missing table
+            }
+        }
+
         $hash = password_hash($password, PASSWORD_DEFAULT);
         if ($hash === false) respond(false, 'Password hashing failed');
 
-        // Insert into users; include name if column exists
+        // Insert into users; include optional columns if they exist
         $hasName = tableHasColumn($pdo, 'users', 'name');
-        if ($hasName) {
+        $hasContacts = tableHasColumn($pdo, 'users', 'contacts');
+
+        if ($hasName && $hasContacts) {
+            $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, name, created_at) VALUES (?, ?, ?, ?, NOW())");
+            $ok = $ins->execute([$email, $contact, $hash, $name !== '' ? $name : null]);
+        } elseif ($hasContacts) {
+            $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, created_at) VALUES (?, ?, ?, NOW())");
+            $ok = $ins->execute([$email, $contact, $hash]);
+        } elseif ($hasName) {
+            // fallback if contacts column doesn't exist yet
             $ins = $pdo->prepare("INSERT INTO users (email, password, name, created_at) VALUES (?, ?, ?, NOW())");
             $ok = $ins->execute([$email, $hash, $name !== '' ? $name : null]);
         } else {
