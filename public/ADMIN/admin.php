@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
                 $error = "Please provide a valid email address.";
             } else {
-                $tablesToCheck = ['admins', 'users_new', 'drivers', 'conductors'];
+                $tablesToCheck = ['admins', 'drivers', 'conductors'];
                 $exists = false;
                 foreach ($tablesToCheck as $t) {
                     $chk = $pdo->prepare("SELECT id FROM {$t} WHERE email = ? LIMIT 1");

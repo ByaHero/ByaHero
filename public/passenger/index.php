@@ -308,14 +308,14 @@ if (isset($_SESSION['user_id'])) {
 
     const ICON_CACHE = {
       available: L.icon({
-        iconUrl: ICON_BASE + '/BusAvailable.png',
-        iconSize: [36, 36],
+        iconUrl: ICON_BASE + '/marker.svg', //available
+        iconSize: [40, 40],
         iconAnchor: [18, 36],
         popupAnchor: [0, -36]
       }),
       full: L.icon({
-        iconUrl: ICON_BASE + '/BusFull.png',
-        iconSize: [36, 36],
+        iconUrl: ICON_BASE + '/marker.svg', //full
+        iconSize: [40, 40],
         iconAnchor: [18, 36],
         popupAnchor: [0, -36]
       })
