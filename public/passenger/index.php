@@ -56,14 +56,6 @@ if (isset($_SESSION['user_id'])) {
       height: 60px;
     }
 
-    .w-40px {
-      width: 40px;
-    }
-
-    .h-40px {
-      height: 40px;
-    }
-
     .rounded-top-4 {
       border-top-left-radius: 1.5rem;
       border-top-right-radius: 1.5rem;
@@ -141,25 +133,6 @@ if (isset($_SESSION['user_id'])) {
         opacity: 1;
       }
     }
-
-    /* -----------------------------
-       TOP ICON BUTTON SIZE FIX
-       (Settings + Notifications)
-       ----------------------------- */
-
-    /* 1) OPTIONAL: makes the circle button bigger */
-    .topbar-btn {
-      width: 46px !important;
-      height: 46px !important;
-    }
-
-    /* 2) THIS is what increases the symbol size */
-    /* ...existing styles... */
-
-    .map-overlay .topbar-btn .material-symbols-rounded.topbar-icon {
-      font-size: 30px !important;
-      line-height: 1 !important;
-    }
   </style>
 </head>
 
@@ -170,11 +143,12 @@ if (isset($_SESSION['user_id'])) {
       <div id="map"></div>
 
       <div class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
-        <button
-          class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 h-40px w-40px topbar-btn"
-          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Settings Button'); window.location.href='./passengerSettings/settings.php';">
-          <span class="material-symbols-rounded topbar-icon">settings</span>
-        </button>
+        
+        <!-- ✅ SETTINGS BUTTON (Now from component) -->
+        <?php 
+        $settingsButtonPath = './passengerSettings/settings.php';
+        include __DIR__ . '/../../components/settingsButton.php'; 
+        ?>
 
         <!-- ✅ FILTER ROUTES dropdown (pill style + centered menu) -->
         <div class="dropdown">
@@ -308,13 +282,13 @@ if (isset($_SESSION['user_id'])) {
 
     const ICON_CACHE = {
       available: L.icon({
-        iconUrl: ICON_BASE + '/marker.svg', //available
+        iconUrl: ICON_BASE + '/marker.svg',
         iconSize: [40, 40],
         iconAnchor: [18, 36],
         popupAnchor: [0, -36]
       }),
       full: L.icon({
-        iconUrl: ICON_BASE + '/marker.svg', //full
+        iconUrl: ICON_BASE + '/marker.svg',
         iconSize: [40, 40],
         iconAnchor: [18, 36],
         popupAnchor: [0, -36]
