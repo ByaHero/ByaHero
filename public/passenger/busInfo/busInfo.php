@@ -19,6 +19,16 @@ try {
     $stops = [];
     error_log("Database error: " . $e->getMessage());
 }
+
+/**
+ * Navbar configuration for navbarPassenger.php (TOP BAR)
+ * - pageType/pageTitle controls what it renders on top
+ * - backLink controls the back button target
+ * - pageDepth controls asset/link prefixes inside the component
+ */
+$pageDepth = '../../../';
+$pageTitle = 'Bus Information';
+$backLink  = 'javascript:history.back()';
 ?>
 <!doctype html>
 <html lang="en">
@@ -42,23 +52,9 @@ try {
         body {
             font-family: "Segoe UI", sans-serif;
             background-color: #fff;
+            /* Top bar in navbarPassenger.php is position-absolute; give space so content doesn't hide behind it */
+            padding-top: 55px;
             padding-bottom: 80px;
-        }
-
-        /* HEADER (Matched to profile.php) */
-        .profile-header {
-            background-color: var(--bs-primary);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .header-title {
-            font-size: 1.1rem;
-            margin: 0;
-            font-weight: 500;
         }
 
         /* BUS INFO TYPOGRAPHY */
@@ -95,7 +91,7 @@ try {
             color: #000;
         }
 
-        /* FARE CHECK CONTAINER (Matches content-sheet from profile.php) */
+        /* FARE CHECK CONTAINER */
         .content-sheet {
             background-color: #eff1f5;
             border-top-left-radius: 25px;
@@ -162,7 +158,7 @@ try {
             background-color: white;
         }
 
-        /* Price Display (FORCED BIG with !important) */
+        /* Price Display */
         .price-display {
             color: var(--bs-primary) !important;
             font-weight: 900 !important;
@@ -196,10 +192,8 @@ try {
 
 <body>
 
-    <div class="profile-header">
-        <span class="material-symbols-rounded" style="cursor: pointer; font-size: 28px;" onclick="history.back()">close</span>
-        <h1 class="header-title">Bus Information</h1>
-    </div>
+    <!-- TOP + BOTTOM NAVBARS (from navbarPassenger.php) -->
+    <?php include __DIR__ . "/../../../components/navbarPassenger.php"; ?>
 
     <div class="container px-4">
         <h4 class="section-title">Bus Operation Schedule</h4>
@@ -265,13 +259,6 @@ try {
                 <span id="fareAmount" class="fare-amount">0.00</span>
             </div>
         </div>
-    </div>
-
-    <div class="fixed-bottom" style="z-index: 1050;">
-        <?php
-        $pageDepth = '../../../';
-        include __DIR__ . "/../../../components/navbarPassenger.php";
-        ?>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
