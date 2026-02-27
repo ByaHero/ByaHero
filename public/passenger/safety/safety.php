@@ -23,7 +23,7 @@
     <!-- Header -->
     <div class="row">
       <div class="col-12">
-        <div class="fw-bold" style="color:#123e6c; font-size:24px; line-height:1.2;">
+        <div class="fw-bold" style="color:#123e6c; font-size:24px ! important; line-height:2.2 ;">
           Emergency Contact
         </div>
       </div>
