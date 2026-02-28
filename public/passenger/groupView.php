@@ -81,7 +81,7 @@
             const data = await res.json();
 
             if (!data.success) {
-                groupListEl.innerHTML = `<small class="text-danger">Failed to load group data</small>`;
+                groupListEl.innerHTML = `<small class="text-danger">Please Sign In to view Group Members</small>`;
                 return;
             }
 
