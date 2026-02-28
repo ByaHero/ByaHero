@@ -21,9 +21,12 @@ $stmt->close();
 
 $currentUser = [
     'name' => $userData['name'] ?? 'User',
-    'phone' => $userData['contacts'] ?? '', // pulled from DB
+    'phone' => $userData['contacts'] ?? '',
     'email' => $userData['email'] ?? 'user@email.com'
 ];
+
+// Helper for avatar initial
+$initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
 ?>
 <!doctype html>
 <html lang="en">
@@ -38,190 +41,118 @@ $currentUser = [
     <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
 
     <style>
+        /* Keep only minimal overrides that Bootstrap doesn't provide directly */
         :root {
-            --bs-primary: #0d47a1;
-            --bs-blue-border: #2196f3;
-            --bs-bg-light: #f3f4f6;
+            --byahero-primary: #0d47a1;
         }
 
         body {
             font-family: "Segoe UI", sans-serif;
+            padding-bottom: 80px;
             background-color: #fff;
-            padding-bottom: 80px; 
         }
 
-        /* HEADER */
-        .profile-header {
-            background-color: var(--bs-primary);
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            gap: 15px;
+        .bg-byahero {
+            background-color: var(--byahero-primary) !important;
         }
 
-        .header-title {
-            font-size: 1.1rem;
-            margin: 0;
-            font-weight: 500;
-        }
-
-        /* PROFILE IDENTITY */
-        .profile-identity {
-            background-color: white;
-            padding: 20px 0 30px 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        .avatar-circle {
-            width: 80px;
-            height: 80px;
+        /* Avatar gradient (not a Bootstrap utility) */
+        .avatar-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 2rem;
-            font-weight: bold;
         }
 
-        .user-name-text {
-            color: var(--bs-primary);
-            font-weight: 700;
-            font-size: 1.25rem;
-        }
-
-        /* CONTENT SHEET */
-        .content-sheet {
+        /* Sheet look (Bootstrap doesn't have exact top-only radius utility) */
+        .sheet {
             background-color: #eff1f5;
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
+            border-top-left-radius: 1.5rem;
+            border-top-right-radius: 1.5rem;
             min-height: calc(100vh - 150px);
-            padding: 25px 20px;
-        }
-
-        .section-label {
-            font-size: 0.85rem;
-            font-weight: 700;
-            color: #374151;
-            margin-bottom: 10px;
-            padding-left: 5px;
-        }
-
-        /* CARDS */
-        .custom-card {
-            background-color: white;
-            border-radius: 12px;
-            padding: 15px;
-            margin-bottom: 12px;
-            border: 1px solid transparent;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            text-decoration: none;
-            color: inherit;
-            transition: background-color 0.2s;
-        }
-
-        .custom-card:active {
-            background-color: #f0f0f0;
-        }
-
-        .card-active {
-            border: 1.5px solid var(--bs-blue-border);
-            background-color: #f8fbff;
-        }
-
-        .card-icon {
-            color: #1f2937;
-            font-size: 24px;
-        }
-
-        .card-label {
-            font-size: 0.75rem;
-            color: #6b7280;
-            margin: 0;
-            line-height: 1.2;
-        }
-
-        .card-value {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #000;
-            margin: 0;
-            line-height: 1.2;
         }
     </style>
 </head>
 
 <body>
+    <?php
+    $pageTitle = 'Profile';
+    $backLink = '../index.php';
+    $pageDepth = '../../../';
+    include __DIR__ . "/../../../components/navbarPassenger.php";
+    ?>
 
-    <div class="profile-header">
-        <span class="material-symbols-rounded" style="cursor: pointer; font-size: 28px;" onclick="history.back()">close</span>
-        <h1 class="header-title">Profile</h1>
-    </div>
-
-    <div class="profile-identity">
-        <div class="avatar-circle">
-            <?= strtoupper(substr($currentUser['name'], 0, 1)) ?>
-        </div>
-        <div class="user-name-text"><?php echo htmlspecialchars($currentUser['name']); ?></div>
-    </div>
-
-    <div class="content-sheet">
-        
-        <div class="section-label">Account Details</div>
-
-        <div class="custom-card card-active">
-            <span class="material-symbols-rounded card-icon">call</span>
-            <div>
-                <p class="card-label">Phone Number</p>
-                <p class="card-value">
-                    <?php echo htmlspecialchars($currentUser['phone'] !== '' ? $currentUser['phone'] : 'Not set'); ?>
-                </p>
-            </div>
+    <!-- Identity -->
+    <section class="text-center py-4 pt-5 mt-2">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold avatar-gradient shadow-sm"
+            style="width: 80px; height: 80px; font-size: 2rem;">
+            <?= htmlspecialchars($initial) ?>
         </div>
 
-        <div class="custom-card">
-            <span class="material-symbols-rounded card-icon">mail</span>
-            <div>
-                <p class="card-label">Email Address</p>
-                <p class="card-value"><?php echo htmlspecialchars($currentUser['email']); ?></p>
+        <h2 class="h5 fw-bold mt-3 mb-0" style="color: var(--byahero-primary);">
+            <?= htmlspecialchars($currentUser['name']) ?>
+        </h2>
+    </section>
+
+    <!-- Content sheet -->
+    <main class="sheet px-3 px-sm-4 py-4">
+        <div class="container-fluid p-0" style="max-width: 640px;">
+
+            <div class="text-uppercase fw-bold text-secondary mb-2 small">Account Details</div>
+
+            <!-- Phone -->
+            <div class="card border-0 shadow-sm mb-3">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="material-symbols-rounded fs-3 text-dark">call</span>
+                    <div>
+                        <div class="text-muted small">Phone Number</div>
+                        <div class="fw-semibold">
+                            <?= htmlspecialchars($currentUser['phone'] !== '' ? $currentUser['phone'] : 'Not set'); ?>
+                        </div>
+                    </div>
+                </div>
             </div>
+
+            <!-- Email -->
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-body d-flex align-items-center gap-3">
+                    <span class="material-symbols-rounded fs-3 text-dark">mail</span>
+                    <div class="text-truncate">
+                        <div class="text-muted small">Email Address</div>
+                        <div class="fw-semibold text-truncate">
+                            <?= htmlspecialchars($currentUser['email']); ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-uppercase fw-bold text-secondary mb-2 small">Account Management</div>
+
+            <!-- Account Settings -->
+            <a href="accountSettings.php" class="card border-0 shadow-sm mb-3 text-decoration-none text-dark">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="material-symbols-rounded fs-3 text-dark">settings</span>
+                        <div class="fw-semibold">Account Settings</div>
+                    </div>
+                    <span class="material-symbols-rounded text-muted">chevron_right</span>
+                </div>
+            </a>
+
+            <!-- Logout -->
+            <a href="../../logout.php" class="card border-0 shadow-sm text-decoration-none">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="material-symbols-rounded fs-3 text-danger">logout</span>
+                        <div class="fw-semibold text-danger">Log Out</div>
+                    </div>
+                    <span class="material-symbols-rounded text-muted">chevron_right</span>
+                </div>
+            </a>
+
         </div>
-
-        <div class="mt-4"></div>
-
-        <div class="section-label">Account Management</div>
-
-        <a href="accountSettings.php" class="custom-card">
-            <span class="material-symbols-rounded card-icon">settings</span>
-            <div class="d-flex align-items-center h-100">
-                <p class="card-value">Account Settings</p>
-            </div>
-        </a>
-
-        <a href="../../logout.php" class="custom-card">
-            <span class="material-symbols-rounded card-icon text-danger">logout</span>
-            <div class="d-flex align-items-center h-100">
-                <p class="card-value text-danger">Log Out</p>
-            </div>
-        </a>
-
-    </div>
-
-    <div class="fixed-bottom" style="z-index: 1050;">
-        <?php include __DIR__ . "/../../../components/navbarPassenger.php"; ?>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/images/js/accessibility.js"></script>
     <script src="../../../assets/images/js/analytics.js"></script>
 </body>
+
 </html>

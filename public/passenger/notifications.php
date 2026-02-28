@@ -101,7 +101,7 @@ $any_notification_enabled = $notify_bus_schedule || $notify_bus_arrival || $noti
 <body>
 
   <?php
-  $pageTitle = 'notifications';
+  $pageTitle = 'Notifications';
   $backLink = 'index.php';
   include '../../components/navbarPassenger.php';
   ?>

@@ -53,7 +53,7 @@ if (isset($_SESSION['user_id'])) {
 // --- TOP BAR RENDERING (PHP) ---
 
 // CASE A: NOTIFICATIONS (Custom Design)
-if (isset($pageType) && $pageType === 'notifications'): ?>
+if (isset($pageType) && $pageType === 'Notifications'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -80,6 +80,22 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
 <?php
   // CASE C: GENERIC PAGE (Flexible for ANY new page)
 elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'settings')):
+  // Use $pageTitle if set, otherwise fallback to empty (like old settings)
+  $displayTitle = isset($pageTitle) ? $pageTitle : '';
+  ?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
+    <a href="<?php echo $backTarget; ?>"
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+      <span class="material-symbols-rounded text-white">arrow_back</span>
+    </a>
+    <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
+  </div>
+
+<?php
+  // CASE C: GENERIC PAGE (Flexible for ANY new page)
+elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'Profile')):
   // Use $pageTitle if set, otherwise fallback to empty (like old settings)
   $displayTitle = isset($pageTitle) ? $pageTitle : '';
   ?>
