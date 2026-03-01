@@ -20,13 +20,10 @@ $userEmail = $_SESSION['user_email'] ?? '';
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Account Settings - ByaHero</title>
 
-  <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 
-  <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
 
-  <!-- Global Accessibility -->
   <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
 
   <style>
@@ -263,20 +260,21 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
 <body>
   <?php
+  // This variable passes the name to the navbar!
+  $pageTitle = 'Profile'; 
   $pageType = 'settings';
   $backLink = 'profile.php';
   $pageDepth = "../../../";
-  include "../../../components/navbarPassenger.php";
+  
+  // Go up 3 levels from public/passenger/profile/ to reach the root, then into components/
+  require_once "../../../components/navbarPassenger.php";
   ?>
 
-  <!-- Main Content -->
   <div class="container account-container">
 
-    <!-- Heading -->
     <div class="account-heading">Account Settings</div>
     <p class="account-description">Manage your account security and preferences</p>
 
-    <!-- User Profile Card -->
     <div class="user-profile-card">
       <div class="user-avatar">
         <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
@@ -290,7 +288,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
       </button>
     </div>
 
-    <!-- Security Section -->
     <div class="account-section">
       <div class="account-section-header">Security</div>
 
@@ -317,7 +314,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
       </div>
     </div>
 
-    <!-- Danger Zone -->
     <div class="danger-zone">
       <div class="danger-zone-title">
         <span class="material-symbols-rounded" style="font-size:20px">warning</span>
@@ -332,7 +328,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
   </div>
 
-  <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/images/js/accessibility.js"></script>
   <script src="../../../assets/images/js/analytics.js"></script>

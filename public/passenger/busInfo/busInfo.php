@@ -8,8 +8,6 @@ require_once __DIR__ . '/../../../config/db_connection.php';
 
 // Load stops
 try {
-    // If your db_connection.php already creates $pdo, you can remove this block.
-    // Keeping it here to match your current setup.
     $pdo = new PDO("mysql:host=localhost;dbname=byahero", "root", "");
     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
@@ -22,9 +20,6 @@ try {
 
 /**
  * Navbar configuration for navbarPassenger.php (TOP BAR)
- * - pageType/pageTitle controls what it renders on top
- * - backLink controls the back button target
- * - pageDepth controls asset/link prefixes inside the component
  */
 $pageDepth = '../../../';
 $pageTitle = 'Bus Information';
@@ -45,14 +40,14 @@ $backLink  = 'javascript:history.back()';
     <style>
         :root {
             --bs-primary: #0d47a1;
-            --bs-blue-border: #2196f3;
+            --bs-blue-border: #3b82f6;
             --bs-bg-light: #f3f4f6;
+            --bs-active-bg: #eff6ff; /* Soft blue for the click state */
         }
 
         body {
             font-family: "Segoe UI", sans-serif;
             background-color: #fff;
-            /* Top bar in navbarPassenger.php is position-absolute; give space so content doesn't hide behind it */
             padding-top: 55px;
             padding-bottom: 80px;
         }
@@ -73,92 +68,127 @@ $backLink  = 'javascript:history.back()';
             border-radius: 12px;
             padding: 15px 20px;
             margin-bottom: 12px;
-            border: 1px solid var(--bs-primary);
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
         .route-name {
-            font-size: 1.1rem;
-            color: #1f2937;
-            font-weight: 500;
+            font-size: 1.05rem;
+            color: var(--bs-primary);
+            font-weight: 600;
         }
 
         .route-time {
             font-weight: 700;
             font-size: 0.9rem;
-            color: #000;
+            color: #4b5563;
         }
 
         /* FARE CHECK CONTAINER */
         .content-sheet {
-            background-color: #eff1f5;
-            border-top-left-radius: 25px;
-            border-top-right-radius: 25px;
-            padding: 25px 20px 80px 20px;
-            margin-top: 25px;
-            min-height: calc(100vh - 300px);
+            background-color: #f8fafc;
+            border-top-left-radius: 30px;
+            border-top-right-radius: 30px;
+            padding: 30px 20px 80px 20px;
+            margin-top: 20px;
+            min-height: calc(100vh - 280px);
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
         }
 
-        /* Custom Select Fields */
-        .custom-input-group {
-            background-color: white;
-            border-radius: 12px;
-            padding: 8px 15px;
-            display: flex;
-            align-items: center;
+        /* CUSTOM UI DROPDOWNS */
+        .custom-dropdown {
             margin-bottom: 15px;
-            position: relative;
-        }
-
-        .custom-input-group select {
-            border: none;
-            box-shadow: none;
-            padding-left: 5px;
-            padding-right: 25px;
-            font-size: 0.85rem;
-            color: #374151;
             width: 100%;
-            background: transparent;
-            cursor: pointer;
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
         }
 
-        .custom-input-group select:focus {
+        .custom-btn-toggle {
+            background-color: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 12px 16px;
+            width: 100%;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #6b7280;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.25s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+        }
+
+        .custom-btn-toggle:focus,
+        .custom-btn-toggle:active {
             outline: none;
+            box-shadow: none;
+        }
+
+        /* VISUAL CLICK STATE - Adds the color and pop you wanted */
+        .custom-btn-toggle[aria-expanded="true"] {
+            background-color: var(--bs-active-bg);
+            border-color: var(--bs-blue-border);
+            color: var(--bs-primary);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+            transform: translateY(-2px);
         }
 
         .input-icon {
-            font-size: 1.1rem;
-            color: #000;
-            pointer-events: none;
-            position: absolute;
-            right: 15px;
+            font-size: 1rem;
+            color: #9ca3af;
+            transition: transform 0.3s ease, color 0.3s ease;
         }
 
-        /* Discount Dropdown */
-        .discount-select-container {
+        /* Rotates the arrow when open */
+        .custom-btn-toggle[aria-expanded="true"] .input-icon {
+            transform: rotate(180deg);
+            color: var(--bs-primary);
+        }
+
+        .custom-dropdown-menu {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 8px;
+            margin-top: 5px !important;
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .custom-dropdown-menu .dropdown-item {
+            border-radius: 8px;
+            padding: 10px 15px;
+            font-weight: 500;
+            color: #374151;
+            transition: background-color 0.2s;
+        }
+
+        .custom-dropdown-menu .dropdown-item:hover,
+        .custom-dropdown-menu .dropdown-item:focus {
+            background-color: var(--bs-active-bg);
+            color: var(--bs-primary);
+        }
+
+        /* Discount Specifics */
+        .discount-container {
             display: flex;
             justify-content: center;
-            margin-top: 10px;
+            margin-top: 5px;
         }
 
-        .form-select.custom-select {
+        .discount-btn {
             border-radius: 25px;
-            border: none;
-            padding: 10px 35px 10px 20px;
+            padding: 8px 20px;
             width: auto;
-            color: var(--bs-primary);
-            font-weight: 600;
-            font-size: 0.9rem;
-            text-align: center;
-            background-color: white;
+            min-width: 160px;
+            justify-content: center;
+            gap: 10px;
         }
 
-        /* Price Display */
+        /* PRICE DISPLAY - Scaled down to stop overlapping */
         .price-display {
             color: var(--bs-primary) !important;
             font-weight: 900 !important;
@@ -167,32 +197,36 @@ $backLink  = 'javascript:history.back()';
             display: flex !important;
             align-items: baseline !important;
             justify-content: center !important;
-            letter-spacing: -2px !important;
+            letter-spacing: -1px !important;
             gap: 10px !important;
         }
 
-        .price-display .peso-sign,
-        .price-display .fare-amount,
+        .price-display .peso-sign {
+            font-size: 2.5rem !important; /* Smaller peso sign */
+            line-height: 1 !important;
+            font-weight: 700 !important;
+        }
+
         .price-display #fareAmount {
-            font-size: 5.5rem !important;
-            line-height: 0.95 !important;
+            /* clamp() ensures it fits perfectly on small and large screens */
+            font-size: clamp(3rem, 12vw, 4.5rem) !important; 
+            line-height: 1 !important;
             font-weight: 900 !important;
-            display: inline-block !important;
         }
 
         .error-message {
             color: #dc3545;
             font-size: 0.85rem;
             text-align: center;
-            margin-top: 10px;
+            margin-top: 15px;
             font-weight: 500;
+            min-height: 20px;
         }
     </style>
 </head>
 
 <body>
 
-    <!-- TOP + BOTTOM NAVBARS (from navbarPassenger.php) -->
     <?php include __DIR__ . "/../../../components/navbarPassenger.php"; ?>
 
     <div class="container px-4">
@@ -215,48 +249,57 @@ $backLink  = 'javascript:history.back()';
         <div class="container p-0">
             <div class="row">
                 <div class="col-6 pe-2">
-                    <div class="custom-input-group">
-                        <select id="pickupLocation">
-                            <option value="">Pick up Location</option>
+                    <div class="dropdown custom-dropdown">
+                        <button class="custom-btn-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="selection-text text-truncate">Pick up</span>
+                            <i class="fas fa-chevron-down input-icon ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu w-100 custom-dropdown-menu">
                             <?php foreach ($stops as $stop): ?>
-                                <option value="<?php echo (int)$stop['stop_id']; ?>">
-                                    <?php echo htmlspecialchars($stop['location_name']); ?>
-                                </option>
+                                <li><a class="dropdown-item location-item" href="#" data-target="pickupLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
                             <?php endforeach; ?>
-                        </select>
-                        <i class="fas fa-chevron-down input-icon"></i>
+                        </ul>
+                        <input type="hidden" id="pickupLocation" value="">
                     </div>
                 </div>
 
                 <div class="col-6 ps-2">
-                    <div class="custom-input-group">
-                        <select id="dropoffLocation">
-                            <option value="">Drop off Location</option>
+                    <div class="dropdown custom-dropdown">
+                        <button class="custom-btn-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span class="selection-text text-truncate">Drop off</span>
+                            <i class="fas fa-chevron-down input-icon ms-2"></i>
+                        </button>
+                        <ul class="dropdown-menu w-100 custom-dropdown-menu">
                             <?php foreach ($stops as $stop): ?>
-                                <option value="<?php echo (int)$stop['stop_id']; ?>">
-                                    <?php echo htmlspecialchars($stop['location_name']); ?>
-                                </option>
+                                <li><a class="dropdown-item location-item" href="#" data-target="dropoffLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
                             <?php endforeach; ?>
-                        </select>
-                        <i class="fas fa-chevron-down input-icon"></i>
+                        </ul>
+                        <input type="hidden" id="dropoffLocation" value="">
                     </div>
                 </div>
             </div>
 
-            <div class="discount-select-container">
-                <select class="form-select custom-select" id="discountType" aria-label="Select Discount">
-                    <option value="regular" selected>Regular</option>
-                    <option value="discounted">Student</option>
-                    <option value="discounted">Senior Citizen</option>
-                    <option value="discounted">PWD</option>
-                </select>
+            <div class="discount-container">
+                <div class="dropdown custom-dropdown" style="width: auto;">
+                    <button class="custom-btn-toggle discount-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span class="selection-text">Regular</span>
+                        <i class="fas fa-chevron-down input-icon"></i>
+                    </button>
+                    <ul class="dropdown-menu custom-dropdown-menu text-center">
+                        <li><a class="dropdown-item discount-item" href="#" data-value="regular">Regular</a></li>
+                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">Student</a></li>
+                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">Senior Citizen</a></li>
+                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">PWD</a></li>
+                    </ul>
+                    <input type="hidden" id="discountType" value="regular">
+                </div>
             </div>
 
             <div id="errorMessage" class="error-message"></div>
 
             <div class="price-display">
                 <span class="peso-sign">Php</span>
-                <span id="fareAmount" class="fare-amount">0.00</span>
+                <span id="fareAmount">0.00</span>
             </div>
         </div>
     </div>
@@ -264,20 +307,37 @@ $backLink  = 'javascript:history.back()';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        const pickupSelect = document.getElementById('pickupLocation');
-        const dropoffSelect = document.getElementById('dropoffLocation');
-        const discountSelect = document.getElementById('discountType');
+        // Logic to make the custom dropdowns behave like standard <select> tags
+        document.querySelectorAll('.dropdown-item').forEach(item => {
+            item.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                // Find elements within the clicked dropdown's wrapper
+                const dropdown = this.closest('.custom-dropdown');
+                const btnText = dropdown.querySelector('.selection-text');
+                const hiddenInput = dropdown.querySelector('input[type="hidden"]');
+                const btn = dropdown.querySelector('.custom-btn-toggle');
+                
+                // Update the visible text and the hidden value
+                btnText.textContent = this.textContent;
+                hiddenInput.value = this.getAttribute('data-value');
+                
+                // Darken text to show it has been selected
+                btn.style.color = '#1f2937';
+                
+                // Trigger the fare calculation
+                calculateFare();
+            });
+        });
+
+        // Fare Calculation Logic
         const fareDisplay = document.getElementById('fareAmount');
         const errorMessage = document.getElementById('errorMessage');
 
-        pickupSelect.addEventListener('change', calculateFare);
-        dropoffSelect.addEventListener('change', calculateFare);
-        discountSelect.addEventListener('change', calculateFare);
-
         async function calculateFare() {
-            const pickup = pickupSelect.value;
-            const dropoff = dropoffSelect.value;
-            const fareType = discountSelect.value;
+            const pickup = document.getElementById('pickupLocation').value;
+            const dropoff = document.getElementById('dropoffLocation').value;
+            const fareType = document.getElementById('discountType').value;
 
             errorMessage.textContent = '';
 
@@ -287,7 +347,7 @@ $backLink  = 'javascript:history.back()';
             }
 
             if (pickup === dropoff) {
-                errorMessage.textContent = 'Pick-up and drop-off cannot be the same location';
+                errorMessage.textContent = 'Pick-up and drop-off cannot be the same';
                 fareDisplay.textContent = '0.00';
                 return;
             }
