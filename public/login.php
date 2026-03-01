@@ -149,6 +149,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-size:0.85rem;
             letter-spacing:1px;
             color: #111827;
+            font-weight: bold; /* Added bold formatting here */
         }
 
         .form-card{
@@ -295,7 +296,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="submit-pill">Login</button>
                 </form>
 
-                <!-- Sign up link added below the form -->
                 <div class="small-muted">
                     Don't have an account? <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
                 </div>
