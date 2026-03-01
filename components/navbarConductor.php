@@ -10,8 +10,25 @@ if (session_status() !== PHP_SESSION_ACTIVE) {
 $userName = $_SESSION['user_name'] ?? 'User';
 $script = basename($_SERVER['PHP_SELF']);
 
-// Use the exact project-rooted path you provided (root-relative so it resolves from any page)
-$logoutImageUrl = '/Byahero-Prototype-V3/assets/images/logoutButton.png';
+/**
+ * Build a base URL that works in both:
+ * - Local dev (e.g. http://localhost/ByaHero-Prototype-V3/public/...)
+ * - InfinityFree (usually deployed at domain root: https://example.com/...)
+ *
+ * If your local project is NOT inside a folder (e.g. http://localhost/public/...),
+ * this still works because it will resolve to "" (empty base).
+ */
+$projectFolder = 'ByaHero-Prototype-V3'; // adjust if your local folder name differs
+$uri = $_SERVER['REQUEST_URI'] ?? '/';
+$base = (stripos($uri, '/' . $projectFolder . '/') === 0) ? ('/' . $projectFolder) : '';
+
+/**
+ * Assets URL (root-relative with optional project folder prefix)
+ * File location on server should be:
+ * - InfinityFree: /assets/images/logoutButton.png
+ * - Local: /ByaHero-Prototype-V3/assets/images/logoutButton.png (if using project folder)
+ */
+$logoutImageUrl = $base . '/assets/images/logoutButton.png';
 ?>
 <style>
 /* CRITICAL: This hides the default Top Logo Bar from navbar.php */
@@ -111,7 +128,7 @@ $logoutImageUrl = '/Byahero-Prototype-V3/assets/images/logoutButton.png';
 
 /* Ensure pages that use this include can use the variable to offset content */
 .main-content-wrapper {
-    margin-top: calc(var(--nav-height, 100px) -30px);
+    margin-top: calc(var(--nav-height, 100px) - 30px);
 }
 </style>
 
@@ -132,7 +149,6 @@ if ($script === 'conductor.php'):
                 <span class="material-icons-round" aria-hidden="true">person</span>
             </div>
 
-            <!-- Logout uses the provided image. -->
             <a class="logout-btn" href="../logout.php" title="Logout" aria-label="Logout">
                 <img src="<?= htmlspecialchars($logoutImageUrl) ?>" alt="Logout" />
                 <span class="sr-only">Logout</span>

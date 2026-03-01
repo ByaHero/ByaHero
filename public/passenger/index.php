@@ -277,23 +277,42 @@ if (isset($_SESSION['user_id'])) {
     const AVG_SPEED_MPS = (30 * 1000) / 3600;
     const MAX_DISTANCE_METERS = 5000;
 
-    // ICON configuration
-    const ICON_BASE = '/Byahero-Prototype-V3/assets/images/icons';
+    // ICON configuration (works on both local + InfinityFree)
+//
+// Uses the current origin + detects whether the app is running under
+// a project subfolder (e.g. /ByaHero-Prototype-V3/) or at domain root (/).
+(function () {
+  const PROJECT_FOLDER = 'ByaHero-Prototype-V3'; // must match your local folder name (case-sensitive)
 
-    const ICON_CACHE = {
-      available: L.icon({
-        iconUrl: ICON_BASE + '/marker.svg',
-        iconSize: [40, 40],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
-      }),
-      full: L.icon({
-        iconUrl: ICON_BASE + '/marker.svg',
-        iconSize: [40, 40],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
-      })
-    };
+  // pathname like: "/ByaHero-Prototype-V3/public/passenger/index.php" OR "/public/passenger/index.php"
+  const path = window.location.pathname || '/';
+
+  // If the URL starts with "/ByaHero-Prototype-V3/", prefix asset paths with it; otherwise use root.
+  const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
+    ? '/' + PROJECT_FOLDER
+    : '';
+
+  // Now assets resolve as:
+  // - local:      /ByaHero-Prototype-V3/assets/images/icons
+  // - infinityfree: /assets/images/icons
+  window.ICON_BASE = base + '/assets/images/icons';
+})();
+
+// Use ICON_BASE like before:
+const ICON_CACHE = {
+  available: L.icon({
+    iconUrl: ICON_BASE + '/marker.svg',
+    iconSize: [40, 40],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  }),
+  full: L.icon({
+    iconUrl: ICON_BASE + '/marker.svg',
+    iconSize: [40, 40],
+    iconAnchor: [18, 36],
+    popupAnchor: [0, -36]
+  })
+};
 
     function createBusIcon(status) {
       if (!status) status = '';
