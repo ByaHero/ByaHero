@@ -73,6 +73,32 @@
         }).bindPopup(label);
     }
 
+    const LOCATION_STALE_MINUTES = 5;
+
+    function getLastSeenLabel(updatedAt) {
+        if (!updatedAt) return '';
+        const last = new Date(updatedAt).getTime();
+        if (Number.isNaN(last)) return '';
+        const diffMinutes = Math.floor((Date.now() - last) / 60000);
+
+        if (diffMinutes <= 0) return 'Just now';
+        if (diffMinutes < 60) return `Last seen ${diffMinutes} min ago`;
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `Last seen ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+
+    function isLocationFresh(updatedAt) {
+        if (!updatedAt) return false;
+        const last = new Date(updatedAt).getTime();
+        if (Number.isNaN(last)) return false;
+        const diffMinutes = (Date.now() - last) / 60000;
+        return diffMinutes <= LOCATION_STALE_MINUTES;
+    }
+
     async function loadGroupMembers() {
         if (!groupListEl) return;
 
@@ -81,7 +107,7 @@
             const data = await res.json();
 
             if (!data.success) {
-                groupListEl.innerHTML = `<small class="text-danger">Please Sign In to view Group Members</small>`;
+                groupListEl.innerHTML = `<small class="text-danger">Failed to load group data</small>`;
                 return;
             }
 
@@ -94,7 +120,12 @@
             data.friends.forEach(friend => {
                 const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
                 const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
-                const hasLocation = Number.isFinite(lat) && Number.isFinite(lng);
+                const isFresh = isLocationFresh(friend.updated_at);
+                const hasLocation = Number.isFinite(lat) && Number.isFinite(lng) && isFresh;
+
+                const statusText = hasLocation
+                    ? 'Location available'
+                    : (friend.updated_at ? getLastSeenLabel(friend.updated_at) : 'Location unavailable');
 
                 const card = document.createElement('div');
                 card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
@@ -106,10 +137,7 @@
                     <div>
                         <h6 class="mb-0 fw-bold text-dark">${friend.name || friend.email}</h6>
                         <small class="text-muted d-block" style="font-size: 0.75rem;">
-                            ${hasLocation ? 'Location available' : 'Location unavailable'}
-                        </small>
-                        <small class="text-muted" style="font-size: 0.7rem;">
-                            ${friend.updated_at ? 'Updated: ' + friend.updated_at : ''}
+                            ${statusText}
                         </small>
                     </div>
                 `;
