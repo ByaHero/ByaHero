@@ -10,7 +10,7 @@ if ($is_localhost) {
     define('DB_NAME', 'byahero');
 } else {
     // InfinityFree Settings
-    define('DB_HOST', 'sql304.infinityfree.com'); // Check your client area for the exact SQL Host
+    define('DB_HOST', 'sql311.infinityfree.com'); // Check your client area for the exact SQL Host
     define('DB_USER', 'if0_41271108');
     define('DB_PASS', 'Bb1ToMvkTf');
     define('DB_NAME', 'if0_41271108_byahero'); // Usually starts with your username
