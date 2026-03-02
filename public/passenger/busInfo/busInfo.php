@@ -23,7 +23,7 @@ try {
  */
 $pageDepth = '../../../';
 $pageTitle = 'Bus Information';
-$backLink  = 'javascript:history.back()';
+$backLink = 'javascript:history.back()';
 ?>
 <!doctype html>
 <html lang="en">
@@ -53,8 +53,9 @@ $backLink  = 'javascript:history.back()';
         }
 
         /* Responsive text clamping for the fare amount */
-        .fare-text {
-            font-size: clamp(3rem, 12vw, 4.5rem) !important; 
+        #fareAmount.fare-text {
+            font-weight: 900 !important;
+            font-size: clamp(3rem, 12vw, 4.5rem) !important;
             line-height: 1 !important;
         }
 
@@ -62,7 +63,7 @@ $backLink  = 'javascript:history.back()';
         .transition-icon {
             transition: transform 0.3s ease, color 0.3s ease;
         }
-        
+
         /* Active/Expanded state for the custom buttons */
         .btn-custom-toggle[aria-expanded="true"] {
             background-color: var(--bs-primary-bg-subtle) !important;
@@ -71,6 +72,7 @@ $backLink  = 'javascript:history.back()';
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(13, 71, 161, 0.15) !important;
         }
+
         .btn-custom-toggle[aria-expanded="true"] .transition-icon {
             transform: rotate(180deg);
             color: var(--bs-primary) !important;
@@ -81,7 +83,8 @@ $backLink  = 'javascript:history.back()';
             max-height: 250px;
             overflow-y: auto;
         }
-        .dropdown-item-custom:hover, 
+
+        .dropdown-item-custom:hover,
         .dropdown-item-custom:focus {
             background-color: var(--bs-primary-bg-subtle);
             color: var(--bs-primary);
@@ -111,18 +114,23 @@ $backLink  = 'javascript:history.back()';
 
     <div class="content-sheet bg-light pt-4 px-3 pb-5 mt-4 shadow-sm">
         <div class="container p-0">
-            
+
             <div class="row g-2 mb-3">
-                
+
                 <div class="col-6">
                     <div class="dropdown w-100">
-                        <button class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button
+                            class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="selection-text text-truncate">Pick up</span>
                             <i class="fas fa-chevron-down text-secondary transition-icon ms-2"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-target="pickupLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
+                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                        href="#" data-target="pickupLocation"
+                                        data-value="<?php echo (int) $stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
                         <input type="hidden" id="pickupLocation" value="">
@@ -131,13 +139,18 @@ $backLink  = 'javascript:history.back()';
 
                 <div class="col-6">
                     <div class="dropdown w-100">
-                        <button class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button
+                            class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all"
+                            type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="selection-text text-truncate">Drop off</span>
                             <i class="fas fa-chevron-down text-secondary transition-icon ms-2"></i>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-target="dropoffLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
+                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                        href="#" data-target="dropoffLocation"
+                                        data-value="<?php echo (int) $stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a>
+                                </li>
                             <?php endforeach; ?>
                         </ul>
                         <input type="hidden" id="dropoffLocation" value="">
@@ -147,15 +160,21 @@ $backLink  = 'javascript:history.back()';
 
             <div class="d-flex justify-content-center mt-2">
                 <div class="dropdown">
-                    <button class="btn btn-custom-toggle bg-white border border-2 rounded-pill py-2 px-4 d-flex align-items-center justify-content-center gap-2 text-secondary fw-medium shadow-sm transition-all" style="min-width: 160px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <button
+                        class="btn btn-custom-toggle bg-white border border-2 rounded-pill py-2 px-4 d-flex align-items-center justify-content-center gap-2 text-secondary fw-medium shadow-sm transition-all"
+                        style="min-width: 160px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="selection-text">Regular</span>
                         <i class="fas fa-chevron-down text-secondary transition-icon"></i>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-custom border-0 shadow-lg rounded-4 p-2 mt-1 text-center">
-                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="regular">Regular</a></li>
-                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">Student</a></li>
-                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">Senior Citizen</a></li>
-                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">PWD</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                href="#" data-value="regular">Regular</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                href="#" data-value="discounted">Student</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                href="#" data-value="discounted">Senior Citizen</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                href="#" data-value="discounted">PWD</a></li>
                     </ul>
                     <input type="hidden" id="discountType" value="regular">
                 </div>
@@ -164,7 +183,7 @@ $backLink  = 'javascript:history.back()';
             <div id="errorMessage" class="text-danger small text-center mt-3 fw-medium" style="min-height: 20px;"></div>
 
             <div class="text-primary text-center mt-4 d-flex align-items-baseline justify-content-center gap-2">
-                <span class="fs-1 fw-bold lh-1">Php</span>
+                <span class="fs-1 fw-bold lh-1" style="font-size: clamp(3rem, 12vw, 4.5rem) !important;">Php</span>
                 <span id="fareAmount" class="fare-text fw-bolder">0.00</span>
             </div>
         </div>
@@ -175,23 +194,23 @@ $backLink  = 'javascript:history.back()';
     <script>
         // Logic to make the custom dropdowns behave like standard <select> tags
         document.querySelectorAll('.dropdown-item').forEach(item => {
-            item.addEventListener('click', function(e) {
+            item.addEventListener('click', function (e) {
                 e.preventDefault();
-                
+
                 // Find elements within the clicked dropdown's wrapper
                 const dropdown = this.closest('.dropdown');
                 const btnText = dropdown.querySelector('.selection-text');
                 const hiddenInput = dropdown.querySelector('input[type="hidden"]');
                 const btn = dropdown.querySelector('.btn-custom-toggle');
-                
+
                 // Update the visible text and the hidden value
                 btnText.textContent = this.textContent;
                 hiddenInput.value = this.getAttribute('data-value');
-                
+
                 // Darken text to show it has been selected
                 btn.classList.remove('text-secondary');
                 btn.classList.add('text-dark');
-                
+
                 // Trigger the fare calculation
                 calculateFare();
             });
