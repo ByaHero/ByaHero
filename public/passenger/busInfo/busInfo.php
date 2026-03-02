@@ -3,17 +3,19 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Database connection - adjust path based on your structure
+// Database connection (should auto-detect localhost vs InfinityFree inside this file)
 require_once __DIR__ . '/../../../config/db_connection.php';
 
-// Load stops
+// Load stops using the shared $pdo from db_connection.php (NO hardcoded localhost connection here)
 try {
-    $pdo = new PDO("mysql:host=localhost;dbname=byahero", "root", "");
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+    // db_connection.php should define $pdo (PDO instance)
+    if (!isset($pdo) || !($pdo instanceof PDO)) {
+        throw new RuntimeException('Database connection ($pdo) was not initialized. Check config/db_connection.php');
+    }
 
     $stmt = $pdo->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC");
     $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (PDOException $e) {
+} catch (Throwable $e) {
     $stops = [];
     error_log("Database error: " . $e->getMessage());
 }
@@ -127,9 +129,13 @@ $backLink = 'javascript:history.back()';
                         </button>
                         <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
-                                        href="#" data-target="pickupLocation"
-                                        data-value="<?php echo (int) $stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a>
+                                <li>
+                                    <a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                        href="#"
+                                        data-target="pickupLocation"
+                                        data-value="<?php echo (int) $stop['stop_id']; ?>">
+                                        <?php echo htmlspecialchars($stop['location_name']); ?>
+                                    </a>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
@@ -147,9 +153,13 @@ $backLink = 'javascript:history.back()';
                         </button>
                         <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
-                                        href="#" data-target="dropoffLocation"
-                                        data-value="<?php echo (int) $stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a>
+                                <li>
+                                    <a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                        href="#"
+                                        data-target="dropoffLocation"
+                                        data-value="<?php echo (int) $stop['stop_id']; ?>">
+                                        <?php echo htmlspecialchars($stop['location_name']); ?>
+                                    </a>
                                 </li>
                             <?php endforeach; ?>
                         </ul>
