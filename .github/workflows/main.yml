@@ -12,8 +12,8 @@ jobs:
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          server: ${{ ftpupload.net }}
-          username: ${{ if0_41271108 }}
-          password: ${{ Bb1ToMvkTf }}
+          server: ftpupload.net
+          username: if0_41271108
+          password: Bb1ToMvkTf
           local-dir: ./  # Change this if your web files are in a subfolder
           server-dir: ./htdocs/
