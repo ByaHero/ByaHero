@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Use the shared PDO connection that auto-detects localhost vs InfinityFree
-require_once __DIR__ . '/../../../config/db_connection.php';
+require_once __DIR__ . '/../../../../config/db_connection.php';
 
 try {
     // db_connection.php should define $pdo (PDO instance)

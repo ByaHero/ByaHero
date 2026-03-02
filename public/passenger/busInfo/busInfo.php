@@ -4,7 +4,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Database connection (should auto-detect localhost vs InfinityFree inside this file)
-require_once __DIR__ . '/../../../config/db_connection.php';
+require_once __DIR__ . '/../../../../config/db_connection.php';
 
 // Load stops using the shared $pdo from db_connection.php (NO hardcoded localhost connection here)
 try {
