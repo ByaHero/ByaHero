@@ -3,8 +3,8 @@
     "geometry": {
         "type": "Point",
         "coordinates": [
-            121.02320802651478,
-            14.093236597665461
+            121.02325661751011,
+            14.093217775078884
         ]
     },
     "properties": {
@@ -13,8 +13,8 @@
         "route": "LAUREL - TANAUAN",
         "seats_available": 25,
         "status": "available",
-        "timestamp": "2026-03-01T15:01:37.024Z",
-        "current_location_name": "14.09324, 121.02321",
-        "Current Location": "14.09324, 121.02321"
+        "timestamp": "2026-03-01T15:07:42.867Z",
+        "current_location_name": "Talisay",
+        "Current Location": "Talisay"
     }
 }

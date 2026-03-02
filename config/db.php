@@ -13,7 +13,7 @@ function db(): PDO {
         $pass = '';
         $dbname = 'byahero';
     } else {
-        $host = 'sql304.infinityfree.com'; // Update this to match your hosting panel
+        $host = 'sql311.infinityfree.com'; // Update this to match your hosting panel
         $user = 'if0_41271108';
         $pass = 'Bb1ToMvkTf';
         $dbname = 'if0_41271108_byahero'; 
