@@ -71,7 +71,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <title>Edit Profile - ByaHero</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
-  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+  <link rel="stylesheet" href="../../../assets/css/accessibility.css">
   
   <style>
     body {
@@ -188,8 +188,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../../assets/images/js/accessibility.css"></script>
-  <script src="../../../assets/images/js/analytics.js"></script>
+  <script src="../../../assets/js/accessibility.js"></script>
+  <script src="../../../assets/js/analytics.js"></script>
   <script>
     // Track profile update
     const form = document.querySelector('form');

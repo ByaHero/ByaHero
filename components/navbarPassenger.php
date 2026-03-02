@@ -46,8 +46,8 @@ if (isset($_SESSION['user_id'])) {
   }
 </style>
 
-<link rel="stylesheet" href="<?php echo $depth; ?>assets/images/css/accessibility.css">
-<script src="<?php echo $depth; ?>assets/images/js/accessibility.js"></script>
+<link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
+<script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
 <?php
 // --- TOP BAR RENDERING (PHP) ---
