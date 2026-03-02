@@ -38,240 +38,106 @@ $backLink  = 'javascript:history.back()';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        :root {
-            --bs-primary: #0d47a1;
-            --bs-blue-border: #3b82f6;
-            --bs-bg-light: #f3f4f6;
-            --bs-active-bg: #eff6ff; /* Soft blue for the click state */
-        }
-
+        /* Minimal custom CSS for things Bootstrap utilities can't perfectly replicate */
         body {
             font-family: "Segoe UI", sans-serif;
-            background-color: #fff;
             padding-top: 55px;
             padding-bottom: 80px;
         }
 
-        /* BUS INFO TYPOGRAPHY */
-        .section-title {
-            color: var(--bs-primary);
-            font-weight: 700;
-            margin-top: 25px;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-            padding-left: 5px;
-        }
-
-        /* SCHEDULE CARDS */
-        .schedule-card {
-            background-color: white;
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin-bottom: 12px;
-            border: 1px solid #e5e7eb;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .route-name {
-            font-size: 1.05rem;
-            color: var(--bs-primary);
-            font-weight: 600;
-        }
-
-        .route-time {
-            font-weight: 700;
-            font-size: 0.9rem;
-            color: #4b5563;
-        }
-
-        /* FARE CHECK CONTAINER */
+        /* Specific container sizing and curves */
         .content-sheet {
-            background-color: #f8fafc;
             border-top-left-radius: 30px;
             border-top-right-radius: 30px;
-            padding: 30px 20px 80px 20px;
-            margin-top: 20px;
             min-height: calc(100vh - 280px);
-            box-shadow: 0 -4px 20px rgba(0,0,0,0.03);
         }
 
-        /* CUSTOM UI DROPDOWNS */
-        .custom-dropdown {
-            margin-bottom: 15px;
-            width: 100%;
+        /* Responsive text clamping for the fare amount */
+        .fare-text {
+            font-size: clamp(3rem, 12vw, 4.5rem) !important; 
+            line-height: 1 !important;
         }
 
-        .custom-btn-toggle {
-            background-color: white;
-            border: 2px solid #e5e7eb;
-            border-radius: 14px;
-            padding: 12px 16px;
-            width: 100%;
-            text-align: left;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #6b7280;
-            font-weight: 500;
-            font-size: 0.95rem;
-            transition: all 0.25s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
-        }
-
-        .custom-btn-toggle:focus,
-        .custom-btn-toggle:active {
-            outline: none;
-            box-shadow: none;
-        }
-
-        /* VISUAL CLICK STATE - Adds the color and pop you wanted */
-        .custom-btn-toggle[aria-expanded="true"] {
-            background-color: var(--bs-active-bg);
-            border-color: var(--bs-blue-border);
-            color: var(--bs-primary);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
-            transform: translateY(-2px);
-        }
-
-        .input-icon {
-            font-size: 1rem;
-            color: #9ca3af;
+        /* Chevron Icon Animations */
+        .transition-icon {
             transition: transform 0.3s ease, color 0.3s ease;
         }
-
-        /* Rotates the arrow when open */
-        .custom-btn-toggle[aria-expanded="true"] .input-icon {
+        
+        /* Active/Expanded state for the custom buttons */
+        .btn-custom-toggle[aria-expanded="true"] {
+            background-color: var(--bs-primary-bg-subtle) !important;
+            border-color: var(--bs-primary) !important;
+            color: var(--bs-primary) !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(13, 71, 161, 0.15) !important;
+        }
+        .btn-custom-toggle[aria-expanded="true"] .transition-icon {
             transform: rotate(180deg);
-            color: var(--bs-primary);
+            color: var(--bs-primary) !important;
         }
 
-        .custom-dropdown-menu {
-            border: none;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            padding: 8px;
-            margin-top: 5px !important;
+        /* Better hover states for dropdown items */
+        .dropdown-menu-custom {
             max-height: 250px;
             overflow-y: auto;
         }
-
-        .custom-dropdown-menu .dropdown-item {
-            border-radius: 8px;
-            padding: 10px 15px;
-            font-weight: 500;
-            color: #374151;
-            transition: background-color 0.2s;
-        }
-
-        .custom-dropdown-menu .dropdown-item:hover,
-        .custom-dropdown-menu .dropdown-item:focus {
-            background-color: var(--bs-active-bg);
+        .dropdown-item-custom:hover, 
+        .dropdown-item-custom:focus {
+            background-color: var(--bs-primary-bg-subtle);
             color: var(--bs-primary);
-        }
-
-        /* Discount Specifics */
-        .discount-container {
-            display: flex;
-            justify-content: center;
-            margin-top: 5px;
-        }
-
-        .discount-btn {
-            border-radius: 25px;
-            padding: 8px 20px;
-            width: auto;
-            min-width: 160px;
-            justify-content: center;
-            gap: 10px;
-        }
-
-        /* PRICE DISPLAY - Scaled down to stop overlapping */
-        .price-display {
-            color: var(--bs-primary) !important;
-            font-weight: 900 !important;
-            text-align: center !important;
-            margin-top: 30px !important;
-            display: flex !important;
-            align-items: baseline !important;
-            justify-content: center !important;
-            letter-spacing: -1px !important;
-            gap: 10px !important;
-        }
-
-        .price-display .peso-sign {
-            font-size: 2.5rem !important; /* Smaller peso sign */
-            line-height: 1 !important;
-            font-weight: 700 !important;
-        }
-
-        .price-display #fareAmount {
-            /* clamp() ensures it fits perfectly on small and large screens */
-            font-size: clamp(3rem, 12vw, 4.5rem) !important; 
-            line-height: 1 !important;
-            font-weight: 900 !important;
-        }
-
-        .error-message {
-            color: #dc3545;
-            font-size: 0.85rem;
-            text-align: center;
-            margin-top: 15px;
-            font-weight: 500;
-            min-height: 20px;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-white">
 
     <?php include __DIR__ . "/../../../components/navbarPassenger.php"; ?>
 
     <div class="container px-4">
-        <h4 class="section-title">Bus Operation Schedule</h4>
+        <h4 class="text-primary fw-bold mt-4 mb-3 fs-5 ps-1">Bus Operation Schedule</h4>
 
-        <div class="schedule-card">
-            <span class="route-name">Laurel</span>
-            <span class="route-time">3:30 am - 8:45 pm</span>
+        <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
+            <span class="fs-6 text-primary fw-semibold">Laurel</span>
+            <span class="fw-bold text-secondary small">3:30 am - 8:45 pm</span>
         </div>
 
-        <div class="schedule-card">
-            <span class="route-name">Tanauan</span>
-            <span class="route-time">4:30 am - 10:00 pm</span>
+        <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
+            <span class="fs-6 text-primary fw-semibold">Tanauan</span>
+            <span class="fw-bold text-secondary small">4:30 am - 10:00 pm</span>
         </div>
 
-        <h4 class="section-title mt-4">Bus Fare Check</h4>
+        <h4 class="text-primary fw-bold mt-4 mb-3 fs-5 ps-1">Bus Fare Check</h4>
     </div>
 
-    <div class="content-sheet">
+    <div class="content-sheet bg-light pt-4 px-3 pb-5 mt-4 shadow-sm">
         <div class="container p-0">
-            <div class="row">
-                <div class="col-6 pe-2">
-                    <div class="dropdown custom-dropdown">
-                        <button class="custom-btn-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            
+            <div class="row g-2 mb-3">
+                
+                <div class="col-6">
+                    <div class="dropdown w-100">
+                        <button class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="selection-text text-truncate">Pick up</span>
-                            <i class="fas fa-chevron-down input-icon ms-2"></i>
+                            <i class="fas fa-chevron-down text-secondary transition-icon ms-2"></i>
                         </button>
-                        <ul class="dropdown-menu w-100 custom-dropdown-menu">
+                        <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item location-item" href="#" data-target="pickupLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
+                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-target="pickupLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                         <input type="hidden" id="pickupLocation" value="">
                     </div>
                 </div>
 
-                <div class="col-6 ps-2">
-                    <div class="dropdown custom-dropdown">
-                        <button class="custom-btn-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <div class="col-6">
+                    <div class="dropdown w-100">
+                        <button class="btn btn-custom-toggle bg-white border border-2 rounded-4 p-3 w-100 text-start d-flex justify-content-between align-items-center text-secondary fw-medium shadow-sm transition-all" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <span class="selection-text text-truncate">Drop off</span>
-                            <i class="fas fa-chevron-down input-icon ms-2"></i>
+                            <i class="fas fa-chevron-down text-secondary transition-icon ms-2"></i>
                         </button>
-                        <ul class="dropdown-menu w-100 custom-dropdown-menu">
+                        <ul class="dropdown-menu dropdown-menu-custom w-100 border-0 shadow-lg rounded-4 p-2 mt-1">
                             <?php foreach ($stops as $stop): ?>
-                                <li><a class="dropdown-item location-item" href="#" data-target="dropoffLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
+                                <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-target="dropoffLocation" data-value="<?php echo (int)$stop['stop_id']; ?>"><?php echo htmlspecialchars($stop['location_name']); ?></a></li>
                             <?php endforeach; ?>
                         </ul>
                         <input type="hidden" id="dropoffLocation" value="">
@@ -279,27 +145,27 @@ $backLink  = 'javascript:history.back()';
                 </div>
             </div>
 
-            <div class="discount-container">
-                <div class="dropdown custom-dropdown" style="width: auto;">
-                    <button class="custom-btn-toggle discount-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <div class="d-flex justify-content-center mt-2">
+                <div class="dropdown">
+                    <button class="btn btn-custom-toggle bg-white border border-2 rounded-pill py-2 px-4 d-flex align-items-center justify-content-center gap-2 text-secondary fw-medium shadow-sm transition-all" style="min-width: 160px;" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                         <span class="selection-text">Regular</span>
-                        <i class="fas fa-chevron-down input-icon"></i>
+                        <i class="fas fa-chevron-down text-secondary transition-icon"></i>
                     </button>
-                    <ul class="dropdown-menu custom-dropdown-menu text-center">
-                        <li><a class="dropdown-item discount-item" href="#" data-value="regular">Regular</a></li>
-                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">Student</a></li>
-                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">Senior Citizen</a></li>
-                        <li><a class="dropdown-item discount-item" href="#" data-value="discounted">PWD</a></li>
+                    <ul class="dropdown-menu dropdown-menu-custom border-0 shadow-lg rounded-4 p-2 mt-1 text-center">
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="regular">Regular</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">Student</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">Senior Citizen</a></li>
+                        <li><a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all" href="#" data-value="discounted">PWD</a></li>
                     </ul>
                     <input type="hidden" id="discountType" value="regular">
                 </div>
             </div>
 
-            <div id="errorMessage" class="error-message"></div>
+            <div id="errorMessage" class="text-danger small text-center mt-3 fw-medium" style="min-height: 20px;"></div>
 
-            <div class="price-display">
-                <span class="peso-sign">Php</span>
-                <span id="fareAmount">0.00</span>
+            <div class="text-primary text-center mt-4 d-flex align-items-baseline justify-content-center gap-2">
+                <span class="fs-1 fw-bold lh-1">Php</span>
+                <span id="fareAmount" class="fare-text fw-bolder">0.00</span>
             </div>
         </div>
     </div>
@@ -313,17 +179,18 @@ $backLink  = 'javascript:history.back()';
                 e.preventDefault();
                 
                 // Find elements within the clicked dropdown's wrapper
-                const dropdown = this.closest('.custom-dropdown');
+                const dropdown = this.closest('.dropdown');
                 const btnText = dropdown.querySelector('.selection-text');
                 const hiddenInput = dropdown.querySelector('input[type="hidden"]');
-                const btn = dropdown.querySelector('.custom-btn-toggle');
+                const btn = dropdown.querySelector('.btn-custom-toggle');
                 
                 // Update the visible text and the hidden value
                 btnText.textContent = this.textContent;
                 hiddenInput.value = this.getAttribute('data-value');
                 
                 // Darken text to show it has been selected
-                btn.style.color = '#1f2937';
+                btn.classList.remove('text-secondary');
+                btn.classList.add('text-dark');
                 
                 // Trigger the fare calculation
                 calculateFare();

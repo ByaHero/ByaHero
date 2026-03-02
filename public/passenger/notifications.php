@@ -42,9 +42,9 @@ $any_notification_enabled = $notify_bus_schedule || $notify_bus_arrival || $noti
   <meta name="theme-color" content="#1e3a8a">
 
   <!-- Global Accessibility -->
-  <link rel="stylesheet" href="../../assets/images/css/accessibility.css">
+  <link rel="stylesheet" href="../../assets/css/accessibility.css">
 
-  <script src="../../assets/images/js/analytics.js"></script>
+  <script src="../../assets/js/analytics.js"></script>
 
   <style>
     /* Padding to prevent content from being hidden behind fixed bars */
@@ -196,7 +196,7 @@ $any_notification_enabled = $notify_bus_schedule || $notify_bus_arrival || $noti
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../assets/images/js/accessibility.js"></script>
+  <script src="../../assets/js/accessibility.js"></script>
   <script>
     // Ensure clicking bottom nav buttons redirects back to home/index
     function selectNav(element, tabName) {

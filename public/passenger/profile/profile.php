@@ -38,7 +38,7 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+    <link rel="stylesheet" href="../../../assets/css/accessibility.css">
 
     <style>
         /* Keep only minimal overrides that Bootstrap doesn't provide directly */
@@ -151,8 +151,8 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../../assets/images/js/accessibility.js"></script>
-    <script src="../../../assets/images/js/analytics.js"></script>
+    <script src="../../../assets/js/accessibility.js"></script>
+    <script src="../../../assets/js/analytics.js"></script>
 </body>
 
 </html>
