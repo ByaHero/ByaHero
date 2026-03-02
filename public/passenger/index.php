@@ -142,29 +142,28 @@ if (isset($_SESSION['user_id'])) {
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
 
-      <div class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
-        
+      <div
+        class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
+
         <!-- ✅ SETTINGS BUTTON (Now from component) -->
-        <?php 
+        <?php
         $settingsButtonPath = './passengerSettings/settings.php';
-        include __DIR__ . '/../../components/settingsButton.php'; 
+        include __DIR__ . '/../../components/settingsButton.php';
         ?>
 
         <!-- ✅ FILTER ROUTES dropdown (pill style + centered menu) -->
         <div class="dropdown">
           <button
             class="route-pill bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 fw-bold text-dark border-0 dropdown-toggle"
-            type="button"
-            id="routeDropdownBtn"
-            data-bs-toggle="dropdown"
-            aria-expanded="false"
+            type="button" id="routeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false"
             onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Filter Routes Button');">
             <span id="filterLabelMobile" class="text-truncate" style="max-width: 140px;">FILTER ROUTES</span>
             <span class="material-symbols-rounded fs-6">tune</span>
           </button>
 
           <!-- NOTE: removed dropdown-menu-end so it can center -->
-          <ul class="dropdown-menu route-menu route-menu-centered shadow" id="routeDropdownMenu" aria-labelledby="routeDropdownBtn">
+          <ul class="dropdown-menu route-menu route-menu-centered shadow" id="routeDropdownMenu"
+            aria-labelledby="routeDropdownBtn">
             <li>
               <button class="dropdown-item active" type="button" onclick="setRoute('')">All Routes</button>
             </li>
@@ -176,7 +175,8 @@ if (isset($_SESSION['user_id'])) {
           class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative h-40px w-40px topbar-btn"
           onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
-          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+          <span
+            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
             style="margin-left: -10px; margin-top: 10px;">
             <span class="visually-hidden">New alerts</span>
           </span>
@@ -278,41 +278,41 @@ if (isset($_SESSION['user_id'])) {
     const MAX_DISTANCE_METERS = 5000;
 
     // ICON configuration (works on both local + InfinityFree)
-//
-// Uses the current origin + detects whether the app is running under
-// a project subfolder (e.g. /ByaHero-Prototype-V3/) or at domain root (/).
-(function () {
-  const PROJECT_FOLDER = 'ByaHero-Prototype-V3'; // must match your local folder name (case-sensitive)
+    //
+    // Uses the current origin + detects whether the app is running under
+    // a project subfolder (e.g. /ByaHero-Prototype-V3/) or at domain root (/).
+    (function () {
+      const PROJECT_FOLDER = 'ByaHero-Prototype-V3'; // must match your local folder name (case-sensitive)
 
-  // pathname like: "/ByaHero-Prototype-V3/public/passenger/index.php" OR "/public/passenger/index.php"
-  const path = window.location.pathname || '/';
+      // pathname like: "/ByaHero-Prototype-V3/public/passenger/index.php" OR "/public/passenger/index.php"
+      const path = window.location.pathname || '/';
 
-  // If the URL starts with "/ByaHero-Prototype-V3/", prefix asset paths with it; otherwise use root.
-  const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
-    ? '/' + PROJECT_FOLDER
-    : '';
+      // If the URL starts with "/ByaHero-Prototype-V3/", prefix asset paths with it; otherwise use root.
+      const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
+        ? '/' + PROJECT_FOLDER
+        : '';
 
-  // Now assets resolve as:
-  // - local:      /ByaHero-Prototype-V3/assets/images/icons
-  // - infinityfree: /assets/images/icons
-  window.ICON_BASE = base + '/assets/images/icons';
-})();
+      // Now assets resolve as:
+      // - local:      /ByaHero-Prototype-V3/assets/images/icons
+      // - infinityfree: /assets/images/icons
+      window.ICON_BASE = base + '/assets/images/icons';
+    })();
 
-// Use ICON_BASE like before:
-const ICON_CACHE = {
-  available: L.icon({
-    iconUrl: ICON_BASE + '/marker.svg',
-    iconSize: [40, 40],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36]
-  }),
-  full: L.icon({
-    iconUrl: ICON_BASE + '/marker.svg',
-    iconSize: [40, 40],
-    iconAnchor: [18, 36],
-    popupAnchor: [0, -36]
-  })
-};
+    // Use ICON_BASE like before:
+    const ICON_CACHE = {
+      available: L.icon({
+        iconUrl: ICON_BASE + '/marker.svg',
+        iconSize: [40, 40],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+      }),
+      full: L.icon({
+        iconUrl: ICON_BASE + '/marker.svg',
+        iconSize: [40, 40],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
+      })
+    };
 
     function createBusIcon(status) {
       if (!status) status = '';
@@ -451,6 +451,9 @@ const ICON_CACHE = {
             });
           }
 
+          // NEW: generate smart notifications once per page load
+          await generateSmartNotificationsFromBuses(buses);
+
           updateMap(buses);
           renderBusList(buses);
           updateFilters(buses);
@@ -548,7 +551,7 @@ const ICON_CACHE = {
         try {
           const geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
@@ -574,6 +577,127 @@ const ICON_CACHE = {
         Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
         Math.sin(dLon / 2) * Math.sin(dLon / 2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // ---- SMART NOTIFICATIONS (closest bus only) ----
+    const ARRIVAL_THRESHOLD_MINUTES = 3;
+
+    // only create once per page load (as you requested: when user opens app)
+    let notificationsGeneratedThisLoad = false;
+
+    function etaMinutesFromDistanceMeters(distMeters) {
+      const seconds = distMeters / AVG_SPEED_MPS;
+      return Math.max(0, Math.ceil(seconds / 60));
+    }
+
+    // dedupe per bus per 5-minute time bucket so refreshes won’t spam
+    function buildDedupeKey(prefix, busId) {
+      const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
+      return `${prefix}:${busId}:${bucket}`;
+    }
+
+    async function createNotification(payload) {
+      try {
+        await fetch('../../backend/createNotification.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+      } catch (e) {
+        console.warn('createNotification failed', e);
+      }
+    }
+
+    async function fetchUserSettings() {
+      try {
+        const res = await fetch('../../backend/fetchSettings.php', { cache: 'no-store' });
+        const json = await res.json();
+        if (json && json.success) return json.settings;
+      } catch (e) { }
+      return null;
+    }
+
+    function parseAvailableSeatsFromSeatsString(seatsStr) {
+      // seats string is like "5/25" from normalizeBus
+      const parts = String(seatsStr || '').split('/');
+      const avail = parseInt(parts[0], 10);
+      return Number.isFinite(avail) ? avail : null;
+    }
+
+    async function generateSmartNotificationsFromBuses(buses) {
+      if (notificationsGeneratedThisLoad) return;
+      if (!userLocation || !locationPermissionGranted) return;
+      if (!Array.isArray(buses) || buses.length === 0) return;
+
+      const settings = await fetchUserSettings();
+      if (!settings) return;
+
+      // respect route filter + ignore unavailable buses
+      const active = buses.filter(b =>
+        (!selectedRoute || b.route === selectedRoute) &&
+        String(b.status || '').toLowerCase() !== 'unavailable' &&
+        b.coords !== null
+      );
+
+      if (active.length === 0) return;
+
+      // sort by distance
+      const withDist = active.map(b => {
+        const dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
+        return { b, dist };
+      }).sort((a, b) => a.dist - b.dist);
+
+      const closest = withDist[0];
+      const closestBus = closest.b;
+      const closestEtaMin = etaMinutesFromDistanceMeters(closest.dist);
+
+      // 1) Bus arrival notification (<=3 minutes)
+      if (parseInt(settings.notify_bus_arrival) === 1 && closestEtaMin <= ARRIVAL_THRESHOLD_MINUTES) {
+        await createNotification({
+          type: 'bus_arrival',
+          title: 'Bus Arrival',
+          message: `${closestBus.code} is approaching in about ${closestEtaMin} minute(s).`,
+          dedupe_key: buildDedupeKey('arrival', closestBus.id),
+          meta: {
+            bus_id: closestBus.id,
+            route: closestBus.route,
+            eta_minutes: closestEtaMin,
+            location_name: closestBus.locName
+          }
+        });
+      }
+
+      // 2) Seat full notification + next bus ETA
+      const statusLower = String(closestBus.status || '').toLowerCase();
+      const availSeats = parseAvailableSeatsFromSeatsString(closestBus.seats);
+      const isFull = (statusLower === 'full') || (availSeats !== null && availSeats <= 0);
+
+      if (parseInt(settings.notify_seat_availability) === 1 && isFull) {
+        // next closest "behind it" = next bus farther than the closest bus
+        const next = withDist.find(x => x.dist > closest.dist + 1);
+        let nextText = 'No next bus available.';
+        let nextEtaMin = null;
+
+        if (next) {
+          nextEtaMin = etaMinutesFromDistanceMeters(next.dist);
+          nextText = `Next bus (${next.b.code}) ETA ~ ${nextEtaMin} minute(s).`;
+        }
+
+        await createNotification({
+          type: 'seat_full',
+          title: 'Seat Availability',
+          message: `${closestBus.code} is full. ${nextText}`,
+          dedupe_key: buildDedupeKey('full', closestBus.id),
+          meta: {
+            bus_id: closestBus.id,
+            next_bus_id: next ? next.b.id : null,
+            eta_minutes: closestEtaMin,
+            next_eta_minutes: nextEtaMin
+          }
+        });
+      }
+
+      notificationsGeneratedThisLoad = true;
     }
 
     function formatArrivalBySeconds(seconds) {

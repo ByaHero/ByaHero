@@ -206,7 +206,7 @@ include "../../../components/navbarPassenger.php";
                     <button class="sos-btn" onclick="startCountdown()">
                         <h1 class="material-symbols-rounded text-white display-1 mb-0"
                             style="font-variation-settings: 'FILL' 1;">sos</h1>
-                        <span class="text-white fw-bold mt-1">CALL 911</span>
+                        <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
                     </button>
                 </div>
 
@@ -606,14 +606,50 @@ include "../../../components/navbarPassenger.php";
             }, 1000);
         }
 
-        function sendSOS() {
-            // TODO: Here you can also call sendSosAlert.php with all friends by default if you want.
-            alert("SOS SENT! Calling 911...");
-            window.location.href = "tel:911";
-            isSOSActive = false;
-            countdownLayer.classList.add('d-none');
-        }
+        async function sendSOS() {
+            const statusEl = document.getElementById("friends-status");
+            const locText = document.getElementById('location-text')?.innerText || "";
 
+            // if your groupView.php returns id per friend (it does in your modal code), use it:
+            const recipients = Array.isArray(friendsCache)
+                ? friendsCache.map(f => parseInt(f.id, 10)).filter(Number.isFinite)
+                : [];
+
+            if (recipients.length === 0) {
+                alert("No circle members found to notify.");
+                countdownLayer.classList.add('d-none');
+                isSOSActive = false;
+                return;
+            }
+
+            try {
+                if (statusEl) statusEl.textContent = "Sending SOS to circle…";
+
+                const res = await fetch("../../../backend/sendSosAlert.php", {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        recipients,
+                        location_text: locText
+                    })
+                });
+
+                const data = await res.json();
+                if (!data.success) throw new Error(data.message || "Failed to send SOS");
+
+                alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
+
+                if (statusEl) statusEl.textContent = "SOS sent to circle";
+            } catch (e) {
+                console.error(e);
+                if (statusEl) statusEl.textContent = "Failed to send SOS";
+                alert(e.message || "Failed to send SOS");
+            } finally {
+                isSOSActive = false;
+                countdownLayer.classList.add('d-none');
+            }
+        }
         // --- Slider drag logic (your original) ---
         const sliderContainer = document.getElementById('sliderContainer');
         const sliderHandle = document.getElementById('sliderHandle');

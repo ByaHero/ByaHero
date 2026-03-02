@@ -17,7 +17,7 @@ if (!isset($_SESSION['user_id'])) {
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
   
   <!-- Global Accessibility -->
-  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+  <link rel="stylesheet" href="../../../assets/css/accessibility.css">
   
   <style>
     body {
@@ -122,8 +122,8 @@ if (!isset($_SESSION['user_id'])) {
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../../assets/images/js/accessibility.js"></script>
-  <script src="../../../assets/images/js/analytics.js"></script>
+  <script src="../../../assets/js/accessibility.js"></script>
+  <script src="../../../assets/js/analytics.js"></script>
   <script>
     // Fetch settings on page load
     window.onload = function() {
