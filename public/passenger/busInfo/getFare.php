@@ -5,14 +5,11 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Use the shared PDO connection that auto-detects localhost vs InfinityFree
-require_once __DIR__ . '/../../../../config/db_connection.php';
+// Use PDO-only connection helper
+require_once __DIR__ . '/../../../config/db.php';
 
 try {
-    // db_connection.php should define $pdo (PDO instance)
-    if (!isset($pdo) || !($pdo instanceof PDO)) {
-        throw new RuntimeException('Database connection ($pdo) was not initialized. Check config/db_connection.php');
-    }
+    $pdo = db(); // IMPORTANT: get PDO instance from db()
 } catch (Throwable $e) {
     echo json_encode([
         'success' => false,
@@ -24,9 +21,9 @@ try {
 // Get POST data
 $input = json_decode(file_get_contents('php://input'), true);
 
-$origin = isset($input['origin']) ? (int)$input['origin'] : 0;
-$destination = isset($input['destination']) ? (int)$input['destination'] : 0;
-$fareType = isset($input['fareType']) ? $input['fareType'] : 'regular';
+$origin = isset($input['origin']) ? (int) $input['origin'] : 0;
+$destination = isset($input['destination']) ? (int) $input['destination'] : 0;
+$fareType = isset($input['fareType']) ? (string) $input['fareType'] : 'regular';
 
 // Validate inputs
 if ($origin === 0 || $destination === 0) {
@@ -46,48 +43,42 @@ if ($origin === $destination) {
 }
 
 try {
-    // First, try to find direct route
-    $sql = "SELECT 
-                regular_fare,
-                discounted_fare
+    // 1) Try to find direct route from bus_fares
+    $sql = "SELECT regular_fare, discounted_fare
             FROM bus_fares
-            WHERE origin_stop_id = :origin 
-            AND destination_stop_id = :destination
+            WHERE origin_stop_id = :origin
+              AND destination_stop_id = :destination
             LIMIT 1";
 
     $stmt = $pdo->prepare($sql);
     $stmt->execute([
         ':origin' => $origin,
-        ':destination' => $destination
+        ':destination' => $destination,
     ]);
 
     $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    // If direct route found, return it
     if ($result) {
-        $fare = ($fareType === 'discounted') ? $result['discounted_fare'] : $result['regular_fare'];
+        $fare = ($fareType === 'discounted') ? (float) $result['discounted_fare'] : (float) $result['regular_fare'];
 
         echo json_encode([
             'success' => true,
-            'fare' => $fare,
-            'regular_fare' => $result['regular_fare'],
-            'discounted_fare' => $result['discounted_fare']
+            'fare' => number_format($fare, 2, '.', ''),
+            'regular_fare' => number_format((float) $result['regular_fare'], 2, '.', ''),
+            'discounted_fare' => number_format((float) $result['discounted_fare'], 2, '.', ''),
+            'calculated' => false
         ]);
         exit;
     }
 
-    // If no direct route, calculate based on km distance
-    // Get km_marker for both stops
-    // NOTE: PDO does NOT allow binding two values into a single IN(:origin, :destination) placeholder reliably.
-    // Use two placeholders instead.
-    $sql = "SELECT stop_id, km_marker, location_name 
-            FROM bus_stops 
-            WHERE stop_id IN (:origin, :destination)";
+    // 2) If no direct route, compute by km distance from bus_stops
+    // IMPORTANT: Use positional placeholders for IN (?, ?) to avoid binding issues
+    $sql = "SELECT stop_id, km_marker, location_name
+            FROM bus_stops
+            WHERE stop_id IN (?, ?)";
+
     $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        ':origin' => $origin,
-        ':destination' => $destination
-    ]);
+    $stmt->execute([$origin, $destination]);
     $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     if (count($stops) !== 2) {
@@ -98,13 +89,14 @@ try {
         exit;
     }
 
-    // Calculate distance
+    // Identify origin and destination stop rows
     $originData = null;
     $destData = null;
+
     foreach ($stops as $stop) {
-        if ((int)$stop['stop_id'] === $origin) {
+        if ((int) $stop['stop_id'] === $origin) {
             $originData = $stop;
-        } else {
+        } elseif ((int) $stop['stop_id'] === $destination) {
             $destData = $stop;
         }
     }
@@ -117,9 +109,9 @@ try {
         exit;
     }
 
-    $distance = abs((float)$originData['km_marker'] - (float)$destData['km_marker']);
+    $distance = abs((float) $originData['km_marker'] - (float) $destData['km_marker']);
 
-    // Calculate fare based on distance
+    // Fare rules
     if ($distance <= 4) {
         $regularFare = 14.00;
         $discountedFare = 11.25;
@@ -136,9 +128,8 @@ try {
         $regularFare = 22.75;
         $discountedFare = 18.25;
     } else {
-        // For distance > 8km, use formula
         $regularFare = 14.00 + (($distance - 1) * 2.25);
-        $discountedFare = $regularFare * 0.80; // 20% discount
+        $discountedFare = $regularFare * 0.80;
 
         // Round to nearest 0.25
         $regularFare = round($regularFare * 4) / 4;
@@ -149,17 +140,15 @@ try {
 
     echo json_encode([
         'success' => true,
-        'fare' => number_format($fare, 2, '.', ''),
-        'regular_fare' => number_format($regularFare, 2, '.', ''),
-        'discounted_fare' => number_format($discountedFare, 2, '.', ''),
+        'fare' => number_format((float) $fare, 2, '.', ''),
+        'regular_fare' => number_format((float) $regularFare, 2, '.', ''),
+        'discounted_fare' => number_format((float) $discountedFare, 2, '.', ''),
         'distance_km' => $distance,
         'calculated' => true
     ]);
-
 } catch (PDOException $e) {
     echo json_encode([
         'success' => false,
         'message' => 'Database error: ' . $e->getMessage()
     ]);
 }
-?>

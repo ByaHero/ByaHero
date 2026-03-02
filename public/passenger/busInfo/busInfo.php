@@ -3,15 +3,12 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Database connection (should auto-detect localhost vs InfinityFree inside this file)
-require_once __DIR__ . '/../../../../config/db_connection.php';
+// Use PDO-only connection helper
+require_once __DIR__ . '/../../../config/db.php';
 
-// Load stops using the shared $pdo from db_connection.php (NO hardcoded localhost connection here)
 try {
-    // db_connection.php should define $pdo (PDO instance)
-    if (!isset($pdo) || !($pdo instanceof PDO)) {
-        throw new RuntimeException('Database connection ($pdo) was not initialized. Check config/db_connection.php');
-    }
+    // IMPORTANT: get PDO instance from db()
+    $pdo = db();
 
     $stmt = $pdo->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC");
     $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -40,33 +37,28 @@ $backLink = 'javascript:history.back()';
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <style>
-        /* Minimal custom CSS for things Bootstrap utilities can't perfectly replicate */
         body {
             font-family: "Segoe UI", sans-serif;
             padding-top: 55px;
             padding-bottom: 80px;
         }
 
-        /* Specific container sizing and curves */
         .content-sheet {
             border-top-left-radius: 30px;
             border-top-right-radius: 30px;
             min-height: calc(100vh - 280px);
         }
 
-        /* Responsive text clamping for the fare amount */
         #fareAmount.fare-text {
             font-weight: 900 !important;
             font-size: clamp(3rem, 12vw, 4.5rem) !important;
             line-height: 1 !important;
         }
 
-        /* Chevron Icon Animations */
         .transition-icon {
             transition: transform 0.3s ease, color 0.3s ease;
         }
 
-        /* Active/Expanded state for the custom buttons */
         .btn-custom-toggle[aria-expanded="true"] {
             background-color: var(--bs-primary-bg-subtle) !important;
             border-color: var(--bs-primary) !important;
@@ -80,7 +72,6 @@ $backLink = 'javascript:history.back()';
             color: var(--bs-primary) !important;
         }
 
-        /* Better hover states for dropdown items */
         .dropdown-menu-custom {
             max-height: 250px;
             overflow-y: auto;
@@ -202,31 +193,25 @@ $backLink = 'javascript:history.back()';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // Logic to make the custom dropdowns behave like standard <select> tags
         document.querySelectorAll('.dropdown-item').forEach(item => {
             item.addEventListener('click', function (e) {
                 e.preventDefault();
 
-                // Find elements within the clicked dropdown's wrapper
                 const dropdown = this.closest('.dropdown');
                 const btnText = dropdown.querySelector('.selection-text');
                 const hiddenInput = dropdown.querySelector('input[type="hidden"]');
                 const btn = dropdown.querySelector('.btn-custom-toggle');
 
-                // Update the visible text and the hidden value
                 btnText.textContent = this.textContent;
                 hiddenInput.value = this.getAttribute('data-value');
 
-                // Darken text to show it has been selected
                 btn.classList.remove('text-secondary');
                 btn.classList.add('text-dark');
 
-                // Trigger the fare calculation
                 calculateFare();
             });
         });
 
-        // Fare Calculation Logic
         const fareDisplay = document.getElementById('fareAmount');
         const errorMessage = document.getElementById('errorMessage');
 
