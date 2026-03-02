@@ -68,21 +68,39 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
   // CASE B: SOS (Custom Red Design)
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100">
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
     <a href="<?php echo $backTarget; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10"
-      style="height: 40px;">
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
       <span class="material-symbols-rounded text-white">arrow_back</span>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
 
 <?php
-  // CASE C: GENERIC PAGE (Flexible for ANY new page)
-elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'settings')):
-  // Use $pageTitle if set, otherwise fallback to empty (like old settings)
-  $displayTitle = isset($pageTitle) ? $pageTitle : '';
-  ?>
+  // CASE C: SETTINGS PAGES (Specific Titles)
+elseif (isset($pageType) && $pageType === 'settings'):
+  
+  // Detect which settings page based on current filename
+  $currentFile = basename($_SERVER['PHP_SELF']);
+  
+  // Map filenames to display titles
+  $settingsTitles = [
+    'settings.php' => 'Settings',
+    'about.php' => 'About',
+    'accessibilitySettings.php' => 'Accessibility',
+    'chatSupport.php' => 'Chat Support',
+    'feedback.php' => 'Feedback',
+    'privacyPolicy.php' => 'Privacy Policy',
+    'privacySecurity.php' => 'Privacy & Security',
+    'share.php' => 'Share ByaHero',
+    'shareLocation.php' => 'Share My Location',
+    'smartNotification.php' => 'Smart Notification',
+    'termsOfService.php' => 'Terms of Service'
+  ];
+  
+  $displayTitle = isset($settingsTitles[$currentFile]) ? $settingsTitles[$currentFile] : 'Settings';
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -94,11 +112,21 @@ elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'settings')):
   </div>
 
 <?php
-  // CASE C: GENERIC PAGE (Flexible for ANY new page)
-elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'Profile')):
-  // Use $pageTitle if set, otherwise fallback to empty (like old settings)
-  $displayTitle = isset($pageTitle) ? $pageTitle : '';
-  ?>
+  // CASE D: PROFILE PAGES (Account Settings, Edit Profile, etc.)
+elseif (isset($pageType) && $pageType === 'profile'):
+  
+  $currentFile = basename($_SERVER['PHP_SELF']);
+  
+  $profileTitles = [
+    'profile.php' => 'My Profile',
+    'accountSettings.php' => 'Account Settings',
+    'editProfile.php' => 'Edit Profile',
+    'changePassword.php' => 'Change Password',
+    'loginActivity.php' => 'Login Activity'
+  ];
+  
+  $displayTitle = isset($profileTitles[$currentFile]) ? $profileTitles[$currentFile] : 'Profile';
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -110,7 +138,21 @@ elseif (isset($pageTitle) || (isset($pageType) && $pageType === 'Profile')):
   </div>
 
 <?php
-  // CASE D: DEFAULT / HOME (Logo only)
+  // CASE E: GENERIC PAGE (Flexible for ANY new page using $pageTitle)
+elseif (isset($pageTitle)):
+?>
+  <div
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    style="height: 40px;">
+    <a href="<?php echo $backTarget; ?>"
+      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+      <span class="material-symbols-rounded text-white">arrow_back</span>
+    </a>
+    <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
+  </div>
+
+<?php
+  // CASE F: DEFAULT / HOME (Logo only)
 else: ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -169,7 +211,6 @@ else: ?>
     const indexUrl = basePath + "passenger/index.php";
 
     // Detect if we are on the Home Page (Index)
-    // We check if the 'map' element exists or if the URL ends in typical index paths
     const hasMap = document.getElementById('map') || document.getElementById('map-desktop-placeholder');
     const path = window.location.pathname;
     const isIndex = hasMap || path.endsWith('passenger/') || path.endsWith('index.php');
@@ -210,7 +251,6 @@ else: ?>
             setActive(btn);
           } else {
             // We are NOT on Home: Redirect to home and tell it to open the modal
-            // We pass ?open=targetId in the URL
             const cleanTarget = targetId.replace('#', '');
             window.location.href = indexUrl + "?open=" + cleanTarget;
           }
@@ -264,7 +304,6 @@ else: ?>
 
     function toggleBottomSheet() {
       // Tries to find the bottom sheet function from index.php
-      // Uses the existing logic if available
       if (typeof selectNav === 'function') {
         selectNav(document.getElementById('nav-location'), 'location');
       } else {
