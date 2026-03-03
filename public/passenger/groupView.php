@@ -34,6 +34,32 @@
     let inviteCodeEl;
     let joinMessageEl;
 
+    const LOCATION_STALE_MINUTES = 5;
+
+    function getLastSeenLabel(updatedAt) {
+        if (!updatedAt) return '';
+        const last = new Date(updatedAt).getTime();
+        if (Number.isNaN(last)) return '';
+        const diffMinutes = Math.floor((Date.now() - last) / 60000);
+
+        if (diffMinutes <= 0) return 'Just now';
+        if (diffMinutes < 60) return `Last seen ${diffMinutes} min ago`;
+
+        const diffHours = Math.floor(diffMinutes / 60);
+        if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
+
+        const diffDays = Math.floor(diffHours / 24);
+        return `Last seen ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+
+    function isLocationFresh(updatedAt) {
+        if (!updatedAt) return false;
+        const last = new Date(updatedAt).getTime();
+        if (Number.isNaN(last)) return false;
+        const diffMinutes = (Date.now() - last) / 60000;
+        return diffMinutes <= LOCATION_STALE_MINUTES;
+    }
+
     function showGroupVisuals() {
         if (!window.userLocation || !window.map) return;
 
@@ -63,47 +89,21 @@
         return L.marker([lat, lng], {
             icon: L.divIcon({
                 html: `
-                    <div style="background:#1e3a8a; color:white; border-radius:50%; width:32px; height:32px;
-                        display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3)">
-                        <span class="material-symbols-rounded" style="font-size:20px">person</span>
-                    </div>`,
+          <div style="background:#1e3a8a; color:white; border-radius:50%; width:32px; height:32px;
+              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3)">
+              <span class="material-symbols-rounded" style="font-size:20px">person</span>
+          </div>`,
                 className: 'person-marker',
                 iconSize: [32, 32]
             })
         }).bindPopup(label);
     }
 
-    const LOCATION_STALE_MINUTES = 5;
-
-    function getLastSeenLabel(updatedAt) {
-        if (!updatedAt) return '';
-        const last = new Date(updatedAt).getTime();
-        if (Number.isNaN(last)) return '';
-        const diffMinutes = Math.floor((Date.now() - last) / 60000);
-
-        if (diffMinutes <= 0) return 'Just now';
-        if (diffMinutes < 60) return `Last seen ${diffMinutes} min ago`;
-
-        const diffHours = Math.floor(diffMinutes / 60);
-        if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
-
-        const diffDays = Math.floor(diffHours / 24);
-        return `Last seen ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
-    }
-
-    function isLocationFresh(updatedAt) {
-        if (!updatedAt) return false;
-        const last = new Date(updatedAt).getTime();
-        if (Number.isNaN(last)) return false;
-        const diffMinutes = (Date.now() - last) / 60000;
-        return diffMinutes <= LOCATION_STALE_MINUTES;
-    }
-
     async function loadGroupMembers() {
         if (!groupListEl) return;
 
         try {
-            const res = await fetch('../../backend/groupView.php');
+            const res = await fetch('../../backend/groupView.php', { cache: 'no-store' });
             const data = await res.json();
 
             if (!data.success) {
@@ -120,41 +120,42 @@
             data.friends.forEach(friend => {
                 const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
                 const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
-                const isFresh = isLocationFresh(friend.updated_at);
-                const hasLocation = Number.isFinite(lat) && Number.isFinite(lng) && isFresh;
 
-                const statusText = hasLocation
-                    ? 'Location available'
-                    : (friend.updated_at ? getLastSeenLabel(friend.updated_at) : 'Location unavailable');
+                const fresh = isLocationFresh(friend.updated_at);
+                const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+                const hasLocationNow = hasCoords && fresh;
+
+                // Better status text:
+                let statusText = 'Location unavailable';
+                if (hasLocationNow) statusText = 'Live location available';
+                else if (friend.updated_at) statusText = getLastSeenLabel(friend.updated_at);
 
                 const card = document.createElement('div');
                 card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
 
                 card.innerHTML = `
-                    <div class="bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
-                        <span class="material-symbols-rounded fs-3 text-primary">person</span>
-                    </div>
-                    <div>
-                        <h6 class="mb-0 fw-bold text-dark">${friend.name || friend.email}</h6>
-                        <small class="text-muted d-block" style="font-size: 0.75rem;">
-                            ${statusText}
-                        </small>
-                    </div>
-                `;
+          <div class="bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+              <span class="material-symbols-rounded fs-3 text-primary">person</span>
+          </div>
+          <div>
+              <h6 class="mb-0 fw-bold text-dark">${friend.name || friend.email}</h6>
+              <small class="text-muted d-block" style="font-size: 0.75rem;">${statusText}</small>
+          </div>
+        `;
 
                 card.addEventListener('click', () => {
-                    if (!hasLocation) {
-                        alert('Location is not available for this user.');
+                    if (!hasCoords) {
+                        alert('Location is not available for this user. They may need to enable Share Location.');
                         return;
                     }
 
-                    if (activeFriendMarker) {
-                        map.removeLayer(activeFriendMarker);
+                    if (!fresh) {
+                        alert('This user’s location is not live right now. They may have Share Location off or the app is closed.');
+                        return;
                     }
 
-                    activeFriendMarker = createPersonMarker(lat, lng, friend.name || friend.email)
-                        .addTo(map);
-
+                    if (activeFriendMarker) map.removeLayer(activeFriendMarker);
+                    activeFriendMarker = createPersonMarker(lat, lng, friend.name || friend.email).addTo(map);
                     map.setView([lat, lng], 16);
                 });
 
@@ -171,7 +172,7 @@
         inviteCodeEl.textContent = '...';
 
         try {
-            const res = await fetch('../../backend/getInviteCode.php');
+            const res = await fetch('../../backend/getInviteCode.php', { cache: 'no-store' });
             const data = await res.json();
             inviteCodeEl.textContent = data.success ? data.invite_code : '------';
         } catch (err) {
@@ -200,16 +201,33 @@
             const data = await res.json();
             joinMessageEl.textContent = data.message || (data.success ? 'Joined!' : 'Failed');
 
-            if (data.success) {
-                loadGroupMembers();
-            }
+            if (data.success) loadGroupMembers();
         } catch (err) {
             joinMessageEl.textContent = 'Join failed.';
         }
     }
 
+    // IMPORTANT: only attempt upload if share_location is enabled
+    async function isShareLocationEnabled() {
+        try {
+            const res = await fetch('../../backend/getShareLocationSetting.php', { cache: 'no-store' });
+            const data = await res.json();
+            return data && data.success && parseInt(data.share_location) === 1;
+        } catch (e) {
+            return false;
+        }
+    }
+
     async function sendCurrentLocation() {
         if (!navigator.geolocation) return;
+
+        const shareOn = await isShareLocationEnabled();
+        if (!shareOn) {
+            // Don’t spam updateUserLocation if sharing is OFF.
+            // Still refresh members list (so you see their last seen updates)
+            loadGroupMembers();
+            return;
+        }
 
         navigator.geolocation.getCurrentPosition(async (pos) => {
             const payload = {
@@ -226,9 +244,11 @@
                 });
 
                 const data = await res.json();
-                if (data.success) {
-                    loadGroupMembers();
+                if (!data.success && data.message) {
+                    // Optional: surface the exact reason
+                    console.warn('updateUserLocation:', data.message);
                 }
+                loadGroupMembers();
             } catch (err) {
                 console.error(err);
             }
@@ -244,7 +264,7 @@
     function startLocationUpdates() {
         sendCurrentLocation();
         if (locationTimer) clearInterval(locationTimer);
-        locationTimer = setInterval(sendCurrentLocation, 10000);
+        locationTimer = setInterval(sendCurrentLocation, 1000);
     }
 
     function openGroupView() {
@@ -258,7 +278,6 @@
         groupListEl = document.getElementById('group-list');
         inviteCodeEl = document.getElementById('invite-code');
         joinMessageEl = document.getElementById('join-message');
-
         openGroupView();
     });
 </script>
