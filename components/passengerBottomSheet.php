@@ -48,7 +48,10 @@
         <div class="col-4" onclick="switchSheetTab('busstops')">
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-2">fmd_good</span>
+            <img
+              src="/../assets/images/pickUpPin.png"
+              alt="Location"
+              style="width: 34px; height: 34px; object-fit: contain;" />
           </div>
         </div>
       </div>
@@ -63,7 +66,7 @@
     </div>
 
     <?php
-      include __DIR__ . '/../public/passenger/groupView.php';
+    include __DIR__ . '/../public/passenger/groupView.php';
     ?>
 
     <!-- ✅ New Bus Stops view (no pinsListView.php anymore) -->
