@@ -272,6 +272,117 @@ function notification_icon(string $type): array
       window.location.href = 'index.php';
     }
   </script>
+
+  <script>
+    // --- SOS polling (Option 3: "push-like" while app is open) ---
+
+    // Start from newest SOS already shown
+    let lastSosId = (function () {
+      // PHP will render $sos_alerts; we can safely embed the newest id if present
+      <?php
+      $maxId = 0;
+      if (!empty($sos_alerts)) {
+        foreach ($sos_alerts as $a) {
+          $id = (int) ($a['id'] ?? 0);
+          if ($id > $maxId)
+            $maxId = $id;
+        }
+      }
+      ?>
+      return <?= (int) $maxId ?>;
+    })();
+
+    function ensureToastContainer() {
+      let c = document.getElementById('toast-container');
+      if (c) return c;
+
+      c = document.createElement('div');
+      c.id = 'toast-container';
+      c.className = 'toast-container position-fixed top-0 end-0 p-3';
+      c.style.zIndex = 3000;
+      document.body.appendChild(c);
+      return c;
+    }
+
+    function showSosToast(title, message) {
+      const container = ensureToastContainer();
+      const toastEl = document.createElement('div');
+      toastEl.className = 'toast align-items-center text-bg-danger border-0';
+      toastEl.setAttribute('role', 'alert');
+      toastEl.setAttribute('aria-live', 'assertive');
+      toastEl.setAttribute('aria-atomic', 'true');
+
+      toastEl.innerHTML = `
+      <div class="d-flex">
+        <div class="toast-body">
+          <div class="fw-bold">${title}</div>
+          <div class="small">${message}</div>
+        </div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+      </div>
+    `;
+
+      container.appendChild(toastEl);
+      const t = new bootstrap.Toast(toastEl, { delay: 7000 });
+      t.show();
+
+      toastEl.addEventListener('hidden.bs.toast', () => toastEl.remove());
+    }
+
+    function notifyUserNow() {
+      try { if (navigator.vibrate) navigator.vibrate([200, 80, 200]); } catch (e) { }
+
+      // Tiny beep using WebAudio (no external file needed)
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'sine';
+        o.frequency.value = 880;
+        g.gain.value = 0.05;
+        o.connect(g); g.connect(ctx.destination);
+        o.start();
+        setTimeout(() => { o.stop(); ctx.close(); }, 150);
+      } catch (e) { }
+    }
+
+    async function pollSosAlerts() {
+      try {
+        const res = await fetch(`../../backend/getSosAlerts.php?since_id=${encodeURIComponent(lastSosId)}`, {
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (!data.success) return;
+
+        const alerts = Array.isArray(data.alerts) ? data.alerts : [];
+        if (alerts.length === 0) return;
+
+        // alerts come DESC; newest first
+        const newestId = Math.max(...alerts.map(a => parseInt(a.id, 10) || 0));
+        if (newestId > lastSosId) lastSosId = newestId;
+
+        // Show a toast for each new alert (oldest first)
+        alerts.slice().reverse().forEach(a => {
+          const sender = a.sender_name || a.sender_email || 'Someone';
+          const loc = a.location_text || 'Location not provided';
+          showSosToast('SOS Alert', `SOS from ${sender} • ${loc}`);
+        });
+
+        notifyUserNow();
+
+        // Optional: refresh page content to show it in list (simple approach)
+        // Comment out if you don't want auto-refresh
+        setTimeout(() => location.reload(), 600);
+
+      } catch (e) {
+        // silent fail
+        console.warn(e);
+      }
+    }
+
+    // Poll every 10 seconds (tune as needed)
+    setInterval(pollSosAlerts, 10000);
+  </script>
 </body>
 
 </html>

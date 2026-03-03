@@ -32,6 +32,7 @@ include "../../../components/navbarPassenger.php";
             background-color: var(--bs-bg-light);
         }
 
+        /* Keep only custom styles that Bootstrap doesn't provide */
         .sos-btn-container {
             width: 180px;
             height: 180px;
@@ -95,14 +96,6 @@ include "../../../components/navbarPassenger.php";
             }
         }
 
-        .hover-scale {
-            transition: transform 0.2s;
-        }
-
-        .hover-scale:active {
-            transform: scale(0.98);
-        }
-
         #sos-countdown-layer {
             position: fixed;
             top: 0;
@@ -154,21 +147,35 @@ include "../../../components/navbarPassenger.php";
             cursor: grabbing;
         }
 
-        .bottom-nav-spacer {
-            height: 80px;
+        /* Friend group minimalist UI (Bootstrap-based spacing + small custom) */
+        .avatar-stack {
+            display: flex;
+            justify-content: center;
+            align-items: center;
         }
 
-        /* Friend avatars */
-        .small-avatar {
-            width: 24px;
-            height: 24px;
-            margin-right: -8px;
-            font-size: 10px;
+        .stack-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            border: 3px solid #fff;
+            margin-left: -10px;
+            font-size: 14px;
+            user-select: none;
+        }
+
+        .stack-avatar:first-child {
+            margin-left: 0;
         }
     </style>
 </head>
 
-<body>
+<body class="bg-light">
     <?php
     $pageType = 'sos';
     $backLink = '../index.php';
@@ -176,10 +183,11 @@ include "../../../components/navbarPassenger.php";
     include "../../../components/navbarPassenger.php";
     ?>
 
-    <div id="sos-idle-layer" class="container pt-5 mt-2">
+    <main id="sos-idle-layer" class="container pt-5 mt-2">
         <div class="row justify-content-center">
             <div class="col-12 col-md-8 col-lg-5">
 
+                <!-- Location card -->
                 <div class="card border-0 shadow-sm rounded-4 mb-5">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center overflow-hidden">
@@ -200,6 +208,7 @@ include "../../../components/navbarPassenger.php";
                     </div>
                 </div>
 
+                <!-- SOS button -->
                 <div class="sos-btn-container mb-5">
                     <div class="sos-ring"></div>
                     <div class="sos-ring"></div>
@@ -210,74 +219,17 @@ include "../../../components/navbarPassenger.php";
                     </button>
                 </div>
 
-                <h6 class="fw-bold text-secondary small mb-3 ps-2">QUICK DIAL</h6>
-                <div class="row g-3">
-                    <div class="col-6">
-                        <a href="tel:911" class="text-decoration-none">
-                            <div class="card border-0 shadow-sm rounded-4 h-100 hover-scale">
-                                <div class="card-body text-center py-4">
-                                    <div
-                                        class="bg-primary bg-opacity-10 text-primary p-3 rounded-circle d-inline-block mb-3">
-                                        <span class="material-symbols-rounded fs-2">local_police</span>
-                                    </div>
-                                    <h6 class="fw-bold text-dark mb-0">Police</h6>
-                                    <small class="text-muted">Nearest Station</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-6">
-                        <a href="tel:911" class="text-decoration-none">
-                            <div class="card border-0 shadow-sm rounded-4 h-100 hover-scale">
-                                <div class="card-body text-center py-4">
-                                    <div
-                                        class="bg-danger bg-opacity-10 text-danger p-3 rounded-circle d-inline-block mb-3">
-                                        <span class="material-symbols-rounded fs-2">ambulance</span>
-                                    </div>
-                                    <h6 class="fw-bold text-dark mb-0">Medical</h6>
-                                    <small class="text-muted">Ambulance</small>
-                                </div>
-                            </div>
-                        </a>
-                    </div>
-
-                    <!-- Friend group integration -->
-                    <div class="col-12">
-                        <div class="card border-0 shadow-sm rounded-4 mt-1">
-                            <div class="card-body p-3 d-flex align-items-center">
-                                <div class="bg-info bg-opacity-10 text-info p-2 rounded-circle me-3 flex-shrink-0">
-                                    <span class="material-symbols-rounded">groups</span>
-                                </div>
-
-                                <div class="flex-grow-1 overflow-hidden">
-                                    <h6 class="fw-bold text-dark mb-1">Friend Group</h6>
-
-                                    <div class="d-flex align-items-center">
-                                        <div id="friends-avatars" class="d-flex align-items-center">
-                                            <small class="text-muted" style="font-size:0.75rem;">Loading
-                                                friends…</small>
-                                        </div>
-                                        <small id="friends-status" class="text-muted ms-3 text-truncate"
-                                            style="font-size: 0.75rem;"></small>
-                                    </div>
-                                </div>
-
-                                <button class="btn btn-outline-info rounded-circle p-2 d-flex flex-shrink-0 ms-2"
-                                    type="button" onclick="openSosFriendsModal()" title="Send SOS to friends">
-                                    <span class="material-symbols-rounded">send</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- /Friend group integration -->
-
-                </div>
+                <!-- Friend group minimalist section -->
+                <section class="text-center my-3">
+                    <div id="friends-avatars" class="avatar-stack mb-1"></div>
+                    <p id="friends-status" class="small text-muted mb-0">Loading…</p>
+                </section>
 
             </div>
         </div>
-    </div>
+    </main>
 
-    <!-- SOS countdown layer unchanged -->
+    <!-- SOS countdown layer -->
     <div id="sos-countdown-layer" class="d-none">
         <?php
         $pageTitle = 'sos';
@@ -310,16 +262,16 @@ include "../../../components/navbarPassenger.php";
                 </div>
             </div>
 
-            <div class="bottom-nav-spacer"></div>
+            <div style="height:80px;"></div>
         </main>
     </div>
 
-    <!-- Modal: choose friends to alert -->
+    <!-- Modal still present (optional) -->
     <div class="modal fade" id="sosFriendsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
                 <div class="modal-header">
-                    <h5 class="modal-title fw-bold">Send SOS to Friends</h5>
+                    <h5 class="modal-title fw-bold">Send In-app SOS Alert</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
@@ -335,9 +287,9 @@ include "../../../components/navbarPassenger.php";
                         <div class="list-group-item">Loading…</div>
                     </div>
 
-                    <div class="alert alert-warning mt-3 mb-0 small">
-                        This will create an SOS alert record in the system. Real-time notification requires polling or
-                        push setup.
+                    <div class="alert alert-info mt-3 mb-0 small">
+                        This will send an <strong>in-app SOS alert</strong> to the selected friends.
+                        They will see it in <strong>Notifications → SOS Alerts</strong>.
                     </div>
                 </div>
 
@@ -357,58 +309,83 @@ include "../../../components/navbarPassenger.php";
         // Store coords globally so shareLocation() can always build a correct maps URL
         let currentCoords = { lat: null, lng: null };
 
+        // Cache resolved place name so SOS sends a place instead of coordinates
+        let resolvedPlaceName = "";
+        let resolvePlacePromise = null;
+
         async function reverseGeocode(lat, lng) {
-            // Nominatim usage policy: include a valid User-Agent/Referer; browser fetch is usually OK for prototypes.
             const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
-
-            const res = await fetch(url, {
-                headers: {
-                    // Some deployments work without this, but adding Accept is safe
-                    "Accept": "application/json"
-                }
-            });
-
+            const res = await fetch(url, { headers: { "Accept": "application/json" } });
             if (!res.ok) throw new Error("Reverse geocoding failed");
             return res.json();
         }
 
         function formatPlaceName(nominatim) {
             const a = nominatim.address || {};
-
-            // These keys vary by area/country, so we fall back gracefully.
-            const barangay =
-                a.barangay || a.neighbourhood || a.suburb || a.village || a.hamlet || "";
-
-            const city =
-                a.city || a.town || a.municipality || a.county || "";
-
-            const province =
-                a.state || a.region || "";
-
-            // Build "Barangay, City, Province" but omit empty parts
+            const barangay = a.barangay || a.neighbourhood || a.suburb || a.village || a.hamlet || "";
+            const city = a.city || a.town || a.municipality || a.county || "";
+            const province = a.state || a.region || "";
             const parts = [barangay, city, province].filter(Boolean);
-
-            // If nothing matched, fall back to display_name
             return parts.length ? parts.join(", ") : (nominatim.display_name || "Unknown location");
+        }
+
+        function looksLikeCoords(text) {
+            return /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/.test(String(text || ""));
+        }
+
+        async function getResolvedLocationText() {
+            const elText = document.getElementById("location-text")?.innerText || "";
+
+            if (elText && !looksLikeCoords(elText) && elText !== "Locating..." && elText !== "Unknown Location") {
+                resolvedPlaceName = elText;
+                return elText;
+            }
+
+            if (resolvedPlaceName) return resolvedPlaceName;
+
+            if (currentCoords.lat == null || currentCoords.lng == null) {
+                return elText || "Unknown Location";
+            }
+
+            if (!resolvePlacePromise) {
+                resolvePlacePromise = (async () => {
+                    try {
+                        const data = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                        const place = formatPlaceName(data);
+                        resolvedPlaceName = place;
+
+                        const el = document.getElementById("location-text");
+                        if (el) el.innerText = place;
+
+                        return place;
+                    } catch (e) {
+                        console.warn(e);
+                        return `${Number(currentCoords.lat).toFixed(4)}, ${Number(currentCoords.lng).toFixed(4)}`;
+                    } finally {
+                        resolvePlacePromise = null;
+                    }
+                })();
+            }
+
+            return resolvePlacePromise;
         }
 
         async function setLocationUI(lat, lng) {
             const el = document.getElementById("location-text");
             if (!el) return;
 
-            // Show coords immediately (fast feedback)
             el.innerText = `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
 
             try {
                 const data = await reverseGeocode(lat, lng);
-                el.innerText = formatPlaceName(data);
+                const place = formatPlaceName(data);
+                resolvedPlaceName = place;
+                el.innerText = place;
             } catch (e) {
-                // Keep coords if API fails
                 console.warn(e);
             }
         }
 
-        // Replace your existing geolocation logic with this:
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
@@ -426,7 +403,6 @@ include "../../../components/navbarPassenger.php";
             );
         }
 
-        // Update shareLocation() to share a proper maps link even if the UI shows a place name
         function shareLocation() {
             if (currentCoords.lat == null || currentCoords.lng == null) {
                 alert("Location not available yet.");
@@ -454,9 +430,47 @@ include "../../../components/navbarPassenger.php";
         let friendsCache = [];
         let sosFriendsModal;
 
-        async function fetchFriends() {
+        function initialsFromFriend(f) {
+            const base = (f.name || f.email || "??").trim();
+            const parts = base.split(/\s+/).filter(Boolean);
+            if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+            return base.slice(0, 2).toUpperCase();
+        }
+
+        function colorFromString(str) {
+            const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
+            let h = 0;
+            for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+            return colors[h % colors.length];
+        }
+
+        function renderFriendStack() {
             const avatarsEl = document.getElementById('friends-avatars');
+            const statusEl = document.getElementById('friends-status');
+
+            if (!avatarsEl || !statusEl) return;
+
+            if (!Array.isArray(friendsCache) || friendsCache.length === 0) {
+                avatarsEl.innerHTML = '';
+                statusEl.textContent = "No friends in your circle yet";
+                return;
+            }
+
+            const maxShown = 5;
+            const shown = friendsCache.slice(0, maxShown);
+
+            avatarsEl.innerHTML = shown.map((f) => {
+                const init = initialsFromFriend(f);
+                const bg = colorFromString(f.email || f.name || init);
+                return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
+            }).join("");
+
+            statusEl.textContent = `Your SOS will be sent to ${friendsCache.length} people`;
+        }
+
+        async function fetchFriends() {
             const listEl = document.getElementById('friends-list');
+            const statusEl = document.getElementById('friends-status');
 
             try {
                 const res = await fetch("../../../backend/groupView.php", { credentials: "include" });
@@ -465,44 +479,27 @@ include "../../../components/navbarPassenger.php";
                 if (!data.success) throw new Error(data.message || "Failed to fetch friends");
 
                 friendsCache = Array.isArray(data.friends) ? data.friends : [];
+                renderFriendStack();
 
-                // Avatars preview (max 3)
-                if (friendsCache.length === 0) {
-                    avatarsEl.innerHTML = `<small class="text-muted" style="font-size:0.75rem;">No friends in your circle yet</small>`;
-                } else {
-                    const preview = friendsCache.slice(0, 3).map(f => {
-                        const initials = (f.name || f.email || "??")
-                            .split(" ")
-                            .filter(Boolean)
-                            .slice(0, 2)
-                            .map(s => s[0].toUpperCase())
-                            .join("")
-                            .slice(0, 2);
-
+                // Keep modal list available for future use (optional)
+                if (listEl) {
+                    listEl.innerHTML = friendsCache.map(f => {
+                        const label = f.name ? `${f.name} (${f.email})` : f.email;
                         return `
-                          <div class="rounded-circle bg-info border border-2 border-white d-flex align-items-center justify-content-center text-white small-avatar">
-                            ${initials || "??"}
-                          </div>`;
-                    }).join("");
-
-                    avatarsEl.innerHTML = preview;
+                          <label class="list-group-item d-flex align-items-center gap-2">
+                            <input class="form-check-input me-1 friend-checkbox" type="checkbox" value="${f.id}">
+                            <span class="flex-grow-1 text-truncate">${label}</span>
+                          </label>
+                        `;
+                    }).join("") || `<div class="list-group-item">No friends to alert.</div>`;
                 }
 
-                // Modal list
-                listEl.innerHTML = friendsCache.map(f => {
-                    const label = f.name ? `${f.name} (${f.email})` : f.email;
-                    return `
-                      <label class="list-group-item d-flex align-items-center gap-2">
-                        <input class="form-check-input me-1 friend-checkbox" type="checkbox" value="${f.id}">
-                        <span class="flex-grow-1 text-truncate">${label}</span>
-                      </label>
-                    `;
-                }).join("") || `<div class="list-group-item">No friends to alert.</div>`;
-
             } catch (e) {
-                avatarsEl.innerHTML = `<small class="text-danger" style="font-size:0.75rem;">Failed to load</small>`;
-                listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
                 console.error(e);
+                const avatarsEl = document.getElementById('friends-avatars');
+                if (avatarsEl) avatarsEl.innerHTML = '';
+                if (statusEl) statusEl.textContent = "Failed to load friend group";
+                if (listEl) listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
             }
         }
 
@@ -528,10 +525,10 @@ include "../../../components/navbarPassenger.php";
                 return;
             }
 
-            const locText = document.getElementById('location-text').innerText;
+            const locText = await getResolvedLocationText();
 
             try {
-                statusEl.textContent = "Sending…";
+                if (statusEl) statusEl.textContent = "Sending…";
 
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST",
@@ -546,19 +543,21 @@ include "../../../components/navbarPassenger.php";
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
 
-                statusEl.textContent = `Sent to ${selected.length} friend(s)`;
+                if (statusEl) statusEl.textContent = `Your SOS will be sent to ${selected.length} people`;
                 if (sosFriendsModal) sosFriendsModal.hide();
 
             } catch (e) {
-                statusEl.textContent = "Failed to send";
+                if (statusEl) statusEl.textContent = "Failed to send";
                 alert(e.message);
             }
         }
 
         // Load friends immediately
         fetchFriends();
+    </script>
 
-        // --- Countdown & state logic (your original, mostly unchanged) ---
+    <script>
+        // --- Countdown & state logic (unchanged) ---
         const countdownLayer = document.getElementById('sos-countdown-layer');
         const timerElement = document.getElementById('timer');
         let countdownInterval;
@@ -608,9 +607,8 @@ include "../../../components/navbarPassenger.php";
 
         async function sendSOS() {
             const statusEl = document.getElementById("friends-status");
-            const locText = document.getElementById('location-text')?.innerText || "";
+            const locText = await getResolvedLocationText();
 
-            // if your groupView.php returns id per friend (it does in your modal code), use it:
             const recipients = Array.isArray(friendsCache)
                 ? friendsCache.map(f => parseInt(f.id, 10)).filter(Number.isFinite)
                 : [];
@@ -623,7 +621,7 @@ include "../../../components/navbarPassenger.php";
             }
 
             try {
-                if (statusEl) statusEl.textContent = "Sending SOS to circle…";
+                if (statusEl) statusEl.textContent = "Sending SOS…";
 
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST",
@@ -640,7 +638,7 @@ include "../../../components/navbarPassenger.php";
 
                 alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
 
-                if (statusEl) statusEl.textContent = "SOS sent to circle";
+                if (statusEl) statusEl.textContent = `Your SOS will be sent to ${recipients.length} people`;
             } catch (e) {
                 console.error(e);
                 if (statusEl) statusEl.textContent = "Failed to send SOS";
@@ -650,7 +648,7 @@ include "../../../components/navbarPassenger.php";
                 countdownLayer.classList.add('d-none');
             }
         }
-        // --- Slider drag logic (your original) ---
+
         const sliderContainer = document.getElementById('sliderContainer');
         const sliderHandle = document.getElementById('sliderHandle');
         let isDragging = false;
