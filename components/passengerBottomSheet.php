@@ -63,12 +63,7 @@
     </div>
 
     <?php
-<<<<<<< Updated upstream
-    include __DIR__ . '/../public/passenger/groupView.php';
-    include __DIR__ . '/../public/passenger/pinsListView.php';
-=======
       include __DIR__ . '/../public/passenger/groupView.php';
->>>>>>> Stashed changes
     ?>
 
     <!-- ✅ New Bus Stops view (no pinsListView.php anymore) -->
