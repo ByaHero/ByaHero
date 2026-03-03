@@ -249,7 +249,8 @@ if (isset($_SESSION['user_id'])) {
   <script src="../../assets/js/passengerBottomSheet.js"></script>
 
   <script>
-    const isMobile = document.querySelector('.d-lg-none').offsetParent !== null;
+    // --------------------- MAP INIT ---------------------
+    const isMobile = document.querySelector('.d-lg-none')?.offsetParent !== null;
     const mapId = isMobile ? 'map' : 'map-desktop-placeholder';
     const map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
 
@@ -258,61 +259,25 @@ if (isset($_SESSION['user_id'])) {
       maxZoom: 19
     }).addTo(map);
 
+    // Detect correct project base (/Byahero-Prototype-v3 or root)
+    (function () {
+      const PROJECT_FOLDER = 'Byahero-Prototype-v3';
+      const path = window.location.pathname || '/';
+      const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
+        ? '/' + PROJECT_FOLDER
+        : '';
+      window.PROJECT_BASE = base;
+      window.ICON_BASE = base + '/assets/images/icons';
+    })();
+
+    // --------------------- BUS ICONS ---------------------
     const busMarkers = {};
-    let userLocation = null;
-    let userMarker = null;
-    let selectedRoute = '';
-    let locationPermissionGranted = true;
-
-    // NEW: throttle for uploading user location to backend (Circle feature)
-    let _lastLocationUploadAt = 0;
-
-    async function uploadMyLocation(lat, lng, accuracy) {
-      // Throttle: once every 15 seconds to reduce DB writes
-      const now = Date.now();
-      if (now - _lastLocationUploadAt < 15000) return;
-      _lastLocationUploadAt = now;
-
-      try {
-        const res = await fetch('../../backend/updateUserLocation.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            latitude: lat,
-            longitude: lng,
-            accuracy: accuracy ?? null
-          })
-        });
-
-        // Optional: log non-200 responses (e.g., "Location sharing disabled")
-        if (!res.ok) {
-          const txt = await res.text();
-          console.warn('uploadMyLocation failed:', res.status, txt);
-        }
-      } catch (e) {
-        console.warn('uploadMyLocation network error:', e);
-      }
-    }
-
     const statusColors = {
       available: '#10b981',
       on_stop: '#f59e0b',
       full: '#ef4444',
       unavailable: '#6b7280'
     };
-
-    const AVG_SPEED_MPS = (30 * 1000) / 3600;
-    const MAX_DISTANCE_METERS = 5000;
-
-    // ICON configuration (works on both local + InfinityFree)
-    (function () {
-      const PROJECT_FOLDER = 'ByaHero-Prototype-V3'; // must match your local folder name (case-sensitive)
-      const path = window.location.pathname || '/';
-      const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
-        ? '/' + PROJECT_FOLDER
-        : '';
-      window.ICON_BASE = base + '/assets/images/icons';
-    })();
 
     const ICON_CACHE = {
       available: L.icon({
@@ -330,9 +295,7 @@ if (isset($_SESSION['user_id'])) {
     };
 
     function createBusIcon(status) {
-      if (!status) status = '';
-      const s = String(status).toLowerCase();
-
+      const s = String(status || '').toLowerCase();
       if (s === 'available') return ICON_CACHE.available;
       if (s === 'full') return ICON_CACHE.full;
 
@@ -345,7 +308,37 @@ if (isset($_SESSION['user_id'])) {
       });
     }
 
-    // --- LOCATION PERMISSION HANDLING ---
+    // --------------------- USER LOCATION ---------------------
+    let userLocation = null;
+    let userMarker = null;
+    let selectedRoute = '';
+    let locationPermissionGranted = true;
+
+    const AVG_SPEED_MPS = (30 * 1000) / 3600;
+    const MAX_DISTANCE_METERS = 5000;
+
+    let _lastLocationUploadAt = 0;
+    async function uploadMyLocation(lat, lng, accuracy) {
+      const now = Date.now();
+      if (now - _lastLocationUploadAt < 15000) return;
+      _lastLocationUploadAt = now;
+
+      try {
+        const res = await fetch('../../backend/updateUserLocation.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy ?? null })
+        });
+
+        if (!res.ok) {
+          const txt = await res.text();
+          console.warn('uploadMyLocation failed:', res.status, txt);
+        }
+      } catch (e) {
+        console.warn('uploadMyLocation network error:', e);
+      }
+    }
+
     function showLocationDisabledNotice() {
       if (sessionStorage.getItem('location_notice_shown')) return;
 
@@ -354,17 +347,13 @@ if (isset($_SESSION['user_id'])) {
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
-      <span class="material-symbols-rounded">location_off</span>
-      <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
-      <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
-    `;
-
+        <span class="material-symbols-rounded">location_off</span>
+        <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
+        <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+      `;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-
-      setTimeout(() => {
-        if (notice.parentElement) notice.remove();
-      }, 5000);
+      setTimeout(() => { if (notice.parentElement) notice.remove(); }, 5000);
     }
 
     function showLocationPermissionDenied() {
@@ -373,11 +362,10 @@ if (isset($_SESSION['user_id'])) {
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
-      <span class="material-symbols-rounded">error</span>
-      <span class="small">Location permission denied. Please enable it in your browser settings.</span>
-      <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
-    `;
-
+        <span class="material-symbols-rounded">error</span>
+        <span class="small">Location permission denied. Please enable it in your browser settings.</span>
+        <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
+      `;
       document.body.appendChild(notice);
     }
 
@@ -385,14 +373,12 @@ if (isset($_SESSION['user_id'])) {
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
 
       if (!locationEnabled) {
-        console.log('Location services disabled by user');
         locationPermissionGranted = false;
         showLocationDisabledNotice();
         return;
       }
 
       if (!navigator.geolocation) {
-        console.log('Geolocation not supported');
         locationPermissionGranted = false;
         return;
       }
@@ -400,10 +386,7 @@ if (isset($_SESSION['user_id'])) {
       locationPermissionGranted = true;
 
       navigator.geolocation.watchPosition(pos => {
-        userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
 
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
@@ -416,9 +399,7 @@ if (isset($_SESSION['user_id'])) {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
 
-        // NEW: upload to backend so Circle members can see your live location
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
-
         updateBuses();
       }, (error) => {
         console.error('Location error:', error);
@@ -450,7 +431,7 @@ if (isset($_SESSION['user_id'])) {
       }
     });
 
-    // --- BUS TRACKING ---
+    // --------------------- BUSES ---------------------
     async function updateBuses() {
       try {
         const res = await fetch('../api.php?action=get_buses');
@@ -469,8 +450,9 @@ if (isset($_SESSION['user_id'])) {
             });
           }
 
-          // NEW: generate smart notifications once per page load
-          await generateSmartNotificationsFromBuses(buses);
+          if (typeof generateSmartNotificationsFromBuses === 'function') {
+            await generateSmartNotificationsFromBuses(buses);
+          }
 
           updateMap(buses);
           renderBusList(buses);
@@ -478,9 +460,7 @@ if (isset($_SESSION['user_id'])) {
         }
       } catch (e) {
         console.error("Bus fetch error:", e);
-        if (typeof analytics !== 'undefined') {
-          analytics.error('Bus fetch error: ' + e.message);
-        }
+        if (typeof analytics !== 'undefined') analytics.error('Bus fetch error: ' + e.message);
       }
     }
 
@@ -507,9 +487,7 @@ if (isset($_SESSION['user_id'])) {
           busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
           busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
         } else {
-          const m = L.marker(b.coords, {
-            icon: iconForBus
-          }).addTo(map);
+          const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
           m.bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
           busMarkers[b.id] = m;
         }
@@ -597,127 +575,6 @@ if (isset($_SESSION['user_id'])) {
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // ---- SMART NOTIFICATIONS (closest bus only) ----
-    const ARRIVAL_THRESHOLD_MINUTES = 3;
-
-    // only create once per page load (as you requested: when user opens app)
-    let notificationsGeneratedThisLoad = false;
-
-    function etaMinutesFromDistanceMeters(distMeters) {
-      const seconds = distMeters / AVG_SPEED_MPS;
-      return Math.max(0, Math.ceil(seconds / 60));
-    }
-
-    // dedupe per bus per 5-minute time bucket so refreshes won’t spam
-    function buildDedupeKey(prefix, busId) {
-      const bucket = Math.floor(Date.now() / (5 * 60 * 1000));
-      return `${prefix}:${busId}:${bucket}`;
-    }
-
-    async function createNotification(payload) {
-      try {
-        await fetch('../../backend/createNotification.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-      } catch (e) {
-        console.warn('createNotification failed', e);
-      }
-    }
-
-    async function fetchUserSettings() {
-      try {
-        const res = await fetch('../../backend/fetchSettings.php', { cache: 'no-store' });
-        const json = await res.json();
-        if (json && json.success) return json.settings;
-      } catch (e) { }
-      return null;
-    }
-
-    function parseAvailableSeatsFromSeatsString(seatsStr) {
-      // seats string is like "5/25" from normalizeBus
-      const parts = String(seatsStr || '').split('/');
-      const avail = parseInt(parts[0], 10);
-      return Number.isFinite(avail) ? avail : null;
-    }
-
-    async function generateSmartNotificationsFromBuses(buses) {
-      if (notificationsGeneratedThisLoad) return;
-      if (!userLocation || !locationPermissionGranted) return;
-      if (!Array.isArray(buses) || buses.length === 0) return;
-
-      const settings = await fetchUserSettings();
-      if (!settings) return;
-
-      // respect route filter + ignore unavailable buses
-      const active = buses.filter(b =>
-        (!selectedRoute || b.route === selectedRoute) &&
-        String(b.status || '').toLowerCase() !== 'unavailable' &&
-        b.coords !== null
-      );
-
-      if (active.length === 0) return;
-
-      // sort by distance
-      const withDist = active.map(b => {
-        const dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
-        return { b, dist };
-      }).sort((a, b) => a.dist - b.dist);
-
-      const closest = withDist[0];
-      const closestBus = closest.b;
-      const closestEtaMin = etaMinutesFromDistanceMeters(closest.dist);
-
-      // 1) Bus arrival notification (<=3 minutes)
-      if (parseInt(settings.notify_bus_arrival) === 1 && closestEtaMin <= ARRIVAL_THRESHOLD_MINUTES) {
-        await createNotification({
-          type: 'bus_arrival',
-          title: 'Bus Arrival',
-          message: `${closestBus.code} is approaching in about ${closestEtaMin} minute(s).`,
-          dedupe_key: buildDedupeKey('arrival', closestBus.id),
-          meta: {
-            bus_id: closestBus.id,
-            route: closestBus.route,
-            eta_minutes: closestEtaMin,
-            location_name: closestBus.locName
-          }
-        });
-      }
-
-      // 2) Seat full notification + next bus ETA
-      const statusLower = String(closestBus.status || '').toLowerCase();
-      const availSeats = parseAvailableSeatsFromSeatsString(closestBus.seats);
-      const isFull = (statusLower === 'full') || (availSeats !== null && availSeats <= 0);
-
-      if (parseInt(settings.notify_seat_availability) === 1 && isFull) {
-        // next closest "behind it" = next bus farther than the closest bus
-        const next = withDist.find(x => x.dist > closest.dist + 1);
-        let nextText = 'No next bus available.';
-        let nextEtaMin = null;
-
-        if (next) {
-          nextEtaMin = etaMinutesFromDistanceMeters(next.dist);
-          nextText = `Next bus (${next.b.code}) ETA ~ ${nextEtaMin} minute(s).`;
-        }
-
-        await createNotification({
-          type: 'seat_full',
-          title: 'Seat Availability',
-          message: `${closestBus.code} is full. ${nextText}`,
-          dedupe_key: buildDedupeKey('full', closestBus.id),
-          meta: {
-            bus_id: closestBus.id,
-            next_bus_id: next ? next.b.id : null,
-            eta_minutes: closestEtaMin,
-            next_eta_minutes: nextEtaMin
-          }
-        });
-      }
-
-      notificationsGeneratedThisLoad = true;
-    }
-
     function formatArrivalBySeconds(seconds) {
       const dt = new Date(Date.now() + Math.max(0, seconds * 1000));
       let h = dt.getHours();
@@ -730,16 +587,13 @@ if (isset($_SESSION['user_id'])) {
 
     window.focusBus = (id) => {
       const m = busMarkers[id];
-      if (m) {
-        map.flyTo(m.getLatLng(), 15);
-        m.openPopup();
+      if (!m) return;
+      map.flyTo(m.getLatLng(), 15);
+      m.openPopup();
 
-        if (typeof analytics !== 'undefined') {
-          analytics.busTracked(id);
-          analytics.featureUsed('Bus Tracking', {
-            bus_id: id
-          });
-        }
+      if (typeof analytics !== 'undefined') {
+        analytics.busTracked(id);
+        analytics.featureUsed('Bus Tracking', { bus_id: id });
       }
     };
 
@@ -750,9 +604,7 @@ if (isset($_SESSION['user_id'])) {
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
 
       if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', {
-          route: r || 'All Routes'
-        });
+        analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
       }
 
       updateBuses();
@@ -788,13 +640,146 @@ if (isset($_SESSION['user_id'])) {
       menu.innerHTML = html;
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      if (typeof initPinsFeature === 'function') initPinsFeature(map);
+    // --------------------- BUS STOPS (ONLY SHOW WHEN TAB OPEN) ---------------------
+    const stopMarkers = {};
+    let stopsLoaded = false;
 
-      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
-      if (!locationEnabled) {
-        locationPermissionGranted = false;
+    const STOP_ICONS = {
+      pickup_point: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/BUSPICKUP.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -36]
+      }),
+      bus_stop: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -36]
+      }),
+      terminal: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
+        popupAnchor: [0, -36]
+      })
+    };
+
+    function escapeHtml(str) {
+      return String(str ?? '').replace(/[&<>"']/g, s => ({
+        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+      }[s]));
+    }
+
+    function stopIcon(type) {
+      const t = String(type || '').toLowerCase();
+      return STOP_ICONS[t] || STOP_ICONS.bus_stop;
+    }
+
+    async function loadStops() {
+      const listEl = document.getElementById('busStopsListMobile');
+      if (listEl) listEl.innerHTML = `<div class="text-center text-muted mt-4 small">Loading bus stops...</div>`;
+
+      const res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
+      const json = await res.json();
+
+      if (!json || !json.success || !Array.isArray(json.data)) {
+        const msg = json?.error || 'Failed to load stops';
+        if (listEl) listEl.innerHTML = `<div class="text-center text-danger mt-4 small">${escapeHtml(msg)}</div>`;
+        return;
       }
+
+      const stops = json.data;
+
+      if (listEl) {
+        if (!stops.length) {
+          listEl.innerHTML = `<div class="text-center text-muted mt-4 small">No bus stops yet.</div>`;
+        } else {
+          listEl.innerHTML = stops.map(s => {
+            const subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
+            const typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
+            return `
+              <button type="button" class="list-group-item list-group-item-action" onclick="focusStop('${String(s.id)}')">
+                <div class="d-flex justify-content-between align-items-start">
+                  <div class="me-2">
+                    <div class="fw-bold">${escapeHtml(s.name)}</div>
+                    <div class="small text-muted">${escapeHtml(subtitle || '')}</div>
+                  </div>
+                  <span class="badge bg-secondary text-uppercase">${escapeHtml(typeLabel)}</span>
+                </div>
+              </button>
+            `;
+          }).join('');
+        }
+      }
+
+      const ids = new Set(stops.map(s => String(s.id)));
+
+      Object.keys(stopMarkers).forEach(id => {
+        if (!ids.has(id)) {
+          map.removeLayer(stopMarkers[id]);
+          delete stopMarkers[id];
+        }
+      });
+
+      stops.forEach(s => {
+        const id = String(s.id);
+        const lat = parseFloat(s.lat);
+        const lng = parseFloat(s.lng);
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const popup = `
+          <b>${escapeHtml(s.name)}</b><br>
+          ${escapeHtml(s.location_name || '')}
+          ${s.location_landmark ? `<br><small>${escapeHtml(s.location_landmark)}</small>` : ''}
+          <br><small>${escapeHtml(String(s.type || ''))}</small>
+        `;
+
+        if (stopMarkers[id]) {
+          stopMarkers[id].setLatLng([lat, lng]).setIcon(stopIcon(s.type)).setPopupContent(popup);
+        } else {
+          stopMarkers[id] = L.marker([lat, lng], { icon: stopIcon(s.type) }).addTo(map).bindPopup(popup);
+        }
+      });
+
+      setBusStopsVisibility(false);
+    }
+
+    window.setBusStopsVisibility = function setBusStopsVisibility(show) {
+      Object.values(stopMarkers).forEach(m => {
+        const onMap = map.hasLayer(m);
+        if (show && !onMap) m.addTo(map);
+        if (!show && onMap) map.removeLayer(m);
+      });
+    };
+
+    window.focusStop = function focusStop(id) {
+      const m = stopMarkers[String(id)];
+      if (!m) return;
+      map.flyTo(m.getLatLng(), 16);
+      m.openPopup();
+    };
+
+    const _switchSheetTab = window.switchSheetTab;
+    window.switchSheetTab = function(tabName) {
+      _switchSheetTab(tabName);
+
+      if (tabName === 'busstops') {
+        if (!stopsLoaded) {
+          stopsLoaded = true;
+          loadStops().then(() => setBusStopsVisibility(true));
+        } else {
+          setBusStopsVisibility(true);
+        }
+      } else {
+        setBusStopsVisibility(false);
+      }
+    };
+
+    // --------------------- INIT ---------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      if (!locationEnabled) locationPermissionGranted = false;
     });
 
     startUserLocationWatch();
@@ -862,5 +847,4 @@ if (isset($_SESSION['user_id'])) {
     };
   </script>
 </body>
-
 </html>

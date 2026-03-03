@@ -46,7 +46,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Tab switching (needs to be global because HTML uses onclick="")
 window.switchSheetTab = function switchSheetTab(tabName) {
-  const tabs = ['location', 'groups', 'pins'];
+  // ✅ Changed: 'pins' -> 'busstops'
+  const tabs = ['location', 'groups', 'busstops'];
 
   tabs.forEach(t => {
     const el = document.getElementById('tab-' + t);
@@ -66,11 +67,13 @@ window.switchSheetTab = function switchSheetTab(tabName) {
 
   // optional hooks from your existing code:
   if (typeof hideGroupVisuals === 'function') hideGroupVisuals();
-  if (typeof setPinsVisibility === 'function') setPinsVisibility(false);
+
+  // ✅ Changed: pins visibility hook -> bus stops visibility hook
+  if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(false);
 
   if (tabName === 'groups') {
     if (typeof showGroupVisuals === 'function') showGroupVisuals();
-  } else if (tabName === 'pins') {
-    if (typeof setPinsVisibility === 'function') setPinsVisibility(true);
+  } else if (tabName === 'busstops') {
+    if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(true);
   }
-}
+};

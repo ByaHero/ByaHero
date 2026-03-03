@@ -26,12 +26,14 @@ $totalBusesCount = 0;
 $activeBusesCount = 0;
 $driversCount = 0;
 $conductorsCount = 0;
+$stopsCount = 0;
 
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
     $activeBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses WHERE status IN ('available','on_stop','full')")->fetchColumn();
     $driversCount = (int)$pdo->query("SELECT COUNT(*) FROM drivers")->fetchColumn();
     $conductorsCount = (int)$pdo->query("SELECT COUNT(*) FROM conductors")->fetchColumn();
+    $stopsCount = (int)$pdo->query("SELECT COUNT(*) FROM busStopsTerminal")->fetchColumn();
 } catch (Exception $e) {
     // keep zeros if something fails
 }
@@ -72,6 +74,7 @@ try {
         .card-active { background: #15b77e; }
         .card-drivers { background: #addbea; }
         .card-conductors { background: #2666be; }
+        .card-stops { background: #0ea5e9; }
 
         .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
         .stat-card-number {
@@ -143,6 +146,9 @@ try {
                 <li class="nav-item">
                     <a class="nav-link" href="manageConductors.php">Conductors & Drivers</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="manageStops.php">Bus Stops & Terminals</a>
+                </li>
             </ul>
             <div class="ms-3">
                 <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
@@ -189,6 +195,15 @@ try {
                     </div>
                 </div>
 
+                <!-- ✅ NEW CARD -->
+                <div class="col-6 col-md-6 col-lg-3">
+                    <div class="stat-card card-stops">
+                        <div class="stat-card-title">Bus Stops</div>
+                        <a class="btn-manage-pill" href="manageStops.php">Manage</a>
+                        <div class="stat-card-number"><?= $stopsCount ?></div>
+                    </div>
+                </div>
+
             </div>
 
             <div class="card card-standard">
@@ -221,9 +236,6 @@ document.addEventListener('DOMContentLoaded', () => {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ✅ NEW: Use custom SVG marker for ACTIVE buses
-    // admin.php is in public/ADMIN, so "../../assets/..." goes to the correct path from browser: /assets/...
-    // If your site root is different, you may need to adjust to "/assets/images/icons/marker.svg"
     const activeBusIcon = L.icon({
         iconUrl: '../../assets/images/icons/marker.svg',
         iconSize: [34, 34],
@@ -243,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const fetchedIds = new Set();
 
                 buses.forEach(bus => {
-                    // ✅ ACTIVE buses only
                     if (['available', 'on_stop', 'full'].includes(bus.status)) {
                         let coords = null;
 
@@ -281,7 +292,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
 
-                // remove markers that are no longer active/fetched
                 Object.keys(busMarkers).forEach(id => {
                     if (!fetchedIds.has(id)) {
                         map.removeLayer(busMarkers[id]);
@@ -296,12 +306,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     updateBusMap();
     setInterval(updateBusMap, 3000);
-
-    // Fix map sizing if tab is re-shown
-    const tabEl = document.querySelector('button[data-bs-target="#tab-dashboard"]');
-    if (tabEl) {
-        tabEl.addEventListener('shown.bs.tab', function () { map.invalidateSize(); });
-    }
 });
 </script>
 </body>
