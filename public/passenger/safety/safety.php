@@ -132,7 +132,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script>
-    const BACKEND_BASE = "/ByaHero-Prototype-V3/backend";
+    const BACKEND_BASE = "../backend";
     let editModal;
 
     function escapeHtml(str) {
