@@ -1,6 +1,9 @@
 <?php
 session_start();
 
+// Force the correct timezone so time() matches your database timestamps accurately
+date_default_timezone_set('Asia/Manila');
+
 // Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
@@ -11,7 +14,8 @@ require_once '../../../config/db_connection.php';
 
 $userId = $_SESSION['user_id'];
 
-// Fetch login activity from analytics_events
+// Note: For true accuracy, you should log a specific 'login_success' event in your backend 
+// rather than relying on page views of the login page.
 $stmt = $conn->prepare("
     SELECT 
         event_data,
@@ -20,7 +24,7 @@ $stmt = $conn->prepare("
         ip_address,
         created_at
     FROM analytics_events 
-    WHERE user_id = ? AND event_type = 'page_view' AND page LIKE '%login%'
+    WHERE user_id = ? AND (event_type = 'login' OR (event_type = 'page_view' AND page LIKE '%login%'))
     ORDER BY created_at DESC 
     LIMIT 20
 ");
@@ -78,54 +82,10 @@ function getDeviceType($userAgent) {
     .activity-container {
       margin-top: 70px;
     }
-    .activity-card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .activity-item {
-      padding: 1rem;
-      border-bottom: 1px solid #e5e7eb;
-      display: flex;
-      align-items: start;
-      gap: 1rem;
-    }
-    .activity-item:last-child {
-      border-bottom: none;
-    }
     .activity-icon {
       width: 48px;
       height: 48px;
-      border-radius: 50%;
       background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      flex-shrink: 0;
-    }
-    .activity-details {
-      flex: 1;
-    }
-    .activity-title {
-      font-weight: 600;
-      color: #1f2937;
-      margin-bottom: 0.25rem;
-    }
-    .activity-meta {
-      color: #6b7280;
-      font-size: 0.85rem;
-    }
-    .current-session {
-      background: #dbeafe;
-      border: 1px solid #93c5fd;
-      border-radius: 8px;
-      padding: 0.5rem 1rem;
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: #1e40af;
     }
   </style>
 </head>
@@ -138,55 +98,65 @@ function getDeviceType($userAgent) {
   ?>
 
   <div class="container activity-container">
-    <div class="activity-card">
-      <h4 class="fw-bold mb-1">Login Activity</h4>
-      <p class="text-muted mb-4">Recent sessions where your account was accessed</p>
+    <div class="card shadow-sm border-0 rounded-4 p-2 p-md-3">
+      <div class="card-body">
+        <h4 class="fw-bold mb-1 text-dark">Login Activity</h4>
+        <p class="text-muted mb-4">Recent sessions where your account was accessed</p>
 
-      <div class="activity-list">
-        <?php 
-        $isFirst = true;
-        foreach ($loginActivity as $activity): 
-          $browser = parseUserAgent($activity['user_agent']);
-          $device = getDeviceType($activity['user_agent']);
-          $timestamp = strtotime($activity['created_at']);
-          $timeAgo = time() - $timestamp;
-          
-          if ($timeAgo < 60) {
-            $timeDisplay = 'Just now';
-          } elseif ($timeAgo < 3600) {
-            $timeDisplay = floor($timeAgo / 60) . ' minutes ago';
-          } elseif ($timeAgo < 86400) {
-            $timeDisplay = floor($timeAgo / 3600) . ' hours ago';
-          } else {
-            $timeDisplay = date('M j, Y g:i A', $timestamp);
-          }
-        ?>
-          <div class="activity-item">
-            <div class="activity-icon">
-              <span class="material-symbols-rounded">
-                <?= $device === 'Mobile' ? 'smartphone' : ($device === 'Tablet' ? 'tablet' : 'computer') ?>
-              </span>
-            </div>
-            <div class="activity-details">
-              <div class="activity-title">
-                <?= htmlspecialchars($browser) ?> on <?= htmlspecialchars($device) ?>
-                <?php if ($isFirst): ?>
-                  <span class="current-session ms-2">Current Session</span>
-                <?php endif; ?>
+        <ul class="list-group list-group-flush">
+          <?php 
+          $isFirst = true;
+          foreach ($loginActivity as $activity): 
+            $browser = parseUserAgent($activity['user_agent']);
+            $device = getDeviceType($activity['user_agent']);
+            $timestamp = strtotime($activity['created_at']);
+            
+            // Calculate time difference
+            $timeAgo = max(0, time() - $timestamp); // max(0) prevents negative times if server clock is slightly off
+            
+            if ($timeAgo < 60) {
+              $timeDisplay = 'Just now';
+            } elseif ($timeAgo < 3600) {
+              $timeDisplay = floor($timeAgo / 60) . ' minutes ago';
+            } elseif ($timeAgo < 86400) {
+              $timeDisplay = floor($timeAgo / 3600) . ' hours ago';
+            } else {
+              $timeDisplay = date('M j, Y g:i A', $timestamp);
+            }
+          ?>
+            <li class="list-group-item d-flex align-items-start gap-3 py-3 px-0 border-bottom border-light">
+              <div class="activity-icon rounded-circle d-flex align-items-center justify-content-center text-white flex-shrink-0">
+                <span class="material-symbols-rounded">
+                  <?= $device === 'Mobile' ? 'smartphone' : ($device === 'Tablet' ? 'tablet' : 'computer') ?>
+                </span>
               </div>
-              <div class="activity-meta">
-                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle">schedule</span>
-                <?= $timeDisplay ?>
-                <span class="mx-2">•</span>
-                <span class="material-symbols-rounded" style="font-size:14px; vertical-align:middle">location_on</span>
-                <?= htmlspecialchars($activity['ip_address']) ?>
+              
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-1">
+                  <span class="fw-semibold text-dark me-2">
+                    <?= htmlspecialchars($browser) ?> on <?= htmlspecialchars($device) ?>
+                  </span>
+                  <?php if ($isFirst): ?>
+                    <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill px-2 py-1" style="font-size: 0.75rem;">
+                      Current Session
+                    </span>
+                  <?php endif; ?>
+                </div>
+                
+                <div class="text-secondary" style="font-size: 0.85rem;">
+                  <span class="material-symbols-rounded align-middle" style="font-size:16px;">schedule</span>
+                  <span class="align-middle"><?= $timeDisplay ?></span>
+                  <span class="mx-1">•</span>
+                  <span class="material-symbols-rounded align-middle" style="font-size:16px;">location_on</span>
+                  <span class="align-middle"><?= htmlspecialchars($activity['ip_address']) ?></span>
+                </div>
               </div>
-            </div>
-          </div>
-        <?php 
-          $isFirst = false;
-        endforeach; 
-        ?>
+            </li>
+          <?php 
+            $isFirst = false;
+          endforeach; 
+          ?>
+        </ul>
 
         <?php if (empty($loginActivity)): ?>
           <div class="text-center py-5">
@@ -194,17 +164,19 @@ function getDeviceType($userAgent) {
             <p class="text-muted mt-3">No login activity to display</p>
           </div>
         <?php endif; ?>
-      </div>
 
-      <div class="alert alert-info mt-4" role="alert">
-        <span class="material-symbols-rounded" style="font-size:20px; vertical-align:middle">info</span>
-        <strong>Security Tip:</strong> If you see suspicious activity, change your password immediately.
-      </div>
+        <div class="alert alert-info d-flex align-items-center mt-4 border-0 bg-info-subtle text-info-emphasis rounded-3" role="alert">
+          <span class="material-symbols-rounded me-2" style="font-size:24px;">info</span>
+          <div>
+            <strong>Security Tip:</strong> If you see suspicious activity, change your password immediately.
+          </div>
+        </div>
 
-      <div class="d-grid gap-2 mt-3">
-        <button class="btn btn-outline-primary" onclick="window.location.href='accountSettings.php'">
-          Back to Account Settings
-        </button>
+        <div class="d-grid gap-2 mt-4">
+          <button class="btn btn-outline-primary py-2 rounded-3 fw-medium" onclick="window.location.href='accountSettings.php'">
+            Back to Account Settings
+          </button>
+        </div>
       </div>
     </div>
   </div>

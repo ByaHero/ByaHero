@@ -10,8 +10,35 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../../../config/db_connection.php';
 
 $userId = $_SESSION['user_id'];
+$successMessage = '';
+$errorMessage = '';
 
-// Fetch user data from database (NOW includes contacts)
+// --- Handle Phone Number Update ---
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_phone'])) {
+    // Strip out anything that isn't a number just in case
+    $newPhoneDigits = preg_replace('/[^0-9]/', '', $_POST['phone']);
+    
+    // Ensure it is exactly 10 digits
+    if (strlen($newPhoneDigits) === 10) {
+        // Concatenate the +63 prefix for the database
+        $fullPhoneNumber = '+63' . $newPhoneDigits;
+
+        $updateStmt = $conn->prepare("UPDATE users SET contacts = ? WHERE id = ?");
+        $updateStmt->bind_param("si", $fullPhoneNumber, $userId);
+        
+        if ($updateStmt->execute()) {
+            $successMessage = "Mobile number updated successfully!";
+            $_SESSION['user_phone'] = $fullPhoneNumber; 
+        } else {
+            $errorMessage = "Failed to update mobile number. Please try again.";
+        }
+        $updateStmt->close();
+    } else {
+        $errorMessage = "Please enter exactly 10 digits (e.g., 9123456789).";
+    }
+}
+
+// Fetch user data from database
 $stmt = $conn->prepare("SELECT name, email, contacts FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
@@ -27,6 +54,24 @@ $currentUser = [
 
 // Helper for avatar initial
 $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
+
+// Prepare phone number for the input box (strip the +63 or 0 so they only see the 10 digits)
+$displayPhoneForInput = '';
+if (!empty($currentUser['phone'])) {
+    $cleanPhone = preg_replace('/[^0-9]/', '', $currentUser['phone']);
+    // If it has the 63 country code
+    if (strlen($cleanPhone) == 12 && substr($cleanPhone, 0, 2) == '63') {
+        $displayPhoneForInput = substr($cleanPhone, 2);
+    } 
+    // If it starts with 0 (e.g., 0912...)
+    elseif (strlen($cleanPhone) == 11 && substr($cleanPhone, 0, 1) == '0') {
+        $displayPhoneForInput = substr($cleanPhone, 1);
+    } 
+    // Fallback
+    else {
+        $displayPhoneForInput = substr($cleanPhone, -10);
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
@@ -41,7 +86,6 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
     <link rel="stylesheet" href="../../../assets/css/accessibility.css">
 
     <style>
-        /* Keep only minimal overrides that Bootstrap doesn't provide directly */
         :root {
             --byahero-primary: #0d47a1;
         }
@@ -56,17 +100,31 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
             background-color: var(--byahero-primary) !important;
         }
 
-        /* Avatar gradient (not a Bootstrap utility) */
         .avatar-gradient {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         }
 
-        /* Sheet look (Bootstrap doesn't have exact top-only radius utility) */
         .sheet {
             background-color: #eff1f5;
             border-top-left-radius: 1.5rem;
             border-top-right-radius: 1.5rem;
             min-height: calc(100vh - 150px);
+        }
+        
+        .clickable-card {
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .clickable-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+        }
+
+        /* Hide the up/down arrows in number inputs across browsers */
+        input[type="tel"]::-webkit-outer-spin-button,
+        input[type="tel"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
     </style>
 </head>
@@ -79,7 +137,6 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
     include __DIR__ . "/../../../components/navbarPassenger.php";
     ?>
 
-    <!-- Identity -->
     <section class="text-center py-4 pt-5 mt-2">
         <div class="d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold avatar-gradient shadow-sm"
             style="width: 80px; height: 80px; font-size: 2rem;">
@@ -91,26 +148,42 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
         </h2>
     </section>
 
-    <!-- Content sheet -->
     <main class="sheet px-3 px-sm-4 py-4">
         <div class="container-fluid p-0" style="max-width: 640px;">
 
+            <?php if ($successMessage): ?>
+                <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+                    <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">check_circle</span>
+                    <?= $successMessage ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($errorMessage): ?>
+                <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm rounded-3" role="alert">
+                    <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">error</span>
+                    <?= $errorMessage ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
             <div class="text-uppercase fw-bold text-secondary mb-2 small">Account Details</div>
 
-            <!-- Phone -->
-            <div class="card border-0 shadow-sm mb-3">
-                <div class="card-body d-flex align-items-center gap-3">
-                    <span class="material-symbols-rounded fs-3 text-dark">call</span>
-                    <div>
-                        <div class="text-muted small">Phone Number</div>
-                        <div class="fw-semibold">
-                            <?= htmlspecialchars($currentUser['phone'] !== '' ? $currentUser['phone'] : 'Not set'); ?>
+            <div class="card border-0 shadow-sm mb-3 clickable-card" data-bs-toggle="modal" data-bs-target="#editPhoneModal">
+                <div class="card-body d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="material-symbols-rounded fs-3 text-dark">call</span>
+                        <div>
+                            <div class="text-muted small">Phone Number</div>
+                            <div class="fw-semibold">
+                                <?= htmlspecialchars($currentUser['phone'] !== '' ? $currentUser['phone'] : 'Not set'); ?>
+                            </div>
                         </div>
                     </div>
+                    <span class="material-symbols-rounded text-primary">edit</span>
                 </div>
             </div>
 
-            <!-- Email -->
             <div class="card border-0 shadow-sm mb-4">
                 <div class="card-body d-flex align-items-center gap-3">
                     <span class="material-symbols-rounded fs-3 text-dark">mail</span>
@@ -125,8 +198,7 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
 
             <div class="text-uppercase fw-bold text-secondary mb-2 small">Account Management</div>
 
-            <!-- Account Settings -->
-            <a href="accountSettings.php" class="card border-0 shadow-sm mb-3 text-decoration-none text-dark">
+            <a href="accountSettings.php" class="card border-0 shadow-sm mb-3 text-decoration-none text-dark clickable-card">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-3">
                         <span class="material-symbols-rounded fs-3 text-dark">settings</span>
@@ -136,8 +208,7 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
                 </div>
             </a>
 
-            <!-- Logout -->
-            <a href="../../logout.php" class="card border-0 shadow-sm text-decoration-none">
+            <a href="../../logout.php" class="card border-0 shadow-sm text-decoration-none clickable-card">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-3">
                         <span class="material-symbols-rounded fs-3 text-danger">logout</span>
@@ -149,6 +220,44 @@ $initial = strtoupper(mb_substr($currentUser['name'], 0, 1));
 
         </div>
     </main>
+
+    <div class="modal fade" id="editPhoneModal" tabindex="-1" aria-labelledby="editPhoneModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow rounded-4">
+                <div class="modal-header border-bottom-0 pb-0">
+                    <h5 class="modal-title fw-bold text-dark" id="editPhoneModalLabel">Update Phone Number</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form method="POST" action="">
+                    <div class="modal-body py-4">
+                        <label for="phoneInput" class="form-label text-muted small fw-semibold mb-1">Mobile Number</label>
+                        
+                        <div class="input-group input-group-lg shadow-sm border rounded-3 overflow-hidden">
+                            <span class="input-group-text bg-light text-secondary fw-bold border-0 border-end">+63</span>
+                            <input 
+                                type="tel" 
+                                class="form-control border-0 bg-light" 
+                                id="phoneInput" 
+                                name="phone" 
+                                value="<?= htmlspecialchars($displayPhoneForInput) ?>" 
+                                placeholder="9123456789" 
+                                maxlength="10" 
+                                minlength="10" 
+                                pattern="[0-9]{10}"
+                                title="Please enter exactly 10 digits"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');" 
+                                required>
+                        </div>
+                        <div class="form-text mt-2 small text-muted">Enter the remaining 10 digits of your mobile number.</div>
+                    </div>
+                    <div class="modal-footer border-top-0 pt-0">
+                        <button type="button" class="btn btn-light rounded-pill px-4 fw-medium" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" name="update_phone" class="btn text-white rounded-pill px-4 fw-medium" style="background-color: var(--byahero-primary);">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../../../assets/js/accessibility.js"></script>
