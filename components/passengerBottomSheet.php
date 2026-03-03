@@ -44,10 +44,11 @@
           </div>
         </div>
 
-        <div class="col-4" onclick="switchSheetTab('pins')">
-          <div id="tab-pins"
+        <!-- ✅ Bus Stops tab -->
+        <div class="col-4" onclick="switchSheetTab('busstops')">
+          <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-2">push_pin</span>
+            <span class="material-symbols-rounded fs-2">fmd_good</span>
           </div>
         </div>
       </div>
@@ -62,8 +63,24 @@
     </div>
 
     <?php
+<<<<<<< Updated upstream
     include __DIR__ . '/../public/passenger/groupView.php';
     include __DIR__ . '/../public/passenger/pinsListView.php';
+=======
+      include __DIR__ . '/../public/passenger/groupView.php';
+>>>>>>> Stashed changes
     ?>
+
+    <!-- ✅ New Bus Stops view (no pinsListView.php anymore) -->
+    <div id="view-busstops" class="mt-2 d-none">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <div class="fw-bold">Bus Stops</div>
+        <div class="small text-muted">Stops & terminals</div>
+      </div>
+
+      <div id="busStopsListMobile" class="list-group list-group-flush">
+        <div class="text-center text-muted mt-4 small">Loading bus stops...</div>
+      </div>
+    </div>
   </div>
 </div>

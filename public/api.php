@@ -82,6 +82,19 @@ function getBuses(): array {
     return ['success' => true, 'buses' => $out];
 }
 
+/** ✅ NEW: return bus stops/pickup points/terminals from admin-managed table */
+function getBusStopsTerminal(): array {
+    $pdo = db();
+    $stmt = $pdo->query("
+        SELECT id, name, type, location_name, location_landmark, lat, lng
+        FROM busStopsTerminal
+        ORDER BY name ASC
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    return ['success' => true, 'data' => $rows];
+}
+
 /**
  * Update bus location and details.
  * Accepts geojson or lat/lng. Stores friendly name in DB.current_location and writes full GeoJSON to file.
@@ -126,17 +139,14 @@ function updateLocation(): array {
         $locationName = trim($data['current_location_name']);
     }
 
-    // Allow server-side resolution (optional) — if not present, leave as null
-    // (If you want server polygon-resolve, could call debug_resolve or map_data polygons)
-    // For now prefer provided properties.
-
     // Save geojson file for coordinates (keep full GeoJSON) — write atomically (tmp + rename)
     $dir = __DIR__ . '/../data/current_locations';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     $file = $dir . "/bus_{$busId}.geojson";
-    $data = json_encode($geojson, JSON_PRETTY_PRINT|JSON_UNESCAPED_SLASHES);
+
+    $geoTxt = json_encode($geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     $tmp = $file . '.tmp';
-    @file_put_contents($tmp, $data, LOCK_EX);
+    @file_put_contents($tmp, $geoTxt, LOCK_EX);
     @rename($tmp, $file);
 
     // Update DB: store friendly name string in current_location column (no schema change)
@@ -224,6 +234,12 @@ try {
         case 'get_buses':
             $response = getBuses();
             break;
+
+        /** ✅ NEW ACTION */
+        case 'get_bus_stops_terminal':
+            $response = getBusStopsTerminal();
+            break;
+
         case 'update_location':
             $response = updateLocation();
             break;
