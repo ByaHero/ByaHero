@@ -800,6 +800,66 @@ if (isset($_SESSION['user_id'])) {
     startUserLocationWatch();
     updateBuses();
     setInterval(updateBuses, 4000);
+
+
+    window.centerToMyLocation = function () {
+      // If we already have a live location from watchPosition, just fly there.
+      if (userLocation && locationPermissionGranted) {
+        map.flyTo([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 16), {
+          animate: true,
+          duration: 0.6
+        });
+        if (userMarker) userMarker.bringToFront?.();
+        return;
+      }
+
+      // Otherwise, request it once (and optionally start watch again if it wasn't running)
+      if (!navigator.geolocation) {
+        alert('Geolocation is not supported on this device/browser.');
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition((pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+
+        // Update globals so the rest of the page can use it too
+        userLocation = { lat, lng };
+
+        if (!userMarker) {
+          userMarker = L.circleMarker([lat, lng], {
+            radius: 8,
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.9
+          }).addTo(map);
+        } else {
+          userMarker.setLatLng([lat, lng]);
+        }
+
+        map.flyTo([lat, lng], Math.max(map.getZoom(), 16), {
+          animate: true,
+          duration: 0.6
+        });
+
+        // Keep backend updated (optional but consistent with existing behavior)
+        uploadMyLocation(lat, lng, pos.coords.accuracy);
+
+        // If location services were disabled before, this does not flip the toggle automatically.
+      }, (error) => {
+        console.error('centerToMyLocation error:', error);
+
+        if (error.code === error.PERMISSION_DENIED) {
+          showLocationPermissionDenied();
+        } else {
+          alert('Unable to get your location right now.');
+        }
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 5000
+      });
+    };
   </script>
 </body>
 
