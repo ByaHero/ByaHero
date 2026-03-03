@@ -5,14 +5,17 @@ session_start();
 /**
  * public/login.php
  *
- * Login page that authenticates against the new role tables:
+ * Login page that authenticates against the role tables:
  * - admins
  * - drivers
  * - conductors
  * - users
  *
  * Requires config/db.php (expects a db() function that returns a PDO instance).
- * Adjust redirects for each role below as needed.
+ *
+ * Works on:
+ * - Localhost where the project is under: /Byahero-prototype-v3
+ * - InfinityFree where htdocs is the web root: /
  */
 
 require __DIR__ . '/../config/db.php';
@@ -20,12 +23,37 @@ require __DIR__ . '/../config/db.php';
 $err = '';
 $redirectAfter = $_GET['redirect'] ?? ($_POST['redirect'] ?? 'passenger/index.php');
 
+/**
+ * Base URL prefix:
+ * - Localhost: http://localhost/Byahero-prototype-v3/...
+ * - InfinityFree: http(s)://yourdomain/...
+ */
+$host = $_SERVER['HTTP_HOST'] ?? '';
+$isLocal =
+    $host === 'localhost' ||
+    str_starts_with($host, 'localhost:') ||
+    $host === '127.0.0.1' ||
+    str_starts_with($host, '127.0.0.1:');
+
+$baseUrl = $isLocal ? '/Byahero-prototype-v3' : '';
+
+/**
+ * Safety: if redirectAfter is passed as a relative path like "admin/admin.php",
+ * convert it to an absolute path using $baseUrl.
+ * If it's already absolute (starts with "/") or a full URL, keep it.
+ */
+if ($redirectAfter !== '' && $redirectAfter[0] !== '/' && !preg_match('~^https?://~i', $redirectAfter)) {
+    $redirectAfter = $baseUrl . '/public/' . ltrim($redirectAfter, '/');
+} elseif ($redirectAfter !== '' && $redirectAfter[0] === '/') {
+    $redirectAfter = $baseUrl . $redirectAfter;
+}
+
 // Map table => role info (role name + default redirect)
 $roleTables = [
-    'admins'     => ['role' => 'admin',     'redirect' => 'admin/admin.php'],
-    'drivers'    => ['role' => 'driver',    'redirect' => 'driver/dashboard.php'],
-    'conductors' => ['role' => 'conductor', 'redirect' => 'conductor/conductor.php'],
-    'users'      => ['role' => 'user',      'redirect' => 'passenger/index.php'],
+    'admins'     => ['role' => 'admin',     'redirect' => $baseUrl . '/public/admin/admin.php'],
+    'drivers'    => ['role' => 'driver',    'redirect' => $baseUrl . '/public/driver/dashboard.php'],
+    'conductors' => ['role' => 'conductor', 'redirect' => $baseUrl . '/public/conductor/conductor.php'],
+    'users'      => ['role' => 'user',      'redirect' => $baseUrl . '/public/passenger/index.php'],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -80,10 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_id'] = $userRecord['id'];
                 $_SESSION['user_email'] = $userRecord['email'];
                 $_SESSION['user_role'] = $userRole;
-                // If table has a name column use it otherwise fallback to email
                 $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
 
-                // Redirect to page for the role or to redirectAfter param
                 header('Location: ' . $targetRedirect);
                 exit;
             } else {
@@ -92,7 +118,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } catch (Exception $e) {
             // Don't reveal DB errors to users
             $err = 'Server error. Please try again later.';
-            // Optionally log $e->getMessage() to your logs
         }
     }
 }
@@ -117,8 +142,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-family: "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial;
             color:#0f172a;
         }
-
-        /* Center column */
         .login-outer{
             min-height:100vh;
             display:flex;
@@ -126,39 +149,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             justify-content:center;
             padding: 2rem 1rem;
         }
-
         .login-card{
             width:100%;
             max-width:420px;
             background: transparent;
         }
-
         .brand-wrap{
             text-align:center;
             margin-bottom: 1.25rem;
         }
-
         .brand-logo{
             width:132px;
             height:auto;
             display:block;
             margin: 0 auto 0.75rem;
         }
-
         .brand-title{
             font-size:0.85rem;
             letter-spacing:1px;
             color: #111827;
-            font-weight: bold; /* Added bold formatting here */
+            font-weight: bold;
         }
-
         .form-card{
             background: var(--bg);
             padding: 2rem;
             border-radius: 14px;
             box-shadow: 0 10px 30px rgba(2,6,23,0.06);
         }
-
         .form-heading{
             font-size:0.9rem;
             font-weight:700;
@@ -166,27 +183,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-bottom:1rem;
             letter-spacing:.6px;
         }
-
-        /* pill inputs */
         .input-pill{
             border-radius: 999px;
             background: #fff;
             box-shadow: 0 6px 18px rgba(2,6,23,0.06);
             border: none;
             padding: 0.6rem 1rem;
-            padding-right: 3rem; /* space for the eye button */
+            padding-right: 3rem;
             height:48px;
         }
-
         .input-group-pill{
             position:relative;
         }
-
         .input-pill:focus{
             outline:none;
             box-shadow: 0 8px 22px rgba(37,99,235,0.12), 0 0 0 3px rgba(37,99,235,0.06);
         }
-
         .input-addon{
             position:absolute;
             right:12px;
@@ -206,9 +218,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius:6px;
         }
         .input-addon:focus{ outline:none; box-shadow: none; }
-
         .input-addon:active{ transform: translateY(-50%) scale(.98); }
-
         .forgot{
             display:inline-block;
             margin-top:.5rem;
@@ -216,7 +226,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             text-decoration:none;
             font-size:.875rem;
         }
-
         .submit-pill{
             width:88px;
             height:40px;
@@ -234,23 +243,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             align-items:center;
             justify-content:center;
         }
-
         .submit-pill:active{ transform:translateY(1px); }
-
         .small-muted{
             font-size:.85rem;
             color:var(--muted);
             text-align:center;
             margin-top:.75rem;
         }
-
-        /* error */
         .alert-small{
             font-size:.9rem;
             padding:.45rem .75rem;
             border-radius:8px;
         }
-
         @media (max-width:420px){
             .brand-logo{ width:110px; }
             .form-card{ padding:1.25rem; border-radius:12px; }
@@ -277,12 +281,36 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form method="POST" novalidate>
                     <div class="mb-3">
-                        <input name="email" type="email" inputmode="email" autocomplete="username" placeholder="Email" class="form-control input-pill" required value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>" />
+                        <input
+                            name="email"
+                            type="email"
+                            inputmode="email"
+                            autocomplete="username"
+                            placeholder="Email"
+                            class="form-control input-pill"
+                            required
+                            value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>"
+                        />
                     </div>
 
                     <div class="mb-2 input-group-pill">
-                        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Password" class="form-control input-pill" required />
-                        <button type="button" id="togglePwd" class="input-addon" aria-pressed="false" aria-label="Show password" title="Show password">
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autocomplete="current-password"
+                            placeholder="Password"
+                            class="form-control input-pill"
+                            required
+                        />
+                        <button
+                            type="button"
+                            id="togglePwd"
+                            class="input-addon"
+                            aria-pressed="false"
+                            aria-label="Show password"
+                            title="Show password"
+                        >
                             <span id="eyeIcon" class="material-icons-round" style="font-size:18px;line-height:1;">visibility_off</span>
                         </button>
                     </div>
@@ -297,7 +325,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </form>
 
                 <div class="small-muted">
-                    Don't have an account? <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
+                    Don't have an account?
+                    <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
                 </div>
             </div>
         </div>
@@ -325,14 +354,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     syncIcon();
 
-    toggle.addEventListener('click', function (e) {
-        if (pwd.type === 'password') {
-            pwd.type = 'text';
-        } else {
-            pwd.type = 'password';
-        }
+    toggle.addEventListener('click', function () {
+        pwd.type = (pwd.type === 'password') ? 'text' : 'password';
         syncIcon();
         pwd.focus();
+
+        // keep cursor at end (mobile friendly)
         const val = pwd.value;
         pwd.value = '';
         pwd.value = val;

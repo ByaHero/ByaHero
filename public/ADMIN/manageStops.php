@@ -251,8 +251,8 @@ try {
     // ✅ ROOT-RELATIVE icon URLs (works no matter which folder the page is in)
     // If your project is inside "/Byahero-Prototype-v3", keep that prefix.
     const PROJECT_PREFIX = '/Byahero-Prototype-v3';
-    const PICKUP_URL = PROJECT_PREFIX + '/assets/images/icons/BUSPICKUP.png';
-    const STOP_URL   = PROJECT_PREFIX + '/assets/images/icons/BUSSTOP.png';
+    const PICKUP_URL = PROJECT_PREFIX + '/assets/images/icons/pickUpMarker.png';
+    const STOP_URL   = PROJECT_PREFIX + '/assets/images/icons/busStopMarker.png';
 
     document.getElementById('pickupUrlText').textContent = PICKUP_URL;
     document.getElementById('stopUrlText').textContent = STOP_URL;

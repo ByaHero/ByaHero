@@ -10,7 +10,7 @@ session_start();
 
 // --- AUTH ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: ../login.php');
+    header('Location: public/login.php');
     exit;
 }
 
