@@ -8,9 +8,18 @@ require __DIR__ . '/../../config/db.php';
 
 session_start();
 
+/**
+ * Base URL that works for:
+ * - Localhost: /Byahero-prototype-v3
+ * - InfinityFree: ""  (htdocs is web root)
+ */
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/ADMIN/admin.php';
+$publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/'); // e.g. /Byahero-prototype-v3/public/ADMIN
+$baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';      // e.g. /Byahero-prototype-v3 OR ""
+
 // --- AUTH ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: public/login.php');
+    header('Location: ' . $baseUrl . '/public/login.php');
     exit;
 }
 
@@ -33,7 +42,9 @@ try {
     $activeBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses WHERE status IN ('available','on_stop','full')")->fetchColumn();
     $driversCount = (int)$pdo->query("SELECT COUNT(*) FROM drivers")->fetchColumn();
     $conductorsCount = (int)$pdo->query("SELECT COUNT(*) FROM conductors")->fetchColumn();
-    $stopsCount = (int)$pdo->query("SELECT COUNT(*) FROM busStopsTerminal")->fetchColumn();
+
+    // IMPORTANT: InfinityFree table is lowercase (case-sensitive on Linux)
+    $stopsCount = (int)$pdo->query("SELECT COUNT(*) FROM busstopsterminal")->fetchColumn();
 } catch (Exception $e) {
     // keep zeros if something fails
 }
@@ -195,7 +206,6 @@ try {
                     </div>
                 </div>
 
-                <!-- ✅ NEW CARD -->
                 <div class="col-6 col-md-6 col-lg-3">
                     <div class="stat-card card-stops">
                         <div class="stat-card-title">Bus Stops</div>

@@ -87,7 +87,7 @@ function getBusStopsTerminal(): array {
     $pdo = db();
     $stmt = $pdo->query("
         SELECT id, name, type, location_name, location_landmark, lat, lng
-        FROM busStopsTerminal
+        FROM busstopsterminal
         ORDER BY name ASC
     ");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);

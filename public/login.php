@@ -50,7 +50,7 @@ if ($redirectAfter !== '' && $redirectAfter[0] !== '/' && !preg_match('~^https?:
 
 // Map table => role info (role name + default redirect)
 $roleTables = [
-    'admins'     => ['role' => 'admin',     'redirect' => $baseUrl . '/public/admin/admin.php'],
+    'admins'     => ['role' => 'admin',     'redirect' => $baseUrl . '/public/ADMIN/admin.php'],
     'drivers'    => ['role' => 'driver',    'redirect' => $baseUrl . '/public/driver/dashboard.php'],
     'conductors' => ['role' => 'conductor', 'redirect' => $baseUrl . '/public/conductor/conductor.php'],
     'users'      => ['role' => 'user',      'redirect' => $baseUrl . '/public/passenger/index.php'],
