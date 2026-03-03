@@ -1,6 +1,6 @@
 <?php
 // If your project uses sessions/auth, uncomment as needed:
-// session_start();
+session_start();
 
 $pageTitle = 'Create Emergency Contact';
 
@@ -16,7 +16,6 @@ $pageDepth = '../../../';
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title><?= htmlspecialchars($pageTitle) ?></title>
 
-  <!-- Bootstrap 5 -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
@@ -128,9 +127,16 @@ $pageDepth = '../../../';
       font-weight: 600;
       border-radius: 28px;
       box-shadow: 0 10px 20px rgba(30, 86, 164, .25);
+      transition: all 0.2s ease-in-out;
     }
 
-    .add-contact-page .save-btn:active { transform: translateY(1px); }
+    .add-contact-page .save-btn:hover {
+      background: #154282;
+    }
+
+    .add-contact-page .save-btn:active { 
+      transform: translateY(1px); 
+    }
   </style>
 </head>
 
@@ -150,10 +156,22 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
 
     <div class="content">
 
+      <?php if (isset($_GET['error'])): ?>
+        <div class="alert alert-danger py-2 px-3 small rounded-3 mb-3 border-0 shadow-sm" role="alert">
+          <?php 
+            if ($_GET['error'] === 'invalid_input') echo "Please fill in all required fields correctly.";
+            elseif ($_GET['error'] === 'max_reached') echo "You have reached the maximum of 5 contacts.";
+            elseif ($_GET['error'] === 'duplicate_phone') echo "This phone number is already saved.";
+            elseif ($_GET['error'] === 'save_failed') echo "Failed to save the contact. Please try again.";
+            else echo "An error occurred. Please try again.";
+          ?>
+        </div>
+      <?php endif; ?>
+
       <div class="form-card">
         <form id="emergencyContactForm"
               class="row g-3"
-              action="save_emergency_contact.php"
+              action="saveEmergencyContact.php"
               method="POST">
 
           <div class="col-12">
@@ -166,7 +184,6 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
             <input id="last_name" name="last_name" type="text" class="form-control">
           </div>
 
-          <!-- Phone: user enters ONLY 10 digits (must start with 9), system submits +63XXXXXXXXXX -->
           <div class="col-12">
             <label class="form-label" for="phone_digits">Phone</label>
 
@@ -180,16 +197,16 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
                 autocomplete="tel"
                 placeholder="9XXXXXXXXX"
                 maxlength="10"
-                pattern="^9\\d{9}$"
+                pattern="^9[0-9]{9}$"
+                title="Please enter exactly 10 digits starting with 9"
                 required
               >
             </div>
 
-            <!-- Hidden field that actually gets posted -->
             <input type="hidden" id="phone" name="phone" value="">
 
-            <div class="form-text">
-              Enter 10 digits starting with 9 (example: 9123456789). +63 is added automatically.
+            <div class="form-text mt-2 small text-muted">
+              Enter 10 digits starting with 9 (example: 9123456789).
             </div>
           </div>
 
@@ -216,7 +233,7 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
 
       <div class="mt-3 text-center">
         <a class="text-decoration-none" href="<?= htmlspecialchars($backLink) ?>">
-          <small class="text-muted">Back</small>
+          <small class="text-muted fw-medium">Back</small>
         </a>
       </div>
 
@@ -230,6 +247,9 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
     const hiddenEl = document.getElementById("phone");
     if (!digitsEl || !hiddenEl) return;
 
+    // Regex to match exactly a 9 followed by 9 other numbers
+    const phoneRegex = /^9[0-9]{9}$/;
+
     function digitsOnly10(v) {
       v = String(v || "").replace(/\D/g, "");
       return v.slice(0, 10);
@@ -237,8 +257,24 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
 
     function syncHidden() {
       const d = digitsOnly10(digitsEl.value);
-      if (digitsEl.value !== d) digitsEl.value = d;
+      
+      // Update the visible input value if it contained non-digits
+      if (digitsEl.value !== d) {
+        digitsEl.value = d;
+      }
+      
+      // Sync hidden value
       hiddenEl.value = (d.length === 10) ? (`+63${d}`) : "";
+
+      // Bootstrap Validation Styling: Provide instant visual feedback
+      if (phoneRegex.test(d)) {
+        digitsEl.classList.add('is-valid');
+        digitsEl.classList.remove('is-invalid');
+      } else if (d.length > 0) {
+        digitsEl.classList.remove('is-valid');
+      } else {
+        digitsEl.classList.remove('is-valid', 'is-invalid');
+      }
     }
 
     digitsEl.addEventListener("input", syncHidden);
@@ -253,10 +289,13 @@ include __DIR__ . "/../../../components/navbarPassenger.php";
     if (form) {
       form.addEventListener("submit", (e) => {
         syncHidden();
-        if (!hiddenEl.value) {
+        if (!hiddenEl.value || !phoneRegex.test(digitsEl.value)) {
           e.preventDefault();
-          digitsEl.setCustomValidity("Enter 10 digits starting with 9 (e.g. 9123456789).");
+          digitsEl.classList.add('is-invalid');
+          digitsEl.setCustomValidity("Enter exactly 10 digits starting with 9 (e.g. 9123456789).");
           digitsEl.reportValidity();
+          
+          // Reset custom validity message so it doesn't stay permanently stuck
           setTimeout(() => digitsEl.setCustomValidity(""), 0);
         }
       });
