@@ -357,6 +357,10 @@ include "../../../components/navbarPassenger.php";
         // Store coords globally so shareLocation() can always build a correct maps URL
         let currentCoords = { lat: null, lng: null };
 
+        // Cache resolved place name so SOS sends a place instead of coordinates
+        let resolvedPlaceName = "";
+        let resolvePlacePromise = null;
+
         async function reverseGeocode(lat, lng) {
             // Nominatim usage policy: include a valid User-Agent/Referer; browser fetch is usually OK for prototypes.
             const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
@@ -392,6 +396,55 @@ include "../../../components/navbarPassenger.php";
             return parts.length ? parts.join(", ") : (nominatim.display_name || "Unknown location");
         }
 
+        function looksLikeCoords(text) {
+            // Matches "14.2311, 121.1717" etc.
+            return /^\s*-?\d+(\.\d+)?\s*,\s*-?\d+(\.\d+)?\s*$/.test(String(text || ""));
+        }
+
+        async function getResolvedLocationText() {
+            const elText = document.getElementById("location-text")?.innerText || "";
+
+            // If UI already has a place name, use it
+            if (elText && !looksLikeCoords(elText) && elText !== "Locating..." && elText !== "Unknown Location") {
+                resolvedPlaceName = elText;
+                return elText;
+            }
+
+            // If we already resolved it before, reuse
+            if (resolvedPlaceName) return resolvedPlaceName;
+
+            // Need coordinates to resolve
+            if (currentCoords.lat == null || currentCoords.lng == null) {
+                // fallback to whatever is on screen
+                return elText || "Unknown Location";
+            }
+
+            // Avoid duplicate calls if multiple sends happen quickly
+            if (!resolvePlacePromise) {
+                resolvePlacePromise = (async () => {
+                    try {
+                        const data = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                        const place = formatPlaceName(data);
+                        resolvedPlaceName = place;
+
+                        // Update UI too (optional)
+                        const el = document.getElementById("location-text");
+                        if (el) el.innerText = place;
+
+                        return place;
+                    } catch (e) {
+                        console.warn(e);
+                        // fallback: coordinates if geocoding fails
+                        return `${Number(currentCoords.lat).toFixed(4)}, ${Number(currentCoords.lng).toFixed(4)}`;
+                    } finally {
+                        resolvePlacePromise = null;
+                    }
+                })();
+            }
+
+            return resolvePlacePromise;
+        }
+
         async function setLocationUI(lat, lng) {
             const el = document.getElementById("location-text");
             if (!el) return;
@@ -401,7 +454,9 @@ include "../../../components/navbarPassenger.php";
 
             try {
                 const data = await reverseGeocode(lat, lng);
-                el.innerText = formatPlaceName(data);
+                const place = formatPlaceName(data);
+                resolvedPlaceName = place; // cache
+                el.innerText = place;
             } catch (e) {
                 // Keep coords if API fails
                 console.warn(e);
@@ -528,7 +583,7 @@ include "../../../components/navbarPassenger.php";
                 return;
             }
 
-            const locText = document.getElementById('location-text').innerText;
+            const locText = await getResolvedLocationText();
 
             try {
                 statusEl.textContent = "Sending…";
@@ -608,7 +663,7 @@ include "../../../components/navbarPassenger.php";
 
         async function sendSOS() {
             const statusEl = document.getElementById("friends-status");
-            const locText = document.getElementById('location-text')?.innerText || "";
+            const locText = await getResolvedLocationText();
 
             // if your groupView.php returns id per friend (it does in your modal code), use it:
             const recipients = Array.isArray(friendsCache)
