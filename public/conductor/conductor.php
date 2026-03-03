@@ -22,247 +22,214 @@ $userName = $_SESSION['user_name'] ?? 'User';
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
 
     <style>
         :root {
             --btn-blue: #1c5ab5;
-            --bg-light: #f5f7fa;
-            --card-radius: 16px;
-            --shadow-soft: 0 10px 30px rgba(0, 0, 0, 0.06);
-            --shadow-strong: 0 18px 40px rgba(15, 56, 120, 0.14);
-            --border-soft: 1px solid rgba(15, 56, 120, 0.10);
+            --bg-light: #f3f4f6;
+            --card-radius: 20px;
         }
 
         body {
             background-color: var(--bg-light);
             font-family: 'Segoe UI', sans-serif;
-            padding-bottom: 80px;
-            overflow-x: hidden;
+            /* Exactly the height of the footer to prevent overlap without extra gaps */
+            padding-bottom: 35px; 
             margin: 0;
+            min-height: 100vh;
         }
 
-        .main-content-wrapper {
-            padding: 12px 16px 28px 16px;
-            position: relative;
-            z-index: 10;
-        }
-
-        .filter-section {
+        /* Top Action Row (Settings & Filter) */
+        .action-row {
             display: flex;
-            justify-content: center;
-            margin-bottom: 12px;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            margin-bottom: 15px;
+            padding: 0 10px;
+        }
+
+        .settings-icon {
+            color: #0f3878;
+            font-size: 32px;
         }
 
         .filter-pill {
             background: white;
-            padding: 10px 22px;
+            padding: 8px 24px;
             border-radius: 999px;
-            box-shadow: 0 10px 22px rgba(0, 0, 0, 0.08);
-            font-weight: 800;
-            font-size: 0.78rem;
-            color: #2b2b2b;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+            font-weight: 700;
+            font-size: 0.75rem;
+            color: #374151;
             display: flex;
             align-items: center;
             gap: 8px;
+            border: 1px solid #e5e7eb;
             text-transform: uppercase;
-            cursor: pointer;
-            border: 1px solid rgba(0, 0, 0, 0.03);
-            letter-spacing: 0.5px;
         }
+        .filter-pill::after { display: none !important; }
 
+        /* Map styling */
         .map-card-wrapper {
             position: relative;
             border-radius: var(--card-radius);
             overflow: hidden;
-            box-shadow: var(--shadow-soft);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
             background: white;
             height: 320px;
-            margin-bottom: 18px;
+            margin-bottom: 20px;
             border: 4px solid white;
         }
+        #mainMap { width: 100%; height: 100%; z-index: 1; }
 
-        #mainMap {
-            width: 100%;
-            height: 100%;
-            z-index: 1;
+        /* Custom Connected Select Box Styling */
+        .custom-select-container {
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            background: white;
+            margin-bottom: 15px;
+            border: 1px solid #e5e7eb;
+            transition: all 0.2s ease;
+            position: relative;
         }
 
-        /* ===== Modern dropdown field ===== */
-        .modern-field {
-            background: rgba(255, 255, 255, 0.95);
-            border: var(--border-soft);
-            border-radius: var(--card-radius);
-            height: 70px;
-            box-shadow: var(--shadow-soft);
-            padding: 12px 14px;
-            margin-bottom: 12px;
+        /* Active/Open State UI */
+        .custom-select-container.open {
+            border-radius: 12px 12px 0 0;
+            z-index: 100;
+            border-color: var(--btn-blue);
+            box-shadow: 0 0 0 3px rgba(28, 90, 181, 0.15); /* Soft blue glow */
+        }
+
+        .custom-select-header {
+            padding: 16px 20px;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 12px;
-            transition: transform 120ms ease, box-shadow 120ms ease, border-color 120ms ease;
+            cursor: pointer;
+            background: white;
+            user-select: none;
+            border-radius: inherit;
         }
 
-        .modern-field:active {
-            transform: scale(0.99);
+        .custom-select-header .value-text {
+            font-weight: 800;
+            font-size: 1.1rem;
+            color: #000;
+            transition: color 0.2s ease;
         }
 
-        .modern-field:focus-within,
-        .modern-field:hover {
-            border-color: rgba(28, 90, 181, 0.35);
-            box-shadow: var(--shadow-strong);
+        /* Arrow rotation & coloring */
+        .custom-select-header .chevron {
+            font-weight: bold;
+            font-size: 14px;
+            color: #000;
+            display: inline-block;
+            transition: transform 0.3s ease, color 0.2s ease;
         }
 
-        .field-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            background: rgba(28, 90, 181, 0.10);
+        .custom-select-container.open .value-text,
+        .custom-select-container.open .chevron {
             color: var(--btn-blue);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
         }
 
-        .field-text {
-            min-width: 0;
-            flex: 1 1 auto;
-            display: flex;
+        .custom-select-container.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* Overlay Container for options */
+        .custom-select-options {
+            display: none;
             flex-direction: column;
-            line-height: 1.1;
-        }
-
-        .field-label {
-            font-size: 0.72rem;
-            font-weight: 800;
-            letter-spacing: 0.6px;
-            color: rgba(15, 56, 120, 0.70);
-            text-transform: uppercase;
-        }
-
-        .field-value {
-            font-size: 1.02rem;
-            font-weight: 800;
-            color: #1b1b1b;
-            margin-top: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .field-chevron {
-            width: 42px;
-            height: 42px;
-            border-radius: 14px;
-            background: rgba(15, 56, 120, 0.06);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            color: rgba(15, 56, 120, 0.85);
-        }
-
-        .modern-dropdown-toggle::after {
-            display: none !important;
-        }
-
-        .dropdown-menu.modern-menu {
-            border-radius: 16px;
-            border: 1px solid rgba(15, 56, 120, 0.10);
-            padding: 10px;
-            box-shadow: 0 24px 60px rgba(15, 56, 120, 0.18);
-        }
-
-        .dropdown-menu.modern-menu.scrollable {
-            max-height: 280px;
+            position: absolute; 
+            top: 100%;
+            left: -1px; 
+            right: -1px;
+            background: white;
+            z-index: 99;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+            border-radius: 0 0 12px 12px;
+            border: 1px solid var(--btn-blue);
+            border-top: none;
+            max-height: 220px; 
             overflow-y: auto;
         }
 
-        .dropdown-menu.modern-menu .dropdown-item {
-            border-radius: 12px;
-            padding: 12px 12px;
-            font-weight: 800;
+        .custom-select-container.open .custom-select-options {
             display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 12px;
         }
 
-        .dropdown-menu.modern-menu .dropdown-item:hover {
-            background: rgba(28, 90, 181, 0.08);
-        }
-
-        .dropdown-menu.modern-menu .dropdown-item.active,
-        .dropdown-menu.modern-menu .dropdown-item:active {
-            background: rgba(28, 90, 181, 0.15);
-            color: #0f3878;
-        }
-
-        .menu-search {
-            position: sticky;
-            top: 0;
-            background: white;
-            padding: 6px 6px 10px 6px;
-            z-index: 2;
-        }
-
-        .menu-search input {
-            border-radius: 12px;
-            border: 1px solid rgba(15, 56, 120, 0.12);
-            padding: 10px 12px;
+        /* Individual option rows */
+        .custom-option {
+            padding: 14px 20px;
             font-weight: 700;
-        }
-
-        .start-btn-wrapper {
+            font-size: 1.05rem;
+            color: #000;
+            cursor: pointer;
+            background: white;
+            border-bottom: 1px solid #f0f0f0;
             display: flex;
-            justify-content: center;
-            margin-top: 12px;
+            justify-content: space-between;
+            align-items: center;
+            transition: background-color 0.15s ease, color 0.15s ease;
         }
 
+        .custom-option:last-child {
+            border-bottom: none;
+        }
+
+        /* Blue hover and selection highlighting */
+        .custom-option:hover, 
+        .custom-option.selected {
+            background-color: var(--btn-blue); 
+            color: white;
+        }
+
+        /* Ensure the tiny seat count text stays readable when hovered/selected */
+        .custom-option:hover .text-muted,
+        .custom-option.selected .text-muted {
+            color: #e0e6ed !important; 
+        }
+
+        /* Start Tracking Button */
         .btn-circle-start {
-            width: 96px;
-            height: 96px;
+            width: 110px;
+            height: 110px;
             border-radius: 50%;
             background-color: var(--btn-blue);
             color: white;
             border: none;
-            box-shadow: 0 10px 30px rgba(28, 90, 181, 0.28);
+            box-shadow: 0 8px 20px rgba(28, 90, 181, 0.3);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             font-weight: 900;
             font-size: 0.85rem;
-            line-height: 1.1;
+            line-height: 1.2;
+            margin: 20px auto;
             transition: transform 0.1s;
         }
-
-        .btn-circle-start:active {
-            transform: scale(0.96);
-        }
+        .btn-circle-start:active { transform: scale(0.95); }
 
         .footer-bar {
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 40px;
+            height: 35px;
             background-color: #0f3878;
             z-index: 1000;
         }
 
         .alert-area {
             position: absolute;
-            bottom: 20px;
-            left: 20px;
-            right: 20px;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
             z-index: 900;
-            pointer-events: none;
-        }
-
-        .alert-area .alert {
-            pointer-events: auto;
         }
     </style>
 </head>
@@ -271,12 +238,24 @@ $userName = $_SESSION['user_name'] ?? 'User';
 
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
-    <div class="main-content-wrapper">
-
-        <div class="filter-section">
-            <div class="filter-pill">
-                FILTER ROUTES <span class="material-icons-round" style="font-size: 18px;">tune</span>
+    <div class="container px-3" style="padding-top: 5px;">
+        
+        <div class="action-row">
+            <a href="profile/profile.php" class="text-decoration-none">
+                <span class="material-symbols-rounded settings-icon">settings</span>
+            </a>
+            
+            <div class="dropdown">
+                <button class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><button class="dropdown-item" type="button" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">LAUREL - TANAUAN</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">TANAUAN - LAUREL</button></li>
+                </ul>
             </div>
+
+            <div style="width: 32px;"></div> 
         </div>
 
         <div class="map-card-wrapper">
@@ -284,87 +263,32 @@ $userName = $_SESSION['user_name'] ?? 'User';
             <div id="mainMap"></div>
         </div>
 
-        <section id="setupSection">
-
-            <!-- BUS: modern dropdown (name only) -->
-            <div class="dropdown w-100 mb-2">
-                <button
-                    class="modern-field modern-dropdown-toggle w-100 border-0 text-start d-flex"
-                    type="button"
-                    id="busDropdownBtn"
-                    data-bs-toggle="dropdown"
-                    data-bs-auto-close="true"
-                    aria-expanded="false">
-                    <div class="field-icon">
-                        <span class="material-icons-round">directions_bus</span>
-                    </div>
-
-                    <div class="field-text">
-                        <div class="field-label">Bus</div>
-                        <div class="field-value" id="busDropdownValue">Select bus</div>
-                    </div>
-
-                    <div class="field-chevron">
-                        <span class="material-icons-round">expand_more</span>
-                    </div>
-                </button>
-
-                <ul class="dropdown-menu w-100 modern-menu scrollable" aria-labelledby="busDropdownBtn" id="busDropdownMenu">
-                    <li class="menu-search">
-                        <input id="busSearch" class="form-control" type="text" placeholder="Search bus..." autocomplete="off">
-                    </li>
-                    <li>
-                        <button class="dropdown-item" type="button" onclick="setBus('', 'Select bus')">-- Choose --</button>
-                    </li>
-                    <!-- bus items injected by JS -->
-                </ul>
-
-                <input type="hidden" id="busSelect" value="">
+        <div class="custom-select-container" id="busSelectContainer">
+            <div class="custom-select-header" onclick="toggleDropdown('busSelectContainer')">
+                <span id="busDropdownValue" class="value-text">Select Bus</span>
+                <span class="chevron">v</span>
             </div>
+            <div class="custom-select-options" id="busOptionsList">
+                </div>
+            <input type="hidden" id="busSelect" value="">
+        </div>
 
-            <!-- ROUTE: modern dropdown -->
-            <div class="dropdown w-100 mb-2">
-                <button
-                    class="modern-field modern-dropdown-toggle w-100 border-0 text-start d-flex"
-                    type="button"
-                    id="routeDropdownBtn"
-                    data-bs-toggle="dropdown"
-                    data-bs-auto-close="true"
-                    aria-expanded="false">
-                    <div class="field-icon">
-                        <span class="material-icons-round">route</span>
-                    </div>
-
-                    <div class="field-text">
-                        <div class="field-label">Route</div>
-                        <div class="field-value" id="routeDropdownValue">Select route</div>
-                    </div>
-
-                    <div class="field-chevron">
-                        <span class="material-icons-round">expand_more</span>
-                    </div>
-                </button>
-
-                <ul class="dropdown-menu w-100 modern-menu scrollable" aria-labelledby="routeDropdownBtn" id="routeDropdownMenu">
-                    <li>
-                        <button class="dropdown-item" type="button" onclick="setRoute('', 'Select route')">-- Choose --</button>
-                    </li>
-                    <li>
-                        <button class="dropdown-item" type="button" onclick="setRoute('LAUREL - TANAUAN')">LAUREL - TANAUAN</button>
-                    </li>
-                    <li>
-                        <button class="dropdown-item" type="button" onclick="setRoute('TANAUAN - LAUREL')">TANAUAN - LAUREL</button>
-                    </li>
-                </ul>
-
-                <input type="hidden" id="routeSelect" value="">
+        <div class="custom-select-container" id="routeSelectContainer">
+            <div class="custom-select-header" onclick="toggleDropdown('routeSelectContainer')">
+                <span id="routeDropdownValue" class="value-text">Select Route</span>
+                <span class="chevron">v</span>
             </div>
-
-            <div class="start-btn-wrapper">
-                <button id="startBtn" class="btn-circle-start">START<br>TRACKING</button>
+            <div class="custom-select-options">
+                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">Laurel</div>
+                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">Tanauan</div>
             </div>
+            <input type="hidden" id="routeSelect" value="">
+        </div>
 
-        </section>
+        <button id="startBtn" class="btn-circle-start">
+            START<br>TRACKING
+        </button>
+
     </div>
 
     <div class="footer-bar"></div>
@@ -373,114 +297,115 @@ $userName = $_SESSION['user_name'] ?? 'User';
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // --- Helpers ---
         const el = id => document.getElementById(id);
         const alertBox = el('alertBox');
 
-        function showAlert(message, type = 'info') {
+        function showAlert(message, type = 'danger') {
             const bsType = (type === 'danger') ? 'danger' : 'primary';
-            alertBox.innerHTML = `<div class="alert alert-${bsType} border-0 text-center fw-bold shadow-sm" style="border-radius: 12px;">${message}</div>`;
-            setTimeout(() => {
-                if (alertBox) alertBox.innerHTML = '';
-            }, 2500);
+            alertBox.innerHTML = `<div class="alert alert-${bsType} border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">${message}</div>`;
+            setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 3000);
         }
 
-        // --- Map (visual only on selection page) ---
+        // --- Map Initialization ---
         let map = null;
-
         function initMap() {
-            if (map) return;
-            map = L.map('mainMap', {
-                zoomControl: false,
-                attributionControl: false
-            }).setView([14.0905, 121.0550], 12);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                maxZoom: 19
-            }).addTo(map);
+            map = L.map('mainMap', { zoomControl: false, attributionControl: false }).setView([14.0905, 121.0550], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         }
 
-        // --- Dropdown state ---
-        let selectedBusMeta = null;
+        // --- Custom Dropdown Logic ---
+        function toggleDropdown(containerId) {
+            document.querySelectorAll('.custom-select-container').forEach(container => {
+                if (container.id !== containerId) {
+                    container.classList.remove('open');
+                }
+            });
+            el(containerId).classList.toggle('open');
+        }
 
+        // Close dropdowns if user clicks outside of them
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.custom-select-container') && !e.target.closest('.filter-pill')) {
+                document.querySelectorAll('.custom-select-container').forEach(container => {
+                    container.classList.remove('open');
+                });
+            }
+        });
+        
+        // Handle selecting Route
+        function selectRoute(value, displayText) {
+            el('routeSelect').value = value;
+            el('routeDropdownValue').textContent = displayText;
+
+            // Update highlighting
+            const container = el('routeSelectContainer');
+            container.querySelectorAll('.custom-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.value === value) {
+                    opt.classList.add('selected');
+                }
+            });
+
+            container.classList.remove('open');
+        }
+
+        // Handle selecting Bus
+        let selectedBusMeta = null;
         function setBus(busId, label, meta = null) {
-            el('busSelect').value = busId || '';
-            el('busDropdownValue').textContent = label || 'Select bus';
+            el('busSelect').value = busId;
+            el('busDropdownValue').textContent = label;
             selectedBusMeta = meta;
 
-            const search = el('busSearch');
-            if (search) {
-                search.value = '';
-                filterBusMenu('');
-            }
-        }
-
-        function setRoute(route, labelOverride = null) {
-            el('routeSelect').value = route || '';
-            el('routeDropdownValue').textContent = labelOverride || route || 'Select route';
-        }
-
-        function filterBusMenu(term) {
-            const q = String(term || '').toLowerCase();
-            const items = document.querySelectorAll('#busDropdownMenu li[data-bus-item="1"]');
-            items.forEach(li => {
-                const text = (li.dataset.searchText || '').toLowerCase();
-                li.style.display = text.includes(q) ? '' : 'none';
+            // Update highlighting
+            const container = el('busSelectContainer');
+            container.querySelectorAll('.custom-option').forEach(opt => {
+                opt.classList.remove('selected');
+                if (opt.dataset.value === String(busId)) {
+                    opt.classList.add('selected');
+                }
             });
+
+            container.classList.remove('open');
         }
 
-        // --- Load buses into BUS dropdown menu (NAME ONLY) ---
+        // Populate Bus Data
         async function loadBuses() {
             try {
-                const r = await fetch('../api.php?action=get_buses', {
-                    cache: 'no-store'
-                });
+                const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
                 const json = await r.json();
-
-                const menu = el('busDropdownMenu');
-                menu.querySelectorAll('li[data-bus-item="1"]').forEach(n => n.remove());
+                const list = el('busOptionsList');
 
                 if (json && Array.isArray(json.buses)) {
                     json.buses.forEach(b => {
                         const id = b.id || b.Bus_ID || b.bus_id;
                         const code = b.code || `BUS-${id}`;
+                        const meta = { bus_id: String(id), code: code, seats_total: b.seats_total || 25 };
 
-                        // keep meta for POST, but don't show seat/id in UI
-                        const meta = {
-                            bus_id: String(id),
-                            code,
-                            seats_total: b.seats_total || 25
-                        };
-
-                        const li = document.createElement('li');
-                        li.setAttribute('data-bus-item', '1');
-                        li.dataset.searchText = `${code} ${id}`;
-
-                        const btn = document.createElement('button');
-                        btn.type = 'button';
-                        btn.className = 'dropdown-item';
-                        btn.textContent = code;
-
-                        btn.addEventListener('click', () => {
-                            setBus(String(id), code, meta);
-                        });
-
-                        li.appendChild(btn);
-                        menu.appendChild(li);
+                        const div = document.createElement('div');
+                        div.className = 'custom-option';
+                        div.dataset.value = String(id);
+                        
+                        div.innerHTML = `
+                            <span>${code}</span>
+                            <span class="text-muted small" style="font-weight: 500;">${b.seat_availability || 0}/${meta.seats_total}</span>
+                        `;
+                        
+                        div.addEventListener('click', () => setBus(String(id), code, meta));
+                        list.appendChild(div);
                     });
                 }
             } catch (e) {
-                console.error(e);
                 showAlert('Failed to load buses', 'danger');
             }
         }
 
-        // --- Start Tracking: POST to conductorLive.php ---
+        // Form Submit
         function startTracking() {
             const busId = el('busSelect').value;
             const route = el('routeSelect').value;
 
-            if (!busId) return showAlert('Please select a bus', 'danger');
-            if (!route) return showAlert('Please select a route', 'danger');
+            if (!busId) return showAlert('Please select a bus first.', 'danger');
+            if (!route) return showAlert('Please select a route first.', 'danger');
 
             const payload = {
                 bus_id: busId,
@@ -510,13 +435,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
             loadBuses();
 
             el('startBtn').addEventListener('click', startTracking);
-
-            const search = el('busSearch');
-            if (search) {
-                search.addEventListener('input', (e) => filterBusMenu(e.target.value));
-            }
         });
     </script>
 </body>
-
 </html>
