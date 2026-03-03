@@ -8,9 +8,18 @@ require __DIR__ . '/../../config/db.php';
 
 session_start();
 
+/**
+ * Compute base URL prefix so assets work on:
+ * - Localhost: /Byahero-prototype-v3/...
+ * - InfinityFree (htdocs is web root): /...
+ */
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/manageStops.php';
+$publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/'); // e.g. /Byahero-prototype-v3/public/admin
+$baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';      // e.g. /Byahero-prototype-v3 OR ""
+
 // --- AUTH ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: ../login.php');
+    header('Location: ' . $baseUrl . '/public/login.php');
     exit;
 }
 
@@ -118,14 +127,14 @@ try {
     <?php if ($message): ?>
         <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
-            <?= $message ?>
+            <?= h($message) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     <?php if ($error): ?>
         <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">error</span>
-            <?= $error ?>
+            <?= h($error) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
@@ -248,16 +257,19 @@ try {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ✅ ROOT-RELATIVE icon URLs (works no matter which folder the page is in)
-    // If your project is inside "/Byahero-Prototype-v3", keep that prefix.
-    const PROJECT_PREFIX = '/Byahero-Prototype-v3';
-    const PICKUP_URL = PROJECT_PREFIX + '/assets/images/icons/pickUpMarker.png';
-    const STOP_URL   = PROJECT_PREFIX + '/assets/images/icons/busStopMarker.png';
+    // ✅ Auto base URL from PHP:
+    // - Localhost: "/Byahero-prototype-v3"
+    // - InfinityFree: ""
+    const BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+
+    // Icon URLs that work in both environments
+    const PICKUP_URL = BASE_URL + '/assets/images/icons/pickUpMarker.png';
+    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarker.png';
 
     document.getElementById('pickupUrlText').textContent = PICKUP_URL;
     document.getElementById('stopUrlText').textContent = STOP_URL;
 
-    // Debug: If these show 404 in console, icon won't load => default marker shows.
+    // Debug (optional)
     fetch(PICKUP_URL).then(r => { if (!r.ok) console.error('Missing:', PICKUP_URL, r.status); });
     fetch(STOP_URL).then(r => { if (!r.ok) console.error('Missing:', STOP_URL, r.status); });
 
