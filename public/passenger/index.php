@@ -249,12 +249,9 @@ if (isset($_SESSION['user_id'])) {
   <script src="../../assets/js/passengerBottomSheet.js"></script>
 
   <script>
-    // --- GLOBAL VARIABLES ---
     const isMobile = document.querySelector('.d-lg-none').offsetParent !== null;
     const mapId = isMobile ? 'map' : 'map-desktop-placeholder';
-    const map = L.map(mapId, {
-      zoomControl: false
-    }).setView([14.0905, 121.0550], 12);
+    const map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '',
@@ -267,6 +264,36 @@ if (isset($_SESSION['user_id'])) {
     let selectedRoute = '';
     let locationPermissionGranted = true;
 
+    // NEW: throttle for uploading user location to backend (Circle feature)
+    let _lastLocationUploadAt = 0;
+
+    async function uploadMyLocation(lat, lng, accuracy) {
+      // Throttle: once every 15 seconds to reduce DB writes
+      const now = Date.now();
+      if (now - _lastLocationUploadAt < 15000) return;
+      _lastLocationUploadAt = now;
+
+      try {
+        const res = await fetch('../../backend/updateUserLocation.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lng,
+            accuracy: accuracy ?? null
+          })
+        });
+
+        // Optional: log non-200 responses (e.g., "Location sharing disabled")
+        if (!res.ok) {
+          const txt = await res.text();
+          console.warn('uploadMyLocation failed:', res.status, txt);
+        }
+      } catch (e) {
+        console.warn('uploadMyLocation network error:', e);
+      }
+    }
+
     const statusColors = {
       available: '#10b981',
       on_stop: '#f59e0b',
@@ -278,27 +305,15 @@ if (isset($_SESSION['user_id'])) {
     const MAX_DISTANCE_METERS = 5000;
 
     // ICON configuration (works on both local + InfinityFree)
-    //
-    // Uses the current origin + detects whether the app is running under
-    // a project subfolder (e.g. /ByaHero-Prototype-V3/) or at domain root (/).
     (function () {
       const PROJECT_FOLDER = 'ByaHero-Prototype-V3'; // must match your local folder name (case-sensitive)
-
-      // pathname like: "/ByaHero-Prototype-V3/public/passenger/index.php" OR "/public/passenger/index.php"
       const path = window.location.pathname || '/';
-
-      // If the URL starts with "/ByaHero-Prototype-V3/", prefix asset paths with it; otherwise use root.
       const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
         ? '/' + PROJECT_FOLDER
         : '';
-
-      // Now assets resolve as:
-      // - local:      /ByaHero-Prototype-V3/assets/images/icons
-      // - infinityfree: /assets/images/icons
       window.ICON_BASE = base + '/assets/images/icons';
     })();
 
-    // Use ICON_BASE like before:
     const ICON_CACHE = {
       available: L.icon({
         iconUrl: ICON_BASE + '/marker.svg',
@@ -339,10 +354,10 @@ if (isset($_SESSION['user_id'])) {
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
-        <span class="material-symbols-rounded">location_off</span>
-        <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
-        <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
-      `;
+      <span class="material-symbols-rounded">location_off</span>
+      <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
+      <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
+    `;
 
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
@@ -358,10 +373,10 @@ if (isset($_SESSION['user_id'])) {
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
-        <span class="material-symbols-rounded">error</span>
-        <span class="small">Location permission denied. Please enable it in your browser settings.</span>
-        <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
-      `;
+      <span class="material-symbols-rounded">error</span>
+      <span class="small">Location permission denied. Please enable it in your browser settings.</span>
+      <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
+    `;
 
       document.body.appendChild(notice);
     }
@@ -400,6 +415,9 @@ if (isset($_SESSION['user_id'])) {
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
+
+        // NEW: upload to backend so Circle members can see your live location
+        uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
 
         updateBuses();
       }, (error) => {
