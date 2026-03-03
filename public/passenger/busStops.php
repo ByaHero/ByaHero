@@ -32,7 +32,7 @@ $error = '';
 try {
   $stmt = $pdo->query("
     SELECT id, name, type, location_name, location_landmark, lat, lng
-    FROM busStopsTerminal
+    FROM busstopsterminal
     ORDER BY FIELD(type,'terminal','bus_stop','pickup_point'), name ASC
   ");
   $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
