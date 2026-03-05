@@ -369,7 +369,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p>Are you sure you want to logout from<br>ByaHero?</p>
             <div class="modal-actions">
                 <button class="modal-btn btn-no" onclick="closeLogoutModal()">No</button>
-                <a href="../../login.php" class="modal-btn btn-yes d-flex align-items-center justify-content-center">Yes</a>
+                <a href="../logout.php" class="modal-btn btn-yes d-flex align-items-center justify-content-center">Yes</a>
             </div>
         </div>
     </div>
