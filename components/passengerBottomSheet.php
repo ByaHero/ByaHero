@@ -1,3 +1,12 @@
+<?php
+// Optional safety: if $baseUrl is not defined by the parent, default to empty string
+if (!isset($baseUrl)) {
+    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+    $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+    $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
+}
+?>
+
 <div id="bottomSheet"
   class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"
   style="bottom: 60px; height: 40%; z-index: 1050;">
@@ -49,9 +58,9 @@
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
             <img
-              src="/../assets/images/busStopMarkerFinal.svg"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinal.svg"
               alt="Location"
-              style="width: 34px; height: 34px; object-fit: contain;" />
+              style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
       </div>
@@ -73,7 +82,7 @@
     <div id="view-busstops" class="mt-2 d-none">
       <div class="d-flex align-items-center justify-content-between mb-2">
         <div class="fw-bold">Bus Stops</div>
-        <div class="small text-muted">Stops & terminals</div>
+        <div class="small text-muted">Stops &amp; terminals</div>
       </div>
 
       <div id="busStopsListMobile" class="list-group list-group-flush">
