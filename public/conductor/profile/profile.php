@@ -1,32 +1,149 @@
 <?php
+declare(strict_types=1);
+
 session_start();
 
-// Simulating database data for this example
-$userName = $_SESSION['user_name'] ?? 'Conductor 1';
-$userEmail = $_SESSION['user_email'] ?? 'Conductor1@gmail.com';
+require_once __DIR__ . '/../../../config/db.php';
 
-// Handle form submissions to update profile
+/**
+ * PROTECT THIS PAGE
+ * login.php sets:
+ * - $_SESSION['user_id']
+ * - $_SESSION['user_role']  (admin|driver|conductor|user)
+ */
+if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
+    header('Location: ../../login.php?redirect=conductor/profile/profile.php');
+    exit;
+}
+
+if ($_SESSION['user_role'] !== 'conductor') {
+    // logged in but not a conductor -> send to their correct dashboard
+    $role = (string)$_SESSION['user_role'];
+
+    if ($role === 'admin') {
+        header('Location: ../../ADMIN/admin.php');
+        exit;
+    }
+    if ($role === 'driver') {
+        header('Location: ../../driver/dashboard.php');
+        exit;
+    }
+    // passenger/user
+    header('Location: ../../passenger/index.php');
+    exit;
+}
+
+// prevent back-button cache after logout
+header('Cache-Control: no-store, no-cache, must-revalidate, max-age=0');
+header('Cache-Control: post-check=0, pre-check=0', false);
+header('Pragma: no-cache');
+header('Expires: 0');
+
+$pdo = db();
+
+$id = (int)$_SESSION['user_id'];
+
+/**
+ * conductors table columns (from your screenshot):
+ * id, email, password, created_at
+ */
+$stmt = $pdo->prepare("SELECT id, email, password, created_at FROM conductors WHERE id = ? LIMIT 1");
+$stmt->execute([$id]);
+$conductor = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$conductor) {
+    // session says conductor but record missing -> force logout
+    $_SESSION = [];
+    if (ini_get("session.use_cookies")) {
+        $params = session_get_cookie_params();
+        setcookie(session_name(), '', time() - 42000,
+            $params['path'] ?? '/',
+            $params['domain'] ?? '',
+            (bool)($params['secure'] ?? false),
+            (bool)($params['httponly'] ?? true)
+        );
+    }
+    session_destroy();
+
+    header('Location: ../../login.php?redirect=conductor/profile/profile.php');
+    exit;
+}
+
+$userEmail = (string)($conductor['email'] ?? ($_SESSION['user_email'] ?? ''));
+
+// Since you DON'T have name column, we display a label derived from email
+$displayName = 'Conductor';
+if ($userEmail !== '' && str_contains($userEmail, '@')) {
+    $displayName = ucfirst(explode('@', $userEmail)[0]); // e.g. johndoe@ -> Johndoe
+}
+
 $message = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    if (isset($_POST['update_email'])) {
-        $new_email = filter_var($_POST['new_email'], FILTER_SANITIZE_EMAIL);
-        if (filter_var($new_email, FILTER_VALIDATE_EMAIL)) {
-            $userEmail = $new_email; 
-            $_SESSION['user_email'] = $userEmail;
-            $message = "Email updated successfully.";
-        } else {
-            $message = "Invalid email format.";
-        }
-    } elseif (isset($_POST['update_password'])) {
-        $current = $_POST['current_password'];
-        $new = $_POST['new_password'];
-        $confirm = $_POST['confirm_new_password'];
 
-        if ($new === $confirm) {
-            $message = "Password successfully updated!";
-            // Add your DB update logic here
+// Handle form submissions
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+    // UPDATE EMAIL
+    if (isset($_POST['update_email'])) {
+        $newEmail = filter_var($_POST['new_email'] ?? '', FILTER_SANITIZE_EMAIL);
+
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            $message = "Invalid email format.";
         } else {
+            $up = $pdo->prepare("UPDATE conductors SET email = ? WHERE id = ? LIMIT 1");
+            $up->execute([$newEmail, $id]);
+
+            // sync session too
+            $_SESSION['user_email'] = $newEmail;
+            $userEmail = $newEmail;
+
+            // update displayName
+            if (str_contains($newEmail, '@')) {
+                $displayName = ucfirst(explode('@', $newEmail)[0]);
+            } else {
+                $displayName = 'Conductor';
+            }
+
+            $message = "Email updated successfully.";
+        }
+    }
+
+    // UPDATE PASSWORD
+    elseif (isset($_POST['update_password'])) {
+        $current = (string)($_POST['current_password'] ?? '');
+        $new     = (string)($_POST['new_password'] ?? '');
+        $confirm = (string)($_POST['confirm_new_password'] ?? '');
+
+        if ($new !== $confirm) {
             $message = "New passwords do not match!";
+        } else {
+            // load current password from DB (source of truth)
+            $stmtPwd = $pdo->prepare("SELECT password FROM conductors WHERE id = ? LIMIT 1");
+            $stmtPwd->execute([$id]);
+            $rowPwd = $stmtPwd->fetch(PDO::FETCH_ASSOC);
+            $dbHash = (string)($rowPwd['password'] ?? '');
+
+            if ($dbHash === '') {
+                $message = "Password not found for this account.";
+            } else {
+                // Same logic as login.php: allow hashed or legacy plaintext
+                $ok = false;
+
+                if (password_verify($current, $dbHash)) {
+                    $ok = true;
+                } elseif ($current === $dbHash) {
+                    $ok = true; // legacy plaintext
+                }
+
+                if (!$ok) {
+                    $message = "Current password is incorrect!";
+                } else {
+                    $newHash = password_hash($new, PASSWORD_DEFAULT);
+                    $up = $pdo->prepare("UPDATE conductors SET password = ? WHERE id = ? LIMIT 1");
+                    $up->execute([$newHash, $id]);
+
+                    $message = "Password successfully updated!";
+                }
+            }
         }
     }
 }
@@ -60,7 +177,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex-direction: column;
         }
 
-        /* Top Header Bar */
         .top-app-bar {
             background-color: var(--header-blue);
             color: white;
@@ -82,7 +198,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-right: 15px;
         }
 
-        /* Profile Avatar Section */
         .profile-header-section {
             display: flex;
             align-items: center;
@@ -115,7 +230,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin: 0;
         }
 
-        /* Bottom Settings Sheet */
         .bottom-sheet {
             background-color: var(--sheet-bg);
             border-top-left-radius: 35px;
@@ -127,7 +241,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             gap: 15px;
         }
 
-        /* Item Cards */
         .info-card {
             background-color: var(--card-bg);
             border-radius: 16px;
@@ -167,12 +280,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             font-weight: 600;
         }
 
-        .card-input::placeholder {
-            color: #adb5bd;
-            letter-spacing: normal;
-        }
-
-        /* Edit Button */
         .edit-btn {
             background: none;
             border: none;
@@ -187,12 +294,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             display: inline-block;
         }
 
-        /* Logout Button Specific */
         .logout-card {
             cursor: pointer;
             transition: transform 0.1s;
         }
-        
+
         .logout-card:active {
             transform: scale(0.98);
         }
@@ -210,7 +316,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             color: var(--text-dark);
         }
 
-        /* Solid blue footer bar */
         .footer-bar {
             width: 100%;
             height: 35px;
@@ -218,7 +323,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             margin-top: auto;
         }
 
-        /* Modal Styling */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -270,15 +374,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             flex: 1;
         }
 
-        .btn-no {
-            background-color: #f0f2f5;
-            color: #333;
-        }
-
-        .btn-yes {
-            background-color: var(--header-blue);
-            color: white;
-        }
+        .btn-no { background-color: #f0f2f5; color: #333; }
+        .btn-yes { background-color: var(--header-blue); color: white; }
     </style>
 </head>
 
@@ -297,17 +394,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
             </svg>
         </div>
-        <h2 class="profile-name"><?php echo htmlspecialchars($userName); ?></h2>
+        <h2 class="profile-name"><?php echo htmlspecialchars($displayName); ?></h2>
     </div>
 
     <div class="bottom-sheet">
 
         <?php if ($message): ?>
             <div class="alert alert-info py-2 text-center" style="border-radius: 10px; font-weight: 600;">
-                <?php echo $message; ?>
+                <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
-        
+
         <div class="info-card">
             <div class="card-label">Email</div>
             <div class="card-input-wrapper">
@@ -338,7 +435,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h3>Edit Email</h3>
             <p>Enter your new email address below.</p>
             <form method="POST" action="profile.php">
-                <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" value="" required>
+                <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" required>
                 <div class="modal-actions">
                     <button type="button" class="modal-btn btn-no" onclick="closeEmailModal()">Cancel</button>
                     <button type="submit" name="update_email" class="modal-btn btn-yes">Save</button>
@@ -369,35 +466,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <p>Are you sure you want to logout from<br>ByaHero?</p>
             <div class="modal-actions">
                 <button class="modal-btn btn-no" onclick="closeLogoutModal()">No</button>
-                <a href="../logout.php" class="modal-btn btn-yes d-flex align-items-center justify-content-center">Yes</a>
+                <a href="../../logout.php" class="modal-btn btn-yes d-flex align-items-center justify-content-center">Yes</a>
             </div>
         </div>
     </div>
 
     <script>
-        // Email Modal Controls
-        function openEmailModal() {
-            document.getElementById('emailModal').style.display = 'flex';
-        }
-        function closeEmailModal() {
-            document.getElementById('emailModal').style.display = 'none';
-        }
+        function openEmailModal() { document.getElementById('emailModal').style.display = 'flex'; }
+        function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; }
 
-        // Password Modal Controls
-        function openPasswordModal() {
-            document.getElementById('passwordModal').style.display = 'flex';
-        }
-        function closePasswordModal() {
-            document.getElementById('passwordModal').style.display = 'none';
-        }
+        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
 
-        // Logout Modal Controls
-        function openLogoutModal() {
-            document.getElementById('logoutModal').style.display = 'flex';
-        }
-        function closeLogoutModal() {
-            document.getElementById('logoutModal').style.display = 'none';
-        }
+        function openLogoutModal() { document.getElementById('logoutModal').style.display = 'flex'; }
+        function closeLogoutModal() { document.getElementById('logoutModal').style.display = 'none'; }
     </script>
 </body>
 </html>
