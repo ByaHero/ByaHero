@@ -107,6 +107,18 @@ try {
         .hint { font-size: .9rem; color: #64748b; }
         .table > :not(caption) > * > * { padding: 0.65rem 0.9rem; vertical-align: middle; }
         @media (max-width: 991px) { #stopMap { height: 320px; } }
+
+        /* NEW: small "icon size" control UI */
+        .icon-size-card {
+            border: 1px dashed #cbd5e1;
+            border-radius: 10px;
+            padding: .75rem;
+            background: #f8fafc;
+        }
+        .icon-size-value {
+            font-variant-numeric: tabular-nums;
+            font-weight: 700;
+        }
     </style>
 </head>
 <body>
@@ -148,6 +160,32 @@ try {
                 </div>
                 <div class="card-body">
                     <div id="stopMap"></div>
+
+                    <!-- NEW: icon size control -->
+                    <div class="icon-size-card mt-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="fw-bold">Marker Icon Size</div>
+                            <div class="small text-muted">
+                                <span class="icon-size-value" id="iconSizeValue">42</span>px
+                            </div>
+                        </div>
+                        <input
+                            id="iconSizeSlider"
+                            type="range"
+                            class="form-range mt-2"
+                            min="22"
+                            max="80"
+                            step="1"
+                            value="42"
+                        />
+                        <div class="d-flex justify-content-between small text-muted">
+                            <span>Small</span><span>Large</span>
+                        </div>
+                        <div class="small text-muted mt-1">
+                            Tip: adjust to make bus stop / pick-up / terminal icons bigger on the map.
+                        </div>
+                    </div>
+
                     <div class="mt-2 small text-muted">
                         Selected: <span id="pickedCoords">None</span>
                     </div>
@@ -257,43 +295,51 @@ try {
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // ✅ Auto base URL from PHP:
-    // - Localhost: "/Byahero-prototype-v3"
-    // - InfinityFree: ""
+    // Auto base URL from PHP:
     const BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 
     // Icon URLs that work in both environments
-    const PICKUP_URL = BASE_URL + '/assets/images/icons/pickUpMarker.png';
-    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarker.png';
+    const PICKUP_URL = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
+    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal2.svg';
 
     document.getElementById('pickupUrlText').textContent = PICKUP_URL;
     document.getElementById('stopUrlText').textContent = STOP_URL;
 
-    // Debug (optional)
-    fetch(PICKUP_URL).then(r => { if (!r.ok) console.error('Missing:', PICKUP_URL, r.status); });
-    fetch(STOP_URL).then(r => { if (!r.ok) console.error('Missing:', STOP_URL, r.status); });
+    // NEW: adjustable marker size (defaults to 42 like before)
+    let MARKER_SIZE = 42;
 
-    const pickupIcon = L.icon({
-        iconUrl: PICKUP_URL,
-        iconSize: [42, 42],
-        iconAnchor: [21, 42],
-        popupAnchor: [0, -38]
-    });
+    // Build Leaflet icons based on MARKER_SIZE
+    function makeIcons() {
+        const size = MARKER_SIZE;
+        const anchorX = Math.round(size / 2);
+        const anchorY = size;
 
-    const stopIcon = L.icon({
-        iconUrl: STOP_URL,
-        iconSize: [42, 42],
-        iconAnchor: [21, 42],
-        popupAnchor: [0, -38]
-    });
+        const pickupIcon = L.icon({
+            iconUrl: PICKUP_URL,
+            iconSize: [size, size],
+            iconAnchor: [anchorX, anchorY],
+            popupAnchor: [0, -Math.round(size * 0.9)]
+        });
 
-    const terminalIcon = stopIcon;
+        const stopIcon = L.icon({
+            iconUrl: STOP_URL,
+            iconSize: [size, size],
+            iconAnchor: [anchorX, anchorY],
+            popupAnchor: [0, -Math.round(size * 0.9)]
+        });
+
+        const terminalIcon = stopIcon;
+
+        return { pickupIcon, stopIcon, terminalIcon };
+    }
+
+    let ICONS = makeIcons();
 
     function iconForType(type) {
         const t = String(type || '').toLowerCase();
-        if (t === 'pickup_point') return pickupIcon;
-        if (t === 'terminal') return terminalIcon;
-        return stopIcon;
+        if (t === 'pickup_point') return ICONS.pickupIcon;
+        if (t === 'terminal') return ICONS.terminalIcon;
+        return ICONS.stopIcon;
     }
 
     const existingStops = <?= json_encode($stops, JSON_UNESCAPED_SLASHES) ?>;
@@ -304,20 +350,29 @@ try {
         }[s]));
     }
 
-    existingStops.forEach(s => {
-        if (!s.lat || !s.lng) return;
+    // Keep references so we can resize them when slider changes
+    const stopMarkers = [];
 
-        const popup = `
-          <b>${escapeHtml(s.name)}</b><br>
-          ${escapeHtml(s.location_name)}<br>
-          <small>${escapeHtml(s.type)}</small>
-          ${s.location_landmark ? `<br><small>Landmark: ${escapeHtml(s.location_landmark)}</small>` : ''}
-        `;
+    function renderExistingStops() {
+        existingStops.forEach(s => {
+            if (!s.lat || !s.lng) return;
 
-        L.marker([parseFloat(s.lat), parseFloat(s.lng)], { icon: iconForType(s.type) })
-          .addTo(map)
-          .bindPopup(popup);
-    });
+            const popup = `
+              <b>${escapeHtml(s.name)}</b><br>
+              ${escapeHtml(s.location_name)}<br>
+              <small>${escapeHtml(s.type)}</small>
+              ${s.location_landmark ? `<br><small>Landmark: ${escapeHtml(s.location_landmark)}</small>` : ''}
+            `;
+
+            const m = L.marker([parseFloat(s.lat), parseFloat(s.lng)], { icon: iconForType(s.type) })
+              .addTo(map)
+              .bindPopup(popup);
+
+            stopMarkers.push(m);
+        });
+    }
+
+    renderExistingStops();
 
     let pickMarker = null;
     const coordsEl = document.getElementById('pickedCoords');
@@ -345,6 +400,34 @@ try {
         lngField.value = lng.toFixed(7);
         coordsEl.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     });
+
+    // NEW: slider wiring - update icons + update all markers
+    const slider = document.getElementById('iconSizeSlider');
+    const sizeValue = document.getElementById('iconSizeValue');
+
+    function applyMarkerSize(newSize) {
+        MARKER_SIZE = newSize;
+        sizeValue.textContent = String(newSize);
+
+        ICONS = makeIcons();
+
+        // Update existing markers
+        stopMarkers.forEach((m, idx) => {
+            // We need the stop type to choose correct icon
+            const s = existingStops[idx];
+            m.setIcon(iconForType(s?.type));
+        });
+
+        // Update picked marker
+        refreshPickedMarkerIcon();
+    }
+
+    slider.addEventListener('input', () => {
+        applyMarkerSize(parseInt(slider.value, 10) || 42);
+    });
+
+    // init display
+    applyMarkerSize(parseInt(slider.value, 10) || 42);
 </script>
 </body>
 </html>

@@ -65,7 +65,7 @@ if (!$conductor) {
     }
     session_destroy();
 
-    header('Location: ../../login.php?redirect=conductor/profile/profile.php');
+    header('Location: ../../login.php');
     exit;
 }
 

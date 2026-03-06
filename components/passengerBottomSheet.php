@@ -49,7 +49,7 @@
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
             <img
-              src="/../assets/images/pickUpPin.png"
+              src="/../assets/images/busStopMarkerFinal.svg"
               alt="Location"
               style="width: 34px; height: 34px; object-fit: contain;" />
           </div>
