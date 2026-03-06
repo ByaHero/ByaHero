@@ -328,8 +328,8 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
     function saveToDatabase(setting, value) {
       const formData = new FormData();
-      formData.append('setting', setting);
-      formData.append('value', value);
+      formData.append('setting_name', setting);  // ✅ FIXED
+      formData.append('setting_value', value);   // ✅ FIXED
 
       fetch('../../../backend/updateSettings.php', {
         method: 'POST',

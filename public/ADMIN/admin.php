@@ -97,10 +97,11 @@ try {
             z-index: 2;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
+        
         .btn-manage-pill {
             position: absolute;
-            top: 20px;
-            right: 20px;
+            bottom: 15px;
+            right: 15px;
             background: white;
             color: #333;
             border-radius: 20px;
@@ -120,11 +121,32 @@ try {
         .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
         .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
 
+        .icon-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.15);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .icon-btn:hover {
+            background: rgba(255,255,255,0.25);
+            color: white;
+        }
+        .icon-btn .material-icons-round {
+            font-size: 1.5rem;
+        }
+
         @media (max-width: 767px) {
             .stat-card { height: 140px; padding: 1rem; }
             .stat-card-number { font-size: 2.5rem; }
             .stat-card-title { font-size: 0.95rem; }
-            .btn-manage-pill { padding: 3px 10px; font-size: 0.7rem; top: 15px; right: 15px; }
+            .btn-manage-pill { padding: 3px 10px; font-size: 0.7rem; bottom: 12px; right: 12px; }
         }
     </style>
 </head>
@@ -133,106 +155,101 @@ try {
 <nav class="navbar navbar-expand-lg navbar-dark mb-4">
     <div class="container">
         <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">directions_bus</span> ByaHero
+            <span class="material-icons-round">directions_bus</span> ByaHero Admin
         </a>
 
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <!-- Analytics Icon Button -->
+            <a href="analytics.php" class="icon-btn" title="Analytics">
+                <span class="material-icons-round">assessment</span>
+            </a>
 
-        <div class="collapse navbar-collapse" id="navContent">
-            <ul class="nav nav-pills ms-auto gap-2" id="adminTabs" role="tablist">
-                <li class="nav-item">
-                    <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#tab-dashboard">Dashboard & Map</button>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="analytics.php">Analytics</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageBuses.php">Manage Buses</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageActiveBuses.php">Active Buses</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageConductors.php">Conductors & Drivers</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageStops.php">Bus Stops & Terminals</a>
-                </li>
-            </ul>
-            <div class="ms-3">
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
+            <!-- Settings Dropdown - Logout Only -->
+            <div class="dropdown">
+                <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Settings">
+                    <span class="material-icons-round">settings</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item text-danger" href="logout.php">
+                        <span class="material-icons-round" style="font-size: 1.2rem; vertical-align: middle; margin-right: 8px;">logout</span>
+                        Logout
+                    </a></li>
+                </ul>
             </div>
         </div>
     </div>
 </nav>
 
 <div class="container">
-    <div class="tab-content">
+    <div class="mb-4">
+        <h2 class="fw-bold mb-1">Dashboard</h2>
+        <p class="text-muted mb-0">Overview of your bus system</p>
+    </div>
 
-        <div class="tab-pane fade show active" id="tab-dashboard">
-            <div class="row g-3 g-lg-4 mb-4">
+    <!-- ✅ FIXED: Proper grid layout with offset for centered bottom row -->
+    <div class="row g-3 g-lg-4 mb-4">
 
-                <div class="col-6 col-md-6 col-lg-3">
-                    <div class="stat-card card-total">
-                        <div class="stat-card-title">Total Buses</div>
-                        <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
-                        <div class="stat-card-number"><?= $totalBusesCount ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-6 col-lg-3">
-                    <div class="stat-card card-active">
-                        <div class="stat-card-title">Active Buses</div>
-                        <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
-                        <div class="stat-card-number"><?= $activeBusesCount ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-6 col-lg-3">
-                    <div class="stat-card card-drivers">
-                        <div class="stat-card-title">Drivers</div>
-                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                        <div class="stat-card-number"><?= $driversCount ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-6 col-lg-3">
-                    <div class="stat-card card-conductors">
-                        <div class="stat-card-title">Conductors</div>
-                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                        <div class="stat-card-number"><?= $conductorsCount ?></div>
-                    </div>
-                </div>
-
-                <div class="col-6 col-md-6 col-lg-3">
-                    <div class="stat-card card-stops">
-                        <div class="stat-card-title">Bus Stops</div>
-                        <a class="btn-manage-pill" href="manageStops.php">Manage</a>
-                        <div class="stat-card-number"><?= $stopsCount ?></div>
-                    </div>
-                </div>
-
-            </div>
-
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="material-icons-round text-primary">map</span>
-                        <span>Live Fleet Map</span>
-                    </div>
-                    <small class="text-muted d-flex align-items-center gap-1">
-                        <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
-                        Live Updates
-                    </small>
-                </div>
-                <div class="card-body p-0">
-                    <div id="map" class="map-wrapper"></div>
-                </div>
+        <!-- Top Row: Total Buses + Active Buses -->
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-total">
+                <div class="stat-card-title">Total Buses</div>
+                <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
+                <div class="stat-card-number"><?= $totalBusesCount ?></div>
             </div>
         </div>
 
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-active">
+                <div class="stat-card-title">Active Buses</div>
+                <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
+                <div class="stat-card-number"><?= $activeBusesCount ?></div>
+            </div>
+        </div>
+
+        <!-- Empty spacer for desktop only -->
+        <div class="col-lg-4 d-none d-lg-block"></div>
+
+        <!-- Bottom Row: Drivers + Bus Stops + Conductors (centered) -->
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-drivers">
+                <div class="stat-card-title">Drivers</div>
+                <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                <div class="stat-card-number"><?= $driversCount ?></div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-stops">
+                <div class="stat-card-title">Bus Stops</div>
+                <a class="btn-manage-pill" href="manageStops.php">Manage</a>
+                <div class="stat-card-number"><?= $stopsCount ?></div>
+            </div>
+        </div>
+
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-conductors">
+                <div class="stat-card-title">Conductors</div>
+                <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                <div class="stat-card-number"><?= $conductorsCount ?></div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="card card-standard">
+        <div class="card-header-std d-flex justify-content-between align-items-center">
+            <div class="d-flex align-items-center gap-2">
+                <span class="material-icons-round text-primary">map</span>
+                <span>Live Fleet Map</span>
+            </div>
+            <small class="text-muted d-flex align-items-center gap-1">
+                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
+                Live Updates
+            </small>
+        </div>
+        <div class="card-body p-0">
+            <div id="map" class="map-wrapper"></div>
+        </div>
     </div>
 </div>
 
