@@ -646,13 +646,13 @@ if (isset($_SESSION['user_id'])) {
 
     const STOP_ICONS = {
       pickup_point: L.icon({
-        iconUrl: PROJECT_BASE + '/assets/images/icons/pickUpMarker.png',
+        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg',
         iconSize: [40, 40],
         iconAnchor: [20, 40],
         popupAnchor: [0, -36]
       }),
       bus_stop: L.icon({
-        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarker.png',
+        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg',
         iconSize: [40, 40],
         iconAnchor: [20, 40],
         popupAnchor: [0, -36]
