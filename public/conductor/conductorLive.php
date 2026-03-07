@@ -7,35 +7,63 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
     exit;
 }
 
+require_once __DIR__ . '/../../config/db.php';
+$pdo = db();
+$userId = (int)($_SESSION['user_id'] ?? 0);
+
 // Accept bus info from POST (when navigated from conductor.php)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
-    // sanitize minimal
-    $busId = htmlspecialchars($_POST['bus_id']);
-    $code = htmlspecialchars($_POST['code'] ?? ("BUS-" . $busId));
-    $route = htmlspecialchars($_POST['route'] ?? '');
-    $seats_total = intval($_POST['seats_total'] ?? 25);
+    $busId = (int)$_POST['bus_id'];
+    $code = htmlspecialchars($_POST['code'] ?? ("BUS-" . $busId), ENT_QUOTES, 'UTF-8');
+    $route = htmlspecialchars($_POST['route'] ?? '', ENT_QUOTES, 'UTF-8');
+    $seats_total = (int)($_POST['seats_total'] ?? 25);
+
+    // Try to "claim" this bus for this conductor
+    $stmt = $pdo->prepare("
+        UPDATE busses
+        SET current_conductor_id = :uid
+        WHERE Bus_ID = :bus_id
+          AND (current_conductor_id IS NULL OR current_conductor_id = :uid)
+    ");
+    $stmt->execute([
+        ':uid'    => $userId,
+        ':bus_id' => $busId,
+    ]);
+
+    if ($stmt->rowCount() === 0) {
+        // Someone else already has this bus
+        unset($_SESSION['current_bus']);
+        header('Location: conductor.php?error=bus_taken');
+        exit;
+    }
+
+    // Also store on the conductor
+    $stmt2 = $pdo->prepare("UPDATE conductors SET current_bus_id = :bus_id WHERE id = :uid");
+    $stmt2->execute([
+        ':bus_id' => $busId,
+        ':uid'    => $userId,
+    ]);
 
     // store into session to allow reloads
     $_SESSION['current_bus'] = [
-        'id' => $busId,
-        'code' => $code,
-        'route' => $route,
+        'id'          => $busId,
+        'code'        => $code,
+        'route'       => $route,
         'seats_total' => $seats_total
     ];
 }
 
 // If no POST, check session
 if (empty($_SESSION['current_bus'])) {
-    // nothing to track — redirect to selection page
     header("Location: conductor.php");
     exit;
 }
 
 $currentBus = $_SESSION['current_bus'];
-$busId = $currentBus['id'];
+$busId = (int)$currentBus['id'];
 $busCode = $currentBus['code'];
 $busRoute = $currentBus['route'];
-$seatsTotal = $currentBus['seats_total'];
+$seatsTotal = (int)$currentBus['seats_total'];
 ?>
 <!doctype html>
 <html lang="en">
