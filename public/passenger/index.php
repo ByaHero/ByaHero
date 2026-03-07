@@ -122,6 +122,11 @@ if (isset($_SESSION['user_id'])) {
       animation: slideUp 0.3s ease-out;
     }
 
+    .no-bus-icon {
+      width: 110px !important;
+      height: auto !important;
+    }
+
     @keyframes slideUp {
       from {
         transform: translate(-50%, 20px);
@@ -252,7 +257,9 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- MAP INIT ---------------------
     const isMobile = document.querySelector('.d-lg-none')?.offsetParent !== null;
     const mapId = isMobile ? 'map' : 'map-desktop-placeholder';
-    const map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
+    const map = L.map(mapId, {
+      zoomControl: false
+    }).setView([14.0905, 121.0550], 12);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '',
@@ -260,12 +267,12 @@ if (isset($_SESSION['user_id'])) {
     }).addTo(map);
 
     // Detect correct project base (/Byahero-Prototype-v3 or root)
-    (function () {
+    (function() {
       const PROJECT_FOLDER = 'Byahero-Prototype-v3';
       const path = window.location.pathname || '/';
-      const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
-        ? '/' + PROJECT_FOLDER
-        : '';
+      const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
+        '/' + PROJECT_FOLDER :
+        '';
       window.PROJECT_BASE = base;
       window.ICON_BASE = base + '/assets/images/icons';
     })();
@@ -326,8 +333,14 @@ if (isset($_SESSION['user_id'])) {
       try {
         const res = await fetch('../../backend/updateUserLocation.php', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy ?? null })
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lng,
+            accuracy: accuracy ?? null
+          })
         });
 
         if (!res.ok) {
@@ -353,7 +366,9 @@ if (isset($_SESSION['user_id'])) {
       `;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-      setTimeout(() => { if (notice.parentElement) notice.remove(); }, 5000);
+      setTimeout(() => {
+        if (notice.parentElement) notice.remove();
+      }, 5000);
     }
 
     function showLocationPermissionDenied() {
@@ -386,7 +401,10 @@ if (isset($_SESSION['user_id'])) {
       locationPermissionGranted = true;
 
       navigator.geolocation.watchPosition(pos => {
-        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        userLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
 
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
@@ -487,7 +505,9 @@ if (isset($_SESSION['user_id'])) {
           busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
           busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
         } else {
-          const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
+          const m = L.marker(b.coords, {
+            icon: iconForBus
+          }).addTo(map);
           m.bindPopup(`<b>${b.code}</b><br>${b.locName}${b.eta ? `<br><small>ETA: ${b.eta}</small>` : ''}`);
           busMarkers[b.id] = m;
         }
@@ -521,7 +541,12 @@ if (isset($_SESSION['user_id'])) {
       );
 
       if (activeBuses.length === 0) {
-        container.innerHTML = `<div class="d-flex flex-column justify-content-center align-items-center h-100 text-muted p-5"><span class="material-symbols-rounded fs-1 mb-2">directions_bus_off</span><span class="fw-bold">No Available Bus</span></div>`;
+        container.innerHTML = `
+  <div class="d-flex flex-column justify-content-center align-items-center text-muted p-3 text-center">
+  <img src="../../assets/images/icons/noBus.svg" alt="No Bus" class="mb-2 no-bus-icon" />
+  <span class="fw-bold">No Available Bus</span>
+</div>
+`;
         return;
       }
 
@@ -547,7 +572,7 @@ if (isset($_SESSION['user_id'])) {
         try {
           const geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) { }
+        } catch (e) {}
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
@@ -593,7 +618,9 @@ if (isset($_SESSION['user_id'])) {
 
       if (typeof analytics !== 'undefined') {
         analytics.busTracked(id);
-        analytics.featureUsed('Bus Tracking', { bus_id: id });
+        analytics.featureUsed('Bus Tracking', {
+          bus_id: id
+        });
       }
     };
 
@@ -604,7 +631,9 @@ if (isset($_SESSION['user_id'])) {
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
 
       if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
+        analytics.featureUsed('Route Filter', {
+          route: r || 'All Routes'
+        });
       }
 
       updateBuses();
@@ -647,28 +676,32 @@ if (isset($_SESSION['user_id'])) {
     const STOP_ICONS = {
       pickup_point: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -36]
+        iconSize: [60, 60], // was [40, 40]
+        iconAnchor: [30, 60], // half width, full height
+        popupAnchor: [0, -54] // ~0.9 * height
       }),
       bus_stop: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -36]
+        iconSize: [60, 60],
+        iconAnchor: [30, 60],
+        popupAnchor: [0, -54]
       }),
       terminal: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
-        popupAnchor: [0, -36]
+        iconSize: [60, 60],
+        iconAnchor: [30, 60],
+        popupAnchor: [0, -54]
       })
     };
 
     function escapeHtml(str) {
       return String(str ?? '').replace(/[&<>"']/g, s => ({
-        '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-      }[s]));
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+      } [s]));
     }
 
     function stopIcon(type) {
@@ -680,7 +713,9 @@ if (isset($_SESSION['user_id'])) {
       const listEl = document.getElementById('busStopsListMobile');
       if (listEl) listEl.innerHTML = `<div class="text-center text-muted mt-4 small">Loading bus stops...</div>`;
 
-      const res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
+      const res = await fetch('../api.php?action=get_bus_stops_terminal', {
+        cache: 'no-store'
+      });
       const json = await res.json();
 
       if (!json || !json.success || !Array.isArray(json.data)) {
@@ -738,7 +773,9 @@ if (isset($_SESSION['user_id'])) {
         if (stopMarkers[id]) {
           stopMarkers[id].setLatLng([lat, lng]).setIcon(stopIcon(s.type)).setPopupContent(popup);
         } else {
-          stopMarkers[id] = L.marker([lat, lng], { icon: stopIcon(s.type) }).addTo(map).bindPopup(popup);
+          stopMarkers[id] = L.marker([lat, lng], {
+            icon: stopIcon(s.type)
+          }).addTo(map).bindPopup(popup);
         }
       });
 
@@ -787,7 +824,7 @@ if (isset($_SESSION['user_id'])) {
     setInterval(updateBuses, 4000);
 
 
-    window.centerToMyLocation = function () {
+    window.centerToMyLocation = function() {
       // If we already have a live location from watchPosition, just fly there.
       if (userLocation && locationPermissionGranted) {
         map.flyTo([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 16), {
@@ -809,7 +846,10 @@ if (isset($_SESSION['user_id'])) {
         const lng = pos.coords.longitude;
 
         // Update globals so the rest of the page can use it too
-        userLocation = { lat, lng };
+        userLocation = {
+          lat,
+          lng
+        };
 
         if (!userMarker) {
           userMarker = L.circleMarker([lat, lng], {
@@ -847,4 +887,5 @@ if (isset($_SESSION['user_id'])) {
     };
   </script>
 </body>
+
 </html>
