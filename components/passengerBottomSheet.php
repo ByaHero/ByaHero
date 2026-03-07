@@ -39,10 +39,15 @@ if (!isset($baseUrl)) {
 
     <div class="container-fluid px-3 pt-3">
       <div class="row g-2">
+        <!-- Location tab with image icon (white when active by default) -->
         <div class="col-4" onclick="switchSheetTab('location')">
           <div id="tab-location"
             class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-2">location_on</span>
+            <img
+              id="location-tab-icon"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopWhiteIcon.png"
+              alt="Location"
+              style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
 
@@ -53,13 +58,14 @@ if (!isset($baseUrl)) {
           </div>
         </div>
 
-        <!-- ✅ Bus Stops tab -->
+        <!-- Bus Stops tab (blue by default, will turn white when active) -->
         <div class="col-4" onclick="switchSheetTab('busstops')">
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
             <img
-              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinal.svg"
-              alt="Location"
+              id="busstops-tab-icon"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalBlue.svg"
+              alt="Bus Stops"
               style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
@@ -78,7 +84,7 @@ if (!isset($baseUrl)) {
     include __DIR__ . '/../public/passenger/groupView.php';
     ?>
 
-    <!-- ✅ New Bus Stops view (no pinsListView.php anymore) -->
+    <!-- Bus Stops view -->
     <div id="view-busstops" class="mt-2 d-none">
       <div class="d-flex align-items-center justify-content-between mb-2">
         <div class="fw-bold">Bus Stops</div>

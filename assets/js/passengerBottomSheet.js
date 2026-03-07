@@ -46,7 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Tab switching (needs to be global because HTML uses onclick="")
 window.switchSheetTab = function switchSheetTab(tabName) {
-  // ✅ Changed: 'pins' -> 'busstops'
   const tabs = ['location', 'groups', 'busstops'];
 
   tabs.forEach(t => {
@@ -68,12 +67,39 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   // optional hooks from your existing code:
   if (typeof hideGroupVisuals === 'function') hideGroupVisuals();
 
-  // ✅ Changed: pins visibility hook -> bus stops visibility hook
+  // bus stops visibility hook
   if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(false);
 
   if (tabName === 'groups') {
     if (typeof showGroupVisuals === 'function') showGroupVisuals();
   } else if (tabName === 'busstops') {
     if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(true);
+  }
+
+  // Base path (if you have PROJECT_BASE defined on window, else fallback to "")
+  const base = (window.PROJECT_BASE || '');
+
+  // 🔄 Toggle Location tab icon (png: white/blue)
+  const locationIcon = document.getElementById('location-tab-icon');
+  if (locationIcon) {
+    if (tabName === 'location') {
+      // active: white icon
+      locationIcon.src = base + '/assets/images/icons/busStopWhiteIcon.png';
+    } else {
+      // inactive: blue icon
+      locationIcon.src = base + '/assets/images/icons/busStopBlueIcon.png';
+    }
+  }
+
+  // 🔄 Toggle Bus Stops tab icon (svg: white/blue)
+  const busstopsIcon = document.getElementById('busstops-tab-icon');
+  if (busstopsIcon) {
+    if (tabName === 'busstops') {
+      // active: white marker
+      busstopsIcon.src = base + '/assets/images/icons/busStopMarkerFinalWhite.svg';
+    } else {
+      // inactive: blue marker
+      busstopsIcon.src = base + '/assets/images/icons/busStopMarkerFinalBlue.svg';
+    }
   }
 };
