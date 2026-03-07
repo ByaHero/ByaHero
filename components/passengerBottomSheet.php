@@ -3,9 +3,15 @@
 if (!isset($baseUrl)) {
     $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
     $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+    // This strips "/public/..." from the URL path so it works in localhost and InfinityFree
     $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 }
 ?>
+
+<!-- Expose base URL to JS so icons work both locally and on InfinityFree -->
+<script>
+  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+</script>
 
 <div id="bottomSheet"
   class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"

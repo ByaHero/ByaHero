@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
+$busError = $_GET['error'] ?? null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -34,13 +35,11 @@ $userName = $_SESSION['user_name'] ?? 'User';
         body {
             background-color: var(--bg-light);
             font-family: 'Segoe UI', sans-serif;
-            /* Exactly the height of the footer to prevent overlap without extra gaps */
             padding-bottom: 35px; 
             margin: 0;
             min-height: 100vh;
         }
 
-        /* Top Action Row (Settings & Filter) */
         .action-row {
             display: flex;
             justify-content: space-between;
@@ -71,7 +70,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
         }
         .filter-pill::after { display: none !important; }
 
-        /* Map styling */
         .map-card-wrapper {
             position: relative;
             border-radius: var(--card-radius);
@@ -84,7 +82,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
         }
         #mainMap { width: 100%; height: 100%; z-index: 1; }
 
-        /* Custom Connected Select Box Styling */
         .custom-select-container {
             border-radius: 12px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
@@ -95,12 +92,11 @@ $userName = $_SESSION['user_name'] ?? 'User';
             position: relative;
         }
 
-        /* Active/Open State UI */
         .custom-select-container.open {
             border-radius: 12px 12px 0 0;
             z-index: 100;
             border-color: var(--btn-blue);
-            box-shadow: 0 0 0 3px rgba(28, 90, 181, 0.15); /* Soft blue glow */
+            box-shadow: 0 0 0 3px rgba(28, 90, 181, 0.15);
         }
 
         .custom-select-header {
@@ -121,7 +117,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
             transition: color 0.2s ease;
         }
 
-        /* Arrow rotation & coloring */
         .custom-select-header .chevron {
             font-weight: bold;
             font-size: 14px;
@@ -139,7 +134,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
             transform: rotate(180deg);
         }
 
-        /* Overlay Container for options */
         .custom-select-options {
             display: none;
             flex-direction: column;
@@ -161,7 +155,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
             display: flex;
         }
 
-        /* Individual option rows */
         .custom-option {
             padding: 14px 20px;
             font-weight: 700;
@@ -180,20 +173,17 @@ $userName = $_SESSION['user_name'] ?? 'User';
             border-bottom: none;
         }
 
-        /* Blue hover and selection highlighting */
         .custom-option:hover, 
         .custom-option.selected {
             background-color: var(--btn-blue); 
             color: white;
         }
 
-        /* Ensure the tiny seat count text stays readable when hovered/selected */
         .custom-option:hover .text-muted,
         .custom-option.selected .text-muted {
             color: #e0e6ed !important; 
         }
 
-        /* Start Tracking Button */
         .btn-circle-start {
             width: 110px;
             height: 110px;
@@ -239,7 +229,12 @@ $userName = $_SESSION['user_name'] ?? 'User';
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
     <div class="container px-3" style="padding-top: 5px;">
-        
+        <?php if ($busError === 'bus_taken'): ?>
+            <div class="alert alert-danger mt-2 mb-2 text-center fw-bold" style="border-radius: 12px;">
+                That bus is already in use by another conductor.
+            </div>
+        <?php endif; ?>
+
         <div class="action-row">
             <a href="profile/profile.php" class="text-decoration-none">
                 <span class="material-symbols-rounded settings-icon">settings</span>
@@ -268,8 +263,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                 <span id="busDropdownValue" class="value-text">Select Bus</span>
                 <span class="chevron">v</span>
             </div>
-            <div class="custom-select-options" id="busOptionsList">
-                </div>
+            <div class="custom-select-options" id="busOptionsList"></div>
             <input type="hidden" id="busSelect" value="">
         </div>
 
@@ -337,7 +331,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
             el('routeSelect').value = value;
             el('routeDropdownValue').textContent = displayText;
 
-            // Update highlighting
             const container = el('routeSelectContainer');
             container.querySelectorAll('.custom-option').forEach(opt => {
                 opt.classList.remove('selected');
@@ -356,7 +349,6 @@ $userName = $_SESSION['user_name'] ?? 'User';
             el('busDropdownValue').textContent = label;
             selectedBusMeta = meta;
 
-            // Update highlighting
             const container = el('busSelectContainer');
             container.querySelectorAll('.custom-option').forEach(opt => {
                 opt.classList.remove('selected');
@@ -368,7 +360,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
             container.classList.remove('open');
         }
 
-        // Populate Bus Data
+        // Populate Bus Data (hide buses already in use)
         async function loadBuses() {
             try {
                 const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
@@ -377,6 +369,11 @@ $userName = $_SESSION['user_name'] ?? 'User';
 
                 if (json && Array.isArray(json.buses)) {
                     json.buses.forEach(b => {
+                        // If API reports current_conductor_id, skip buses already in use
+                        if (b.current_conductor_id !== null && b.current_conductor_id !== undefined) {
+                            return;
+                        }
+
                         const id = b.id || b.Bus_ID || b.bus_id;
                         const code = b.code || `BUS-${id}`;
                         const meta = { bus_id: String(id), code: code, seats_total: b.seats_total || 25 };

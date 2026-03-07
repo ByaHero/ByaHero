@@ -76,8 +76,8 @@ window.switchSheetTab = function switchSheetTab(tabName) {
     if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(true);
   }
 
-  // Base path (if you have PROJECT_BASE defined on window, else fallback to "")
-  const base = (window.PROJECT_BASE || '');
+  // Use the same base URL as PHP, works on localhost and InfinityFree
+  const base = (window.APP_BASE_URL || '');
 
   // 🔄 Toggle Location tab icon (png: white/blue)
   const locationIcon = document.getElementById('location-tab-icon');

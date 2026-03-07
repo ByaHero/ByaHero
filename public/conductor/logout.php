@@ -1,6 +1,37 @@
 <?php
 declare(strict_types=1);
 session_start();
+
+require_once __DIR__ . '/../../config/db.php';
+$pdo = db();
+
+$userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+
+if ($userId > 0) {
+    // Free any buses currently assigned to this conductor
+    $stmt = $pdo->prepare("
+        UPDATE busses
+        SET 
+            current_location = NULL,
+            status = 'unavailable',
+            route = NULL,
+            seat_availability = NULL,
+            updated = NULL,
+            current_conductor_id = NULL
+        WHERE current_conductor_id = ?
+    ");
+    $stmt->execute([$userId]);
+
+    // Clear conductor's current_bus_id
+    $stmt2 = $pdo->prepare("
+        UPDATE conductors
+        SET current_bus_id = NULL
+        WHERE id = ?
+    ");
+    $stmt2->execute([$userId]);
+}
+
+// Now do your existing logout cleanup
 $_SESSION = [];
 if (ini_get("session.use_cookies")) {
     $params = session_get_cookie_params();
