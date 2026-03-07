@@ -360,7 +360,6 @@ $busError = $_GET['error'] ?? null;
             container.classList.remove('open');
         }
 
-        // Populate Bus Data (hide buses already in use)
         async function loadBuses() {
             try {
                 const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
