@@ -1,10 +1,10 @@
 <?php
 // Optional safety: if $baseUrl is not defined by the parent, default to empty string
 if (!isset($baseUrl)) {
-    $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
-    $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
-    // This strips "/public/..." from the URL path so it works in localhost and InfinityFree
-    $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
+  $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+  $publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+  // This strips "/public/..." from the URL path so it works in localhost and InfinityFree
+  $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 }
 ?>
 
@@ -23,8 +23,12 @@ if (!isset($baseUrl)) {
     <div class="position-absolute start-50 translate-middle-x">
       <button onclick="window.location.href='sos/sos.php'"
         class="btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0">
-        <span class="material-symbols-rounded fs-2 text-primary"
-          style="font-variation-settings: 'FILL' 1;">verified_user</span>
+
+        <span class="bg-primary" style="width: 32px; height: 32px; 
+                     -webkit-mask: url('../../assets/images/icons/verified_user.svg') no-repeat center / contain; 
+                     mask: url('../../assets/images/icons/verified_user.svg') no-repeat center / contain;">
+        </span>
+
         <span class="text-primary fw-bold">SOS</span>
       </button>
     </div>
@@ -34,8 +38,12 @@ if (!isset($baseUrl)) {
       <button type="button" onclick="centerToMyLocation()"
         class="btn bg-white rounded-circle shadow border-0 d-flex align-items-center justify-content-center"
         style="width: 48px; height: 48px;" aria-label="Center to my location" title="Center to my location">
-        <span class="material-symbols-rounded text-primary"
-          style="font-variation-settings: 'FILL' 1;">my_location</span>
+
+        <span class="bg-primary" style="width: 24px; height: 24px; 
+                     -webkit-mask: url('../../assets/images/icons/my_location.svg') no-repeat center / contain; 
+                     mask: url('../../assets/images/icons/my_location.svg') no-repeat center / contain;">
+        </span>
+
       </button>
     </div>
   </div>
@@ -49,11 +57,9 @@ if (!isset($baseUrl)) {
         <div class="col-4" onclick="switchSheetTab('location')">
           <div id="tab-location"
             class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer">
-            <img
-              id="location-tab-icon"
+            <img id="location-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopWhiteIcon.png"
-              alt="Location"
-              style="width: 30px; height: 30px; object-fit: contain;" />
+              alt="Location" style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
 
@@ -68,11 +74,9 @@ if (!isset($baseUrl)) {
         <div class="col-4" onclick="switchSheetTab('busstops')">
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <img
-              id="busstops-tab-icon"
+            <img id="busstops-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalBlue.svg"
-              alt="Bus Stops"
-              style="width: 30px; height: 30px; object-fit: contain;" />
+              alt="Bus Stops" style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
       </div>
