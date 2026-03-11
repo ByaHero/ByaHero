@@ -161,7 +161,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
       <!-- Chat Support -->
       <div class="settings-item" onclick="window.location.href='chatSupport.php';">
         <span class="material-symbols-rounded settings-icon">support_agent</span>
-        Chat with Support
+        Help & FAQ
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 

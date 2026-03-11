@@ -89,7 +89,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'settings.php' => 'Settings',
     'about.php' => 'About',
     'accessibilitySettings.php' => 'Accessibility',
-    'chatSupport.php' => 'Chat Support',
+    'chatSupport.php' => 'Help & FAQ',
     'feedback.php' => 'Feedback',
     'privacyPolicy.php' => 'Privacy Policy',
     'privacySecurity.php' => 'Privacy & Security',
