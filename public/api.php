@@ -31,6 +31,7 @@ function extractFriendlyNameFromGeojson(array $geojson): ?string {
             if ($v === '') return $k;
         }
     }
+    // FeatureCollection fallback
     if (!empty($geojson['type']) && $geojson['type'] === 'FeatureCollection' && !empty($geojson['features']) && is_array($geojson['features'])) {
         $f = $geojson['features'][0];
         if (isset($f['properties']) && is_array($f['properties'])) {
@@ -40,15 +41,60 @@ function extractFriendlyNameFromGeojson(array $geojson): ?string {
     return null;
 }
 
-/** API actions **/
+/**
+ * Passenger / public view:
+ * - Shows ALL buses (no conductor filter).
+ * - Includes GeoJSON (current_location) + friendly name.
+ */
 function getBuses(): array {
+    $pdo = db();
+    $stmt = $pdo->query("
+        SELECT
+          Bus_ID,
+          code,
+          route,
+          current_location AS current_location_name,
+          total_seats,
+          seat_availability,
+          status,
+          updated
+        FROM busses
+        ORDER BY code
+    ");
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $out = [];
+    foreach ($rows as $r) {
+        $busId = isset($r['Bus_ID']) ? (int)$r['Bus_ID'] : (int)($r['id'] ?? 0);
+
+        $geo = loadGeojsonFileForBus($busId);
+        if ($geo !== null) {
+            $r['current_location'] = json_encode($geo, JSON_UNESCAPED_SLASHES);
+            $friendly = extractFriendlyNameFromGeojson($geo);
+            if ($friendly) {
+                $r['current_location_name'] = $friendly;
+            }
+        } else {
+            $r['current_location'] = null;
+            // keep DB current_location_name as-is
+        }
+
+        $out[] = $r;
+    }
+
+    return ['success' => true, 'buses' => $out];
+}
+
+/**
+ * Conductor view:
+ * - Only free buses OR buses already assigned to this conductor.
+ * - Includes GeoJSON + friendly name.
+ */
+function getBusesConductor(): array {
     session_start();
     $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
     $pdo = db();
-    // Only show:
-    //  - free buses (current_conductor_id IS NULL), or
-    //  - buses already assigned to this user (resume use)
     $stmt = $pdo->prepare("
         SELECT
           Bus_ID,
@@ -71,20 +117,25 @@ function getBuses(): array {
     $out = [];
     foreach ($rows as $r) {
         $busId = isset($r['Bus_ID']) ? (int)$r['Bus_ID'] : (int)($r['id'] ?? 0);
+
         $geo = loadGeojsonFileForBus($busId);
         if ($geo !== null) {
             $r['current_location'] = json_encode($geo, JSON_UNESCAPED_SLASHES);
             $friendly = extractFriendlyNameFromGeojson($geo);
-            if ($friendly) $r['current_location_name'] = $friendly;
+            if ($friendly) {
+                $r['current_location_name'] = $friendly;
+            }
         } else {
             $r['current_location'] = null;
         }
+
         $out[] = $r;
     }
 
     return ['success' => true, 'buses' => $out];
 }
 
+/** Return bus stops / terminals */
 function getBusStopsTerminal(): array {
     $pdo = db();
     $stmt = $pdo->query("
@@ -97,6 +148,10 @@ function getBusStopsTerminal(): array {
     return ['success' => true, 'data' => $rows];
 }
 
+/**
+ * Update bus location and details.
+ * Accepts geojson or lat/lng. Stores friendly name in busses.current_location and writes full GeoJSON to file.
+ */
 function updateLocation(): array {
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
@@ -110,6 +165,7 @@ function updateLocation(): array {
 
     $busId = (int)$data['bus_id'];
 
+    // Build GeoJSON if provided; if only lat/lng given, convert to a Point GeoJSON
     $geojson = null;
     if (isset($data['geojson'])) {
         $geojson = $data['geojson'];
@@ -130,11 +186,13 @@ function updateLocation(): array {
         return ['success' => false, 'error' => 'Provide geojson or lat & lng'];
     }
 
+    // Prefer friendly name from geojson properties, else try provided field
     $locationName = extractFriendlyNameFromGeojson($geojson);
     if (empty($locationName) && !empty($data['current_location_name'])) {
         $locationName = trim($data['current_location_name']);
     }
 
+    // Save geojson file for coordinates — write atomically (tmp + rename)
     $dir = __DIR__ . '/../data/current_locations';
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     $file = $dir . "/bus_{$busId}.geojson";
@@ -144,6 +202,7 @@ function updateLocation(): array {
     @file_put_contents($tmp, $geoTxt, LOCK_EX);
     @rename($tmp, $file);
 
+    // Update DB: store friendly name string in current_location column
     $pdo = db();
 
     $fields = [];
@@ -187,10 +246,10 @@ function updateLocation(): array {
     return ['success' => true, 'message' => 'Location updated successfully', 'current_location_name' => $locationName];
 }
 
+/**
+ * Stop tracking for a bus, clearing all relevant fields and removing GeoJSON file.
+ */
 function stopTracking(): array {
-    session_start();
-    $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
-
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
         http_response_code(400);
@@ -203,8 +262,6 @@ function stopTracking(): array {
     $busId = (int)$data['bus_id'];
 
     $pdo = db();
-
-    // Free the bus only if this user currently owns it
     $stmt = $pdo->prepare("
         UPDATE busses
         SET 
@@ -212,25 +269,12 @@ function stopTracking(): array {
             status = 'unavailable',
             route = NULL,
             seat_availability = NULL,
-            updated = NULL,
-            current_conductor_id = NULL
+            updated = NULL
         WHERE Bus_ID = ?
-          AND (current_conductor_id = ? OR current_conductor_id IS NULL)
     ");
-    $stmt->execute([$busId, $currentUserId]);
+    $stmt->execute([$busId]);
 
-    // Clear conductor's current_bus_id if it matches this bus
-    if ($currentUserId > 0) {
-        $stmt2 = $pdo->prepare("
-            UPDATE conductors
-            SET current_bus_id = NULL
-            WHERE id = ?
-              AND current_bus_id = ?
-        ");
-        $stmt2->execute([$currentUserId, $busId]);
-    }
-
-    // Remove file
+    // remove file as well
     $file = __DIR__ . '/../data/current_locations/bus_' . $busId . '.geojson';
     if (is_file($file)) @unlink($file);
 
@@ -239,24 +283,34 @@ function stopTracking(): array {
 
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
+
 try {
     switch ($action) {
-        case 'get_buses':
+        case 'get_buses':                 // passenger / public
             $response = getBuses();
             break;
+
+        case 'get_buses_conductor':       // conductor-only view
+            $response = getBusesConductor();
+            break;
+
         case 'get_bus_stops_terminal':
             $response = getBusStopsTerminal();
             break;
+
         case 'update_location':
             $response = updateLocation();
             break;
+
         case 'stop_tracking':
             $response = stopTracking();
             break;
+
         default:
             http_response_code(400);
             $response = ['success' => false, 'error' => 'Invalid action'];
     }
+
     echo json_encode($response);
 } catch (Throwable $e) {
     http_response_code(500);
