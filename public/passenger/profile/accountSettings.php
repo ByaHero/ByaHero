@@ -196,51 +196,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
       color: white;
     }
 
-    .danger-zone {
-      background: #fef2f2;
-      border: 1px solid #fecaca;
-      border-radius: 12px;
-      padding: 1.25rem;
-      margin-top: 2rem;
-    }
-
-    .danger-zone-title {
-      color: #dc2626;
-      font-weight: 600;
-      font-size: 0.95rem;
-      margin-bottom: 0.5rem;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .danger-zone-description {
-      color: #991b1b;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-      line-height: 1.4;
-    }
-
-    .btn-delete {
-      background: #dc2626;
-      color: white;
-      border: none;
-      padding: 0.6rem 1.2rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.5rem;
-    }
-
-    .btn-delete:hover {
-      background: #b91c1c;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
-    }
-
     @media (max-width: 576px) {
       .user-profile-card {
         flex-direction: column;
@@ -314,18 +269,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
       </div>
     </div>
 
-    <div class="danger-zone">
-      <div class="danger-zone-title">
-        <span class="material-symbols-rounded" style="font-size:20px">warning</span>
-        Danger Zone
-      </div>
-      <p class="danger-zone-description">Once you delete your account, there is no going back. Please be certain.</p>
-      <button class="btn btn-delete" onclick="confirmDeleteAccount()">
-        <span class="material-symbols-rounded" style="font-size:18px">delete_forever</span>
-        Delete Account
-      </button>
-    </div>
-
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -333,20 +276,6 @@ $userEmail = $_SESSION['user_email'] ?? '';
   <script src="../../../assets/js/analytics.js"></script>
   
   <script>
-    // Delete account confirmation
-    function confirmDeleteAccount() {
-      if (confirm('⚠️ Are you absolutely sure?\n\nThis will permanently delete your account and all associated data. This action cannot be undone.')) {
-        if (confirm('🔴 Final confirmation: Delete my account permanently?\n\nYour email: <?= htmlspecialchars($userEmail) ?>')) {
-          // Track deletion attempt
-          if (typeof analytics !== 'undefined') {
-            analytics.featureUsed('Account Deletion Requested');
-          }
-          
-          window.location.href = '../../../backend/deleteAccount.php';
-        }
-      }
-    }
-
     // Track button clicks
     document.querySelectorAll('.settings-item').forEach(item => {
       item.addEventListener('click', function() {
