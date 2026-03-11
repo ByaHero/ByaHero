@@ -2,6 +2,7 @@
 session_start();
 
 if (isset($_GET['stopped']) && $_GET['stopped'] == '1') {
+    // Explicitly stopped tracking: clear any current bus session
     unset($_SESSION['current_bus']);
 }
 
@@ -10,8 +11,49 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
     exit;
 }
 
+require_once __DIR__ . '/../../config/db.php';
+$pdo = db();
+
+$userId   = (int)($_SESSION['user_id'] ?? 0);
 $userName = $_SESSION['user_name'] ?? 'User';
 $busError = $_GET['error'] ?? null;
+
+/**
+ * AUTO-RESUME:
+ * If this conductor already has a current_bus_id and that bus is still
+ * assigned to them (current_conductor_id), send them straight to
+ * conductorLive.php so they continue managing the same bus.
+ *
+ * We skip this if ?stopped=1 is present (handled above), meaning they
+ * intentionally ended tracking and should see the bus selection screen.
+ */
+if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
+    // 1) Check conductor's current_bus_id
+    $stmt = $pdo->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
+    $stmt->execute([$userId]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    $currentBusId = isset($row['current_bus_id']) ? (int)$row['current_bus_id'] : 0;
+
+    if ($currentBusId > 0) {
+        // 2) Confirm the bus is still assigned to this conductor
+        $stmtBus = $pdo->prepare("
+            SELECT Bus_ID
+            FROM busses
+            WHERE Bus_ID = ? AND current_conductor_id = ?
+            LIMIT 1
+        ");
+        $stmtBus->execute([$currentBusId, $userId]);
+        $busRow = $stmtBus->fetch(PDO::FETCH_ASSOC);
+
+        if ($busRow) {
+            // Optional: rebuild $_SESSION['current_bus'] here, but
+            // conductorLive.php already knows how to restore from DB.
+            header("Location: conductorLive.php");
+            exit;
+        }
+    }
+}
 ?>
 <!doctype html>
 <html lang="en">
