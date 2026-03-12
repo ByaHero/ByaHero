@@ -267,7 +267,7 @@ if (isset($_SESSION['user_id'])) {
     }).addTo(map);
 
     // Detect correct project base (/Byahero-Prototype-v3 or root)
-    (function() {
+    (function () {
       const PROJECT_FOLDER = 'Byahero-Prototype-v3';
       const path = window.location.pathname || '/';
       const base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
@@ -572,7 +572,7 @@ if (isset($_SESSION['user_id'])) {
         try {
           const geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
@@ -701,7 +701,7 @@ if (isset($_SESSION['user_id'])) {
         '>': '&gt;',
         '"': '&quot;',
         "'": '&#39;'
-      } [s]));
+      }[s]));
     }
 
     function stopIcon(type) {
@@ -798,7 +798,7 @@ if (isset($_SESSION['user_id'])) {
     };
 
     const _switchSheetTab = window.switchSheetTab;
-    window.switchSheetTab = function(tabName) {
+    window.switchSheetTab = function (tabName) {
       _switchSheetTab(tabName);
 
       if (tabName === 'busstops') {
@@ -823,19 +823,50 @@ if (isset($_SESSION['user_id'])) {
     updateBuses();
     setInterval(updateBuses, 4000);
 
+    function getBottomSheetHeightPx() {
+      // Try common selectors (adjust if your component uses different ids/classes)
+      const sheet =
+        document.querySelector('#bottomSheet') ||
+        document.querySelector('.bottom-sheet') ||
+        document.querySelector('.passenger-bottom-sheet') ||
+        document.querySelector('[data-bottom-sheet]');
 
-    window.centerToMyLocation = function() {
-      // If we already have a live location from watchPosition, just fly there.
+      if (!sheet) return 0;
+
+      const rect = sheet.getBoundingClientRect();
+      // Height visible on screen (in case it’s partially collapsed)
+      return Math.max(0, Math.min(window.innerHeight, rect.height));
+    }
+
+    function flyToMyLocationKeepingMarkerVisible(lat, lng) {
+      const zoom = Math.max(map.getZoom(), 16);
+
+      map.flyTo([lat, lng], zoom, { animate: true, duration: 0.6 });
+
+      // Move map up by (bottom sheet height / 2) so the marker appears above the sheet.
+      // We use /2 because panBy moves the center, not the marker directly.
+      setTimeout(() => {
+        const sheetH = getBottomSheetHeightPx();
+
+        // Extra padding so it’s comfortably above the sheet (and above the SOS button area)
+        const padding = 40;
+
+        const yOffset = Math.round((sheetH / 2) + padding);
+
+        if (yOffset > 0) {
+          // Positive Y in panBy moves the map down (marker goes up on screen)
+          map.panBy([0, yOffset], { animate: true, duration: 0.25 });
+        }
+      }, 650);
+    }
+
+    window.centerToMyLocation = function () {
       if (userLocation && locationPermissionGranted) {
-        map.flyTo([userLocation.lat, userLocation.lng], Math.max(map.getZoom(), 16), {
-          animate: true,
-          duration: 0.6
-        });
+        flyToMyLocationKeepingMarkerVisible(userLocation.lat, userLocation.lng);
         if (userMarker) userMarker.bringToFront?.();
         return;
       }
 
-      // Otherwise, request it once (and optionally start watch again if it wasn't running)
       if (!navigator.geolocation) {
         alert('Geolocation is not supported on this device/browser.');
         return;
@@ -845,11 +876,7 @@ if (isset($_SESSION['user_id'])) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
 
-        // Update globals so the rest of the page can use it too
-        userLocation = {
-          lat,
-          lng
-        };
+        userLocation = { lat, lng };
 
         if (!userMarker) {
           userMarker = L.circleMarker([lat, lng], {
@@ -862,23 +889,13 @@ if (isset($_SESSION['user_id'])) {
           userMarker.setLatLng([lat, lng]);
         }
 
-        map.flyTo([lat, lng], Math.max(map.getZoom(), 16), {
-          animate: true,
-          duration: 0.6
-        });
+        flyToMyLocationKeepingMarkerVisible(lat, lng);
 
-        // Keep backend updated (optional but consistent with existing behavior)
         uploadMyLocation(lat, lng, pos.coords.accuracy);
-
-        // If location services were disabled before, this does not flip the toggle automatically.
       }, (error) => {
         console.error('centerToMyLocation error:', error);
-
-        if (error.code === error.PERMISSION_DENIED) {
-          showLocationPermissionDenied();
-        } else {
-          alert('Unable to get your location right now.');
-        }
+        if (error.code === error.PERMISSION_DENIED) showLocationPermissionDenied();
+        else alert('Unable to get your location right now.');
       }, {
         enableHighAccuracy: true,
         timeout: 10000,
