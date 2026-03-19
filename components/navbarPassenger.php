@@ -58,6 +58,112 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   .offcanvas-backdrop {
     z-index: 2000 !important;
   }
+
+
+  /* Center SOS button — dome that rises above the navbar */
+  .bottom-nav {
+    height: 70px;
+    z-index: 1060;
+    overflow: visible !important;
+    /* allow dome to stick out above */
+  }
+
+  .bottom-nav .nav-item-btn {
+    width: 100%;
+    height: 70px;
+    border: 0;
+    background: transparent;
+  }
+
+  .bottom-nav .nav-label {
+    font-size: 0.70rem;
+    font-weight: 800;
+    letter-spacing: .3px;
+  }
+
+  .bottom-nav .nav-icon {
+    font-size: 30px;
+    line-height: 1;
+  }
+
+  /* SOS col needs to allow overflow */
+  .bottom-nav .sos-col {
+    position: relative;
+    overflow: visible;
+  }
+
+  /* The actual SOS button */
+  .bottom-nav .sos-btn {
+    border: 0;
+    background: transparent;
+    padding: 0;
+    width: 100%;
+    height: 70px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-end;
+    padding-bottom: 6px;
+    position: relative;
+  }
+
+  /* The dome shape */
+  /* The dome shape */
+  .bottom-nav .sos-dome {
+    position: absolute;
+    bottom: 0;
+    /* Sits flush with the bottom nav */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 86px;
+    height: 76px;
+    background-color: #2563eb;
+    /* Matches the vibrant blue in the image */
+    border-radius: 50px 50px 0 0;
+    /* Creates the flat-bottom arch shape */
+    box-shadow: 0 -4px 15px rgba(37, 99, 235, 0.3);
+    /* Subtle blue glow */
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-direction: column;
+    padding-top: 14px;
+    /* Pushes the icon down from the rounded top */
+    gap: 2px;
+  }
+
+  .bottom-nav .sos-dome .sos-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .bottom-nav .sos-dome .sos-icon-wrap svg {
+    width: 32px;
+    height: 32px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+  }
+
+  .bottom-nav .sos-dome .nav-label {
+    font-size: 0.75rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: .5px;
+    line-height: 1;
+    margin-top: 2px;
+  }
+
+  /* Optional: active state */
+  .bottom-nav .nav-btn.active-nav:not(.sos-btn) {
+    color: var(--bs-primary) !important;
+  }
+
+  /* If you still have an old floating SOS button somewhere, hide it */
+  #sos-btn,
+  .sos-btn-floating,
+  [data-sos] {
+    display: none !important;
+  }
 </style>
 
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
@@ -288,36 +394,52 @@ else: ?>
 </div>
 
 <!-- Bottom Navigation (Profile removed because it is in hamburger) -->
-<div class="fixed-bottom bg-white border-top shadow-lg" style="height: 60px; z-index: 1060;">
-  <div class="row h-100 m-0">
+<!-- Bottom Navigation (Location / SOS / Bus Info) -->
+<div class="fixed-bottom bg-white border-top shadow-lg bottom-nav" style="height: 65px; z-index: 1060;">
+  <div class="container-fluid h-100">
+    <div class="row h-100 align-items-end m-0">
 
-    <div class="col-4 h-100 p-0">
-      <button id="nav-location"
-        class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
-        <span class="material-symbols-rounded fs-1 mb-1">location_on</span>
-        <span class="fw-bold small" style="font-size: 0.75rem;">LOCATION</span>
-      </button>
+      <!-- LOCATION -->
+      <div class="col-4 p-0 text-center">
+        <button id="nav-location"
+          class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
+          data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
+          <span class="material-symbols-rounded nav-icon mb-1">location_on</span>
+          <span class="nav-label">LOCATION</span>
+        </button>
+      </div>
+
+      <!-- SOS (CENTER) -->
+      <div class="col-4 p-0 text-center sos-col">
+        <button id="nav-sos" class="sos-btn nav-btn" data-action="link"
+          data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
+          <div class="sos-dome">
+            <div class="sos-icon-wrap">
+              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- Shield shape -->
+                <path d="M12 2L4 5.5V11c0 4.55 3.4 8.74 8 9.93C16.6 19.74 20 15.55 20 11V5.5L12 2Z"
+                  fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.5" stroke-linejoin="round" />
+                <!-- Checkmark -->
+                <path d="M8.5 12l2.5 2.5 4.5-5" stroke="white" stroke-width="2" stroke-linecap="round"
+                  stroke-linejoin="round" />
+              </svg>
+            </div>
+            <span class="nav-label">SOS</span>
+          </div>
+        </button>
+      </div>
+
+      <!-- BUS INFO -->
+      <div class="col-4 p-0 text-center">
+        <button id="nav-info"
+          class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
+          data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
+          <span class="material-symbols-rounded nav-icon mb-1">directions_bus</span>
+          <span class="nav-label">BUS INFO</span>
+        </button>
+      </div>
+
     </div>
-
-    <div class="col-4 h-100 p-0">
-      <button id="nav-safety"
-        class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        data-action="link" data-url="<?php echo $depth; ?>public/passenger/safety/safety.php">
-        <span class="material-symbols-rounded fs-1 mb-1">security</span>
-        <span class="fw-bold small" style="font-size: 0.75rem;">SAFETY</span>
-      </button>
-    </div>
-
-    <div class="col-4 h-100 p-0">
-      <button id="nav-info"
-        class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
-        <span class="material-symbols-rounded fs-1 mb-1">directions_bus</span>
-        <span class="fw-bold small" style="font-size: 0.75rem;">INFO</span>
-      </button>
-    </div>
-
   </div>
 </div>
 
