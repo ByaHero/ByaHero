@@ -40,7 +40,8 @@ include "../../../components/navbarPassenger.php";
             position: relative;
         }
 
-        .sos-btn {
+        /* CHANGE THIS */
+        .main-sos-btn {
             width: 100%;
             height: 100%;
             border-radius: 50%;
@@ -57,7 +58,7 @@ include "../../../components/navbarPassenger.php";
             transition: transform 0.2s;
         }
 
-        .sos-btn:active {
+        .main-sos-btn:active {
             transform: scale(0.95);
         }
 
@@ -208,7 +209,7 @@ include "../../../components/navbarPassenger.php";
                 <div class="sos-btn-container mb-5">
                     <div class="sos-ring"></div>
                     <div class="sos-ring"></div>
-                    <button class="sos-btn" onclick="startCountdown()">
+                    <button class="main-sos-btn" onclick="startCountdown()">
                         <h1 class="material-symbols-rounded text-white display-1 mb-0"
                             style="font-variation-settings: 'FILL' 1;">sos</h1>
                         <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
