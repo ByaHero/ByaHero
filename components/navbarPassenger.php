@@ -1,61 +1,28 @@
 <?php
 // --- SESSION CHECK ---
-// Ensure session is started so we can check if the user is logged in
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
-// 1. Resolve Paths
-// We use $pageDepth to fix links (e.g. if file is in passenger/subfolder/, depth is "../../")
+// 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
 $defaultBack = $depth . 'passenger/index.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
-// 2. Determine Profile Button Destination
-// If user is logged in -> Go to Profile Page
-// If user is NOT logged in -> Go to Login Page
+// 2) Profile URL
 if (isset($_SESSION['user_id'])) {
   $profileUrl = $depth . 'public/passenger/profile/profile.php';
 } else {
   $profileUrl = $depth . 'public/login.php';
 }
-?>
 
-<?php
-$dbPath = __DIR__ . '/../config/db_connection.php';
-?>
+// Display name in hamburger header (no DB calls here)
+$displayName = $_SESSION['user_name'] ?? null;
+$displayEmail = $_SESSION['user_email'] ?? null;
+$displayHeaderName = $displayName ?: ($displayEmail ?: 'Guest');
 
-<?php
-// --- Unread notifications badge (conditional) ---
-$hasUnreadNotifications = false;
-
-if (isset($_SESSION['user_id'])) {
-  $userId = (int) $_SESSION['user_id'];
-
-  // Try to connect using your existing DB connection file
-  // Adjust path if your db_connection.php is elsewhere
-  if (file_exists($dbPath)) {
-    require_once $dbPath;
-
-    // $conn is expected from db_connection.php (mysqli)
-    if (isset($conn) && $conn instanceof mysqli) {
-      $stmt = $conn->prepare("
-        SELECT 1
-        FROM notifications
-        WHERE user_id = ?
-          AND read_at IS NULL
-        LIMIT 1
-      ");
-      if ($stmt) {
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $stmt->store_result();
-        $hasUnreadNotifications = ($stmt->num_rows > 0);
-        $stmt->close();
-      }
-    }
-  }
-}
+// Optional: if a page provides this variable, it can force-hide dot without breaking anything
+$hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNotifications : false;
 ?>
 
 <style>
@@ -81,6 +48,16 @@ if (isset($_SESSION['user_id'])) {
   .nav-btn.active-nav {
     color: var(--bs-primary) !important;
   }
+
+  /* Put the panel above everything */
+  .offcanvas {
+    z-index: 2001 !important;
+  }
+
+  /* Put the backdrop just below the panel (still above app UI) */
+  .offcanvas-backdrop {
+    z-index: 2000 !important;
+  }
 </style>
 
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
@@ -102,7 +79,7 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
   </div>
 
   <?php
-  // CASE B: SOS (Custom Red Design)
+  // CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -118,10 +95,7 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
   // CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
-  // Detect which settings page based on current filename
   $currentFile = basename($_SERVER['PHP_SELF']);
-
-  // Map filenames to display titles
   $settingsTitles = [
     'settings.php' => 'Settings',
     'about.php' => 'About',
@@ -135,8 +109,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'smartNotification.php' => 'Smart Notification',
     'termsOfService.php' => 'Terms of Service'
   ];
-
-  $displayTitle = isset($settingsTitles[$currentFile]) ? $settingsTitles[$currentFile] : 'Settings';
+  $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
   ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -149,11 +122,10 @@ elseif (isset($pageType) && $pageType === 'settings'):
   </div>
 
   <?php
-  // CASE D: PROFILE PAGES (Account Settings, Edit Profile, etc.)
+  // CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
-
   $profileTitles = [
     'profile.php' => 'My Profile',
     'accountSettings.php' => 'Account Settings',
@@ -161,8 +133,7 @@ elseif (isset($pageType) && $pageType === 'profile'):
     'changePassword.php' => 'Change Password',
     'loginActivity.php' => 'Login Activity'
   ];
-
-  $displayTitle = isset($profileTitles[$currentFile]) ? $profileTitles[$currentFile] : 'Profile';
+  $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
   ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -175,9 +146,8 @@ elseif (isset($pageType) && $pageType === 'profile'):
   </div>
 
   <?php
-  // CASE E: GENERIC PAGE (Flexible for ANY new page using $pageTitle)
-elseif (isset($pageTitle)):
-  ?>
+  // CASE E: GENERIC PAGE
+elseif (isset($pageTitle)): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -195,15 +165,12 @@ else: ?>
     class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
 
-    <!-- Left: Logo -->
     <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
 
-    <!-- Center: Title -->
     <div class="text-white fw-bold">ByaHero</div>
 
-    <!-- Right: Actions -->
     <div class="d-flex align-items-center gap-2">
-      <!-- Notifications (moved from index.php) -->
+      <!-- Bell -->
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;"
@@ -218,37 +185,113 @@ else: ?>
 
         <span class="material-symbols-rounded">notifications</span>
       </a>
-      <!-- Hamburger (optional offcanvas) -->
+
+      <!-- Hamburger -->
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
-        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#byaheroMenu"
-        aria-controls="byaheroMenu">
+        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
+        aria-controls="passengerMenu">
         <span class="material-symbols-rounded">menu</span>
       </button>
     </div>
   </div>
+<?php endif; ?>
 
-  <!-- Offcanvas -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="byaheroMenu" aria-labelledby="byaheroMenuLabel">
-    <div class="offcanvas-header">
-      <h5 class="offcanvas-title" id="byaheroMenuLabel">Menu</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+<!-- Hamburger Offcanvas -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel">
+  <!-- Header card -->
+  <div class="bg-primary text-white p-3 rounded-bottom-4 position-relative">
+    <button type="button" class="btn p-0 position-absolute top-0 end-0 m-3 text-white" data-bs-dismiss="offcanvas"
+      aria-label="Close">
+      <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
+    </button>
+
+    <div class="d-flex align-items-center gap-3 pt-2 pb-3">
+      <div class="bg-white rounded-circle d-flex align-items-center justify-content-center"
+        style="width:64px;height:64px;">
+        <span class="material-symbols-rounded text-secondary" style="font-size:40px;">person</span>
+      </div>
+
+      <div class="fw-bold" style="font-size: 1.05rem;">
+        <?php echo htmlspecialchars($displayHeaderName); ?>
+      </div>
     </div>
-    <div class="offcanvas-body">
-      <div class="list-group">
-        <a class="list-group-item list-group-item-action"
-          href="<?php echo $depth; ?>public/passenger/profile/profile.php">Profile</a>
-        <a class="list-group-item list-group-item-action"
-          href="<?php echo $depth; ?>public/passenger/passengerSettings/settings.php">Settings</a>
+
+    <div class="border-top border-white opacity-50"></div>
+  </div>
+
+  <!-- Body -->
+  <div class="offcanvas-body bg-light">
+    <div class="d-grid gap-3">
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/profile/profile.php">
+        <span class="material-symbols-rounded">person</span>
+        Profile
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
+        <span class="material-symbols-rounded">accessibility_new</span>
+        Accessibility
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
+        <span class="material-symbols-rounded">shield</span>
+        Privacy and Security
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
+        <span class="material-symbols-rounded">help</span>
+        Feedback
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/about.php">
+        <span class="material-symbols-rounded">info</span>
+        About
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
+        <span class="material-symbols-rounded">share</span>
+        Share ByaHero
+      </a>
+
+      <?php if (isset($_SESSION['user_id'])): ?>
+        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-danger"
+          href="<?php echo $depth; ?>public/logout.php">
+          <span class="material-symbols-rounded">logout</span>
+          Log out
+        </a>
+      <?php else: ?>
+        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+          href="<?php echo $depth; ?>public/login.php">
+          <span class="material-symbols-rounded">login</span>
+          Log in
+        </a>
+      <?php endif; ?>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="p-3 bg-white border-top">
+    <div class="d-flex justify-content-between align-items-center">
+      <div class="fw-bold">Byahero</div>
+      <div class="form-check form-switch m-0">
+        <input class="form-check-input" type="checkbox" role="switch" id="menuToggle">
       </div>
     </div>
   </div>
-<?php endif; ?>
+</div>
 
-
+<!-- Bottom Navigation (Profile removed because it is in hamburger) -->
 <div class="fixed-bottom bg-white border-top shadow-lg" style="height: 60px; z-index: 1060;">
   <div class="row h-100 m-0">
 
-    <div class="col-3 h-100 p-0">
+    <div class="col-4 h-100 p-0">
       <button id="nav-location"
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
         data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
@@ -257,7 +300,7 @@ else: ?>
       </button>
     </div>
 
-    <div class="col-3 h-100 p-0">
+    <div class="col-4 h-100 p-0">
       <button id="nav-safety"
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
         data-action="link" data-url="<?php echo $depth; ?>public/passenger/safety/safety.php">
@@ -266,7 +309,7 @@ else: ?>
       </button>
     </div>
 
-    <div class="col-3 h-100 p-0">
+    <div class="col-4 h-100 p-0">
       <button id="nav-info"
         class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
         data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
@@ -275,53 +318,21 @@ else: ?>
       </button>
     </div>
 
-    <div class="col-3 h-100 p-0">
-      <button id="nav-profile"
-        class="btn w-100 h-100 d-flex flex-column align-items-center justify-content-center p-0 border-0 bg-transparent nav-btn text-dark"
-        data-action="link" data-url="<?php echo $profileUrl; ?>">
-        <span class="material-symbols-rounded fs-1 mb-1">person</span>
-        <span class="fw-bold small" style="font-size: 0.75rem;">PROFILE</span>
-      </button>
-    </div>
-
   </div>
 </div>
 
 <script>
-(function () {
-  const dot = document.getElementById('navNotifDot');
-  if (!dot) return;
-
-  fetch('<?php echo $depth; ?>backend/getUnreadNotificationCount.php', { credentials: 'include' })
-    .then(r => r.json())
-    .then(data => {
-      const unread = (data && data.success) ? (parseInt(data.unread, 10) || 0) : 0;
-      if (unread > 0) dot.classList.remove('d-none');
-      else dot.classList.add('d-none');
-    })
-    .catch(() => {
-      // Fail silently (don’t break page load)
-      dot.classList.add('d-none');
-    });
-})();
-</script>
-
-<script>
   document.addEventListener('DOMContentLoaded', () => {
-    // Configuration
     const basePath = "<?php echo $depth; ?>";
     const indexUrl = basePath + "passenger/index.php";
 
-    // Detect if we are on the Home Page (Index)
     const hasMap = document.getElementById('map') || document.getElementById('map-desktop-placeholder');
     const path = window.location.pathname;
     const isIndex = hasMap || path.endsWith('passenger/') || path.endsWith('index.php');
 
-    // --- 1. HANDLE BUTTON CLICKS ---
     const navButtons = document.querySelectorAll('.nav-btn');
 
     navButtons.forEach(btn => {
-      // Highlight logic: Check if current URL matches button URL
       const btnUrl = btn.getAttribute('data-url');
       if (btnUrl && window.location.href.includes(btnUrl.split('/').pop())) {
         setActive(btn);
@@ -329,57 +340,19 @@ else: ?>
         setActive(btn);
       }
 
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', () => {
         const action = btn.getAttribute('data-action');
 
-        // Type A: Direct Link (e.g. Safety, Location, Profile)
         if (action === 'link') {
           const url = btn.getAttribute('data-url');
-          // If we are already here, do nothing (or specific home logic)
           if (window.location.href.includes(url.split('/').pop())) {
-            if (isIndex) toggleBottomSheet(); // Tapping location on home toggles sheet
+            if (isIndex) toggleBottomSheet();
             return;
           }
           window.location.href = url;
         }
-
-        // Type B: Modal Trigger (e.g. Info)
-        else if (action === 'modal') {
-          const targetId = btn.getAttribute('data-target');
-
-          if (isIndex) {
-            // We are on Home: Open the modal directly
-            openBootstrapModal(targetId);
-            setActive(btn);
-          } else {
-            // We are NOT on Home: Redirect to home and tell it to open the modal
-            const cleanTarget = targetId.replace('#', '');
-            window.location.href = indexUrl + "?open=" + cleanTarget;
-          }
-        }
       });
     });
-
-    // --- 2. HANDLE AUTO-OPENING MODALS (redirected from other pages) ---
-    if (isIndex) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const modalToOpen = urlParams.get('open');
-
-      if (modalToOpen) {
-        // Wait a split second for Bootstrap to be ready
-        setTimeout(() => {
-          openBootstrapModal('#' + modalToOpen);
-
-          // Highlight the correct button
-          if (modalToOpen === 'infoModal') setActive(document.getElementById('nav-info'));
-
-          // Clean the URL so refresh doesn't reopen it
-          window.history.replaceState({}, document.title, window.location.pathname);
-        }, 300);
-      }
-    }
-
-    // --- HELPER FUNCTIONS ---
 
     function setActive(activeBtn) {
       navButtons.forEach(b => {
@@ -392,20 +365,7 @@ else: ?>
       }
     }
 
-    function openBootstrapModal(id) {
-      if (typeof bootstrap !== 'undefined') {
-        const el = document.querySelector(id);
-        if (el) {
-          const modal = new bootstrap.Modal(el);
-          modal.show();
-        }
-      } else {
-        console.warn("Bootstrap not loaded");
-      }
-    }
-
     function toggleBottomSheet() {
-      // Tries to find the bottom sheet function from index.php
       if (typeof selectNav === 'function') {
         selectNav(document.getElementById('nav-location'), 'location');
       } else {
@@ -416,5 +376,32 @@ else: ?>
         }
       }
     }
+  });
+</script>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const menu = document.getElementById('passengerMenu');
+    if (!menu) return;
+
+    const bottomSheet =
+      document.querySelector('#bottomSheet') ||
+      document.querySelector('.bottom-sheet') ||
+      document.querySelector('.passenger-bottom-sheet');
+
+    const sosBtn =
+      document.querySelector('#sos-btn') ||
+      document.querySelector('.sos-btn') ||
+      document.querySelector('[data-sos]');
+
+    menu.addEventListener('show.bs.offcanvas', () => {
+      if (bottomSheet) bottomSheet.classList.add('d-none');
+      if (sosBtn) sosBtn.classList.add('d-none');
+    });
+
+    menu.addEventListener('hidden.bs.offcanvas', () => {
+      if (bottomSheet) bottomSheet.classList.remove('d-none');
+      if (sosBtn) sosBtn.classList.remove('d-none');
+    });
   });
 </script>
