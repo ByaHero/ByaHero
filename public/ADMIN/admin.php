@@ -36,6 +36,7 @@ $activeBusesCount = 0;
 $driversCount = 0;
 $conductorsCount = 0;
 $stopsCount = 0;
+$faresCount = 0;
 
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
@@ -45,6 +46,9 @@ try {
 
     // IMPORTANT: InfinityFree table is lowercase (case-sensitive on Linux)
     $stopsCount = (int)$pdo->query("SELECT COUNT(*) FROM busstopsterminal")->fetchColumn();
+
+    // NEW: bus fares count
+    $faresCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_fares")->fetchColumn();
 } catch (Exception $e) {
     // keep zeros if something fails
 }
@@ -86,6 +90,7 @@ try {
         .card-drivers { background: #addbea; }
         .card-conductors { background: #2666be; }
         .card-stops { background: #0ea5e9; }
+        .card-fares { background: #8b5cf6; } /* NEW: fares */
 
         .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
         .stat-card-number {
@@ -97,7 +102,7 @@ try {
             z-index: 2;
             text-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
-        
+
         .btn-manage-pill {
             position: absolute;
             bottom: 15px;
@@ -186,10 +191,9 @@ try {
         <p class="text-muted mb-0">Overview of your bus system</p>
     </div>
 
-    <!-- ✅ FIXED: Proper grid layout with offset for centered bottom row -->
     <div class="row g-3 g-lg-4 mb-4">
 
-        <!-- Top Row: Total Buses + Active Buses -->
+        <!-- Top Row: Total Buses + Active Buses + Bus Fares -->
         <div class="col-6 col-lg-4">
             <div class="stat-card card-total">
                 <div class="stat-card-title">Total Buses</div>
@@ -206,10 +210,16 @@ try {
             </div>
         </div>
 
-        <!-- Empty spacer for desktop only -->
-        <div class="col-lg-4 d-none d-lg-block"></div>
+        <!-- NEW: Bus Fares card (replaces previous spacer) -->
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-fares">
+                <div class="stat-card-title">Bus Fares</div>
+                <a class="btn-manage-pill" href="busFare.php">Manage</a>
+                <div class="stat-card-number"><?= $faresCount ?></div>
+            </div>
+        </div>
 
-        <!-- Bottom Row: Drivers + Bus Stops + Conductors (centered) -->
+        <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
         <div class="col-6 col-lg-4">
             <div class="stat-card card-drivers">
                 <div class="stat-card-title">Drivers</div>
