@@ -5,6 +5,20 @@ require __DIR__ . '/../../config/db_connection.php';
 // Check if user is logged in
 $user_id = $_SESSION['user_id'] ?? null;
 
+if ($user_id && isset($conn) && $conn instanceof mysqli) {
+  $stmt = $conn->prepare("
+    UPDATE notifications
+    SET read_at = NOW()
+    WHERE user_id = ?
+      AND read_at IS NULL
+  ");
+  if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->close();
+  }
+}
+
 // Fetch user's notification settings
 $notify_bus_schedule = 0;
 $notify_bus_arrival = 0;
@@ -260,10 +274,6 @@ function notification_icon(string $type): array
 
     </div>
   <?php endif; ?>
-
-  <div class="nav-wrapper">
-    <?php include '../../components/navbarPassenger.php'; ?>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../assets/js/accessibility.js"></script>
