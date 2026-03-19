@@ -28,7 +28,7 @@ include "../../../components/navbarPassenger.php";
         }
 
         body {
-            font-family: "Poppins", sans-serif;
+            font-family: "Segoe UI", sans-serif;
             background-color: var(--bs-bg-light);
         }
 
