@@ -23,12 +23,8 @@ $busError = $_GET['error'] ?? null;
  * If this conductor already has a current_bus_id and that bus is still
  * assigned to them (current_conductor_id), send them straight to
  * conductorLive.php so they continue managing the same bus.
- *
- * We skip this if ?stopped=1 is present (handled above), meaning they
- * intentionally ended tracking and should see the bus selection screen.
  */
 if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
-    // 1) Check conductor's current_bus_id
     $stmt = $pdo->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
     $stmt->execute([$userId]);
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -36,7 +32,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
     $currentBusId = isset($row['current_bus_id']) ? (int)$row['current_bus_id'] : 0;
 
     if ($currentBusId > 0) {
-        // 2) Confirm the bus is still assigned to this conductor
         $stmtBus = $pdo->prepare("
             SELECT Bus_ID
             FROM busses
@@ -47,8 +42,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         $busRow = $stmtBus->fetch(PDO::FETCH_ASSOC);
 
         if ($busRow) {
-            // Optional: rebuild $_SESSION['current_bus'] here, but
-            // conductorLive.php already knows how to restore from DB.
             header("Location: conductorLive.php");
             exit;
         }
@@ -263,6 +256,11 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             right: 10px;
             z-index: 900;
         }
+
+        /* Marker CSS to ensure they click properly */
+        .leaflet-marker-icon {
+            pointer-events: auto;
+        }
     </style>
 </head>
 
@@ -283,12 +281,13 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             </a>
             
             <div class="dropdown">
-                <button class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
                 </button>
                 <ul class="dropdown-menu">
-                    <li><button class="dropdown-item" type="button" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">LAUREL - TANAUAN</button></li>
-                    <li><button class="dropdown-item" type="button" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">TANAUAN - LAUREL</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('', 'ALL ROUTES')">ALL ROUTES</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</button></li>
+                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</button></li>
                 </ul>
             </div>
 
@@ -342,14 +341,128 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 3000);
         }
 
-        // --- Map Initialization ---
+        // --- MAP INITIALIZATION ---
         let map = null;
         function initMap() {
+            // Centers map correctly over the Batangas area
             map = L.map('mainMap', { zoomControl: false, attributionControl: false }).setView([14.0905, 121.0550], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
         }
 
-        // --- Custom Dropdown Logic ---
+        // --- LIVE BUS TRACKING ---
+        const busMarkers = {};
+        const statusColors = {
+            available: '#10b981',
+            on_stop: '#f59e0b',
+            full: '#ef4444',
+            unavailable: '#6b7280'
+        };
+
+        // Perfectly aligned paths based on your file structure
+        const ICON_CACHE = {
+            available: L.icon({
+                iconUrl: '../../assets/images/icons/marker.svg',
+                iconSize: [40, 40],
+                iconAnchor: [18, 36],
+                popupAnchor: [0, -36]
+            }),
+            full: L.icon({
+                iconUrl: '../../assets/images/icons/marker.svg',
+                iconSize: [40, 40],
+                iconAnchor: [18, 36],
+                popupAnchor: [0, -36]
+            })
+        };
+
+        function createBusIcon(status) {
+            const s = String(status || '').toLowerCase();
+            if (s === 'available') return ICON_CACHE.available;
+            if (s === 'full') return ICON_CACHE.full;
+
+            const color = statusColors[s] || '#999';
+            return L.divIcon({
+                html: `<div style="background:${color};width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>`,
+                className: 'bus-marker-dot',
+                iconSize: [20, 20],
+                iconAnchor: [10, 10]
+            });
+        }
+
+        function normalizeBus(bus) {
+            let coords = null;
+            if (bus.current_location) {
+                try {
+                    const geo = JSON.parse(bus.current_location);
+                    if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+                } catch (e) {}
+            }
+            if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
+
+            return {
+                id: bus.Bus_ID || bus.id,
+                code: bus.code || 'BUS',
+                route: bus.route || '',
+                status: bus.status || 'unavailable',
+                coords: coords,
+                locName: bus.current_location_name || 'Updating...'
+            };
+        }
+
+        let currentMapFilter = ''; 
+        function setMapFilter(route, label) {
+            currentMapFilter = route;
+            document.getElementById('filterBtnLabel').innerHTML = `${label} <span class="material-symbols-rounded" style="font-size: 18px;">route</span>`;
+            fetchLiveBuses(); 
+        }
+
+        async function fetchLiveBuses() {
+            try {
+                // Pointing to the public/api.php
+                const res = await fetch('../api.php?action=get_buses');
+                const json = await res.json();
+                
+                if (json.success && json.buses) { 
+                    const buses = json.buses.map(normalizeBus);
+                    updateMap(buses);
+                }
+            } catch (e) {
+                console.error("Bus fetch error:", e);
+            }
+        }
+
+        function updateMap(buses) {
+            const filtered = buses.filter(b => 
+                (!currentMapFilter || b.route === currentMapFilter) &&
+                b.status !== 'unavailable' &&
+                b.coords !== null
+            );
+
+            const currentIds = new Set(filtered.map(b => String(b.id)));
+
+            // Remove markers for buses that are no longer active or don't match the filter
+            Object.keys(busMarkers).forEach(id => {
+                if (!currentIds.has(id)) {
+                    map.removeLayer(busMarkers[id]);
+                    delete busMarkers[id];
+                }
+            });
+
+            // Update existing or create new bus markers
+            filtered.forEach(b => {
+                const iconForBus = createBusIcon(b.status);
+                
+                if (busMarkers[b.id]) {
+                    busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
+                    busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}`);
+                } else {
+                    const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
+                    m.bindPopup(`<b>${b.code}</b><br>${b.locName}`);
+                    busMarkers[b.id] = m;
+                }
+            });
+        }
+
+        // --- CUSTOM TRACKING FORM DROPDOWN LOGIC ---
         function toggleDropdown(containerId) {
             document.querySelectorAll('.custom-select-container').forEach(container => {
                 if (container.id !== containerId) {
@@ -359,7 +472,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             el(containerId).classList.toggle('open');
         }
 
-        // Close dropdowns if user clicks outside of them
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.custom-select-container') && !e.target.closest('.filter-pill')) {
                 document.querySelectorAll('.custom-select-container').forEach(container => {
@@ -368,7 +480,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             }
         });
         
-        // Handle selecting Route
         function selectRoute(value, displayText) {
             el('routeSelect').value = value;
             el('routeDropdownValue').textContent = displayText;
@@ -380,11 +491,9 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                     opt.classList.add('selected');
                 }
             });
-
             container.classList.remove('open');
         }
 
-        // Handle selecting Bus
         let selectedBusMeta = null;
         function setBus(busId, label, meta = null) {
             el('busSelect').value = busId;
@@ -398,22 +507,18 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                     opt.classList.add('selected');
                 }
             });
-
             container.classList.remove('open');
         }
 
-        async function loadBuses() {
+        async function loadBusesDropdown() {
             try {
                 const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
                 const json = await r.json();
                 const list = el('busOptionsList');
 
-                if (json && Array.isArray(json.buses)) {
+                if (json.success && json.buses) {
                     json.buses.forEach(b => {
-                        // If API reports current_conductor_id, skip buses already in use
-                        if (b.current_conductor_id !== null && b.current_conductor_id !== undefined) {
-                            return;
-                        }
+                        if (b.current_conductor_id !== null && b.current_conductor_id !== undefined) return;
 
                         const id = b.id || b.Bus_ID || b.bus_id;
                         const code = b.code || `BUS-${id}`;
@@ -433,11 +538,10 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                     });
                 }
             } catch (e) {
-                showAlert('Failed to load buses', 'danger');
+                showAlert('Failed to load buses for selection', 'danger');
             }
         }
 
-        // Form Submit
         function startTracking() {
             const busId = el('busSelect').value;
             const route = el('routeSelect').value;
@@ -468,9 +572,14 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             form.submit();
         }
 
+        // --- RUN ON LOAD ---
         document.addEventListener('DOMContentLoaded', () => {
             initMap();
-            loadBuses();
+            loadBusesDropdown();
+            
+            // Fetch active buses immediately and set 4-second update interval
+            fetchLiveBuses();
+            setInterval(fetchLiveBuses, 4000);
 
             el('startBtn').addEventListener('click', startTracking);
         });
