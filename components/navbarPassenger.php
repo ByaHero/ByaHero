@@ -22,6 +22,10 @@ if (isset($_SESSION['user_id'])) {
 ?>
 
 <?php
+$dbPath = __DIR__ . '/../config/db_connection.php';
+?>
+
+<?php
 // --- Unread notifications badge (conditional) ---
 $hasUnreadNotifications = false;
 
@@ -30,7 +34,6 @@ if (isset($_SESSION['user_id'])) {
 
   // Try to connect using your existing DB connection file
   // Adjust path if your db_connection.php is elsewhere
-  $dbPath = __DIR__ . '/../config/db_connection.php';
   if (file_exists($dbPath)) {
     require_once $dbPath;
 
@@ -283,6 +286,25 @@ else: ?>
 
   </div>
 </div>
+
+<script>
+(function () {
+  const dot = document.getElementById('navNotifDot');
+  if (!dot) return;
+
+  fetch('<?php echo $depth; ?>backend/getUnreadNotificationCount.php', { credentials: 'include' })
+    .then(r => r.json())
+    .then(data => {
+      const unread = (data && data.success) ? (parseInt(data.unread, 10) || 0) : 0;
+      if (unread > 0) dot.classList.remove('d-none');
+      else dot.classList.add('d-none');
+    })
+    .catch(() => {
+      // Fail silently (don’t break page load)
+      dot.classList.add('d-none');
+    });
+})();
+</script>
 
 <script>
   document.addEventListener('DOMContentLoaded', () => {
