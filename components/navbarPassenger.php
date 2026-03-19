@@ -21,6 +21,40 @@ if (isset($_SESSION['user_id'])) {
 }
 ?>
 
+<?php
+// --- Unread notifications badge (conditional) ---
+$hasUnreadNotifications = false;
+
+if (isset($_SESSION['user_id'])) {
+  $userId = (int) $_SESSION['user_id'];
+
+  // Try to connect using your existing DB connection file
+  // Adjust path if your db_connection.php is elsewhere
+  $dbPath = __DIR__ . '/../config/db_connection.php';
+  if (file_exists($dbPath)) {
+    require_once $dbPath;
+
+    // $conn is expected from db_connection.php (mysqli)
+    if (isset($conn) && $conn instanceof mysqli) {
+      $stmt = $conn->prepare("
+        SELECT 1
+        FROM notifications
+        WHERE user_id = ?
+          AND read_at IS NULL
+        LIMIT 1
+      ");
+      if ($stmt) {
+        $stmt->bind_param("i", $userId);
+        $stmt->execute();
+        $stmt->store_result();
+        $hasUnreadNotifications = ($stmt->num_rows > 0);
+        $stmt->close();
+      }
+    }
+  }
+}
+?>
+
 <style>
   :root {
     --bs-primary: #1e3a8a;
@@ -64,7 +98,7 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
 
-<?php
+  <?php
   // CASE B: SOS (Custom Red Design)
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
@@ -77,13 +111,13 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
 
-<?php
+  <?php
   // CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
-  
+
   // Detect which settings page based on current filename
   $currentFile = basename($_SERVER['PHP_SELF']);
-  
+
   // Map filenames to display titles
   $settingsTitles = [
     'settings.php' => 'Settings',
@@ -98,9 +132,9 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'smartNotification.php' => 'Smart Notification',
     'termsOfService.php' => 'Terms of Service'
   ];
-  
+
   $displayTitle = isset($settingsTitles[$currentFile]) ? $settingsTitles[$currentFile] : 'Settings';
-?>
+  ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -111,12 +145,12 @@ elseif (isset($pageType) && $pageType === 'settings'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-<?php
+  <?php
   // CASE D: PROFILE PAGES (Account Settings, Edit Profile, etc.)
 elseif (isset($pageType) && $pageType === 'profile'):
-  
+
   $currentFile = basename($_SERVER['PHP_SELF']);
-  
+
   $profileTitles = [
     'profile.php' => 'My Profile',
     'accountSettings.php' => 'Account Settings',
@@ -124,9 +158,9 @@ elseif (isset($pageType) && $pageType === 'profile'):
     'changePassword.php' => 'Change Password',
     'loginActivity.php' => 'Login Activity'
   ];
-  
+
   $displayTitle = isset($profileTitles[$currentFile]) ? $profileTitles[$currentFile] : 'Profile';
-?>
+  ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -137,10 +171,10 @@ elseif (isset($pageType) && $pageType === 'profile'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-<?php
+  <?php
   // CASE E: GENERIC PAGE (Flexible for ANY new page using $pageTitle)
 elseif (isset($pageTitle)):
-?>
+  ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -151,13 +185,59 @@ elseif (isset($pageTitle)):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
 
-<?php
-  // CASE F: DEFAULT / HOME (Logo only)
+  <?php
+  // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
+
+    <!-- Left: Logo -->
     <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
+
+    <!-- Center: Title -->
+    <div class="text-white fw-bold">ByaHero</div>
+
+    <!-- Right: Actions -->
+    <div class="d-flex align-items-center gap-2">
+      <!-- Notifications (moved from index.php) -->
+      <a href="<?php echo $depth; ?>public/passenger/notifications.php"
+        class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
+        style="width: 40px; height: 40px;"
+        onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
+
+        <?php if (!empty($hasUnreadNotifications)): ?>
+          <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
+            style="margin-left: -10px; margin-top: 10px;">
+            <span class="visually-hidden">New alerts</span>
+          </span>
+        <?php endif; ?>
+
+        <span class="material-symbols-rounded">notifications</span>
+      </a>
+      <!-- Hamburger (optional offcanvas) -->
+      <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
+        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#byaheroMenu"
+        aria-controls="byaheroMenu">
+        <span class="material-symbols-rounded">menu</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Offcanvas -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="byaheroMenu" aria-labelledby="byaheroMenuLabel">
+    <div class="offcanvas-header">
+      <h5 class="offcanvas-title" id="byaheroMenuLabel">Menu</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+      <div class="list-group">
+        <a class="list-group-item list-group-item-action"
+          href="<?php echo $depth; ?>public/passenger/profile/profile.php">Profile</a>
+        <a class="list-group-item list-group-item-action"
+          href="<?php echo $depth; ?>public/passenger/passengerSettings/settings.php">Settings</a>
+      </div>
+    </div>
   </div>
 <?php endif; ?>
 

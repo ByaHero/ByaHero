@@ -146,49 +146,6 @@ if (isset($_SESSION['user_id'])) {
   <div class="d-lg-none d-flex flex-column vh-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
-
-      <div
-        class="position-absolute pt-5 top-0 start-0 end-0 p-3 d-flex justify-content-between align-items-center map-overlay">
-
-        <!-- ✅ SETTINGS BUTTON (Now from component) -->
-        <?php
-        $settingsButtonPath = './passengerSettings/settings.php';
-        include __DIR__ . '/../../components/settingsButton.php';
-        ?>
-
-        <!-- ✅ FILTER ROUTES dropdown (pill style + centered menu) -->
-        <div class="dropdown">
-          <button
-            class="route-pill bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 fw-bold text-dark border-0 dropdown-toggle"
-            type="button" id="routeDropdownBtn" data-bs-toggle="dropdown" aria-expanded="false"
-            onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Filter Routes Button');">
-            <span id="filterLabelMobile" class="text-truncate" style="max-width: 140px;">FILTER ROUTES</span>
-            <span class="material-symbols-rounded fs-6">tune</span>
-          </button>
-
-          <!-- NOTE: removed dropdown-menu-end so it can center -->
-          <ul class="dropdown-menu route-menu route-menu-centered shadow" id="routeDropdownMenu"
-            aria-labelledby="routeDropdownBtn">
-            <li>
-              <button class="dropdown-item active" type="button" onclick="setRoute('')">All Routes</button>
-            </li>
-            <!-- routes inserted by updateFilters() -->
-          </ul>
-        </div>
-
-        <a href="notifications.php"
-          class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 text-decoration-none text-dark position-relative h-40px w-40px topbar-btn"
-          onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
-
-          <span
-            class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
-            style="margin-left: -10px; margin-top: 10px;">
-            <span class="visually-hidden">New alerts</span>
-          </span>
-
-          <span class="material-symbols-rounded topbar-icon">notifications</span>
-        </a>
-      </div>
     </div>
   </div>
 
