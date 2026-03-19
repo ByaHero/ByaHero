@@ -19,19 +19,6 @@ if (!isset($baseUrl)) {
 
   <!-- SOS (centered) + Locate button (right-most corner) -->
   <div class="position-absolute w-100" style="top: -60px; z-index: 1060;">
-    <!-- Centered SOS -->
-    <div class="position-absolute start-50 translate-middle-x">
-      <button onclick="window.location.href='sos/sos.php'"
-        class="btn bg-white rounded-pill shadow px-4 py-2 d-flex align-items-center gap-2 border-0">
-
-        <span class="bg-primary" style="width: 32px; height: 32px; 
-                     -webkit-mask: url('../../assets/images/icons/verified_user.svg') no-repeat center / contain; 
-                     mask: url('../../assets/images/icons/verified_user.svg') no-repeat center / contain;">
-        </span>
-
-        <span class="text-primary fw-bold">SOS</span>
-      </button>
-    </div>
 
     <!-- Right-most Locate/Center button -->
     <div class="position-absolute end-0 me-3">

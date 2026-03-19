@@ -201,10 +201,6 @@ include "../../../components/navbarPassenger.php";
                                     id="location-text">Locating...</span>
                             </div>
                         </div>
-                        <button class="btn btn-sm btn-light rounded-pill border fw-bold flex-shrink-0 ms-2"
-                            onclick="shareLocation()">
-                            Share
-                        </button>
                     </div>
                 </div>
 
@@ -401,27 +397,6 @@ include "../../../components/navbarPassenger.php";
                 },
                 { enableHighAccuracy: true, timeout: 10000 }
             );
-        }
-
-        function shareLocation() {
-            if (currentCoords.lat == null || currentCoords.lng == null) {
-                alert("Location not available yet.");
-                return;
-            }
-
-            const url = `https://maps.google.com/?q=${currentCoords.lat},${currentCoords.lng}`;
-            const placeText = document.getElementById("location-text")?.innerText || "My location";
-
-            if (navigator.share) {
-                navigator.share({
-                    title: "Emergency Help",
-                    text: `I need help! My location: ${placeText}`,
-                    url: url
-                });
-            } else {
-                navigator.clipboard.writeText(url);
-                alert("Location link copied to clipboard!");
-            }
         }
     </script>
 
