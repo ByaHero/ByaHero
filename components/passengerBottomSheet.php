@@ -15,7 +15,7 @@ if (!isset($baseUrl)) {
 
 <div id="bottomSheet"
   class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"
-  style="bottom: 60px; height: 40%; z-index: 1050;">
+  style="bottom: 60px; height: 35%; z-index: 1050;">
 
   <!-- SOS (centered) + Locate button (right-most corner) -->
   <div class="position-absolute w-100" style="top: -60px; z-index: 1060;">

@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (currentHeight > windowHeight * 0.65) sheet.style.height = '85%';
     else if (currentHeight < windowHeight * 0.25) sheet.style.height = '15%';
-    else sheet.style.height = '40%';
+    else sheet.style.height = '35%';
   });
 });
 
