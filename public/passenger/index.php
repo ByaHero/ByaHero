@@ -1,6 +1,16 @@
 <?php
 session_start();
 
+/**
+ * REQUIRE LOGIN:
+ * If user is not logged in, redirect to login page first.
+ * After login, it will redirect back to passenger/index.php.
+ */
+if (!isset($_SESSION['user_id'])) {
+  header('Location: ../login.php?redirect=passenger/index.php', true, 302);
+  exit;
+}
+
 $currentUser = null;
 if (isset($_SESSION['user_id'])) {
   $currentUser = [
