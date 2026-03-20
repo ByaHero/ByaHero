@@ -46,6 +46,14 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     display: block;
   }
 
+  /* Display name in hamburger header */
+  .offcanvas-username {
+    font-size: 90px;
+    /* adjust as needed */
+    line-height: 20px;
+    /* adjust as needed */
+  }
+
   /* Active state for bottom nav buttons */
   .nav-btn {
     transition: all 0.3s ease;
@@ -182,8 +190,8 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
 
-  <?php
-  // CASE B: SOS
+<?php
+// CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -195,8 +203,8 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
 
-  <?php
-  // CASE C: SETTINGS PAGES (Specific Titles)
+<?php
+// CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -214,7 +222,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'termsOfService.php' => 'Terms of Service'
   ];
   $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
-  ?>
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -225,8 +233,8 @@ elseif (isset($pageType) && $pageType === 'settings'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE D: PROFILE PAGES
+<?php
+// CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -238,7 +246,7 @@ elseif (isset($pageType) && $pageType === 'profile'):
     'loginActivity.php' => 'Login Activity'
   ];
   $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
-  ?>
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -249,8 +257,8 @@ elseif (isset($pageType) && $pageType === 'profile'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE E: GENERIC PAGE
+<?php
+// CASE E: GENERIC PAGE
 elseif (isset($pageTitle)): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -262,8 +270,8 @@ elseif (isset($pageTitle)): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
+<?php
+// CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -279,8 +287,7 @@ else: ?>
       src="<?php echo $depth; ?>assets/images/ByaHero.png"
       alt="ByaHero"
       height="30"
-      class="topbar-wordmark"
-    >
+      class="topbar-wordmark">
 
     <!-- Right icons wrapper, similar width to left -->
     <div class="d-flex align-items-center gap-2 justify-content-end" style="width: 60px;">
@@ -320,66 +327,84 @@ else: ?>
     </button>
 
     <div class="d-flex align-items-center gap-3 pt-2 pb-3">
-      <div class="bg-white rounded-circle d-flex align-items-center justify-content-center"
-        style="width:64px;height:64px;">
-        <span class="material-symbols-rounded text-secondary" style="font-size:40px;">person</span>
+
+      <div class="" style="margin-left: 20px; margin-right: 10px;">
+        <img src="<?php echo $depth; ?>assets/images/profilepic.png" alt="profilepic" height="90">
       </div>
 
-      <div class="fw-bold" style="font-size: 1.05rem;">
+      <!-- Changed font-size: 90px; to use class/offcanvas-username -->
+      <div class="fw-bold offcanvas-username" style="font-size: 40px !important; line-height: 20px;">
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
     </div>
-
-    <div class="border-top border-white opacity-50"></div>
+    <div
+      style="border-top: 2px solid #ffffff; height: 3px; margin-top: 8px; margin-bottom: 8px;">
+    </div>
   </div>
 
   <!-- Body -->
   <div class="offcanvas-body bg-light">
     <div class="d-grid gap-3">
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold "
         href="<?php echo $depth; ?>public/passenger/profile/profile.php">
-        <span class="material-symbols-rounded">person</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/person (1).png" alt="person" height="30">
+        </div>
         Profile
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
-        <span class="material-symbols-rounded">accessibility_new</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/accessibility (1).png" alt="accessibility" height="30">
+        </div>
         Accessibility
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
-        <span class="material-symbols-rounded">shield</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/privacy (1).png" alt="privacy" height="30">
+        </div>
         Privacy and Security
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
-        <span class="material-symbols-rounded">help</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/feedback (1).png" alt="feedback" height="30">
+        </div>
         Feedback
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/about.php">
-        <span class="material-symbols-rounded">info</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/about (1).png" alt="about" height="30">
+        </div>
         About
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
-        <span class="material-symbols-rounded">share</span>
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/share (1).png" alt="share" height="30">
+        </div>
         Share ByaHero
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
-        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-danger"
-          href="<?php echo $depth; ?>public/logout.php">
-          <span class="material-symbols-rounded">logout</span>
+        <!-- Logged-in: show Log out, send to root index.php -->
+        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+          href="<?php echo $depth; ?>index.php">
+          <div class="" style="margin-left: 20px; margin-right: 10px;">
+            <img src="<?php echo $depth; ?>assets/images/logout (1).png" alt="logout" height="30">
+          </div>
           Log out
         </a>
       <?php else: ?>
+        <!-- Not logged-in: show Log in -->
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
           href="<?php echo $depth; ?>public/login.php">
           <span class="material-symbols-rounded">login</span>
@@ -390,7 +415,7 @@ else: ?>
     </div>
   </div>
 
-  <!-- Footer -->
+  <!-- Footer
   <div class="p-3 bg-white border-top">
     <div class="d-flex justify-content-between align-items-center">
       <div class="fw-bold">Byahero</div>
@@ -398,7 +423,7 @@ else: ?>
         <input class="form-check-input" type="checkbox" role="switch" id="menuToggle">
       </div>
     </div>
-  </div>
+  </div> -->
 </div>
 
 <!-- Bottom Navigation (Location / SOS / Bus Info) -->
