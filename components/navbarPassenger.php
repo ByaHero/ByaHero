@@ -40,6 +40,12 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     padding-bottom: 100px !important;
   }
 
+  /* Centered Byahero wordmark in top bar */
+  .topbar-wordmark {
+    margin: 0 auto;
+    display: block;
+  }
+
   /* Active state for bottom nav buttons */
   .nav-btn {
     transition: all 0.3s ease;
@@ -59,13 +65,11 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     z-index: 2000 !important;
   }
 
-
   /* Center SOS button — dome that rises above the navbar */
   .bottom-nav {
     height: 70px;
     z-index: 1060;
     overflow: visible !important;
-    /* allow dome to stick out above */
   }
 
   .bottom-nav .nav-item-btn {
@@ -108,27 +112,21 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   }
 
   /* The dome shape */
-  /* The dome shape */
   .bottom-nav .sos-dome {
     position: absolute;
     bottom: 0;
-    /* Sits flush with the bottom nav */
     left: 50%;
     transform: translateX(-50%);
     width: 86px;
     height: 76px;
     background-color: #2563eb;
-    /* Matches the vibrant blue in the image */
     border-radius: 50px 50px 0 0;
-    /* Creates the flat-bottom arch shape */
     box-shadow: 0 -4px 15px rgba(37, 99, 235, 0.3);
-    /* Subtle blue glow */
     display: flex;
     align-items: center;
     justify-content: flex-start;
     flex-direction: column;
     padding-top: 14px;
-    /* Pushes the icon down from the rounded top */
     gap: 2px;
   }
 
@@ -268,14 +266,24 @@ elseif (isset($pageTitle)): ?>
   // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
-    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
 
-    <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
+    <!-- Left logo wrapper keeps a fixed/known width -->
+    <div class="d-flex align-items-center" style="width: 60px;">
+      <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
+    </div>
 
-    <div class="text-white fw-bold">ByaHero</div>
+    <!-- Centered Byahero wordmark -->
+    <img
+      src="<?php echo $depth; ?>assets/images/ByaHero.png"
+      alt="ByaHero"
+      height="30"
+      class="topbar-wordmark"
+    >
 
-    <div class="d-flex align-items-center gap-2">
+    <!-- Right icons wrapper, similar width to left -->
+    <div class="d-flex align-items-center gap-2 justify-content-end" style="width: 60px;">
       <!-- Bell -->
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
@@ -285,18 +293,18 @@ else: ?>
         <?php if (!empty($hasUnreadNotifications)): ?>
           <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
             style="margin-left: -10px; margin-top: 10px;">
-            <span class="visually-hidden">New alerts</span>
+            <img src="<?php echo $depth; ?>assets/images/notificationAlert.png" alt="ByaHero" height="30">
           </span>
         <?php endif; ?>
 
-        <span class="material-symbols-rounded">notifications</span>
+        <img src="<?php echo $depth; ?>assets/images/notification bell.png" alt="ByaHero" height="30">
       </a>
 
       <!-- Hamburger -->
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
-        <span class="material-symbols-rounded">menu</span>
+        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="20">
       </button>
     </div>
   </div>
@@ -393,7 +401,6 @@ else: ?>
   </div>
 </div>
 
-<!-- Bottom Navigation (Profile removed because it is in hamburger) -->
 <!-- Bottom Navigation (Location / SOS / Bus Info) -->
 <div class="fixed-bottom bg-white border-top shadow-lg bottom-nav" style="height: 65px; z-index: 1060;">
   <div class="container-fluid h-100">
