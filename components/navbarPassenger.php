@@ -349,7 +349,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold "
         href="<?php echo $depth; ?>public/passenger/profile/profile.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/person (1).png" alt="person" height="30">
+          <img src="<?php echo $depth; ?>assets/images/person.svg" alt="person" height="30">
         </div>
         Profile
       </a>
@@ -357,7 +357,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/accessibility (1).png" alt="accessibility" height="30">
+          <img src="<?php echo $depth; ?>assets/images/accessibility.svg" alt="accessibility" height="30">
         </div>
         Accessibility
       </a>
@@ -365,7 +365,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/privacy (1).png" alt="privacy" height="30">
+          <img src="<?php echo $depth; ?>assets/images/privacy.svg" alt="privacy" height="30">
         </div>
         Privacy and Security
       </a>
@@ -373,7 +373,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/feedback (1).png" alt="feedback" height="30">
+          <img src="<?php echo $depth; ?>assets/images/feedback.svg" alt="feedback" height="30">
         </div>
         Feedback
       </a>
@@ -381,7 +381,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/about.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/about (1).png" alt="about" height="30">
+          <img src="<?php echo $depth; ?>assets/images/about.svg" alt="about" height="30">
         </div>
         About
       </a>
@@ -389,7 +389,7 @@ else: ?>
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/share (1).png" alt="share" height="30">
+          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
         Share ByaHero
       </a>
@@ -399,7 +399,7 @@ else: ?>
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
           href="<?php echo $depth; ?>index.php">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="<?php echo $depth; ?>assets/images/logout (1).png" alt="logout" height="30">
+            <img src="<?php echo $depth; ?>assets/images/logout.svg" alt="logout" height="30">
           </div>
           Log out
         </a>
