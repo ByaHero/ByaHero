@@ -290,7 +290,7 @@ else: ?>
       class="topbar-wordmark">
 
     <!-- Right icons wrapper, similar width to left -->
-    <div class="d-flex align-items-center gap-2 justify-content-end" style="width: 60px;">
+    <div class="d-flex align-items-center gap-3 justify-content-end" style="width: 60px; column-gap: 20px;">
       <!-- Bell -->
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
@@ -333,7 +333,7 @@ else: ?>
       </div>
 
       <!-- Changed font-size: 90px; to use class/offcanvas-username -->
-      <div class="fw-bold offcanvas-username" style="font-size: 40px !important; line-height: 20px;">
+      <div class="fw-bold offcanvas-username" style="font-size: 30px !important; line-height: 20px;">
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
     </div>
