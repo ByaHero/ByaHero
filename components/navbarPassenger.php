@@ -395,9 +395,9 @@ else: ?>
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
-        <!-- Logged-in: show Log out, send to root index.php -->
+        <!-- Logged-in: show Log out, route through logout.php -->
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-          href="<?php echo $depth; ?>index.php">
+          href="<?php echo $depth; ?>public/logout.php">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
             <img src="<?php echo $depth; ?>assets/images/logout.svg" alt="logout" height="30">
           </div>
