@@ -247,34 +247,74 @@ function updateLocation(): array {
 }
 
 /**
- * Stop tracking for a bus, clearing all relevant fields and removing GeoJSON file.
+ * Stop tracking for a bus:
+ * - clears bus live data
+ * - releases the bus from the conductor (current_conductor_id = NULL)
+ * - clears the conductor's current_bus_id only if it matches this bus
+ * - removes GeoJSON file
+ *
+ * This is called ONLY when the user explicitly presses "STOP TRACKING"
+ * in conductorLive.php. If they simply close the tab, this is not called,
+ * so auto-resume will still work.
  */
 function stopTracking(): array {
+    session_start();
     $data = json_decode(file_get_contents('php://input'), true);
     if ($data === null) {
         http_response_code(400);
         return ['success' => false, 'error' => 'Invalid JSON'];
     }
     if (!isset($data['bus_id'])) {
+        http_response_code(400);
         return ['success' => false, 'error' => 'Missing bus_id'];
     }
 
-    $busId = (int)$data['bus_id'];
+    $busId  = (int)$data['bus_id'];
+    $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+
+    if ($busId <= 0 || $userId <= 0) {
+        http_response_code(400);
+        return ['success' => false, 'error' => 'Invalid bus or user'];
+    }
 
     $pdo = db();
+
+    // 1) Clear live tracking fields and release bus only if this conductor holds it
     $stmt = $pdo->prepare("
         UPDATE busses
         SET 
-            current_location = NULL,
-            status = 'unavailable',
-            route = NULL,
-            seat_availability = NULL,
-            updated = NULL
-        WHERE Bus_ID = ?
+            current_location    = NULL,
+            status              = 'unavailable',
+            route               = NULL,
+            seat_availability   = NULL,
+            updated             = NULL,
+            current_conductor_id = NULL
+        WHERE Bus_ID = :bus_id
+          AND (current_conductor_id = :uid OR current_conductor_id IS NULL)
     ");
-    $stmt->execute([$busId]);
+    $stmt->execute([
+        ':bus_id' => $busId,
+        ':uid'    => $userId,
+    ]);
 
-    // remove file as well
+    // 2) Clear the conductor’s current_bus_id only if it matches this bus
+    $stmt2 = $pdo->prepare("
+        UPDATE conductors
+        SET current_bus_id = NULL
+        WHERE id = :uid
+          AND current_bus_id = :bus_id
+    ");
+    $stmt2->execute([
+        ':uid'    => $userId,
+        ':bus_id' => $busId,
+    ]);
+
+    // 3) Clear session state for this bus so auto-resume won't trigger after explicit stop
+    if (isset($_SESSION['current_bus']) && (int)($_SESSION['current_bus']['id'] ?? 0) === $busId) {
+        unset($_SESSION['current_bus']);
+    }
+
+    // 4) remove GeoJSON file as well
     $file = __DIR__ . '/../data/current_locations/bus_' . $busId . '.geojson';
     if (is_file($file)) @unlink($file);
 
