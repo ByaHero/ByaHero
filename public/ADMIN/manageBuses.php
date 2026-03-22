@@ -29,13 +29,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         // Add New Bus
         if ($action === 'add_bus') {
-            $code = trim((string)($_POST['code'] ?? ''));
+            $code  = trim((string)($_POST['code'] ?? ''));
             $route = trim((string)($_POST['route'] ?? ''));
-            $seats = (int)($_POST['total_seats'] ?? 25);
+            // allow NULL route (no assignment yet)
+            $route = ($route === '') ? null : $route;
+
+            // Always default to 25 seats
+            $seats  = 25;
+            // Initial status default to 'unavailable'
             $status = (string)($_POST['status'] ?? 'unavailable');
 
-            if ($code === '' || $route === '') {
-                $error = "Bus Code and Route are required.";
+            if ($code === '') {
+                $error = "Bus Code is required.";
             } else {
                 $stmt = $pdo->prepare(
                     "INSERT INTO busses (code, route, total_seats, seat_availability, status)
@@ -59,15 +64,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         elseif ($action === 'update_bus') {
             $id = $_POST['id'] ?? null;
             $route = trim((string)($_POST['route'] ?? ''));
+            $route = ($route === '') ? null : $route;   // still allow “no route” if you clear it
+
             $totalSeats = (int)($_POST['total_seats'] ?? 25);
-            $status = (string)($_POST['status'] ?? 'unavailable');
+            $status     = (string)($_POST['status'] ?? 'unavailable');
 
             $allowedStatuses = ['available', 'on_stop', 'full', 'unavailable'];
 
             if (!$id) {
                 $error = "Invalid update request.";
-            } elseif ($route === '') {
-                $error = "Route is required.";
             } elseif ($totalSeats < 1) {
                 $error = "Total seats must be valid.";
             } elseif (!in_array($status, $allowedStatuses, true)) {
@@ -169,8 +174,9 @@ try {
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Default Route</label>
-                            <select name="route" class="form-select" required>
-                                <option value="">-- Select Route --</option>
+                            <!-- NO route required on create; stays "null" unless admin sets it later -->
+                            <select name="route" class="form-select">
+                                <option value="" selected>-- Select Route --</option>
                                 <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
                                 <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
                             </select>
@@ -184,7 +190,7 @@ try {
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Initial Status</label>
                             <select name="status" class="form-select">
-                                <option value="unavailable">Unavailable</option>
+                                <option value="unavailable" selected>Unavailable</option>
                                 <option value="available">Available</option>
                                 <option value="on_stop">On Stop</option>
                                 <option value="full">Full</option>
@@ -229,7 +235,13 @@ try {
                         ?>
                             <tr>
                                 <td class="fw-bold"><?= h($bus['code']) ?></td>
-                                <td class="small"><?= h($bus['route']) ?: '<em class="text-muted">None</em>' ?></td>
+                                <td class="small">
+                                    <?php if (!empty($bus['route'])): ?>
+                                        <?= h($bus['route']) ?>
+                                    <?php else: ?>
+                                        <em class="text-muted">None</em>
+                                    <?php endif; ?>
+                                </td>
                                 <td><span class="badge rounded-pill <?= $badgeClass ?>"><?= ucfirst(h($s)) ?></span></td>
                                 <td class="small font-monospace"><?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?></td>
 
@@ -238,8 +250,11 @@ try {
                                         <input type="hidden" name="action" value="update_bus">
                                         <input type="hidden" name="id" value="<?= h($busId) ?>">
 
-                                        <input type="text" name="route" class="form-control form-control-sm" style="min-width:200px"
-                                               value="<?= h($bus['route']) ?>" required>
+                                        <select name="route" class="form-select form-select-sm" style="min-width:200px">
+                                            <option value="" <?= empty($bus['route']) ? 'selected' : '' ?>>None</option>
+                                            <option value="LAUREL - TANAUAN" <?= ($bus['route'] ?? '') === 'LAUREL - TANAUAN' ? 'selected' : '' ?>>LAUREL - TANAUAN</option>
+                                            <option value="TANAUAN - LAUREL" <?= ($bus['route'] ?? '') === 'TANAUAN - LAUREL' ? 'selected' : '' ?>>TANAUAN - LAUREL</option>
+                                        </select>
 
                                         <input type="number" name="total_seats" class="form-control form-control-sm" style="width:90px"
                                                value="<?= h($bus['total_seats']) ?>" min="10" max="60" required>
