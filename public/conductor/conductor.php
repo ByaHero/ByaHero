@@ -314,8 +314,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                 <span class="chevron">v</span>
             </div>
             <div class="custom-select-options">
-                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">Laurel</div>
-                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">Tanauan</div>
+                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">LAUREL - TANAUAN</div>
+                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">TANAUAN - LAUREL</div>
             </div>
             <input type="hidden" id="routeSelect" value="">
         </div>
