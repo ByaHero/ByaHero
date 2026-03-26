@@ -592,19 +592,50 @@ if (isset($_SESSION['user_id'])) {
     };
 
     window.setRoute = (r) => {
-      selectedRoute = r;
+  selectedRoute = r;
 
-      const label = document.getElementById('filterLabelMobile');
-      if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
+  const label = document.getElementById('filterLabelMobile');
+  if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
 
-      if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', {
-          route: r || 'All Routes'
-        });
-      }
+  if (typeof analytics !== 'undefined') {
+    analytics.featureUsed('Route Filter', {
+      route: r || 'All Routes'
+    });
+  }
 
-      updateBuses();
-    };
+  updateBuses();
+};
+
+// helper used by the Routes tab buttons
+window.setRouteFromSheet = function (route) {
+  window.setRoute(route); // reuse your existing logic
+  if (typeof window.updateRoutePills === 'function') {
+    window.updateRoutePills();
+  }
+};
+
+// highlight which route is currently selected in the Routes view
+window.updateRoutePills = function () {
+  const all = document.getElementById('route-pill-all');
+  const lt = document.getElementById('route-pill-laurel-tanauan');
+  const tl = document.getElementById('route-pill-tanauan-laurel');
+
+  const route = selectedRoute || '';
+
+  if (all) {
+    all.classList.toggle('bg-primary', route === '');
+    all.classList.toggle('bg-secondary', route !== '');
+  }
+  if (lt) {
+    lt.classList.toggle('bg-primary', route === 'LAUREL - TANAUAN');
+    lt.classList.toggle('bg-secondary', route !== 'LAUREL - TANAUAN');
+  }
+  if (tl) {
+    tl.classList.toggle('bg-primary', route === 'TANAUAN - LAUREL');
+    tl.classList.toggle('bg-secondary', route !== 'TANAUAN - LAUREL');
+  }
+};
+
 
     function updateFilters(buses) {
       const manualRoutes = ['Laurel - Tanauan', 'Tanauan - Laurel'];
@@ -765,20 +796,75 @@ if (isset($_SESSION['user_id'])) {
     };
 
     const _switchSheetTab = window.switchSheetTab;
-    window.switchSheetTab = function (tabName) {
-      _switchSheetTab(tabName);
+window.switchSheetTab = function (tabName) {
+  // preserve original behavior (open/close sheet, etc.)
+  _switchSheetTab(tabName);
 
-      if (tabName === 'busstops') {
-        if (!stopsLoaded) {
-          stopsLoaded = true;
-          loadStops().then(() => setBusStopsVisibility(true));
-        } else {
-          setBusStopsVisibility(true);
-        }
-      } else {
-        setBusStopsVisibility(false);
-      }
-    };
+  // ----- BUS STOPS visibility -----
+  if (tabName === 'busstops') {
+    if (!stopsLoaded) {
+      stopsLoaded = true;
+      loadStops().then(() => setBusStopsVisibility(true));
+    } else {
+      setBusStopsVisibility(true);
+    }
+  } else {
+    setBusStopsVisibility(false);
+  }
+
+  // ----- ROUTES TAB / VIEWS -----
+  const viewLocation = document.getElementById('view-location');
+  const viewRoutes = document.getElementById('view-routes');
+  const viewBusStops = document.getElementById('view-busstops');
+
+  if (viewLocation) viewLocation.classList.toggle('d-none', tabName !== 'location');
+  if (viewRoutes) viewRoutes.classList.toggle('d-none', tabName !== 'routes');
+  if (viewBusStops) viewBusStops.classList.toggle('d-none', tabName !== 'busstops');
+
+  // Tabs
+  const tabLocation = document.getElementById('tab-location');
+  const tabRoutes = document.getElementById('tab-routes');
+  const tabBusstops = document.getElementById('tab-busstops');
+  const tabGroups = document.getElementById('tab-groups');
+
+  [tabLocation, tabRoutes, tabBusstops, tabGroups].forEach((el) => {
+    if (!el) return;
+    el.classList.remove('active', 'bg-primary', 'text-white', 'shadow-sm');
+    el.classList.add('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+  });
+
+  // Activate the selected tab
+  let activeTab = null;
+  if (tabName === 'location') activeTab = tabLocation;
+  else if (tabName === 'routes') activeTab = tabRoutes;
+  else if (tabName === 'busstops') activeTab = tabBusstops;
+  else if (tabName === 'groups') activeTab = tabGroups;
+
+  if (activeTab) {
+    activeTab.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
+    activeTab.classList.remove('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+  }
+
+  // Swap routes icon active/idle
+  const routesIcon = document.getElementById('routes-tab-icon');
+  if (routesIcon) {
+    const base = window.APP_BASE_URL || '';
+    if (tabName === 'routes') {
+      routesIcon.src = `${base}/assets/images/icons/routes active.svg`;
+    } else {
+      routesIcon.src = `${base}/assets/images/icons/routes ide.svg`;
+    }
+  }
+
+  // Swap bus stops icon if you want (optional – keep as-is if you don’t)
+  // const busstopsIcon = document.getElementById('busstops-tab-icon');
+  // ...
+
+  // Update the route pills in the Routes view to match selectedRoute
+  if (typeof updateRoutePills === 'function') {
+    updateRoutePills();
+  }
+};
 
     // --------------------- INIT ---------------------
     document.addEventListener('DOMContentLoaded', () => {

@@ -7,9 +7,16 @@ document.addEventListener('DOMContentLoaded', () => {
   let startY = 0;
   let startHeight = 0;
   let isDragging = false;
+  let moved = false; // NEW: track whether finger actually moved enough
 
   header.addEventListener('touchstart', (e) => {
+    // Only start drag if the touch is actually on the "handle" area
+    // (the small gray pill bar). This prevents starting a drag from deeper content.
+    const handle = e.target.closest('.sheet-drag-handle');
+    if (!handle) return;
+
     isDragging = true;
+    moved = false;
     startY = e.touches[0].clientY;
     startHeight = sheet.clientHeight;
     sheet.classList.remove('sheet-transition');
@@ -17,23 +24,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
   header.addEventListener('touchmove', (e) => {
     if (!isDragging) return;
-    e.preventDefault();
 
     const currentY = e.touches[0].clientY;
     const deltaY = startY - currentY;
-    const newHeight = startHeight + deltaY;
 
-    const maxHeight = window.innerHeight * 0.95;
-    const minHeight = window.innerHeight * 0.10;
+    // Only treat as drag if the user moved more than a few pixels
+    if (Math.abs(deltaY) > 5) {
+      moved = true;
+      e.preventDefault();
 
-    if (newHeight >= minHeight && newHeight <= maxHeight) {
-      sheet.style.height = `${newHeight}px`;
+      const newHeight = startHeight + deltaY;
+      const maxHeight = window.innerHeight * 0.95;
+      const minHeight = window.innerHeight * 0.10;
+
+      if (newHeight >= minHeight && newHeight <= maxHeight) {
+        sheet.style.height = `${newHeight}px`;
+      }
     }
   }, { passive: false });
 
   header.addEventListener('touchend', () => {
+    if (!isDragging) return;
     isDragging = false;
     sheet.classList.add('sheet-transition');
+
+    // If touch ended without meaningful movement, treat as a tap and do nothing.
+    if (!moved) return;
 
     const currentHeight = sheet.clientHeight;
     const windowHeight = window.innerHeight;
@@ -44,9 +60,43 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+// Filter route buttons based on search text
+window.filterRouteOptions = function () {
+  const input = document.getElementById('routeFilterInput');
+  if (!input) return;
+
+  const query = input.value.trim().toLowerCase();
+  const options = document.querySelectorAll('.route-filter-option');
+
+  options.forEach((btn) => {
+    const text = btn.textContent.trim().toLowerCase();
+    btn.style.display = text.includes(query) ? '' : 'none';
+  });
+};
+
+// Extend updateRoutePills so it also highlights new design options
+(function patchUpdateRoutePills() {
+  const original = window.updateRoutePills || function () { };
+
+  window.updateRoutePills = function () {
+    // keep old behavior (for badges etc.)
+    original();
+
+    const current = (window.selectedRoute || '').toUpperCase();
+    const options = document.querySelectorAll('.route-filter-option');
+
+    options.forEach((btn) => {
+      const route = (btn.getAttribute('data-route') || '').toUpperCase();
+      const isActive = route === current || (!route && !current); // "" for All Routes
+      btn.classList.toggle('route-filter-option--active', isActive);
+    });
+  };
+})();
+
 // Tab switching (needs to be global because HTML uses onclick="")
 window.switchSheetTab = function switchSheetTab(tabName) {
-  const tabs = ['location', 'groups', 'busstops'];
+  // include 'routes' here so it behaves like the other tabs
+  const tabs = ['location', 'routes', 'groups', 'busstops'];
 
   tabs.forEach(t => {
     const el = document.getElementById('tab-' + t);
@@ -102,4 +152,12 @@ window.switchSheetTab = function switchSheetTab(tabName) {
       busstopsIcon.src = base + '/assets/images/icons/busStopMarkerFinalBlue.svg';
     }
   }
+
+  // Optional: toggle routes icon if you have active/idle variants
+  // const routesIcon = document.getElementById('routes-tab-icon');
+  // if (routesIcon) {
+  //   routesIcon.src = (tabName === 'routes')
+  //     ? base + '/assets/images/icons/routes active1.svg'
+  //     : base + '/assets/images/icons/routes idle1.svg';
+  // }
 };
