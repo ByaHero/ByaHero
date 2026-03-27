@@ -52,6 +52,7 @@
 
   // Median calls this global function with OneSignal info
   window.gonative_onesignal_info = function (info) {
+    alert("OneSignal Token Generated! ID: " + info.userId); // <-- ADD THIS LINE
     if (info && info.userId) {
       saveToken(info.userId);
     }
