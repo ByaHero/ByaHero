@@ -36,6 +36,14 @@
 
     const LOCATION_STALE_MINUTES = 5;
 
+    // --- Location update controls ---
+    const LOCATION_UPDATE_INTERVAL_MS = 5000; // 5s (was 1s)
+    let isSendingLocation = false;
+
+    // Cache share_location so we don't fetch it too frequently
+    let shareLocationCache = { value: null, ts: 0 };
+    const SHARE_LOCATION_CACHE_MS = 15000; // 15s
+
     function getLastSeenLabel(updatedAt) {
         if (!updatedAt) return '';
         const last = new Date(updatedAt).getTime();
@@ -116,8 +124,15 @@
                 return;
             }
 
+            // Dedupe: if backend returns duplicates, we only show one card per user id
+            const seenIds = new Set();
+
             groupListEl.innerHTML = '';
             data.friends.forEach(friend => {
+                const id = friend && friend.id != null ? String(friend.id) : null;
+                if (id && seenIds.has(id)) return;
+                if (id) seenIds.add(id);
+
                 const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
                 const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
 
@@ -125,7 +140,6 @@
                 const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
                 const hasLocationNow = hasCoords && fresh;
 
-                // Better status text:
                 let statusText = 'Location unavailable';
                 if (hasLocationNow) statusText = 'Live location available';
                 else if (friend.updated_at) statusText = getLastSeenLabel(friend.updated_at);
@@ -209,62 +223,89 @@
 
     // IMPORTANT: only attempt upload if share_location is enabled
     async function isShareLocationEnabled() {
+        const now = Date.now();
+        if (shareLocationCache.value !== null && (now - shareLocationCache.ts) < SHARE_LOCATION_CACHE_MS) {
+            return shareLocationCache.value;
+        }
+
         try {
             const res = await fetch('../../backend/getShareLocationSetting.php', { cache: 'no-store' });
             const data = await res.json();
-            return data && data.success && parseInt(data.share_location) === 1;
+            const enabled = !!(data && data.success && parseInt(data.share_location) === 1);
+
+            shareLocationCache = { value: enabled, ts: now };
+            return enabled;
         } catch (e) {
+            shareLocationCache = { value: false, ts: now };
             return false;
         }
     }
 
     async function sendCurrentLocation() {
+        if (isSendingLocation) return;
         if (!navigator.geolocation) return;
 
-        const shareOn = await isShareLocationEnabled();
-        if (!shareOn) {
-            // Don’t spam updateUserLocation if sharing is OFF.
-            // Still refresh members list (so you see their last seen updates)
-            loadGroupMembers();
-            return;
-        }
+        isSendingLocation = true;
 
-        navigator.geolocation.getCurrentPosition(async (pos) => {
-            const payload = {
-                latitude: pos.coords.latitude,
-                longitude: pos.coords.longitude,
-                accuracy: pos.coords.accuracy
-            };
-
-            try {
-                const res = await fetch('../../backend/updateUserLocation.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await res.json();
-                if (!data.success && data.message) {
-                    // Optional: surface the exact reason
-                    console.warn('updateUserLocation:', data.message);
-                }
+        try {
+            const shareOn = await isShareLocationEnabled();
+            if (!shareOn) {
                 loadGroupMembers();
-            } catch (err) {
-                console.error(err);
+                isSendingLocation = false;
+                return;
             }
-        }, (err) => {
-            console.warn('Location error:', err);
-        }, {
-            enableHighAccuracy: true,
-            maximumAge: 5000,
-            timeout: 8000
-        });
+
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const lat = pos?.coords?.latitude;
+                    const lng = pos?.coords?.longitude;
+                    const accuracy = pos?.coords?.accuracy ?? null;
+
+                    // Guard against undefined/null coords -> prevents "Latitude/longitude required"
+                    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+                        console.warn('Bad coords from geolocation:', { lat, lng, pos });
+                        loadGroupMembers();
+                        return;
+                    }
+
+                    const payload = { latitude: lat, longitude: lng, accuracy };
+
+                    const res = await fetch('../../backend/updateUserLocation.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await res.json();
+                    if (!data.success && data.message) {
+                        console.warn('updateUserLocation:', data.message);
+                    }
+
+                    loadGroupMembers();
+                } catch (err) {
+                    console.error(err);
+                } finally {
+                    isSendingLocation = false;
+                }
+            }, (err) => {
+                console.warn('Location error:', err);
+                isSendingLocation = false;
+            }, {
+                enableHighAccuracy: true,
+                maximumAge: 5000,
+                timeout: 8000
+            });
+
+        } catch (e) {
+            console.error(e);
+            isSendingLocation = false;
+        }
     }
 
     function startLocationUpdates() {
         sendCurrentLocation();
         if (locationTimer) clearInterval(locationTimer);
-        locationTimer = setInterval(sendCurrentLocation, 1000);
+        locationTimer = setInterval(sendCurrentLocation, LOCATION_UPDATE_INTERVAL_MS);
     }
 
     function openGroupView() {
