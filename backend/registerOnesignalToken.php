@@ -1,18 +1,19 @@
 <?php
 /**
  * registerOnesignalToken.php
- * Saves the OneSignal player_id for the currently logged-in user.
+ * Saves OneSignal player_id for the logged-in user.
  *
- * KEY FIX: Use plain session_start() — no custom cookie params.
- * Custom params (especially secure:true) cause PHP to start a NEW
- * session instead of reading the existing login session, making
- * $_SESSION['user_id'] always empty here even when logged in.
+ * CRITICAL: session_start() MUST be the very first line
+ * before any output or headers. Custom cookie params can break
+ * session reading on some servers.
  */
 
+// ⚠️ MUST BE FIRST LINE (before any output/headers)
 session_start();
+
 header('Content-Type: application/json');
 
-// Allow Median WebView to send credentials cross-origin if needed
+// CORS support for Median WebView
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin) {
     header('Access-Control-Allow-Origin: ' . $origin);
@@ -27,10 +28,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
-// Not logged in
+// Debug logging
+error_log('[registerOnesignalToken] session_id=' . session_id() 
+    . ' | user_id=' . ($_SESSION['user_id'] ?? 'NONE')
+    . ' | method=' . $_SERVER['REQUEST_METHOD']);
+
+// Check if logged in
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    echo json_encode([
+        'success'    => false,
+        'message'    => 'Not logged in',
+        'session_id' => session_id(),
+    ]);
+    error_log('[registerOnesignalToken] User not logged in. Session ID: ' . session_id());
     exit;
 }
 
@@ -40,9 +51,12 @@ $userId   = (int)$_SESSION['user_id'];
 $input    = json_decode(file_get_contents('php://input'), true);
 $playerId = trim($input['player_id'] ?? '');
 
+error_log('[registerOnesignalToken] user_id=' . $userId . ' | player_id=' . $playerId);
+
 if ($playerId === '') {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'player_id required']);
+    error_log('[registerOnesignalToken] Empty player_id');
     exit;
 }
 
@@ -52,9 +66,20 @@ try {
          VALUES (?, ?)
          ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP"
     );
+    
+    if (!$stmt) {
+        throw new Exception('Prepare failed: ' . $conn->error);
+    }
+    
     $stmt->bind_param("is", $userId, $playerId);
-    $stmt->execute();
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Execute failed: ' . $stmt->error);
+    }
+    
     $stmt->close();
+
+    error_log('[registerOnesignalToken] ✓ Token saved: user_id=' . $userId . ' | player_id=' . $playerId);
 
     echo json_encode([
         'success'   => true,
@@ -62,7 +87,11 @@ try {
         'player_id' => $playerId,
     ]);
 } catch (Exception $e) {
-    error_log('registerOnesignalToken DB error: ' . $e->getMessage());
+    error_log('[registerOnesignalToken] DB error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'DB error']);
+    echo json_encode([
+        'success' => false,
+        'message' => 'DB error: ' . $e->getMessage()
+    ]);
 }
+?>
