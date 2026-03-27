@@ -596,9 +596,9 @@ if (isset($_SESSION['user_id'])) {
     // Store buses data globally so we can filter by route
     let allBuses = [];
 
-    window.setRoute = (r) => {
+    window.setRoute = async (r) => {
       selectedRoute = r;
-      window.selectedRoute = r; // <-- ADD THIS LINE
+      window.selectedRoute = r; // Sync it globally
 
       const label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
@@ -609,16 +609,21 @@ if (isset($_SESSION['user_id'])) {
         });
       }
 
-      updateBuses();
+      // AWAIT the live server to completely finish fetching the buses first!
+      await updateBuses();
 
-      // Center map to first bus in selected route
-      setTimeout(() => {
+      // Once the buses are successfully loaded, safely center the map
+      if (typeof centerToFirstBusInRoute === 'function') {
         centerToFirstBusInRoute(r, allBuses);
-      }, 300);
+      }
     };
 
     // Center map to first bus in the selected route
+    // Center map to first bus in the selected route
     window.centerToFirstBusInRoute = function (route, buses) {
+      // Safety net: If the server hasn't returned buses yet, just stop and don't crash!
+      if (!buses || !Array.isArray(buses)) return;
+
       const filteredBuses = buses.filter(b =>
         (!route || b.route === route) &&
         b.status !== 'unavailable' &&
