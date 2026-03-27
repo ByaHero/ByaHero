@@ -447,7 +447,6 @@ else: ?>
       </div>
 
       <!-- SOS (CENTER) -->
-      <!-- SOS (CENTER) -->
       <div class="col-4 p-0 text-center sos-col">
         <button id="nav-sos" class="sos-btn nav-btn" data-action="link"
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">

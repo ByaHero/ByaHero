@@ -44,43 +44,61 @@ function initBottomSheetDrag() {
 window.updateAllTabsIcons = function (tabName) {
   const base = window.APP_BASE_URL || '';
 
+  console.log('DEBUG: updateAllTabsIcons called with tabName:', tabName);
+  console.log('DEBUG: APP_BASE_URL:', base);
+
   // Routes icon
   const routesIcon = document.getElementById('routes-tab-icon');
   if (routesIcon) {
+    const activeUrl = `${base}/assets/images/icons/routes active.svg`;
+    const inactiveUrl = `${base}/assets/images/icons/routes idle.svg`;
+
     if (tabName === 'routes') {
-      routesIcon.src = `${base}/assets/images/icons/routes active.svg`;
+      console.log('DEBUG: Setting routes icon to ACTIVE:', activeUrl);
+      routesIcon.src = activeUrl;
     } else {
-      routesIcon.src = `${base}/assets/images/icons/routes idle.svg`;
+      console.log('DEBUG: Setting routes icon to IDLE:', inactiveUrl);
+      routesIcon.src = inactiveUrl;
     }
+  } else {
+    console.warn('DEBUG: routes-tab-icon element not found');
   }
 
   // Location icon
   const locationIcon = document.getElementById('location-tab-icon');
   if (locationIcon) {
-    if (tabName === 'location') {
-      locationIcon.src = `${base}/assets/images/icons/busStopWhiteIcon.png`;
-    } else {
-      locationIcon.src = `${base}/assets/images/icons/busStopBlueIcon.png`;
-    }
+    const locationUrl = `${base}/assets/images/icons/busStopWhiteIcon.png`;
+    console.log('DEBUG: Setting location icon:', locationUrl);
+    locationIcon.src = locationUrl;
   }
 
   // Groups icon
   const groupsIcon = document.getElementById('groups-tab-icon');
   if (groupsIcon) {
+    const activeUrl = `${base}/assets/images/icons/groupsActive.png`;
+    const inactiveUrl = `${base}/assets/images/icons/groupsIdle.png`;
+
     if (tabName === 'groups') {
-      groupsIcon.src = `${base}/assets/images/icons/groupsActive.png`;
+      console.log('DEBUG: Setting groups icon to ACTIVE:', activeUrl);
+      groupsIcon.src = activeUrl;
     } else {
-      groupsIcon.src = `${base}/assets/images/icons/groupsIdle.png`;
+      console.log('DEBUG: Setting groups icon to IDLE:', inactiveUrl);
+      groupsIcon.src = inactiveUrl;
     }
   }
 
   // Bus Stops icon
   const busStopsIcon = document.getElementById('busstops-tab-icon');
   if (busStopsIcon) {
+    const activeUrl = `${base}/assets/images/icons/busStopMarkerFinalBlueActive.svg`;
+    const inactiveUrl = `${base}/assets/images/icons/busStopMarkerFinalBlue.svg`;
+
     if (tabName === 'busstops') {
-      busStopsIcon.src = `${base}/assets/images/icons/busStopMarkerFinalWhite.svg`;
+      console.log('DEBUG: Setting bus stops icon to ACTIVE:', activeUrl);
+      busStopsIcon.src = activeUrl;
     } else {
-      busStopsIcon.src = `${base}/assets/images/icons/busStopMarkerFinalBlue.svg`;
+      console.log('DEBUG: Setting bus stops icon to IDLE:', inactiveUrl);
+      busStopsIcon.src = inactiveUrl;
     }
   }
 };
