@@ -476,6 +476,8 @@ else: ?>
   </div>
 </div>
 
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+
 <script>
   // Expose base URL for icon swapping
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
@@ -600,51 +602,4 @@ else: ?>
       if (sosBtn) sosBtn.classList.remove('d-none');
     });
   });
-</script>
-
-<script>
-(function () {
-  'use strict';
-
-  // Hardcoded absolute URL to prevent path errors
-  var REGISTER_URL = 'https://byahero.free.nf/backend/registerOnesignalToken.php';
-
-  function saveToken(playerId) {
-    if (!playerId) return;
-
-    // The alert that proves it worked!
-    alert("Token saved to database: " + playerId);
-
-    fetch(REGISTER_URL, {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id: playerId })
-    })
-      .then(function (r) { return r.json(); })
-      .catch(function (e) { console.warn('[SOS] Token register error:', e); });
-  }
-
-  // Handle NEW Median App syntax
-  window.median_onesignal_info = function (info) {
-    var playerId = info.userId || info.oneSignalUserId || info.playerId;
-    if (playerId) saveToken(playerId);
-  };
-
-  // Handle OLD GoNative App syntax
-  window.gonative_onesignal_info = window.median_onesignal_info;
-
-  // Force the app to fetch the token 1.5 seconds after loading
-  setTimeout(function () {
-    if (typeof window.median !== 'undefined' && window.median.onesignal) {
-      window.median.onesignal.info();
-    } else if (typeof window.gonative !== 'undefined' && window.gonative.onesignal) {
-      window.gonative.onesignal.info();
-    } else {
-      // Universal fallback command for Median wrappers
-      window.location.href = 'median://onesignal/info';
-    }
-  }, 1500);
-
-})();
 </script>
