@@ -65,7 +65,9 @@ if (!isset($baseUrl)) {
         <div class="col-3" onclick="switchSheetTab('groups')">
           <div id="tab-groups"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
-            <span class="material-symbols-rounded fs-2">groups</span>
+            <img id="groups-tab-icon"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.png"
+              alt="groups" style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
 
