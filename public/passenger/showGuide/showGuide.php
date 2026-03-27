@@ -12,7 +12,8 @@ $guideSteps = [
     "LOCATION.svg",
     "HOMEPAGE.svg",
     "HOMEPAGE-1.svg",
-    "NOTIFICATION.svg"
+    "NOTIFICATION.svg",
+    "DONE.svg"
 ];
 
 // Convert the PHP array to a JSON format for JavaScript
