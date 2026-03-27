@@ -20,25 +20,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$userId = (int) $_SESSION['user_id'];
-$raw = file_get_contents('php://input');
-$input = json_decode($raw, true);
-
-$playerId =
-    trim(($input['player_id'] ?? '') ?: ($_POST['player_id'] ?? ''));
-
-if ($playerId === '') {
-    echo json_encode([
-        'success' => false,
-        'message' => 'player_id required',
-        'debug' => [
-            'content_type' => $_SERVER['CONTENT_TYPE'] ?? '',
-            'raw_len' => strlen($raw),
-            'post_keys' => array_keys($_POST),
-        ]
-    ]);
-    exit;
-}
+$userId = (int)$_SESSION['user_id'];
+$input  = json_decode(file_get_contents('php://input'), true);
+$playerId = trim($input['player_id'] ?? '');
 
 if ($playerId === '') {
     echo json_encode(['success' => false, 'message' => 'player_id required']);
