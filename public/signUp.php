@@ -119,7 +119,6 @@ if (isset($_SESSION['user_id'])) {
 
             <div id="signupAlert"></div>
 
-            <!-- Note: users CANNOT choose a role here. Admins create drivers/conductors. -->
             <form id="signupForm" autocomplete="off">
                 <input type="hidden" name="action" value="signup">
 
@@ -131,7 +130,6 @@ if (isset($_SESSION['user_id'])) {
                     <input type="email" name="email" class="form-control" placeholder="Email" required>
                 </div>
 
-                <!-- NEW: Contact Number -->
                 <div class="mb-3">
                     <input
                         type="tel"
@@ -167,8 +165,6 @@ if (isset($_SESSION['user_id'])) {
                 </button>
             </form>
         </div>
-
-        <!-- Google signup section REMOVED -->
 
         <div class="text-center small-muted">
             <p class="text-muted small mb-0">Already have an account? <a href="login.php"
@@ -235,13 +231,13 @@ if (isset($_SESSION['user_id'])) {
                 }
 
                 if (data.success) {
-                    alertBox.innerHTML = '<div class="alert alert-success small py-2">Success! Redirecting...</div>';
+                    // Update the success message
+                    alertBox.innerHTML = '<div class="alert alert-success small py-2">Success! Redirecting to Tour...</div>';
                     form.reset();
 
-                    // Use redirect returned by server (auth_api should return redirect on signup)
-                    const redirect = data.redirect || 'passenger/index.php';
+                    // Corrected Path: Pointing into the passenger folder first!
                     setTimeout(() => {
-                        window.location.href = redirect;
+                        window.location.href = 'passenger/showGuide/showGuide.php';
                     }, 900);
                 } else {
                     throw new Error(data.message || 'Signup failed');
