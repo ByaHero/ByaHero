@@ -22,7 +22,7 @@
 (function () {
   'use strict';
 
-  var REGISTER_URL = '/backend/registerOnesignalToken.php';
+  var REGISTER_URL = 'https://byahero.free.nf/backend/registerOnesignalToken.php';
 
   function saveToken(playerId) {
     if (!playerId) return;
