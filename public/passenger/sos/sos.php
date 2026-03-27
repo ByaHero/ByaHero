@@ -1,11 +1,15 @@
 <?php
 session_start();
-$pageType = 'sos';
-$backLink = '../index.php';
-$pageDepth = "../../../";
-include "../../../components/navbarPassenger.php";
-?>
 
+if (!isset($_SESSION['user_id'])) {
+  header('Location: ../../../public/login.php?redirect=passenger/sos/sos.php', true, 302);
+  exit;
+}
+
+$pageType  = 'sos';
+$backLink  = '../index.php';
+$pageDepth = "../../../";
+?>
 <!doctype html>
 <html lang="en">
 
@@ -20,6 +24,16 @@ include "../../../components/navbarPassenger.php";
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <meta name="theme-color" content="#1e3a8a">
 
+    <!-- EARLY TOKEN CATCHER: must be first script so Median's callback is never lost -->
+    <script>
+    window._sosPendingToken = null;
+    window.gonative_onesignal_info = function(info) {
+        if (!info || !info.userId) return;
+        window._sosPendingToken = info.userId;
+        if (window.sosBridge) window.sosBridge.saveToken(info.userId);
+    };
+    </script>
+
     <style>
         :root {
             --bs-primary: #1e3a8a;
@@ -32,7 +46,6 @@ include "../../../components/navbarPassenger.php";
             background-color: var(--bs-bg-light);
         }
 
-        /* Keep only custom styles that Bootstrap doesn't provide */
         .sos-btn-container {
             width: 180px;
             height: 180px;
@@ -40,7 +53,6 @@ include "../../../components/navbarPassenger.php";
             position: relative;
         }
 
-        /* CHANGE THIS */
         .main-sos-btn {
             width: 100%;
             height: 100%;
@@ -58,9 +70,7 @@ include "../../../components/navbarPassenger.php";
             transition: transform 0.2s;
         }
 
-        .main-sos-btn:active {
-            transform: scale(0.95);
-        }
+        .main-sos-btn:active { transform: scale(0.95); }
 
         .sos-ring {
             position: absolute;
@@ -75,54 +85,28 @@ include "../../../components/navbarPassenger.php";
             z-index: 1;
         }
 
-        .sos-ring:nth-child(2) {
-            animation-delay: 0.5s;
-        }
-
-        .sos-ring:nth-child(3) {
-            animation-delay: 1s;
-        }
+        .sos-ring:nth-child(2) { animation-delay: 0.5s; }
+        .sos-ring:nth-child(3) { animation-delay: 1s; }
 
         @keyframes pulse {
-            0% {
-                width: 50%;
-                height: 50%;
-                opacity: 1;
-            }
-
-            100% {
-                width: 200%;
-                height: 200%;
-                opacity: 0;
-            }
+            0%   { width: 50%;  height: 50%;  opacity: 1; }
+            100% { width: 200%; height: 200%; opacity: 0; }
         }
 
         #sos-countdown-layer {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
             background-color: #f8f9fa;
             z-index: 2000;
             display: flex;
             flex-direction: column;
         }
 
-        .text-dark-red {
-            color: #b02a37;
-        }
+        .text-dark-red { color: #b02a37; }
 
-        .countdown-wrapper {
-            width: 140px;
-            height: 140px;
-        }
-
-        .countdown-inner {
-            width: 120px;
-            height: 120px;
-            font-size: 3.5rem;
-        }
+        .countdown-wrapper { width: 140px; height: 140px; }
+        .countdown-inner  { width: 120px; height: 120px; font-size: 3.5rem; }
 
         .slider-track {
             height: 70px;
@@ -135,20 +119,15 @@ include "../../../components/navbarPassenger.php";
         }
 
         .slider-handle {
-            width: 60px;
-            height: 60px;
-            top: 5px;
-            right: 5px;
+            width: 60px; height: 60px;
+            top: 5px; right: 5px;
             cursor: grab;
             position: absolute;
             z-index: 2;
         }
 
-        .slider-handle:active {
-            cursor: grabbing;
-        }
+        .slider-handle:active { cursor: grabbing; }
 
-        /* Friend group minimalist UI (Bootstrap-based spacing + small custom) */
         .avatar-stack {
             display: flex;
             justify-content: center;
@@ -156,8 +135,7 @@ include "../../../components/navbarPassenger.php";
         }
 
         .stack-avatar {
-            width: 44px;
-            height: 44px;
+            width: 44px; height: 44px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -170,19 +148,13 @@ include "../../../components/navbarPassenger.php";
             user-select: none;
         }
 
-        .stack-avatar:first-child {
-            margin-left: 0;
-        }
+        .stack-avatar:first-child { margin-left: 0; }
     </style>
 </head>
 
 <body class="bg-light">
-    <?php
-    $pageType = 'sos';
-    $backLink = '../index.php';
-    $pageDepth = "../../../";
-    include "../../../components/navbarPassenger.php";
-    ?>
+
+    <?php include "../../../components/navbarPassenger.php"; ?>
 
     <main id="sos-idle-layer" class="container pt-5 mt-2">
         <div class="row justify-content-center">
@@ -216,7 +188,7 @@ include "../../../components/navbarPassenger.php";
                     </button>
                 </div>
 
-                <!-- Friend group minimalist section -->
+                <!-- Friend group section -->
                 <section class="text-center my-3">
                     <div id="friends-avatars" class="avatar-stack mb-1"></div>
                     <p id="friends-status" class="small text-muted mb-0">Loading…</p>
@@ -228,11 +200,6 @@ include "../../../components/navbarPassenger.php";
 
     <!-- SOS countdown layer -->
     <div id="sos-countdown-layer" class="d-none">
-        <?php
-        $pageTitle = 'sos';
-        $backLink = 'sos.php';
-        include '../../../components/navbarPassenger.php';
-        ?>
         <main class="flex-grow-1 d-flex flex-column align-items-center pt-5 text-center w-100">
             <h1 class="text-dark-red fw-bold display-6 mb-2">Slide to cancel</h1>
             <p class="text-muted w-75 mb-5 small">
@@ -240,19 +207,16 @@ include "../../../components/navbarPassenger.php";
             </p>
 
             <div class="countdown-wrapper position-relative d-flex justify-content-center align-items-center mb-auto">
-                <div class="position-absolute w-100 h-100 rounded-circle border border-2 border-danger opacity-25">
-                </div>
+                <div class="position-absolute w-100 h-100 rounded-circle border border-2 border-danger opacity-25"></div>
                 <div class="countdown-inner bg-danger text-white rounded-circle d-flex justify-content-center align-items-center fw-bold shadow-lg z-2"
                     id="timer">10</div>
             </div>
 
             <div class="slider-track w-100 shadow mb-4 rounded-pill position-relative" id="sliderContainer"
                 style="width: 90%;">
-                <div
-                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
+                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
                     <span class="text-danger fw-bold fs-5 user-select-none">Slide to cancel SOS</span>
                 </div>
-
                 <div class="slider-handle bg-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center z-2"
                     id="sliderHandle">
                     <i class="bi bi-chevron-left text-white opacity-50"></i>
@@ -263,7 +227,7 @@ include "../../../components/navbarPassenger.php";
         </main>
     </div>
 
-    <!-- Modal still present (optional) -->
+    <!-- Friends modal -->
     <div class="modal fade" id="sosFriendsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
@@ -271,7 +235,6 @@ include "../../../components/navbarPassenger.php";
                     <h5 class="modal-title fw-bold">Send In-app SOS Alert</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
-
                 <div class="modal-body">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <small class="text-muted">Select who will receive your SOS.</small>
@@ -279,17 +242,14 @@ include "../../../components/navbarPassenger.php";
                             Select all
                         </button>
                     </div>
-
                     <div id="friends-list" class="list-group small">
                         <div class="list-group-item">Loading…</div>
                     </div>
-
                     <div class="alert alert-info mt-3 mb-0 small">
                         This will send an <strong>in-app SOS alert</strong> to the selected friends.
                         They will see it in <strong>Notifications → SOS Alerts</strong>.
                     </div>
                 </div>
-
                 <div class="modal-footer">
                     <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
                     <button class="btn btn-danger fw-bold" type="button" onclick="sendSosToSelectedFriends()">
@@ -301,11 +261,9 @@ include "../../../components/navbarPassenger.php";
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        // Store coords globally so shareLocation() can always build a correct maps URL
-        let currentCoords = { lat: null, lng: null };
 
-        // Cache resolved place name so SOS sends a place instead of coordinates
+    <script>
+        let currentCoords     = { lat: null, lng: null };
         let resolvedPlaceName = "";
         let resolvePlacePromise = null;
 
@@ -319,9 +277,9 @@ include "../../../components/navbarPassenger.php";
         function formatPlaceName(nominatim) {
             const a = nominatim.address || {};
             const barangay = a.barangay || a.neighbourhood || a.suburb || a.village || a.hamlet || "";
-            const city = a.city || a.town || a.municipality || a.county || "";
+            const city     = a.city || a.town || a.municipality || a.county || "";
             const province = a.state || a.region || "";
-            const parts = [barangay, city, province].filter(Boolean);
+            const parts    = [barangay, city, province].filter(Boolean);
             return parts.length ? parts.join(", ") : (nominatim.display_name || "Unknown location");
         }
 
@@ -331,28 +289,20 @@ include "../../../components/navbarPassenger.php";
 
         async function getResolvedLocationText() {
             const elText = document.getElementById("location-text")?.innerText || "";
-
             if (elText && !looksLikeCoords(elText) && elText !== "Locating..." && elText !== "Unknown Location") {
                 resolvedPlaceName = elText;
                 return elText;
             }
-
             if (resolvedPlaceName) return resolvedPlaceName;
-
-            if (currentCoords.lat == null || currentCoords.lng == null) {
-                return elText || "Unknown Location";
-            }
-
+            if (currentCoords.lat == null || currentCoords.lng == null) return elText || "Unknown Location";
             if (!resolvePlacePromise) {
                 resolvePlacePromise = (async () => {
                     try {
-                        const data = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                        const data  = await reverseGeocode(currentCoords.lat, currentCoords.lng);
                         const place = formatPlaceName(data);
                         resolvedPlaceName = place;
-
                         const el = document.getElementById("location-text");
                         if (el) el.innerText = place;
-
                         return place;
                     } catch (e) {
                         console.warn(e);
@@ -362,34 +312,26 @@ include "../../../components/navbarPassenger.php";
                     }
                 })();
             }
-
             return resolvePlacePromise;
         }
 
         async function setLocationUI(lat, lng) {
             const el = document.getElementById("location-text");
             if (!el) return;
-
             el.innerText = `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
-
             try {
-                const data = await reverseGeocode(lat, lng);
+                const data  = await reverseGeocode(lat, lng);
                 const place = formatPlaceName(data);
                 resolvedPlaceName = place;
                 el.innerText = place;
-            } catch (e) {
-                console.warn(e);
-            }
+            } catch (e) { console.warn(e); }
         }
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
                 async (pos) => {
-                    const lat = pos.coords.latitude;
-                    const lng = pos.coords.longitude;
-
-                    currentCoords = { lat, lng };
-                    await setLocationUI(lat, lng);
+                    currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                    await setLocationUI(currentCoords.lat, currentCoords.lng);
                 },
                 () => {
                     const el = document.getElementById("location-text");
@@ -401,19 +343,18 @@ include "../../../components/navbarPassenger.php";
     </script>
 
     <script>
-        // --- Friend circle state ---
         let friendsCache = [];
         let sosFriendsModal;
 
         function initialsFromFriend(f) {
-            const base = (f.name || f.email || "??").trim();
+            const base  = (f.name || f.email || "??").trim();
             const parts = base.split(/\s+/).filter(Boolean);
             if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
             return base.slice(0, 2).toUpperCase();
         }
 
         function colorFromString(str) {
-            const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
+            const colors = ["#ec4899","#3b82f6","#22c55e","#f43f5e","#a855f7","#06b6d4","#f97316"];
             let h = 0;
             for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
             return colors[h % colors.length];
@@ -421,8 +362,7 @@ include "../../../components/navbarPassenger.php";
 
         function renderFriendStack() {
             const avatarsEl = document.getElementById('friends-avatars');
-            const statusEl = document.getElementById('friends-status');
-
+            const statusEl  = document.getElementById('friends-status');
             if (!avatarsEl || !statusEl) return;
 
             if (!Array.isArray(friendsCache) || friendsCache.length === 0) {
@@ -431,33 +371,24 @@ include "../../../components/navbarPassenger.php";
                 return;
             }
 
-            const maxShown = 5;
-            const shown = friendsCache.slice(0, maxShown);
-
-            avatarsEl.innerHTML = shown.map((f) => {
+            const shown = friendsCache.slice(0, 5);
+            avatarsEl.innerHTML = shown.map(f => {
                 const init = initialsFromFriend(f);
-                const bg = colorFromString(f.email || f.name || init);
+                const bg   = colorFromString(f.email || f.name || init);
                 return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
             }).join("");
-
             statusEl.textContent = `Your SOS will be sent to ${friendsCache.length} people`;
         }
 
         async function fetchFriends() {
-            const listEl = document.getElementById('friends-list');
+            const listEl   = document.getElementById('friends-list');
             const statusEl = document.getElementById('friends-status');
-
             try {
-                const res = await fetch("../../../backend/groupView.php", { credentials: "include" });
+                const res  = await fetch("../../../backend/groupView.php", { credentials: "include" });
                 const data = await res.json();
-                alert(JSON.stringify(data, null, 2));
-
                 if (!data.success) throw new Error(data.message || "Failed to fetch friends");
-
                 friendsCache = Array.isArray(data.friends) ? data.friends : [];
                 renderFriendStack();
-
-                // Keep modal list available for future use (optional)
                 if (listEl) {
                     listEl.innerHTML = friendsCache.map(f => {
                         const label = f.name ? `${f.name} (${f.email})` : f.email;
@@ -465,29 +396,24 @@ include "../../../components/navbarPassenger.php";
                           <label class="list-group-item d-flex align-items-center gap-2">
                             <input class="form-check-input me-1 friend-checkbox" type="checkbox" value="${f.id}">
                             <span class="flex-grow-1 text-truncate">${label}</span>
-                          </label>
-                        `;
+                          </label>`;
                     }).join("") || `<div class="list-group-item">No friends to alert.</div>`;
                 }
-
             } catch (e) {
                 console.error(e);
-                const avatarsEl = document.getElementById('friends-avatars');
-                if (avatarsEl) avatarsEl.innerHTML = '';
+                if (document.getElementById('friends-avatars')) document.getElementById('friends-avatars').innerHTML = '';
                 if (statusEl) statusEl.textContent = "Failed to load friend group";
-                if (listEl) listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
+                if (listEl)   listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
             }
         }
 
         function openSosFriendsModal() {
-            if (!sosFriendsModal) {
-                sosFriendsModal = new bootstrap.Modal(document.getElementById('sosFriendsModal'));
-            }
+            if (!sosFriendsModal) sosFriendsModal = new bootstrap.Modal(document.getElementById('sosFriendsModal'));
             sosFriendsModal.show();
         }
 
         function toggleSelectAllFriends() {
-            const checks = document.querySelectorAll(".friend-checkbox");
+            const checks     = document.querySelectorAll(".friend-checkbox");
             const anyUnchecked = Array.from(checks).some(c => !c.checked);
             checks.forEach(c => c.checked = anyUnchecked);
         }
@@ -495,97 +421,66 @@ include "../../../components/navbarPassenger.php";
         async function sendSosToSelectedFriends() {
             const statusEl = document.getElementById("friends-status");
             const selected = Array.from(document.querySelectorAll(".friend-checkbox:checked")).map(c => parseInt(c.value, 10));
-
-            if (selected.length === 0) {
-                alert("Select at least one friend.");
-                return;
-            }
-
+            if (selected.length === 0) { alert("Select at least one friend."); return; }
             const locText = await getResolvedLocationText();
-
             try {
                 if (statusEl) statusEl.textContent = "Sending…";
-
-                const res = await fetch("../../../backend/sendSosAlert.php", {
-                    method: "POST",
-                    credentials: "include",
+                const res  = await fetch("../../../backend/sendSosAlert.php", {
+                    method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        recipients: selected,
-                        location_text: locText
-                    })
+                    body: JSON.stringify({ recipients: selected, location_text: locText })
                 });
-
                 const data = await res.json();
-                alert(JSON.stringify(data, null, 2));
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-
                 if (statusEl) statusEl.textContent = `Your SOS will be sent to ${selected.length} people`;
                 if (sosFriendsModal) sosFriendsModal.hide();
-
             } catch (e) {
                 if (statusEl) statusEl.textContent = "Failed to send";
                 alert(e.message);
             }
         }
 
-        // Load friends immediately
         fetchFriends();
     </script>
 
     <script>
-        // --- Countdown & state logic (unchanged) ---
         const countdownLayer = document.getElementById('sos-countdown-layer');
-        const timerElement = document.getElementById('timer');
+        const timerElement   = document.getElementById('timer');
         let countdownInterval;
-        let timeLeft = 10;
+        let timeLeft    = 10;
         let isSOSActive = false;
 
         function startCountdown() {
             if (navigator.vibrate) navigator.vibrate([200]);
             countdownLayer.classList.remove('d-none');
-
             timeLeft = 10;
             timerElement.textContent = timeLeft;
             timerElement.classList.replace('bg-secondary', 'bg-danger');
-
             document.querySelector('#sos-countdown-layer h1').textContent = "Slide to cancel";
-            document.querySelector('#sos-countdown-layer p').textContent = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
-
+            document.querySelector('#sos-countdown-layer p').textContent  = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
             sliderHandle.style.transform = `translateX(0px)`;
-
             isSOSActive = true;
-
             countdownInterval = setInterval(() => {
                 if (!isSOSActive) return;
                 timeLeft--;
                 timerElement.textContent = timeLeft;
-
-                if (timeLeft <= 0) {
-                    clearInterval(countdownInterval);
-                    sendSOS();
-                }
+                if (timeLeft <= 0) { clearInterval(countdownInterval); sendSOS(); }
             }, 1000);
         }
 
         function cancelSOS() {
             isSOSActive = false;
             clearInterval(countdownInterval);
-
             timerElement.classList.replace('bg-danger', 'bg-secondary');
             timerElement.textContent = "X";
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
-            document.querySelector('#sos-countdown-layer p').textContent = "Your SOS has been cancelled. Returning to home...";
-
-            setTimeout(() => {
-                countdownLayer.classList.add('d-none');
-            }, 1000);
+            document.querySelector('#sos-countdown-layer p').textContent  = "Your SOS has been cancelled. Returning to home...";
+            setTimeout(() => { countdownLayer.classList.add('d-none'); }, 1000);
         }
 
         async function sendSOS() {
-            const statusEl = document.getElementById("friends-status");
-            const locText = await getResolvedLocationText();
-
+            const statusEl   = document.getElementById("friends-status");
+            const locText    = await getResolvedLocationText();
             const recipients = Array.isArray(friendsCache)
                 ? friendsCache.map(f => parseInt(f.id, 10)).filter(Number.isFinite)
                 : [];
@@ -599,23 +494,14 @@ include "../../../components/navbarPassenger.php";
 
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
-
-                const res = await fetch("../../../backend/sendSosAlert.php", {
-                    method: "POST",
-                    credentials: "include",
+                const res  = await fetch("../../../backend/sendSosAlert.php", {
+                    method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        recipients,
-                        location_text: locText
-                    })
+                    body: JSON.stringify({ recipients, location_text: locText })
                 });
-
                 const data = await res.json();
-                alert(JSON.stringify(data, null, 2));
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-
                 alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
-
                 if (statusEl) statusEl.textContent = `Your SOS will be sent to ${recipients.length} people`;
             } catch (e) {
                 console.error(e);
@@ -628,7 +514,7 @@ include "../../../components/navbarPassenger.php";
         }
 
         const sliderContainer = document.getElementById('sliderContainer');
-        const sliderHandle = document.getElementById('sliderHandle');
+        const sliderHandle    = document.getElementById('sliderHandle');
         let isDragging = false;
         let startX;
 
@@ -641,18 +527,14 @@ include "../../../components/navbarPassenger.php";
         const drag = (e) => {
             if (!isDragging) return;
             if (e.type.includes('touch')) e.preventDefault();
-
-            const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const currentX     = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const containerWidth = sliderContainer.offsetWidth;
-            const handleWidth = sliderHandle.offsetWidth;
-            const maxMove = containerWidth - handleWidth - 10;
-
+            const handleWidth    = sliderHandle.offsetWidth;
+            const maxMove        = containerWidth - handleWidth - 10;
             let delta = startX - currentX;
             if (delta < 0) delta = 0;
             if (delta > maxMove) delta = maxMove;
-
             sliderHandle.style.transform = `translateX(-${delta}px)`;
-
             if (delta > (maxMove * 0.75)) {
                 isDragging = false;
                 sliderHandle.style.transform = `translateX(-${maxMove}px)`;
@@ -663,18 +545,15 @@ include "../../../components/navbarPassenger.php";
         const endDrag = () => {
             if (!isDragging) return;
             isDragging = false;
-
             sliderHandle.style.transition = "transform 0.3s ease";
-            sliderHandle.style.transform = `translateX(0px)`;
+            sliderHandle.style.transform  = `translateX(0px)`;
             setTimeout(() => { sliderHandle.style.transition = ""; }, 300);
         };
 
         sliderHandle.addEventListener('mousedown', startDrag);
         sliderHandle.addEventListener('touchstart', startDrag, { passive: false });
-
         document.addEventListener('mousemove', drag);
         document.addEventListener('touchmove', drag, { passive: false });
-
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
     </script>
