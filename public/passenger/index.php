@@ -286,6 +286,7 @@ if (isset($_SESSION['user_id'])) {
     let userLocation = null;
     let userMarker = null;
     let selectedRoute = '';
+    window.selectedRoute = ''; // Sync it globally
     let locationPermissionGranted = true;
 
     const AVG_SPEED_MPS = (30 * 1000) / 3600;
@@ -597,6 +598,7 @@ if (isset($_SESSION['user_id'])) {
 
     window.setRoute = (r) => {
       selectedRoute = r;
+      window.selectedRoute = r; // <-- ADD THIS LINE
 
       const label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
@@ -799,14 +801,6 @@ if (isset($_SESSION['user_id'])) {
 
     startUserLocationWatch();
     updateBuses();
-
-    // Initialize route pills to show "All Routes" as default
-    setTimeout(() => {
-      if (typeof updateRoutePills === 'function') {
-        updateRoutePills();
-      }
-    }, 100);
-
     setInterval(updateBuses, 4000);
 
     function getBottomSheetHeightPx() {
