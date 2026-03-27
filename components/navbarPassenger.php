@@ -476,6 +476,8 @@ else: ?>
   </div>
 </div>
 
+<script src="/assets/js/median_onesignal_bridge.js"></script>
+
 <script>
   // Expose base URL for icon swapping
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;

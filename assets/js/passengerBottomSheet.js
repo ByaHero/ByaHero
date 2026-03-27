@@ -247,6 +247,13 @@ window.switchSheetTab = function switchSheetTab(tabName) {
       : base + '/assets/images/icons/routes idle.svg';
   }
 
+  var groupsIcon = document.getElementById('groups-tab-icon');
+  if (groupsIcon) {
+    groupsIcon.src = tabName === 'groups'
+      ? base + '/assets/images/icons/groupsActive.png'
+      : base + '/assets/images/icons/groupsIdle.png';
+  }
+
   // ── Sync route pills ──
   if (typeof window.updateRoutePills === 'function') {
     window.updateRoutePills();
