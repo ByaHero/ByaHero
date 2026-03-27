@@ -87,6 +87,12 @@ try {
 } catch (Exception $e) {
     $stops = [];
 }
+
+/* === ADDED: navbarAdmin config (component) === */
+$pageDepth = '../../';
+$pageType = 'manageStops';
+$backLink = 'admin.php';
+/* === END ADDED === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -100,68 +106,62 @@ try {
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
-        #stopMap { height: 440px; border-radius: 10px; overflow: hidden; border: 1px solid #e2e8f0; }
+
+        .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
+        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 800; padding: 1rem 1.25rem; border-radius: 14px 14px 0 0 !important; }
+        #stopMap { height: 440px; border-radius: 14px; overflow: hidden; border: 1px solid #e2e8f0; }
         .hint { font-size: .9rem; color: #64748b; }
         .table > :not(caption) > * > * { padding: 0.65rem 0.9rem; vertical-align: middle; }
         @media (max-width: 991px) { #stopMap { height: 320px; } }
 
-        /* NEW: small "icon size" control UI */
+        /* icon size control UI */
         .icon-size-card {
             border: 1px dashed #cbd5e1;
-            border-radius: 10px;
+            border-radius: 14px;
             padding: .75rem;
             background: #f8fafc;
         }
         .icon-size-value {
             font-variant-numeric: tabular-nums;
-            font-weight: 700;
+            font-weight: 800;
         }
+
+        .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
+        .form-control, .form-select { border-radius: 12px; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">directions_bus</span> ByaHero
-        </a>
-        <div class="ms-auto d-flex gap-2 align-items-center">
-            <a class="btn btn-outline-light btn-sm" href="admin.php">Back</a>
-            <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>
-        </div>
-    </div>
-</nav>
+<!-- REMOVED old navbar; use component -->
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
+
     <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
             <?= h($message) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
     <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">error</span>
             <?= h($error) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="row g-4">
+    <div class="row g-4 mt-1">
         <div class="col-lg-7">
             <div class="card card-standard">
                 <div class="card-header-std d-flex justify-content-between align-items-center">
-                    <div>Stops Map</div>
+                    <div class="fw-bold">Stops Map</div>
                     <div class="hint">Click map to choose coordinates</div>
                 </div>
                 <div class="card-body">
                     <div id="stopMap"></div>
 
-                    <!-- NEW: icon size control -->
                     <div class="icon-size-card mt-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="fw-bold">Marker Icon Size</div>
@@ -195,9 +195,9 @@ try {
 
         <div class="col-lg-5">
             <div class="card card-standard">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">add_location_alt</span>
-                    Add Stop / Terminal
+                <div class="card-header-std text-primary d-flex align-items-center gap-2">
+                    <span class="material-icons-round">add_location_alt</span>
+                    <span>Add Stop / Terminal</span>
                 </div>
                 <div class="card-body">
                     <form method="POST">
@@ -230,7 +230,7 @@ try {
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary">Save</button>
+                            <button class="btn btn-primary pill-btn">Save</button>
                         </div>
                     </form>
 
@@ -243,7 +243,10 @@ try {
             </div>
 
             <div class="card card-standard mt-4">
-                <div class="card-header-std">Existing Stops</div>
+                <div class="card-header-std d-flex justify-content-between align-items-center">
+                    <div class="fw-bold">Existing Stops</div>
+                    <div class="small text-muted">Rows: <?= count($stops) ?></div>
+                </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
@@ -271,7 +274,7 @@ try {
                                         <form method="POST" onsubmit="return confirm('Delete this stop?');">
                                             <input type="hidden" name="action" value="delete_stop">
                                             <input type="hidden" name="id" value="<?= h($s['id']) ?>">
-                                            <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                            <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
                                         </form>
                                     </td>
                                 </tr>
@@ -305,7 +308,7 @@ try {
     document.getElementById('pickupUrlText').textContent = PICKUP_URL;
     document.getElementById('stopUrlText').textContent = STOP_URL;
 
-    // NEW: adjustable marker size (defaults to 42 like before)
+    // adjustable marker size (defaults to 42 like before)
     let MARKER_SIZE = 42;
 
     // Build Leaflet icons based on MARKER_SIZE
@@ -401,7 +404,7 @@ try {
         coordsEl.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     });
 
-    // NEW: slider wiring - update icons + update all markers
+    // Slider wiring - update icons + update all markers
     const slider = document.getElementById('iconSizeSlider');
     const sizeValue = document.getElementById('iconSizeValue');
 
@@ -413,7 +416,6 @@ try {
 
         // Update existing markers
         stopMarkers.forEach((m, idx) => {
-            // We need the stop type to choose correct icon
             const s = existingStops[idx];
             m.setIcon(iconForType(s?.type));
         });
@@ -426,7 +428,6 @@ try {
         applyMarkerSize(parseInt(slider.value, 10) || 42);
     });
 
-    // init display
     applyMarkerSize(parseInt(slider.value, 10) || 42);
 </script>
 </body>

@@ -60,6 +60,11 @@ try {
 } catch (Exception $e) {
     // keep zeros if something fails
 }
+
+/* === ADDED: navbarAdmin config === */
+$pageDepth = '../../';
+$pageType = 'dashboard';
+/* === END ADDED === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -73,9 +78,6 @@ try {
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
-        .nav-link.active { color: #fff !important; background: rgba(255,255,255,0.15); border-radius: 6px; }
 
         .stat-card {
             border-radius: 20px;
@@ -98,11 +100,13 @@ try {
         .card-drivers { background: #addbea; }
         .card-conductors { background: #2666be; }
         .card-stops { background: #0ea5e9; }
-        .card-fares { background: #8b5cf6; } /* NEW: fares */
+        .card-fares { background: #8b5cf6; } /* fares */
 
-        /* === ADDED: Operation Schedule card color === */
+        /* ADDED: Operation Schedule card color */
         .card-schedule { background: #f97316; }
-        /* === END ADDED === */
+
+        /* ADDED: Analytics card color */
+        .card-analytics { background: #1e3a8a; }
 
         .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
         .stat-card-number {
@@ -138,27 +142,6 @@ try {
         .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
         .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
 
-        .icon-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            background: rgba(255,255,255,0.15);
-            border: none;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        .icon-btn:hover {
-            background: rgba(255,255,255,0.25);
-            color: white;
-        }
-        .icon-btn .material-icons-round {
-            font-size: 1.5rem;
-        }
-
         @media (max-width: 767px) {
             .stat-card { height: 140px; padding: 1rem; }
             .stat-card-number { font-size: 2.5rem; }
@@ -169,33 +152,8 @@ try {
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">directions_bus</span> ByaHero Admin
-        </a>
-
-        <div class="ms-auto d-flex align-items-center gap-2">
-            <!-- Analytics Icon Button -->
-            <a href="analytics.php" class="icon-btn" title="Analytics">
-                <span class="material-icons-round">assessment</span>
-            </a>
-
-            <!-- Settings Dropdown - Logout Only -->
-            <div class="dropdown">
-                <button class="icon-btn" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Settings">
-                    <span class="material-icons-round">settings</span>
-                </button>
-                <ul class="dropdown-menu dropdown-menu-end">
-                    <li><a class="dropdown-item text-danger" href="logout.php">
-                        <span class="material-icons-round" style="font-size: 1.2rem; vertical-align: middle; margin-right: 8px;">logout</span>
-                        Logout
-                    </a></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</nav>
+<!-- Use the new navbar component -->
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
     <div class="mb-4">
@@ -222,7 +180,7 @@ try {
             </div>
         </div>
 
-        <!-- NEW: Bus Fares card (replaces previous spacer) -->
+        <!-- Bus Fares -->
         <div class="col-6 col-lg-4">
             <div class="stat-card card-fares">
                 <div class="stat-card-title">Bus Fares</div>
@@ -231,7 +189,7 @@ try {
             </div>
         </div>
 
-        <!-- === ADDED: Operation Schedule card === -->
+        <!-- ADDED: Operation Schedule -->
         <div class="col-6 col-lg-4">
             <div class="stat-card card-schedule">
                 <div class="stat-card-title">Operation Schedule</div>
@@ -239,7 +197,15 @@ try {
                 <div class="stat-card-number"><?= $scheduleCount ?></div>
             </div>
         </div>
-        <!-- === END ADDED === -->
+
+        <!-- ADDED: Analytics card -->
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-analytics">
+                <div class="stat-card-title">Analytics</div>
+                <a class="btn-manage-pill" href="analytics.php">View</a>
+                <div class="stat-card-number">—</div>
+            </div>
+        </div>
 
         <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
         <div class="col-6 col-lg-4">

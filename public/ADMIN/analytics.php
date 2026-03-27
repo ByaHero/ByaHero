@@ -24,6 +24,12 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
+
+/* === ADDED: navbarAdmin config (component) === */
+$pageDepth = '../../';
+$pageType = 'analytics';
+$backLink = 'admin.php';
+/* === END ADDED === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -37,9 +43,6 @@ function h($s): string {
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
-        .nav-link.active { color: #fff !important; background: rgba(255,255,255,0.15); border-radius: 6px; }
 
         .stat-card-mini {
             background: white;
@@ -54,11 +57,11 @@ function h($s): string {
         .stat-card-mini .stat-value { font-size: 2rem; font-weight: 700; color: var(--brand); margin-top: 0.25rem; }
 
         .card-standard { border: none; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 1.5rem; background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 12px 12px 0 0 !important; display: flex; align-items: center; gap: 0.5rem; }
+        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 800; padding: 1rem 1.25rem; border-radius: 12px 12px 0 0 !important; display: flex; align-items: center; gap: 0.5rem; }
         .card-header-std .material-icons-round { color: var(--brand); font-size: 1.5rem; }
 
         .chart-container { position: relative; height: 300px; padding: 1rem; }
-        
+
         .activity-item {
             padding: 0.75rem 1rem;
             border-bottom: 1px solid #f1f5f9;
@@ -79,13 +82,13 @@ function h($s): string {
             font-size: 1.2rem;
         }
         .activity-content { flex: 1; }
-        .activity-type { font-weight: 600; color: #1e293b; font-size: 0.9rem; }
+        .activity-type { font-weight: 700; color: #1e293b; font-size: 0.9rem; }
         .activity-time { font-size: 0.75rem; color: #94a3b8; }
 
         .badge-custom {
             padding: 0.35rem 0.75rem;
             border-radius: 6px;
-            font-weight: 600;
+            font-weight: 700;
             font-size: 0.8rem;
         }
 
@@ -103,6 +106,12 @@ function h($s): string {
         }
         .loading-overlay.hidden { display: none; }
 
+        /* keep header spacing similar without old navbar */
+        .page-head {
+            margin-top: 16px;
+            margin-bottom: 16px;
+        }
+
         @media (max-width: 767px) {
             .stat-card-mini .stat-value { font-size: 1.5rem; }
             .chart-container { height: 250px; }
@@ -111,6 +120,9 @@ function h($s): string {
 </head>
 <body>
 
+<!-- REMOVED old navbar; use component -->
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
+
 <div class="loading-overlay" id="loadingOverlay">
     <div class="text-center">
         <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status"></div>
@@ -118,46 +130,8 @@ function h($s): string {
     </div>
 </div>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">directions_bus</span> ByaHero
-        </a>
-
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-
-        <div class="collapse navbar-collapse" id="navContent">
-            <ul class="nav nav-pills ms-auto gap-2">
-                <li class="nav-item">
-                    <a class="nav-link" href="admin.php">Dashboard & Map</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link active" href="analytics.php">Analytics</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageBuses.php">Manage Buses</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageActiveBuses.php">Active Buses</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageConductors.php">Conductors & Drivers</a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link" href="manageStops.php">Bus Stops & Terminals</a>
-                </li>
-            </ul>
-            <div class="ms-3">
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-            </div>
-        </div>
-    </div>
-</nav>
-
 <div class="container">
-    <div class="d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center justify-content-between page-head">
         <div>
             <h2 class="mb-1 fw-bold">Analytics Dashboard</h2>
             <p class="text-muted mb-0">Real-time insights and user activity tracking</p>
@@ -275,7 +249,7 @@ let charts = {};
 async function loadAnalytics() {
     try {
         document.getElementById('loadingOverlay').classList.remove('hidden');
-        
+
         const response = await fetch('analytics_api.php');
         const data = await response.json();
 
@@ -306,7 +280,7 @@ async function loadAnalytics() {
 
 function renderEventTypesChart(eventTypes) {
     const ctx = document.getElementById('eventTypesChart');
-    
+
     if (charts.eventTypes) charts.eventTypes.destroy();
 
     charts.eventTypes = new Chart(ctx, {
@@ -323,23 +297,19 @@ function renderEventTypesChart(eventTypes) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                y: { beginAtZero: true }
-            }
+            plugins: { legend: { display: false } },
+            scales: { y: { beginAtZero: true } }
         }
     });
 }
 
 function renderFeedbackChart(ratings) {
     const ctx = document.getElementById('feedbackChart');
-    
+
     if (charts.feedback) charts.feedback.destroy();
 
     const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
-    
+
     charts.feedback = new Chart(ctx, {
         type: 'doughnut',
         data: {
@@ -354,19 +324,16 @@ function renderFeedbackChart(ratings) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'bottom' }
-            }
+            plugins: { legend: { position: 'bottom' } }
         }
     });
 }
 
 function renderSettingsChart(settings) {
     const ctx = document.getElementById('settingsChart');
-    
+
     if (charts.settings) charts.settings.destroy();
 
-    // Clean up setting names (remove quotes)
     const cleanSettings = settings.map(s => ({
         ...s,
         setting: s.setting ? s.setting.replace(/['"]/g, '') : 'Unknown'
@@ -387,22 +354,17 @@ function renderSettingsChart(settings) {
             responsive: true,
             maintainAspectRatio: false,
             indexAxis: 'y',
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { beginAtZero: true }
-            }
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
         }
     });
 }
 
 function renderBusesChart(buses) {
     const ctx = document.getElementById('busesChart');
-    
+
     if (charts.buses) charts.buses.destroy();
 
-    // Clean up bus IDs (remove quotes)
     const cleanBuses = buses.map(b => ({
         ...b,
         bus_id: b.bus_id ? b.bus_id.replace(/['"]/g, '') : 'Unknown'
@@ -423,19 +385,15 @@ function renderBusesChart(buses) {
             responsive: true,
             maintainAspectRatio: false,
             indexAxis: 'y',
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { beginAtZero: true }
-            }
+            plugins: { legend: { display: false } },
+            scales: { x: { beginAtZero: true } }
         }
     });
 }
 
 function renderRecentActivity(activities) {
     const container = document.getElementById('recentActivityContainer');
-    
+
     if (!activities || activities.length === 0) {
         container.innerHTML = '<div class="text-center py-4 text-muted">No recent activity</div>';
         return;
@@ -445,7 +403,7 @@ function renderRecentActivity(activities) {
         const icon = getActivityIcon(activity.event_type);
         const timeAgo = formatTimeAgo(activity.created_at);
         const eventLabel = formatEventType(activity.event_type);
-        
+
         return `
             <div class="activity-item">
                 <div class="activity-icon">
@@ -482,7 +440,7 @@ function formatTimeAgo(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
     const seconds = Math.floor((now - date) / 1000);
-    
+
     if (seconds < 60) return 'Just now';
     if (seconds < 3600) return Math.floor(seconds / 60) + ' min ago';
     if (seconds < 86400) return Math.floor(seconds / 3600) + ' hr ago';
@@ -493,10 +451,7 @@ function refreshData() {
     loadAnalytics();
 }
 
-// Load on page load
 document.addEventListener('DOMContentLoaded', loadAnalytics);
-
-// Auto-refresh every 30 seconds
 setInterval(loadAnalytics, 30000);
 </script>
 </body>

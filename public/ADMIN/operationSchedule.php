@@ -114,6 +114,12 @@ try {
 } catch (Throwable $e) {
     $schedules = [];
 }
+
+/* === ADDED: navbarAdmin config (component) === */
+$pageDepth = '../../';
+$pageType = 'operationSchedule';
+$backLink = 'admin.php';
+/* === END ADDED === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -126,32 +132,28 @@ try {
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 700; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
+
+        .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
+        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 800; padding: 1rem 1.25rem; border-radius: 14px 14px 0 0 !important; }
         .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
+
         .badge-susp { background: #dc2626; }
         .badge-live { background: #16a34a; }
+
+        .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
+        .help-card { border-radius: 14px; border: 1px dashed rgba(148,163,184,0.8); background: #f8fafc; padding: 12px 14px; }
+        .form-control, .form-select { border-radius: 12px; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">schedule</span> Operation Schedule
-        </a>
-        <div class="ms-auto d-flex gap-2 align-items-center">
-            <a class="btn btn-outline-light btn-sm" href="admin.php">Back</a>
-            <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>
-        </div>
-    </div>
-</nav>
+<!-- REMOVED old navbar; use component -->
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
 
     <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
             <?= h($message) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -159,21 +161,22 @@ try {
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">error</span>
             <?= h($error) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="row g-4">
+    <div class="row g-4 mt-1">
         <!-- Add/Update -->
         <div class="col-lg-4">
             <div class="card card-standard">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">edit_calendar</span>
-                    Add / Update Terminal Schedule
+                <div class="card-header-std text-primary d-flex align-items-center gap-2">
+                    <span class="material-icons-round">edit_calendar</span>
+                    <span>Add / Update Terminal</span>
                 </div>
+
                 <div class="card-body">
                     <form method="POST">
                         <input type="hidden" name="action" value="upsert_schedule">
@@ -197,9 +200,12 @@ try {
                             </div>
                         </div>
 
-                        <div class="form-check form-switch mb-2">
-                            <input class="form-check-input" type="checkbox" role="switch" id="suspSwitch" name="is_suspended">
-                            <label class="form-check-label fw-bold" for="suspSwitch">Suspend operations</label>
+                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                            <div class="form-check form-switch m-0">
+                                <input class="form-check-input" type="checkbox" role="switch" id="suspSwitch" name="is_suspended">
+                                <label class="form-check-label fw-bold" for="suspSwitch">Suspend</label>
+                            </div>
+                            <span class="small text-muted">Show “SUSPENDED” to passengers</span>
                         </div>
 
                         <div class="mb-3">
@@ -208,18 +214,19 @@ try {
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary">Save</button>
+                            <button class="btn btn-primary pill-btn">Save Schedule</button>
                         </div>
                     </form>
-                </div>
-            </div>
 
-            <div class="small text-muted mt-3">
-                “Phenomenal” behavior:
-                <ul class="mb-0">
-                    <li>Passengers will see <strong>SUSPENDED</strong> + message immediately.</li>
-                    <li>If not suspended, open/close time must be filled.</li>
-                </ul>
+                    <div class="help-card small text-muted mt-3">
+                        <div class="fw-bold text-dark mb-1">Notes</div>
+                        <ul class="mb-0 ps-3">
+                            <li>Passengers see schedules instantly.</li>
+                            <li>If not suspended, Open/Close must be filled.</li>
+                            <li>If suspended, message is required.</li>
+                        </ul>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -270,7 +277,7 @@ try {
                                     <form method="POST" onsubmit="return confirm('Delete this schedule row?');" class="d-inline">
                                         <input type="hidden" name="action" value="delete_schedule">
                                         <input type="hidden" name="schedule_id" value="<?= (int)$s['schedule_id'] ?>">
-                                        <button class="btn btn-sm btn-outline-danger">Delete</button>
+                                        <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
                                     </form>
                                 </td>
                             </tr>
