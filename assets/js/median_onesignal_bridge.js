@@ -26,7 +26,7 @@
   // Path to registerOnesignalToken.php relative to your domain root.
   // e.g. if your site is https://byahero.infinityfreeapp.com
   //      the file should live at  /backend/registerOnesignalToken.php
-  var REGISTER_URL = '/backend/registerOnesignalToken.php';
+  var REGISTER_URL = 'http://byahero.free.nf/backend/registerOnesignalToken.php';
 
   // ── 1. Register player_id when Median fires the onesignal event ──────────
   //
