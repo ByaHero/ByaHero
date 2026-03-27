@@ -38,6 +38,10 @@ $conductorsCount = 0;
 $stopsCount = 0;
 $faresCount = 0;
 
+/* === ADDED: operation schedule count === */
+$scheduleCount = 0;
+/* === END ADDED === */
+
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
     $activeBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses WHERE status IN ('available','on_stop','full')")->fetchColumn();
@@ -49,6 +53,10 @@ try {
 
     // NEW: bus fares count
     $faresCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_fares")->fetchColumn();
+
+    /* === ADDED: operation schedule count query === */
+    $scheduleCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_schedule")->fetchColumn();
+    /* === END ADDED === */
 } catch (Exception $e) {
     // keep zeros if something fails
 }
@@ -91,6 +99,10 @@ try {
         .card-conductors { background: #2666be; }
         .card-stops { background: #0ea5e9; }
         .card-fares { background: #8b5cf6; } /* NEW: fares */
+
+        /* === ADDED: Operation Schedule card color === */
+        .card-schedule { background: #f97316; }
+        /* === END ADDED === */
 
         .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
         .stat-card-number {
@@ -218,6 +230,16 @@ try {
                 <div class="stat-card-number"><?= $faresCount ?></div>
             </div>
         </div>
+
+        <!-- === ADDED: Operation Schedule card === -->
+        <div class="col-6 col-lg-4">
+            <div class="stat-card card-schedule">
+                <div class="stat-card-title">Operation Schedule</div>
+                <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
+                <div class="stat-card-number"><?= $scheduleCount ?></div>
+            </div>
+        </div>
+        <!-- === END ADDED === -->
 
         <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
         <div class="col-6 col-lg-4">
