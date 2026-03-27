@@ -22,51 +22,46 @@
 (function () {
   'use strict';
 
-  // ── Config ───────────────────────────────────────────────────────────────
-  // Path to registerOnesignalToken.php relative to your domain root.
-  // e.g. if your site is https://byahero.infinityfreeapp.com
-  //      the file should live at  /backend/registerOnesignalToken.php
-  var REGISTER_URL = 'http://byahero.free.nf/backend/registerOnesignalToken.php';
-
-  // ── 1. Register player_id when Median fires the onesignal event ──────────
-  //
-  // Median fires  window.gonative_onesignal_info  with:
-  //   { userId: "<player_id>", ... }
-  // We catch it here and POST it to our backend.
+  var REGISTER_URL = '/backend/registerOnesignalToken.php';
 
   function saveToken(playerId) {
     if (!playerId) return;
 
+    // Add a quick alert so you know it worked!
+    alert("Token saved to database: " + playerId);
+
     fetch(REGISTER_URL, {
       method: 'POST',
-      credentials: 'include',            // send session cookie
+      credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_id: playerId })
     })
-    .then(function (r) { return r.json(); })
-    .then(function (d) {
-      if (!d.success) console.warn('[SOS] Token register failed:', d.message);
-    })
-    .catch(function (e) { console.warn('[SOS] Token register error:', e); });
+      .then(function (r) { return r.json(); })
+      .catch(function (e) { console.warn('[SOS] Token register error:', e); });
   }
 
-  // Median calls this global function with OneSignal info
-  window.gonative_onesignal_info = function (info) {
-    alert("OneSignal Token Generated! ID: " + info.userId); // <-- ADD THIS LINE
-    if (info && info.userId) {
-      saveToken(info.userId);
-    }
+  // Handle NEW Median App syntax
+  window.median_onesignal_info = function (info) {
+    var playerId = info.userId || info.oneSignalUserId || info.playerId;
+    if (playerId) saveToken(playerId);
   };
 
-  // Also handle the case where info is already available on page load
-  // (Median sometimes injects it before DOMContentLoaded)
-  if (window.gonative && window.gonative.onesignal) {
-    try {
-      window.gonative.onesignal.getInfo().then(function (info) {
-        if (info && info.userId) saveToken(info.userId);
-      });
-    } catch (e) { /* not in Median shell – normal browser, skip */ }
-  }
+  // Handle OLD GoNative App syntax
+  window.gonative_onesignal_info = window.median_onesignal_info;
+
+  // Force the app to fetch the token 1.5 seconds after loading
+  setTimeout(function () {
+    if (window.median && window.median.onesignal) {
+      window.median.onesignal.info();
+    } else if (window.gonative && window.gonative.onesignal) {
+      window.gonative.onesignal.info();
+    } else {
+      // Universal fallback command
+      window.location.href = 'median://onesignal/info';
+    }
+  }, 1500);
+
+  // ... (Keep your existing Window.gonative_onesignal_notification_received code below here) ...
 
   // ── 2. Foreground push handler ───────────────────────────────────────────
   //
@@ -77,7 +72,7 @@
   window.gonative_onesignal_notification_received = function (data) {
     try {
       var payload = data || {};
-      var type    = (payload.additionalData || payload.data || {}).type || '';
+      var type = (payload.additionalData || payload.data || {}).type || '';
 
       if (type === 'sos_alert') {
         showSosBanner(payload);
@@ -91,7 +86,7 @@
   window.gonative_onesignal_notification_opened = function (data) {
     try {
       var payload = data || {};
-      var type    = (payload.additionalData || payload.data || {}).type || '';
+      var type = (payload.additionalData || payload.data || {}).type || '';
 
       if (type === 'sos_alert') {
         // Navigate to notifications / SOS alerts page
@@ -111,48 +106,48 @@
     if (document.getElementById('sos-push-banner')) return;
 
     var additionalData = payload.additionalData || payload.data || {};
-    var senderName     = additionalData.sender_name  || 'Someone in your circle';
-    var locationText   = additionalData.location_text || '';
-    var heading        = payload.title    || payload.heading    || '🚨 SOS Alert';
-    var body           = payload.message  || payload.body       || (senderName + ' needs help!');
+    var senderName = additionalData.sender_name || 'Someone in your circle';
+    var locationText = additionalData.location_text || '';
+    var heading = payload.title || payload.heading || '🚨 SOS Alert';
+    var body = payload.message || payload.body || (senderName + ' needs help!');
 
     var banner = document.createElement('div');
-    banner.id  = 'sos-push-banner';
+    banner.id = 'sos-push-banner';
 
     // Inline styles so the banner works on every page without extra CSS
     Object.assign(banner.style, {
-      position:      'fixed',
-      top:           '0',
-      left:          '0',
-      right:         '0',
-      zIndex:        '99999',
-      background:    'linear-gradient(135deg, #dc3545, #b02a37)',
-      color:         '#fff',
-      padding:       '14px 16px 12px',
-      display:       'flex',
-      alignItems:    'flex-start',
-      gap:           '12px',
-      boxShadow:     '0 4px 20px rgba(0,0,0,0.35)',
-      cursor:        'pointer',
-      fontFamily:    '"Segoe UI", sans-serif',
-      animation:     'sosBannerSlideIn 0.35s ease',
+      position: 'fixed',
+      top: '0',
+      left: '0',
+      right: '0',
+      zIndex: '99999',
+      background: 'linear-gradient(135deg, #dc3545, #b02a37)',
+      color: '#fff',
+      padding: '14px 16px 12px',
+      display: 'flex',
+      alignItems: 'flex-start',
+      gap: '12px',
+      boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+      cursor: 'pointer',
+      fontFamily: '"Segoe UI", sans-serif',
+      animation: 'sosBannerSlideIn 0.35s ease',
     });
 
     banner.innerHTML =
       '<span style="font-size:2rem;line-height:1;flex-shrink:0;">🚨</span>' +
       '<div style="flex:1;min-width:0;">' +
-        '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">' + escapeHtml(heading) + '</div>' +
-        '<div style="font-size:0.82rem;opacity:0.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(body) + '</div>' +
-        (locationText
-          ? '<div style="font-size:0.75rem;opacity:0.75;margin-top:3px;">📍 ' + escapeHtml(locationText) + '</div>'
-          : '') +
+      '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">' + escapeHtml(heading) + '</div>' +
+      '<div style="font-size:0.82rem;opacity:0.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + escapeHtml(body) + '</div>' +
+      (locationText
+        ? '<div style="font-size:0.75rem;opacity:0.75;margin-top:3px;">📍 ' + escapeHtml(locationText) + '</div>'
+        : '') +
       '</div>' +
       '<button id="sos-push-banner-close" style="background:none;border:none;color:#fff;font-size:1.3rem;line-height:1;padding:0;margin-left:4px;cursor:pointer;flex-shrink:0;" aria-label="Dismiss">✕</button>';
 
     // Inject keyframe animation once
     if (!document.getElementById('sos-banner-style')) {
       var style = document.createElement('style');
-      style.id  = 'sos-banner-style';
+      style.id = 'sos-banner-style';
       style.textContent =
         '@keyframes sosBannerSlideIn{from{transform:translateY(-110%)}to{transform:translateY(0)}}';
       document.head.appendChild(style);
@@ -186,15 +181,15 @@
   function dismissBanner() {
     var b = document.getElementById('sos-push-banner');
     if (!b) return;
-    b.style.transition  = 'transform 0.3s ease, opacity 0.3s ease';
-    b.style.transform   = 'translateY(-110%)';
-    b.style.opacity     = '0';
+    b.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    b.style.transform = 'translateY(-110%)';
+    b.style.opacity = '0';
     setTimeout(function () { if (b.parentElement) b.remove(); }, 320);
   }
 
   function escapeHtml(str) {
     return String(str || '').replace(/[&<>"']/g, function (c) {
-      return ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]);
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]);
     });
   }
 

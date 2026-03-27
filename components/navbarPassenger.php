@@ -476,7 +476,7 @@ else: ?>
   </div>
 </div>
 
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js?v=<?php echo time(); ?>"></script>
 
 <script>
   // Expose base URL for icon swapping
