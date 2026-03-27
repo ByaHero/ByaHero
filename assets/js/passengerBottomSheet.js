@@ -44,61 +44,43 @@ function initBottomSheetDrag() {
 window.updateAllTabsIcons = function (tabName) {
   const base = window.APP_BASE_URL || '';
 
-  console.log('DEBUG: updateAllTabsIcons called with tabName:', tabName);
-  console.log('DEBUG: APP_BASE_URL:', base);
-
-  // Routes icon
+  // Routes icon - SWAP between active and idle
   const routesIcon = document.getElementById('routes-tab-icon');
   if (routesIcon) {
-    const activeUrl = `${base}/assets/images/icons/routes active.svg`;
-    const inactiveUrl = `${base}/assets/images/icons/routes idle.svg`;
-
     if (tabName === 'routes') {
-      console.log('DEBUG: Setting routes icon to ACTIVE:', activeUrl);
-      routesIcon.src = activeUrl;
+      routesIcon.src = `${base}/assets/images/icons/routes active.svg`;
     } else {
-      console.log('DEBUG: Setting routes icon to IDLE:', inactiveUrl);
-      routesIcon.src = inactiveUrl;
+      routesIcon.src = `${base}/assets/images/icons/routes idle.svg`;
     }
-  } else {
-    console.warn('DEBUG: routes-tab-icon element not found');
   }
 
-  // Location icon
+  // Location icon - KEEP WHITE (no swapping needed)
   const locationIcon = document.getElementById('location-tab-icon');
   if (locationIcon) {
-    const locationUrl = `${base}/assets/images/icons/busStopWhiteIcon.png`;
-    console.log('DEBUG: Setting location icon:', locationUrl);
-    locationIcon.src = locationUrl;
-  }
-
-  // Groups icon
-  const groupsIcon = document.getElementById('groups-tab-icon');
-  if (groupsIcon) {
-    const activeUrl = `${base}/assets/images/icons/groupsActive.png`;
-    const inactiveUrl = `${base}/assets/images/icons/groupsIdle.png`;
-
-    if (tabName === 'groups') {
-      console.log('DEBUG: Setting groups icon to ACTIVE:', activeUrl);
-      groupsIcon.src = activeUrl;
+    if (tabName === 'location') {
+      locationIcon.src = `${base}/assets/images/icons/busStopWhiteIcon.png`;
     } else {
-      console.log('DEBUG: Setting groups icon to IDLE:', inactiveUrl);
-      groupsIcon.src = inactiveUrl;
+      locationIcon.src = `${base}/assets/images/icons/busStopBlueIcon.png`;
     }
   }
 
-  // Bus Stops icon
+  // Groups icon - SWAP between active and idle
+  const groupsIcon = document.getElementById('groups-tab-icon');
+  if (groupsIcon) {
+    if (tabName === 'groups') {
+      groupsIcon.src = `${base}/assets/images/icons/groupsActive.png`;
+    } else {
+      groupsIcon.src = `${base}/assets/images/icons/groupsIdle.png`;
+    }
+  }
+
+  // Bus Stops icon - KEEP BLUE (no swapping needed)
   const busStopsIcon = document.getElementById('busstops-tab-icon');
   if (busStopsIcon) {
-    const activeUrl = `${base}/assets/images/icons/busStopMarkerFinalBlueActive.svg`;
-    const inactiveUrl = `${base}/assets/images/icons/busStopMarkerFinalBlue.svg`;
-
     if (tabName === 'busstops') {
-      console.log('DEBUG: Setting bus stops icon to ACTIVE:', activeUrl);
-      busStopsIcon.src = activeUrl;
+      busStopsIcon.src = `${base}/assets/images/icons/busStopMarkerFinalWhite.svg`;
     } else {
-      console.log('DEBUG: Setting bus stops icon to IDLE:', inactiveUrl);
-      busStopsIcon.src = inactiveUrl;
+      busStopsIcon.src = `${base}/assets/images/icons/busStopMarkerFinalBlue.svg`;
     }
   }
 };
@@ -127,10 +109,12 @@ window.switchSheetTab = function (tabName) {
   const viewLocation = document.getElementById('view-location');
   const viewRoutes = document.getElementById('view-routes');
   const viewBusStops = document.getElementById('view-busstops');
+  const viewGroups = document.getElementById('view-groups'); // Added viewGroups reference
 
   if (viewLocation) viewLocation.classList.toggle('d-none', tabName !== 'location');
   if (viewRoutes) viewRoutes.classList.toggle('d-none', tabName !== 'routes');
   if (viewBusStops) viewBusStops.classList.toggle('d-none', tabName !== 'busstops');
+  if (viewGroups) viewGroups.classList.toggle('d-none', tabName !== 'groups'); // Toggle visibility for groups
 
   // ----- UPDATE TAB STYLING -----
   const tabLocation = document.getElementById('tab-location');
