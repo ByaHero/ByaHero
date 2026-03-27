@@ -424,6 +424,7 @@ if (isset($_SESSION['user_id'])) {
 
         if (json.success && json.buses) {
           const buses = json.buses.map(normalizeBus);
+          allBuses = buses; // Store globally for route filtering
 
           if (locationPermissionGranted && userLocation) {
             buses.forEach(b => {
@@ -591,50 +592,104 @@ if (isset($_SESSION['user_id'])) {
       }
     };
 
+    // Store buses data globally so we can filter by route
+    let allBuses = [];
+
     window.setRoute = (r) => {
-  selectedRoute = r;
+      selectedRoute = r;
 
-  const label = document.getElementById('filterLabelMobile');
-  if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
+      const label = document.getElementById('filterLabelMobile');
+      if (label) label.textContent = r ? r.substring(0, 12) + "..." : 'FILTER ROUTES';
 
-  if (typeof analytics !== 'undefined') {
-    analytics.featureUsed('Route Filter', {
-      route: r || 'All Routes'
-    });
-  }
+      if (typeof analytics !== 'undefined') {
+        analytics.featureUsed('Route Filter', {
+          route: r || 'All Routes'
+        });
+      }
 
-  updateBuses();
-};
+      updateBuses();
 
-// helper used by the Routes tab buttons
-window.setRouteFromSheet = function (route) {
-  window.setRoute(route); // reuse your existing logic
-  if (typeof window.updateRoutePills === 'function') {
-    window.updateRoutePills();
-  }
-};
+      // Center map to first bus in selected route
+      setTimeout(() => {
+        centerToFirstBusInRoute(r, allBuses);
+      }, 300);
+    };
 
-// highlight which route is currently selected in the Routes view
-window.updateRoutePills = function () {
-  const all = document.getElementById('route-pill-all');
-  const lt = document.getElementById('route-pill-laurel-tanauan');
-  const tl = document.getElementById('route-pill-tanauan-laurel');
+    // helper used by the Routes tab buttons
+    window.setRouteFromSheet = function (route) {
+      window.setRoute(route); // reuse your existing logic
+      if (typeof window.updateRoutePills === 'function') {
+        window.updateRoutePills();
+      }
+    };
 
-  const route = selectedRoute || '';
+    // Center map to first bus in the selected route
+    window.centerToFirstBusInRoute = function (route, buses) {
+      const filteredBuses = buses.filter(b =>
+        (!route || b.route === route) &&
+        b.status !== 'unavailable' &&
+        b.coords !== null
+      );
 
-  if (all) {
-    all.classList.toggle('bg-primary', route === '');
-    all.classList.toggle('bg-secondary', route !== '');
-  }
-  if (lt) {
-    lt.classList.toggle('bg-primary', route === 'LAUREL - TANAUAN');
-    lt.classList.toggle('bg-secondary', route !== 'LAUREL - TANAUAN');
-  }
-  if (tl) {
-    tl.classList.toggle('bg-primary', route === 'TANAUAN - LAUREL');
-    tl.classList.toggle('bg-secondary', route !== 'TANAUAN - LAUREL');
-  }
-};
+      if (filteredBuses.length > 0) {
+        const firstBus = filteredBuses[0];
+        focusBus(firstBus.id);
+      }
+    };
+
+    // highlight which route is currently selected in the Routes view
+    // highlight which route is currently selected in the Routes view
+    window.updateRoutePills = function () {
+      const all = document.getElementById('route-pill-all');
+      const lt = document.getElementById('route-pill-laurel-tanauan');
+      const tl = document.getElementById('route-pill-tanauan-laurel');
+
+      const route = selectedRoute || '';
+
+      // Update All Routes button
+      if (all) {
+        if (route === '') {
+          all.style.backgroundColor = '#1e3a8a';
+          all.style.color = 'white';
+          all.style.fontWeight = '600';
+        } else {
+          all.style.backgroundColor = 'white';
+          all.style.color = '#1f2937';
+          all.style.fontWeight = '500';
+          all.style.border = '1px solid #e5e7eb';
+        }
+      }
+
+      // Update Laurel - Tanauan button
+      if (lt) {
+        if (route === 'LAUREL - TANAUAN') {
+          lt.style.backgroundColor = '#1e3a8a';
+          lt.style.color = 'white';
+          lt.style.fontWeight = '600';
+          lt.style.border = 'none';
+        } else {
+          lt.style.backgroundColor = 'white';
+          lt.style.color = '#1f2937';
+          lt.style.fontWeight = '500';
+          lt.style.border = '1px solid #e5e7eb';
+        }
+      }
+
+      // Update Tanauan - Laurel button
+      if (tl) {
+        if (route === 'TANAUAN - LAUREL') {
+          tl.style.backgroundColor = '#1e3a8a';
+          tl.style.color = 'white';
+          tl.style.fontWeight = '600';
+          tl.style.border = 'none';
+        } else {
+          tl.style.backgroundColor = 'white';
+          tl.style.color = '#1f2937';
+          tl.style.fontWeight = '500';
+          tl.style.border = '1px solid #e5e7eb';
+        }
+      }
+    };
 
 
     function updateFilters(buses) {
@@ -796,75 +851,75 @@ window.updateRoutePills = function () {
     };
 
     const _switchSheetTab = window.switchSheetTab;
-window.switchSheetTab = function (tabName) {
-  // preserve original behavior (open/close sheet, etc.)
-  _switchSheetTab(tabName);
+    window.switchSheetTab = function (tabName) {
+      // preserve original behavior (open/close sheet, etc.)
+      _switchSheetTab(tabName);
 
-  // ----- BUS STOPS visibility -----
-  if (tabName === 'busstops') {
-    if (!stopsLoaded) {
-      stopsLoaded = true;
-      loadStops().then(() => setBusStopsVisibility(true));
-    } else {
-      setBusStopsVisibility(true);
-    }
-  } else {
-    setBusStopsVisibility(false);
-  }
+      // ----- BUS STOPS visibility -----
+      if (tabName === 'busstops') {
+        if (!stopsLoaded) {
+          stopsLoaded = true;
+          loadStops().then(() => setBusStopsVisibility(true));
+        } else {
+          setBusStopsVisibility(true);
+        }
+      } else {
+        setBusStopsVisibility(false);
+      }
 
-  // ----- ROUTES TAB / VIEWS -----
-  const viewLocation = document.getElementById('view-location');
-  const viewRoutes = document.getElementById('view-routes');
-  const viewBusStops = document.getElementById('view-busstops');
+      // ----- ROUTES TAB / VIEWS -----
+      const viewLocation = document.getElementById('view-location');
+      const viewRoutes = document.getElementById('view-routes');
+      const viewBusStops = document.getElementById('view-busstops');
 
-  if (viewLocation) viewLocation.classList.toggle('d-none', tabName !== 'location');
-  if (viewRoutes) viewRoutes.classList.toggle('d-none', tabName !== 'routes');
-  if (viewBusStops) viewBusStops.classList.toggle('d-none', tabName !== 'busstops');
+      if (viewLocation) viewLocation.classList.toggle('d-none', tabName !== 'location');
+      if (viewRoutes) viewRoutes.classList.toggle('d-none', tabName !== 'routes');
+      if (viewBusStops) viewBusStops.classList.toggle('d-none', tabName !== 'busstops');
 
-  // Tabs
-  const tabLocation = document.getElementById('tab-location');
-  const tabRoutes = document.getElementById('tab-routes');
-  const tabBusstops = document.getElementById('tab-busstops');
-  const tabGroups = document.getElementById('tab-groups');
+      // Tabs
+      const tabLocation = document.getElementById('tab-location');
+      const tabRoutes = document.getElementById('tab-routes');
+      const tabBusstops = document.getElementById('tab-busstops');
+      const tabGroups = document.getElementById('tab-groups');
 
-  [tabLocation, tabRoutes, tabBusstops, tabGroups].forEach((el) => {
-    if (!el) return;
-    el.classList.remove('active', 'bg-primary', 'text-white', 'shadow-sm');
-    el.classList.add('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
-  });
+      [tabLocation, tabRoutes, tabBusstops, tabGroups].forEach((el) => {
+        if (!el) return;
+        el.classList.remove('active', 'bg-primary', 'text-white', 'shadow-sm');
+        el.classList.add('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+      });
 
-  // Activate the selected tab
-  let activeTab = null;
-  if (tabName === 'location') activeTab = tabLocation;
-  else if (tabName === 'routes') activeTab = tabRoutes;
-  else if (tabName === 'busstops') activeTab = tabBusstops;
-  else if (tabName === 'groups') activeTab = tabGroups;
+      // Activate the selected tab
+      let activeTab = null;
+      if (tabName === 'location') activeTab = tabLocation;
+      else if (tabName === 'routes') activeTab = tabRoutes;
+      else if (tabName === 'busstops') activeTab = tabBusstops;
+      else if (tabName === 'groups') activeTab = tabGroups;
 
-  if (activeTab) {
-    activeTab.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
-    activeTab.classList.remove('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
-  }
+      if (activeTab) {
+        activeTab.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
+        activeTab.classList.remove('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+      }
 
-  // Swap routes icon active/idle
-  const routesIcon = document.getElementById('routes-tab-icon');
-  if (routesIcon) {
-    const base = window.APP_BASE_URL || '';
-    if (tabName === 'routes') {
-      routesIcon.src = `${base}/assets/images/icons/routes active.svg`;
-    } else {
-      routesIcon.src = `${base}/assets/images/icons/routes ide.svg`;
-    }
-  }
+      // Swap routes icon active/idle
+      const routesIcon = document.getElementById('routes-tab-icon');
+      if (routesIcon) {
+        const base = window.APP_BASE_URL || '';
+        if (tabName === 'routes') {
+          routesIcon.src = `${base}/assets/images/icons/routes active.svg`;
+        } else {
+          routesIcon.src = `${base}/assets/images/icons/routes idle.svg`;
+        }
+      }
 
-  // Swap bus stops icon if you want (optional – keep as-is if you don’t)
-  // const busstopsIcon = document.getElementById('busstops-tab-icon');
-  // ...
+      // Swap bus stops icon if you want (optional – keep as-is if you don’t)
+      // const busstopsIcon = document.getElementById('busstops-tab-icon');
+      // ...
 
-  // Update the route pills in the Routes view to match selectedRoute
-  if (typeof updateRoutePills === 'function') {
-    updateRoutePills();
-  }
-};
+      // Update the route pills in the Routes view to match selectedRoute
+      if (typeof updateRoutePills === 'function') {
+        updateRoutePills();
+      }
+    };
 
     // --------------------- INIT ---------------------
     document.addEventListener('DOMContentLoaded', () => {
@@ -874,6 +929,14 @@ window.switchSheetTab = function (tabName) {
 
     startUserLocationWatch();
     updateBuses();
+
+    // Initialize route pills to show "All Routes" as default
+    setTimeout(() => {
+      if (typeof updateRoutePills === 'function') {
+        updateRoutePills();
+      }
+    }, 100);
+
     setInterval(updateBuses, 4000);
 
     function getBottomSheetHeightPx() {

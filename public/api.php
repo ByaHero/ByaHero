@@ -149,6 +149,64 @@ function getBusStopsTerminal(): array {
 }
 
 /**
+ * Get buses filtered by route
+ * - Filters buses to show only those on a specific route
+ * - Includes GeoJSON (current_location) + friendly name
+ */
+function getFilteredBuses(): array {
+    $data = json_decode(file_get_contents('php://input'), true);
+    if ($data === null) {
+        // Also check query parameters
+        $route = $_GET['route'] ?? null;
+    } else {
+        $route = $data['route'] ?? null;
+    }
+
+    if (empty($route)) {
+        http_response_code(400);
+        return ['success' => false, 'error' => 'Missing required parameter: route'];
+    }
+
+    $pdo = db();
+    $stmt = $pdo->prepare("
+        SELECT
+          Bus_ID,
+          code,
+          route,
+          current_location AS current_location_name,
+          total_seats,
+          seat_availability,
+          status,
+          updated
+        FROM busses
+        WHERE route = ?
+        ORDER BY code
+    ");
+    $stmt->execute([$route]);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $out = [];
+    foreach ($rows as $r) {
+        $busId = isset($r['Bus_ID']) ? (int)$r['Bus_ID'] : (int)($r['id'] ?? 0);
+
+        $geo = loadGeojsonFileForBus($busId);
+        if ($geo !== null) {
+            $r['current_location'] = json_encode($geo, JSON_UNESCAPED_SLASHES);
+            $friendly = extractFriendlyNameFromGeojson($geo);
+            if ($friendly) {
+                $r['current_location_name'] = $friendly;
+            }
+        } else {
+            $r['current_location'] = null;
+        }
+
+        $out[] = $r;
+    }
+
+    return ['success' => true, 'buses' => $out, 'route' => $route];
+}
+
+/**
  * Update bus location and details.
  * Accepts geojson or lat/lng. Stores friendly name in busses.current_location and writes full GeoJSON to file.
  */
@@ -297,7 +355,7 @@ function stopTracking(): array {
         ':uid'    => $userId,
     ]);
 
-    // 2) Clear the conductor’s current_bus_id only if it matches this bus
+    // 2) Clear the conductor's current_bus_id only if it matches this bus
     $stmt2 = $pdo->prepare("
         UPDATE conductors
         SET current_bus_id = NULL
@@ -336,6 +394,10 @@ try {
 
         case 'get_bus_stops_terminal':
             $response = getBusStopsTerminal();
+            break;
+
+        case 'get_filtered_buses':        // filter buses by route
+            $response = getFilteredBuses();
             break;
 
         case 'update_location':
