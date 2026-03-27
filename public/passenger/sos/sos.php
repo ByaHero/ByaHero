@@ -450,6 +450,7 @@ include "../../../components/navbarPassenger.php";
             try {
                 const res = await fetch("../../../backend/groupView.php", { credentials: "include" });
                 const data = await res.json();
+                alert(JSON.stringify(data, null, 2));
 
                 if (!data.success) throw new Error(data.message || "Failed to fetch friends");
 
@@ -516,6 +517,7 @@ include "../../../components/navbarPassenger.php";
                 });
 
                 const data = await res.json();
+                alert(JSON.stringify(data, null, 2));
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
 
                 if (statusEl) statusEl.textContent = `Your SOS will be sent to ${selected.length} people`;
@@ -609,6 +611,7 @@ include "../../../components/navbarPassenger.php";
                 });
 
                 const data = await res.json();
+                alert(JSON.stringify(data, null, 2));
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
 
                 alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
