@@ -19,7 +19,8 @@ session_start();
  */
 
 require __DIR__ . '/../config/db.php';
-
+// In your login.php, after setting $_SESSION['user_id']:
+echo '<script>if(window.sosBridge) window.sosBridge.retryToken();</script>';
 $err = '';
 $redirectAfter = $_GET['redirect'] ?? ($_POST['redirect'] ?? 'passenger/index.php');
 
