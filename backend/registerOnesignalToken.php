@@ -1,51 +1,36 @@
 <?php
 /**
  * registerOnesignalToken.php
- * Saves the OneSignal player_id for the logged-in user.
+ * Saves the OneSignal player_id for the currently logged-in user.
  *
- * FIX: Added session_set_cookie_params() before session_start()
- * so the cookie is sent correctly on InfinityFree subdomains.
+ * KEY FIX: Use plain session_start() — no custom cookie params.
+ * Custom params (especially secure:true) cause PHP to start a NEW
+ * session instead of reading the existing login session, making
+ * $_SESSION['user_id'] always empty here even when logged in.
  */
 
-// Allow cross-path session sharing on InfinityFree
-ini_set('session.cookie_path', '/');
-session_set_cookie_params([
-    'lifetime' => 0,
-    'path'     => '/',
-    'secure'   => true,
-    'httponly' => true,
-    'samesite' => 'Lax',
-]);
 session_start();
-
 header('Content-Type: application/json');
 
-// CORS header in case Median WebView treats it as cross-origin
+// Allow Median WebView to send credentials cross-origin if needed
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if ($origin) {
     header('Access-Control-Allow-Origin: ' . $origin);
     header('Access-Control-Allow-Credentials: true');
     header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
 }
 
-// Handle preflight
+// Handle CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
 }
 
-// Debug: log session state (remove after fix is confirmed)
-error_log('registerOnesignalToken: session_id=' . session_id()
-    . ' user_id=' . ($_SESSION['user_id'] ?? 'NONE')
-    . ' method=' . $_SERVER['REQUEST_METHOD']);
-
+// Not logged in
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
-    echo json_encode([
-        'success'    => false,
-        'message'    => 'Not logged in',
-        'session_id' => session_id(),
-    ]);
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
 

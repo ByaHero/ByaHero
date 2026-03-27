@@ -1,16 +1,13 @@
-/**
- * median_onesignal_bridge.js  — final version
- * Works with the early <head> snippet that catches gonative_onesignal_info
- * before this script loads.
- */
 (function () {
   'use strict';
 
   var REGISTER_URL = '/backend/registerOnesignalToken.php';
   var _saved       = false;
+  var _retryTimer  = null;
 
   function saveToken(playerId) {
     if (!playerId || _saved) return;
+    if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
 
     fetch(REGISTER_URL, {
       method: 'POST',
@@ -23,24 +20,24 @@
       if (d.success) {
         _saved = true;
         window._sosPendingToken = null;
-        console.log('[SOS] Token saved for user_id:', d.user_id);
+        console.log('[SOS] Token saved, user_id:', d.user_id);
       } else {
-        console.warn('[SOS] Token save failed:', d.message);
-        // Retry once after 3s (covers slow login redirect)
-        setTimeout(function() {
-          if (!_saved && (window._sosPendingToken || playerId)) {
-            saveToken(window._sosPendingToken || playerId);
-          }
-        }, 3000);
+        // Not logged in yet — retry every 5s until saved
+        console.warn('[SOS] Not saved:', d.message, '— retrying in 5s');
+        _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
       }
     })
-    .catch(function(e) { console.warn('[SOS] Token fetch error:', e); });
+    .catch(function(e) {
+      console.warn('[SOS] Fetch error:', e, '— retrying in 5s');
+      _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
+    });
   }
 
-  // Expose saveToken so the <head> snippet can call it
+  // Expose so <head> early catcher can call it
   window.sosBridge = { saveToken: saveToken };
 
-  // Override gonative_onesignal_info with the full handler
+  // Median fires this on app launch — may be before this script loads
+  // (handled by the <head> early catcher), or after
   window.gonative_onesignal_info = function(info) {
     if (info && info.userId) {
       window._sosPendingToken = info.userId;
@@ -48,21 +45,25 @@
     }
   };
 
-  // Pick up token if Median already fired before this script loaded
+  // On DOM ready: pick up any token already caught by <head> snippet,
+  // or pull directly from Median JS API as last resort
   document.addEventListener('DOMContentLoaded', function() {
-    var pending = window._sosPendingToken;
+    if (_saved) return;
 
-    if (pending && !_saved) {
+    var pending = window._sosPendingToken;
+    if (pending) {
       saveToken(pending);
       return;
     }
 
-    // Last resort: pull directly from Median JS API
-    if (!_saved && window.gonative && window.gonative.onesignal) {
+    if (window.gonative && window.gonative.onesignal) {
       try {
         window.gonative.onesignal.getInfo().then(function(info) {
-          if (info && info.userId) saveToken(info.userId);
-        });
+          if (info && info.userId) {
+            window._sosPendingToken = info.userId;
+            saveToken(info.userId);
+          }
+        }).catch(function(){});
       } catch(e) {}
     }
   });
