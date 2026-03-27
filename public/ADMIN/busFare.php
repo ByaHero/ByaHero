@@ -226,6 +226,12 @@ try {
 } catch (Throwable $e) {
     $fares = [];
 }
+
+/* === ADDED: navbarAdmin config (component) === */
+$pageDepth = '../../';
+$pageType = 'busFare';
+$backLink = 'admin.php';
+/* === END ADDED === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -238,32 +244,24 @@ try {
     <style>
         :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 700; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
+
+        .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
+        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 800; padding: 1rem 1.25rem; border-radius: 14px 14px 0 0 !important; }
         .table > :not(caption) > * > * { padding: 0.75rem 1rem; vertical-align: middle; }
         .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-        .compact-input { min-width: 100px; }
+        .compact-input { min-width: 110px; }
+        .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">payments</span> Manage Bus Fares
-        </a>
-        <div class="ms-auto d-flex gap-2 align-items-center">
-            <a class="btn btn-outline-light btn-sm" href="admin.php">Back</a>
-            <a class="btn btn-outline-light btn-sm" href="logout.php">Logout</a>
-        </div>
-    </div>
-</nav>
+<!-- REMOVED old navbar; use component -->
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
 
     <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
             <?= h($message) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
@@ -271,14 +269,14 @@ try {
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm mt-3" role="alert">
             <span class="material-icons-round fs-5 align-middle me-2">error</span>
             <?= h($error) ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="row g-4">
+    <div class="row g-4 mt-1">
         <!-- Bulk adjust -->
         <div class="col-lg-4">
             <div class="card card-standard">
@@ -333,7 +331,7 @@ try {
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-outline-primary">Apply Bulk Change</button>
+                            <button class="btn btn-outline-primary pill-btn">Apply Bulk Change</button>
                         </div>
 
                         <div class="small text-muted mt-2">
@@ -385,7 +383,7 @@ try {
                         </div>
 
                         <div class="col-12 col-md-1 d-grid">
-                            <button class="btn btn-sm btn-outline-primary">Go</button>
+                            <button class="btn btn-sm btn-outline-primary pill-btn">Go</button>
                         </div>
 
                         <div class="col-12 d-flex justify-content-end">
@@ -446,7 +444,7 @@ try {
 
                                 <td class="text-end small text-muted"><?= h($f['updated_at'] ?? '') ?></td>
                                 <td class="text-end">
-                                        <button class="btn btn-sm btn-primary">Save</button>
+                                        <button class="btn btn-sm btn-primary pill-btn">Save</button>
                                     </form>
                                 </td>
                             </tr>
