@@ -161,7 +161,7 @@ try {
             CURLOPT_POST           => true,
             CURLOPT_HTTPHEADER     => [
                 'Content-Type: application/json',
-                'Authorization: Basic ' . ONESIGNAL_REST_API_KEY,
+                'Authorization: Bearer ' . ONESIGNAL_REST_API_KEY,
             ],
             CURLOPT_POSTFIELDS     => json_encode($pushPayload),
             CURLOPT_TIMEOUT        => 10,
