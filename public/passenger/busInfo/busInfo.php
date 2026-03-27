@@ -92,15 +92,52 @@ $backLink = 'javascript:history.back()';
     <div class="container px-4">
         <h4 class="text-primary fw-bold mt-4 mb-3 fs-5 ps-1">Bus Operation Schedule</h4>
 
-        <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
-            <span class="fs-6 text-primary fw-semibold">Laurel</span>
-            <span class="fw-bold text-secondary small">3:30 am - 8:45 pm</span>
-        </div>
+        <?php
+        // NEW: Read schedule from DB (bus_schedule)
+        try {
+            $stmt = $pdo->query("
+                SELECT terminal_name, time_open, time_close, is_suspended, suspend_message
+                FROM bus_schedule
+                ORDER BY terminal_name ASC
+            ");
+            $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Throwable $e) {
+            $schedules = [];
+            error_log("Schedule load error: " . $e->getMessage());
+        }
+        ?>
 
-        <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
-            <span class="fs-6 text-primary fw-semibold">Tanauan</span>
-            <span class="fw-bold text-secondary small">4:30 am - 10:00 pm</span>
-        </div>
+        <?php if (empty($schedules)): ?>
+            <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm text-center text-muted">
+                No schedule posted yet.
+            </div>
+        <?php else: ?>
+            <?php foreach ($schedules as $row): ?>
+                <?php
+                $isSusp = (int)($row['is_suspended'] ?? 0) === 1;
+
+                $open = !empty($row['time_open']) ? date('g:i a', strtotime((string)$row['time_open'])) : '';
+                $close = !empty($row['time_close']) ? date('g:i a', strtotime((string)$row['time_close'])) : '';
+                $timeText = ($open && $close) ? "{$open} - {$close}" : 'Schedule not set';
+
+                $msg = trim((string)($row['suspend_message'] ?? ''));
+                ?>
+                <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="fs-6 text-primary fw-semibold"><?= htmlspecialchars((string)$row['terminal_name']) ?></span>
+                        <?php if ($isSusp): ?>
+                            <div class="small text-danger fw-bold">
+                                SUSPENDED<?= $msg ? ': ' . htmlspecialchars($msg) : '' ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                    <span class="fw-bold small <?= $isSusp ? 'text-danger' : 'text-secondary' ?>">
+                        <?= $isSusp ? 'No Operations' : htmlspecialchars($timeText) ?>
+                    </span>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
 
         <h4 class="text-primary fw-bold mt-4 mb-3 fs-5 ps-1">Bus Fare Check</h4>
     </div>
