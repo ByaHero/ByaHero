@@ -14,8 +14,8 @@ if (!isset($_SESSION['user_id'])) {
 $currentUser = null;
 if (isset($_SESSION['user_id'])) {
   $currentUser = [
-    'id'    => $_SESSION['user_id'],
-    'name'  => $_SESSION['user_name']  ?? null,
+    'id' => $_SESSION['user_id'],
+    'name' => $_SESSION['user_name'] ?? null,
     'email' => $_SESSION['user_email'] ?? null
   ];
 }
@@ -34,11 +34,21 @@ if (isset($_SESSION['user_id'])) {
   <link rel="manifest" href="../manifest.webmanifest">
   <meta name="theme-color" content="#1e3a8a">
 
+
   <!-- Bottom sheet component CSS -->
   <link rel="stylesheet" href="../../assets/css/passengerBottomSheet.css">
 
   <!-- Global Accessibility CSS and JS -->
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
+
+  <script>
+    window._sosPendingToken = null;
+    window.gonative_onesignal_info = function (info) {
+      if (!info || !info.userId) return;
+      window._sosPendingToken = info.userId;
+      if (window.sosBridge) window.sosBridge.saveToken(info.userId);
+    };
+  </script>
   <script src="../../assets/js/accessibility.js"></script>
 
   <!-- Analytics JS -->
@@ -62,14 +72,18 @@ if (isset($_SESSION['user_id'])) {
       z-index: 1;
     }
 
-    .h-60px { height: 60px; }
+    .h-60px {
+      height: 60px;
+    }
 
     .rounded-top-4 {
       border-top-left-radius: 1.5rem;
       border-top-right-radius: 1.5rem;
     }
 
-    .map-overlay { z-index: 1000; }
+    .map-overlay {
+      z-index: 1000;
+    }
 
     /* --- FILTER ROUTES pill dropdown styling --- */
     .route-pill {
@@ -78,7 +92,9 @@ if (isset($_SESSION['user_id'])) {
       letter-spacing: 0.5px;
     }
 
-    .route-pill.dropdown-toggle::after { display: none; }
+    .route-pill.dropdown-toggle::after {
+      display: none;
+    }
 
     .route-menu {
       border: 0;
@@ -96,7 +112,9 @@ if (isset($_SESSION['user_id'])) {
     }
 
     .route-menu .dropdown-item.active,
-    .route-menu .dropdown-item:active { background: #1e3a8a; }
+    .route-menu .dropdown-item:active {
+      background: #1e3a8a;
+    }
 
     .route-menu-centered {
       left: 50% !important;
@@ -112,9 +130,13 @@ if (isset($_SESSION['user_id'])) {
       }
     }
 
-    .leaflet-marker-icon { pointer-events: auto; }
+    .leaflet-marker-icon {
+      pointer-events: auto;
+    }
 
-    .location-notice { animation: slideUp 0.3s ease-out; }
+    .location-notice {
+      animation: slideUp 0.3s ease-out;
+    }
 
     .no-bus-icon {
       width: 110px !important;
@@ -122,8 +144,15 @@ if (isset($_SESSION['user_id'])) {
     }
 
     @keyframes slideUp {
-      from { transform: translate(-50%, 20px); opacity: 0; }
-      to   { transform: translate(-50%, 0);    opacity: 1; }
+      from {
+        transform: translate(-50%, 20px);
+        opacity: 0;
+      }
+
+      to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+      }
     }
   </style>
 </head>
@@ -207,15 +236,15 @@ if (isset($_SESSION['user_id'])) {
       var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
         ? '/' + PROJECT_FOLDER
         : '';
-      window.PROJECT_BASE  = base;
-      window.APP_BASE_URL  = base;
-      window.ICON_BASE     = base + '/assets/images/icons';
+      window.PROJECT_BASE = base;
+      window.APP_BASE_URL = base;
+      window.ICON_BASE = base + '/assets/images/icons';
     })();
 
     // --------------------- MAP INIT ---------------------
     var isMobile = document.querySelector('.d-lg-none')?.offsetParent !== null;
-    var mapId    = isMobile ? 'map' : 'map-desktop-placeholder';
-    var map      = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
+    var mapId = isMobile ? 'map' : 'map-desktop-placeholder';
+    var map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
 
     // Expose map to passengerBottomSheet.js (used by setBusStopsVisibility / focusStop)
     window._map = map;
@@ -228,9 +257,9 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- BUS ICONS ---------------------
     var busMarkers = {};
     var statusColors = {
-      available:   '#10b981',
-      on_stop:     '#f59e0b',
-      full:        '#ef4444',
+      available: '#10b981',
+      on_stop: '#f59e0b',
+      full: '#ef4444',
       unavailable: '#6b7280'
     };
 
@@ -248,7 +277,7 @@ if (isset($_SESSION['user_id'])) {
     function createBusIcon(status) {
       var s = String(status || '').toLowerCase();
       if (s === 'available') return ICON_CACHE.available;
-      if (s === 'full')      return ICON_CACHE.full;
+      if (s === 'full') return ICON_CACHE.full;
 
       var color = statusColors[s] || '#999';
       return L.divIcon({
@@ -259,12 +288,12 @@ if (isset($_SESSION['user_id'])) {
     }
 
     // --------------------- USER LOCATION ---------------------
-    var userLocation            = null;
-    var userMarker              = null;
-    var selectedRoute           = '';
+    var userLocation = null;
+    var userMarker = null;
+    var selectedRoute = '';
     var locationPermissionGranted = true;
 
-    var AVG_SPEED_MPS    = (30 * 1000) / 3600;
+    var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
 
     var _lastLocationUploadAt = 0;
@@ -293,7 +322,7 @@ if (isset($_SESSION['user_id'])) {
 
       var notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-warning text-dark rounded shadow-lg d-flex align-items-center gap-2';
-      notice.style.zIndex   = '9999';
+      notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
         <span class="material-symbols-rounded">location_off</span>
@@ -308,7 +337,7 @@ if (isset($_SESSION['user_id'])) {
     function showLocationPermissionDenied() {
       var notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-danger text-white rounded shadow-lg d-flex align-items-center gap-2';
-      notice.style.zIndex   = '9999';
+      notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
       notice.innerHTML = `
         <span class="material-symbols-rounded">error</span>
@@ -372,7 +401,7 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- BUSES ---------------------
     async function updateBuses() {
       try {
-        var res  = await fetch('../api.php?action=get_buses');
+        var res = await fetch('../api.php?action=get_buses');
         var json = await res.json();
 
         if (json.success && json.buses) {
@@ -383,7 +412,7 @@ if (isset($_SESSION['user_id'])) {
             buses.forEach(function (b) {
               if (b.coords) {
                 var dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
-                b.eta      = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
+                b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
                 b.progress = Math.round(Math.max(0, Math.min(100, 100 - (dist / MAX_DISTANCE_METERS) * 100)));
               }
             });
@@ -406,7 +435,7 @@ if (isset($_SESSION['user_id'])) {
     function updateMap(buses) {
       var filtered = buses.filter(function (b) {
         return (!selectedRoute || b.route === selectedRoute) &&
-               b.status !== 'unavailable' && b.coords !== null;
+          b.status !== 'unavailable' && b.coords !== null;
       });
 
       var currentIds = new Set(filtered.map(function (b) { return String(b.id); }));
@@ -450,7 +479,7 @@ if (isset($_SESSION['user_id'])) {
 
       var activeBuses = buses.filter(function (b) {
         return (!selectedRoute || b.route === selectedRoute) &&
-               b.status !== 'unavailable' && b.coords !== null;
+          b.status !== 'unavailable' && b.coords !== null;
       });
 
       if (activeBuses.length === 0) {
@@ -463,8 +492,8 @@ if (isset($_SESSION['user_id'])) {
       }
 
       var html = activeBuses.map(function (b) {
-        var color       = statusColors[b.status] || '#ccc';
-        var progress    = b.progress || 0;
+        var color = statusColors[b.status] || '#ccc';
+        var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
 
         if (isMobile) {
@@ -484,38 +513,38 @@ if (isset($_SESSION['user_id'])) {
         try {
           var geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) {}
+        } catch (e) { }
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
 
       return {
-        id:      bus.Bus_ID || bus.id,
-        code:    bus.code   || 'BUS',
-        route:   bus.route  || '',
-        status:  bus.status || 'unavailable',
-        coords:  coords,
+        id: bus.Bus_ID || bus.id,
+        code: bus.code || 'BUS',
+        route: bus.route || '',
+        status: bus.status || 'unavailable',
+        coords: coords,
         locName: bus.current_location_name || 'Updating...',
-        seats:   bus.seat_availability + '/' + bus.total_seats,
-        eta:     null,
+        seats: bus.seat_availability + '/' + bus.total_seats,
+        eta: null,
         progress: 0
       };
     }
 
     function distanceMeters(lat1, lon1, lat2, lon2) {
-      var R    = 6371000;
+      var R = 6371000;
       var dLat = (lat2 - lat1) * Math.PI / 180;
       var dLon = (lon2 - lon1) * Math.PI / 180;
-      var a    = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                 Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                 Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
     function formatArrivalBySeconds(seconds) {
-      var dt   = new Date(Date.now() + Math.max(0, seconds * 1000));
-      var h    = dt.getHours();
-      var m    = dt.getMinutes().toString().padStart(2, '0');
+      var dt = new Date(Date.now() + Math.max(0, seconds * 1000));
+      var h = dt.getHours();
+      var m = dt.getMinutes().toString().padStart(2, '0');
       var ampm = h >= 12 ? 'PM' : 'AM';
       h = h % 12; h = h ? h : 12;
       return h + ':' + m + ' ' + ampm;
@@ -563,8 +592,8 @@ if (isset($_SESSION['user_id'])) {
 
     function updateFilters(buses) {
       var manualRoutes = ['Laurel - Tanauan', 'Tanauan - Laurel'];
-      var apiRoutes    = buses.map(function (b) { return b.route; }).filter(function (r) { return r; });
-      var routes       = [...new Set([...manualRoutes, ...apiRoutes])];
+      var apiRoutes = buses.map(function (b) { return b.route; }).filter(function (r) { return r; });
+      var routes = [...new Set([...manualRoutes, ...apiRoutes])];
 
       var menu = document.getElementById('routeDropdownMenu');
       if (!menu) return;
@@ -614,7 +643,7 @@ if (isset($_SESSION['user_id'])) {
       var listEl = document.getElementById('busStopsListMobile');
       if (listEl) listEl.innerHTML = '<div class="text-center text-muted mt-4 small">Loading bus stops...</div>';
 
-      var res  = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
+      var res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
       var json = await res.json();
 
       if (!json || !json.success || !Array.isArray(json.data)) {
@@ -630,7 +659,7 @@ if (isset($_SESSION['user_id'])) {
           listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
         } else {
           listEl.innerHTML = stops.map(function (s) {
-            var subtitle  = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
+            var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
             var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
             return `
               <button type="button" class="list-group-item list-group-item-action" onclick="focusStop('${String(s.id)}')">
@@ -653,7 +682,7 @@ if (isset($_SESSION['user_id'])) {
       });
 
       stops.forEach(function (s) {
-        var id  = String(s.id);
+        var id = String(s.id);
         var lat = parseFloat(s.lat);
         var lng = parseFloat(s.lng);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -681,7 +710,7 @@ if (isset($_SESSION['user_id'])) {
 
       setTimeout(function () {
         // getBottomSheetHeightPx is defined in passengerBottomSheet.js
-        var sheetH  = (typeof getBottomSheetHeightPx === 'function') ? getBottomSheetHeightPx() : 0;
+        var sheetH = (typeof getBottomSheetHeightPx === 'function') ? getBottomSheetHeightPx() : 0;
         var padding = 40;
         var yOffset = Math.round((sheetH / 2) + padding);
         if (yOffset > 0) map.panBy([0, yOffset], { animate: true, duration: 0.25 });
