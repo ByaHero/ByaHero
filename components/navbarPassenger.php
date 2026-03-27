@@ -476,7 +476,7 @@ else: ?>
   </div>
 </div>
 
-<script src="/assets/js/median_onesignal_bridge.js"></script>
+<script src="../../assets/js/median_onesignal_bridge.js"></script>
 
 <script>
   // Expose base URL for icon swapping
