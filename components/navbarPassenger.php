@@ -9,7 +9,14 @@ $depth = isset($pageDepth) ? $pageDepth : '../../';
 $defaultBack = $depth . 'passenger/index.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
-// 2) Profile URL
+// 2) Get base URL for icons
+if (!isset($baseUrl)) {
+  $scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+  $publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+  $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
+}
+
+// 3) Profile URL
 if (isset($_SESSION['user_id'])) {
   $profileUrl = $depth . 'public/passenger/profile/profile.php';
 } else {
@@ -49,9 +56,7 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   /* Display name in hamburger header */
   .offcanvas-username {
     font-size: 90px;
-    /* adjust as needed */
     line-height: 20px;
-    /* adjust as needed */
   }
 
   /* Active state for bottom nav buttons */
@@ -170,6 +175,19 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   [data-sos] {
     display: none !important;
   }
+
+  /* Active/Inactive icon styling for bottom nav */
+  .nav-item-btn img {
+    transition: opacity 0.2s ease;
+  }
+
+  .nav-item-btn.active-nav img {
+    opacity: 1;
+  }
+
+  .nav-item-btn:not(.active-nav) img {
+    opacity: 0.6;
+  }
 </style>
 
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
@@ -190,8 +208,8 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
 
-<?php
-// CASE B: SOS
+  <?php
+  // CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -203,8 +221,8 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
 
-<?php
-// CASE C: SETTINGS PAGES (Specific Titles)
+  <?php
+  // CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -222,7 +240,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'termsOfService.php' => 'Terms of Service'
   ];
   $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
-?>
+  ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -233,8 +251,8 @@ elseif (isset($pageType) && $pageType === 'settings'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-<?php
-// CASE D: PROFILE PAGES
+  <?php
+  // CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -246,7 +264,7 @@ elseif (isset($pageType) && $pageType === 'profile'):
     'loginActivity.php' => 'Login Activity'
   ];
   $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
-?>
+  ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -257,8 +275,8 @@ elseif (isset($pageType) && $pageType === 'profile'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-<?php
-// CASE E: GENERIC PAGE
+  <?php
+  // CASE E: GENERIC PAGE
 elseif (isset($pageTitle)): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -270,8 +288,8 @@ elseif (isset($pageTitle)): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
 
-<?php
-// CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
+  <?php
+  // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -283,11 +301,7 @@ else: ?>
     </div>
 
     <!-- Centered Byahero wordmark -->
-    <img
-      src="<?php echo $depth; ?>assets/images/ByaHero.png"
-      alt="ByaHero"
-      height="30"
-      class="topbar-wordmark">
+    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="30" class="topbar-wordmark">
 
     <!-- Right icons wrapper, similar width to left -->
     <div class="d-flex align-items-center gap-3 justify-content-end" style="width: 60px; column-gap: 20px;">
@@ -337,8 +351,7 @@ else: ?>
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
     </div>
-    <div
-      style="border-top: 2px solid #ffffff; height: 3px; margin-top: 8px; margin-bottom: 8px;">
+    <div style="border-top: 2px solid #ffffff; height: 3px; margin-top: 8px; margin-bottom: 8px;">
     </div>
   </div>
 
@@ -414,16 +427,6 @@ else: ?>
 
     </div>
   </div>
-
-  <!-- Footer
-  <div class="p-3 bg-white border-top">
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="fw-bold">Byahero</div>
-      <div class="form-check form-switch m-0">
-        <input class="form-check-input" type="checkbox" role="switch" id="menuToggle">
-      </div>
-    </div>
-  </div> -->
 </div>
 
 <!-- Bottom Navigation (Location / SOS / Bus Info) -->
@@ -436,25 +439,23 @@ else: ?>
         <button id="nav-location"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
-          <span class="material-symbols-rounded nav-icon mb-1">location_on</span>
+          <img id="nav-location-icon"
+            src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location"
+            style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="nav-label">LOCATION</span>
         </button>
       </div>
 
+      <!-- SOS (CENTER) -->
       <!-- SOS (CENTER) -->
       <div class="col-4 p-0 text-center sos-col">
         <button id="nav-sos" class="sos-btn nav-btn" data-action="link"
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
           <div class="sos-dome">
             <div class="sos-icon-wrap">
-              <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <!-- Shield shape -->
-                <path d="M12 2L4 5.5V11c0 4.55 3.4 8.74 8 9.93C16.6 19.74 20 15.55 20 11V5.5L12 2Z"
-                  fill="rgba(255,255,255,0.2)" stroke="white" stroke-width="1.5" stroke-linejoin="round" />
-                <!-- Checkmark -->
-                <path d="M8.5 12l2.5 2.5 4.5-5" stroke="white" stroke-width="2" stroke-linecap="round"
-                  stroke-linejoin="round" />
-              </svg>
+              <img id="nav-sos-icon"
+                src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png" alt="SOS"
+                style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));" />
             </div>
             <span class="nav-label">SOS</span>
           </div>
@@ -466,7 +467,8 @@ else: ?>
         <button id="nav-info"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
-          <span class="material-symbols-rounded nav-icon mb-1">directions_bus</span>
+          <img id="nav-info-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busBlack.svg"
+            alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="nav-label">BUS INFO</span>
         </button>
       </div>
@@ -476,6 +478,40 @@ else: ?>
 </div>
 
 <script>
+  // Expose base URL for icon swapping
+  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+
+  // ===== BOTTOM NAV ICON SWAPPING =====
+  window.updateBottomNavIcons = function (activeButton) {
+    const base = window.APP_BASE_URL || '';
+
+    const locationBtn = document.getElementById('nav-location');
+    const sosBtn = document.getElementById('nav-sos');
+    const infoBtn = document.getElementById('nav-info');
+
+    const locationIcon = document.getElementById('nav-location-icon');
+    const infoIcon = document.getElementById('nav-info-icon');
+
+    // Update Location icon
+    if (locationIcon) {
+      if (activeButton === locationBtn) {
+        locationIcon.src = `${base}/assets/images/icons/locationBlack.svg`;
+      } else {
+        locationIcon.src = `${base}/assets/images/icons/locationBlack.svg`;
+      }
+    }
+
+    // Update Bus Info icon
+    if (infoIcon) {
+      if (activeButton === infoBtn) {
+        infoIcon.src = `${base}/assets/images/icons/busBlack.svg`;
+      } else {
+        infoIcon.src = `${base}/assets/images/icons/busBlack.svg`;
+      }
+    }
+  };
+
+  // ===== BOTTOM NAV LOGIC =====
   document.addEventListener('DOMContentLoaded', () => {
     const basePath = "<?php echo $depth; ?>";
     const indexUrl = basePath + "passenger/index.php";
@@ -485,13 +521,16 @@ else: ?>
     const isIndex = hasMap || path.endsWith('passenger/') || path.endsWith('index.php');
 
     const navButtons = document.querySelectorAll('.nav-btn');
+    let activeBtn = null;
 
     navButtons.forEach(btn => {
       const btnUrl = btn.getAttribute('data-url');
       if (btnUrl && window.location.href.includes(btnUrl.split('/').pop())) {
         setActive(btn);
+        activeBtn = btn;
       } else if (isIndex && btn.id === 'nav-location') {
         setActive(btn);
+        activeBtn = btn;
       }
 
       btn.addEventListener('click', () => {
@@ -503,6 +542,9 @@ else: ?>
             if (isIndex) toggleBottomSheet();
             return;
           }
+          // Set as active before navigating
+          setActive(btn);
+          activeBtn = btn;
           window.location.href = url;
         }
       });
@@ -517,6 +559,8 @@ else: ?>
         activeBtn.classList.add('active-nav', 'text-primary');
         activeBtn.classList.remove('text-dark');
       }
+      // Update icons when active button changes
+      updateBottomNavIcons(activeBtn);
     }
 
     function toggleBottomSheet() {
@@ -531,9 +575,8 @@ else: ?>
       }
     }
   });
-</script>
 
-<script>
+  // ===== HAMBURGER MENU LOGIC =====
   document.addEventListener('DOMContentLoaded', () => {
     const menu = document.getElementById('passengerMenu');
     if (!menu) return;
