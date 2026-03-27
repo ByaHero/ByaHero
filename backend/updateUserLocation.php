@@ -1,4 +1,7 @@
 <?php
+// Force the correct timezone so the database uses Philippine Standard Time
+date_default_timezone_set('Asia/Manila');
+
 session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
@@ -33,16 +36,22 @@ if ($setting && (int)$setting['share_location'] !== 1) {
     exit;
 }
 
+// Generate the exact current local time in PHP
+$currentTime = date('Y-m-d H:i:s');
+
+// Explicitly insert and update the timestamp to force MySQL to register the activity
 $stmt = $conn->prepare("
-    INSERT INTO user_locations (user_id, latitude, longitude, accuracy)
-    VALUES (?, ?, ?, ?)
+    INSERT INTO user_locations (user_id, latitude, longitude, accuracy, updated_at)
+    VALUES (?, ?, ?, ?, ?)
     ON DUPLICATE KEY UPDATE
         latitude = VALUES(latitude),
         longitude = VALUES(longitude),
         accuracy = VALUES(accuracy),
-        updated_at = CURRENT_TIMESTAMP
+        updated_at = VALUES(updated_at)
 ");
-$stmt->bind_param("iddi", $userId, $lat, $lng, $accuracy);
+
+// Bind parameters: i (integer), d (double), d (double), i (integer), s (string)
+$stmt->bind_param("iddis", $userId, $lat, $lng, $accuracy, $currentTime);
 
 if ($stmt->execute()) {
     echo json_encode(['success' => true]);
