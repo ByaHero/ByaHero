@@ -452,8 +452,8 @@ else: ?>
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
           <div class="sos-dome">
             <div class="sos-icon-wrap">
-              <img id="nav-sos-icon"
-                src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png" alt="SOS"
+              <img id="nav-sos-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png"
+                alt="SOS"
                 style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));" />
             </div>
             <span class="nav-label">SOS</span>
@@ -476,7 +476,104 @@ else: ?>
   </div>
 </div>
 
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+<script>
+  // 2. Your Firebase Config
+  var firebaseConfig = {
+    apiKey: "AIzaSyA8em38cFC1lS4DNeQhnL0a6Vw__jWCW5c",
+    authDomain: "byahero-1e70c.firebaseapp.com",
+    databaseURL: "https://byahero-1e70c-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "byahero-1e70c",
+    storageBucket: "byahero-1e70c.firebasestorage.app",
+    messagingSenderId: "828055553249",
+    appId: "1:828055553249:web:069cfa4e74ca0e0205a3a0",
+    measurementId: "G-K496V0KL01"
+  };
+
+  if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+  }
+
+  // 3. The UI Banner Function (Restored)
+  function showSosBanner(payload) {
+    if (document.getElementById('sos-push-banner')) return;
+
+    var additionalData = payload.additionalData || payload.data || {};
+    var locationText = additionalData.location_text || '';
+    var heading = payload.title || '🚨 SOS Alert';
+    var body = payload.message || 'Someone needs help!';
+
+    var banner = document.createElement('div');
+    banner.id = 'sos-push-banner';
+
+    // Inline CSS for the red gradient banner
+    Object.assign(banner.style, {
+      position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
+      background: 'linear-gradient(135deg, #dc3545, #b02a37)',
+      color: '#fff', padding: '14px 16px 12px', display: 'flex',
+      alignItems: 'flex-start', gap: '12px', boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
+      cursor: 'pointer', fontFamily: '"Segoe UI", sans-serif',
+      animation: 'sosBannerSlideIn 0.35s ease'
+    });
+
+    banner.innerHTML =
+      '<span style="font-size:2rem;line-height:1;flex-shrink:0;">🚨</span>' +
+      '<div style="flex:1;min-width:0;">' +
+      '<div style="font-weight:700;font-size:0.95rem;margin-bottom:2px;">' + heading + '</div>' +
+      '<div style="font-size:0.82rem;opacity:0.92;">' + body + '</div>' +
+      (locationText ? '<div style="font-size:0.75rem;opacity:0.75;margin-top:3px;">📍 ' + locationText + '</div>' : '') +
+      '</div>' +
+      '<button id="sos-push-banner-close" style="background:none;border:none;color:#fff;font-size:1.3rem;padding:0;margin-left:4px;cursor:pointer;">✕</button>';
+
+    if (!document.getElementById('sos-banner-style')) {
+      var style = document.createElement('style');
+      style.id = 'sos-banner-style';
+      style.textContent = '@keyframes sosBannerSlideIn{from{transform:translateY(-110%)}to{transform:translateY(0)}}';
+      document.head.appendChild(style);
+    }
+
+    document.body.appendChild(banner);
+
+    // Auto-remove the banner from the screen after 8 seconds
+    var autoDismiss = setTimeout(function () {
+      if (banner) banner.remove();
+    }, 8000);
+
+    document.getElementById('sos-push-banner-close').addEventListener('click', function (e) {
+      e.stopPropagation();
+      clearTimeout(autoDismiss);
+      banner.remove();
+    });
+  }
+
+  // 4. The Realtime Firebase Listener
+  var myUserId = "<?php echo isset($_SESSION['user_id']) ? $_SESSION['user_id'] : ''; ?>";
+
+  if (myUserId !== "") {
+    var dbRef = firebase.database().ref('alerts/' + myUserId);
+
+    dbRef.on('value', function (snapshot) {
+      var alertData = snapshot.val();
+
+      // If the emergency flag flips to true, draw the banner!
+      if (alertData && (alertData.is_emergency === true || alertData.is_emergency === "true")) {
+
+        showSosBanner({
+          title: "🚨 SOS Alert",
+          message: alertData.sender_name + " needs help!",
+          additionalData: { location_text: alertData.location }
+        });
+
+        // Reset the alert status in the database after 10 seconds
+        setTimeout(function () {
+          dbRef.update({ is_emergency: false });
+        }, 10000);
+      }
+    });
+  }
+</script>
 
 <script>
   // Expose base URL for icon swapping
