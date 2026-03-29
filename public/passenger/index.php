@@ -63,7 +63,6 @@ if (isset($_SESSION['user_id'])) {
 
     body {
       font-family: "Segoe UI", sans-serif;
-      overflow: hidden;
     }
 
     #map {
@@ -102,7 +101,7 @@ if (isset($_SESSION['user_id'])) {
       padding: 8px;
       min-width: 220px;
       max-height: 280px;
-      overflow-y: auto;
+      
     }
 
     .route-menu .dropdown-item {
@@ -171,7 +170,7 @@ if (isset($_SESSION['user_id'])) {
   <div class="d-none d-lg-block h-100">
     <div class="map-and-sidebar">
       <div id="map-desktop-placeholder" class="h-100"></div>
-      <div class="overflow-y-auto bg-white border-start">
+      <div class="bg-white border-start">
         <h6 class="p-3 border-bottom bg-light m-0 sticky-top">Active Buses</h6>
         <div id="busListDesktop" class="list-group list-group-flush"></div>
       </div>
