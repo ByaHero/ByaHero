@@ -25,47 +25,64 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 
 $pdo = db();
 $message = '';
-$error = '';
+$error   = '';
 
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-$allowedTypes = ['pickup_point', 'bus_stop', 'terminal'];
+$allowedTypes  = ['pickup_point', 'bus_stop', 'terminal'];
+$allowedRoutes = ['LAUREL - TANAUAN', 'TANAUAN - LAUREL'];
+
+// Route names: keep consistent everywhere
+const ROUTE_FORWARD = 'LAUREL - TANAUAN';
+const ROUTE_REVERSE = 'TANAUAN - LAUREL';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     try {
         if ($action === 'add_stop') {
-            $name = trim((string)($_POST['name'] ?? ''));
-            $type = (string)($_POST['type'] ?? 'bus_stop');
+            $name         = trim((string)($_POST['name'] ?? ''));
+            $type         = (string)($_POST['type'] ?? 'bus_stop');
+            $route        = trim((string)($_POST['route'] ?? ROUTE_FORWARD));
             $locationName = trim((string)($_POST['location_name'] ?? ''));
-            $landmark = trim((string)($_POST['location_landmark'] ?? ''));
-            $lat = (float)($_POST['lat'] ?? 0);
-            $lng = (float)($_POST['lng'] ?? 0);
+            $landmark     = trim((string)($_POST['location_landmark'] ?? ''));
+            $lat          = (float)($_POST['lat'] ?? 0);
+            $lng          = (float)($_POST['lng'] ?? 0);
 
             if ($name === '' || $locationName === '') {
                 $error = "Name and Location Name are required.";
             } elseif (!in_array($type, $allowedTypes, true)) {
                 $error = "Invalid type.";
+            } elseif (!in_array($route, $allowedRoutes, true)) {
+                $error = "Invalid route.";
             } elseif ($lat === 0.0 || $lng === 0.0) {
                 $error = "Please click on the map to pick a location.";
             } else {
+                // New stops get sort_order at the end of this route
+                $stmtMax = $pdo->prepare("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM busStopsTerminal WHERE route = ?");
+                $stmtMax->execute([$route]);
+                $maxSort = (int)($stmtMax->fetchColumn() ?? 0);
+                $newSort = $maxSort + 1;
+
                 $stmt = $pdo->prepare("
-                    INSERT INTO busStopsTerminal (name, type, location_name, location_landmark, lat, lng)
-                    VALUES (?, ?, ?, ?, ?, ?)
+                    INSERT INTO busStopsTerminal (name, type, route, location_name, location_landmark, lat, lng, sort_order)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
                     $name,
                     $type,
+                    $route,
                     $locationName,
                     ($landmark !== '' ? $landmark : null),
                     $lat,
-                    $lng
+                    $lng,
+                    $newSort
                 ]);
                 $message = "Stop saved successfully.";
             }
+
         } elseif ($action === 'delete_stop') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
@@ -74,13 +91,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 $error = "Invalid delete request.";
             }
+
+        } elseif ($action === 'save_forward_order' || $action === 'save_reverse_order') {
+            $routeName = ($action === 'save_forward_order') ? ROUTE_FORWARD : ROUTE_REVERSE;
+            $orderStr  = trim((string)($_POST['order'] ?? ''));
+
+            if ($orderStr === '') {
+                $error = "No order data received.";
+            } else {
+                $ids = array_filter(array_map('intval', explode(',', $orderStr)));
+
+                if (!empty($ids)) {
+                    // Reset sort_order for this route
+                    $pdo->prepare("UPDATE busStopsTerminal SET sort_order = 0 WHERE route = ?")
+                        ->execute([$routeName]);
+
+                    $upd = $pdo->prepare("
+                        UPDATE busStopsTerminal
+                        SET sort_order = ?
+                        WHERE id = ? AND route = ?
+                    ");
+
+                    foreach ($ids as $idx => $stopId) {
+                        $sort = $idx + 1; // 1-based
+                        $upd->execute([$sort, $stopId, $routeName]);
+                    }
+
+                    $message = "Order saved for {$routeName}.";
+                } else {
+                    $error = "Could not parse order.";
+                }
+            }
         }
+
     } catch (Exception $e) {
         $error = "Database error: " . $e->getMessage();
     }
 }
 
-// Fetch stops
+// Fetch all stops (for table + map)
 $stops = [];
 try {
     $stops = $pdo->query("SELECT * FROM busStopsTerminal ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
@@ -88,10 +137,26 @@ try {
     $stops = [];
 }
 
-/* === ADDED: navbarAdmin config (component) === */
+// Fetch stops by route for summary & draggable lists (ordered by sort_order)
+$stopsForward = [];
+$stopsReverse = [];
+
+try {
+    $stmt = $pdo->prepare("SELECT * FROM busStopsTerminal WHERE route = ? ORDER BY sort_order ASC, id ASC");
+    $stmt->execute([ROUTE_FORWARD]);
+    $stopsForward = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt->execute([ROUTE_REVERSE]);
+    $stopsReverse = $stmt->fetchAll(PDO::FETCH_ASSOC);
+} catch (Exception $e) {
+    $stopsForward = [];
+    $stopsReverse = [];
+}
+
+/* === navbarAdmin config (component) === */
 $pageDepth = '../../';
-$pageType = 'manageStops';
-$backLink = 'admin.php';
+$pageType  = 'manageStops';
+$backLink  = 'admin.php';
 /* === END ADDED === */
 ?>
 <!doctype html>
@@ -114,7 +179,6 @@ $backLink = 'admin.php';
         .table > :not(caption) > * > * { padding: 0.65rem 0.9rem; vertical-align: middle; }
         @media (max-width: 991px) { #stopMap { height: 320px; } }
 
-        /* icon size control UI */
         .icon-size-card {
             border: 1px dashed #cbd5e1;
             border-radius: 14px;
@@ -128,11 +192,23 @@ $backLink = 'admin.php';
 
         .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
         .form-control, .form-select { border-radius: 12px; }
+
+        .route-list-card { margin-bottom: 1.5rem; }
+
+        /* Draggable list styling */
+        .route-item {
+            cursor: grab;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 6px 8px;
+        }
+        .route-item + .route-item {
+            margin-top: 4px;
+        }
     </style>
 </head>
 <body>
 
-<!-- REMOVED old navbar; use component -->
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
@@ -220,6 +296,14 @@ $backLink = 'admin.php';
                         </div>
 
                         <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Route</label>
+                            <select name="route" class="form-select" required>
+                                <option value="<?= h(ROUTE_FORWARD) ?>">LAUREL - TANAUAN</option>
+                                <option value="<?= h(ROUTE_REVERSE) ?>">TANAUAN - LAUREL</option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Location Name</label>
                             <input type="text" name="location_name" class="form-control" placeholder="e.g. Mototrade" required>
                         </div>
@@ -233,18 +317,12 @@ $backLink = 'admin.php';
                             <button class="btn btn-primary pill-btn">Save</button>
                         </div>
                     </form>
-
-                    <div class="small text-muted mt-2">
-                        If icons still don't show, open these in browser to confirm they load:
-                        <div><code id="pickupUrlText"></code></div>
-                        <div><code id="stopUrlText"></code></div>
-                    </div>
                 </div>
             </div>
 
             <div class="card card-standard mt-4">
                 <div class="card-header-std d-flex justify-content-between align-items-center">
-                    <div class="fw-bold">Existing Stops</div>
+                    <div class="fw-bold">Existing Stops (All Routes)</div>
                     <div class="small text-muted">Rows: <?= count($stops) ?></div>
                 </div>
                 <div class="card-body p-0">
@@ -254,12 +332,13 @@ $backLink = 'admin.php';
                                 <tr>
                                     <th>Name</th>
                                     <th>Type</th>
+                                    <th>Route</th>
                                     <th></th>
                                 </tr>
                             </thead>
                             <tbody>
                             <?php if (empty($stops)): ?>
-                                <tr><td colspan="3" class="text-center text-muted py-3">No stops yet.</td></tr>
+                                <tr><td colspan="4" class="text-center text-muted py-3">No stops yet.</td></tr>
                             <?php else: foreach ($stops as $s): ?>
                                 <tr>
                                     <td class="fw-bold">
@@ -270,6 +349,7 @@ $backLink = 'admin.php';
                                         <?php endif; ?>
                                     </td>
                                     <td class="text-uppercase small"><?= h($s['type']) ?></td>
+                                    <td class="small"><?= h($s['route'] ?? '') ?></td>
                                     <td class="text-end">
                                         <form method="POST" onsubmit="return confirm('Delete this stop?');">
                                             <input type="hidden" name="action" value="delete_stop">
@@ -287,10 +367,82 @@ $backLink = 'admin.php';
 
         </div>
     </div>
+
+    <!-- Per‑route draggable summaries -->
+    <div class="row g-4 my-4">
+        <div class="col-lg-6">
+            <div class="card card-standard route-list-card">
+                <div class="card-header-std text-primary">
+                    Laurel → Tanauan (Bus Stops &amp; Pick‑up Points)
+                </div>
+                <div class="card-body">
+                    <?php if (empty($stopsForward)): ?>
+                        <p class="text-muted small mb-0">No stops yet for this route.</p>
+                    <?php else: ?>
+                        <ul class="list-unstyled mb-0 small" id="route-forward-list">
+                            <?php foreach ($stopsForward as $s): ?>
+                                <li class="route-item" data-id="<?= h($s['id']) ?>">
+                                    <span class="fw-bold"><?= h($s['name']) ?></span>
+                                    <span class="text-muted"> — <?= h($s['location_name']) ?></span>
+                                    <?php if (!empty($s['location_landmark'])): ?>
+                                        <span class="text-muted"> (<?= h($s['location_landmark']) ?>)</span>
+                                    <?php endif; ?>
+                                    <span class="badge bg-light text-secondary ms-1 text-uppercase"><?= h($s['type']) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <form method="POST" id="route-forward-order-form" class="mt-3">
+                            <input type="hidden" name="action" value="save_forward_order">
+                            <input type="hidden" name="order" id="route-forward-order-input">
+                            <button type="submit" class="btn btn-outline-primary btn-sm pill-btn">
+                                Save Order (Laurel → Tanauan)
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6">
+            <div class="card card-standard route-list-card">
+                <div class="card-header-std text-primary">
+                    Tanauan → Laurel (Bus Stops &amp; Pick‑up Points)
+                </div>
+                <div class="card-body">
+                    <?php if (empty($stopsReverse)): ?>
+                        <p class="text-muted small mb-0">No stops yet for this route.</p>
+                    <?php else: ?>
+                        <ul class="list-unstyled mb-0 small" id="route-reverse-list">
+                            <?php foreach ($stopsReverse as $s): ?>
+                                <li class="route-item" data-id="<?= h($s['id']) ?>">
+                                    <span class="fw-bold"><?= h($s['name']) ?></span>
+                                    <span class="text-muted"> — <?= h($s['location_name']) ?></span>
+                                    <?php if (!empty($s['location_landmark'])): ?>
+                                        <span class="text-muted"> (<?= h($s['location_landmark']) ?>)</span>
+                                    <?php endif; ?>
+                                    <span class="badge bg-light text-secondary ms-1 text-uppercase"><?= h($s['type']) ?></span>
+                                </li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <form method="POST" id="route-reverse-order-form" class="mt-3">
+                            <input type="hidden" name="action" value="save_reverse_order">
+                            <input type="hidden" name="order" id="route-reverse-order-input">
+                            <button type="submit" class="btn btn-outline-primary btn-sm pill-btn">
+                                Save Order (Tanauan → Laurel)
+                            </button>
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<!-- SortableJS for drag & drop -->
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 <script>
     const map = L.map('stopMap').setView([14.0905, 121.0550], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -298,20 +450,17 @@ $backLink = 'admin.php';
         attribution: '© OpenStreetMap'
     }).addTo(map);
 
-    // Auto base URL from PHP:
     const BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 
-    // Icon URLs that work in both environments
     const PICKUP_URL = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
     const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal2.svg';
 
-    document.getElementById('pickupUrlText').textContent = PICKUP_URL;
-    document.getElementById('stopUrlText').textContent = STOP_URL;
+    // These spans exist in your original version – if you removed them, also remove these two lines.
+    // document.getElementById('pickupUrlText').textContent = PICKUP_URL;
+    // document.getElementById('stopUrlText').textContent = STOP_URL;
 
-    // adjustable marker size (defaults to 42 like before)
     let MARKER_SIZE = 42;
 
-    // Build Leaflet icons based on MARKER_SIZE
     function makeIcons() {
         const size = MARKER_SIZE;
         const anchorX = Math.round(size / 2);
@@ -353,7 +502,6 @@ $backLink = 'admin.php';
         }[s]));
     }
 
-    // Keep references so we can resize them when slider changes
     const stopMarkers = [];
 
     function renderExistingStops() {
@@ -404,7 +552,6 @@ $backLink = 'admin.php';
         coordsEl.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
     });
 
-    // Slider wiring - update icons + update all markers
     const slider = document.getElementById('iconSizeSlider');
     const sizeValue = document.getElementById('iconSizeValue');
 
@@ -414,13 +561,11 @@ $backLink = 'admin.php';
 
         ICONS = makeIcons();
 
-        // Update existing markers
         stopMarkers.forEach((m, idx) => {
             const s = existingStops[idx];
             m.setIcon(iconForType(s?.type));
         });
 
-        // Update picked marker
         refreshPickedMarkerIcon();
     }
 
@@ -429,6 +574,31 @@ $backLink = 'admin.php';
     });
 
     applyMarkerSize(parseInt(slider.value, 10) || 42);
+
+    // ---- Drag & drop ordering with SortableJS ----
+    function initSortable(listId, inputId) {
+        const list = document.getElementById(listId);
+        const hiddenInput = document.getElementById(inputId);
+        if (!list || !hiddenInput) return;
+
+        new Sortable(list, {
+            animation: 150,
+            handle: ".route-item",
+            onSort: function () {
+                const ids = Array.from(list.querySelectorAll(".route-item"))
+                    .map(li => li.getAttribute("data-id"));
+                hiddenInput.value = ids.join(",");
+            }
+        });
+
+        // Initial order
+        const initialIds = Array.from(list.querySelectorAll(".route-item"))
+            .map(li => li.getAttribute("data-id"));
+        hiddenInput.value = initialIds.join(",");
+    }
+
+    initSortable("route-forward-list", "route-forward-order-input");
+    initSortable("route-reverse-list", "route-reverse-order-input");
 </script>
 </body>
 </html>

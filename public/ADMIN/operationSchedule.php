@@ -28,12 +28,6 @@ function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-function normalizeTerminal(string $name): string {
-    $name = trim($name);
-    $name = preg_replace('/\s+/', ' ', $name);
-    return $name;
-}
-
 function parseTimeOrNull(string $t): ?string {
     $t = trim($t);
     if ($t === '') return null;
@@ -49,28 +43,39 @@ function formatTimeShort(?string $t): string {
 }
 
 $message = '';
-$error = '';
+$error   = '';
 
+// Fixed routes (these terminal_name values must match your DB)
+$routes = [
+    'laurel_tanauan' => 'LAUREL - TANAUAN',
+    'tanauan_laurel' => 'TANAUAN - LAUREL',
+];
+
+// Handle form submit
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = (string)($_POST['action'] ?? '');
 
     try {
-        if ($action === 'upsert_schedule') {
-            $terminal = normalizeTerminal((string)($_POST['terminal_name'] ?? ''));
-            $isSuspended = isset($_POST['is_suspended']) ? 1 : 0;
-            $suspendMessage = trim((string)($_POST['suspend_message'] ?? ''));
-            $open = parseTimeOrNull((string)($_POST['time_open'] ?? ''));
-            $close = parseTimeOrNull((string)($_POST['time_close'] ?? ''));
+        if ($action === 'save_routes') {
 
-            if ($terminal === '') {
-                $error = 'Terminal name is required.';
-            } elseif (!$isSuspended && (!$open || !$close)) {
-                $error = 'Open and Close time are required when not suspended.';
-            } elseif ($isSuspended && $suspendMessage === '') {
-                // make it “phenomenal”: require a reason when suspending
-                $error = 'Please provide a suspend message (reason) when suspending operations.';
+            // LAUREL - TANAUAN
+            $open1  = parseTimeOrNull((string)($_POST['lt_open'] ?? ''));
+            $close1 = parseTimeOrNull((string)($_POST['lt_close'] ?? ''));
+            $susp1  = isset($_POST['lt_suspended']) ? 1 : 0;
+            $msg1   = trim((string)($_POST['lt_message'] ?? ''));
+
+            // TANAUAN - LAUREL
+            $open2  = parseTimeOrNull((string)($_POST['tl_open'] ?? ''));
+            $close2 = parseTimeOrNull((string)($_POST['tl_close'] ?? ''));
+            $susp2  = isset($_POST['tl_suspended']) ? 1 : 0;
+            $msg2   = trim((string)($_POST['tl_message'] ?? ''));
+
+            // Validation
+            if (!$susp1 && (!$open1 || !$close1)) {
+                $error = 'Open and Close time are required for LAUREL - TANAUAN when not suspended.';
+            } elseif (!$susp2 && (!$open2 || !$close2)) {
+                $error = 'Open and Close time are required for TANAUAN - LAUREL when not suspended.';
             } else {
-                // If suspended, allow times to remain stored (or null). We'll store what admin provides.
                 $sql = "
                     INSERT INTO bus_schedule (terminal_name, time_open, time_close, is_suspended, suspend_message)
                     VALUES (?, ?, ?, ?, ?)
@@ -82,24 +87,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         updated_at = CURRENT_TIMESTAMP
                 ";
                 $stmt = $pdo->prepare($sql);
+
+                // Route 1: LAUREL - TANAUAN
                 $stmt->execute([
-                    $terminal,
-                    $open,
-                    $close,
-                    $isSuspended,
-                    $suspendMessage !== '' ? $suspendMessage : null
+                    $routes['laurel_tanauan'],
+                    $open1,
+                    $close1,
+                    $susp1,
+                    $msg1 !== '' ? $msg1 : null
                 ]);
 
-                $message = 'Schedule saved.';
-            }
-        } elseif ($action === 'delete_schedule') {
-            $id = (int)($_POST['schedule_id'] ?? 0);
-            if ($id <= 0) {
-                $error = 'Invalid schedule id.';
-            } else {
-                $del = $pdo->prepare("DELETE FROM bus_schedule WHERE schedule_id = ? LIMIT 1");
-                $del->execute([$id]);
-                $message = 'Schedule deleted.';
+                // Route 2: TANAUAN - LAUREL
+                $stmt->execute([
+                    $routes['tanauan_laurel'],
+                    $open2,
+                    $close2,
+                    $susp2,
+                    $msg2 !== '' ? $msg2 : null
+                ]);
+
+                $message = 'Schedules updated.';
             }
         }
     } catch (Throwable $e) {
@@ -107,19 +114,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Load schedules
+// Load schedules for both routes
 $schedules = [];
 try {
-    $schedules = $pdo->query("SELECT * FROM bus_schedule ORDER BY terminal_name ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare("SELECT * FROM bus_schedule WHERE terminal_name = ? LIMIT 1");
+
+    foreach ($routes as $key => $name) {
+        $stmt->execute([$name]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            // If not existing yet, show empty values
+            $row = [
+                'terminal_name'   => $name,
+                'time_open'       => null,
+                'time_close'      => null,
+                'is_suspended'    => 0,
+                'suspend_message' => '',
+            ];
+        }
+        $schedules[$key] = $row;
+    }
 } catch (Throwable $e) {
     $schedules = [];
 }
 
-/* === ADDED: navbarAdmin config (component) === */
+/* === navbarAdmin config (component) === */
 $pageDepth = '../../';
-$pageType = 'operationSchedule';
-$backLink = 'admin.php';
-/* === END ADDED === */
+$pageType  = 'operationSchedule';
+$backLink  = 'admin.php';
+/* === END navbar config === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -131,23 +154,43 @@ $backLink = 'admin.php';
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
         :root { --brand: #2563eb; }
-        body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
+        body {
+            background: #f8fafc;
+            color: #1e293b;
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
 
-        .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 800; padding: 1rem 1.25rem; border-radius: 14px 14px 0 0 !important; }
-        .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-
-        .badge-susp { background: #dc2626; }
-        .badge-live { background: #16a34a; }
-
-        .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
-        .help-card { border-radius: 14px; border: 1px dashed rgba(148,163,184,0.8); background: #f8fafc; padding: 12px 14px; }
-        .form-control, .form-select { border-radius: 12px; }
+        .card-standard {
+            border: none;
+            border-radius: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            background: #fff;
+        }
+        .card-header-std {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 800;
+            padding: 1rem 1.25rem;
+            border-radius: 14px 14px 0 0 !important;
+        }
+        .pill-btn {
+            border-radius: 999px;
+            font-weight: 800;
+            letter-spacing: .2px;
+        }
+        .help-card {
+            border-radius: 14px;
+            border: 1px dashed rgba(148,163,184,0.8);
+            background: #f8fafc;
+            padding: 12px 14px;
+        }
+        .form-control, .form-select {
+            border-radius: 12px;
+        }
     </style>
 </head>
 <body>
 
-<!-- REMOVED old navbar; use component -->
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="container">
@@ -169,128 +212,126 @@ $backLink = 'admin.php';
     <?php endif; ?>
 
     <div class="row g-4 mt-1">
-        <!-- Add/Update -->
-        <div class="col-lg-4">
+        <div class="col-lg-8 mx-auto">
             <div class="card card-standard">
                 <div class="card-header-std text-primary d-flex align-items-center gap-2">
-                    <span class="material-icons-round">edit_calendar</span>
-                    <span>Add / Update Terminal</span>
+                    <span class="material-icons-round">schedule</span>
+                    <span>Operation Schedule</span>
                 </div>
 
                 <div class="card-body">
                     <form method="POST">
-                        <input type="hidden" name="action" value="upsert_schedule">
+                        <input type="hidden" name="action" value="save_routes">
 
-                        <div class="mb-2">
-                            <label class="form-label small fw-bold text-uppercase">Terminal Name</label>
-                            <input class="form-control" name="terminal_name" placeholder="e.g. Laurel" required>
-                            <div class="small text-muted mt-1">
-                                Tip: Use the same terminal name to update existing schedule.
+                        <!-- LAUREL - TANAUAN -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 fw-bold">LAUREL - TANAUAN</h6>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="lt_susp"
+                                           name="lt_suspended"
+                                        <?= !empty($schedules['laurel_tanauan']['is_suspended']) ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-semibold small" for="lt_susp">
+                                        Suspend
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="row g-2 align-items-end">
+                                <div class="col-6">
+                                    <label class="form-label small text-uppercase fw-bold">Open</label>
+                                    <input type="time"
+                                           class="form-control"
+                                           name="lt_open"
+                                           value="<?= h(formatTimeShort($schedules['laurel_tanauan']['time_open'] ?? null)) ?>">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-uppercase fw-bold">Close</label>
+                                    <input type="time"
+                                           class="form-control"
+                                           name="lt_close"
+                                           value="<?= h(formatTimeShort($schedules['laurel_tanauan']['time_close'] ?? null)) ?>">
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <label class="form-label small text-uppercase fw-bold">
+                                    Suspend message (optional)
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       name="lt_message"
+                                       placeholder="e.g. Suspended due to bad weather"
+                                       value="<?= h($schedules['laurel_tanauan']['suspend_message'] ?? '') ?>">
                             </div>
                         </div>
 
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Open</label>
-                                <input class="form-control" type="time" name="time_open">
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Close</label>
-                                <input class="form-control" type="time" name="time_close">
-                            </div>
-                        </div>
+                        <hr>
 
-                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
-                            <div class="form-check form-switch m-0">
-                                <input class="form-check-input" type="checkbox" role="switch" id="suspSwitch" name="is_suspended">
-                                <label class="form-check-label fw-bold" for="suspSwitch">Suspend</label>
+                        <!-- TANAUAN - LAUREL -->
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h6 class="mb-0 fw-bold">TANAUAN - LAUREL</h6>
+                                <div class="form-check form-switch m-0">
+                                    <input class="form-check-input"
+                                           type="checkbox"
+                                           role="switch"
+                                           id="tl_susp"
+                                           name="tl_suspended"
+                                        <?= !empty($schedules['tanauan_laurel']['is_suspended']) ? 'checked' : '' ?>>
+                                    <label class="form-check-label fw-semibold small" for="tl_susp">
+                                        Suspend
+                                    </label>
+                                </div>
                             </div>
-                            <span class="small text-muted">Show “SUSPENDED” to passengers</span>
-                        </div>
 
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Suspend message (required when suspended)</label>
-                            <input class="form-control" name="suspend_message" placeholder="e.g. Suspended due to bad weather">
+                            <div class="row g-2 align-items-end">
+                                <div class="col-6">
+                                    <label class="form-label small text-uppercase fw-bold">Open</label>
+                                    <input type="time"
+                                           class="form-control"
+                                           name="tl_open"
+                                           value="<?= h(formatTimeShort($schedules['tanauan_laurel']['time_open'] ?? null)) ?>">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small text-uppercase fw-bold">Close</label>
+                                    <input type="time"
+                                           class="form-control"
+                                           name="tl_close"
+                                           value="<?= h(formatTimeShort($schedules['tanauan_laurel']['time_close'] ?? null)) ?>">
+                                </div>
+                            </div>
+
+                            <div class="mt-2">
+                                <label class="form-label small text-uppercase fw-bold">
+                                    Suspend message (optional)
+                                </label>
+                                <input type="text"
+                                       class="form-control"
+                                       name="tl_message"
+                                       placeholder="e.g. Suspended due to bad weather"
+                                       value="<?= h($schedules['tanauan_laurel']['suspend_message'] ?? '') ?>">
+                            </div>
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary pill-btn">Save Schedule</button>
+                            <button class="btn btn-primary pill-btn">Save Schedules</button>
+                        </div>
+
+                        <div class="help-card small text-muted mt-3">
+                            <div class="fw-bold text-dark mb-1">Notes</div>
+                            <ul class="mb-0 ps-3">
+                                <li>This page only manages LAUREL - TANAUAN and TANAUAN - LAUREL.</li>
+                                <li>If a route is not suspended, Open and Close times must be filled.</li>
+                                <li>If a route is suspended, the message is optional.</li>
+                            </ul>
                         </div>
                     </form>
-
-                    <div class="help-card small text-muted mt-3">
-                        <div class="fw-bold text-dark mb-1">Notes</div>
-                        <ul class="mb-0 ps-3">
-                            <li>Passengers see schedules instantly.</li>
-                            <li>If not suspended, Open/Close must be filled.</li>
-                            <li>If suspended, message is required.</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- List -->
-        <div class="col-lg-8">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
-                    <div class="d-flex align-items-center gap-2">
-                        <span class="material-icons-round text-primary">list_alt</span>
-                        <span>Current Schedules</span>
-                    </div>
-                    <span class="small text-muted">Rows: <?= count($schedules) ?></span>
                 </div>
 
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light text-muted small text-uppercase">
-                            <tr>
-                                <th>ID</th>
-                                <th>Terminal</th>
-                                <th>Status</th>
-                                <th>Open</th>
-                                <th>Close</th>
-                                <th>Message</th>
-                                <th class="text-end">Delete</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php if (empty($schedules)): ?>
-                            <tr>
-                                <td colspan="7" class="text-center text-muted py-4">No schedules yet. Add one on the left.</td>
-                            </tr>
-                        <?php else: foreach ($schedules as $s): ?>
-                            <tr>
-                                <td class="mono"><?= (int)$s['schedule_id'] ?></td>
-                                <td class="fw-bold"><?= h($s['terminal_name']) ?></td>
-                                <td>
-                                    <?php if ((int)$s['is_suspended'] === 1): ?>
-                                        <span class="badge badge-susp">SUSPENDED</span>
-                                    <?php else: ?>
-                                        <span class="badge badge-live">ACTIVE</span>
-                                    <?php endif; ?>
-                                </td>
-                                <td class="mono"><?= h(formatTimeShort($s['time_open'] ?? null)) ?></td>
-                                <td class="mono"><?= h(formatTimeShort($s['time_close'] ?? null)) ?></td>
-                                <td class="small text-muted"><?= h($s['suspend_message'] ?? '') ?></td>
-                                <td class="text-end">
-                                    <form method="POST" onsubmit="return confirm('Delete this schedule row?');" class="d-inline">
-                                        <input type="hidden" name="action" value="delete_schedule">
-                                        <input type="hidden" name="schedule_id" value="<?= (int)$s['schedule_id'] ?>">
-                                        <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        <?php endforeach; endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="card-body border-top">
-                    <div class="small text-muted">
-                        Note: Passenger page reads from this table, so changes apply instantly.
-                    </div>
-                </div>
             </div>
         </div>
     </div>
