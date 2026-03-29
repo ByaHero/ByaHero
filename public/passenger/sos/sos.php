@@ -2,12 +2,12 @@
 session_start();
 
 if (!isset($_SESSION['user_id'])) {
-  header('Location: ../../../public/login.php?redirect=passenger/sos/sos.php', true, 302);
-  exit;
+    header('Location: ../../../public/login.php?redirect=passenger/sos/sos.php', true, 302);
+    exit;
 }
 
-$pageType  = 'sos';
-$backLink  = '../index.php';
+$pageType = 'sos';
+$backLink = '../index.php';
 $pageDepth = "../../../";
 ?>
 <!doctype html>
@@ -26,12 +26,19 @@ $pageDepth = "../../../";
 
     <!-- EARLY TOKEN CATCHER: must be first script so Median's callback is never lost -->
     <script>
-    window._sosPendingToken = null;
-    window.gonative_onesignal_info = function(info) {
-        if (!info || !info.userId) return;
-        window._sosPendingToken = info.userId;
-        if (window.sosBridge) window.sosBridge.saveToken(info.userId);
-    };
+        window.gonative_onesignal_info = function (info) {
+            if (!info || !info.userId) return;
+
+            // Send the Median/OneSignal token to your backend
+            fetch('../../../backend/saveFcmToken.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fcm_token: info.userId }) // We store the OneSignal ID in your existing fcm_token column
+            })
+                .then(response => response.json())
+                .then(data => console.log('Device token saved for SOS alerts:', data))
+                .catch(error => console.error('Error saving token:', error));
+        };
     </script>
 
     <style>
@@ -70,7 +77,9 @@ $pageDepth = "../../../";
             transition: transform 0.2s;
         }
 
-        .main-sos-btn:active { transform: scale(0.95); }
+        .main-sos-btn:active {
+            transform: scale(0.95);
+        }
 
         .sos-ring {
             position: absolute;
@@ -85,28 +94,54 @@ $pageDepth = "../../../";
             z-index: 1;
         }
 
-        .sos-ring:nth-child(2) { animation-delay: 0.5s; }
-        .sos-ring:nth-child(3) { animation-delay: 1s; }
+        .sos-ring:nth-child(2) {
+            animation-delay: 0.5s;
+        }
+
+        .sos-ring:nth-child(3) {
+            animation-delay: 1s;
+        }
 
         @keyframes pulse {
-            0%   { width: 50%;  height: 50%;  opacity: 1; }
-            100% { width: 200%; height: 200%; opacity: 0; }
+            0% {
+                width: 50%;
+                height: 50%;
+                opacity: 1;
+            }
+
+            100% {
+                width: 200%;
+                height: 200%;
+                opacity: 0;
+            }
         }
 
         #sos-countdown-layer {
             position: fixed;
-            top: 0; left: 0;
-            width: 100%; height: 100%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-color: #f8f9fa;
             z-index: 2000;
             display: flex;
             flex-direction: column;
         }
 
-        .text-dark-red { color: #b02a37; }
+        .text-dark-red {
+            color: #b02a37;
+        }
 
-        .countdown-wrapper { width: 140px; height: 140px; }
-        .countdown-inner  { width: 120px; height: 120px; font-size: 3.5rem; }
+        .countdown-wrapper {
+            width: 140px;
+            height: 140px;
+        }
+
+        .countdown-inner {
+            width: 120px;
+            height: 120px;
+            font-size: 3.5rem;
+        }
 
         .slider-track {
             height: 70px;
@@ -119,14 +154,18 @@ $pageDepth = "../../../";
         }
 
         .slider-handle {
-            width: 60px; height: 60px;
-            top: 5px; right: 5px;
+            width: 60px;
+            height: 60px;
+            top: 5px;
+            right: 5px;
             cursor: grab;
             position: absolute;
             z-index: 2;
         }
 
-        .slider-handle:active { cursor: grabbing; }
+        .slider-handle:active {
+            cursor: grabbing;
+        }
 
         .avatar-stack {
             display: flex;
@@ -135,7 +174,8 @@ $pageDepth = "../../../";
         }
 
         .stack-avatar {
-            width: 44px; height: 44px;
+            width: 44px;
+            height: 44px;
             border-radius: 50%;
             display: inline-flex;
             align-items: center;
@@ -148,7 +188,9 @@ $pageDepth = "../../../";
             user-select: none;
         }
 
-        .stack-avatar:first-child { margin-left: 0; }
+        .stack-avatar:first-child {
+            margin-left: 0;
+        }
     </style>
 </head>
 
@@ -207,14 +249,16 @@ $pageDepth = "../../../";
             </p>
 
             <div class="countdown-wrapper position-relative d-flex justify-content-center align-items-center mb-auto">
-                <div class="position-absolute w-100 h-100 rounded-circle border border-2 border-danger opacity-25"></div>
+                <div class="position-absolute w-100 h-100 rounded-circle border border-2 border-danger opacity-25">
+                </div>
                 <div class="countdown-inner bg-danger text-white rounded-circle d-flex justify-content-center align-items-center fw-bold shadow-lg z-2"
                     id="timer">10</div>
             </div>
 
             <div class="slider-track w-100 shadow mb-4 rounded-pill position-relative" id="sliderContainer"
                 style="width: 90%;">
-                <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
+                <div
+                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
                     <span class="text-danger fw-bold fs-5 user-select-none">Slide to cancel SOS</span>
                 </div>
                 <div class="slider-handle bg-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center z-2"
@@ -263,7 +307,7 @@ $pageDepth = "../../../";
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        let currentCoords     = { lat: null, lng: null };
+        let currentCoords = { lat: null, lng: null };
         let resolvedPlaceName = "";
         let resolvePlacePromise = null;
 
@@ -277,9 +321,9 @@ $pageDepth = "../../../";
         function formatPlaceName(nominatim) {
             const a = nominatim.address || {};
             const barangay = a.barangay || a.neighbourhood || a.suburb || a.village || a.hamlet || "";
-            const city     = a.city || a.town || a.municipality || a.county || "";
+            const city = a.city || a.town || a.municipality || a.county || "";
             const province = a.state || a.region || "";
-            const parts    = [barangay, city, province].filter(Boolean);
+            const parts = [barangay, city, province].filter(Boolean);
             return parts.length ? parts.join(", ") : (nominatim.display_name || "Unknown location");
         }
 
@@ -298,7 +342,7 @@ $pageDepth = "../../../";
             if (!resolvePlacePromise) {
                 resolvePlacePromise = (async () => {
                     try {
-                        const data  = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                        const data = await reverseGeocode(currentCoords.lat, currentCoords.lng);
                         const place = formatPlaceName(data);
                         resolvedPlaceName = place;
                         const el = document.getElementById("location-text");
@@ -320,7 +364,7 @@ $pageDepth = "../../../";
             if (!el) return;
             el.innerText = `${Number(lat).toFixed(4)}, ${Number(lng).toFixed(4)}`;
             try {
-                const data  = await reverseGeocode(lat, lng);
+                const data = await reverseGeocode(lat, lng);
                 const place = formatPlaceName(data);
                 resolvedPlaceName = place;
                 el.innerText = place;
@@ -347,14 +391,14 @@ $pageDepth = "../../../";
         let sosFriendsModal;
 
         function initialsFromFriend(f) {
-            const base  = (f.name || f.email || "??").trim();
+            const base = (f.name || f.email || "??").trim();
             const parts = base.split(/\s+/).filter(Boolean);
             if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
             return base.slice(0, 2).toUpperCase();
         }
 
         function colorFromString(str) {
-            const colors = ["#ec4899","#3b82f6","#22c55e","#f43f5e","#a855f7","#06b6d4","#f97316"];
+            const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
             let h = 0;
             for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
             return colors[h % colors.length];
@@ -362,7 +406,7 @@ $pageDepth = "../../../";
 
         function renderFriendStack() {
             const avatarsEl = document.getElementById('friends-avatars');
-            const statusEl  = document.getElementById('friends-status');
+            const statusEl = document.getElementById('friends-status');
             if (!avatarsEl || !statusEl) return;
 
             if (!Array.isArray(friendsCache) || friendsCache.length === 0) {
@@ -374,17 +418,17 @@ $pageDepth = "../../../";
             const shown = friendsCache.slice(0, 5);
             avatarsEl.innerHTML = shown.map(f => {
                 const init = initialsFromFriend(f);
-                const bg   = colorFromString(f.email || f.name || init);
+                const bg = colorFromString(f.email || f.name || init);
                 return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
             }).join("");
             statusEl.textContent = `Your SOS will be sent to ${friendsCache.length} people`;
         }
 
         async function fetchFriends() {
-            const listEl   = document.getElementById('friends-list');
+            const listEl = document.getElementById('friends-list');
             const statusEl = document.getElementById('friends-status');
             try {
-                const res  = await fetch("../../../backend/groupView.php", { credentials: "include" });
+                const res = await fetch("../../../backend/groupView.php", { credentials: "include" });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "Failed to fetch friends");
                 friendsCache = Array.isArray(data.friends) ? data.friends : [];
@@ -403,7 +447,7 @@ $pageDepth = "../../../";
                 console.error(e);
                 if (document.getElementById('friends-avatars')) document.getElementById('friends-avatars').innerHTML = '';
                 if (statusEl) statusEl.textContent = "Failed to load friend group";
-                if (listEl)   listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
+                if (listEl) listEl.innerHTML = `<div class="list-group-item text-danger">Failed to load friends</div>`;
             }
         }
 
@@ -413,7 +457,7 @@ $pageDepth = "../../../";
         }
 
         function toggleSelectAllFriends() {
-            const checks     = document.querySelectorAll(".friend-checkbox");
+            const checks = document.querySelectorAll(".friend-checkbox");
             const anyUnchecked = Array.from(checks).some(c => !c.checked);
             checks.forEach(c => c.checked = anyUnchecked);
         }
@@ -425,7 +469,7 @@ $pageDepth = "../../../";
             const locText = await getResolvedLocationText();
             try {
                 if (statusEl) statusEl.textContent = "Sending…";
-                const res  = await fetch("../../../backend/sendSosAlert.php", {
+                const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ recipients: selected, location_text: locText })
@@ -445,9 +489,9 @@ $pageDepth = "../../../";
 
     <script>
         const countdownLayer = document.getElementById('sos-countdown-layer');
-        const timerElement   = document.getElementById('timer');
+        const timerElement = document.getElementById('timer');
         let countdownInterval;
-        let timeLeft    = 10;
+        let timeLeft = 10;
         let isSOSActive = false;
 
         function startCountdown() {
@@ -457,7 +501,7 @@ $pageDepth = "../../../";
             timerElement.textContent = timeLeft;
             timerElement.classList.replace('bg-secondary', 'bg-danger');
             document.querySelector('#sos-countdown-layer h1').textContent = "Slide to cancel";
-            document.querySelector('#sos-countdown-layer p').textContent  = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
+            document.querySelector('#sos-countdown-layer p').textContent = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
             sliderHandle.style.transform = `translateX(0px)`;
             isSOSActive = true;
             countdownInterval = setInterval(() => {
@@ -474,13 +518,13 @@ $pageDepth = "../../../";
             timerElement.classList.replace('bg-danger', 'bg-secondary');
             timerElement.textContent = "X";
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
-            document.querySelector('#sos-countdown-layer p').textContent  = "Your SOS has been cancelled. Returning to home...";
+            document.querySelector('#sos-countdown-layer p').textContent = "Your SOS has been cancelled. Returning to home...";
             setTimeout(() => { countdownLayer.classList.add('d-none'); }, 1000);
         }
 
         async function sendSOS() {
-            const statusEl   = document.getElementById("friends-status");
-            const locText    = await getResolvedLocationText();
+            const statusEl = document.getElementById("friends-status");
+            const locText = await getResolvedLocationText();
             const recipients = Array.isArray(friendsCache)
                 ? friendsCache.map(f => parseInt(f.id, 10)).filter(Number.isFinite)
                 : [];
@@ -494,7 +538,7 @@ $pageDepth = "../../../";
 
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
-                const res  = await fetch("../../../backend/sendSosAlert.php", {
+                const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ recipients, location_text: locText })
@@ -514,7 +558,7 @@ $pageDepth = "../../../";
         }
 
         const sliderContainer = document.getElementById('sliderContainer');
-        const sliderHandle    = document.getElementById('sliderHandle');
+        const sliderHandle = document.getElementById('sliderHandle');
         let isDragging = false;
         let startX;
 
@@ -527,10 +571,10 @@ $pageDepth = "../../../";
         const drag = (e) => {
             if (!isDragging) return;
             if (e.type.includes('touch')) e.preventDefault();
-            const currentX     = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            const currentX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
             const containerWidth = sliderContainer.offsetWidth;
-            const handleWidth    = sliderHandle.offsetWidth;
-            const maxMove        = containerWidth - handleWidth - 10;
+            const handleWidth = sliderHandle.offsetWidth;
+            const maxMove = containerWidth - handleWidth - 10;
             let delta = startX - currentX;
             if (delta < 0) delta = 0;
             if (delta > maxMove) delta = maxMove;
@@ -546,7 +590,7 @@ $pageDepth = "../../../";
             if (!isDragging) return;
             isDragging = false;
             sliderHandle.style.transition = "transform 0.3s ease";
-            sliderHandle.style.transform  = `translateX(0px)`;
+            sliderHandle.style.transform = `translateX(0px)`;
             setTimeout(() => { sliderHandle.style.transition = ""; }, 300);
         };
 

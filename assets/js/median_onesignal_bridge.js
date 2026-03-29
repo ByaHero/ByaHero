@@ -1,29 +1,6 @@
-
-
 (function () {
   'use strict';
-  // ── DEBUG: Log everything ──
-  console.log('[OneSignal Bridge] Script loaded');
-  
-  // Log when Median calls the callback
-  window.gonative_onesignal_info = function(info) {
-    console.log('[OneSignal] gonative_onesignal_info called with:', info);
-    if (!info || !info.userId) {
-      console.warn('[OneSignal] No userId in info');
-      return;
-    }
-    window._sosPendingToken = info.userId;
-    console.log('[OneSignal] Token captured:', info.userId);
-    if (window.sosBridge) {
-      console.log('[OneSignal] Calling saveToken...');
-      window.sosBridge.saveToken(info.userId);
-    } else {
-      console.error('[OneSignal] sosBridge not available yet');
-    }
-  };
 
-  console.log('[OneSignal Bridge] Callback defined, waiting for Median...');
-  
   // ── DYNAMIC URL RESOLUTION ──────────────────────────────────────────
   // Works on localhost (/ByaHero-Prototype-V3/...) and InfinityFree (/)
   var PROJECT_FOLDER = 'ByaHero-Prototype-V3';
@@ -158,6 +135,13 @@
     } catch (e) { }
   };
 
+  // Add this to median_onesignal_bridge.js after the gonative check:
+  if (!window.gonative) {
+    console.warn('[SOS] Median not available - using test token');
+    // For testing only - use a fake token
+    saveToken('test-player-id-' + Date.now());
+  }
+  
   // ── IN-APP SOS BANNER ─────────────────────────────────────────────────
   function showSosBanner(payload) {
     if (document.getElementById('sos-push-banner')) return;
