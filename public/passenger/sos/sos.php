@@ -513,7 +513,7 @@ $pageDepth = "../../../";
                 : [];
 
             if (recipients.length === 0) {
-                alert("No circle members found to notify.");
+                screenLog("ERROR: No circle members found in the app to notify.");
                 countdownLayer.classList.add('d-none');
                 isSOSActive = false;
                 return;
@@ -521,19 +521,29 @@ $pageDepth = "../../../";
 
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
+                screenLog("1. Button slid. Sending request to backend...");
+                screenLog("Payload: " + JSON.stringify({ recipients, location_text: locText }));
+
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ recipients, location_text: locText })
                 });
+
                 const data = await res.json();
+
+                screenLog("2. Backend replied!");
+                screenLog(data); // THIS IS THE MAGIC LINE that prints the DB results
+
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-                alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
                 if (statusEl) statusEl.textContent = `Your SOS will be sent to ${recipients.length} people`;
+
+                // Temporarily disable the alert so it doesn't interrupt our reading
+                // alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
+
             } catch (e) {
-                console.error(e);
+                screenLog("3. FATAL ERROR: " + e.message);
                 if (statusEl) statusEl.textContent = "Failed to send SOS";
-                alert(e.message || "Failed to send SOS");
             } finally {
                 isSOSActive = false;
                 countdownLayer.classList.add('d-none');
@@ -583,6 +593,23 @@ $pageDepth = "../../../";
         document.addEventListener('touchmove', drag, { passive: false });
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
+    </script>
+    <div id="debug-console"
+        style="position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
+        <strong style="color:#fff;">Backend Response Console</strong><br>
+    </div>
+
+    <script>
+        function screenLog(msg) {
+            const consoleEl = document.getElementById('debug-console');
+            if (consoleEl) {
+                const time = new Date().toLocaleTimeString();
+                const text = typeof msg === 'object' ? JSON.stringify(msg, null, 2) : msg;
+                consoleEl.innerHTML += `<div style="margin-bottom:5px; border-bottom:1px solid #333; padding-bottom:5px;">[${time}] ${text}</div>`;
+                consoleEl.scrollTop = consoleEl.scrollHeight;
+            }
+            console.log(msg);
+        }
     </script>
 </body>
 
