@@ -64,7 +64,7 @@ try {
 /* === ADDED: navbarAdmin config === */
 $pageDepth = '../../';
 $pageType = 'dashboard';
-/* === END ADDED === */
+/* === === */
 ?>
 <!doctype html>
 <html lang="en">
