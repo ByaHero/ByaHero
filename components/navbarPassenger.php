@@ -189,7 +189,17 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     opacity: 0.6;
   }
 </style>
-
+<script>
+  window._sosPendingToken = null;
+  window.gonative_onesignal_info = function (info) {
+    var id = info && (info.oneSignalId || info.userId || info.subscriptionId
+      || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+    if (!id) return;
+    window._sosPendingToken = id;
+    if (window.sosBridge) window.sosBridge.saveToken(id);
+  };
+  window.median_onesignal_info = window.gonative_onesignal_info;
+</script>
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
@@ -452,8 +462,8 @@ else: ?>
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
           <div class="sos-dome">
             <div class="sos-icon-wrap">
-              <img id="nav-sos-icon"
-                src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png" alt="SOS"
+              <img id="nav-sos-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png"
+                alt="SOS"
                 style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));" />
             </div>
             <span class="nav-label">SOS</span>
