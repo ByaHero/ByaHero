@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-$senderId = (int)$_SESSION['user_id'];
+$senderId = (int) $_SESSION['user_id'];
 $senderName = $_SESSION['user_name'] ?? ($_SESSION['user_email'] ?? 'A user');
 
 // 1. Get the payload from the frontend (the specific friends selected)
@@ -36,10 +36,11 @@ try {
 
     // 2. Insert the SOS into the database so it shows up in their in-app Notification Bell
     $insertStmt = $conn->prepare("INSERT INTO sos_alerts (sender_user_id, recipient_user_id, location_text, status) VALUES (?, ?, ?, 'active')");
-    
+
     foreach ($recipients as $recipientId) {
-        if ($recipientId <= 0) continue;
-        
+        if ($recipientId <= 0)
+            continue;
+
         $insertStmt->bind_param("iis", $senderId, $recipientId, $locationText);
         $insertStmt->execute();
         $validRecipients[] = $recipientId;
@@ -50,19 +51,19 @@ try {
     if (!empty($validRecipients)) {
         $placeholders = implode(',', array_fill(0, count($validRecipients), '?'));
         $types = str_repeat('i', count($validRecipients));
-        
+
         $tokenSql = "SELECT player_id FROM user_onesignal_tokens WHERE user_id IN ($placeholders) AND player_id != ''";
         $tokenStmt = $conn->prepare($tokenSql);
-        
+
         $bindNames = [$types];
         foreach ($validRecipients as $key => $value) {
             $bindNames[] = &$validRecipients[$key];
         }
         call_user_func_array([$tokenStmt, 'bind_param'], $bindNames);
-        
+
         $tokenStmt->execute();
         $tokenRes = $tokenStmt->get_result();
-        
+
         while ($row = $tokenRes->fetch_assoc()) {
             $playerIds[] = $row['player_id'];
         }
@@ -71,13 +72,16 @@ try {
 
     // 4. Blast the push notification to all found devices via OneSignal
     $pushResult = ['skipped' => true];
-    
+
     if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
         $payload = [
             'app_id' => ONESIGNAL_APP_ID,
-            'target_channel' => 'push',
-            'include_aliases' => ['onesignal_id' => $playerIds],
+
+            // ── THE FIX: Directly target the physical device subscription ──
+            'include_player_ids' => $playerIds,
+            // ───────────────────────────────────────────────────────────────
+
             'headings' => ['en' => '🚨 SOS Alert'],
             'contents' => ['en' => "$senderName needs help$locSnippet!"],
             'data' => [
@@ -85,6 +89,7 @@ try {
                 'sender_name' => $senderName,
                 'location_text' => $locationText
             ],
+            'android_channel_id' => 'sos_alerts',
             'priority' => 10,
             'ttl' => 3600
         ];
@@ -114,7 +119,7 @@ try {
     }
 
     $conn->commit();
-    
+
     echo json_encode([
         'success' => true,
         'sent_to' => $validRecipients,
