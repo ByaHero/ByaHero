@@ -24,23 +24,6 @@ $pageDepth = "../../../";
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
     <meta name="theme-color" content="#1e3a8a">
 
-    <!-- EARLY TOKEN CATCHER: must be first script so Median's callback is never lost -->
-    <script>
-        window.gonative_onesignal_info = function (info) {
-            if (!info || !info.userId) return;
-
-            // Send the Median/OneSignal token to your backend
-            fetch('../../../backend/saveFcmToken.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ fcm_token: info.userId }) // We store the OneSignal ID in your existing fcm_token column
-            })
-                .then(response => response.json())
-                .then(data => console.log('Device token saved for SOS alerts:', data))
-                .catch(error => console.error('Error saving token:', error));
-        };
-    </script>
-
     <style>
         :root {
             --bs-primary: #1e3a8a;
