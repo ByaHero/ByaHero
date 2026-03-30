@@ -89,6 +89,12 @@ try {
 } catch (Exception $e) {
     $staff = [];
 }
+
+/* === navbarAdmin config (component) === */
+$pageDepth = '../../';
+$pageType = 'manageConductors';
+$backLink = 'admin.php';
+/* === END === */
 ?>
 <!doctype html>
 <html lang="en">
@@ -97,136 +103,230 @@ try {
     <title>ByaHero — Manage Conductors & Drivers</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
-        :root { --brand: #2563eb; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-        .navbar { background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .nav-link { color: rgba(255,255,255,0.85) !important; font-weight: 500; }
-        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
-        .btn-brand { background-color: var(--brand); color: white; }
-        .table > :not(caption) > * > * { padding: 0.75rem 1rem; vertical-align: middle; }
+        .page-wrap { padding: 16px; }
+        .alert { border-radius: 14px; }
+
+        /* Match photo: centered title + single clean card + big pill save button */
+        .page-title {
+            text-align: center;
+            font-weight: 900;
+            font-size: 1.45rem;
+            margin: 18px 0 14px;
+            color: #0f172a;
+        }
+
+        .form-shell {
+            max-width: 420px;
+            margin: 0 auto;
+        }
+
+        .form-card {
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+            padding: 16px 16px 18px;
+        }
+
+        .field-label {
+            font-size: .78rem;
+            color: #64748b;
+            font-weight: 700;
+            margin: 0 0 6px;
+        }
+
+        .pill-input {
+            border-radius: 10px;
+            border: 1px solid rgba(148, 163, 184, 0.55);
+            box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+            padding: 10px 12px;
+        }
+
+        .pw-wrap {
+            position: relative;
+        }
+        .pw-eye {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            font-weight: 900;
+            color: #334155;
+            padding: 6px 8px;
+        }
+
+        .save-wrap {
+            display: flex;
+            justify-content: center;
+            margin-top: 18px;
+        }
+
+        .btn-save {
+            border-radius: 999px;
+            font-weight: 900;
+            padding: 10px 34px;
+            background: #1d4ed8;
+            border: 0;
+        }
+        .btn-save:hover { background: #1e40af; }
+
+        /* Staff list kept but minimal; below form */
+        .list-title {
+            max-width: 420px;
+            margin: 18px auto 8px;
+            font-weight: 900;
+            color: #0f172a;
+        }
+
+        .list-card {
+            max-width: 420px;
+            margin: 0 auto;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+            border: 1px solid rgba(148, 163, 184, 0.30);
+            overflow: hidden;
+        }
+
+        .staff-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 14px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+        .staff-row:last-child { border-bottom: none; }
+
+        .staff-email { margin: 0; font-weight: 900; font-size: .95rem; }
+        .staff-sub { margin: 2px 0 0; font-size: .78rem; color: #94a3b8; }
+
+        .role-pill {
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-weight: 900;
+            font-size: .72rem;
+            text-transform: uppercase;
+            background: #e2e8f0;
+            color: #0f172a;
+            white-space: nowrap;
+        }
+
+        .btn-remove {
+            border-radius: 10px;
+            font-weight: 900;
+            padding: 6px 10px;
+        }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark mb-4">
-    <div class="container">
-        <a class="navbar-brand fw-bold d-flex align-items-center gap-2" href="admin.php">
-            <span class="material-icons-round">directions_bus</span> ByaHero
-        </a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navContent">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navContent">
-            <ul class="navbar-nav ms-auto gap-2">
-                <li class="nav-item">
-                    <a class="nav-link" href="admin.php">Back to Admin</a>
-                </li>
-            </ul>
-            <div class="ms-3">
-                <a href="logout.php" class="btn btn-outline-light btn-sm">Logout</a>
-            </div>
-        </div>
-    </div>
-</nav>
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="container">
+<div class="page-wrap">
+
     <?php if($message): ?>
         <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <span class="material-icons-round fs-5 align-middle me-2">check_circle</span>
             <?= $message ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
+
     <?php if($error): ?>
         <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <span class="material-icons-round fs-5 align-middle me-2">error</span>
             <?= $error ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <div>
-            <h4 class="mb-1 fw-bold">Conductors & Drivers</h4>
-            <p class="text-muted small mb-0">Add and manage staff accounts</p>
+    <div class="page-title">New Conductor & Driver</div>
+
+    <div class="form-shell">
+        <div class="form-card">
+            <form method="POST">
+                <input type="hidden" name="action" value="add_user">
+
+                <!-- Photo has First/Last name fields; backend doesn't store them.
+                     We keep the UI similar but do NOT send them to backend to avoid breaking anything. -->
+                <div class="mb-3">
+                    <div class="field-label">First Name</div>
+                    <input type="text" class="form-control pill-input" placeholder="First Name" disabled>
+                </div>
+
+                <div class="mb-3">
+                    <div class="field-label">Last name</div>
+                    <input type="text" class="form-control pill-input" placeholder="Last name" disabled>
+                </div>
+
+                <div class="mb-3">
+                    <div class="field-label">Email</div>
+                    <input type="email" name="email" class="form-control pill-input" placeholder="staff@byahero.com" required>
+                </div>
+
+                <div class="mb-3">
+                    <div class="field-label">Password</div>
+                    <div class="pw-wrap">
+                        <input type="password" name="password" id="pwField" class="form-control pill-input pe-5" required>
+                        <button type="button" class="pw-eye" id="togglePw" aria-label="Show password">👁</button>
+                    </div>
+                </div>
+
+                <!-- keep role support but visually minimal (not in photo) -->
+                <div class="mb-2">
+                    <select name="role" class="form-select pill-input" aria-label="Role">
+                        <option value="conductor" selected>Conductor</option>
+                        <option value="driver">Driver</option>
+                    </select>
+                </div>
+
+                <div class="save-wrap">
+                    <button type="submit" class="btn btn-primary btn-save">Save</button>
+                </div>
+            </form>
         </div>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-4">
-            <div class="card card-standard h-100">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">person_add</span> Add Conductor / Driver
+    <div class="list-title">Registered Staff</div>
+    <div class="list-card">
+        <?php if(empty($staff)): ?>
+            <div class="text-center text-muted py-4">No staff accounts found.</div>
+        <?php else: foreach($staff as $u): ?>
+            <div class="staff-row">
+                <div style="min-width:0">
+                    <p class="staff-email text-truncate"><?= h($u['email']) ?></p>
+                    <p class="staff-sub"><?= h($u['created_at'] ?? '') ?></p>
                 </div>
-                <div class="card-body">
-                    <form method="POST">
-                        <input type="hidden" name="action" value="add_user">
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Email Address</label>
-                            <input type="email" name="email" class="form-control" placeholder="staff@byahero.com" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Password</label>
-                            <input type="password" name="password" class="form-control" required>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Role</label>
-                            <select name="role" class="form-select" required>
-                                <option value="conductor">Conductor</option>
-                                <option value="driver">Driver</option>
-                            </select>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-brand">Create Account</button>
-                        </div>
+
+                <div class="d-flex align-items-center gap-2">
+                    <span class="role-pill"><?= h($u['role'] ?? 'staff') ?></span>
+
+                    <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');" class="m-0">
+                        <input type="hidden" name="action" value="delete_user">
+                        <input type="hidden" name="id" value="<?= h($u['id']) ?>">
+                        <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
+                        <button class="btn btn-outline-danger btn-remove" type="submit">Remove</button>
                     </form>
                 </div>
             </div>
-        </div>
-
-        <div class="col-lg-8">
-            <div class="card card-standard h-100">
-                <div class="card-header-std">Registered Staff</div>
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light text-muted small text-uppercase">
-                            <tr>
-                                <th>Role</th>
-                                <th>Email</th>
-                                <th>Created At</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if(empty($staff)): ?>
-                                <tr><td colspan="4" class="text-center text-muted py-4">No staff accounts found.</td></tr>
-                            <?php else: foreach($staff as $u): ?>
-                                <tr>
-                                    <td><span class="badge bg-secondary text-uppercase"><?= h($u['role'] ?? 'staff') ?></span></td>
-                                    <td class="fw-bold"><?= h($u['email']) ?></td>
-                                    <td class="small text-muted"><?= h($u['created_at'] ?? '') ?></td>
-                                    <td>
-                                        <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');">
-                                            <input type="hidden" name="action" value="delete_user">
-                                            <input type="hidden" name="id" value="<?= h($u['id']) ?>">
-                                            <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
-                                            <button class="btn btn-sm btn-outline-danger px-2 py-0" title="Delete"><small>Remove</small></button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; endif; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+        <?php endforeach; endif; ?>
     </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const pw = document.getElementById('pwField');
+    const btn = document.getElementById('togglePw');
+
+    btn?.addEventListener('click', () => {
+        const isPw = pw.type === 'password';
+        pw.type = isPw ? 'text' : 'password';
+        btn.textContent = isPw ? '🙈' : '👁';
+    });
+</script>
 </body>
 </html>
