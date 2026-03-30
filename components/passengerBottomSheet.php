@@ -66,7 +66,7 @@ if (!isset($baseUrl)) {
           <div id="tab-groups"
             class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
             <img id="groups-tab-icon"
-              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.png"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.svg"
               alt="groups" style="width: 30px; height: 30px; object-fit: contain;" />
           </div>
         </div>
