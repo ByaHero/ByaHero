@@ -213,6 +213,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         });
                     </script>
+                    <script src="/assets/js/notification-permission-handler.js"></script>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function () {
+                            // Auto-trigger permission popup on first login
+                            NotificationPermissionPopup.checkAndShow();
+                        });
+                    </script>
                 </body>
 
                 </html>
