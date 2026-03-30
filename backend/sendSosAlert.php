@@ -85,7 +85,6 @@ try {
                 'sender_name' => $senderName,
                 'location_text' => $locationText
             ],
-            'android_channel_id' => 'sos_alerts',
             'priority' => 10,
             'ttl' => 3600
         ];
