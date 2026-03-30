@@ -135,11 +135,6 @@ try {
 
     if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
-        // ── 5. Send OneSignal push notification ───────────────────────────────
-    $pushResult = ['skipped' => true];
-
-    if (!empty($playerIds)) {
-        $locSnippet = $locationText ? " at $locationText" : "";
         $pushPayload = [
             'app_id'          => ONESIGNAL_APP_ID,
             
@@ -164,6 +159,7 @@ try {
         ];
 
         $ch = curl_init('https://onesignal.com/api/v1/notifications');
+        // ... (the rest of your curl code remains exactly the same)
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST           => true,
