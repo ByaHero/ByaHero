@@ -61,19 +61,26 @@ if ($playerId === '') {
 }
 
 try {
-    // THE FIX: We added "player_id = ?" to the UPDATE clause
+    // ── THE FIX: Token Stealing (Exclusive Device Ownership) ──
+    // 1. Delete this specific device ID from ANY other user accounts 
+    // to ensure the device only rings for the person currently logged in.
+    $cleanStmt = $conn->prepare("DELETE FROM user_onesignal_tokens WHERE player_id = ? AND user_id != ?");
+    $cleanStmt->bind_param("si", $playerId, $userId);
+    $cleanStmt->execute();
+    $cleanStmt->close();
+
+    // 2. Now insert or safely update the token for the CURRENT user.
     $stmt = $conn->prepare(
         "INSERT INTO user_onesignal_tokens (user_id, player_id)
          VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE player_id = ?, updated_at = CURRENT_TIMESTAMP"
+         ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP"
     );
     
     if (!$stmt) {
         throw new Exception('Prepare failed: ' . $conn->error);
     }
     
-    // THE FIX: We now pass the $playerId twice (once for INSERT, once for UPDATE)
-    $stmt->bind_param("iss", $userId, $playerId, $playerId);
+    $stmt->bind_param("is", $userId, $playerId);
     
     if (!$stmt->execute()) {
         throw new Exception('Execute failed: ' . $stmt->error);
@@ -81,7 +88,7 @@ try {
     
     $stmt->close();
 
-    error_log('[registerOnesignalToken] ✓ Token saved/updated: user_id=' . $userId . ' | player_id=' . $playerId);
+    error_log('[registerOnesignalToken] ✓ Token secured for current user only: user_id=' . $userId . ' | player_id=' . $playerId);
 
     echo json_encode([
         'success'   => true,
