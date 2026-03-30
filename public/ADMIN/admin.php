@@ -96,17 +96,6 @@ $pageType = 'dashboard';
         .stat-card:hover { transform: translateY(-3px); }
 
         .card-total { background: #4e85c5; }
-        .card-active { background: #15b77e; }
-        .card-drivers { background: #addbea; }
-        .card-conductors { background: #2666be; }
-        .card-stops { background: #0ea5e9; }
-        .card-fares { background: #8b5cf6; } /* fares */
-
-        /* ADDED: Operation Schedule card color */
-        .card-schedule { background: #f97316; }
-
-        /* ADDED: Analytics card color */
-        .card-analytics { background: #1e3a8a; }
 
         .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
         .stat-card-number {
@@ -173,7 +162,7 @@ $pageType = 'dashboard';
         </div>
 
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-active">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Active Buses</div>
                 <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
                 <div class="stat-card-number"><?= $activeBusesCount ?></div>
@@ -182,7 +171,7 @@ $pageType = 'dashboard';
 
         <!-- Bus Fares -->
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-fares">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Bus Fares</div>
                 <a class="btn-manage-pill" href="busFare.php">Manage</a>
                 <div class="stat-card-number"><?= $faresCount ?></div>
@@ -191,7 +180,7 @@ $pageType = 'dashboard';
 
         <!-- ADDED: Operation Schedule -->
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-schedule">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Operation Schedule</div>
                 <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
                 <div class="stat-card-number"><?= $scheduleCount ?></div>
@@ -200,7 +189,7 @@ $pageType = 'dashboard';
 
         <!-- ADDED: Analytics card -->
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-analytics">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Analytics</div>
                 <a class="btn-manage-pill" href="analytics.php">View</a>
                 <div class="stat-card-number">—</div>
@@ -209,7 +198,7 @@ $pageType = 'dashboard';
 
         <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-drivers">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Drivers</div>
                 <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
                 <div class="stat-card-number"><?= $driversCount ?></div>
@@ -217,7 +206,7 @@ $pageType = 'dashboard';
         </div>
 
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-stops">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Bus Stops</div>
                 <a class="btn-manage-pill" href="manageStops.php">Manage</a>
                 <div class="stat-card-number"><?= $stopsCount ?></div>
@@ -225,7 +214,7 @@ $pageType = 'dashboard';
         </div>
 
         <div class="col-6 col-lg-4">
-            <div class="stat-card card-conductors">
+            <div class="stat-card card-total">
                 <div class="stat-card-title">Conductors</div>
                 <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
                 <div class="stat-card-number"><?= $conductorsCount ?></div>
