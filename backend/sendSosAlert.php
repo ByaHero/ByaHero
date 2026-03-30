@@ -135,24 +135,32 @@ try {
 
     if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
+        // ── 5. Send OneSignal push notification ───────────────────────────────
+    $pushResult = ['skipped' => true];
+
+    if (!empty($playerIds)) {
+        $locSnippet = $locationText ? " at $locationText" : "";
         $pushPayload = [
-            'app_id'            => ONESIGNAL_APP_ID,
-            'include_player_ids'=> $playerIds,
-            'headings'          => ['en' => '🚨 SOS Alert'],
-            'contents'          => ['en' => "$userName needs help$locSnippet!"],
-            // Deep-link into the SOS / notifications page inside the app
-            'url'               => '',          // leave blank → opens the app
-            'data'              => [
+            'app_id'          => ONESIGNAL_APP_ID,
+            
+            // ── THE FIX: Use target_channel and include_aliases ──
+            'target_channel'  => 'push',
+            'include_aliases' => [
+                'onesignal_id' => $playerIds // Passes the array of all valid circle members
+            ],
+            // ─────────────────────────────────────────────────────
+            
+            'headings'        => ['en' => '🚨 SOS Alert'],
+            'contents'        => ['en' => "$userName needs help$locSnippet!"],
+            'url'             => '', 
+            'data'            => [
                 'type'          => 'sos_alert',
                 'sender_name'   => $userName,
                 'location_text' => $locationText,
             ],
-            // Android channel – create "sos_alerts" in OneSignal dashboard
-            // or remove this line to use the default channel
             'android_channel_id'=> 'sos_alerts',
-            // Make it high-priority so it wakes the screen
             'priority'          => 10,
-            'ttl'               => 3600,        // expire after 1 h if undelivered
+            'ttl'               => 3600,
         ];
 
         $ch = curl_init('https://onesignal.com/api/v1/notifications');
