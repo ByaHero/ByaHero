@@ -25,12 +25,20 @@ if (!$tokenRow) {
 $playerId = $tokenRow['player_id'];
 
 // 2. Build the Push Notification Payload
+// 2. Build the Push Notification Payload
 $pushPayload = [
-    'app_id'             => ONESIGNAL_APP_ID,
-    'include_player_ids' => [$playerId],
-    'headings'           => ['en' => '🚨 ByaHero SOS Test'],
-    'contents'           => ['en' => 'This is a test alert! If you see this, the bridge works perfectly.'],
-    'data'               => [
+    'app_id'          => ONESIGNAL_APP_ID,
+    
+    // ── THE FIX: Tell OneSignal we are using the User ID (onesignal_id) ──
+    'target_channel'  => 'push',
+    'include_aliases' => [
+        'onesignal_id' => [$playerId]
+    ],
+    // ──────────────────────────────────────────────────────────────────────
+    
+    'headings'        => ['en' => '🚨 ByaHero SOS Test'],
+    'contents'        => ['en' => 'This is a test alert! If you see this, the bridge works perfectly.'],
+    'data'            => [
         'type'          => 'sos_alert',
         'sender_name'   => 'Test System',
         'location_text' => 'Calamba Test Coordinates',
