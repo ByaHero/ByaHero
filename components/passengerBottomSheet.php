@@ -84,7 +84,7 @@ if (!isset($baseUrl)) {
     </div>
   </div>
 
-  <div class="flex-grow-1 overflow pb-4 px-3" style="min-height: 0;">
+  <div class="flex-grow-1 pb-4 px-3" style="min-height: 0;">
     <!-- LOCATION VIEW (VISIBLE BY DEFAULT) -->
     <div id="view-location" class="mt-2">
       <div id="busListMobile">
