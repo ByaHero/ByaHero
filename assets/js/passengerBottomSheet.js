@@ -250,8 +250,8 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   var groupsIcon = document.getElementById('groups-tab-icon');
   if (groupsIcon) {
     groupsIcon.src = tabName === 'groups'
-      ? base + '/assets/images/icons/groupsActive.png'
-      : base + '/assets/images/icons/groupsIdle.png';
+      ? base + '/assets/images/icons/groupsActive.svg'
+      : base + '/assets/images/icons/groupsIdle.svg';
   }
 
   // ── Sync route pills ──
