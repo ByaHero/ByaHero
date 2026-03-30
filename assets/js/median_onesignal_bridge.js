@@ -1,11 +1,9 @@
 (function () {
   'use strict';
 
-  // ── CONFIGURATION ───────────────────────────────────────────────────
   var PROJECT_FOLDER = 'ByaHero-Prototype-V3';
-  var DEBUG_MODE = true; // Keep true for now to watch it work
+  var DEBUG_MODE = true; 
 
-  // ── DYNAMIC URL RESOLUTION ──────────────────────────────────────────
   var path = window.location.pathname || '/';
   var baseUrl = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
     ? '/' + PROJECT_FOLDER
@@ -17,7 +15,6 @@
   var _retryTimer = null;
   var MAX_RETRIES = 12;
 
-  // ── ON-SCREEN VISUAL CONSOLE ────────────────────────────────────────
   function uiLog(msg, isError = false) {
     console.log('[SOS]', msg);
     if (!DEBUG_MODE) return;
@@ -31,7 +28,7 @@
             background: 'rgba(0,0,0,0.85)', color: '#0f0', padding: '10px',
             zIndex: '999999', fontSize: '11px', fontFamily: 'monospace',
             borderRadius: '8px', pointerEvents: 'none', maxHeight: '150px', 
-            overflowY: 'auto', border: '1px solid #333'
+            overflowY: 'auto', border: '1px solid #333', wordWrap: 'break-word'
         });
         document.body.appendChild(box);
     }
@@ -44,10 +41,8 @@
     box.scrollTop = box.scrollHeight;
   }
 
-  // ── TOKEN SAVING LOGIC ──────────────────────────────────────────────
   function saveToken(playerId) {
     if (!playerId || _saved) return;
-
     uiLog('Saving real ID: ' + playerId.substring(0,8) + '...');
 
     fetch(REGISTER_URL, {
@@ -61,7 +56,7 @@
         if (d.success) {
           _saved = true;
           window._sosPendingToken = null;
-          uiLog('SUCCESS! Saved to DB. You can send SOS now.');
+          uiLog('SUCCESS! Saved to DB.');
           setTimeout(() => {
               let box = document.getElementById('sos-debug-box');
               if(box) box.style.display = 'none';
@@ -77,23 +72,23 @@
 
   window.sosBridge = { saveToken: saveToken };
 
-  // ── MEDIAN AUTO-CALLBACKS (Modern & Legacy) ─────────────────────────
   window.median_onesignal_info = function (info) {
-    uiLog('Auto-callback triggered by Median!');
-    if (info && info.oneSignalUserId) {
-      window._sosPendingToken = info.oneSignalUserId;
-      saveToken(info.oneSignalUserId);
-    }
+    uiLog('Auto-callback! Raw Data: ' + JSON.stringify(info));
+    let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+    if (id) {
+      window._sosPendingToken = id;
+      saveToken(id);
+    } 
   };
 
   window.gonative_onesignal_info = function (info) {
-    if (info && info.userId) {
-      window._sosPendingToken = info.userId;
-      saveToken(info.userId);
+    let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+    if (id) {
+      window._sosPendingToken = id;
+      saveToken(id);
     }
   };
 
-  // ── THE "PATIENT" POLLER ────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', function () {
     if (_saved || window._sosPendingToken) return;
 
@@ -103,45 +98,34 @@
     let waitInterval = setInterval(function() {
         checks++;
         
-        // Check for Modern Median API
         if (window.median && window.median.onesignal) {
             clearInterval(waitInterval);
             uiLog('Median modern bridge found!');
+            
             window.median.onesignal.onesignalInfo().then(function(info) {
-                if (info && info.oneSignalUserId) {
-                    window._sosPendingToken = info.oneSignalUserId;
-                    saveToken(info.oneSignalUserId);
+                uiLog('API Data: ' + JSON.stringify(info));
+                let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+                
+                if (id) {
+                    window._sosPendingToken = id;
+                    saveToken(id);
                 } else {
-                    uiLog('Median found, but OneSignal ID is empty.', true);
-                }
-            }).catch(e => uiLog('API Error: ' + e.message, true));
-            return;
-        }
-        
-        // Check for Legacy GoNative API
-        if (window.gonative && window.gonative.onesignal) {
-            clearInterval(waitInterval);
-            uiLog('GoNative legacy bridge found!');
-            window.gonative.onesignal.getInfo().then(function(info) {
-                if (info && info.userId) {
-                    window._sosPendingToken = info.userId;
-                    saveToken(info.userId);
+                    uiLog('ID is empty! Forcing native permission prompt...', true);
+                    // ── FORCING THE PROMPT ──
+                    // This tells the Median native wrapper to launch the permission request
+                    window.location.href = 'median://onesignal/register';
                 }
             }).catch(e => uiLog('API Error: ' + e.message, true));
             return;
         }
 
-        // Give up after 8 seconds (16 checks)
         if (checks >= 16) {
             clearInterval(waitInterval);
             uiLog('Timed out waiting for Median app.', true);
-            uiLog('Using test token as fallback.', true);
-            saveToken('test-player-id-' + Date.now());
         }
-    }, 500); // Check every half second
+    }, 500); 
   });
 
-  // ── IN-APP SOS BANNER (Unchanged) ───────────────────────────────────
   window.gonative_onesignal_notification_received = function (data) { /* ... */ };
   window.gonative_onesignal_notification_opened = function (data) { /* ... */ };
 
