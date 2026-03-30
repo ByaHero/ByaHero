@@ -61,17 +61,19 @@ if ($playerId === '') {
 }
 
 try {
+    // THE FIX: We added "player_id = ?" to the UPDATE clause
     $stmt = $conn->prepare(
         "INSERT INTO user_onesignal_tokens (user_id, player_id)
          VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP"
+         ON DUPLICATE KEY UPDATE player_id = ?, updated_at = CURRENT_TIMESTAMP"
     );
     
     if (!$stmt) {
         throw new Exception('Prepare failed: ' . $conn->error);
     }
     
-    $stmt->bind_param("is", $userId, $playerId);
+    // THE FIX: We now pass the $playerId twice (once for INSERT, once for UPDATE)
+    $stmt->bind_param("iss", $userId, $playerId, $playerId);
     
     if (!$stmt->execute()) {
         throw new Exception('Execute failed: ' . $stmt->error);
@@ -79,7 +81,7 @@ try {
     
     $stmt->close();
 
-    error_log('[registerOnesignalToken] ✓ Token saved: user_id=' . $userId . ' | player_id=' . $playerId);
+    error_log('[registerOnesignalToken] ✓ Token saved/updated: user_id=' . $userId . ' | player_id=' . $playerId);
 
     echo json_encode([
         'success'   => true,
