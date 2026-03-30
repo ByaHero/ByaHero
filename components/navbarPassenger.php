@@ -494,6 +494,8 @@ else: ?>
   </div>
 </div>
 
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/auto-subscribe-onesignal.js"></script>
+
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 
 <script>
