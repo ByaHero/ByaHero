@@ -3,8 +3,8 @@
     "geometry": {
         "type": "Point",
         "coordinates": [
-            121.17074349939371,
-            14.075117793790833
+            121.17075401723555,
+            14.075093018050012
         ]
     },
     "properties": {
@@ -13,8 +13,8 @@
         "route": "LAUREL - TANAUAN",
         "seats_available": 25,
         "status": "available",
-        "timestamp": "2026-03-27T14:11:56.568Z",
-        "current_location_name": "14.07512, 121.17074",
-        "Current Location": "14.07512, 121.17074"
+        "timestamp": "2026-03-30T05:30:29.762Z",
+        "current_location_name": "14.07509, 121.17075",
+        "Current Location": "14.07509, 121.17075"
     }
 }
