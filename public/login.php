@@ -213,27 +213,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         });
                     </script>
-                    <script src="/assets/js/auto-subscribe-onesignal.js"></script>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            // Auto-subscribe after login
-                            AutoSubscribeOneSignal.subscribe()
-                                .then(() => {
-                                    console.log('✓ Device auto-subscribed to OneSignal');
-                                })
-                                .catch(error => {
-                                    console.warn('⚠ Auto-subscription pending:', error);
-                                });
-                        });
-                    </script>
-                    <script src="/assets/js/notification-permission-handler.js"></script>
-                    <script>
-                        document.addEventListener('DOMContentLoaded', function () {
-                            // Auto-trigger permission popup on first login
-                            NotificationPermissionPopup.checkAndShow();
-                        });
-                    </script>
-
                 </body>
 
                 </html>
