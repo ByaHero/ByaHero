@@ -50,7 +50,7 @@ if ($userId) {
     };
     window.median_onesignal_info = window.gonative_onesignal_info;
     </script>
-    <script src="/assets/js/median_onesignal_bridge.js"></script>
+    <script src="../../assets/js/median_onesignal_bridge.js"></script>
 </head>
 <body class="bg-light p-4">
 
