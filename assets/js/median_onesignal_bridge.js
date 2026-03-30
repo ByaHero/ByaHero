@@ -41,6 +41,16 @@
     box.scrollTop = box.scrollHeight;
   }
 
+  function extractId(info) {
+    // We now check for the exact variables your app returned in the screenshot
+    if (!info) return null;
+    return info.oneSignalId || 
+           (info.subscription && info.subscription.id) || 
+           info.oneSignalUserId || 
+           info.userId || 
+           info.subscriptionId;
+  }
+
   function saveToken(playerId) {
     if (!playerId || _saved) return;
     uiLog('Saving real ID: ' + playerId.substring(0,8) + '...');
@@ -73,8 +83,7 @@
   window.sosBridge = { saveToken: saveToken };
 
   window.median_onesignal_info = function (info) {
-    uiLog('Auto-callback! Raw Data: ' + JSON.stringify(info));
-    let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+    let id = extractId(info);
     if (id) {
       window._sosPendingToken = id;
       saveToken(id);
@@ -82,7 +91,7 @@
   };
 
   window.gonative_onesignal_info = function (info) {
-    let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+    let id = extractId(info);
     if (id) {
       window._sosPendingToken = id;
       saveToken(id);
@@ -100,20 +109,15 @@
         
         if (window.median && window.median.onesignal) {
             clearInterval(waitInterval);
-            uiLog('Median modern bridge found!');
             
             window.median.onesignal.onesignalInfo().then(function(info) {
-                uiLog('API Data: ' + JSON.stringify(info));
-                let id = info?.oneSignalUserId || info?.userId || info?.subscriptionId;
+                let id = extractId(info);
                 
                 if (id) {
                     window._sosPendingToken = id;
                     saveToken(id);
                 } else {
-                    uiLog('ID is empty! Forcing native permission prompt...', true);
-                    // ── FORCING THE PROMPT ──
-                    // This tells the Median native wrapper to launch the permission request
-                    window.location.href = 'median://onesignal/register';
+                    uiLog('ID still empty. Please check OneSignal dashboard.', true);
                 }
             }).catch(e => uiLog('API Error: ' + e.message, true));
             return;
