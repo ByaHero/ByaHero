@@ -28,9 +28,9 @@
     ? '/' + PROJECT_FOLDER
     : '';
 
-  window.PROJECT_BASE   = base;
-  window.APP_BASE_URL   = base;          // alias used by icon-swap code below
-  window.ICON_BASE      = base + '/assets/images/icons';
+  window.PROJECT_BASE = base;
+  window.APP_BASE_URL = base;          // alias used by icon-swap code below
+  window.ICON_BASE = base + '/assets/images/icons';
 })();
 
 
@@ -38,23 +38,20 @@
 // 1. BOTTOM SHEET – SWIPE / DRAG LOGIC
 // ---------------------------------------------------------------------------
 document.addEventListener('DOMContentLoaded', function () {
-  var sheet  = document.getElementById('bottomSheet');
+  var sheet = document.getElementById('bottomSheet');
   var header = document.getElementById('sheetHeader');
   if (!sheet || !header) return;
 
-  var startY     = 0;
+  var startY = 0;
   var startHeight = 0;
   var isDragging = false;
-  var moved      = false;
+  var moved = false;
 
   header.addEventListener('touchstart', function (e) {
-    // Only start drag from the small pill handle, not from tab/content taps
-    var handle = e.target.closest('.sheet-drag-handle');
-    if (!handle) return;
-
-    isDragging  = true;
-    moved       = false;
-    startY      = e.touches[0].clientY;
+    // Make the entire header area draggable (any touch inside #sheetHeader)
+    isDragging = true;
+    moved = false;
+    startY = e.touches[0].clientY;
     startHeight = sheet.clientHeight;
     sheet.classList.remove('sheet-transition');
   }, { passive: false });
@@ -63,15 +60,20 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!isDragging) return;
 
     var currentY = e.touches[0].clientY;
-    var deltaY   = startY - currentY;
+    var deltaY = startY - currentY;
 
-    if (Math.abs(deltaY) > 5) {
+    // Lower threshold so even small drags feel responsive,
+    // but still avoid blocking tiny accidental touches.
+    if (Math.abs(deltaY) > 3) {
       moved = true;
       e.preventDefault();
 
       var newHeight = startHeight + deltaY;
-      var maxHeight = window.innerHeight * 0.95;
-      var minHeight = window.innerHeight * 0.10;
+
+      // Allow a bit more travel so stretch scaling from Median
+      // doesn't make the sheet feel "capped" too early.
+      var maxHeight = window.innerHeight * 0.98; // was 0.95
+      var minHeight = window.innerHeight * 0.08; // was 0.10
 
       if (newHeight >= minHeight && newHeight <= maxHeight) {
         sheet.style.height = newHeight + 'px';
@@ -87,11 +89,17 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!moved) return; // treat as tap – do nothing
 
     var currentHeight = sheet.clientHeight;
-    var windowHeight  = window.innerHeight;
+    var windowHeight = window.innerHeight;
 
-    if (currentHeight > windowHeight * 0.65)      sheet.style.height = '85%';
-    else if (currentHeight < windowHeight * 0.25) sheet.style.height = '15%';
-    else                                           sheet.style.height = '35%';
+    // Soften thresholds a bit so the snap feels less "stiff"
+    // under Median's stretch behavior.
+    if (currentHeight > windowHeight * 0.70) {
+      sheet.style.height = '85%';   // mostly expanded
+    } else if (currentHeight < windowHeight * 0.20) {
+      sheet.style.height = '15%';   // mostly collapsed
+    } else {
+      sheet.style.height = '35%';   // mid state
+    }
   });
 });
 
@@ -103,7 +111,7 @@ window.filterRouteOptions = function () {
   var input = document.getElementById('routeFilterInput');
   if (!input) return;
 
-  var query   = input.value.trim().toLowerCase();
+  var query = input.value.trim().toLowerCase();
   var options = document.querySelectorAll('.route-filter-option');
 
   options.forEach(function (btn) {
@@ -124,34 +132,34 @@ window.updateRoutePills = function () {
   // ── new-design filter options (route-filter-option buttons in the sheet) ──
   var options = document.querySelectorAll('.route-filter-option');
   options.forEach(function (btn) {
-    var r        = (btn.getAttribute('data-route') || '').toUpperCase();
+    var r = (btn.getAttribute('data-route') || '').toUpperCase();
     var isActive = r === route || (!r && !route);
     btn.classList.toggle('route-filter-option--active', isActive);
   });
 
   // ── legacy pill buttons (route-pill-* ids used by the Routes tab) ──
   var all = document.getElementById('route-pill-all');
-  var lt  = document.getElementById('route-pill-laurel-tanauan');
-  var tl  = document.getElementById('route-pill-tanauan-laurel');
+  var lt = document.getElementById('route-pill-laurel-tanauan');
+  var tl = document.getElementById('route-pill-tanauan-laurel');
 
   function activePillStyle(el, active) {
     if (!el) return;
     if (active) {
       el.style.backgroundColor = '#1e3a8a';
-      el.style.color           = 'white';
-      el.style.fontWeight      = '600';
-      el.style.border          = 'none';
+      el.style.color = 'white';
+      el.style.fontWeight = '600';
+      el.style.border = 'none';
     } else {
       el.style.backgroundColor = 'white';
-      el.style.color           = '#1f2937';
-      el.style.fontWeight      = '500';
-      el.style.border          = '1px solid #e5e7eb';
+      el.style.color = '#1f2937';
+      el.style.fontWeight = '500';
+      el.style.border = '1px solid #e5e7eb';
     }
   }
 
   activePillStyle(all, route === '');
-  activePillStyle(lt,  route === 'LAUREL - TANAUAN');
-  activePillStyle(tl,  route === 'TANAUAN - LAUREL');
+  activePillStyle(lt, route === 'LAUREL - TANAUAN');
+  activePillStyle(tl, route === 'TANAUAN - LAUREL');
 };
 
 
@@ -175,10 +183,10 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   if (selectedView) selectedView.classList.remove('d-none');
 
   // ── Reset all tab styles ──
-  var tabLocation  = document.getElementById('tab-location');
-  var tabRoutes    = document.getElementById('tab-routes');
-  var tabBusstops  = document.getElementById('tab-busstops');
-  var tabGroups    = document.getElementById('tab-groups');
+  var tabLocation = document.getElementById('tab-location');
+  var tabRoutes = document.getElementById('tab-routes');
+  var tabBusstops = document.getElementById('tab-busstops');
+  var tabGroups = document.getElementById('tab-groups');
 
   [tabLocation, tabRoutes, tabBusstops, tabGroups].forEach(function (el) {
     if (!el) return;
@@ -189,9 +197,9 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   // ── Activate selected tab ──
   var activeTab = null;
   if (tabName === 'location') activeTab = tabLocation;
-  else if (tabName === 'routes')   activeTab = tabRoutes;
+  else if (tabName === 'routes') activeTab = tabRoutes;
   else if (tabName === 'busstops') activeTab = tabBusstops;
-  else if (tabName === 'groups')   activeTab = tabGroups;
+  else if (tabName === 'groups') activeTab = tabGroups;
 
   if (activeTab) {
     activeTab.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
@@ -277,7 +285,7 @@ window.switchSheetTab = function switchSheetTab(tabName) {
  */
 window.setBusStopsVisibility = function setBusStopsVisibility(show) {
   var markers = window._stopMarkers;
-  var map     = window._map;
+  var map = window._map;
   if (!markers || !map) return;
 
   Object.values(markers).forEach(function (m) {
@@ -292,7 +300,7 @@ window.setBusStopsVisibility = function setBusStopsVisibility(show) {
  */
 window.focusStop = function focusStop(id) {
   var markers = window._stopMarkers;
-  var map     = window._map;
+  var map = window._map;
   if (!markers || !map) return;
 
   var m = markers[String(id)];
