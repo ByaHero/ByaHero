@@ -137,6 +137,15 @@
     }
   };
 
+  function resumeIfNeeded(reason) {
+    if (_saved) return;
+    dbg('log', '[SOS] Resume triggered by ' + reason);
+    ensurePushRegistration(true);
+    var pending = getPendingToken();
+    if (pending) saveToken(pending);
+    startAutoPoll();
+  }
+
   // On DOM ready: use pending token if already caught, otherwise
   // start automatic polling so users never have to tap "Pull Token"
   document.addEventListener('DOMContentLoaded', function() {
@@ -150,6 +159,12 @@
     }
     startAutoPoll();
   });
+
+  // Resume polling whenever the page becomes visible/focused again
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'visible') resumeIfNeeded('visibilitychange');
+  });
+  window.addEventListener('focus', function () { resumeIfNeeded('focus'); });
 
   // Foreground push received while app is open
   window.gonative_onesignal_notification_received = function(data) {
