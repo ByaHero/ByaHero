@@ -50,23 +50,10 @@
   }
 
   // Public API
-  // Public API
   window.sosBridge = {
     saveToken: saveToken,
-    isSaved: function () { return _saved; },
-    getPlayerId: function () { return _playerId; },
-    
-    // NEW: Function to explicitly ask for push notification permissions
-    requestPermission: function() {
-      if (window.median && window.median.onesignal && window.median.onesignal.register) {
-          window.median.onesignal.register();
-      } else if (window.gonative && window.gonative.onesignal && window.gonative.onesignal.register) {
-          window.gonative.onesignal.register();
-      } else {
-          // Fallback for older median wrapper versions
-          window.location.href = 'gonative://onesignal/register';
-      }
-    }
+    isSaved: function() { return _saved; },
+    getPlayerId: function() { return _playerId; }
   };
 
   // Called by Median immediately on app launch (may fire before DOM is ready)
