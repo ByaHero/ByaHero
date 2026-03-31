@@ -210,7 +210,7 @@
         }
         return tryMedianGetInfo().then(function(mid) {
           if (mid) {
-            dbg('log', '[SOS] Extracted ID from SDKs: ' + mid);
+            dbg('log', '[SOS] Extracted ID from Median getInfo: ' + mid);
             saveToken(mid);
             return true;
           }
@@ -264,7 +264,8 @@
   function tryMedianGetInfo() {
     return new Promise(function(resolve) {
       if (!(window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.getInfo === 'function')) {
-        return resolve(null);
+        resolve(null);
+        return;
       }
       try {
         var res = window.gonative.onesignal.getInfo();
