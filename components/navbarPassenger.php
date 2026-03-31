@@ -451,6 +451,14 @@ else: ?>
         OneSignal Debug
       </a>
 
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>backend/check_tokens.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
+        </div>
+        OneSignal Debug
+      </a>
+
       <?php if (isset($_SESSION['user_id'])): ?>
         <!-- Logged-in: show Log out, route through logout.php -->
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
