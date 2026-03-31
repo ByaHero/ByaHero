@@ -85,13 +85,12 @@
     if (_playerId === playerId) {
       if (_saved || _retryTimer) return;
     } else if (_retryTimer) {
+      // New token arrived while a retry was queued for another token; cancel the old retry.
       clearTimeout(_retryTimer);
       _retryTimer = null;
     }
     _playerId = playerId;
     persistPendingToken(playerId);
-
-    if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
 
     dbg('log', '[SOS] Posting to: ' + REGISTER_URL);
     fetch(REGISTER_URL, {
@@ -156,13 +155,16 @@
   };
 
   function resumeIfNeeded(reason) {
+    // Skip when already saved or when the debounce timer is active to avoid duplicate work.
     if (_saved) return;
     if (_resumeCooldownTimer) return;
     _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
     var shouldResume = pending || !_registrationAttempted || !_autoPollTimer;
-    if (pending) saveToken(pending);
+    if (pending) {
+      saveToken(pending);
+    }
     // Resume if we have a pending token to save, if registration was never attempted,
     // or if auto-polling stopped (e.g., after hitting max attempts).
     if (!shouldResume) return;
