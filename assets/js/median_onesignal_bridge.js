@@ -14,6 +14,7 @@
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
   var NORMAL_RETRY_DELAY_MS  = 5000;
+  // Debounce interval to avoid duplicate resume triggers when focus/visibility both fire
   var RESUME_COOLDOWN_MS     = 800;
 
   // Safe console wrapper – never crashes if console is unavailable
@@ -81,8 +82,12 @@
 
   function saveToken(playerId) {
     if (!playerId) return;
-    if (_playerId !== playerId && _retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
-    if (_playerId === playerId && (_saved || _retryTimer)) return;
+    if (_playerId === playerId) {
+      if (_saved || _retryTimer) return;
+    } else if (_retryTimer) {
+      clearTimeout(_retryTimer);
+      _retryTimer = null;
+    }
     _playerId = playerId;
     persistPendingToken(playerId);
 
@@ -156,13 +161,13 @@
     _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
+    var shouldResume = pending || !_registrationAttempted || !_autoPollTimer;
     if (pending) saveToken(pending);
     // Resume if we have a pending token to save, if registration was never attempted,
     // or if auto-polling stopped (e.g., after hitting max attempts).
-    if (pending || !_registrationAttempted || !_autoPollTimer) {
-      ensurePushRegistration(true);
-      startAutoPoll();
-    }
+    if (!shouldResume) return;
+    ensurePushRegistration(true);
+    startAutoPoll();
   }
 
   function clearResumeCooldown() {
