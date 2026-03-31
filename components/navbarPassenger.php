@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
-$defaultBack = $depth . 'passenger/index.php';
+$defaultBack = $depth . 'public/passenger/index.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
 // 2) Get base URL for icons
@@ -244,7 +244,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
-    <a href="<?php echo $backTarget; ?>"
+    <a href="<?php echo $defaultBack; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
       <span class="material-symbols-rounded text-white">arrow_back</span>
     </a>
@@ -474,7 +474,7 @@ else: ?>
         <button id="nav-info"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
-          <img id="nav-info-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busBlack.svg"
+          <img id="nav-info-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busActive.svg"
             alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="nav-label">BUS INFO</span>
         </button>
@@ -513,9 +513,9 @@ else: ?>
     // Update Bus Info icon
     if (infoIcon) {
       if (activeButton === infoBtn) {
-        infoIcon.src = `${base}/assets/images/icons/busBlack.svg`;
+        infoIcon.src = `${base}/assets/images/icons/busActive.svg`;
       } else {
-        infoIcon.src = `${base}/assets/images/icons/busBlack.svg`;
+        infoIcon.src = `${base}/assets/images/icons/busActive.svg`;
       }
     }
   };
