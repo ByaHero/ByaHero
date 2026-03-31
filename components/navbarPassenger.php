@@ -190,16 +190,34 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   }
 </style>
 <script>
+  // APP_BASE_URL must be set BEFORE median_onesignal_bridge.js loads
+  // so the bridge can build the correct REGISTER_URL (Bug 3 fix).
+  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+
+  // Early catcher — Median may fire gonative_onesignal_info before the DOM
+  // is ready, so we must define these callbacks immediately (Bug 2 fix).
   window._sosPendingToken = null;
-  window.gonative_onesignal_info = function (info) {
+  window._gonativeInfoLog  = [];
+
+  function _sosHandleInfo(info) {
+    window._gonativeInfoLog.push({ time: new Date().toISOString(), info: info });
     var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-      || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+          || (info.subscription && info.subscription.id) || info.oneSignalUserId);
     if (!id) return;
     window._sosPendingToken = id;
-    if (window.sosBridge) window.sosBridge.saveToken(id);
-  };
-  window.median_onesignal_info = window.gonative_onesignal_info;
+    // sosBridge may already be available if the bridge script finished loading
+    // before Median fired this callback (Bug 4 fix — no silent skip).
+    if (window.sosBridge) {
+      window.sosBridge.saveToken(id);
+    }
+  }
+
+  window.gonative_onesignal_info = _sosHandleInfo;
+  window.median_onesignal_info   = _sosHandleInfo;
 </script>
+<!-- Bridge script loads immediately after the early catcher so sosBridge
+     exists as early as possible in the page lifecycle (Bug 2 fix). -->
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
@@ -494,11 +512,9 @@ else: ?>
   </div>
 </div>
 
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
-
 <script>
-  // Expose base URL for icon swapping
-  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+  // APP_BASE_URL is already set at the top of this file before the bridge loaded.
+  // This comment replaces the duplicate assignment and script tag that were here.
 
   // ===== BOTTOM NAV ICON SWAPPING =====
   window.updateBottomNavIcons = function (activeButton) {

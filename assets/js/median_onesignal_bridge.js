@@ -1,7 +1,9 @@
 (function () {
   'use strict';
 
-  var REGISTER_URL = '/backend/registerOnesignalToken.php';
+  // Derive URL from APP_BASE_URL so subdirectory installs work correctly.
+  // APP_BASE_URL is set by navbarPassenger.php before this script loads.
+  var REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
   var _saved       = false;
   var _retryTimer  = null;
   var _playerId    = null;

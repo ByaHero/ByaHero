@@ -80,6 +80,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($authenticated && $userRecord) {
+                // Regenerate session ID to prevent session-fixation attacks (Bug 6 fix)
+                session_regenerate_id(true);
+
                 $_SESSION['user_id'] = $userRecord['id'];
                 $_SESSION['user_email'] = $userRecord['email'];
                 $_SESSION['user_role'] = $userRole;
@@ -100,21 +103,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <meta name="viewport" content="width=device-width,initial-scale=1">
                     <title>Logging in...</title>
 
-                    <!-- EARLY CATCHER: must be first script, before bridge loads -->
+                    <!-- APP_BASE_URL + EARLY CATCHER must come before the bridge script (Bug 3+4 fix) -->
                     <script>
+                        // Must be set before bridge.js loads so REGISTER_URL is built correctly (Bug 3 fix)
+                        window.APP_BASE_URL = "<?= addslashes($baseUrl) ?>";
+
                         window._sosPendingToken = null;
-                        window.gonative_onesignal_info = function (info) {
+                        function _sosHandleInfo(info) {
                             var id = info && (info.oneSignalId || info.userId || info.subscriptionId
                                 || (info.subscription && info.subscription.id) || info.oneSignalUserId);
-                            if (id) {
-                                window._sosPendingToken = id;
-                                if (window.sosBridge) window.sosBridge.saveToken(id);
-                            }
-                        };
-                        window.median_onesignal_info = window.gonative_onesignal_info;
+                            if (!id) return;
+                            window._sosPendingToken = id;
+                            // sosBridge is available immediately after bridge.js below (Bug 4 fix)
+                            if (window.sosBridge) window.sosBridge.saveToken(id);
+                        }
+                        window.gonative_onesignal_info = _sosHandleInfo;
+                        window.median_onesignal_info   = _sosHandleInfo;
                     </script>
 
-                    <script src="/assets/js/median_onesignal_bridge.js"></script>
+                    <!-- Bug 1 fix: use $baseUrl so subdirectory installs resolve correctly -->
+                    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/js/median_onesignal_bridge.js"></script>
 
                     <style>
                         body {
@@ -169,9 +177,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
 
-                        // Try to save token, then redirect when done (or after timeout)
+                        // Bug 2 fix: build URL from APP_BASE_URL, not a hard-coded absolute path
                         function syncThenRedirect(playerId) {
-                            fetch('/backend/registerOnesignalToken.php', {
+                            fetch((window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php', {
                                 method: 'POST',
                                 credentials: 'include',
                                 headers: { 'Content-Type': 'application/json' },
@@ -236,7 +244,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script src="../assets/js/median_onesignal_bridge.js"></script>
+    <!-- APP_BASE_URL + early catcher before bridge loads (Bug 5 fix) -->
+    <script>
+        window.APP_BASE_URL = "<?= addslashes($baseUrl) ?>";
+        window._sosPendingToken = null;
+        function _sosHandleInfo(info) {
+            var id = info && (info.oneSignalId || info.userId || info.subscriptionId
+                || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+            if (!id) return;
+            window._sosPendingToken = id;
+            if (window.sosBridge) window.sosBridge.saveToken(id);
+        }
+        window.gonative_onesignal_info = _sosHandleInfo;
+        window.median_onesignal_info   = _sosHandleInfo;
+    </script>
+    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/js/median_onesignal_bridge.js"></script>
     <style>
         /* ... Your existing CSS remains exactly the same ... */
         :root {

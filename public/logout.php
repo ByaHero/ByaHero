@@ -32,6 +32,11 @@ if (isset($_COOKIE[session_name()])) {
 }
 
 // 4. Redirect to passenger index (accessibility settings persist in localStorage)
-header("Location: passenger/index.php");
+$host     = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
+          . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+// Resolve the app base so the redirect works in both root and subdirectory installs
+$script   = $_SERVER['SCRIPT_NAME'] ?? '/public/logout.php';
+$base     = preg_replace('~/public/.*$~', '', $script); // e.g. '' or '/byahero'
+header('Location: ' . $host . $base . '/public/passenger/index.php');
 exit;
 ?>
