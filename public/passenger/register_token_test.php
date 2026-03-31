@@ -39,16 +39,36 @@ if ($userId) {
     <script>
     window._sosPendingToken = null;
     window._gonativeInfoLog = [];
-    window.gonative_onesignal_info = function(info) {
+
+    function _sosHandleInfo(info) {
         window._gonativeInfoLog.push({time: new Date().toISOString(), info: info});
-        var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-               || (info.subscription && info.subscription.id) || info.oneSignalUserId);
-        if (!id) return;
+        console.log('[OneSignal] Info received:', JSON.stringify(info));
+
+        // Try all possible property names
+        var id = info && (
+            info.oneSignalId ||
+            info.userId ||
+            info.subscriptionId ||
+            info.oneSignalUserId ||
+            info.pushToken ||
+            info.playerId ||
+            info.id ||
+            (info.subscription && info.subscription.id)
+        );
+
+        if (!id) {
+            console.warn('[OneSignal] No ID found in info object');
+            return;
+        }
+
+        console.log('[OneSignal] Token extracted:', id);
         window._sosPendingToken = id;
         document.getElementById('detected-id') && (document.getElementById('detected-id').textContent = id);
         if (window.sosBridge) window.sosBridge.saveToken(id);
-    };
-    window.median_onesignal_info = window.gonative_onesignal_info;
+    }
+
+    window.gonative_onesignal_info = _sosHandleInfo;
+    window.median_onesignal_info = _sosHandleInfo;
     </script>
     <script src="../../assets/js/median_onesignal_bridge.js"></script>
 </head>

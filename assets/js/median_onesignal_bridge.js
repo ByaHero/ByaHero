@@ -9,14 +9,35 @@
   var _playerId    = null;
 
   // Extracts the player/subscription ID from any Median/OneSignal info object
+  // Tries all known property names used by different Median/OneSignal SDK versions
   function extractId(info) {
     if (!info) return null;
-    return info.oneSignalId
+
+    // Direct properties (most common)
+    var id = info.oneSignalId
         || info.userId
         || info.subscriptionId
         || info.oneSignalUserId
-        || (info.subscription && info.subscription.id)
-        || null;
+        || info.pushToken
+        || info.playerId
+        || info.id;
+
+    if (id) return id;
+
+    // Nested in subscription object
+    if (info.subscription) {
+      id = info.subscription.id
+        || info.subscription.subscriptionId
+        || info.subscription.pushToken;
+      if (id) return id;
+    }
+
+    // Fallback: if info itself is a string, use it directly
+    if (typeof info === 'string' && info.length > 10) {
+      return info;
+    }
+
+    return null;
   }
 
   function saveToken(playerId) {
@@ -70,29 +91,69 @@
     if (id) saveToken(id);
   };
 
+  // Helper: log with timestamp
+  function log(msg) {
+    console.log('[OneSignal Bridge] ' + msg);
+  }
+
   // On DOM ready: use pending token if already caught, otherwise
   // pull from Median JS API directly (correct API: gonative.onesignal.getInfo)
   document.addEventListener('DOMContentLoaded', function() {
-    if (_saved) return;
+    if (_saved) {
+      log('Already saved, skipping init');
+      return;
+    }
 
     // Already caught by the early <head> catcher or the callbacks above
     if (window._sosPendingToken) {
+      log('Using pending token from early catcher');
       saveToken(window._sosPendingToken);
       return;
     }
 
     // Pull directly from Median's JS bridge API
     if (window.gonative && window.gonative.onesignal) {
+      log('Calling gonative.onesignal.getInfo()...');
+      window.gonative.onesignal.getInfo()
+        .then(function(info) {
+          log('getInfo() returned: ' + JSON.stringify(info));
+          var id = extractId(info);
+          if (id) {
+            log('Extracted ID: ' + id);
+            saveToken(id);
+          } else {
+            log('No ID found in getInfo() response');
+          }
+        })
+        .catch(function(e) {
+          log('getInfo() failed: ' + (e.message || e));
+        });
+    } else {
+      log('gonative.onesignal not available (not in Median shell?)');
+    }
+  });
+
+  // Retry mechanism: if no token after 2 seconds, try pulling again
+  // This handles cases where Median SDK initializes slowly
+  setTimeout(function() {
+    if (_saved) return;
+    if (window._sosPendingToken) return;
+
+    log('Retry: attempting to pull token after delay...');
+    if (window.gonative && window.gonative.onesignal) {
       window.gonative.onesignal.getInfo()
         .then(function(info) {
           var id = extractId(info);
-          if (id) saveToken(id);
+          if (id) {
+            log('Retry succeeded with ID: ' + id);
+            saveToken(id);
+          }
         })
         .catch(function(e) {
-          console.warn('[SOS] gonative.onesignal.getInfo() failed:', e);
+          log('Retry failed: ' + (e.message || e));
         });
     }
-  });
+  }, 2000);
 
   // Foreground push received while app is open
   window.gonative_onesignal_notification_received = function(data) {

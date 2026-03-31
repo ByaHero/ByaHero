@@ -43,11 +43,38 @@ if (isset($_SESSION['user_id'])) {
 
   <script>
     window._sosPendingToken = null;
-    window.gonative_onesignal_info = function (info) {
-      if (!info || !info.userId) return;
-      window._sosPendingToken = info.userId;
-      if (window.sosBridge) window.sosBridge.saveToken(info.userId);
-    };
+    window._gonativeInfoLog = [];
+
+    function _sosHandleInfo(info) {
+      window._gonativeInfoLog.push({ time: new Date().toISOString(), info: info });
+      console.log('[OneSignal] Info received:', JSON.stringify(info));
+
+      // Try all possible property names for the token
+      var id = info && (
+        info.oneSignalId ||
+        info.userId ||
+        info.subscriptionId ||
+        info.oneSignalUserId ||
+        info.pushToken ||
+        info.playerId ||
+        info.id ||
+        (info.subscription && info.subscription.id)
+      );
+
+      if (!id) {
+        console.warn('[OneSignal] No ID found in info object');
+        return;
+      }
+
+      console.log('[OneSignal] Extracted token:', id);
+      window._sosPendingToken = id;
+      if (window.sosBridge) {
+        window.sosBridge.saveToken(id);
+      }
+    }
+
+    window.gonative_onesignal_info = _sosHandleInfo;
+    window.median_onesignal_info = _sosHandleInfo;
   </script>
   <script src="../../assets/js/accessibility.js"></script>
 
