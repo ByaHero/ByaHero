@@ -14,7 +14,8 @@
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
   var NORMAL_RETRY_DELAY_MS  = 5000;
-  // Debounce interval to avoid duplicate resume triggers when focus/visibility both fire
+  // Debounce interval to avoid duplicate resume triggers when focus/visibility both fire within the same tick.
+  // 800ms is long enough to skip the typical double-fire sequence when switching tabs/apps without delaying retries too much.
   var RESUME_COOLDOWN_MS     = 800;
 
   // Safe console wrapper – never crashes if console is unavailable
@@ -158,13 +159,13 @@
     // Skip when already saved or when the debounce timer is active to avoid duplicate work.
     if (_saved) return;
     if (_resumeCooldownTimer) return;
-    _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
-    var shouldResume = pending || !_registrationAttempted || !_autoPollTimer;
+    var shouldAttemptRegistration = pending || !_registrationAttempted || !_autoPollTimer;
     // Resume if we have a pending token to save, if registration was never attempted,
     // or if auto-polling stopped (e.g., after hitting max attempts).
-    if (!shouldResume) return;
+    if (!shouldAttemptRegistration) return;
+    _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     if (pending) {
       saveToken(pending);
     }
@@ -191,10 +192,13 @@
   });
 
   // Resume polling whenever the page becomes visible/focused again
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'visible') resumeIfNeeded('visibilitychange');
-  });
-  window.addEventListener('focus', function () { resumeIfNeeded('focus'); });
+  if (!window._sosResumeHandlersBound) {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') resumeIfNeeded('visibilitychange');
+    });
+    window.addEventListener('focus', function () { resumeIfNeeded('focus'); });
+    window._sosResumeHandlersBound = true;
+  }
 
   // Foreground push received while app is open
   window.gonative_onesignal_notification_received = function(data) {
