@@ -83,12 +83,12 @@
   function saveToken(playerId) {
     if (!playerId) return;
     if (_saved && _playerId === playerId) return;
-    if (_playerId !== playerId && _retryTimer) {
+    if (_retryTimer) {
+      if (_playerId === playerId) return;
       // New token arrived while a retry was queued for another token; cancel the old retry.
       clearTimeout(_retryTimer);
       _retryTimer = null;
     }
-    if (_playerId === playerId && _retryTimer) return;
     _playerId = playerId;
     persistPendingToken(playerId);
 
@@ -161,13 +161,13 @@
     _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
-    if (pending) {
-      saveToken(pending);
-    }
     var shouldResume = pending || !_registrationAttempted || !_autoPollTimer;
     // Resume if we have a pending token to save, if registration was never attempted,
     // or if auto-polling stopped (e.g., after hitting max attempts).
     if (!shouldResume) return;
+    if (pending) {
+      saveToken(pending);
+    }
     ensurePushRegistration(true);
     startAutoPoll();
   }
