@@ -26,17 +26,17 @@
 
   function persistPendingToken(token) {
     window._sosPendingToken = token;
-    try { if (token) localStorage.setItem(PENDING_TOKEN_KEY, token); } catch (e) {}
+    try { if (token) localStorage.setItem(PENDING_TOKEN_KEY, token); } catch (e) { dbg('warn', '[SOS] persistPendingToken failed: ' + (e && e.message)); }
   }
 
   function clearPendingToken() {
     window._sosPendingToken = null;
-    try { localStorage.removeItem(PENDING_TOKEN_KEY); } catch (e) {}
+    try { localStorage.removeItem(PENDING_TOKEN_KEY); } catch (e) { dbg('warn', '[SOS] clearPendingToken failed: ' + (e && e.message)); }
   }
 
   function getPendingToken() {
     var stored = null;
-    try { stored = localStorage.getItem(PENDING_TOKEN_KEY); } catch (e) {}
+    try { stored = localStorage.getItem(PENDING_TOKEN_KEY); } catch (e) { dbg('warn', '[SOS] getPendingToken failed: ' + (e && e.message)); }
     if (stored) {
       window._sosPendingToken = stored;
       return stored;
@@ -67,7 +67,7 @@
 
   function saveToken(playerId) {
     if (!playerId) return;
-    if (_saved && _playerId === playerId) return;
+    if (_playerId === playerId && (_saved || _retryTimer)) return;
     _playerId = playerId;
     persistPendingToken(playerId);
 
@@ -140,9 +140,9 @@
   function resumeIfNeeded(reason) {
     if (_saved) return;
     dbg('log', '[SOS] Resume triggered by ' + reason);
-    ensurePushRegistration(true);
     var pending = getPendingToken();
     if (pending) saveToken(pending);
+    ensurePushRegistration(true);
     startAutoPoll();
   }
 
