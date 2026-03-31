@@ -595,7 +595,7 @@ $pageDepth = "../../../";
         document.addEventListener('touchend', endDrag);
     </script>
     <div id="debug-console"
-        style="position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
+        style="display:none; position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
         <strong style="color:#fff;">Backend Response Console</strong><br>
     </div>
 
