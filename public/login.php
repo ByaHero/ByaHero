@@ -204,21 +204,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 return;
                             }
 
-                            // Pull from Median JS API
-                            if (window.gonative && window.gonative.onesignal) {
-                                window.gonative.onesignal.getInfo()
-                                    .then(function (info) {
-                                        var id = info && (info.oneSignalId || info.userId
-                                            || info.subscriptionId
-                                            || (info.subscription && info.subscription.id));
-                                        if (id) { syncThenRedirect(id); }
-                                        else { proceed(); }
-                                    })
-                                    .catch(function () { proceed(); });
-                            } else {
-                                // Not in Median shell — just redirect
-                                proceed();
+                            // Pull from Median JS API - try multiple times if needed
+                            function tryGetToken() {
+                                if (window.gonative && window.gonative.onesignal) {
+                                    console.log('[Login] Calling gonative.onesignal.getInfo()...');
+                                    window.gonative.onesignal.getInfo()
+                                        .then(function (info) {
+                                            console.log('[Login] getInfo() result:', JSON.stringify(info));
+                                            // Try ALL possible property names
+                                            var id = info && (
+                                                info.oneSignalId ||
+                                                info.userId ||
+                                                info.subscriptionId ||
+                                                info.oneSignalUserId ||
+                                                info.pushToken ||
+                                                info.playerId ||
+                                                info.id ||
+                                                (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
+                                            );
+                                            if (id) {
+                                                console.log('[Login] Token found:', id);
+                                                syncThenRedirect(id);
+                                            } else {
+                                                console.warn('[Login] No token in response, retrying in 500ms...');
+                                                setTimeout(tryGetToken, 500);
+                                            }
+                                        })
+                                        .catch(function (e) {
+                                            console.warn('[Login] getInfo() error:', e);
+                                            // Retry once after delay
+                                            setTimeout(tryGetToken, 500);
+                                        });
+                                } else {
+                                    console.log('[Login] Not in Median shell, redirecting...');
+                                    proceed();
+                                }
                             }
+                            tryGetToken();
                         });
                     </script>
                 </body>

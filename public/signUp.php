@@ -151,15 +151,41 @@ if (isset($_SESSION['user_id'])) {
                     form.reset();
 
                     // ── TRIGGER ONESIGNAL SYNC NOW THAT SESSION IS ACTIVE ──
-                    if (window.sosBridge && window._sosPendingToken) {
-                        window.sosBridge.saveToken(window._sosPendingToken);
-                    } else if (window.gonative && window.gonative.onesignal) {
-                        window.gonative.onesignal.getInfo().then(function(info) {
-                            if (info && info.userId && window.sosBridge) {
-                                window.sosBridge.saveToken(info.userId);
-                            }
-                        }).catch(e => console.log(e));
+                    function trySaveToken() {
+                        if (window.sosBridge && window._sosPendingToken) {
+                            console.log('[Signup] Using pending token:', window._sosPendingToken);
+                            window.sosBridge.saveToken(window._sosPendingToken);
+                        } else if (window.gonative && window.gonative.onesignal) {
+                            console.log('[Signup] Calling gonative.onesignal.getInfo()...');
+                            window.gonative.onesignal.getInfo()
+                                .then(function(info) {
+                                    console.log('[Signup] getInfo() result:', JSON.stringify(info));
+                                    // Try ALL possible property names
+                                    var id = info && (
+                                        info.oneSignalId ||
+                                        info.userId ||
+                                        info.subscriptionId ||
+                                        info.oneSignalUserId ||
+                                        info.pushToken ||
+                                        info.playerId ||
+                                        info.id ||
+                                        (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
+                                    );
+                                    if (id && window.sosBridge) {
+                                        console.log('[Signup] Token found:', id);
+                                        window.sosBridge.saveToken(id);
+                                    } else {
+                                        console.warn('[Signup] No token yet, retrying in 500ms...');
+                                        setTimeout(trySaveToken, 500);
+                                    }
+                                })
+                                .catch(function(e) {
+                                    console.warn('[Signup] getInfo() error:', e);
+                                    setTimeout(trySaveToken, 500);
+                                });
+                        }
                     }
+                    trySaveToken();
 
                     // Delay slightly longer (1.2s instead of 0.9s) to allow fetch to fire before page unloads
                     setTimeout(() => {

@@ -134,26 +134,62 @@
   });
 
   // Retry mechanism: if no token after 2 seconds, try pulling again
-  // This handles cases where Median SDK initializes slowly
-  setTimeout(function() {
+  // This handles cases where Median SDK initializes slowly on physical devices
+  var _retryCount = 0;
+  var _maxRetries = 6; // Try for up to 10 seconds (2s + 5 retries * ~1.5s)
+
+  function tryGetToken() {
     if (_saved) return;
     if (window._sosPendingToken) return;
-
-    log('Retry: attempting to pull token after delay...');
-    if (window.gonative && window.gonative.onesignal) {
-      window.gonative.onesignal.getInfo()
-        .then(function(info) {
-          var id = extractId(info);
-          if (id) {
-            log('Retry succeeded with ID: ' + id);
-            saveToken(id);
-          }
-        })
-        .catch(function(e) {
-          log('Retry failed: ' + (e.message || e));
-        });
+    if (_retryCount >= _maxRetries) {
+      log('Max retries reached, giving up');
+      return;
     }
-  }, 2000);
+    _retryCount++;
+
+    log('Retry #' + _retryCount + ': attempting to pull token...');
+    if (window.gonative && window.gonative.onesignal) {
+      // Some Median SDK versions return a promise, others use callbacks only
+      try {
+        var result = window.gonative.onesignal.getInfo();
+        if (result && typeof result.then === 'function') {
+          // Promise-based API
+          result
+            .then(function(info) {
+              log('getInfo() returned: ' + JSON.stringify(info));
+              var id = extractId(info);
+              if (id) {
+                log('Retry succeeded with ID: ' + id);
+                saveToken(id);
+              } else {
+                scheduleNextRetry();
+              }
+            })
+            .catch(function(e) {
+              log('getInfo() promise rejected: ' + (e.message || e));
+              scheduleNextRetry();
+            });
+        } else {
+          // Callback-based API (older SDK) - info might come via gonative_onesignal_info callback
+          log('getInfo() returned non-promise, waiting for callback...');
+          scheduleNextRetry();
+        }
+      } catch (e) {
+        log('getInfo() threw exception: ' + (e.message || e));
+        scheduleNextRetry();
+      }
+    } else {
+      log('gonative.onesignal not available');
+    }
+  }
+
+  function scheduleNextRetry() {
+    if (_saved || _retryCount >= _maxRetries) return;
+    setTimeout(tryGetToken, 1500);
+  }
+
+  // Start retry chain at 2 seconds
+  setTimeout(tryGetToken, 2000);
 
   // Foreground push received while app is open
   window.gonative_onesignal_notification_received = function(data) {
