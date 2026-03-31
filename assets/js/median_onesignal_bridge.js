@@ -26,17 +26,29 @@
 
   function persistPendingToken(token) {
     window._sosPendingToken = token;
-    try { if (token) localStorage.setItem(PENDING_TOKEN_KEY, token); } catch (e) { dbg('warn', '[SOS] persistPendingToken failed: ' + (e && e.message)); }
+    try {
+      if (token) localStorage.setItem(PENDING_TOKEN_KEY, token);
+    } catch (e) {
+      dbg('warn', '[SOS] persistPendingToken failed: ' + (e && e.message));
+    }
   }
 
   function clearPendingToken() {
     window._sosPendingToken = null;
-    try { localStorage.removeItem(PENDING_TOKEN_KEY); } catch (e) { dbg('warn', '[SOS] clearPendingToken failed: ' + (e && e.message)); }
+    try {
+      localStorage.removeItem(PENDING_TOKEN_KEY);
+    } catch (e) {
+      dbg('warn', '[SOS] clearPendingToken failed: ' + (e && e.message));
+    }
   }
 
   function getPendingToken() {
     var stored = null;
-    try { stored = localStorage.getItem(PENDING_TOKEN_KEY); } catch (e) { dbg('warn', '[SOS] getPendingToken failed: ' + (e && e.message)); }
+    try {
+      stored = localStorage.getItem(PENDING_TOKEN_KEY);
+    } catch (e) {
+      dbg('warn', '[SOS] getPendingToken failed: ' + (e && e.message));
+    }
     if (stored) {
       window._sosPendingToken = stored;
       return stored;
@@ -94,13 +106,11 @@
       } else {
         // Not logged in yet — keep retrying every 5s until session exists
         dbg('warn', '[SOS] Not saved (' + d.message + ') — retry in 5s');
-        persistPendingToken(playerId);
         _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
       }
     })
     .catch(function(e) {
       dbg('warn', '[SOS] Fetch error: ' + ((e && e.message) || 'unknown error') + ' — retry in 5s');
-      persistPendingToken(playerId);
       _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
     });
   }
