@@ -81,6 +81,7 @@
 
   function saveToken(playerId) {
     if (!playerId) return;
+    if (_playerId !== playerId && _retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
     if (_playerId === playerId && (_saved || _retryTimer)) return;
     _playerId = playerId;
     persistPendingToken(playerId);
@@ -152,14 +153,20 @@
   function resumeIfNeeded(reason) {
     if (_saved) return;
     if (_resumeCooldownTimer) return;
-    _resumeCooldownTimer = setTimeout(function() { _resumeCooldownTimer = null; }, RESUME_COOLDOWN_MS);
+    _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
     if (pending) saveToken(pending);
+    // Resume if we have a pending token to save, if registration was never attempted,
+    // or if auto-polling stopped (e.g., after hitting max attempts).
     if (pending || !_registrationAttempted || !_autoPollTimer) {
       ensurePushRegistration(true);
       startAutoPoll();
     }
+  }
+
+  function clearResumeCooldown() {
+    _resumeCooldownTimer = null;
   }
 
   // On DOM ready: use pending token if already caught, otherwise
