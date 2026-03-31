@@ -58,6 +58,7 @@
       if (d.success) {
         _saved = true;
         window._sosPendingToken = null;
+        _autoPollAttempts = 0;
         if (_autoPollTimer) {
           clearTimeout(_autoPollTimer);
           _autoPollTimer = null;
@@ -192,8 +193,8 @@
     if (_saved) return;
     if (_autoPollTimer) { clearTimeout(_autoPollTimer); }
 
-    var attempt = ++_autoPollAttempts;
-    dbg('log', '[SOS] Auto-poll attempt #' + attempt);
+    _autoPollAttempts += 1;
+    dbg('log', '[SOS] Auto-poll attempt #' + _autoPollAttempts);
 
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
@@ -216,8 +217,8 @@
       })
       .then(function() {
         if (_saved) return;
-        if (attempt < MAX_AUTO_POLL_ATTEMPTS) {
-          var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
+        if (_autoPollAttempts < MAX_AUTO_POLL_ATTEMPTS) {
+          var delay = _autoPollAttempts < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
           _autoPollTimer = setTimeout(startAutoPoll, delay);
         }
       });
