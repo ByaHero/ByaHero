@@ -203,20 +203,25 @@
 
     tryOneSignalSdk()
       .then(function(id) {
-        if (id) return id;
-        return tryMedianGetInfo();
-      })
-      .then(function(id) {
         if (id) {
           dbg('log', '[SOS] Extracted ID from SDKs: ' + id);
           saveToken(id);
+          return true;
         }
+        return tryMedianGetInfo().then(function(mid) {
+          if (mid) {
+            dbg('log', '[SOS] Extracted ID from SDKs: ' + mid);
+            saveToken(mid);
+            return true;
+          }
+          return false;
+        });
       })
       .catch(function(e) {
         dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
       })
-      .then(function() {
-        if (_saved) return;
+      .then(function(captured) {
+        if (_saved || captured) return;
         if (_autoPollAttempts < MAX_AUTO_POLL_ATTEMPTS) {
           var delay = _autoPollAttempts < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
           _autoPollTimer = setTimeout(startAutoPoll, delay);
@@ -263,12 +268,9 @@
       }
       try {
         var res = window.gonative.onesignal.getInfo();
-        if (res && typeof res.then === 'function') {
-          res.then(function(info) { resolve(extractId(info)); })
-             .catch(function() { resolve(null); });
-        } else {
-          resolve(extractId(res));
-        }
+        Promise.resolve(res)
+          .then(function(info) { resolve(extractId(info)); })
+          .catch(function() { resolve(null); });
       } catch (e) {
         dbg('warn', '[SOS] gonative.onesignal.getInfo() threw: ' + (e && e.message));
         resolve(null);
