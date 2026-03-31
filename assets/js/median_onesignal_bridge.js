@@ -8,6 +8,7 @@
   var _autoPollTimer   = null;
   var _autoPollAttempts = 0;
   var _registrationAttempted = false;
+  var PENDING_TOKEN_KEY = 'sos_pending_token';
   var MAX_AUTO_POLL_ATTEMPTS = 15;
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
@@ -21,6 +22,26 @@
   function formatError(e, prefix) {
     var msg = (e && e.message) || 'unknown error';
     return prefix ? (prefix + ': ' + msg) : msg;
+  }
+
+  function persistPendingToken(token) {
+    window._sosPendingToken = token;
+    try { if (token) localStorage.setItem(PENDING_TOKEN_KEY, token); } catch (e) {}
+  }
+
+  function clearPendingToken() {
+    window._sosPendingToken = null;
+    try { localStorage.removeItem(PENDING_TOKEN_KEY); } catch (e) {}
+  }
+
+  function getPendingToken() {
+    var stored = null;
+    try { stored = localStorage.getItem(PENDING_TOKEN_KEY); } catch (e) {}
+    if (stored) {
+      window._sosPendingToken = stored;
+      return stored;
+    }
+    return window._sosPendingToken || null;
   }
 
   // Extracts the player/subscription ID from any Median/OneSignal info object
@@ -46,9 +67,9 @@
 
   function saveToken(playerId) {
     if (!playerId) return;
-    if (_saved) return;
+    if (_saved && _playerId === playerId) return;
     _playerId = playerId;
-    window._sosPendingToken = playerId;
+    persistPendingToken(playerId);
 
     if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
 
@@ -63,7 +84,7 @@
     .then(function(d) {
       if (d.success) {
         _saved = true;
-        window._sosPendingToken = null;
+        clearPendingToken();
         _autoPollAttempts = 0;
         if (_autoPollTimer) {
           clearTimeout(_autoPollTimer);
@@ -73,11 +94,13 @@
       } else {
         // Not logged in yet — keep retrying every 5s until session exists
         dbg('warn', '[SOS] Not saved (' + d.message + ') — retry in 5s');
+        persistPendingToken(playerId);
         _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
       }
     })
     .catch(function(e) {
       dbg('warn', '[SOS] Fetch error: ' + ((e && e.message) || 'unknown error') + ' — retry in 5s');
+      persistPendingToken(playerId);
       _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
     });
   }
@@ -119,10 +142,11 @@
   document.addEventListener('DOMContentLoaded', function() {
     if (_saved) return;
 
+    var pending = getPendingToken();
     ensurePushRegistration();
 
-    if (window._sosPendingToken) {
-      saveToken(window._sosPendingToken);
+    if (pending) {
+      saveToken(pending);
     }
     startAutoPoll();
   });
