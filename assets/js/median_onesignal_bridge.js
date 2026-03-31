@@ -6,6 +6,11 @@
   var _retryTimer  = null;
   var _playerId    = null;
 
+  // Safe console wrapper – never crashes if console is unavailable
+  function dbg(level, msg) {
+    try { if (console && console[level]) console[level](msg); } catch(e) {}
+  }
+
   // Extracts the player/subscription ID from any Median/OneSignal info object
   function extractId(info) {
     if (!info) return null;
@@ -13,7 +18,14 @@
         || info.userId
         || info.subscriptionId
         || info.oneSignalUserId
-        || (info.subscription && info.subscription.id)
+        || info.playerId
+        || info.id
+        || (info.subscription && (
+              info.subscription.id
+              || info.subscription.playerId
+              || info.subscription.userId
+              || info.subscription.oneSignalId
+           ))
         || null;
   }
 
@@ -25,6 +37,7 @@
 
     if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
 
+    dbg('log', '[SOS] Posting to: ' + REGISTER_URL);
     fetch(REGISTER_URL, {
       method: 'POST',
       credentials: 'include',
@@ -36,15 +49,15 @@
       if (d.success) {
         _saved = true;
         window._sosPendingToken = null;
-        console.log('[SOS] Token saved for user_id:', d.user_id);
+        dbg('log', '[SOS] Token saved for user_id: ' + d.user_id);
       } else {
         // Not logged in yet — keep retrying every 5s until session exists
-        console.warn('[SOS] Not saved (' + d.message + ') — retry in 5s');
+        dbg('warn', '[SOS] Not saved (' + d.message + ') — retry in 5s');
         _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
       }
     })
     .catch(function(e) {
-      console.warn('[SOS] Fetch error:', e.message, '— retry in 5s');
+      dbg('warn', '[SOS] Fetch error: ' + ((e && e.message) || 'unknown error') + ' — retry in 5s');
       _retryTimer = setTimeout(function() { saveToken(playerId); }, 5000);
     });
   }
@@ -58,14 +71,26 @@
 
   // Called by Median immediately on app launch (may fire before DOM is ready)
   window.gonative_onesignal_info = function(info) {
+    dbg('log', '[SOS] gonative_onesignal_info fired — payload: ' + JSON.stringify(info));
     var id = extractId(info);
-    if (id) saveToken(id);
+    if (id) {
+      dbg('log', '[SOS] Extracted ID: ' + id);
+      saveToken(id);
+    } else {
+      dbg('warn', '[SOS] gonative_onesignal_info: no ID could be extracted from payload');
+    }
   };
 
   // Some Median versions use this name instead
   window.median_onesignal_info = function(info) {
+    dbg('log', '[SOS] median_onesignal_info fired — payload: ' + JSON.stringify(info));
     var id = extractId(info);
-    if (id) saveToken(id);
+    if (id) {
+      dbg('log', '[SOS] Extracted ID: ' + id);
+      saveToken(id);
+    } else {
+      dbg('warn', '[SOS] median_onesignal_info: no ID could be extracted from payload');
+    }
   };
 
   // On DOM ready: use pending token if already caught, otherwise
@@ -83,11 +108,17 @@
     if (window.gonative && window.gonative.onesignal) {
       window.gonative.onesignal.getInfo()
         .then(function(info) {
+          dbg('log', '[SOS] gonative.onesignal.getInfo() result — payload: ' + JSON.stringify(info));
           var id = extractId(info);
-          if (id) saveToken(id);
+          if (id) {
+            dbg('log', '[SOS] Extracted ID: ' + id);
+            saveToken(id);
+          } else {
+            dbg('warn', '[SOS] getInfo(): no ID could be extracted from payload');
+          }
         })
         .catch(function(e) {
-          console.warn('[SOS] gonative.onesignal.getInfo() failed:', e);
+          dbg('warn', '[SOS] gonative.onesignal.getInfo() failed: ' + ((e && e.message) || 'unknown error'));
         });
     }
   });
