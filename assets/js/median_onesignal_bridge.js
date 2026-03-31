@@ -18,11 +18,14 @@
         || info.userId
         || info.subscriptionId
         || info.oneSignalUserId
+        || info.pushToken
         || info.playerId
         || info.id
         || (info.subscription && (
               info.subscription.id
+              || info.subscription.subscriptionId
               || info.subscription.playerId
+              || info.subscription.pushToken
               || info.subscription.userId
               || info.subscription.oneSignalId
            ))
