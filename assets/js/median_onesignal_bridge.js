@@ -194,36 +194,41 @@
 
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
-    } else {
-      tryOneSignalSdk()
-        .then(function(id) {
-          if (id) {
-            dbg('log', '[SOS] OneSignal SDK returned ID: ' + id);
-            saveToken(id);
-            return null;
-          }
-          return tryMedianGetInfo().then(function(mid) {
-            if (mid) {
-              dbg('log', '[SOS] Median getInfo() returned ID: ' + mid);
-              saveToken(mid);
-            }
-            return null;
-          });
-        })
-        .catch(function(e) {
-          dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
-        });
+      return;
     }
 
-    if (!_saved && attempt < MAX_AUTO_POLL_ATTEMPTS) {
-      var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
-      _autoPollTimer = setTimeout(startAutoPoll, delay);
-    }
+    var chain = tryOneSignalSdk()
+      .then(function(id) {
+        if (id) {
+          dbg('log', '[SOS] OneSignal SDK returned ID: ' + id);
+          saveToken(id);
+          return null;
+        }
+        return tryMedianGetInfo().then(function(mid) {
+          if (mid) {
+            dbg('log', '[SOS] Median getInfo() returned ID: ' + mid);
+            saveToken(mid);
+          }
+          return null;
+        });
+      })
+      .catch(function(e) {
+        dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
+      });
+
+    chain.finally(function() {
+      if (_saved) return;
+      if (attempt < MAX_AUTO_POLL_ATTEMPTS) {
+        var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
+        _autoPollTimer = setTimeout(startAutoPoll, delay);
+      }
+    });
   }
 
   function tryOneSignalSdk() {
     return new Promise(function(resolve) {
       try {
+        // Legacy web SDK (v2) exposes getUserId(); newer v16 exposes User.PushSubscription.getId()
         if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
           OneSignal.getUserId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
           return;
