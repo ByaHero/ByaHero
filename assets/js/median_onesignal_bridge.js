@@ -7,6 +7,10 @@
   var _playerId        = null;
   var _autoPollTimer   = null;
   var _autoPollAttempts = 0;
+  var MAX_AUTO_POLL_ATTEMPTS = 15;
+  var QUICK_RETRY_THRESHOLD  = 3;
+  var QUICK_RETRY_DELAY_MS   = 1500;
+  var NORMAL_RETRY_DELAY_MS  = 5000;
 
   // Safe console wrapper – never crashes if console is unavailable
   function dbg(level, msg) {
@@ -211,8 +215,8 @@
         });
     }
 
-    if (!_saved && attempt < 15) {
-      var delay = attempt < 3 ? 1500 : 5000;
+    if (!_saved && attempt < MAX_AUTO_POLL_ATTEMPTS) {
+      var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
       _autoPollTimer = setTimeout(startAutoPoll, delay);
     }
   }
