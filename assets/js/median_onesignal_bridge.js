@@ -1,7 +1,7 @@
 (function () {
   'use strict';
 
-  var REGISTER_URL = '/backend/registerOnesignalToken.php';
+  var REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
   var _saved       = false;
   var _retryTimer  = null;
   var _playerId    = null;
