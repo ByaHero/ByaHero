@@ -228,14 +228,22 @@
   function tryOneSignalSdk() {
     return new Promise(function(resolve) {
       try {
-        // Legacy web SDK (v2) exposes getUserId(); newer v16 exposes User.PushSubscription.getId()
-        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
-          OneSignal.getUserId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
-          return;
-        }
+        // Newer SDKs expose User.PushSubscription.getId(); some builds expose User.onesignalId; legacy uses getUserId()
         if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription
             && typeof OneSignal.User.PushSubscription.getId === 'function') {
           OneSignal.User.PushSubscription.getId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
+          return;
+        }
+        if (window.OneSignal && OneSignal.User && OneSignal.User.onesignalId) {
+          resolve(OneSignal.User.onesignalId || null);
+          return;
+        }
+        if (window.OneSignal && typeof OneSignal.userId === 'string' && OneSignal.userId) {
+          resolve(OneSignal.userId);
+          return;
+        }
+        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
+          OneSignal.getUserId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
           return;
         }
       } catch (e) {
