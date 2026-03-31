@@ -231,7 +231,9 @@
         // Newer SDKs expose User.PushSubscription.getId(); some builds expose User.onesignalId; legacy uses getUserId()
         if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription
             && typeof OneSignal.User.PushSubscription.getId === 'function') {
-          OneSignal.User.PushSubscription.getId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
+          OneSignal.User.PushSubscription.getId()
+            .then(function(id) { resolve(id || null); })
+            .catch(function() { resolve(null); });
           return;
         }
         if (window.OneSignal && OneSignal.User && OneSignal.User.onesignalId) {
@@ -243,7 +245,9 @@
           return;
         }
         if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
-          OneSignal.getUserId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
+          OneSignal.getUserId()
+            .then(function(id) { resolve(id || null); })
+            .catch(function() { resolve(null); });
           return;
         }
       } catch (e) {
