@@ -58,7 +58,10 @@
       if (d.success) {
         _saved = true;
         window._sosPendingToken = null;
-        if (_autoPollTimer) { clearTimeout(_autoPollTimer); _autoPollTimer = null; }
+        if (_autoPollTimer) {
+          clearTimeout(_autoPollTimer);
+          _autoPollTimer = null;
+        }
         dbg('log', '[SOS] Token saved for user_id: ' + d.user_id);
       } else {
         // Not logged in yet — keep retrying every 5s until session exists
@@ -197,32 +200,27 @@
       return;
     }
 
-    var chain = tryOneSignalSdk()
+    tryOneSignalSdk()
+      .then(function(id) {
+        if (id) return id;
+        return tryMedianGetInfo();
+      })
       .then(function(id) {
         if (id) {
-          dbg('log', '[SOS] OneSignal SDK returned ID: ' + id);
+          dbg('log', '[SOS] Extracted ID from SDKs: ' + id);
           saveToken(id);
-          return null;
         }
-        return tryMedianGetInfo().then(function(mid) {
-          if (mid) {
-            dbg('log', '[SOS] Median getInfo() returned ID: ' + mid);
-            saveToken(mid);
-          }
-          return null;
-        });
       })
       .catch(function(e) {
         dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
+      })
+      .then(function() {
+        if (_saved) return;
+        if (attempt < MAX_AUTO_POLL_ATTEMPTS) {
+          var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
+          _autoPollTimer = setTimeout(startAutoPoll, delay);
+        }
       });
-
-    chain.finally(function() {
-      if (_saved) return;
-      if (attempt < MAX_AUTO_POLL_ATTEMPTS) {
-        var delay = attempt < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
-        _autoPollTimer = setTimeout(startAutoPoll, delay);
-      }
-    });
   }
 
   function tryOneSignalSdk() {
