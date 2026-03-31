@@ -225,8 +225,18 @@ if (isset($_SESSION['user_id'])) {
 
   <!-- Bottom sheet component JS (contains ALL bottom-sheet logic) -->
   <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
+  <script src="../../assets/js/median_onesignal_bridge.js?v=1"></script>
 
   <script>
+    // --------------------- NOTIFICATION PERMISSION PROMPT ---------------------
+    document.addEventListener('DOMContentLoaded', function () {
+      // Trigger the notification permission prompt 2 seconds after the app opens
+      setTimeout(function() {
+        if (window.sosBridge && typeof window.sosBridge.requestPermission === 'function') {
+           window.sosBridge.requestPermission();
+        }
+      }, 2000);
+    });
     // --------------------- BASE URL DETECTION ---------------------
     // passengerBottomSheet.js auto-detects this too, but we set it early
     // here so any inline code below can also reference window.APP_BASE_URL.

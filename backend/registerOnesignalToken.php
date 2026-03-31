@@ -1,89 +1,106 @@
 <?php
-declare(strict_types=1);
+/**
+ * registerOnesignalToken.php
+ * Saves OneSignal player_id for the logged-in user.
+ *
+ * CRITICAL: session_start() MUST be the very first line
+ * before any output or headers. Custom cookie params can break
+ * session reading on some servers.
+ */
 
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+// ⚠️ MUST BE FIRST LINE (before any output/headers)
+session_start();
+
+header('Content-Type: application/json');
+
+// CORS support for Median WebView
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+if ($origin) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
 }
 
-header('Content-Type: application/json; charset=utf-8');
-
-// Optional: enable during debugging only
-// ini_set('display_errors', '1');
-// error_reporting(E_ALL);
-
-function out(array $data, int $status = 200): void {
-    http_response_code($status);
-    echo json_encode($data, JSON_UNESCAPED_SLASHES);
+// Handle CORS preflight
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    http_response_code(204);
     exit;
 }
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    out(['success' => false, 'message' => 'Method not allowed'], 405);
+// Debug logging
+error_log('[registerOnesignalToken] session_id=' . session_id() 
+    . ' | user_id=' . ($_SESSION['user_id'] ?? 'NONE')
+    . ' | method=' . $_SERVER['REQUEST_METHOD']);
+
+// Check if logged in
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode([
+        'success'    => false,
+        'message'    => 'Not logged in',
+        'session_id' => session_id(),
+    ]);
+    error_log('[registerOnesignalToken] User not logged in. Session ID: ' . session_id());
+    exit;
 }
 
-$raw = file_get_contents('php://input');
-if ($raw === false) {
-    out(['success' => false, 'message' => 'Failed to read request body'], 400);
-}
+require_once '../config/db_connection.php';
 
-$payload = json_decode($raw, true);
-if (!is_array($payload)) {
-    out(['success' => false, 'message' => 'Invalid JSON payload'], 400);
-}
+$userId   = (int)$_SESSION['user_id'];
+$input    = json_decode(file_get_contents('php://input'), true);
+$playerId = trim($input['player_id'] ?? '');
 
-$playerId = trim((string)($payload['player_id'] ?? ''));
+error_log('[registerOnesignalToken] user_id=' . $userId . ' | player_id=' . $playerId);
+
 if ($playerId === '') {
-    out(['success' => false, 'message' => 'Missing player_id'], 400);
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'player_id required']);
+    error_log('[registerOnesignalToken] Empty player_id');
+    exit;
 }
-
-// Make sure user is logged in
-$userId = (int)($_SESSION['user_id'] ?? 0);
-if ($userId <= 0) {
-    out(['success' => false, 'message' => 'User not logged in (no session)'], 401);
-}
-
-// DB connection (PDO)
-require_once __DIR__ . '/../config/db.php';
 
 try {
-    $pdo = db();
+    // ── THE FIX: Token Stealing (Exclusive Device Ownership) ──
+    // 1. Delete this specific device ID from ANY other user accounts 
+    // to ensure the device only rings for the person currently logged in.
+    $cleanStmt = $conn->prepare("DELETE FROM user_onesignal_tokens WHERE player_id = ? AND user_id != ?");
+    $cleanStmt->bind_param("si", $playerId, $userId);
+    $cleanStmt->execute();
+    $cleanStmt->close();
 
-    // Create table if not exists (safe bootstrap)
-    $pdo->exec("
-        CREATE TABLE IF NOT EXISTS onesignal_subscriptions (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            user_id INT NOT NULL,
-            player_id VARCHAR(191) NOT NULL UNIQUE,
-            platform VARCHAR(50) DEFAULT 'android',
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-            INDEX idx_user_id (user_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-    ");
+    // 2. Now insert or safely update the token for the CURRENT user.
+    $stmt = $conn->prepare(
+        "INSERT INTO user_onesignal_tokens (user_id, player_id)
+         VALUES (?, ?)
+         ON DUPLICATE KEY UPDATE updated_at = CURRENT_TIMESTAMP"
+    );
+    
+    if (!$stmt) {
+        throw new Exception('Prepare failed: ' . $conn->error);
+    }
+    
+    $stmt->bind_param("is", $userId, $playerId);
+    
+    if (!$stmt->execute()) {
+        throw new Exception('Execute failed: ' . $stmt->error);
+    }
+    
+    $stmt->close();
 
-    // Upsert: same player_id updates user_id
-    $stmt = $pdo->prepare("
-        INSERT INTO onesignal_subscriptions (user_id, player_id, platform)
-        VALUES (:user_id, :player_id, 'android')
-        ON DUPLICATE KEY UPDATE
-            user_id = VALUES(user_id),
-            updated_at = CURRENT_TIMESTAMP
-    ");
-    $stmt->execute([
-        ':user_id' => $userId,
-        ':player_id' => $playerId
+    error_log('[registerOnesignalToken] ✓ Token secured for current user only: user_id=' . $userId . ' | player_id=' . $playerId);
+
+    echo json_encode([
+        'success'   => true,
+        'user_id'   => $userId,
+        'player_id' => $playerId,
     ]);
-
-    out([
-        'success' => true,
-        'message' => 'Token saved',
-        'user_id' => $userId,
-        'player_id' => $playerId
-    ]);
-} catch (Throwable $e) {
-    error_log('[registerOnesignalToken] ' . $e->getMessage());
-    out([
+} catch (Exception $e) {
+    error_log('[registerOnesignalToken] DB error: ' . $e->getMessage());
+    http_response_code(500);
+    echo json_encode([
         'success' => false,
-        'message' => 'Server error while saving token'
-    ], 500);
+        'message' => 'DB error: ' . $e->getMessage()
+    ]);
 }
+?>
