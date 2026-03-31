@@ -83,6 +83,18 @@ if (!isset($_SESSION['user_id'])) {
     <div class="notification-description">
       Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and seat availability.
     </div>
+    <div class="notification-description">
+      <div class="d-flex align-items-start gap-3">
+        <div class="flex-grow-1">
+          <div class="fw-semibold text-dark mb-1">Enable push notifications</div>
+          <div class="small text-muted mb-1">Allow alerts on this device and re-sync your OneSignal subscription.</div>
+          <div class="small text-muted">You must be logged in to link this device to your account.</div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm align-self-center" id="openPushPermissionModal">
+          Enable
+        </button>
+      </div>
+    </div>
 
     <div class="notification-item">
       <div class="d-flex align-items-center">
@@ -117,6 +129,27 @@ if (!isset($_SESSION['user_id'])) {
       </div>
       <div class="form-check form-switch">
         <input class="form-check-input" type="checkbox" id="notify_seat_availability" onchange="updateSetting('notify_seat_availability', this.checked)">
+      </div>
+    </div>
+  </div>
+
+  <!-- Push permission modal -->
+  <div class="modal fade" id="pushPermissionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Allow notifications</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p class="mb-2">We will ask your device for notification permission and sync your OneSignal subscription.</p>
+          <p class="small text-muted mb-0">Tap "Allow & Subscribe" to continue, then accept the permission prompt.</p>
+          <div class="mt-3 small text-muted" id="push-permission-status"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-primary" id="confirmPushPermission">Allow & Subscribe</button>
+        </div>
       </div>
     </div>
   </div>
@@ -193,6 +226,77 @@ if (!isset($_SESSION['user_id'])) {
         }
       });
     }
+
+    // Manual push permission request (delay lets users read the success message)
+    const MODAL_AUTO_CLOSE_DELAY_MS = 1200;
+    document.addEventListener('DOMContentLoaded', function () {
+      var openBtn = document.getElementById('openPushPermissionModal');
+      var modalEl = document.getElementById('pushPermissionModal');
+      var statusEl = document.getElementById('push-permission-status');
+      var confirmBtn = document.getElementById('confirmPushPermission');
+
+      if (!openBtn || !modalEl) return;
+
+      var modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      openBtn.addEventListener('click', function () {
+        if (statusEl) {
+          statusEl.textContent = 'Select "Allow & Subscribe" to start the notification request.';
+          statusEl.classList.remove('text-danger', 'text-success');
+          statusEl.classList.add('text-muted');
+        }
+        modal.show();
+      });
+
+      if (confirmBtn) {
+        confirmBtn.addEventListener('click', function () {
+          var btn = this;
+          var resetButtonState = function () {
+            btn.disabled = false;
+            btn.textContent = 'Allow & Subscribe';
+          };
+          btn.disabled = true;
+          btn.textContent = 'Requesting...';
+
+          if (statusEl) {
+            statusEl.textContent = 'Requesting permission...';
+            statusEl.classList.remove('text-danger', 'text-success');
+            statusEl.classList.add('text-muted');
+          }
+
+          if (!(window.sosBridge && typeof window.sosBridge.requestPushPermission === 'function')) {
+            if (statusEl) {
+              statusEl.textContent = 'Push subscription is not available on this device.';
+              statusEl.classList.remove('text-muted');
+              statusEl.classList.add('text-danger');
+            }
+            resetButtonState();
+            return;
+          }
+
+          window.sosBridge.requestPushPermission()
+            .then(function () {
+              if (statusEl) {
+                statusEl.textContent = 'Permission requested. Please allow notifications when prompted to sync your device.';
+                statusEl.classList.remove('text-muted');
+                statusEl.classList.add('text-success');
+              }
+              setTimeout(function () {
+                modal.hide();
+                resetButtonState();
+              }, MODAL_AUTO_CLOSE_DELAY_MS);
+            })
+            .catch(function (e) {
+              if (statusEl) {
+                statusEl.textContent = 'Something went wrong: ' + (e && e.message ? e.message : 'Please try again.');
+                statusEl.classList.remove('text-muted');
+                statusEl.classList.add('text-danger');
+              }
+              resetButtonState();
+            });
+        });
+      }
+    });
   </script>
 </body>
 </html>
