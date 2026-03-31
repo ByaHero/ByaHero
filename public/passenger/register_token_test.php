@@ -1,198 +1,173 @@
 <?php
-/**
- * register_token_test.php
- * 
- * Visit this page on each device while logged in.
- * It shows the device's OneSignal token and lets you manually register it.
- * 
- * Place at: /public/passenger/register_token_test.php
- * Visit at: https://yourdomain.com/public/passenger/register_token_test.php
- * 
- * DELETE THIS FILE after tokens are working automatically.
- */
-session_start();
-require_once '../../config/db_connection.php';
+declare(strict_types=1);
 
-$userId   = $_SESSION['user_id'] ?? null;
-$userName = $_SESSION['user_name'] ?? $_SESSION['user_email'] ?? 'Unknown';
-
-// Show existing tokens for this user
-$existingTokens = [];
-if ($userId) {
-    $s = $conn->prepare("SELECT player_id, updated_at FROM user_onesignal_tokens WHERE user_id = ?");
-    $s->bind_param("i", $userId);
-    $s->execute();
-    $r = $s->get_result();
-    while ($row = $r->fetch_assoc()) $existingTokens[] = $row;
-    $s->close();
-}
-?>
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Token Debug</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- EARLY CATCHER -->
-    <script>
-    window._sosPendingToken = null;
-    window._gonativeInfoLog = [];
-    window.gonative_onesignal_info = function(info) {
-        window._gonativeInfoLog.push({time: new Date().toISOString(), info: info});
-        var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-               || (info.subscription && info.subscription.id) || info.oneSignalUserId);
-        if (!id) return;
-        window._sosPendingToken = id;
-        document.getElementById('detected-id') && (document.getElementById('detected-id').textContent = id);
-        if (window.sosBridge) window.sosBridge.saveToken(id);
-    };
-    window.median_onesignal_info = window.gonative_onesignal_info;
-    </script>
-    <script src="../../assets/js/median_onesignal_bridge.js"></script>
-</head>
-<body class="bg-light p-4">
-
-<div class="container" style="max-width:500px">
-    <h5 class="fw-bold mb-3">OneSignal Token Debug</h5>
-
-    <!-- Session info -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="small text-muted mb-1">Logged in as</div>
-            <div class="fw-bold">
-                <?= $userId ? htmlspecialchars($userName) . ' (ID: ' . $userId . ')' : '<span class="text-danger">NOT LOGGED IN</span>' ?>
-            </div>
-        </div>
-    </div>
-
-    <!-- Detected token -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="small text-muted mb-1">Token detected from Median</div>
-            <div class="fw-bold text-break" id="detected-id">
-                <span class="text-muted">Waiting for Median callback...</span>
-            </div>
-            <div class="small text-muted mt-2" id="save-status"></div>
-        </div>
-    </div>
-
-    <!-- Tokens in DB -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="small text-muted mb-2">Tokens saved in database for your account</div>
-            <?php if (empty($existingTokens)): ?>
-                <div class="text-danger fw-bold">None — no token registered yet</div>
-            <?php else: ?>
-                <?php foreach ($existingTokens as $t): ?>
-                    <div class="small text-break mb-1">
-                        <span class="badge bg-success">Saved</span>
-                        <?= htmlspecialchars($t['player_id']) ?>
-                        <span class="text-muted">(<?= $t['updated_at'] ?>)</span>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <!-- Manual register -->
-    <div class="card mb-3">
-        <div class="card-body">
-            <div class="small text-muted mb-2">Manual register (paste token from OneSignal dashboard)</div>
-            <input type="text" id="manual-token" class="form-control form-control-sm mb-2" placeholder="Paste OneSignal Subscription ID here">
-            <button class="btn btn-primary btn-sm w-100" onclick="manualRegister()">Register This Token</button>
-            <div id="manual-result" class="small mt-2"></div>
-        </div>
-    </div>
-
-    <!-- Pull from Median API -->
-    <button class="btn btn-outline-secondary btn-sm w-100 mb-2" onclick="pullFromMedian()">
-        Pull token from Median JS API
-    </button>
-
-    <button class="btn btn-outline-danger btn-sm w-100" onclick="location.reload()">
-        Refresh page
-    </button>
-
-    <!-- Log -->
-    <div class="mt-3">
-        <div class="small text-muted mb-1">Console log</div>
-        <pre id="log" class="bg-white border rounded p-2 small" style="min-height:80px;font-size:11px;overflow-x:auto"></pre>
-    </div>
-</div>
-
-<script>
-function log(msg) {
-    var el = document.getElementById('log');
-    el.textContent += new Date().toLocaleTimeString() + ' ' + msg + '\n';
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
 }
 
-function pullFromMedian() {
-    log('Pulling from gonative.onesignal.getInfo()...');
-    if (window.gonative && window.gonative.onesignal) {
-        window.gonative.onesignal.getInfo()
-            .then(function(info) {
-                log('getInfo() result: ' + JSON.stringify(info));
-                var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-                       || (info.subscription && info.subscription.id));
-                if (id) {
-                    document.getElementById('detected-id').textContent = id;
-                    window._sosPendingToken = id;
-                    registerToken(id);
-                } else {
-                    log('No ID found in response');
-                }
-            })
-            .catch(function(e) { log('getInfo() error: ' + e.message); });
-    } else {
-        log('window.gonative.onesignal not available (not in Median shell?)');
+header('Content-Type: application/json; charset=utf-8');
+
+require_once __DIR__ . '/../config/db.php'; // uses db(): PDO
+
+function respond(int $status, array $payload): void {
+    http_response_code($status);
+    echo json_encode($payload, JSON_UNESCAPED_SLASHES);
+    exit;
+}
+
+function validPlayerId(string $id): bool {
+    // UUID-ish or OneSignal subscription id formats
+    return (bool) preg_match('/^[A-Za-z0-9\-_]{8,191}$/', $id);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    respond(405, [
+        'success' => false,
+        'code' => 'METHOD_NOT_ALLOWED',
+        'retryable' => false,
+        'message' => 'Use POST.'
+    ]);
+}
+
+$userId = $_SESSION['user_id'] ?? null;
+if (!$userId || !is_numeric((string)$userId) || (int)$userId <= 0) {
+    respond(401, [
+        'success' => false,
+        'code' => 'AUTH_REQUIRED',
+        'retryable' => true,
+        'message' => 'Not logged in.'
+    ]);
+}
+$userId = (int)$userId;
+
+$raw = file_get_contents('php://input');
+$data = json_decode($raw ?: '', true);
+
+if (!is_array($data)) {
+    respond(400, [
+        'success' => false,
+        'code' => 'INVALID_JSON',
+        'retryable' => false,
+        'message' => 'Invalid JSON body.'
+    ]);
+}
+
+$playerId = trim((string)($data['player_id'] ?? ''));
+if ($playerId === '') {
+    respond(422, [
+        'success' => false,
+        'code' => 'PLAYER_ID_REQUIRED',
+        'retryable' => false,
+        'message' => 'player_id is required.'
+    ]);
+}
+if (!validPlayerId($playerId)) {
+    respond(422, [
+        'success' => false,
+        'code' => 'PLAYER_ID_INVALID',
+        'retryable' => false,
+        'message' => 'Invalid player_id format.'
+    ]);
+}
+
+try {
+    $pdo = db();
+    $pdo->beginTransaction();
+
+    // Ensure table exists with expected columns (safe no-op if already there)
+    $pdo->exec("
+        CREATE TABLE IF NOT EXISTS user_onesignal_tokens (
+            id INT(10) UNSIGNED NOT NULL AUTO_INCREMENT,
+            user_id INT(10) UNSIGNED NOT NULL,
+            player_id VARCHAR(191) NOT NULL,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uq_player_id (player_id),
+            KEY idx_user_id (user_id),
+            KEY idx_user_active (user_id, is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    ");
+
+    // Check if token exists globally
+    $q = $pdo->prepare("
+        SELECT id, user_id, is_active
+        FROM user_onesignal_tokens
+        WHERE player_id = :player_id
+        LIMIT 1
+    ");
+    $q->execute([':player_id' => $playerId]);
+    $existing = $q->fetch(PDO::FETCH_ASSOC);
+
+    if ($existing) {
+        $existingId = (int)$existing['id'];
+        $existingUserId = (int)$existing['user_id'];
+
+        // Reassign or refresh existing token row
+        $u = $pdo->prepare("
+            UPDATE user_onesignal_tokens
+            SET user_id = :user_id,
+                is_active = 1,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = :id
+        ");
+        $u->execute([
+            ':user_id' => $userId,
+            ':id' => $existingId
+        ]);
+
+        // Optional: deactivate other tokens for same user? keep multi-device = no
+        // $pdo->prepare("UPDATE user_onesignal_tokens SET is_active=0 WHERE user_id=:u AND id<>:id")
+        //     ->execute([':u' => $userId, ':id' => $existingId]);
+
+        $pdo->commit();
+
+        respond(200, [
+            'success' => true,
+            'code' => ($existingUserId === $userId ? 'ALREADY_REGISTERED' : 'REGISTERED_REASSIGNED'),
+            'retryable' => false,
+            'message' => ($existingUserId === $userId)
+                ? 'Token already registered.'
+                : 'Token reassigned to current user.',
+            'user_id' => $userId,
+            'player_id' => $playerId
+        ]);
     }
-}
 
-function manualRegister() {
-    var token = document.getElementById('manual-token').value.trim();
-    if (!token) { alert('Paste a token first'); return; }
-    registerToken(token);
-}
+    // Insert new token
+    $ins = $pdo->prepare("
+        INSERT INTO user_onesignal_tokens (user_id, player_id, is_active)
+        VALUES (:user_id, :player_id, 1)
+    ");
+    $ins->execute([
+        ':user_id' => $userId,
+        ':player_id' => $playerId
+    ]);
 
-function registerToken(playerId) {
-    log('Registering token: ' + playerId);
-    document.getElementById('save-status').textContent = 'Saving...';
+    $pdo->commit();
 
-    fetch('/backend/registerOnesignalToken.php', {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ player_id: playerId })
-    })
-    .then(function(r) { return r.json(); })
-    .then(function(d) {
-        log('Response: ' + JSON.stringify(d));
-        if (d.success) {
-            document.getElementById('save-status').textContent = '✓ Saved for user_id: ' + d.user_id;
-            document.getElementById('manual-result').innerHTML = '<span class="text-success fw-bold">✓ Token saved! Refresh to see it in DB section above.</span>';
-        } else {
-            document.getElementById('save-status').textContent = '✗ ' + d.message;
-            document.getElementById('manual-result').innerHTML = '<span class="text-danger">✗ ' + d.message + '</span>';
-        }
-    })
-    .catch(function(e) {
-        log('Fetch error: ' + e.message);
-        document.getElementById('save-status').textContent = '✗ Network error: ' + e.message;
-    });
-}
+    respond(201, [
+        'success' => true,
+        'code' => 'REGISTERED',
+        'retryable' => false,
+        'message' => 'Token registered.',
+        'user_id' => $userId,
+        'player_id' => $playerId
+    ]);
 
-document.addEventListener('DOMContentLoaded', function() {
-    log('DOM ready. _sosPendingToken=' + (window._sosPendingToken || 'null'));
-    log('gonative available: ' + !!(window.gonative && window.gonative.onesignal));
-    log('gonativeInfoLog: ' + JSON.stringify(window._gonativeInfoLog));
-
-    if (window._sosPendingToken) {
-        document.getElementById('detected-id').textContent = window._sosPendingToken;
-        registerToken(window._sosPendingToken);
+} catch (Throwable $e) {
+    if (isset($pdo) && $pdo->inTransaction()) {
+        $pdo->rollBack();
     }
-});
-</script>
-</body>
-</html>
+
+    error_log('[registerOnesignalToken] ' . $e->getMessage());
+
+    // Keep message generic to client, detailed in server logs
+    respond(500, [
+        'success' => false,
+        'code' => 'DB_ERROR',
+        'retryable' => true,
+        'message' => 'Database error while registering token.'
+    ]);
+}
