@@ -192,8 +192,15 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 <script>
   window._sosPendingToken = null;
   window.gonative_onesignal_info = function (info) {
-    var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-      || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+    var id = info && (
+      info.oneSignalId || info.userId || info.subscriptionId
+      || info.oneSignalUserId || info.pushToken || info.playerId || info.id
+      || (info.subscription && (
+            info.subscription.id || info.subscription.subscriptionId
+            || info.subscription.playerId || info.subscription.pushToken
+            || info.subscription.userId || info.subscription.oneSignalId
+         ))
+    );
     if (!id) return;
     window._sosPendingToken = id;
     if (window.sosBridge) window.sosBridge.saveToken(id);
@@ -502,11 +509,14 @@ else: ?>
   </div>
 </div>
 
+<script>
+  // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
+  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+</script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 
 <script>
-  // Expose base URL for icon swapping
-  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
+  // Expose base URL for icon swapping (already set above, kept for clarity)
 
   // ===== BOTTOM NAV ICON SWAPPING =====
   window.updateBottomNavIcons = function (activeButton) {
