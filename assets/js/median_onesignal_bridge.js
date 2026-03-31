@@ -8,11 +8,13 @@
   var _autoPollTimer   = null;
   var _autoPollAttempts = 0;
   var _registrationAttempted = false;
+  var _resumeCooldownTimer = null;
   var PENDING_TOKEN_KEY = 'sos_pending_token';
   var MAX_AUTO_POLL_ATTEMPTS = 15;
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
   var NORMAL_RETRY_DELAY_MS  = 5000;
+  var RESUME_COOLDOWN_MS     = 800;
 
   // Safe console wrapper – never crashes if console is unavailable
   function dbg(level, msg) {
@@ -149,11 +151,15 @@
 
   function resumeIfNeeded(reason) {
     if (_saved) return;
+    if (_resumeCooldownTimer) return;
+    _resumeCooldownTimer = setTimeout(function() { _resumeCooldownTimer = null; }, RESUME_COOLDOWN_MS);
     dbg('log', '[SOS] Resume triggered by ' + reason);
     var pending = getPendingToken();
     if (pending) saveToken(pending);
-    ensurePushRegistration(true);
-    startAutoPoll();
+    if (pending || !_registrationAttempted || !_autoPollTimer) {
+      ensurePushRegistration(true);
+      startAutoPoll();
+    }
   }
 
   // On DOM ready: use pending token if already caught, otherwise
