@@ -7,6 +7,7 @@
   var _playerId        = null;
   var _autoPollTimer   = null;
   var _autoPollAttempts = 0;
+  var _registrationAttempted = false;
   var MAX_AUTO_POLL_ATTEMPTS = 15;
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
@@ -112,6 +113,8 @@
   document.addEventListener('DOMContentLoaded', function() {
     if (_saved) return;
 
+    ensurePushRegistration();
+
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
     }
@@ -193,6 +196,8 @@
     if (_saved) return;
     if (_autoPollTimer) { clearTimeout(_autoPollTimer); }
 
+    ensurePushRegistration();
+
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
       return;
@@ -228,6 +233,47 @@
           _autoPollTimer = setTimeout(startAutoPoll, delay);
         }
       });
+  }
+
+  // Proactively ask the host/SDK to register for push so the device
+  // doesn't stay in "Never Subscribed" limbo.
+  function ensurePushRegistration() {
+    if (_registrationAttempted) return;
+    _registrationAttempted = true;
+
+    try {
+      if (window.OneSignal && OneSignal.Notifications && typeof OneSignal.Notifications.requestPermission === 'function') {
+        OneSignal.Notifications.requestPermission(true)
+          .then(function (granted) { dbg('log', '[SOS] requestPermission result: ' + granted); })
+          .catch(function (e) { dbg('warn', '[SOS] requestPermission failed: ' + (e && e.message)); });
+        dbg('log', '[SOS] Called OneSignal.Notifications.requestPermission(true)');
+        return;
+      }
+    } catch (e) {
+      dbg('warn', '[SOS] requestPermission threw: ' + (e && e.message));
+    }
+
+    try {
+      if (window.OneSignal && typeof OneSignal.registerForPushNotifications === 'function') {
+        OneSignal.registerForPushNotifications();
+        dbg('log', '[SOS] Called OneSignal.registerForPushNotifications()');
+        return;
+      }
+    } catch (e2) {
+      dbg('warn', '[SOS] Legacy OneSignal registerForPushNotifications failed: ' + (e2 && e2.message));
+    }
+
+    try {
+      if (window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.registerForPushNotifications === 'function') {
+        window.gonative.onesignal.registerForPushNotifications();
+        dbg('log', '[SOS] Called gonative.onesignal.registerForPushNotifications()');
+        return;
+      }
+    } catch (e3) {
+      dbg('warn', '[SOS] gonative.onesignal.registerForPushNotifications threw: ' + (e3 && e3.message));
+    }
+
+    dbg('log', '[SOS] No push registration method available on this platform');
   }
 
   function tryOneSignalSdk() {
