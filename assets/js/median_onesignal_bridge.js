@@ -18,6 +18,11 @@
     try { if (console && console[level]) console[level](msg); } catch(e) {}
   }
 
+  function formatError(e, prefix) {
+    var msg = (e && e.message) || 'unknown error';
+    return prefix ? (prefix + ': ' + msg) : msg;
+  }
+
   // Extracts the player/subscription ID from any Median/OneSignal info object
   function extractId(info) {
     if (!info) return null;
@@ -81,7 +86,8 @@
   window.sosBridge = {
     saveToken: saveToken,
     isSaved: function() { return _saved; },
-    getPlayerId: function() { return _playerId; }
+    getPlayerId: function() { return _playerId; },
+    requestPushPermission: requestPushPermission
   };
 
   // Called by Median immediately on app launch (may fire before DOM is ready)
@@ -235,19 +241,50 @@
       });
   }
 
+  function resetPushRegistrationState() {
+    if (_autoPollTimer) { clearTimeout(_autoPollTimer); _autoPollTimer = null; }
+    _autoPollAttempts = 0;
+    _registrationAttempted = false;
+  }
+
+  // Manual trigger: re-request permission and restart polling
+  function requestPushPermission() {
+    return new Promise(function(resolve, reject) {
+      try {
+        resetPushRegistrationState();
+        ensurePushRegistration(true)
+          .then(function(result) {
+            startAutoPoll();
+            resolve(result);
+          })
+          .catch(function(e) {
+            reject(new Error(formatError(e, 'ensurePushRegistration failed')));
+          });
+      } catch (e) {
+        dbg('warn', '[SOS] requestPushPermission() failed: ' + (e && e.message));
+        reject(new Error(formatError(e, 'requestPushPermission failed')));
+      }
+    });
+  }
+
   // Proactively ask the host/SDK to register for push so the device
   // doesn't stay in "Never Subscribed" limbo.
-  function ensurePushRegistration() {
-    if (_registrationAttempted) return;
+  function ensurePushRegistration(force) {
+    if (_registrationAttempted && !force) return Promise.resolve(false);
     _registrationAttempted = true;
 
     try {
       if (window.OneSignal && OneSignal.Notifications && typeof OneSignal.Notifications.requestPermission === 'function') {
-        OneSignal.Notifications.requestPermission(true)
-          .then(function (granted) { dbg('log', '[SOS] requestPermission result: ' + granted); })
-          .catch(function (e) { dbg('warn', '[SOS] requestPermission failed: ' + (e && e.message)); });
         dbg('log', '[SOS] Called OneSignal.Notifications.requestPermission(true)');
-        return;
+        return OneSignal.Notifications.requestPermission(true)
+          .then(function (granted) {
+            dbg('log', '[SOS] requestPermission result: ' + granted);
+            return granted;
+          })
+          .catch(function (e) {
+            dbg('warn', '[SOS] requestPermission failed: ' + (e && e.message));
+            return false;
+          });
       }
     } catch (e) {
       dbg('warn', '[SOS] requestPermission threw: ' + (e && e.message));
@@ -257,7 +294,7 @@
       if (window.OneSignal && typeof OneSignal.registerForPushNotifications === 'function') {
         OneSignal.registerForPushNotifications();
         dbg('log', '[SOS] Called OneSignal.registerForPushNotifications()');
-        return;
+        return Promise.resolve(true);
       }
     } catch (e2) {
       dbg('warn', '[SOS] Legacy OneSignal registerForPushNotifications failed: ' + (e2 && e2.message));
@@ -267,13 +304,14 @@
       if (window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.registerForPushNotifications === 'function') {
         window.gonative.onesignal.registerForPushNotifications();
         dbg('log', '[SOS] Called gonative.onesignal.registerForPushNotifications()');
-        return;
+        return Promise.resolve(true);
       }
     } catch (e3) {
       dbg('warn', '[SOS] gonative.onesignal.registerForPushNotifications threw: ' + (e3 && e3.message));
     }
 
     dbg('log', '[SOS] No push registration method available on this platform');
+    return Promise.resolve(false);
   }
 
   function tryOneSignalSdk() {
