@@ -1,10 +1,12 @@
 (function () {
   'use strict';
 
-  var REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
-  var _saved       = false;
-  var _retryTimer  = null;
-  var _playerId    = null;
+  var REGISTER_URL     = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
+  var _saved           = false;
+  var _retryTimer      = null;
+  var _playerId        = null;
+  var _autoPollTimer   = null;
+  var _autoPollAttempts = 0;
 
   // Safe console wrapper – never crashes if console is unavailable
   function dbg(level, msg) {
@@ -52,6 +54,7 @@
       if (d.success) {
         _saved = true;
         window._sosPendingToken = null;
+        if (_autoPollTimer) { clearTimeout(_autoPollTimer); _autoPollTimer = null; }
         dbg('log', '[SOS] Token saved for user_id: ' + d.user_id);
       } else {
         // Not logged in yet — keep retrying every 5s until session exists
@@ -97,33 +100,14 @@
   };
 
   // On DOM ready: use pending token if already caught, otherwise
-  // pull from Median JS API directly (correct API: gonative.onesignal.getInfo)
+  // start automatic polling so users never have to tap "Pull Token"
   document.addEventListener('DOMContentLoaded', function() {
     if (_saved) return;
 
-    // Already caught by the early <head> catcher or the callbacks above
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
-      return;
     }
-
-    // Pull directly from Median's JS bridge API
-    if (window.gonative && window.gonative.onesignal) {
-      window.gonative.onesignal.getInfo()
-        .then(function(info) {
-          dbg('log', '[SOS] gonative.onesignal.getInfo() result — payload: ' + JSON.stringify(info));
-          var id = extractId(info);
-          if (id) {
-            dbg('log', '[SOS] Extracted ID: ' + id);
-            saveToken(id);
-          } else {
-            dbg('warn', '[SOS] getInfo(): no ID could be extracted from payload');
-          }
-        })
-        .catch(function(e) {
-          dbg('warn', '[SOS] gonative.onesignal.getInfo() failed: ' + ((e && e.message) || 'unknown error'));
-        });
-    }
+    startAutoPoll();
   });
 
   // Foreground push received while app is open
@@ -191,6 +175,84 @@
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
       return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]);
+    });
+  }
+
+  // ──────────────────────────────────────────────
+  // Automatic token polling (OneSignal SDK + Median)
+  // ──────────────────────────────────────────────
+  function startAutoPoll() {
+    if (_saved) return;
+    if (_autoPollTimer) { clearTimeout(_autoPollTimer); }
+
+    var attempt = ++_autoPollAttempts;
+    dbg('log', '[SOS] Auto-poll attempt #' + attempt);
+
+    if (window._sosPendingToken) {
+      saveToken(window._sosPendingToken);
+    } else {
+      tryOneSignalSdk()
+        .then(function(id) {
+          if (id) {
+            dbg('log', '[SOS] OneSignal SDK returned ID: ' + id);
+            saveToken(id);
+            return null;
+          }
+          return tryMedianGetInfo().then(function(mid) {
+            if (mid) {
+              dbg('log', '[SOS] Median getInfo() returned ID: ' + mid);
+              saveToken(mid);
+            }
+            return null;
+          });
+        })
+        .catch(function(e) {
+          dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
+        });
+    }
+
+    if (!_saved && attempt < 15) {
+      var delay = attempt < 3 ? 1500 : 5000;
+      _autoPollTimer = setTimeout(startAutoPoll, delay);
+    }
+  }
+
+  function tryOneSignalSdk() {
+    return new Promise(function(resolve) {
+      try {
+        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
+          OneSignal.getUserId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
+          return;
+        }
+        if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription
+            && typeof OneSignal.User.PushSubscription.getId === 'function') {
+          OneSignal.User.PushSubscription.getId().then(function(id) { resolve(id || null); }).catch(function() { resolve(null); });
+          return;
+        }
+      } catch (e) {
+        dbg('warn', '[SOS] OneSignal SDK lookup failed: ' + (e && e.message));
+      }
+      resolve(null);
+    });
+  }
+
+  function tryMedianGetInfo() {
+    return new Promise(function(resolve) {
+      if (!(window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.getInfo === 'function')) {
+        return resolve(null);
+      }
+      try {
+        var res = window.gonative.onesignal.getInfo();
+        if (res && typeof res.then === 'function') {
+          res.then(function(info) { resolve(extractId(info)); })
+             .catch(function() { resolve(null); });
+        } else {
+          resolve(extractId(res));
+        }
+      } catch (e) {
+        dbg('warn', '[SOS] gonative.onesignal.getInfo() threw: ' + (e && e.message));
+        resolve(null);
+      }
     });
   }
 
