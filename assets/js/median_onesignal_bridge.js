@@ -198,8 +198,8 @@
       return;
     }
 
-    _autoPollAttempts += 1;
-    dbg('log', '[SOS] Auto-poll attempt #' + _autoPollAttempts);
+    var attemptNumber = _autoPollAttempts + 1;
+    dbg('log', '[SOS] Auto-poll attempt #' + attemptNumber);
 
     tryOneSignalSdk()
       .then(function(id) {
@@ -221,9 +221,10 @@
         dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
       })
       .then(function(captured) {
+        _autoPollAttempts = attemptNumber;
         if (captured) return;
-        if (_autoPollAttempts < MAX_AUTO_POLL_ATTEMPTS) {
-          var delay = _autoPollAttempts < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
+        if (attemptNumber < MAX_AUTO_POLL_ATTEMPTS) {
+          var delay = attemptNumber < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
           _autoPollTimer = setTimeout(startAutoPoll, delay);
         }
       });
