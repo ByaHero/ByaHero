@@ -193,13 +193,13 @@
     if (_saved) return;
     if (_autoPollTimer) { clearTimeout(_autoPollTimer); }
 
-    _autoPollAttempts += 1;
-    dbg('log', '[SOS] Auto-poll attempt #' + _autoPollAttempts);
-
     if (window._sosPendingToken) {
       saveToken(window._sosPendingToken);
       return;
     }
+
+    _autoPollAttempts += 1;
+    dbg('log', '[SOS] Auto-poll attempt #' + _autoPollAttempts);
 
     tryOneSignalSdk()
       .then(function(id) {
@@ -221,7 +221,7 @@
         dbg('warn', '[SOS] Auto-poll error: ' + ((e && e.message) || 'unknown error'));
       })
       .then(function(captured) {
-        if (_saved || captured) return;
+        if (captured) return;
         if (_autoPollAttempts < MAX_AUTO_POLL_ATTEMPTS) {
           var delay = _autoPollAttempts < QUICK_RETRY_THRESHOLD ? QUICK_RETRY_DELAY_MS : NORMAL_RETRY_DELAY_MS;
           _autoPollTimer = setTimeout(startAutoPoll, delay);
