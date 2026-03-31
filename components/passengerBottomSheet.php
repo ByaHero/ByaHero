@@ -37,7 +37,7 @@ if (!isset($baseUrl)) {
   <div id="sheetHeader" class="flex-shrink-0 w-100 bg-white rounded-top-4">
     <!-- Add a class so JS knows this small pill is the drag handle -->
     <div class="sheet-drag-handle bg-secondary opacity-25 rounded-pill mx-auto mt-3"
-      style="width: 40px; height: 5px; cursor: pointer;"></div>
+  style="width: 40px; height: 5px; padding: 8px 0; cursor: pointer;"></div>
 
     <div class="container-fluid px-3 pt-3">
       <div class="row g-2">
@@ -84,7 +84,7 @@ if (!isset($baseUrl)) {
     </div>
   </div>
 
-  <div class="flex-grow-1 pb-4 px-3" style="min-height: 0;">
+  <div class="flex-grow-1 pb-4 px-3 bottom-sheet-body" style="min-height: 0;">
     <!-- LOCATION VIEW (VISIBLE BY DEFAULT) -->
     <div id="view-location" class="mt-2">
       <div id="busListMobile">

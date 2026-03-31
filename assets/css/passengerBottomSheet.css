@@ -115,3 +115,18 @@
   font-weight: 500;
   color: #4b5563;
 }
+
+/* ================================
+   Bottom Sheet behavior helpers
+   ================================ */
+
+/* Scrollable area inside the bottom sheet */
+.bottom-sheet-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on mobile */
+}
+
+/* Smooth height animation for snap points */
+#bottomSheet.sheet-transition {
+  transition: height 0.25s ease-out, transform 0.25s ease-out;
+}
