@@ -8,10 +8,15 @@
   var _autoPollTimer   = null;
   var _autoPollAttempts = 0;
   var _registrationAttempted = false;
+  var _resumeCooldownTimer = null;
+  var PENDING_TOKEN_KEY = 'sos_pending_token';
   var MAX_AUTO_POLL_ATTEMPTS = 15;
   var QUICK_RETRY_THRESHOLD  = 3;
   var QUICK_RETRY_DELAY_MS   = 1500;
   var NORMAL_RETRY_DELAY_MS  = 5000;
+  // Debounce interval to avoid duplicate resume triggers when focus/visibility both fire within the same tick.
+  // 800ms is long enough to skip the typical double-fire sequence when switching tabs/apps without delaying retries too much.
+  var RESUME_COOLDOWN_MS     = 800;
 
   // Safe console wrapper – never crashes if console is unavailable
   function dbg(level, msg) {
@@ -21,6 +26,38 @@
   function formatError(e, prefix) {
     var msg = (e && e.message) || 'unknown error';
     return prefix ? (prefix + ': ' + msg) : msg;
+  }
+
+  function persistPendingToken(token) {
+    window._sosPendingToken = token;
+    try {
+      if (token) localStorage.setItem(PENDING_TOKEN_KEY, token);
+    } catch (e) {
+      dbg('warn', '[SOS] persistPendingToken failed: ' + (e && e.message));
+    }
+  }
+
+  function clearPendingToken() {
+    window._sosPendingToken = null;
+    try {
+      localStorage.removeItem(PENDING_TOKEN_KEY);
+    } catch (e) {
+      dbg('warn', '[SOS] clearPendingToken failed: ' + (e && e.message));
+    }
+  }
+
+  function getPendingToken() {
+    var stored = null;
+    try {
+      stored = localStorage.getItem(PENDING_TOKEN_KEY);
+    } catch (e) {
+      dbg('warn', '[SOS] getPendingToken failed: ' + (e && e.message));
+    }
+    if (stored) {
+      window._sosPendingToken = stored;
+      return stored;
+    }
+    return window._sosPendingToken || null;
   }
 
   // Extracts the player/subscription ID from any Median/OneSignal info object
@@ -46,11 +83,15 @@
 
   function saveToken(playerId) {
     if (!playerId) return;
-    if (_saved) return;
+    if (_saved && _playerId === playerId) return;
+    if (_retryTimer) {
+      if (_playerId === playerId) return;
+      // New token arrived while a retry was queued for another token; cancel the old retry.
+      clearTimeout(_retryTimer);
+      _retryTimer = null;
+    }
     _playerId = playerId;
-    window._sosPendingToken = playerId;
-
-    if (_retryTimer) { clearTimeout(_retryTimer); _retryTimer = null; }
+    persistPendingToken(playerId);
 
     dbg('log', '[SOS] Posting to: ' + REGISTER_URL);
     fetch(REGISTER_URL, {
@@ -63,7 +104,7 @@
     .then(function(d) {
       if (d.success) {
         _saved = true;
-        window._sosPendingToken = null;
+        clearPendingToken();
         _autoPollAttempts = 0;
         if (_autoPollTimer) {
           clearTimeout(_autoPollTimer);
@@ -114,18 +155,50 @@
     }
   };
 
+  function resumeIfNeeded(reason) {
+    // Skip when already saved or when the debounce timer is active to avoid duplicate work.
+    if (_saved) return;
+    if (_resumeCooldownTimer) return;
+    dbg('log', '[SOS] Resume triggered by ' + reason);
+    var pending = getPendingToken();
+    var shouldAttemptRegistration = pending || !_registrationAttempted || !_autoPollTimer;
+    // Resume if we have a pending token to save, if registration was never attempted,
+    // or if auto-polling stopped (e.g., after hitting max attempts).
+    if (!shouldAttemptRegistration) return;
+    _resumeCooldownTimer = setTimeout(clearResumeCooldown, RESUME_COOLDOWN_MS);
+    if (pending) {
+      saveToken(pending);
+    }
+    ensurePushRegistration(true);
+    startAutoPoll();
+  }
+
+  function clearResumeCooldown() {
+    _resumeCooldownTimer = null;
+  }
+
   // On DOM ready: use pending token if already caught, otherwise
   // start automatic polling so users never have to tap "Pull Token"
   document.addEventListener('DOMContentLoaded', function() {
     if (_saved) return;
 
+    var pending = getPendingToken();
     ensurePushRegistration();
 
-    if (window._sosPendingToken) {
-      saveToken(window._sosPendingToken);
+    if (pending) {
+      saveToken(pending);
     }
     startAutoPoll();
   });
+
+  // Resume polling whenever the page becomes visible/focused again
+  if (!window._sosResumeHandlersBound) {
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') resumeIfNeeded('visibilitychange');
+    });
+    window.addEventListener('focus', function () { resumeIfNeeded('focus'); });
+    window._sosResumeHandlersBound = true;
+  }
 
   // Foreground push received while app is open
   window.gonative_onesignal_notification_received = function(data) {
