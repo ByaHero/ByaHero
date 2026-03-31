@@ -13,23 +13,14 @@ session_start();
 
 header('Content-Type: application/json');
 
-// CORS support for Median WebView.
-// Median WebViews sometimes send Origin: null or omit the header entirely.
-// We must always emit ACAO + credentials headers so the session cookie
-// attaches correctly on every request (Bug 5 fix).
+// CORS support for Median WebView
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin === '' || $origin === 'null') {
-    // WebView with no real origin — fall back to the server's own host.
-    // Browsers reject credentials when ACAO is literally "null", so we
-    // never echo "null" back.
-    $origin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 'https' : 'http')
-            . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost');
+if ($origin) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+    header('Access-Control-Allow-Credentials: true');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
 }
-header('Access-Control-Allow-Origin: ' . $origin);
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-header('Vary: Origin');
 
 // Handle CORS preflight
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {

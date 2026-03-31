@@ -190,34 +190,16 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   }
 </style>
 <script>
-  // APP_BASE_URL must be set BEFORE median_onesignal_bridge.js loads
-  // so the bridge can build the correct REGISTER_URL (Bug 3 fix).
-  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
-
-  // Early catcher — Median may fire gonative_onesignal_info before the DOM
-  // is ready, so we must define these callbacks immediately (Bug 2 fix).
   window._sosPendingToken = null;
-  window._gonativeInfoLog  = [];
-
-  function _sosHandleInfo(info) {
-    window._gonativeInfoLog.push({ time: new Date().toISOString(), info: info });
+  window.gonative_onesignal_info = function (info) {
     var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-          || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+      || (info.subscription && info.subscription.id) || info.oneSignalUserId);
     if (!id) return;
     window._sosPendingToken = id;
-    // sosBridge may already be available if the bridge script finished loading
-    // before Median fired this callback (Bug 4 fix — no silent skip).
-    if (window.sosBridge) {
-      window.sosBridge.saveToken(id);
-    }
-  }
-
-  window.gonative_onesignal_info = _sosHandleInfo;
-  window.median_onesignal_info   = _sosHandleInfo;
+    if (window.sosBridge) window.sosBridge.saveToken(id);
+  };
+  window.median_onesignal_info = window.gonative_onesignal_info;
 </script>
-<!-- Bridge script loads immediately after the early catcher so sosBridge
-     exists as early as possible in the page lifecycle (Bug 2 fix). -->
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
@@ -444,19 +426,11 @@ else: ?>
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>public/passenger/onesignal_debug.php">
+        href="<?php echo $depth; ?>backend/onesignal_debug.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
-        OneSignal Debug
-      </a>
-
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>backend/check_tokens.php">
-        <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
-        </div>
-        OneSignal Debug
+        onesignal
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
@@ -528,9 +502,11 @@ else: ?>
   </div>
 </div>
 
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+
 <script>
-  // APP_BASE_URL is already set at the top of this file before the bridge loaded.
-  // This comment replaces the duplicate assignment and script tag that were here.
+  // Expose base URL for icon swapping
+  window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 
   // ===== BOTTOM NAV ICON SWAPPING =====
   window.updateBottomNavIcons = function (activeButton) {

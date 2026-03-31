@@ -173,72 +173,100 @@ if ($userId && isset($conn)) {
 
     function checkSdk() {
         var sdkAvailable = !!(window.gonative && window.gonative.onesignal);
-        document.getElementById('sdk-status').className = 'status-badge ' + (sdkAvailable ? 'status-yes' : 'status-no');
-        document.getElementById('sdk-status').textContent = sdkAvailable ? 'YES - Median SDK available' : 'NO - Not in Median shell';
+        var oneSignalAvailable = !!(window.OneSignal);
 
-        log('getinfo-log', 'SDK check: ' + (sdkAvailable ? 'available' : 'NOT available'), sdkAvailable ? 'success' : 'error');
+        document.getElementById('sdk-status').className = 'status-badge ' + (sdkAvailable || oneSignalAvailable ? 'status-yes' : 'status-no');
+        document.getElementById('sdk-status').textContent = (sdkAvailable ? 'Median SDK' : '') + (oneSignalAvailable ? ' + OneSignal SDK' : '') || 'NOT available';
 
+        log('getinfo-log', 'SDK check: Median=' + sdkAvailable + ', OneSignal=' + oneSignalAvailable, sdkAvailable || oneSignalAvailable ? 'success' : 'error');
+
+        var methods = [];
         if (sdkAvailable) {
-            // Check what methods are available
-            var methods = [];
-            if (typeof window.gonative.onesignal.getInfo === 'function') methods.push('getInfo()');
-            if (typeof window.gonative.onesignal.getPermissionSubscriptionState === 'function') methods.push('getPermissionSubscriptionState()');
-            log('getinfo-log', 'Available methods: ' + methods.join(', '));
+            if (typeof window.gonative.onesignal.getInfo === 'function') methods.push('gonative.getInfo()');
+            if (typeof window.gonative.onesignal.getPermissionSubscriptionState === 'function') methods.push('gonative.getPermissionSubscriptionState()');
         }
+        if (oneSignalAvailable) {
+            if (typeof OneSignal.getUserId === 'function') methods.push('OneSignal.getUserId()');
+            if (typeof OneSignal.getUserSubscriptionState === 'function') methods.push('OneSignal.getUserSubscriptionState()');
+        }
+        log('getinfo-log', 'Available methods: ' + (methods.join(', ') || 'none'));
     }
 
     function pullToken() {
         log('getinfo-log', 'Attempting to pull token...');
 
-        if (!window.gonative || !window.gonative.onesignal) {
-            log('getinfo-log', 'Median SDK not available', 'error');
+        // Method 1: OneSignal SDK directly (best for Android 15+)
+        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
+            log('getinfo-log', 'Using OneSignal.getUserId()...', 'success');
+            OneSignal.getUserId().then(function(id) {
+                if (id) {
+                    log('getinfo-log', 'OneSignal.getUserId() returned: ' + id, 'success');
+                    window._sosPendingToken = id;
+                    updateDisplay();
+                } else {
+                    log('getinfo-log', 'OneSignal.getUserId() returned null', 'error');
+                    tryMedianGetInfo();
+                }
+            }).catch(function(e) {
+                log('getinfo-log', 'OneSignal.getUserId() failed: ' + e.message, 'error');
+                tryMedianGetInfo();
+            });
             return;
         }
 
-        if (typeof window.gonative.onesignal.getInfo !== 'function') {
-            log('getinfo-log', 'getInfo() method not found', 'error');
-            return;
-        }
-
-        try {
-            var result = window.gonative.onesignal.getInfo();
-
-            if (result && typeof result.then === 'function') {
-                log('getinfo-log', 'getInfo() returned a promise, waiting...');
-                result
-                    .then(function(info) {
-                        log('getinfo-log', 'getInfo() resolved: ' + JSON.stringify(info));
-                        window._getInfoLog.push({ time: new Date().toISOString(), info: info });
-
-                        // Try to extract ID
-                        var id = info && (
-                            info.oneSignalId ||
-                            info.userId ||
-                            info.subscriptionId ||
-                            info.oneSignalUserId ||
-                            info.pushToken ||
-                            info.playerId ||
-                            info.id ||
-                            (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
-                        );
-
-                        if (id) {
-                            log('getinfo-log', 'Token extracted: ' + id, 'success');
-                            window._sosPendingToken = id;
-                            updateDisplay();
-                        } else {
-                            log('getinfo-log', 'No token found in response', 'error');
-                        }
-                    })
-                    .catch(function(e) {
-                        log('getinfo-log', 'getInfo() rejected: ' + e.message, 'error');
-                    });
-            } else {
-                log('getinfo-log', 'getInfo() returned non-promise: ' + typeof result);
+        // Method 2: Median's getInfo
+        function tryMedianGetInfo() {
+            if (!window.gonative || !window.gonative.onesignal) {
+                log('getinfo-log', 'Median SDK not available', 'error');
+                return;
             }
-        } catch (e) {
-            log('getinfo-log', 'getInfo() threw: ' + e.message, 'error');
+
+            if (typeof window.gonative.onesignal.getInfo !== 'function') {
+                log('getinfo-log', 'getInfo() method not found', 'error');
+                return;
+            }
+
+            try {
+                var result = window.gonative.onesignal.getInfo();
+
+                if (result && typeof result.then === 'function') {
+                    log('getinfo-log', 'getInfo() returned a promise, waiting...');
+                    result
+                        .then(function(info) {
+                            log('getinfo-log', 'getInfo() resolved: ' + JSON.stringify(info));
+                            window._getInfoLog.push({ time: new Date().toISOString(), info: info });
+
+                            // Try to extract ID
+                            var id = info && (
+                                info.oneSignalId ||
+                                info.userId ||
+                                info.subscriptionId ||
+                                info.oneSignalUserId ||
+                                info.pushToken ||
+                                info.playerId ||
+                                info.id ||
+                                (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
+                            );
+
+                            if (id) {
+                                log('getinfo-log', 'Token extracted: ' + id, 'success');
+                                window._sosPendingToken = id;
+                                updateDisplay();
+                            } else {
+                                log('getinfo-log', 'No token found in response', 'error');
+                            }
+                        })
+                        .catch(function(e) {
+                            log('getinfo-log', 'getInfo() rejected: ' + e.message, 'error');
+                        });
+                } else {
+                    log('getinfo-log', 'getInfo() returned non-promise: ' + typeof result);
+                }
+            } catch (e) {
+                log('getinfo-log', 'getInfo() threw: ' + e.message, 'error');
+            }
         }
+        tryMedianGetInfo();
     }
 
     function savePendingToken() {

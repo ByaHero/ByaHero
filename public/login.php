@@ -80,9 +80,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             if ($authenticated && $userRecord) {
-                // Regenerate session ID to prevent session-fixation attacks (Bug 6 fix)
-                session_regenerate_id(true);
-
                 $_SESSION['user_id'] = $userRecord['id'];
                 $_SESSION['user_email'] = $userRecord['email'];
                 $_SESSION['user_role'] = $userRole;
@@ -103,26 +100,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <meta name="viewport" content="width=device-width,initial-scale=1">
                     <title>Logging in...</title>
 
-                    <!-- APP_BASE_URL + EARLY CATCHER must come before the bridge script (Bug 3+4 fix) -->
+                    <!-- EARLY CATCHER: must be first script, before bridge loads -->
                     <script>
-                        // Must be set before bridge.js loads so REGISTER_URL is built correctly (Bug 3 fix)
-                        window.APP_BASE_URL = "<?= addslashes($baseUrl) ?>";
-
                         window._sosPendingToken = null;
-                        function _sosHandleInfo(info) {
+                        window.gonative_onesignal_info = function (info) {
                             var id = info && (info.oneSignalId || info.userId || info.subscriptionId
                                 || (info.subscription && info.subscription.id) || info.oneSignalUserId);
-                            if (!id) return;
-                            window._sosPendingToken = id;
-                            // sosBridge is available immediately after bridge.js below (Bug 4 fix)
-                            if (window.sosBridge) window.sosBridge.saveToken(id);
-                        }
-                        window.gonative_onesignal_info = _sosHandleInfo;
-                        window.median_onesignal_info   = _sosHandleInfo;
+                            if (id) {
+                                window._sosPendingToken = id;
+                                if (window.sosBridge) window.sosBridge.saveToken(id);
+                            }
+                        };
+                        window.median_onesignal_info = window.gonative_onesignal_info;
                     </script>
 
-                    <!-- Bug 1 fix: use $baseUrl so subdirectory installs resolve correctly -->
-                    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/js/median_onesignal_bridge.js"></script>
+                    <script src="/assets/js/median_onesignal_bridge.js"></script>
 
                     <style>
                         body {
@@ -177,9 +169,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         }
 
-                        // Bug 2 fix: build URL from APP_BASE_URL, not a hard-coded absolute path
+                        // Try to save token, then redirect when done (or after timeout)
                         function syncThenRedirect(playerId) {
-                            fetch((window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php', {
+                            fetch('/backend/registerOnesignalToken.php', {
                                 method: 'POST',
                                 credentials: 'include',
                                 headers: { 'Content-Type': 'application/json' },
@@ -204,43 +196,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 return;
                             }
 
-                            // Pull from Median JS API - try multiple times if needed
-                            function tryGetToken() {
-                                if (window.gonative && window.gonative.onesignal) {
-                                    console.log('[Login] Calling gonative.onesignal.getInfo()...');
-                                    window.gonative.onesignal.getInfo()
-                                        .then(function (info) {
-                                            console.log('[Login] getInfo() result:', JSON.stringify(info));
-                                            // Try ALL possible property names
-                                            var id = info && (
-                                                info.oneSignalId ||
-                                                info.userId ||
-                                                info.subscriptionId ||
-                                                info.oneSignalUserId ||
-                                                info.pushToken ||
-                                                info.playerId ||
-                                                info.id ||
-                                                (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
-                                            );
-                                            if (id) {
-                                                console.log('[Login] Token found:', id);
-                                                syncThenRedirect(id);
-                                            } else {
-                                                console.warn('[Login] No token in response, retrying in 500ms...');
-                                                setTimeout(tryGetToken, 500);
-                                            }
-                                        })
-                                        .catch(function (e) {
-                                            console.warn('[Login] getInfo() error:', e);
-                                            // Retry once after delay
-                                            setTimeout(tryGetToken, 500);
-                                        });
-                                } else {
-                                    console.log('[Login] Not in Median shell, redirecting...');
-                                    proceed();
-                                }
+                            // Pull from Median JS API
+                            if (window.gonative && window.gonative.onesignal) {
+                                window.gonative.onesignal.getInfo()
+                                    .then(function (info) {
+                                        var id = info && (info.oneSignalId || info.userId
+                                            || info.subscriptionId
+                                            || (info.subscription && info.subscription.id));
+                                        if (id) { syncThenRedirect(id); }
+                                        else { proceed(); }
+                                    })
+                                    .catch(function () { proceed(); });
+                            } else {
+                                // Not in Median shell — just redirect
+                                proceed();
                             }
-                            tryGetToken();
                         });
                     </script>
                 </body>
@@ -266,21 +236,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <!-- APP_BASE_URL + early catcher before bridge loads (Bug 5 fix) -->
-    <script>
-        window.APP_BASE_URL = "<?= addslashes($baseUrl) ?>";
-        window._sosPendingToken = null;
-        function _sosHandleInfo(info) {
-            var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-                || (info.subscription && info.subscription.id) || info.oneSignalUserId);
-            if (!id) return;
-            window._sosPendingToken = id;
-            if (window.sosBridge) window.sosBridge.saveToken(id);
-        }
-        window.gonative_onesignal_info = _sosHandleInfo;
-        window.median_onesignal_info   = _sosHandleInfo;
-    </script>
-    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/js/median_onesignal_bridge.js"></script>
+    <script src="../assets/js/median_onesignal_bridge.js"></script>
     <style>
         /* ... Your existing CSS remains exactly the same ... */
         :root {
