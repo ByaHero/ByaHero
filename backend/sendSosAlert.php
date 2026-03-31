@@ -77,7 +77,8 @@ try {
         $payload = [
             'app_id' => ONESIGNAL_APP_ID,
             'target_channel' => 'push',
-            'include_aliases' => ['onesignal_id' => $playerIds],
+            // Use subscription IDs (player IDs) directly instead of aliasing
+            'include_subscription_ids' => $playerIds,
             'headings' => ['en' => '🚨 SOS Alert'],
             'contents' => ['en' => "$senderName needs help$locSnippet!"],
             'data' => [

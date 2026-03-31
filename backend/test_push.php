@@ -29,12 +29,9 @@ $playerId = $tokenRow['player_id'];
 $pushPayload = [
     'app_id'          => ONESIGNAL_APP_ID,
     
-    // ── THE FIX: Tell OneSignal we are using the User ID (onesignal_id) ──
     'target_channel'  => 'push',
-    'include_aliases' => [
-        'onesignal_id' => [$playerId]
-    ],
-    // ──────────────────────────────────────────────────────────────────────
+    // Use subscription/player IDs directly for targeting
+    'include_subscription_ids' => [$playerId],
     
     'headings'        => ['en' => '🚨 ByaHero SOS Test'],
     'contents'        => ['en' => 'This is a test alert! If you see this, the bridge works perfectly.'],
