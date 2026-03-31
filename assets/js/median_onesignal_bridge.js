@@ -12,10 +12,10 @@
   var _maxRetries = 60; // 5 minutes at 5s intervals
 
   function log() {
-    try { console.log.apply(console, arguments); } catch (e) {}
+    try { console.log.apply(console, arguments); } catch (e) { }
   }
   function warn() {
-    try { console.warn.apply(console, arguments); } catch (e) {}
+    try { console.warn.apply(console, arguments); } catch (e) { }
   }
 
   // Extract OneSignal subscription/player id from any Median payload shape
@@ -124,6 +124,36 @@
     if (id) saveToken(id);
   };
 
+  document.addEventListener('DOMContentLoaded', async function () {
+    try {
+      if (window.gonative && window.gonative.onesignal) {
+        // Ask permission / register when in manual mode
+        if (typeof window.gonative.onesignal.register === 'function') {
+          await window.gonative.onesignal.register();
+          console.log('[SOS] Manual register() called');
+        }
+
+        // Then fetch id/info
+        if (typeof window.gonative.onesignal.getInfo === 'function') {
+          const info = await window.gonative.onesignal.getInfo();
+          console.log('[SOS] getInfo after register:', info);
+
+          const id = info?.oneSignalId
+            || info?.userId
+            || info?.subscriptionId
+            || info?.oneSignalUserId
+            || info?.subscription?.id;
+
+          if (id && window.sosBridge) {
+            window.sosBridge.saveToken(id);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('[SOS] Manual registration flow failed:', e);
+    }
+  });
+
   // DOM ready fallback: ask Median bridge directly
   document.addEventListener('DOMContentLoaded', function () {
     if (_saved) return;
@@ -155,7 +185,7 @@
     try {
       var type = ((data || {}).additionalData || (data || {}).data || {}).type || '';
       if (type === 'sos_alert') showSosBanner(data);
-    } catch (e) {}
+    } catch (e) { }
   };
 
   window.gonative_onesignal_notification_opened = function (data) {
@@ -164,7 +194,7 @@
       if (type === 'sos_alert') {
         window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php';
       }
-    } catch (e) {}
+    } catch (e) { }
   };
 
   function showSosBanner(payload) {
