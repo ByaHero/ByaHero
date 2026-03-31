@@ -189,7 +189,17 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     opacity: 0.6;
   }
 </style>
-
+<script>
+  window._sosPendingToken = null;
+  window.gonative_onesignal_info = function (info) {
+    var id = info && (info.oneSignalId || info.userId || info.subscriptionId
+      || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+    if (!id) return;
+    window._sosPendingToken = id;
+    if (window.sosBridge) window.sosBridge.saveToken(id);
+  };
+  window.median_onesignal_info = window.gonative_onesignal_info;
+</script>
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
