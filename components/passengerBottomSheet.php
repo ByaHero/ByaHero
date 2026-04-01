@@ -37,47 +37,56 @@ if (!isset($baseUrl)) {
   <div id="sheetHeader" class="flex-shrink-0 w-100 bg-white rounded-top-4">
     <!-- Add a class so JS knows this small pill is the drag handle -->
     <div class="sheet-drag-handle bg-secondary opacity-25 rounded-pill mx-auto mt-3"
-  style="width: 40px; height: 5px; padding: 8px 0; cursor: pointer;"></div>
+      style="
+    width: 100px;       /* longer */
+    height: 7px;       /* thinner */
+    cursor: pointer;
+  ">
+    </div>
 
-    <div class="container-fluid px-3 pt-3">
-      <div class="row g-2">
+    <div class="container-fluid px-3 pt-4">
+      <div class="row g-3">
         <!-- 1) Location tab (ACTIVE BY DEFAULT) -->
         <div class="col-3" onclick="switchSheetTab('location')">
           <div id="tab-location"
-            class="sheet-tab active bg-primary text-white rounded-4 p-3 d-flex justify-content-center align-items-center shadow-sm h-50 cursor-pointer">
+            class="sheet-tab active bg-primary text-white rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
+            style="height: 44px; padding: 0 18px;">
             <img id="location-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopWhiteIcon.png"
-              alt="Location" style="width: 30px; height: 30px; object-fit: contain;" />
+              alt="Location" style="width: 35px; height: 35px; object-fit: contain;" />
           </div>
         </div>
 
         <!-- 2) Routes tab -->
         <div class="col-3" onclick="switchSheetTab('routes')">
           <div id="tab-routes"
-            class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
+            class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
+            style="height: 44px; padding: 0 18px;">
             <img id="routes-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/routes idle.svg" alt="Routes"
-              style="width: 30px; height: 30px; object-fit: contain;" />
+              style="width: 33px; height: 33px; object-fit: contain;" />
           </div>
         </div>
 
         <!-- 3) Groups tab -->
         <div class="col-3" onclick="switchSheetTab('groups')">
           <div id="tab-groups"
-            class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
+            class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
+            style="height: 44px; padding: 0 18px;">
             <img id="groups-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.svg"
-              alt="groups" style="width: 30px; height: 30px; object-fit: contain;" />
+              alt="Groups" style="width: 35px; height: 35px; object-fit: contain;" />
           </div>
         </div>
 
         <!-- 4) Bus Stops tab -->
         <div class="col-3" onclick="switchSheetTab('busstops')">
           <div id="tab-busstops"
-            class="sheet-tab bg-primary-subtle border border-primary text-primary rounded-4 p-3 d-flex justify-content-center align-items-center h-50 cursor-pointer">
+            class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
+            style="height: 44px; padding: 0 18px;">
             <img id="busstops-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalBlue.svg"
-              alt="Bus Stops" style="width: 30px; height: 30px; object-fit: contain;" />
+              alt="Bus Stops" style="width: 35px; height: 35px; object-fit: contain;" />
           </div>
         </div>
       </div>
@@ -93,18 +102,19 @@ if (!isset($baseUrl)) {
     </div>
 
     <!-- ROUTES VIEW (hidden by default) -->
+    <!-- ROUTES VIEW (hidden by default) -->
+        <!-- ROUTES VIEW (hidden by default) -->
     <div id="view-routes" class="mt-2 d-none">
-      <div class="fw-bold mb-2">Filter Route</div>
-
       <div class="route-filter-card">
-        <!-- Search pill -->
-        <div class="route-filter-search d-flex align-items-center">
-          <span class="material-symbols-rounded route-filter-search-icon">search</span>
-          <input type="text" id="routeFilterInput" class="route-filter-input" placeholder="Filter Route"
-            oninput="filterRouteOptions()" />
+
+        <!-- Label inside the card, top-left like BUS LOCATION -->
+        <div class="mb-2 fw-bold text-black"
+             style="font-size: 0.7rem; letter-spacing: 0.05em;">
+          FILTER ROUTES
         </div>
-        <!-- Options list -->
-        <div class="route-filter-options mt-2">
+
+        <!-- Options list (no search) -->
+        <div class="route-filter-options">
           <!-- Tanauan - Laurel -->
           <div class="route-filter-option" id="route-pill-tanauan-laurel" data-route="TANAUAN - LAUREL"
             onclick="setRouteFromSheet('TANAUAN - LAUREL')"
@@ -133,14 +143,18 @@ if (!isset($baseUrl)) {
     include __DIR__ . '/../public/passenger/groupView.php';
     ?>
 
-    <!-- Bus Stops view -->
-    <div id="view-busstops" class="mt-2 d-none">
-      <div class="d-flex align-items-center justify-content-between mb-2">
-        <div class="fw-bold">Bus Stops</div>
-        <div class="small text-muted">Stops &amp; terminals</div>
+        <!-- Bus Stops view -->
+    <div id="view-busstops" class="mt-3 d-none">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
+          Bus Pick up Points
+        </div>
+        <div class="small text-muted" style="font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;">
+          Stops &amp; Terminals
+        </div>
       </div>
 
-      <div id="busStopsListMobile" class="list-group list-group-flush">
+      <div id="busStopsListMobile" class="bus-stops-list">
         <div class="text-center text-muted mt-4 small">Loading bus stops...</div>
       </div>
     </div>

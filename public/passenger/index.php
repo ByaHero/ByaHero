@@ -46,7 +46,10 @@ if (isset($_SESSION['user_id'])) {
     window._gonativeInfoLog = [];
 
     function _sosHandleInfo(info) {
-      window._gonativeInfoLog.push({ time: new Date().toISOString(), info: info });
+      window._gonativeInfoLog.push({
+        time: new Date().toISOString(),
+        info: info
+      });
       console.log('[OneSignal] Info received:', JSON.stringify(info));
 
       // Try all possible property names for the token
@@ -257,12 +260,12 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- BASE URL DETECTION ---------------------
     // passengerBottomSheet.js auto-detects this too, but we set it early
     // here so any inline code below can also reference window.APP_BASE_URL.
-    (function () {
+    (function() {
       var PROJECT_FOLDER = 'Byahero-Prototype-v3';
       var path = window.location.pathname || '/';
-      var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
-        ? '/' + PROJECT_FOLDER
-        : '';
+      var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
+        '/' + PROJECT_FOLDER :
+        '';
       window.PROJECT_BASE = base;
       window.APP_BASE_URL = base;
       window.ICON_BASE = base + '/assets/images/icons';
@@ -271,7 +274,9 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- MAP INIT ---------------------
     var isMobile = document.querySelector('.d-lg-none')?.offsetParent !== null;
     var mapId = isMobile ? 'map' : 'map-desktop-placeholder';
-    var map = L.map(mapId, { zoomControl: false }).setView([14.0905, 121.0550], 12);
+    var map = L.map(mapId, {
+      zoomControl: false
+    }).setView([14.0905, 121.0550], 12);
 
     // Expose map to passengerBottomSheet.js (used by setBusStopsVisibility / focusStop)
     window._map = map;
@@ -293,11 +298,15 @@ if (isset($_SESSION['user_id'])) {
     var ICON_CACHE = {
       available: L.icon({
         iconUrl: ICON_BASE + '/marker.svg',
-        iconSize: [40, 40], iconAnchor: [18, 36], popupAnchor: [0, -36]
+        iconSize: [40, 40],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
       }),
       full: L.icon({
         iconUrl: ICON_BASE + '/marker.svg',
-        iconSize: [40, 40], iconAnchor: [18, 36], popupAnchor: [0, -36]
+        iconSize: [40, 40],
+        iconAnchor: [18, 36],
+        popupAnchor: [0, -36]
       })
     };
 
@@ -310,7 +319,8 @@ if (isset($_SESSION['user_id'])) {
       return L.divIcon({
         html: '<div style="background:' + color + ';width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>',
         className: 'bus-marker-dot',
-        iconSize: [20, 20], iconAnchor: [10, 10]
+        iconSize: [20, 20],
+        iconAnchor: [10, 10]
       });
     }
 
@@ -332,8 +342,14 @@ if (isset($_SESSION['user_id'])) {
       try {
         var res = await fetch('../../backend/updateUserLocation.php', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy ?? null })
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            latitude: lat,
+            longitude: lng,
+            accuracy: accuracy ?? null
+          })
         });
         if (!res.ok) {
           var txt = await res.text();
@@ -358,7 +374,9 @@ if (isset($_SESSION['user_id'])) {
       `;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-      setTimeout(function () { if (notice.parentElement) notice.remove(); }, 5000);
+      setTimeout(function() {
+        if (notice.parentElement) notice.remove();
+      }, 5000);
     }
 
     function showLocationPermissionDenied() {
@@ -390,12 +408,18 @@ if (isset($_SESSION['user_id'])) {
 
       locationPermissionGranted = true;
 
-      navigator.geolocation.watchPosition(function (pos) {
-        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+      navigator.geolocation.watchPosition(function(pos) {
+        userLocation = {
+          lat: pos.coords.latitude,
+          lng: pos.coords.longitude
+        };
 
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9
+            radius: 8,
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.9
           }).addTo(map);
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
@@ -403,16 +427,20 @@ if (isset($_SESSION['user_id'])) {
 
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
         updateBuses();
-      }, function (error) {
+      }, function(error) {
         console.error('Location error:', error);
         if (error.code === error.PERMISSION_DENIED) {
           locationPermissionGranted = false;
           showLocationPermissionDenied();
         }
-      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
+      }, {
+        enableHighAccuracy: true,
+        maximumAge: 5000,
+        timeout: 10000
+      });
     }
 
-    window.addEventListener('storage', function (e) {
+    window.addEventListener('storage', function(e) {
       if (e.key !== 'byahero_location_services') return;
       var isEnabled = e.newValue !== '0';
 
@@ -420,7 +448,10 @@ if (isset($_SESSION['user_id'])) {
         startUserLocationWatch();
       } else if (!isEnabled && locationPermissionGranted) {
         locationPermissionGranted = false;
-        if (userMarker) { map.removeLayer(userMarker); userMarker = null; }
+        if (userMarker) {
+          map.removeLayer(userMarker);
+          userMarker = null;
+        }
         userLocation = null;
       }
     });
@@ -436,7 +467,7 @@ if (isset($_SESSION['user_id'])) {
           allBuses = buses;
 
           if (locationPermissionGranted && userLocation) {
-            buses.forEach(function (b) {
+            buses.forEach(function(b) {
               if (b.coords) {
                 var dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
                 b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
@@ -460,21 +491,29 @@ if (isset($_SESSION['user_id'])) {
     }
 
     function updateMap(buses) {
-      var filtered = buses.filter(function (b) {
+      var filtered = buses.filter(function(b) {
         return (!selectedRoute || b.route === selectedRoute) &&
           b.status !== 'unavailable' && b.coords !== null;
       });
 
-      var currentIds = new Set(filtered.map(function (b) { return String(b.id); }));
+      var currentIds = new Set(filtered.map(function(b) {
+        return String(b.id);
+      }));
 
-      Object.keys(busMarkers).forEach(function (id) {
-        if (!currentIds.has(id)) { map.removeLayer(busMarkers[id]); delete busMarkers[id]; }
+      Object.keys(busMarkers).forEach(function(id) {
+        if (!currentIds.has(id)) {
+          map.removeLayer(busMarkers[id]);
+          delete busMarkers[id];
+        }
       });
 
       if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
           userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9
+            radius: 8,
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.9
           }).addTo(map);
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
@@ -484,14 +523,16 @@ if (isset($_SESSION['user_id'])) {
         userMarker = null;
       }
 
-      filtered.forEach(function (b) {
+      filtered.forEach(function(b) {
         var iconForBus = createBusIcon(b.status);
         var popup = '<b>' + b.code + '</b><br>' + b.locName + (b.eta ? '<br><small>ETA: ' + b.eta + '</small>' : '');
 
         if (busMarkers[b.id]) {
           busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus).bindPopup(popup);
         } else {
-          var m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
+          var m = L.marker(b.coords, {
+            icon: iconForBus
+          }).addTo(map);
           m.bindPopup(popup);
           busMarkers[b.id] = m;
         }
@@ -499,26 +540,31 @@ if (isset($_SESSION['user_id'])) {
     }
 
     function renderBusList(buses) {
-      var container = isMobile
-        ? document.getElementById('busListMobile')
-        : document.getElementById('busListDesktop');
+      var container = isMobile ?
+        document.getElementById('busListMobile') :
+        document.getElementById('busListDesktop');
       if (!container) return;
 
-      var activeBuses = buses.filter(function (b) {
+      var activeBuses = buses.filter(function(b) {
         return (!selectedRoute || b.route === selectedRoute) &&
           b.status !== 'unavailable' && b.coords !== null;
       });
 
       if (activeBuses.length === 0) {
         container.innerHTML = `
-          <div class="d-flex flex-column justify-content-center align-items-center text-muted p-3 text-center">
-            <img src="../../assets/images/icons/noBus.svg" alt="No Bus" class="mb-2 no-bus-icon" />
-            <span class="fw-bold">No Available Bus</span>
-          </div>`;
+    <div class="p-3">
+      <div class="d-flex justify-content-between align-items-center mb-2">
+        <span class="small fw-bold text-uppercase text-black">BUS LOCATION</span>
+      </div>
+      <div class="d-flex flex-column justify-content-center align-items-center text-muted text-center">
+        <img src="../../assets/images/icons/noBus.svg" alt="No Bus" class="mb-2 no-bus-icon" />
+        <span class="fw-bold">No Available Bus</span>
+      </div>
+    </div>`;
         return;
       }
 
-      var html = activeBuses.map(function (b) {
+      var html = activeBuses.map(function(b) {
         var color = statusColors[b.status] || '#ccc';
         var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
@@ -540,7 +586,7 @@ if (isset($_SESSION['user_id'])) {
         try {
           var geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) { }
+        } catch (e) {}
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
@@ -573,11 +619,12 @@ if (isset($_SESSION['user_id'])) {
       var h = dt.getHours();
       var m = dt.getMinutes().toString().padStart(2, '0');
       var ampm = h >= 12 ? 'PM' : 'AM';
-      h = h % 12; h = h ? h : 12;
+      h = h % 12;
+      h = h ? h : 12;
       return h + ':' + m + ' ' + ampm;
     }
 
-    window.focusBus = function (id) {
+    window.focusBus = function(id) {
       var m = busMarkers[id];
       if (!m) return;
       map.flyTo(m.getLatLng(), 15);
@@ -585,33 +632,39 @@ if (isset($_SESSION['user_id'])) {
 
       if (typeof analytics !== 'undefined') {
         analytics.busTracked(id);
-        analytics.featureUsed('Bus Tracking', { bus_id: id });
+        analytics.featureUsed('Bus Tracking', {
+          bus_id: id
+        });
       }
     };
 
     var allBuses = [];
 
-    window.setRoute = function (r) {
+    window.setRoute = function(r) {
       selectedRoute = r;
 
       var label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + '...' : 'FILTER ROUTES';
 
       if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', { route: r || 'All Routes' });
+        analytics.featureUsed('Route Filter', {
+          route: r || 'All Routes'
+        });
       }
 
       updateBuses();
-      setTimeout(function () { centerToFirstBusInRoute(r, allBuses); }, 300);
+      setTimeout(function() {
+        centerToFirstBusInRoute(r, allBuses);
+      }, 300);
     };
 
-    window.setRouteFromSheet = function (route) {
+    window.setRouteFromSheet = function(route) {
       window.setRoute(route);
       if (typeof window.updateRoutePills === 'function') window.updateRoutePills();
     };
 
-    window.centerToFirstBusInRoute = function (route, buses) {
-      var filtered = buses.filter(function (b) {
+    window.centerToFirstBusInRoute = function(route, buses) {
+      var filtered = buses.filter(function(b) {
         return (!route || b.route === route) && b.status !== 'unavailable' && b.coords !== null;
       });
       if (filtered.length > 0) focusBus(filtered[0].id);
@@ -619,7 +672,11 @@ if (isset($_SESSION['user_id'])) {
 
     function updateFilters(buses) {
       var manualRoutes = ['Laurel - Tanauan', 'Tanauan - Laurel'];
-      var apiRoutes = buses.map(function (b) { return b.route; }).filter(function (r) { return r; });
+      var apiRoutes = buses.map(function(b) {
+        return b.route;
+      }).filter(function(r) {
+        return r;
+      });
       var routes = [...new Set([...manualRoutes, ...apiRoutes])];
 
       var menu = document.getElementById('routeDropdownMenu');
@@ -627,7 +684,7 @@ if (isset($_SESSION['user_id'])) {
 
       var html = `<li><button class="dropdown-item ${selectedRoute === '' ? 'active' : ''}" type="button" onclick="setRoute('')">All Routes</button></li>`;
 
-      routes.forEach(function (r) {
+      routes.forEach(function(r) {
         var safe = String(r).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         html += `<li><button class="dropdown-item ${selectedRoute === r ? 'active' : ''}" type="button" onclick="setRoute('${safe}')">${r}</button></li>`;
       });
@@ -643,21 +700,33 @@ if (isset($_SESSION['user_id'])) {
     var STOP_ICONS = {
       pickup_point: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg',
-        iconSize: [60, 60], iconAnchor: [30, 60], popupAnchor: [0, -54]
+        iconSize: [60, 60],
+        iconAnchor: [30, 60],
+        popupAnchor: [0, -54]
       }),
       bus_stop: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg',
-        iconSize: [60, 60], iconAnchor: [30, 60], popupAnchor: [0, -54]
+        iconSize: [60, 60],
+        iconAnchor: [30, 60],
+        popupAnchor: [0, -54]
       }),
       terminal: L.icon({
         iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
-        iconSize: [60, 60], iconAnchor: [30, 60], popupAnchor: [0, -54]
+        iconSize: [60, 60],
+        iconAnchor: [30, 60],
+        popupAnchor: [0, -54]
       })
     };
 
     function escapeHtml(str) {
-      return String(str ?? '').replace(/[&<>"']/g, function (s) {
-        return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s]);
+      return String(str ?? '').replace(/[&<>"']/g, function(s) {
+        return ({
+          '&': '&amp;',
+          '<': '&lt;',
+          '>': '&gt;',
+          '"': '&quot;',
+          "'": '&#39;'
+        } [s]);
       });
     }
 
@@ -666,21 +735,27 @@ if (isset($_SESSION['user_id'])) {
       return STOP_ICONS[t] || STOP_ICONS.bus_stop;
     }
 
-    async function loadStops() {
+        async function loadStops() {
       var listEl = document.getElementById('busStopsListMobile');
-      if (listEl) listEl.innerHTML = '<div class="text-center text-muted mt-4 small">Loading bus stops...</div>';
+      if (listEl) {
+        listEl.innerHTML = '<div class="text-center text-muted mt-4 small">Loading bus stops...</div>';
+      }
 
       var res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
       var json = await res.json();
 
       if (!json || !json.success || !Array.isArray(json.data)) {
         var msg = json?.error || 'Failed to load stops';
-        if (listEl) listEl.innerHTML = '<div class="text-center text-danger mt-4 small">' + escapeHtml(msg) + '</div>';
+        if (listEl) {
+          listEl.innerHTML = '<div class="text-center text-danger mt-4 small">' + escapeHtml(msg) + '</div>';
+        }
         return;
       }
 
+      // THIS is the stops array we must keep
       var stops = json.data;
 
+      // ---------- render list ----------
       if (listEl) {
         if (!stops.length) {
           listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
@@ -688,20 +763,24 @@ if (isset($_SESSION['user_id'])) {
           listEl.innerHTML = stops.map(function (s) {
             var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
             var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
+
             return `
-              <button type="button" class="list-group-item list-group-item-action" onclick="focusStop('${String(s.id)}')">
+              <button type="button"
+                      class="bus-stop-card"
+                      onclick="focusStop('${String(s.id)}')">
                 <div class="d-flex justify-content-between align-items-start">
                   <div class="me-2">
-                    <div class="fw-bold">${escapeHtml(s.name)}</div>
-                    <div class="small text-muted">${escapeHtml(subtitle || '')}</div>
+                    <div class="bus-stop-title">${escapeHtml(s.name)}</div>
+                    <div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>
                   </div>
-                  <span class="badge bg-secondary text-uppercase">${escapeHtml(typeLabel)}</span>
+                  <span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>
                 </div>
               </button>`;
           }).join('');
         }
       }
 
+      // ---------- markers on the map ----------
       var ids = new Set(stops.map(function (s) { return String(s.id); }));
 
       Object.keys(stopMarkers).forEach(function (id) {
@@ -733,18 +812,24 @@ if (isset($_SESSION['user_id'])) {
     // --------------------- MAP OFFSET HELPER ---------------------
     function flyToMyLocationKeepingMarkerVisible(lat, lng) {
       var zoom = Math.max(map.getZoom(), 16);
-      map.flyTo([lat, lng], zoom, { animate: true, duration: 0.6 });
+      map.flyTo([lat, lng], zoom, {
+        animate: true,
+        duration: 0.6
+      });
 
-      setTimeout(function () {
+      setTimeout(function() {
         // getBottomSheetHeightPx is defined in passengerBottomSheet.js
         var sheetH = (typeof getBottomSheetHeightPx === 'function') ? getBottomSheetHeightPx() : 0;
         var padding = 40;
         var yOffset = Math.round((sheetH / 2) + padding);
-        if (yOffset > 0) map.panBy([0, yOffset], { animate: true, duration: 0.25 });
+        if (yOffset > 0) map.panBy([0, yOffset], {
+          animate: true,
+          duration: 0.25
+        });
       }, 650);
     }
 
-    window.centerToMyLocation = function () {
+    window.centerToMyLocation = function() {
       if (userLocation && locationPermissionGranted) {
         flyToMyLocationKeepingMarkerVisible(userLocation.lat, userLocation.lng);
         if (userMarker) userMarker.bringToFront?.();
@@ -756,15 +841,21 @@ if (isset($_SESSION['user_id'])) {
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(function (pos) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
 
-        userLocation = { lat: lat, lng: lng };
+        userLocation = {
+          lat: lat,
+          lng: lng
+        };
 
         if (!userMarker) {
           userMarker = L.circleMarker([lat, lng], {
-            radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9
+            radius: 8,
+            color: '#2563eb',
+            fillColor: '#60a5fa',
+            fillOpacity: 0.9
           }).addTo(map);
         } else {
           userMarker.setLatLng([lat, lng]);
@@ -772,15 +863,19 @@ if (isset($_SESSION['user_id'])) {
 
         flyToMyLocationKeepingMarkerVisible(lat, lng);
         uploadMyLocation(lat, lng, pos.coords.accuracy);
-      }, function (error) {
+      }, function(error) {
         console.error('centerToMyLocation error:', error);
         if (error.code === error.PERMISSION_DENIED) showLocationPermissionDenied();
         else alert('Unable to get your location right now.');
-      }, { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 });
+      }, {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 5000
+      });
     };
 
     // --------------------- INIT ---------------------
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
       var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) locationPermissionGranted = false;
     });
@@ -788,7 +883,7 @@ if (isset($_SESSION['user_id'])) {
     startUserLocationWatch();
     updateBuses();
 
-    setTimeout(function () {
+    setTimeout(function() {
       if (typeof updateRoutePills === 'function') updateRoutePills();
     }, 100);
 

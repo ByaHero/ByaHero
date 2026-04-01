@@ -191,15 +191,15 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 </style>
 <script>
   window._sosPendingToken = null;
-  window.gonative_onesignal_info = function (info) {
+  window.gonative_onesignal_info = function(info) {
     var id = info && (
-      info.oneSignalId || info.userId || info.subscriptionId
-      || info.oneSignalUserId || info.pushToken || info.playerId || info.id
-      || (info.subscription && (
-            info.subscription.id || info.subscription.subscriptionId
-            || info.subscription.playerId || info.subscription.pushToken
-            || info.subscription.userId || info.subscription.oneSignalId
-         ))
+      info.oneSignalId || info.userId || info.subscriptionId ||
+      info.oneSignalUserId || info.pushToken || info.playerId || info.id ||
+      (info.subscription && (
+        info.subscription.id || info.subscription.subscriptionId ||
+        info.subscription.playerId || info.subscription.pushToken ||
+        info.subscription.userId || info.subscription.oneSignalId
+      ))
     );
     if (!id) return;
     window._sosPendingToken = id;
@@ -217,7 +217,7 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 if (isset($pageType) && $pageType === 'Notifications'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
-    style="height: 40px;">
+    style="height: 56px;">
     <a href="<?php echo $defaultBack; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
       <span class="material-symbols-rounded text-white">close</span>
@@ -225,8 +225,8 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
 
-  <?php
-  // CASE B: SOS
+<?php
+// CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -238,8 +238,8 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
 
-  <?php
-  // CASE C: SETTINGS PAGES (Specific Titles)
+<?php
+// CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -257,7 +257,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'termsOfService.php' => 'Terms of Service'
   ];
   $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
-  ?>
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -268,8 +268,8 @@ elseif (isset($pageType) && $pageType === 'settings'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE D: PROFILE PAGES
+<?php
+// CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
   $currentFile = basename($_SERVER['PHP_SELF']);
@@ -281,7 +281,7 @@ elseif (isset($pageType) && $pageType === 'profile'):
     'loginActivity.php' => 'Login Activity'
   ];
   $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
-  ?>
+?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
     style="height: 40px;">
@@ -292,8 +292,8 @@ elseif (isset($pageType) && $pageType === 'profile'):
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE E: GENERIC PAGE
+<?php
+// CASE E: GENERIC PAGE
 elseif (isset($pageTitle)): ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
@@ -305,33 +305,34 @@ elseif (isset($pageTitle)): ?>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
 
-  <?php
-  // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
+<?php
+// CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
-    style="height: 40px;">
+    style="height: 54px;">
 
     <!-- Left logo wrapper keeps a fixed/known width -->
-    <div class="d-flex align-items-center" style="width: 60px;">
-      <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="30">
+    <div class="d-flex align-items-center" style="width: 60px; height: 100%;">
+      <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="32">
     </div>
 
     <!-- Centered Byahero wordmark -->
-    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="30" class="topbar-wordmark">
+    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="32" class="topbar-wordmark">
 
     <!-- Right icons wrapper, similar width to left -->
-    <div class="d-flex align-items-center gap-3 justify-content-end" style="width: 60px; column-gap: 20px;">
+    <div class="d-flex align-items-center gap-3 justify-content-end"
+      style="width: 60px; column-gap: 20px; height: 100%;">
       <!-- Bell -->
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
-        style="width: 40px; height: 40px;"
+        style="width: 50px; height: 50px;"
         onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
         <?php if (!empty($hasUnreadNotifications)): ?>
           <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle"
             style="margin-left: -10px; margin-top: 10px;">
-            <img src="<?php echo $depth; ?>assets/images/notificationAlert.png" alt="ByaHero" height="30">
+            <img src="<?php echo $depth; ?>assets/images/notificationAlert.png" alt="ByaHero" height="28">
           </span>
         <?php endif; ?>
 
@@ -340,9 +341,9 @@ else: ?>
 
       <!-- Hamburger -->
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
-        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
+        style="width:50px; height: 50px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
-        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="20">
+        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="25">
       </button>
     </div>
   </div>
@@ -519,7 +520,7 @@ else: ?>
   // Expose base URL for icon swapping (already set above, kept for clarity)
 
   // ===== BOTTOM NAV ICON SWAPPING =====
-  window.updateBottomNavIcons = function (activeButton) {
+  window.updateBottomNavIcons = function(activeButton) {
     const base = window.APP_BASE_URL || '';
 
     const locationBtn = document.getElementById('nav-location');
