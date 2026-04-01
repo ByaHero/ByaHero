@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 session_start();
 
@@ -86,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
 
                 // ── UI HANDOFF TO SYNC ONESIGNAL TOKEN ──
-                ?>
+?>
                 <!-- 
   REPLACE the handoff HTML block in login.php 
   (the block between "UI HANDOFF TO SYNC ONESIGNAL TOKEN" and the closing exit;)
@@ -103,9 +104,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- EARLY CATCHER: must be first script, before bridge loads -->
                     <script>
                         window._sosPendingToken = null;
-                        window.gonative_onesignal_info = function (info) {
-                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId
-                                || (info.subscription && info.subscription.id) || info.oneSignalUserId);
+                        window.gonative_onesignal_info = function(info) {
+                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
+                                (info.subscription && info.subscription.id) || info.oneSignalUserId);
                             if (id) {
                                 window._sosPendingToken = id;
                                 if (window.sosBridge) window.sosBridge.saveToken(id);
@@ -156,7 +157,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </head>
 
                 <body>
-                    <div class="spinner"></div>
                     <h3>Logging in...</h3>
                     <script>
                         var _redirectUrl = "<?= addslashes($targetRedirect) ?>";
@@ -172,21 +172,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Try to save token, then redirect when done (or after timeout)
                         function syncThenRedirect(playerId) {
                             fetch('/backend/registerOnesignalToken.php', {
-                                method: 'POST',
-                                credentials: 'include',
-                                headers: { 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ player_id: playerId })
-                            })
-                                .then(function (r) { return r.json(); })
-                                .then(function (d) {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        player_id: playerId
+                                    })
+                                })
+                                .then(function(r) {
+                                    return r.json();
+                                })
+                                .then(function(d) {
                                     if (d.success) console.log('[Login] Token saved, user_id:', d.user_id);
                                     else console.warn('[Login] Token save returned:', d.message);
                                 })
-                                .catch(function (e) { console.warn('[Login] Token fetch error:', e.message); })
-                                .finally(function () { proceed(); });
+                                .catch(function(e) {
+                                    console.warn('[Login] Token fetch error:', e.message);
+                                })
+                                .finally(function() {
+                                    proceed();
+                                });
                         }
 
-                        document.addEventListener('DOMContentLoaded', function () {
+                        document.addEventListener('DOMContentLoaded', function() {
                             // Safety: always redirect within 3 seconds no matter what
                             setTimeout(proceed, 3000);
 
@@ -199,14 +209,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Pull from Median JS API
                             if (window.gonative && window.gonative.onesignal) {
                                 window.gonative.onesignal.getInfo()
-                                    .then(function (info) {
-                                        var id = info && (info.oneSignalId || info.userId
-                                            || info.subscriptionId
-                                            || (info.subscription && info.subscription.id));
-                                        if (id) { syncThenRedirect(id); }
-                                        else { proceed(); }
+                                    .then(function(info) {
+                                        var id = info && (info.oneSignalId || info.userId ||
+                                            info.subscriptionId ||
+                                            (info.subscription && info.subscription.id));
+                                        if (id) {
+                                            syncThenRedirect(id);
+                                        } else {
+                                            proceed();
+                                        }
                                     })
-                                    .catch(function () { proceed(); });
+                                    .catch(function() {
+                                        proceed();
+                                    });
                             } else {
                                 // Not in Median shell — just redirect
                                 proceed();
@@ -216,7 +231,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </body>
 
                 </html>
-                <?php
+<?php
                 exit;
             } else {
                 $err = 'Invalid email or password.';
@@ -469,7 +484,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const pwd = document.getElementById('password');
             const toggle = document.getElementById('togglePwd');
             const eye = document.getElementById('eyeIcon');
@@ -490,7 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             syncIcon();
 
-            toggle.addEventListener('click', function () {
+            toggle.addEventListener('click', function() {
                 pwd.type = (pwd.type === 'password') ? 'text' : 'password';
                 syncIcon();
                 pwd.focus();
