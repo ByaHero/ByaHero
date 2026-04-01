@@ -191,7 +191,7 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   [tabLocation, tabRoutes, tabBusstops, tabGroups].forEach(function (el) {
     if (!el) return;
     el.classList.remove('active', 'bg-primary', 'text-white', 'shadow-sm');
-    el.classList.add('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+    el.classList.add('bg-primary-subtle', 'text-primary');
   });
 
   // ── Activate selected tab ──
@@ -203,7 +203,7 @@ window.switchSheetTab = function switchSheetTab(tabName) {
 
   if (activeTab) {
     activeTab.classList.add('active', 'bg-primary', 'text-white', 'shadow-sm');
-    activeTab.classList.remove('bg-primary-subtle', 'border', 'border-primary', 'text-primary');
+    activeTab.classList.remove('bg-primary-subtle', 'text-primary');
   }
 
   // ── Group visuals hooks ──
