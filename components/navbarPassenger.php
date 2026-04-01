@@ -47,6 +47,22 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     padding-bottom: 100px !important;
   }
 
+  /* ADDED: makes the top bar sticky/fixed and above other UI */
+  .passenger-topbar-sticky {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 2002 !important;
+  }
+
+  /* ADDED: spacer so page content doesn't hide behind fixed topbar */
+  .passenger-topbar-spacer {
+    display: block;
+    width: 100%;
+  }
+
   /* Centered Byahero wordmark in top bar */
   .topbar-wordmark {
     margin: 0 auto;
@@ -216,7 +232,7 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 // CASE A: NOTIFICATIONS (Custom Design)
 if (isset($pageType) && $pageType === 'Notifications'): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 56px;">
     <a href="<?php echo $defaultBack; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
@@ -224,12 +240,13 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
+  <span class="passenger-topbar-spacer" style="height:56px;"></span>
 
 <?php
 // CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <a href="<?php echo $backTarget; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
@@ -237,6 +254,7 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
+  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
 <?php
 // CASE C: SETTINGS PAGES (Specific Titles)
@@ -259,7 +277,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
   $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
 ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <a href="<?php echo $defaultBack; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
@@ -267,6 +285,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
+  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
 <?php
 // CASE D: PROFILE PAGES
@@ -283,7 +302,7 @@ elseif (isset($pageType) && $pageType === 'profile'):
   $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
 ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <a href="<?php echo $backTarget; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
@@ -291,12 +310,13 @@ elseif (isset($pageType) && $pageType === 'profile'):
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
+  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
 <?php
 // CASE E: GENERIC PAGE
 elseif (isset($pageTitle)): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <a href="<?php echo $backTarget; ?>"
       class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
@@ -304,12 +324,13 @@ elseif (isset($pageTitle)): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
+  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
 <?php
 // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100"
+    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 54px;">
 
     <!-- Left logo wrapper keeps a fixed/known width -->
@@ -347,6 +368,7 @@ else: ?>
       </button>
     </div>
   </div>
+  <span class="passenger-topbar-spacer" style="height:54px;"></span>
 <?php endif; ?>
 
 <!-- Hamburger Offcanvas -->
