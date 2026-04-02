@@ -147,7 +147,7 @@ if (!isset($baseUrl)) {
     <div id="view-busstops" class="mt-3 d-none">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
-          Bus Pick up Points
+          BUS PICK UP POINTS 
         </div>
         <div class="small text-muted" style="font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;">
           Stops &amp; Terminals

@@ -144,15 +144,23 @@
 }
 
 /* Card for each stop */
+/* Bus stops list container */
+.bus-stops-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Pill‑style card for each stop */
 .bus-stop-card {
   width: 100%;
   text-align: left;
-  border: none;
-  background: #ffffff;
-  border-radius: 16px;
+  border: none;                         /* no hard border */
+  background: #ffffff;                  /* white pill */
+  border-radius: 16px;                  /* rounded corners */
   padding: 10px 14px;
   display: block;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);  /* soft shadow */
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }

@@ -19,7 +19,12 @@ if (isset($_SESSION['user_id'])) {
     'email' => $_SESSION['user_email'] ?? null
   ];
 }
+
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 ?>
+
 <!doctype html>
 <html lang="en">
 
@@ -36,7 +41,8 @@ if (isset($_SESSION['user_id'])) {
 
 
   <!-- Bottom sheet component CSS -->
-  <link rel="stylesheet" href="../../assets/css/passengerBottomSheet.css">
+  <link rel="stylesheet"
+      href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=3">
 
   <!-- Global Accessibility CSS and JS -->
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
