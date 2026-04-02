@@ -28,6 +28,9 @@ $displayName = $_SESSION['user_name'] ?? null;
 $displayEmail = $_SESSION['user_email'] ?? null;
 $displayHeaderName = $displayName ?: ($displayEmail ?: 'Guest');
 
+// Extract the first letter for the profile avatar
+$userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
+
 // Optional: if a page provides this variable, it can force-hide dot without breaking anything
 $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNotifications : false;
 ?>
@@ -69,10 +72,28 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     display: block;
   }
 
-  /* Display name in hamburger header */
+  /* UPDATED: Allows long names to wrap nicely without overflowing */
   .offcanvas-username {
-    font-size: 90px;
-    line-height: 20px;
+    font-size: 24px !important; 
+    line-height: 1.2 !important;
+    word-break: break-word;
+    max-width: 100%;
+  }
+
+  /* NEW: Styling for the dynamic initial avatar */
+  .profile-initial-circle {
+    width: 80px;
+    height: 80px;
+    background-color: #ffffff;
+    color: var(--bs-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 36px;
+    font-weight: bold;
+    flex-shrink: 0; 
+    margin-left: 10px;
   }
 
   /* Active state for bottom nav buttons */
@@ -333,18 +354,14 @@ else: ?>
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 54px;">
 
-    <!-- Left logo wrapper keeps a fixed/known width -->
     <div class="d-flex align-items-center" style="width: 60px; height: 100%;">
       <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="32">
     </div>
 
-    <!-- Centered Byahero wordmark -->
     <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="32" class="topbar-wordmark">
 
-    <!-- Right icons wrapper, similar width to left -->
     <div class="d-flex align-items-center gap-3 justify-content-end"
       style="width: 60px; column-gap: 20px; height: 100%;">
-      <!-- Bell -->
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
         style="width: 50px; height: 50px;"
@@ -360,7 +377,6 @@ else: ?>
         <img src="<?php echo $depth; ?>assets/images/notification bell.png" alt="ByaHero" height="30">
       </a>
 
-      <!-- Hamburger -->
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
         style="width:50px; height: 50px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
@@ -371,9 +387,7 @@ else: ?>
   <span class="passenger-topbar-spacer" style="height:54px;"></span>
 <?php endif; ?>
 
-<!-- Hamburger Offcanvas -->
 <div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel">
-  <!-- Header card -->
   <div class="bg-primary text-white p-3 rounded-bottom-4 position-relative">
     <button type="button" class="btn p-0 position-absolute top-0 end-0 m-3 text-white" data-bs-dismiss="offcanvas"
       aria-label="Close">
@@ -382,20 +396,19 @@ else: ?>
 
     <div class="d-flex align-items-center gap-3 pt-2 pb-3">
 
-      <div class="" style="margin-left: 20px; margin-right: 10px;">
-        <img src="<?php echo $depth; ?>assets/images/profilepic.png" alt="profilepic" height="90">
+      <div class="profile-initial-circle">
+        <?php echo htmlspecialchars($userInitial); ?>
       </div>
 
-      <!-- Changed font-size: 90px; to use class/offcanvas-username -->
-      <div class="fw-bold offcanvas-username" style="font-size: 30px !important; line-height: 20px;">
+      <div class="fw-bold offcanvas-username">
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
+      
     </div>
     <div style="border-top: 2px solid #ffffff; height: 3px; margin-top: 8px; margin-bottom: 8px;">
     </div>
   </div>
 
-  <!-- Body -->
   <div class="offcanvas-body bg-light">
     <div class="d-grid gap-3">
 
@@ -464,7 +477,6 @@ else: ?>
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
-        <!-- Logged-in: show Log out, route through logout.php -->
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
           href="<?php echo $depth; ?>public/logout.php">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
@@ -473,7 +485,6 @@ else: ?>
           Log out
         </a>
       <?php else: ?>
-        <!-- Not logged-in: show Log in -->
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
           href="<?php echo $depth; ?>public/login.php">
           <span class="material-symbols-rounded">login</span>
@@ -485,12 +496,10 @@ else: ?>
   </div>
 </div>
 
-<!-- Bottom Navigation (Location / SOS / Bus Info) -->
 <div class="fixed-bottom bg-white border-top shadow-lg bottom-nav" style="height: 65px; z-index: 1060;">
   <div class="container-fluid h-100">
     <div class="row h-100 align-items-end m-0">
 
-      <!-- LOCATION -->
       <div class="col-4 p-0 text-center">
         <button id="nav-location"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
@@ -502,7 +511,6 @@ else: ?>
         </button>
       </div>
 
-      <!-- SOS (CENTER) -->
       <div class="col-4 p-0 text-center sos-col">
         <button id="nav-sos" class="sos-btn nav-btn" data-action="link"
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
@@ -517,7 +525,6 @@ else: ?>
         </button>
       </div>
 
-      <!-- BUS INFO -->
       <div class="col-4 p-0 text-center">
         <button id="nav-info"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"

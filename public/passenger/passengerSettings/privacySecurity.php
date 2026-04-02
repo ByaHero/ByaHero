@@ -12,13 +12,10 @@ $isLoggedIn = isset($_SESSION['user_id']);
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <title>Privacy and Security - ByaHero</title>
 
-  <!-- Bootstrap -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
 
-  <!-- Material Icons -->
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
 
-  <!-- Global Accessibility -->
   <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
 
   <style>
@@ -175,14 +172,12 @@ $isLoggedIn = isset($_SESSION['user_id']);
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <!-- Main Content -->
   <div class="container privacy-container">
 
-    <!-- Blue Info Box -->
     <div class="blue-box">
       <h5>Privacy and Security</h5>
       <p class="small">
-        Control which apps can access your data, location, camera, and manage safety protections. 
+        Control which apps can access your data and location.
         <a href="privacyPolicy.php" style="color: #fbbf24; text-decoration: underline;">Learn more...</a>
       </p>
     </div>
@@ -194,11 +189,9 @@ $isLoggedIn = isset($_SESSION['user_id']);
       </div>
     <?php endif; ?>
 
-    <!-- Privacy Settings -->
     <div class="privacy-section">
       <div class="settings-section-header">Permissions</div>
 
-      <!-- Location Services -->
       <div class="privacy-item">
         <div class="item-content">
           <span class="material-symbols-rounded privacy-icon">location_on</span>
@@ -211,84 +204,11 @@ $isLoggedIn = isset($_SESSION['user_id']);
           <div class="toggle-switch-handle"></div>
         </div>
       </div>
-
-      <!-- Tracking -->
-      <div class="privacy-item">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">share</span>
-          <div class="item-text">
-            <div class="item-title">Tracking</div>
-            <div class="item-description">Allow tracking across apps and websites</div>
-          </div>
-        </div>
-        <div class="toggle-switch" id="trackingToggle" onclick="toggleTracking()">
-          <div class="toggle-switch-handle"></div>
-        </div>
-      </div>
-
-      <!-- Analytics and Improvements -->
-      <div class="privacy-item">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">analytics</span>
-          <div class="item-text">
-            <div class="item-title">Analytics and Improvements</div>
-            <div class="item-description">Share usage data to improve ByaHero</div>
-          </div>
-        </div>
-        <div class="toggle-switch active" id="analyticsToggle" onclick="toggleAnalytics()">
-          <div class="toggle-switch-handle"></div>
-        </div>
-      </div>
     </div>
 
-    <!-- Security Settings -->
-    <div class="privacy-section">
-      <div class="settings-section-header">Security</div>
-
-      <!-- Safety Check -->
-      <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Safety Check'); window.location.href='../safety/safety.php';">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">shield</span>
-          <div class="item-text">
-            <div class="item-title">Safety Check</div>
-            <div class="item-description">Emergency features and contacts</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
-      </div>
-
-      <!-- Stolen Device Protection -->
-      <div class="privacy-item">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">security</span>
-          <div class="item-text">
-            <div class="item-title">Stolen Device Protection</div>
-            <div class="item-description">Protect your data if device is lost</div>
-          </div>
-        </div>
-        <div class="toggle-switch" id="stolenDeviceToggle" onclick="toggleStolenDevice()">
-          <div class="toggle-switch-handle"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Additional Resources -->
     <div class="privacy-section">
       <div class="settings-section-header">Additional Resources</div>
 
-      <!-- Safety Center -->
-      <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Safety Center'); alert('Safety Center - Coming Soon!');">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">support_agent</span>
-          <div class="item-text">
-            <div class="item-title">Safety Center</div>
-            <div class="item-description">Learn about safety features</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
-      </div>
-
-      <!-- Privacy Policy -->
       <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Privacy Policy'); window.location.href='privacyPolicy.php';">
         <div class="item-content">
           <span class="material-symbols-rounded privacy-icon">description</span>
@@ -300,7 +220,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <!-- Terms of Service -->
       <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Terms of Service'); window.location.href='termsOfService.php';">
         <div class="item-content">
           <span class="material-symbols-rounded privacy-icon">gavel</span>
@@ -333,9 +252,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
             applySettings(data.settings);
             // Sync to localStorage
             localStorage.setItem('byahero_location_services', data.settings.location_services);
-            localStorage.setItem('byahero_tracking', data.settings.tracking_enabled);
-            localStorage.setItem('byahero_analytics', data.settings.analytics_enabled);
-            localStorage.setItem('byahero_stolen_device', data.settings.stolen_device_protection);
           }
         } catch (error) {
           console.error('Error loading settings:', error);
@@ -352,21 +268,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
       if (!locationEnabled) {
         document.getElementById('locationToggle').classList.remove('active');
       }
-
-      const trackingEnabled = localStorage.getItem('byahero_tracking') === '1';
-      if (trackingEnabled) {
-        document.getElementById('trackingToggle').classList.add('active');
-      }
-
-      const analyticsEnabled = localStorage.getItem('byahero_analytics') !== '0';
-      if (!analyticsEnabled) {
-        document.getElementById('analyticsToggle').classList.remove('active');
-      }
-
-      const stolenDeviceEnabled = localStorage.getItem('byahero_stolen_device') === '1';
-      if (stolenDeviceEnabled) {
-        document.getElementById('stolenDeviceToggle').classList.add('active');
-      }
     }
 
     function applySettings(settings) {
@@ -375,27 +276,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
         document.getElementById('locationToggle').classList.add('active');
       } else {
         document.getElementById('locationToggle').classList.remove('active');
-      }
-
-      // Tracking
-      if (settings.tracking_enabled == 1) {
-        document.getElementById('trackingToggle').classList.add('active');
-      } else {
-        document.getElementById('trackingToggle').classList.remove('active');
-      }
-
-      // Analytics
-      if (settings.analytics_enabled == 1) {
-        document.getElementById('analyticsToggle').classList.add('active');
-      } else {
-        document.getElementById('analyticsToggle').classList.remove('active');
-      }
-
-      // Stolen Device
-      if (settings.stolen_device_protection == 1) {
-        document.getElementById('stolenDeviceToggle').classList.add('active');
-      } else {
-        document.getElementById('stolenDeviceToggle').classList.remove('active');
       }
     }
 
@@ -416,58 +296,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
       
       if (!isActive) {
         alert('Location services disabled. Bus tracking may not work properly.');
-      }
-    }
-
-    function toggleTracking() {
-      const toggle = document.getElementById('trackingToggle');
-      const isActive = toggle.classList.toggle('active');
-      
-      localStorage.setItem('byahero_tracking', isActive ? '1' : '0');
-      
-      // Track setting change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Tracking', isActive ? 'ON' : 'OFF');
-      }
-      
-      if (isLoggedIn) {
-        saveToDatabase('tracking_enabled', isActive ? 1 : 0);
-      }
-    }
-
-    function toggleAnalytics() {
-      const toggle = document.getElementById('analyticsToggle');
-      const isActive = toggle.classList.toggle('active');
-      
-      localStorage.setItem('byahero_analytics', isActive ? '1' : '0');
-      
-      // Track setting change (ironic, but useful to know when users disable analytics)
-      if (typeof analytics !== 'undefined' && isActive) {
-        analytics.settingChanged('Analytics', isActive ? 'ON' : 'OFF');
-      }
-      
-      if (isLoggedIn) {
-        saveToDatabase('analytics_enabled', isActive ? 1 : 0);
-      }
-    }
-
-    function toggleStolenDevice() {
-      const toggle = document.getElementById('stolenDeviceToggle');
-      const isActive = toggle.classList.toggle('active');
-      
-      localStorage.setItem('byahero_stolen_device', isActive ? '1' : '0');
-      
-      // Track setting change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Stolen Device Protection', isActive ? 'ON' : 'OFF');
-      }
-      
-      if (isLoggedIn) {
-        saveToDatabase('stolen_device_protection', isActive ? 1 : 0);
-      }
-      
-      if (isActive) {
-        alert('Stolen Device Protection enabled. Your account will require additional verification if accessed from a new device.');
       }
     }
 
