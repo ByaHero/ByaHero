@@ -265,7 +265,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     // --------------------- BASE URL DETECTION ---------------------
     // passengerBottomSheet.js auto-detects this too, but we set it early
     // here so any inline code below can also reference window.APP_BASE_URL.
-    (function () {
+    (function() {
       var PROJECT_FOLDER = 'Byahero-Prototype-v3';
       var path = window.location.pathname || '/';
       var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
@@ -287,7 +287,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     window._map = map;
 
     // Resize bus-stop markers when zoom changes
-    map.on('zoomend', function () {
+    map.on('zoomend', function() {
       resizeStopMarkersForZoom(map.getZoom());
     });
 
@@ -322,16 +322,11 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     function createBusIcon(status) {
       var s = String(status || '').toLowerCase();
-      if (s === 'available') return ICON_CACHE.available;
-      if (s === 'full') return ICON_CACHE.full;
 
-      var color = statusColors[s] || '#999';
-      return L.divIcon({
-        html: '<div style="background:' + color + ';width:16px;height:16px;border:3px solid #fff;border-radius:50%;box-shadow:0 2px 5px rgba(0,0,0,0.3)"></div>',
-        className: 'bus-marker-dot',
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
-      });
+      // Always use the bus image icon for these states,
+      // so the marker image does NOT change when on_stop.
+      if (s === 'full') return ICON_CACHE.full; // you can keep a different icon if you want
+      return ICON_CACHE.available; // used for available, on_stop, anything else
     }
 
     // --------------------- USER LOCATION ---------------------
@@ -384,7 +379,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       `;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-      setTimeout(function () {
+      setTimeout(function() {
         if (notice.parentElement) notice.remove();
       }, 5000);
     }
@@ -418,7 +413,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       locationPermissionGranted = true;
 
-      navigator.geolocation.watchPosition(function (pos) {
+      navigator.geolocation.watchPosition(function(pos) {
         userLocation = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude
@@ -437,7 +432,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
         updateBuses();
-      }, function (error) {
+      }, function(error) {
         console.error('Location error:', error);
         if (error.code === error.PERMISSION_DENIED) {
           locationPermissionGranted = false;
@@ -450,7 +445,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
     }
 
-    window.addEventListener('storage', function (e) {
+    window.addEventListener('storage', function(e) {
       if (e.key !== 'byahero_location_services') return;
       var isEnabled = e.newValue !== '0';
 
@@ -477,7 +472,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           allBuses = buses;
 
           if (locationPermissionGranted && userLocation) {
-            buses.forEach(function (b) {
+            buses.forEach(function(b) {
               if (b.coords) {
                 var dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
                 b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
@@ -501,16 +496,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     function updateMap(buses) {
-      var filtered = buses.filter(function (b) {
+      var filtered = buses.filter(function(b) {
         return (!selectedRoute || b.route === selectedRoute) &&
           b.status !== 'unavailable' && b.coords !== null;
       });
 
-      var currentIds = new Set(filtered.map(function (b) {
+      var currentIds = new Set(filtered.map(function(b) {
         return String(b.id);
       }));
 
-      Object.keys(busMarkers).forEach(function (id) {
+      Object.keys(busMarkers).forEach(function(id) {
         if (!currentIds.has(id)) {
           map.removeLayer(busMarkers[id]);
           delete busMarkers[id];
@@ -533,7 +528,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         userMarker = null;
       }
 
-      filtered.forEach(function (b) {
+      filtered.forEach(function(b) {
         var iconForBus = createBusIcon(b.status);
         var popup = '<b>' + b.code + '</b><br>' + b.locName + (b.eta ? '<br><small>ETA: ' + b.eta + '</small>' : '');
 
@@ -555,7 +550,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         document.getElementById('busListDesktop');
       if (!container) return;
 
-      var activeBuses = buses.filter(function (b) {
+      var activeBuses = buses.filter(function(b) {
         return (!selectedRoute || b.route === selectedRoute) &&
           b.status !== 'unavailable' && b.coords !== null;
       });
@@ -574,7 +569,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         return;
       }
 
-      var html = activeBuses.map(function (b) {
+      var html = activeBuses.map(function(b) {
         var color = statusColors[b.status] || '#ccc';
         var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
@@ -596,7 +591,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         try {
           var geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) { }
+        } catch (e) {}
       }
 
       if (!coords && bus.lat && bus.lng) coords = [bus.lat, bus.lng];
@@ -634,7 +629,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       return h + ':' + m + ' ' + ampm;
     }
 
-    window.focusBus = function (id) {
+    window.focusBus = function(id) {
       var m = busMarkers[id];
       if (!m) return;
       map.flyTo(m.getLatLng(), 15);
@@ -650,7 +645,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     var allBuses = [];
 
-    window.setRoute = function (r) {
+    window.setRoute = function(r) {
       selectedRoute = r;
 
       var label = document.getElementById('filterLabelMobile');
@@ -663,18 +658,18 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       }
 
       updateBuses();
-      setTimeout(function () {
+      setTimeout(function() {
         centerToFirstBusInRoute(r, allBuses);
       }, 300);
     };
 
-    window.setRouteFromSheet = function (route) {
+    window.setRouteFromSheet = function(route) {
       window.setRoute(route);
       if (typeof window.updateRoutePills === 'function') window.updateRoutePills();
     };
 
-    window.centerToFirstBusInRoute = function (route, buses) {
-      var filtered = buses.filter(function (b) {
+    window.centerToFirstBusInRoute = function(route, buses) {
+      var filtered = buses.filter(function(b) {
         return (!route || b.route === route) && b.status !== 'unavailable' && b.coords !== null;
       });
       if (filtered.length > 0) focusBus(filtered[0].id);
@@ -682,9 +677,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     function updateFilters(buses) {
       var manualRoutes = ['Laurel - Tanauan', 'Tanauan - Laurel'];
-      var apiRoutes = buses.map(function (b) {
+      var apiRoutes = buses.map(function(b) {
         return b.route;
-      }).filter(function (r) {
+      }).filter(function(r) {
         return r;
       });
       var routes = [...new Set([...manualRoutes, ...apiRoutes])];
@@ -694,7 +689,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       var html = `<li><button class="dropdown-item ${selectedRoute === '' ? 'active' : ''}" type="button" onclick="setRoute('')">All Routes</button></li>`;
 
-      routes.forEach(function (r) {
+      routes.forEach(function(r) {
         var safe = String(r).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
         html += `<li><button class="dropdown-item ${selectedRoute === r ? 'active' : ''}" type="button" onclick="setRoute('${safe}')">${r}</button></li>`;
       });
@@ -703,14 +698,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     function escapeHtml(str) {
-      return String(str ?? '').replace(/[&<>"']/g, function (s) {
+      return String(str ?? '').replace(/[&<>"']/g, function(s) {
         return ({
           '&': '&amp;',
           '<': '&lt;',
           '>': '&gt;',
           '"': '&quot;',
           "'": '&#39;'
-        }[s]);
+        } [s]);
       });
     }
 
@@ -763,7 +758,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         targetSizePx = 45 + t * (80 - 45);
       }
 
-      Object.values(window._stopMarkers).forEach(function (marker) {
+      Object.values(window._stopMarkers).forEach(function(marker) {
         var t = marker.options.stopType || 'bus_stop';
         var baseIcon = STOP_ICONS[t] || STOP_ICONS.bus_stop;
 
@@ -829,7 +824,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (!stops.length) {
           listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
         } else {
-          listEl.innerHTML = stops.map(function (s) {
+          listEl.innerHTML = stops.map(function(s) {
             var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
             var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
 
@@ -850,18 +845,18 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       }
 
       // ---------- markers on the map ----------
-      var ids = new Set(stops.map(function (s) {
+      var ids = new Set(stops.map(function(s) {
         return String(s.id);
       }));
 
-      Object.keys(stopMarkers).forEach(function (id) {
+      Object.keys(stopMarkers).forEach(function(id) {
         if (!ids.has(id)) {
           map.removeLayer(stopMarkers[id]);
           delete stopMarkers[id];
         }
       });
 
-      stops.forEach(function (s) {
+      stops.forEach(function(s) {
         var id = String(s.id);
         var lat = parseFloat(s.lat);
         var lng = parseFloat(s.lng);
@@ -902,7 +897,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         duration: 0.6
       });
 
-      setTimeout(function () {
+      setTimeout(function() {
         // getBottomSheetHeightPx is defined in passengerBottomSheet.js
         var sheetH = (typeof getBottomSheetHeightPx === 'function') ? getBottomSheetHeightPx() : 0;
         var padding = 40;
@@ -914,7 +909,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       }, 650);
     }
 
-    window.centerToMyLocation = function () {
+    window.centerToMyLocation = function() {
       if (userLocation && locationPermissionGranted) {
         flyToMyLocationKeepingMarkerVisible(userLocation.lat, userLocation.lng);
         if (userMarker) userMarker.bringToFront?.();
@@ -926,7 +921,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         return;
       }
 
-      navigator.geolocation.getCurrentPosition(function (pos) {
+      navigator.geolocation.getCurrentPosition(function(pos) {
         var lat = pos.coords.latitude;
         var lng = pos.coords.longitude;
 
@@ -948,7 +943,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
         flyToMyLocationKeepingMarkerVisible(lat, lng);
         uploadMyLocation(lat, lng, pos.coords.accuracy);
-      }, function (error) {
+      }, function(error) {
         console.error('centerToMyLocation error:', error);
         if (error.code === error.PERMISSION_DENIED) showLocationPermissionDenied();
         else alert('Unable to get your location right now.');
@@ -960,7 +955,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     };
 
     // --------------------- INIT ---------------------
-    document.addEventListener('DOMContentLoaded', function () {
+    document.addEventListener('DOMContentLoaded', function() {
       var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) locationPermissionGranted = false;
     });
@@ -968,7 +963,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     startUserLocationWatch();
     updateBuses();
 
-    setTimeout(function () {
+    setTimeout(function() {
       if (typeof updateRoutePills === 'function') updateRoutePills();
     }, 100);
 
