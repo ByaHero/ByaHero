@@ -105,14 +105,14 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
     color: var(--bs-primary) !important;
   }
 
-  /* Put the panel above everything */
+  /* FIX: Put the panel above everything, including the 2002 topbar */
   .offcanvas {
-    z-index: 2001 !important;
+    z-index: 2005 !important;
   }
 
-  /* Put the backdrop just below the panel (still above app UI) */
+  /* FIX: Put the backdrop just below the panel but above the topbar */
   .offcanvas-backdrop {
-    z-index: 2000 !important;
+    z-index: 2004 !important;
   }
 
   /* Center SOS button — dome that rises above the navbar */
@@ -216,6 +216,9 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
   /* Active/Inactive icon styling for bottom nav */
   .nav-item-btn img {
     transition: opacity 0.2s ease;
+    width: 24px;
+    height: 24px;
+    object-fit: contain;
   }
 
   .nav-item-btn.active-nav img {
@@ -394,13 +397,13 @@ else: ?>
       <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
     </button>
 
-    <div class="d-flex align-items-center gap-3 pt-2 pb-3">
+    <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">
 
       <div class="profile-initial-circle">
         <?php echo htmlspecialchars($userInitial); ?>
       </div>
 
-      <div class="fw-bold offcanvas-username">
+      <div class="fw-bold text-break" style="font-size: 32px !important; line-height: 1.1 !important; flex: 1; padding-right: 15px;">
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
       
@@ -505,8 +508,7 @@ else: ?>
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
           <img id="nav-location-icon"
-            src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location"
-            style="width: 24px; height: 24px; object-fit: contain;" />
+            src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location" />
           <span class="nav-label">LOCATION</span>
         </button>
       </div>
@@ -530,7 +532,7 @@ else: ?>
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
           <img id="nav-info-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busActive.svg"
-            alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
+            alt="Bus Info" />
           <span class="nav-label">BUS INFO</span>
         </button>
       </div>
@@ -546,8 +548,6 @@ else: ?>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 
 <script>
-  // Expose base URL for icon swapping (already set above, kept for clarity)
-
   // ===== BOTTOM NAV ICON SWAPPING =====
   window.updateBottomNavIcons = function(activeButton) {
     const base = window.APP_BASE_URL || '';
