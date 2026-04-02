@@ -219,10 +219,11 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             color: #e0e6ed !important; 
         }
 
+        /* CHANGED: Start tracking button -> pill shape (still blue) */
         .btn-circle-start {
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
+            width: 100%;
+            height: auto;
+            border-radius: 999px;
             background-color: var(--btn-blue);
             color: white;
             border: none;
@@ -235,6 +236,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             font-size: 0.85rem;
             line-height: 1.2;
             margin: 20px auto;
+            padding: 18px 16px;
             transition: transform 0.1s;
         }
         .btn-circle-start:active { transform: scale(0.95); }
