@@ -415,7 +415,7 @@ else: ?>
         onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
         <!-- swap icon if there are unread notifications -->
-        <img
+        <img id="topbar-notification-icon"
           src="<?php echo $depth; ?>assets/images/<?php echo !empty($hasUnreadNotifications) ? 'notificationAlert.png' : 'notification bell.png'; ?>"
           alt="ByaHero" height="30">
       </a>
@@ -588,6 +588,51 @@ else: ?>
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+
+<script>
+  (function () {
+    // Poll unread notifications + active SOS alerts
+    // Keep interval conservative for InfinityFree
+    const POLL_MS = 30000; // 30 seconds
+
+    function setNotifIcon(hasUnread) {
+      const img = document.getElementById('topbar-notification-icon');
+      if (!img) return;
+
+      const base = window.APP_BASE_URL || '';
+      const normal = base + '/assets/images/notification bell.png';
+      const alert = base + '/assets/images/notificationAlert.png';
+
+      img.src = hasUnread ? alert : normal;
+    }
+
+    async function pollUnread() {
+      try {
+        const res = await fetch((window.APP_BASE_URL || '') + '/backend/getUnreadStatus.php?ts=' + Date.now(), {
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.success) return;
+
+        setNotifIcon(!!data.has_unread);
+      } catch (e) {
+        // fail silently
+      }
+    }
+
+    // Only poll when tab is visible to reduce load
+    function tick() {
+      if (document.visibilityState !== 'visible') return;
+      pollUnread();
+    }
+
+    document.addEventListener('visibilitychange', tick);
+    setInterval(tick, POLL_MS);
+    tick(); // run once on load
+  })();
+</script>
 
 <script>
   // ===== BOTTOM NAV ICON SWAPPING =====
