@@ -23,6 +23,24 @@ if ($user_id && isset($conn) && $conn instanceof mysqli) {
   }
 }
 
+/**
+ * Mark all active SOS alerts as seen when user opens this page
+ * (so the red dot disappears after revisiting Notifications).
+ */
+if ($user_id && isset($conn) && $conn instanceof mysqli) {
+  $stmt = $conn->prepare("
+    UPDATE sos_alerts
+    SET status = 'seen'
+    WHERE recipient_user_id = ?
+      AND status = 'active'
+  ");
+  if ($stmt) {
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->close();
+  }
+}
+
 // Fetch user's notification settings
 $notify_bus_schedule = 0;
 $notify_bus_arrival = 0;

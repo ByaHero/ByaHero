@@ -49,13 +49,25 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
 
       $stmt = $conn->prepare("
         SELECT 1
-        FROM notifications
-        WHERE user_id = ?
-          AND read_at IS NULL
+        FROM (
+          SELECT 1 AS has_unread
+          FROM notifications
+          WHERE user_id = ?
+            AND read_at IS NULL
+          LIMIT 1
+
+          UNION ALL
+
+          SELECT 1 AS has_unread
+          FROM sos_alerts
+          WHERE recipient_user_id = ?
+            AND status = 'active'
+          LIMIT 1
+        ) x
         LIMIT 1
       ");
       if ($stmt) {
-        $stmt->bind_param("i", $uid);
+        $stmt->bind_param("ii", $uid, $uid);
         $stmt->execute();
         $res = $stmt->get_result();
         $hasUnreadNotifications = ($res && $res->num_rows > 0);
