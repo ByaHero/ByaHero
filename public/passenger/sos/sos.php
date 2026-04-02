@@ -181,7 +181,7 @@ $pageDepth = "../../../";
 
     <?php include "../../../components/navbarPassenger.php"; ?>
 
-    <main id="sos-idle-layer" class="container pt-5 mt-2">
+    <main id="sos-idle-layer" class="container pt-2 mt-2">
         <div class="row justify-content-center">
             <div class="col-12 col-md-8 col-lg-5">
 
