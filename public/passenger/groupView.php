@@ -74,21 +74,6 @@
         return diffMinutes <= LOCATION_STALE_MINUTES;
     }
 
-    function showGroupVisuals() {
-        if (!window.userLocation || !window.map) return;
-
-        hideGroupVisuals();
-
-        groupCircleLayer = L.circle([userLocation.lat, userLocation.lng], {
-            color: '#1e3a8a',
-            fillColor: '#3b82f6',
-            fillOpacity: 0.2,
-            radius: 800
-        }).addTo(map);
-
-        map.fitBounds(groupCircleLayer.getBounds());
-    }
-
     function hideGroupVisuals() {
         if (groupCircleLayer) { map.removeLayer(groupCircleLayer); groupCircleLayer = null; }
         groupMarkers.forEach(m => map.removeLayer(m));
