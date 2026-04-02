@@ -144,6 +144,11 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
         .alert-area { position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 900; pointer-events: none; }
         .alert-area .alert { pointer-events: auto; }
+
+        /* Hide the status select visually but keep it in DOM so JS can use it if needed */
+        #statusSelect {
+            display: none;
+        }
     </style>
 </head>
 <body>
@@ -170,14 +175,12 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             <button id="seatPlus" class="btn-round">+</button>
         </div>
 
-        <div class="mt-3">
-            <select id="statusSelect" class="form-select border-light bg-light fw-bold py-3" style="border-radius: 12px;">
-                <option value="available">🟢 Available</option>
-                <option value="on_stop">🟠 On Stop</option>
-                <option value="full">🔴 Full</option>
-                <option value="unavailable">⚫ Unavailable</option>
-            </select>
-        </div>
+        <!-- statusSelect is kept but hidden; JS will update it automatically -->
+        <select id="statusSelect">
+            <option value="available">available</option>
+            <option value="on_stop">on_stop</option>
+            <option value="full">full</option>
+        </select>
 
         <!-- Info box with Location + Last Update (+ commented Arrival & My Location as requested) -->
         <div class="info-box">
@@ -223,6 +226,17 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     const el = id => document.getElementById(id);
     const alertBox = el('alertBox');
     const netStatus = el('netStatus');
+
+    // --- Auto-status tracking vars ---
+    let lastMoveCheck = {
+        time: 0,
+        lat: null,
+        lng: null
+    };
+    let lastComputedStatus = 'available';
+
+    const MOVE_THRESHOLD_METERS = 3;    // how far bus must move to count as moving
+    const STOP_TIME_MS = 5000;          // how long of no movement => on_stop
 
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
@@ -285,10 +299,66 @@ $seatsTotal  = (int)$currentBus['seats_total'];
       return null;
     }
 
+    function distanceMeters(lat1, lon1, lat2, lon2) {
+      const R = 6371000;
+      const dLat = (lat2 - lat1) * Math.PI / 180;
+      const dLon = (lon2 - lon1) * Math.PI / 180;
+      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    }
+
+    // Decide status based on seats + movement
+    function autoComputeStatus(currentLat, currentLng) {
+        const now = Date.now();
+
+        // 1) No seats left -> full
+        if (seats <= 0) {
+            lastComputedStatus = 'full';
+            return lastComputedStatus;
+        }
+
+        // 2) First fix: initialize reference; assume available
+        if (lastMoveCheck.lat === null || lastMoveCheck.lng === null) {
+            lastMoveCheck = {
+                time: now,
+                lat: currentLat,
+                lng: currentLng
+            };
+            lastComputedStatus = 'available';
+            return lastComputedStatus;
+        }
+
+        const dist = distanceMeters(lastMoveCheck.lat, lastMoveCheck.lng, currentLat, currentLng);
+
+        if (dist > MOVE_THRESHOLD_METERS) {
+            // moved => reset timer and treat as available
+            lastMoveCheck = {
+                time: now,
+                lat: currentLat,
+                lng: currentLng
+            };
+            lastComputedStatus = 'available';
+            return lastComputedStatus;
+        }
+
+        // Not enough movement: check how long it's been still
+        if (now - lastMoveCheck.time >= STOP_TIME_MS) {
+            lastComputedStatus = 'on_stop';
+            return lastComputedStatus;
+        }
+
+        // Default between updates
+        lastComputedStatus = 'available';
+        return lastComputedStatus;
+    }
+
     async function sendDataToServer(lat, lng, locName) {
         if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.className = 'badge bg-warning text-dark'; }
 
-        const status = el('statusSelect').value || 'available';
+        const statusSelect = el('statusSelect');
+        const status = lastComputedStatus || (statusSelect?.value || 'available');
 
         const payload = {
             bus_id: busId,
@@ -349,6 +419,15 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             myLocationEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
         }
 
+        // NEW: compute auto status
+        const autoStatus = autoComputeStatus(lat, lng);
+
+        // Keep hidden select in sync (for debugging / consistency)
+        const statusSelect = el('statusSelect');
+        if (statusSelect) {
+            statusSelect.value = autoStatus;
+        }
+
         const now = Date.now();
         if (now - lastNetworkSync > SYNC_INTERVAL) {
             sendDataToServer(lat, lng, locName);
@@ -387,12 +466,20 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     }
 
     function triggerManualUpdate() {
-        if (lastKnownLocation) {
-            sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
-            lastNetworkSync = Date.now();
-        } else {
+        if (!lastKnownLocation) {
             showAlert('Waiting for GPS fix...', 'info');
+            return;
         }
+
+        // Recalculate status using last known location
+        const autoStatus = autoComputeStatus(lastKnownLocation.lat, lastKnownLocation.lng);
+        const statusSelect = el('statusSelect');
+        if (statusSelect) {
+            statusSelect.value = autoStatus;
+        }
+
+        sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
+        lastNetworkSync = Date.now();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -411,7 +498,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             triggerManualUpdate();
         });
 
-        el('statusSelect').addEventListener('change', triggerManualUpdate);
+        // No manual status change listener; status is auto
+        // el('statusSelect').addEventListener('change', triggerManualUpdate);
+
         el('stopBtn').addEventListener('click', () => {
             stopTracking();
         });
