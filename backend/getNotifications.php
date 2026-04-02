@@ -11,6 +11,12 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = (int)$_SESSION['user_id'];
 
+if (!isset($conn) || !($conn instanceof mysqli)) {
+  http_response_code(500);
+  echo json_encode(['success' => false, 'message' => 'DB connection not available']);
+  exit;
+}
+
 $stmt = $conn->prepare("
   SELECT id, type, title, message, meta, created_at, read_at
   FROM notifications
@@ -18,12 +24,29 @@ $stmt = $conn->prepare("
   ORDER BY created_at DESC
   LIMIT 50
 ");
+if (!$stmt) {
+  http_response_code(500);
+  echo json_encode(['success' => false, 'message' => 'Failed to prepare statement']);
+  exit;
+}
+
 $stmt->bind_param("i", $userId);
 $stmt->execute();
-$res = $stmt->get_result();
+
+$stmt->bind_result($id, $type, $title, $message, $meta, $created_at, $read_at);
 
 $rows = [];
-while ($r = $res->fetch_assoc()) $rows[] = $r;
+while ($stmt->fetch()) {
+  $rows[] = [
+    'id' => $id,
+    'type' => $type,
+    'title' => $title,
+    'message' => $message,
+    'meta' => $meta,
+    'created_at' => $created_at,
+    'read_at' => $read_at,
+  ];
+}
 
 $stmt->close();
 $conn->close();

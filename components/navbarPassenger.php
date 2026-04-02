@@ -33,6 +33,39 @@ $userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
 
 // Optional: if a page provides this variable, it can force-hide dot without breaking anything
 $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNotifications : false;
+
+/**
+ * If caller didn't set $hasUnreadNotifications, compute it here (global navbar behavior).
+ * This makes the alert icon work on ALL pages that include this navbar.
+ */
+if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
+  try {
+    // db_connection.php lives at project-root/config/db_connection.php
+    // navbarPassenger.php lives at project-root/components/navbarPassenger.php
+    require_once __DIR__ . '/../config/db_connection.php';
+
+    if (isset($conn) && $conn instanceof mysqli) {
+      $uid = (int) $_SESSION['user_id'];
+
+      $stmt = $conn->prepare("
+        SELECT 1
+        FROM notifications
+        WHERE user_id = ?
+          AND read_at IS NULL
+        LIMIT 1
+      ");
+      if ($stmt) {
+        $stmt->bind_param("i", $uid);
+        $stmt->execute();
+        $res = $stmt->get_result();
+        $hasUnreadNotifications = ($res && $res->num_rows > 0);
+        $stmt->close();
+      }
+    }
+  } catch (Throwable $e) {
+    // fail silently; keep default false
+  }
+}
 ?>
 
 <style>

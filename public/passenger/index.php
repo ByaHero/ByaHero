@@ -253,35 +253,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     </div>
   </div>
 
-  <?php
-  // ... existing code above ...
-  
-  // ---- unread notifications (for navbar icon swap) ----
-  $hasUnreadNotifications = false;
-  try {
-    require_once __DIR__ . '/../../config/db_connection.php';
-    if (isset($conn) && $conn instanceof mysqli && isset($_SESSION['user_id'])) {
-      $uid = (int) $_SESSION['user_id'];
-      $stmt = $conn->prepare("
-      SELECT 1
-      FROM notifications
-      WHERE user_id = ?
-        AND read_at IS NULL
-      LIMIT 1
-    ");
-      if ($stmt) {
-        $stmt->bind_param("i", $uid);
-        $stmt->execute();
-        $res = $stmt->get_result();
-        $hasUnreadNotifications = ($res && $res->num_rows > 0);
-        $stmt->close();
-      }
-    }
-  } catch (Throwable $e) {
-    // fail silently (navbar will just show normal icon)
-  }
-  ?>
-
   <?php include __DIR__ . "/../../components/navbarPassenger.php"; ?>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
