@@ -74,6 +74,12 @@
         return diffMinutes <= LOCATION_STALE_MINUTES;
     }
 
+    function showGroupVisuals() {
+        if (!window.userLocation || !window.map) return;
+
+        hideGroupVisuals();
+    }
+
     function hideGroupVisuals() {
         if (groupCircleLayer) { map.removeLayer(groupCircleLayer); groupCircleLayer = null; }
         groupMarkers.forEach(m => map.removeLayer(m));
