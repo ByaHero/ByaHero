@@ -278,10 +278,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         <?php endif; ?>
 
         <div class="action-row">
-            <a href="profile/profile.php" class="text-decoration-none">
-                <span class="material-symbols-rounded settings-icon">settings</span>
-            </a>
-            
+            <div style="width: 32px;"></div>
+
             <div class="dropdown">
                 <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>

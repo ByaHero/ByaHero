@@ -37,30 +37,47 @@ $profileUrl = $base . '/public/conductor/profile/profile.php';
         object-fit: contain;
     }
 
-    /* Profile Icon Button Styling */
-    .nav-conductor-profile {
-        background-color: white;
+    /* Hamburger Icon Button Styling (no circle) */
+    .nav-conductor-hamburger {
+        background: transparent;
+        border: none;
+        padding: 0;
+        margin: 0;
+        color: #ffffff;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         width: 42px;
         height: 42px;
-        border-radius: 50%;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        color: #0f3878;
-        text-decoration: none;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        box-shadow: none;
         transition: transform 0.2s;
+        border-radius: 0;
+        line-height: 1;
     }
 
-    .nav-conductor-profile:hover,
-    .nav-conductor-profile:active {
+    .nav-conductor-hamburger:hover,
+    .nav-conductor-hamburger:active {
         transform: scale(0.95);
-        color: #0f3878;
+        color: #ffffff;
     }
 
-    .nav-conductor-profile .material-symbols-rounded {
-        font-size: 26px;
-        font-weight: 700;
+    /* ADDED: custom "hamburger" with wider line spacing (like your screenshot) */
+    .nav-conductor-hamburger-icon {
+        width: 28px;
+        height: 22px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between; /* this creates the bigger spacing */
+        align-items: flex-start;
+    }
+
+    .nav-conductor-hamburger-icon span {
+        display: block;
+        width: 28px;
+        height: 3px;
+        background: #ffffff;
+        border-radius: 999px;
     }
 </style>
 
@@ -68,8 +85,25 @@ $profileUrl = $base . '/public/conductor/profile/profile.php';
 
 <div class="nav-conductor-top">
     <img src="<?= htmlspecialchars($logoUrl) ?>" alt="ByaHero" class="nav-conductor-logo" onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'">
-    
-    <a href="<?= htmlspecialchars($profileUrl) ?>" class="nav-conductor-profile">
-        <span class="material-symbols-rounded">person</span>
-    </a>
+
+    <button type="button" class="nav-conductor-hamburger" data-bs-toggle="offcanvas" data-bs-target="#conductorMenu" aria-controls="conductorMenu" aria-label="Menu">
+        <span class="nav-conductor-hamburger-icon" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+        </span>
+    </button>
+</div>
+
+<!-- Offcanvas Menu (contains Profile link) -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel">
+    <div class="offcanvas-header">
+        <h5 class="offcanvas-title" id="conductorMenuLabel">Menu</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body">
+        <a href="<?= htmlspecialchars($profileUrl) ?>" class="btn btn-light w-100 fw-bold py-3 rounded-4">
+            Profile
+        </a>
+    </div>
 </div>
