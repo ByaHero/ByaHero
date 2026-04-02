@@ -50,34 +50,34 @@ $showClose = !$isDashboard;
 ?>
 <style>
   :root {
-    --admin-primary: #0b3a78;
-    --admin-primary-rgb: 11, 58, 120;
+    --admin-primary: #123e7a; /* Adjusted to match the exact dark blue in image */
+    --admin-primary-rgb: 18, 62, 122;
   }
 
   /* Reserve space for fixed topbar + fixed bottom bar */
   body {
-    padding-top: 70px !important;     /* thicker top bar */
-    padding-bottom: 22px !important;  /* bottom blue strip */
+    padding-top: 85px !important;     /* thicker top bar */
+    padding-bottom: 30px !important;  /* bottom blue strip */
   }
 
   /* Make sure it stays above everything */
   .admin-topbar-wrap { z-index: 2000; }
 
-  /* Thicker blue bar (reference) */
+  /* Thicker blue bar */
   .admin-topbar {
-    height: 70px;
+    height: 85px;
     background: var(--admin-primary);
     color: #fff;
-    border-bottom-left-radius: 18px;
-    border-bottom-right-radius: 18px;
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+    padding: 0 20px;
   }
 
   /* Title must be top-left (not centered) */
   .admin-title {
-    font-weight: 900;
+    font-weight: 700;
     letter-spacing: .2px;
-    font-size: 1.15rem;
+    font-size: 1.5rem; /* Larger font to match image */
     line-height: 1.1;
     white-space: nowrap;
   }
@@ -102,52 +102,48 @@ $showClose = !$isDashboard;
     color: #fff;
   }
 
-  /* Right-side icons (dashboard only) */
+  /* Right-side logout icon */
   .admin-topbar .icon-btn {
-    width: 44px;
-    height: 44px;
+    width: 36px;
+    height: 36px;
     border: 0;
-    background: rgba(255, 255, 255, 0.12);
-    color: #fff;
-    border-radius: 999px;
+    background: transparent; /* Removed circular background */
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: background 0.2s ease;
+    transition: transform 0.2s ease;
     text-decoration: none;
+    margin-left: 8px; /* Spacing from the avatar */
   }
   .admin-topbar .icon-btn:hover {
-    background: rgba(255, 255, 255, 0.2);
-    color: #fff;
+    transform: scale(1.05);
   }
 
-  /* Avatar look similar to reference (white circle) */
+  /* Avatar look similar to reference (larger white circle with black icon) */
   .admin-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 999px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
     background: #fff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
   }
   .admin-avatar svg {
-    width: 26px;
-    height: 26px;
-    fill: var(--admin-primary);
+    width: 40px;
+    height: 40px;
+    fill: #111111; /* Changed to match the black icon in your image */
+    margin-top: 4px; /* Slight nudge down to center the shoulders */
   }
 
-  /* Fixed bottom blue strip (reference) */
+  /* Fixed bottom blue strip */
   .admin-bottombar-wrap { z-index: 1500; }
-  .admin-bottombar { height: 22px; background: var(--admin-primary); }
+  .admin-bottombar { height: 35px; background: var(--admin-primary); }
 </style>
 
-<!-- Fixed Admin Topbar -->
 <div class="position-fixed top-0 start-0 w-100 admin-topbar-wrap">
-  <div class="container-fluid px-3 admin-topbar d-flex align-items-center justify-content-between">
+  <div class="container-fluid admin-topbar d-flex align-items-center justify-content-between">
 
-    <!-- LEFT: X (non-dashboard only) + Title -->
     <div class="d-flex align-items-center gap-2">
       <?php if ($showClose): ?>
         <a class="admin-close-btn" href="<?php echo htmlspecialchars($backTarget); ?>" title="Close" aria-label="Close">
@@ -160,18 +156,19 @@ $showClose = !$isDashboard;
       <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
     </div>
 
-    <!-- RIGHT: Dashboard ONLY (Avatar + Logout) -->
-    <div class="d-flex align-items-center gap-2">
+    <div class="d-flex align-items-center">
       <?php if ($isDashboard): ?>
         <div class="admin-avatar" title="<?= htmlspecialchars($displayHeaderName) ?>" aria-label="Admin profile">
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+            <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v2h20v-2c0-3.33-6.67-5-10-5z"/>
           </svg>
         </div>
 
         <a class="icon-btn" href="<?php echo $depth; ?>public/ADMIN/logout.php" title="Logout" aria-label="Logout">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path fill="currentColor" d="M10.09 15.59L11.5 17l5-5-5-5-1.41 1.41L12.67 11H3v2h9.67l-2.58 2.59zM19 3H5c-1.11 0-2 .9-2 2v4h2V5h14v14H5v-4H3v4c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z"/>
+          <svg viewBox="0 0 24 24" width="26" height="26" stroke="#000000" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16 17 21 12 16 7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
           </svg>
         </a>
       <?php endif; ?>
@@ -180,7 +177,6 @@ $showClose = !$isDashboard;
   </div>
 </div>
 
-<!-- Fixed bottom blue bar (reference) -->
 <div class="position-fixed bottom-0 start-0 w-100 admin-bottombar-wrap">
   <div class="admin-bottombar"></div>
 </div>
