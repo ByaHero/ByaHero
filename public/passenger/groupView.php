@@ -1,11 +1,17 @@
 <div id="view-groups" class="d-none mt-2">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
+            CIRCLES
+        </div>
+    </div>
     <div class="p-3 bg-light rounded-4 mb-2">
         <div class="d-flex align-items-center justify-content-between">
             <div>
                 <h6 class="mb-1 fw-bold text-dark">Your Invite Code</h6>
                 <small class="text-muted">Share this code to add friends</small>
             </div>
-            <button class="btn btn-sm btn-outline-primary" onclick="generateInviteCode()">Refresh</button>
+            <!-- CHANGED: Refresh -> Copy -->
+            <button class="btn btn-sm btn-primary rounded-pill" onclick="copyInviteCode()">Copy</button>
         </div>
         <div class="mt-2">
             <span id="invite-code" class="fw-bold fs-5 text-primary">------</span>
@@ -16,7 +22,7 @@
         <h6 class="mb-2 fw-bold text-dark">Join a Circle</h6>
         <div class="d-flex gap-2">
             <input id="join-code-input" class="form-control" placeholder="Enter invite code" />
-            <button class="btn btn-primary" onclick="joinByCode()">Join</button>
+            <button class="btn btn-primary rounded-pill" onclick="joinByCode()">Join</button>
         </div>
         <small id="join-message" class="d-block mt-2 text-muted"></small>
     </div>
@@ -191,6 +197,39 @@
             inviteCodeEl.textContent = data.success ? data.invite_code : '------';
         } catch (err) {
             inviteCodeEl.textContent = '------';
+        }
+    }
+
+    // ADDED: copy to clipboard
+    async function copyInviteCode() {
+        if (!inviteCodeEl) return;
+
+        const code = (inviteCodeEl.textContent || '').trim();
+        if (!code || code === '------' || code === '...') {
+            alert('No invite code to copy yet.');
+            return;
+        }
+
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(code);
+            } else {
+                // fallback for non-HTTPS / older browsers
+                const ta = document.createElement('textarea');
+                ta.value = code;
+                ta.setAttribute('readonly', '');
+                ta.style.position = 'absolute';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+            }
+
+            alert('Invite code copied!');
+        } catch (e) {
+            console.error('Copy failed:', e);
+            alert('Copy failed. Please copy manually.');
         }
     }
 
