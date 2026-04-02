@@ -49,10 +49,10 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 
   /* ADDED: makes the top bar sticky/fixed and above other UI */
   .passenger-topbar-sticky {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
     width: 100%;
     z-index: 2002 !important;
   }
