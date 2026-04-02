@@ -42,7 +42,7 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <!-- Bottom sheet component CSS -->
   <link rel="stylesheet"
-      href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=3">
+    href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=3">
 
   <!-- Global Accessibility CSS and JS -->
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
@@ -286,6 +286,11 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     // Expose map to passengerBottomSheet.js (used by setBusStopsVisibility / focusStop)
     window._map = map;
+
+    // Resize bus-stop markers when zoom changes
+    map.on('zoomend', function() {
+      resizeStopMarkersForZoom(map.getZoom());
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '',
@@ -698,32 +703,6 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       menu.innerHTML = html;
     }
 
-    // --------------------- BUS STOPS ---------------------
-    var stopMarkers = {};
-    // Expose to passengerBottomSheet.js for setBusStopsVisibility / focusStop
-    window._stopMarkers = stopMarkers;
-
-    var STOP_ICONS = {
-      pickup_point: L.icon({
-        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg',
-        iconSize: [60, 60],
-        iconAnchor: [30, 60],
-        popupAnchor: [0, -54]
-      }),
-      bus_stop: L.icon({
-        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg',
-        iconSize: [60, 60],
-        iconAnchor: [30, 60],
-        popupAnchor: [0, -54]
-      }),
-      terminal: L.icon({
-        iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
-        iconSize: [60, 60],
-        iconAnchor: [30, 60],
-        popupAnchor: [0, -54]
-      })
-    };
-
     function escapeHtml(str) {
       return String(str ?? '').replace(/[&<>"']/g, function(s) {
         return ({
@@ -736,18 +715,104 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
     }
 
+    // --------------------- BUS STOPS ---------------------
+    var stopMarkers = {};
+    // Expose to passengerBottomSheet.js for setBusStopsVisibility / focusStop
+    window._stopMarkers = stopMarkers;
+
+    var STOP_ICONS = {
+      pickup_point: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg',
+        iconSize: [50, 50], // base size (medium)
+        iconAnchor: [25, 50],
+        popupAnchor: [0, -44]
+      }),
+      bus_stop: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg',
+        iconSize: [50, 50],
+        iconAnchor: [25, 50],
+        popupAnchor: [0, -44]
+      }),
+      terminal: L.icon({
+        iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png',
+        iconSize: [50, 50],
+        iconAnchor: [25, 50],
+        popupAnchor: [0, -44]
+      })
+    };
+
     function stopIcon(type) {
       var t = String(type || '').toLowerCase();
       return STOP_ICONS[t] || STOP_ICONS.bus_stop;
     }
 
-        async function loadStops() {
+    function resizeStopMarkersForZoom(zoom) {
+      if (!window._stopMarkers) return;
+
+      // Target icon size (in px) depending on zoom:
+      // - zoom <= 12  → 45px
+      // - zoom 12–17  → interpolate 45px → 80px
+      // - zoom >= 17  → 80px
+      var targetSizePx;
+      if (zoom <= 12) {
+        targetSizePx = 45; // small/normal when very zoomed out
+      } else if (zoom >= 17) {
+        targetSizePx = 80; // big at max zoom
+      } else {
+        // interpolate linearly between 45 and 80
+        var t = (zoom - 12) / (17 - 12); // 0→1 as zoom goes 12→17
+        targetSizePx = 45 + t * (80 - 45);
+      }
+
+      Object.values(window._stopMarkers).forEach(function(marker) {
+        var t = marker.options.stopType || 'bus_stop';
+        var baseIcon = STOP_ICONS[t] || STOP_ICONS.bus_stop;
+
+        // Use base icon only for aspect ratio + reference anchors
+        var baseSize = baseIcon.options.iconSize; // e.g. [50, 50]
+        var baseWidth = baseSize[0];
+        var baseHeight = baseSize[1];
+
+        var aspect = baseWidth / baseHeight || 1;
+        var newHeight = targetSizePx;
+        var newWidth = Math.round(newHeight * aspect);
+
+        // Scale anchor + popup positions proportionally
+        var baseAnchor = baseIcon.options.iconAnchor || [baseWidth / 2, baseHeight];
+        var basePopup = baseIcon.options.popupAnchor || [0, -baseHeight * 0.9];
+
+        var widthScale = newWidth / baseWidth;
+        var heightScale = newHeight / baseHeight;
+
+        var newAnchor = [
+          Math.round(baseAnchor[0] * widthScale),
+          Math.round(baseAnchor[1] * heightScale)
+        ];
+        var newPopup = [
+          Math.round(basePopup[0] * widthScale),
+          Math.round(basePopup[1] * heightScale)
+        ];
+
+        var zoomIcon = L.icon({
+          iconUrl: baseIcon.options.iconUrl,
+          iconSize: [newWidth, newHeight],
+          iconAnchor: newAnchor,
+          popupAnchor: newPopup
+        });
+
+        marker.setIcon(zoomIcon);
+      });
+    }
+
+    async function loadStops() {
       var listEl = document.getElementById('busStopsListMobile');
       if (listEl) {
         listEl.innerHTML = '<div class="text-center text-muted mt-4 small">Loading bus stops...</div>';
       }
 
-      var res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
+      var res = await fetch('../api.php?action=get_bus_stops_terminal', {
+        cache: 'no-store'
+      });
       var json = await res.json();
 
       if (!json || !json.success || !Array.isArray(json.data)) {
@@ -758,7 +823,6 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         return;
       }
 
-      // THIS is the stops array we must keep
       var stops = json.data;
 
       // ---------- render list ----------
@@ -766,34 +830,39 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (!stops.length) {
           listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
         } else {
-          listEl.innerHTML = stops.map(function (s) {
+          listEl.innerHTML = stops.map(function(s) {
             var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
             var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
 
             return `
-              <button type="button"
-                      class="bus-stop-card"
-                      onclick="focusStop('${String(s.id)}')">
-                <div class="d-flex justify-content-between align-items-start">
-                  <div class="me-2">
-                    <div class="bus-stop-title">${escapeHtml(s.name)}</div>
-                    <div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>
-                  </div>
-                  <span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>
-                </div>
-              </button>`;
+          <button type="button"
+                  class="bus-stop-card"
+                  onclick="focusStop('${String(s.id)}')">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="me-2">
+                <div class="bus-stop-title">${escapeHtml(s.name)}</div>
+                <div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>
+              </div>
+              <span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>
+            </div>
+          </button>`;
           }).join('');
         }
       }
 
       // ---------- markers on the map ----------
-      var ids = new Set(stops.map(function (s) { return String(s.id); }));
+      var ids = new Set(stops.map(function(s) {
+        return String(s.id);
+      }));
 
-      Object.keys(stopMarkers).forEach(function (id) {
-        if (!ids.has(id)) { map.removeLayer(stopMarkers[id]); delete stopMarkers[id]; }
+      Object.keys(stopMarkers).forEach(function(id) {
+        if (!ids.has(id)) {
+          map.removeLayer(stopMarkers[id]);
+          delete stopMarkers[id];
+        }
       });
 
-      stops.forEach(function (s) {
+      stops.forEach(function(s) {
         var id = String(s.id);
         var lat = parseFloat(s.lat);
         var lng = parseFloat(s.lng);
@@ -805,15 +874,26 @@ $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           '<br><small>' + escapeHtml(String(s.type || '')) + '</small>';
 
         if (stopMarkers[id]) {
-          stopMarkers[id].setLatLng([lat, lng]).setIcon(stopIcon(s.type)).setPopupContent(popup);
+          stopMarkers[id]
+            .setLatLng([lat, lng])
+            .setIcon(stopIcon(s.type))
+            .setPopupContent(popup);
         } else {
-          stopMarkers[id] = L.marker([lat, lng], { icon: stopIcon(s.type) }).addTo(map).bindPopup(popup);
+          stopMarkers[id] = L.marker([lat, lng], {
+            icon: stopIcon(s.type),
+            stopType: String(s.type || 'bus_stop').toLowerCase() // remember type for resizing
+          }).addTo(map).bindPopup(popup);
         }
       });
 
       // Keep window._stopMarkers in sync (same object reference, already in sync)
       if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(false);
+
+      // Apply appropriate size for current zoom right after loading stops
+      resizeStopMarkersForZoom(map.getZoom());
     }
+
+
 
     // --------------------- MAP OFFSET HELPER ---------------------
     function flyToMyLocationKeepingMarkerVisible(lat, lng) {
