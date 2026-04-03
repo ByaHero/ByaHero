@@ -418,22 +418,21 @@ else: ?>
 
     <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="32" class="topbar-wordmark">
 
-    <div class="d-flex align-items-center gap-3 justify-content-end" style="width: 60px; column-gap: 20px; height: 100%;">
+    <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
-        style="width: 50px; height: 50px;"
+        style="width: 40px; height: 40px;"
         onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
 
-        <!-- swap icon if there are unread notifications -->
         <img id="topbar-notification-icon"
           src="<?php echo $depth; ?>assets/images/<?php echo !empty($hasUnreadNotifications) ? 'notificationAlert.svg' : 'notification bell.svg'; ?>"
-          alt="ByaHero" height="30">
+          alt="ByaHero" height="22">
       </a>
 
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
-        style="width:50px; height: 50px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
+        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
-        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="25">
+        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="18">
       </button>
     </div>
   </div>

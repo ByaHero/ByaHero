@@ -123,43 +123,18 @@ window.filterRouteOptions = function () {
 
 // ---------------------------------------------------------------------------
 // 3. ROUTE PILLS – highlight active route
-//    updateRoutePills() is defined FULLY here (merged from index.php).
-//    index.php no longer needs its own copy.
 // ---------------------------------------------------------------------------
 window.updateRoutePills = function () {
   var route = (window.selectedRoute || '').toUpperCase();
 
-  // ── new-design filter options (route-filter-option buttons in the sheet) ──
   var options = document.querySelectorAll('.route-filter-option');
   options.forEach(function (btn) {
     var r = (btn.getAttribute('data-route') || '').toUpperCase();
     var isActive = r === route || (!r && !route);
+    
+    // Just toggle the CSS class! CSS handles the colors/borders now.
     btn.classList.toggle('route-filter-option--active', isActive);
   });
-
-  // ── legacy pill buttons (route-pill-* ids used by the Routes tab) ──
-  var all = document.getElementById('route-pill-all');
-  var lt = document.getElementById('route-pill-laurel-tanauan');
-  var tl = document.getElementById('route-pill-tanauan-laurel');
-
-  function activePillStyle(el, active) {
-    if (!el) return;
-    if (active) {
-      el.style.backgroundColor = '#1e3a8a';
-      el.style.color = 'white';
-      el.style.fontWeight = '600';
-      el.style.border = 'none';
-    } else {
-      el.style.backgroundColor = 'white';
-      el.style.color = '#1f2937';
-      el.style.fontWeight = '500';
-      el.style.border = '1px solid #e5e7eb';
-    }
-  }
-
-  activePillStyle(all, route === '');
-  activePillStyle(lt, route === 'LAUREL - TANAUAN');
-  activePillStyle(tl, route === 'TANAUAN - LAUREL');
 };
 
 

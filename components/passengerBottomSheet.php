@@ -8,7 +8,6 @@ if (!isset($baseUrl)) {
 }
 ?>
 
-<!-- Expose base URL to JS so icons work both locally and on InfinityFree -->
 <script>
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
@@ -17,9 +16,7 @@ if (!isset($baseUrl)) {
   class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"
   style="bottom: 60px; height: 35%; z-index: 1050;">
 
-  <!-- SOS (centered) + Locate button (right-most corner) -->
   <div class="position-absolute w-100" style="top: -60px; z-index: 1060;">
-    <!-- Right-most Locate/Center button -->
     <div class="position-absolute end-0 me-3">
       <button type="button" onclick="centerToMyLocation()"
         class="btn bg-white rounded-circle shadow border-0 d-flex align-items-center justify-content-center"
@@ -35,58 +32,49 @@ if (!isset($baseUrl)) {
   </div>
 
   <div id="sheetHeader" class="flex-shrink-0 w-100 bg-white rounded-top-4">
-    <!-- Add a class so JS knows this small pill is the drag handle -->
     <div class="sheet-drag-handle bg-secondary opacity-25 rounded-pill mx-auto mt-3"
-      style="
-    width: 100px;       /* longer */
-    height: 7px;       /* thinner */
-    cursor: pointer;
-  ">
+      style="width: 100px; height: 7px; cursor: pointer;">
     </div>
 
     <div class="container-fluid px-3 pt-4">
       <div class="row g-3">
-        <!-- 1) Location tab (ACTIVE BY DEFAULT) -->
         <div class="col-3" onclick="switchSheetTab('location')">
           <div id="tab-location"
             class="sheet-tab active bg-primary text-white rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
             <img id="location-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopWhiteIcon.png"
-              alt="Location" style="width: 35px; height: 35px; object-fit: contain;" />
+              alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
         </div>
 
-        <!-- 2) Routes tab -->
         <div class="col-3" onclick="switchSheetTab('routes')">
           <div id="tab-routes"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
             <img id="routes-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/routes idle.svg" alt="Routes"
-              style="width: 33px; height: 33px; object-fit: contain;" />
+              style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
         </div>
 
-        <!-- 3) Groups tab -->
         <div class="col-3" onclick="switchSheetTab('groups')">
           <div id="tab-groups"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
             <img id="groups-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.svg"
-              alt="Groups" style="width: 35px; height: 35px; object-fit: contain;" />
+              alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
         </div>
 
-        <!-- 4) Bus Stops tab -->
         <div class="col-3" onclick="switchSheetTab('busstops')">
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
             <img id="busstops-tab-icon"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalBlue.svg"
-              alt="Bus Stops" style="width: 35px; height: 35px; object-fit: contain;" />
+              alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
         </div>
       </div>
@@ -94,47 +82,34 @@ if (!isset($baseUrl)) {
   </div>
 
   <div class="flex-grow-1 pb-4 px-3 bottom-sheet-body" style="min-height: 0;">
-    <!-- LOCATION VIEW (VISIBLE BY DEFAULT) -->
     <div id="view-location" class="mt-2">
       <div id="busListMobile">
         <div class="text-center text-muted mt-4 small">Loading buses...</div>
       </div>
     </div>
 
-    <!-- ROUTES VIEW (hidden by default) -->
-    <!-- ROUTES VIEW (hidden by default) -->
-        <!-- ROUTES VIEW (hidden by default) -->
-    <div id="view-routes" class="mt-2 d-none">
-      <div class="route-filter-card">
-
-        <!-- Label inside the card, top-left like BUS LOCATION -->
-        <div class="mb-2 fw-bold text-black"
-             style="font-size: 0.7rem; letter-spacing: 0.05em;">
+    <div id="view-routes" class="mt-3 d-none">
+      
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
           FILTER ROUTES
         </div>
+      </div>
 
-        <!-- Options list (no search) -->
-        <div class="route-filter-options">
-          <!-- Tanauan - Laurel -->
-          <div class="route-filter-option" id="route-pill-tanauan-laurel" data-route="TANAUAN - LAUREL"
-            onclick="setRouteFromSheet('TANAUAN - LAUREL')"
-            style="cursor: pointer; padding: 12px 16px; border-radius: 8px; transition: all 0.2s ease; user-select: none; background-color: white !important; color: #1f2937 !important; margin-bottom: 8px; border: 1px solid #e5e7eb; font-weight: 500;">
-            Tanauan - Laurel
-          </div>
+      <div class="route-filter-options d-flex flex-column gap-2">
+        <div class="route-filter-option" id="route-pill-tanauan-laurel" data-route="TANAUAN - LAUREL"
+          onclick="setRouteFromSheet('TANAUAN - LAUREL')">
+          Tanauan - Laurel
+        </div>
 
-          <!-- Laurel - Tanauan -->
-          <div class="route-filter-option" id="route-pill-laurel-tanauan" data-route="LAUREL - TANAUAN"
-            onclick="setRouteFromSheet('LAUREL - TANAUAN')"
-            style="cursor: pointer; padding: 12px 16px; border-radius: 8px; transition: all 0.2s ease; user-select: none; background-color: white !important; color: #1f2937 !important; margin-bottom: 8px; border: 1px solid #e5e7eb; font-weight: 500;">
-            Laurel - Tanauan
-          </div>
+        <div class="route-filter-option" id="route-pill-laurel-tanauan" data-route="LAUREL - TANAUAN"
+          onclick="setRouteFromSheet('LAUREL - TANAUAN')">
+          Laurel - Tanauan
+        </div>
 
-          <!-- All routes -->
-          <div class="route-filter-option route-filter-option--all" id="route-pill-all" data-route=""
-            onclick="setRouteFromSheet('')"
-            style="cursor: pointer; padding: 12px 16px; border-radius: 8px; transition: all 0.2s ease; user-select: none; background-color: #1e3a8a !important; color: white !important; font-weight: 600; border: none;">
-            All Routes
-          </div>
+        <div class="route-filter-option route-filter-option--all" id="route-pill-all" data-route=""
+          onclick="setRouteFromSheet('')">
+          All Routes
         </div>
       </div>
     </div>
@@ -143,7 +118,6 @@ if (!isset($baseUrl)) {
     include __DIR__ . '/../public/passenger/groupView.php';
     ?>
 
-        <!-- Bus Stops view -->
     <div id="view-busstops" class="mt-3 d-none">
       <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
@@ -160,17 +134,3 @@ if (!isset($baseUrl)) {
     </div>
   </div>
 </div>
-
-<style>
-  .route-filter-option:hover {
-    background-color: #1e3a8a;
-    color: white;
-    transform: translateX(4px);
-  }
-
-  .route-filter-option:active {
-    background-color: #1e3a8a;
-    color: white;
-    transform: translateX(2px);
-  }
-</style>

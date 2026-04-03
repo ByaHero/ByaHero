@@ -27,39 +27,25 @@
 
 /* ================================
    Bottom Sheet - Material Symbols
-   (Tabs + SOS + anything inside)
    ================================ */
 
-/* Default size for all Material Symbols inside the bottom sheet */
 #bottomSheet .material-symbols-rounded {
   font-size: 35px;
   line-height: 1;
 }
 
-/* Bottom sheet tab pills (Location / Groups / Routes / Bus Stops) */
-
-/* Make the 3 top tabs icons bigger (force override) */
 #bottomSheet .sheet-tab .material-symbols-rounded {
   font-size: 30px !important;
   line-height: 1 !important;
 }
 
-/* Keep SOS icon large (optional, explicit) */
 #bottomSheet button .material-symbols-rounded {
   font-size: 40px;
   line-height: 1;
 }
 
-/* --- ROUTE FILTER CARD (Routes tab) --- */
+/* --- ROUTE FILTER (Routes tab) --- */
 
-.route-filter-card {
-  background-color: #ffffff;
-  border-radius: 24px;
-  padding: 12px 12px 16px;
-  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.15);
-}
-
-/* Search pill */
 .route-filter-search {
   background-color: #ffffff;
   border-radius: 999px;
@@ -69,7 +55,7 @@
 
 .route-filter-search-icon {
   font-size: 22px;
-  color: #0b2c67; /* navy search icon */
+  color: #0b2c67;
   margin-right: 8px;
 }
 
@@ -78,17 +64,12 @@
   outline: none;
   width: 100%;
   font-size: 0.9rem;
-  color: #4b5563;      /* gray text */
+  color: #4b5563;
   background: transparent;
 }
 
 .route-filter-input::placeholder {
-  color: #9ca3af;      /* lighter gray placeholder */
-}
-
-/* Options */
-.route-filter-options {
-  margin-top: 10px;
+  color: #9ca3af;
 }
 
 /* Base option style */
@@ -97,38 +78,47 @@
   width: 100%;
   text-align: left;
   border: none;
-  background: transparent;
-  border-radius: 999px;
-  padding: 10px 16px;
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 14px 16px;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #111827;
+  color: #1f2937;
   cursor: pointer;
-  transition: background-color 0.15s ease, color 0.15s ease;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12); /* Match bus stop card */
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  user-select: none;
 }
 
-/* Selected (pill) option like grey pill in the mock */
+.route-filter-option:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.16);
+  background-color: #1e3a8a;
+  color: white;
+}
+
+.route-filter-option:active {
+  transform: translateY(1px);
+  background-color: #1e3a8a;
+  color: white;
+}
+
+/* Selected (active route) */
 .route-filter-option--active {
-  background-color: #e5e7eb;
-}
-
-/* Optional: "All Routes" visually lighter */
-.route-filter-option--all {
-  font-weight: 500;
-  color: #4b5563;
+  background-color: #1e3a8a !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3) !important;
 }
 
 /* ================================
    Bottom Sheet behavior helpers
    ================================ */
 
-/* Scrollable area inside the bottom sheet */
 .bottom-sheet-body {
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* smooth momentum scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
 }
 
-/* Smooth height animation for snap points */
 #bottomSheet.sheet-transition {
   transition: height 0.25s ease-out, transform 0.25s ease-out;
 }
@@ -143,24 +133,16 @@
   gap: 10px;
 }
 
-/* Card for each stop */
-/* Bus stops list container */
-.bus-stops-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
 /* Pill‑style card for each stop */
 .bus-stop-card {
   width: 100%;
   text-align: left;
-  border: none;                         /* no hard border */
-  background: #ffffff;                  /* white pill */
-  border-radius: 16px;                  /* rounded corners */
+  border: none;
+  background: #ffffff;
+  border-radius: 16px;
   padding: 10px 14px;
   display: block;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);  /* soft shadow */
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
   cursor: pointer;
   transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
@@ -189,7 +171,6 @@
   color: #6b7280;
 }
 
-/* Right-side pill: "Pick Up Point" / type */
 .bus-stop-type-pill {
   font-size: 0.7rem;
   text-transform: uppercase;
