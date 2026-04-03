@@ -5,12 +5,13 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 /**
- * Keep original behavior:
+ * Behavior:
  * - Dashboard: show logo + hamburger (offcanvas with Profile + Logout)
+ * - Admin Profile (adminProfile.php): special bar (X + "Profile"), no hamburger, thinner bottom strip
  * - Other admin pages: show X (close) + page title (NO hamburger)
  */
 
-// 1) Resolve Paths (same pattern as your original navbarAdmin)
+// 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
 $defaultBack = $depth . 'public/ADMIN/admin.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
@@ -42,6 +43,7 @@ function adminTitleForType(?string $t): string {
     'manageStops' => 'Bus Pick up Points',
     'manageConductors' => 'Drivers & Conductors',
     'busFare' => 'Bus Fares',
+    'adminProfile' => 'Profile',
   ];
   return $map[$t] ?? 'Admin';
 }
@@ -50,9 +52,18 @@ $titleMain = $pageTitle ?: adminTitleForType($adminPageType ?: 'dashboard');
 
 // ONLY show Profile + Logout on the admin dashboard
 $isDashboard = (($adminPageType ?: 'dashboard') === 'dashboard');
-$showClose = !$isDashboard;
 
-// Assets (your specified files)
+// Detect adminProfile page (via pageType OR URL)
+$req = $_SERVER['REQUEST_URI'] ?? '';
+$isAdminProfile =
+  (($adminPageType ?? '') === 'adminProfile') ||
+  (strpos($req, '/public/ADMIN/adminProfile.php') !== false) ||
+  (strpos($req, 'adminProfile.php') !== false);
+
+// On other admin pages: show X button (close)
+$showClose = (!$isDashboard && !$isAdminProfile);
+
+// Assets
 $logoUrl = $baseUrl . '/assets/images/byaheroLogo.png';
 $hamburgerImg = $baseUrl . '/assets/images/hamburger.png';
 
@@ -66,23 +77,35 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
 ?>
 
 <style>
-  /* Keep original spacing behavior (top + bottom reserved space) */
-  body {
-    padding-top: 85px !important;     /* thicker top bar */
-    padding-bottom: 30px !important;  /* bottom blue strip */
+  :root{
+    --admin-blue: #0f3878;
+    --admin-top-h: 70px;      /* same as navbarConductor */
+    --admin-bottom-h: 35px;   /* default bottom strip */
   }
 
-  /* Fixed wrappers */
-  .admin-topbar-wrap { z-index: 2000; }
-  .admin-bottombar-wrap { z-index: 1500; }
+  /* Reserve space for fixed topbar + fixed bottom bar */
+  body{
+    padding-top: var(--admin-top-h) !important;
+    padding-bottom: var(--admin-bottom-h) !important;
+  }
 
-  /* ===== Topbar matches conductor look (color/radius/shadow) but keeps 85px height ===== */
-  .admin-topbar {
-    height: 85px;
-    background: #0f3878;
+  /* On adminProfile, make bottom bar a bit thinner (per your request) */
+  <?php if ($isAdminProfile): ?>
+  body{
+    padding-bottom: 30px !important;
+  }
+  <?php endif; ?>
+
+  .admin-topbar-wrap{ z-index: 2000; }
+  .admin-bottombar-wrap{ z-index: 1500; }
+
+  /* Default topbar (dashboard + other pages) */
+  .admin-topbar{
+    height: var(--admin-top-h);
+    background: var(--admin-blue);
     color: #fff;
-    border-bottom-left-radius: 24px;
-    border-bottom-right-radius: 24px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
     padding: 0 20px;
     box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     display: flex;
@@ -90,26 +113,24 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     justify-content: space-between;
   }
 
-  /* Left area */
-  .admin-left {
+  .admin-left{
     display: flex;
     align-items: center;
     gap: 12px;
     min-width: 0;
   }
 
-  .admin-title {
+  .admin-title{
     font-weight: 800;
     letter-spacing: .2px;
-    font-size: 1.3rem;
+    font-size: 1.05rem;
     line-height: 1.1;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
   }
 
-  /* Close (X) button (kept from original behavior) */
-  .admin-close-btn {
+  .admin-close-btn{
     width: 44px;
     height: 44px;
     border: 0;
@@ -123,20 +144,18 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     text-decoration: none;
     flex: 0 0 auto;
   }
-  .admin-close-btn:hover {
+  .admin-close-btn:hover{
     background: rgba(255, 255, 255, 0.2);
     color: #fff;
   }
 
-  /* Dashboard logo */
-  .admin-logo {
+  .admin-logo{
     height: 35px;
     object-fit: contain;
     display: block;
   }
 
-  /* Hamburger (same idea as conductor) */
-  .admin-hamburger {
+  .admin-hamburger{
     background: transparent;
     border: none;
     padding: 0;
@@ -147,22 +166,26 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     align-items: center;
     justify-content: center;
   }
-  .admin-hamburger img {
+  .admin-hamburger img{
     height: 25px;
     width: auto;
     object-fit: contain;
   }
 
-  /* Bottom blue strip (keep original) */
-  .admin-bottombar { height: 35px; background: #0f3878; }
+  /* Bottom blue strip */
+  .admin-bottombar{ height: var(--admin-bottom-h); background: var(--admin-blue); }
 
-  /* Offcanvas layering consistent with conductor */
-  #adminMenu.offcanvas { z-index: 2005 !important; }
-  .offcanvas-backdrop { z-index: 2004 !important; }
+  <?php if ($isAdminProfile): ?>
+  .admin-bottombar{ height: 30px; }
+  <?php endif; ?>
+
+  /* Offcanvas layering */
+  #adminMenu.offcanvas{ z-index: 2005 !important; }
+  .offcanvas-backdrop{ z-index: 2004 !important; }
 
   /* Offcanvas header/body/buttons copied from conductor style */
-  .admin-menu-header {
-    background: #0f3878;
+  .admin-menu-header{
+    background: var(--admin-blue);
     color: #fff;
     padding: 16px;
     border-bottom-left-radius: 18px;
@@ -170,7 +193,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     position: relative;
   }
 
-  .admin-menu-title {
+  .admin-menu-title{
     margin: 0;
     font-weight: 900;
     font-size: 28px;
@@ -179,14 +202,14 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     padding-right: 44px;
   }
 
-  .admin-menu-divider {
+  .admin-menu-divider{
     border-top: 2px solid #ffffff;
     height: 3px;
     margin-top: 10px;
     opacity: 1;
   }
 
-  .admin-menu-close {
+  .admin-menu-close{
     position: absolute;
     top: 10px;
     right: 10px;
@@ -197,11 +220,9 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     line-height: 1;
   }
 
-  .admin-menu-body {
-    background: #f3f4f6;
-  }
+  .admin-menu-body{ background: #f3f4f6; }
 
-  .admin-menu-btn {
+  .admin-menu-btn{
     background: #ffffff;
     box-shadow: 0 2px 10px rgba(0,0,0,0.08);
     border-radius: 16px;
@@ -215,7 +236,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     text-decoration: none;
   }
 
-  .admin-menu-btn .icon-wrap {
+  .admin-menu-btn .icon-wrap{
     margin-left: 12px;
     margin-right: 6px;
     width: 34px;
@@ -225,49 +246,84 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     flex-shrink: 0;
   }
 
-  .admin-menu-btn .icon-wrap img {
+  .admin-menu-btn .icon-wrap img{
     height: 28px;
     width: 28px;
     object-fit: contain;
+  }
+
+  /* Special profile bar (adminProfile) like conductor profile top bar */
+  .admin-profilebar{
+    height: var(--admin-top-h);
+    background: var(--admin-blue);
+    color: #fff;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+    padding: 0 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .admin-profilebar .title{
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+    margin: 0;
   }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
 
 <div class="position-fixed top-0 start-0 w-100 admin-topbar-wrap">
-  <div class="container-fluid admin-topbar">
 
-    <div class="admin-left">
-      <?php if ($showClose): ?>
-        <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
-          <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
-        </a>
-        <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
-      <?php else: ?>
-        <img
-          src="<?= htmlspecialchars($logoUrl) ?>"
-          alt="ByaHero"
-          class="admin-logo"
-          onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'"
-        >
-      <?php endif; ?>
+  <?php if ($isAdminProfile): ?>
+
+    <!-- SPECIAL NAVBAR FOR adminProfile.php -->
+    <div class="container-fluid admin-profilebar">
+      <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
+        <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+      </a>
+      <div class="title">Profile</div>
     </div>
 
-    <div>
-      <?php if ($isDashboard): ?>
-        <button
-          type="button"
-          class="admin-hamburger"
-          data-bs-toggle="offcanvas"
-          data-bs-target="#adminMenu"
-          aria-controls="adminMenu"
-          aria-label="Menu">
-          <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
-        </button>
-      <?php endif; ?>
+  <?php else: ?>
+
+    <!-- DEFAULT NAVBAR -->
+    <div class="container-fluid admin-topbar">
+      <div class="admin-left">
+        <?php if ($showClose): ?>
+          <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
+            <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+          </a>
+          <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
+        <?php else: ?>
+          <img
+            src="<?= htmlspecialchars($logoUrl) ?>"
+            alt="ByaHero"
+            class="admin-logo"
+            onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'"
+          >
+        <?php endif; ?>
+      </div>
+
+      <div>
+        <?php if ($isDashboard): ?>
+          <button
+            type="button"
+            class="admin-hamburger"
+            data-bs-toggle="offcanvas"
+            data-bs-target="#adminMenu"
+            aria-controls="adminMenu"
+            aria-label="Menu">
+            <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
+          </button>
+        <?php endif; ?>
+      </div>
     </div>
 
-  </div>
+  <?php endif; ?>
+
 </div>
 
 <?php if ($isDashboard): ?>
