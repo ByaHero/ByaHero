@@ -212,7 +212,7 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 86px;
+    width: 100px;
     height: 76px;
     background-color: #2563eb;
     border-radius: 50px 50px 0 0;
@@ -272,6 +272,16 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
 
   .nav-item-btn:not(.active-nav) img {
     opacity: 0.6;
+  }
+  #nav-info-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+  }
+  #nav-location-icon {
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
   }
 </style>
 <script>
@@ -416,7 +426,7 @@ else: ?>
 
         <!-- swap icon if there are unread notifications -->
         <img id="topbar-notification-icon"
-          src="<?php echo $depth; ?>assets/images/<?php echo !empty($hasUnreadNotifications) ? 'notificationAlert.png' : 'notification bell.png'; ?>"
+          src="<?php echo $depth; ?>assets/images/<?php echo !empty($hasUnreadNotifications) ? 'notificationAlert.svg' : 'notification bell.svg'; ?>"
           alt="ByaHero" height="30">
       </a>
 
@@ -600,8 +610,8 @@ else: ?>
       if (!img) return;
 
       const base = window.APP_BASE_URL || '';
-      const normal = base + '/assets/images/notification bell.png';
-      const alert = base + '/assets/images/notificationAlert.png';
+      const normal = base + '/assets/images/notification bell.svg';
+      const alert = base + '/assets/images/notificationAlert.svg';
 
       img.src = hasUnread ? alert : normal;
     }
