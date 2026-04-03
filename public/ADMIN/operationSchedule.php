@@ -187,6 +187,24 @@ $backLink  = 'admin.php';
         .form-control, .form-select {
             border-radius: 12px;
         }
+
+        /* keep your previous change */
+        .card-header-std.text-primary { color: #000 !important; }
+
+        /* NEW (UI): route containers to visually separate both routes */
+        .route-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 14px;
+            background: #ffffff;
+            padding: 14px;
+        }
+        .route-card + .route-card {
+            margin-top: 14px;
+        }
+        .route-title {
+            font-weight: 900;
+            margin: 0;
+        }
     </style>
 </head>
 <body>
@@ -223,10 +241,10 @@ $backLink  = 'admin.php';
                     <form method="POST">
                         <input type="hidden" name="action" value="save_routes">
 
-                        <!-- LAUREL - TANAUAN -->
-                        <div class="mb-4">
+                        <!-- ROUTE 1: LAUREL - TANAUAN -->
+                        <div class="route-card">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 fw-bold">LAUREL - TANAUAN</h6>
+                                <h6 class="route-title">LAUREL - TANAUAN</h6>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input"
                                            type="checkbox"
@@ -269,12 +287,10 @@ $backLink  = 'admin.php';
                             </div>
                         </div>
 
-                        <hr>
-
-                        <!-- TANAUAN - LAUREL -->
-                        <div class="mb-4">
+                        <!-- ROUTE 2: TANAUAN - LAUREL -->
+                        <div class="route-card">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="mb-0 fw-bold">TANAUAN - LAUREL</h6>
+                                <h6 class="route-title">TANAUAN - LAUREL</h6>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input"
                                            type="checkbox"
@@ -317,7 +333,7 @@ $backLink  = 'admin.php';
                             </div>
                         </div>
 
-                        <div class="d-grid">
+                        <div class="d-grid mt-3">
                             <button class="btn btn-primary pill-btn">Save Schedules</button>
                         </div>
 
