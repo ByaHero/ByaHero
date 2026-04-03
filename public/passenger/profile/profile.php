@@ -208,16 +208,6 @@ if (!empty($currentUser['phone'])) {
                 </div>
             </a>
 
-            <a href="../../logout.php" class="card border-0 shadow-sm text-decoration-none clickable-card">
-                <div class="card-body d-flex align-items-center justify-content-between">
-                    <div class="d-flex align-items-center gap-3">
-                        <span class="material-symbols-rounded fs-3 text-danger">logout</span>
-                        <div class="fw-semibold text-danger">Log Out</div>
-                    </div>
-                    <span class="material-symbols-rounded text-muted">chevron_right</span>
-                </div>
-            </a>
-
         </div>
     </main>
 

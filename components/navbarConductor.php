@@ -10,7 +10,8 @@ $uri = $_SERVER['REQUEST_URI'] ?? '/';
 $base = (stripos($uri, '/' . $projectFolder . '/') === 0) ? ('/' . $projectFolder) : '';
 
 // Resolve Asset Paths
-$logoUrl = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if missing
+$logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if missing
+$wordmarkUrl = $base . '/assets/images/ByaHero.png';    // Added ByaHero wordmark
 
 // Conductor links
 $profileUrl = $base . '/public/conductor/profile/profile.php';
@@ -49,6 +50,14 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         object-fit: contain;
     }
 
+    /* Added Wordmark styling */
+    .nav-conductor-wordmark {
+        height: 32px;
+        object-fit: contain;
+        display: block;
+        margin: 0 auto;
+    }
+
     /* Use passenger hamburger image */
     .nav-conductor-hamburger {
         background: transparent;
@@ -59,7 +68,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         height: 50px;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-end; /* Changed to push right */
     }
 
     .nav-conductor-hamburger img {
@@ -76,6 +85,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
     }
 
     body[data-page="conductorLive"] .nav-conductor-logo,
+    body[data-page="conductorLive"] .nav-conductor-wordmark, /* Hide wordmark on live page */
     body[data-page="conductorLive"] .nav-conductor-hamburger {
         display: none !important;
     }
@@ -218,7 +228,6 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
 
 <?php if ($isConductorProfile): ?>
 
-    <!-- SPECIAL NAVBAR FOR PROFILE PAGE -->
     <div class="nav-conductor-profilebar">
         <a href="<?= htmlspecialchars($base . '/public/conductor/conductor.php') ?>" aria-label="Close">
             <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
@@ -228,18 +237,22 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
 
 <?php else: ?>
 
-    <!-- DEFAULT NAVBAR FOR ALL OTHER CONDUCTOR PAGES -->
     <div class="nav-conductor-top">
-        <img src="<?= htmlspecialchars($logoUrl) ?>" alt="ByaHero" class="nav-conductor-logo" onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'">
+        <div style="width: 50px; display: flex; align-items: center;">
+            <img src="<?= htmlspecialchars($logoUrl) ?>" alt="ByaHero" class="nav-conductor-logo" onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'">
+        </div>
 
+        <img src="<?= htmlspecialchars($wordmarkUrl) ?>" alt="ByaHero" class="nav-conductor-wordmark">
+        
         <div class="nav-conductor-live-title">BUS LIVE</div>
 
-        <button type="button" class="nav-conductor-hamburger" data-bs-toggle="offcanvas" data-bs-target="#conductorMenu" aria-controls="conductorMenu" aria-label="Menu">
-            <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
-        </button>
+        <div style="width: 50px; display: flex; justify-content: flex-end;">
+            <button type="button" class="nav-conductor-hamburger" data-bs-toggle="offcanvas" data-bs-target="#conductorMenu" aria-controls="conductorMenu" aria-label="Menu">
+                <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
+            </button>
+        </div>
     </div>
 
-    <!-- Offcanvas Menu (Profile + Logout only) -->
     <div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel">
         <div class="conductor-menu-header">
             <button type="button" class="conductor-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
