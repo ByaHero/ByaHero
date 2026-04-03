@@ -134,19 +134,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       color: #15803d;
       font-size: 0.9rem;
     }
-    .toggle-password {
+
+    /* Keep your existing wrapper */
+    .input-wrapper { position: relative; }
+
+    /* CHANGE: eye button to match the "toggle bar" pattern (manageConductors) */
+    .toggle-password{
       position: absolute;
       right: 10px;
-      top: 38px;
+      top: 50%;
+      transform: translateY(-50%);
+      border: 0;
+      background: transparent;
+      font-weight: 900;
+      color: #334155;
+      padding: 6px 8px;
       cursor: pointer;
-      color: #6b7280;
       user-select: none;
-    }
-    .toggle-password:hover {
-      color: #374151;
-    }
-    .input-wrapper {
-      position: relative;
+      line-height: 1;
     }
   </style>
 </head>
@@ -189,13 +194,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="input-wrapper">
             <input 
               type="password" 
-              class="form-control" 
+              class="form-control pe-5"
               id="current_password" 
               name="current_password" 
               required
               placeholder="Enter current password"
             >
-            <span class="material-symbols-rounded toggle-password" onclick="togglePassword('current_password')">visibility</span>
+            <button type="button" class="toggle-password" data-target="current_password" aria-label="Show password">👁</button>
           </div>
         </div>
 
@@ -204,14 +209,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="input-wrapper">
             <input 
               type="password" 
-              class="form-control" 
+              class="form-control pe-5"
               id="new_password" 
               name="new_password" 
               required
               minlength="6"
               placeholder="Enter new password"
             >
-            <span class="material-symbols-rounded toggle-password" onclick="togglePassword('new_password')">visibility</span>
+            <button type="button" class="toggle-password" data-target="new_password" aria-label="Show password">👁</button>
           </div>
         </div>
 
@@ -220,14 +225,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           <div class="input-wrapper">
             <input 
               type="password" 
-              class="form-control" 
+              class="form-control pe-5"
               id="confirm_password" 
               name="confirm_password" 
               required
               minlength="6"
               placeholder="Confirm new password"
             >
-            <span class="material-symbols-rounded toggle-password" onclick="togglePassword('confirm_password')">visibility</span>
+            <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password">👁</button>
           </div>
         </div>
 
@@ -257,19 +262,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <script src="../../../assets/js/accessibility.js"></script>
   <script src="../../../assets/js/analytics.js"></script>
   <script>
-    // Toggle password visibility
-    function togglePassword(fieldId) {
-      const field = document.getElementById(fieldId);
-      const icon = field.nextElementSibling;
-      
-      if (field.type === 'password') {
-        field.type = 'text';
-        icon.textContent = 'visibility_off';
-      } else {
-        field.type = 'password';
-        icon.textContent = 'visibility';
-      }
-    }
+    // Toggle password visibility (manageConductors pattern: 👁 / 🙈)
+    document.querySelectorAll('.toggle-password').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const id = btn.getAttribute('data-target');
+        const field = id ? document.getElementById(id) : null;
+        if (!field) return;
+
+        const isPw = field.type === 'password';
+        field.type = isPw ? 'text' : 'password';
+        btn.textContent = isPw ? '🙈' : '👁';
+      });
+    });
 
     // Password validation
     const form = document.getElementById('passwordForm');
