@@ -109,46 +109,143 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
     <style>
-        :root {
-            --bg-light: #f5f7fa;
-        }
+        :root { --bg: #f5f7fa; --blue:#0f3878; }
 
-        body {
-            background-color: var(--bg-light);
+        body{
+            background: #fff;
             font-family: 'Segoe UI', sans-serif;
+            margin: 0;
             padding-bottom: 80px;
             overflow-x: hidden;
-            margin:0;
         }
 
-        .main-content-wrapper {
-            margin: 12px;
-            padding-bottom: 72px;
+        .main-content-wrapper{
+            padding: 12px 14px 84px;
         }
 
-        .map-card-wrapper { position: relative; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.06); background: white; height: 320px; margin-bottom: 12px; border: 4px solid white; }
-        #mainMap { width:100%; height:100%; z-index:1; }
+        /* Top status pill centered like screenshot */
+        .status-pill{
+            display: inline-block;
+            padding: 6px 18px;
+            border-radius: 999px;
+            background: #d8f5da;
+            color: #1a8d3d;
+            font-weight: 800;
+            font-size: 0.8rem;
+        }
 
-        .status-pill { display:inline-block; padding:6px 14px; border-radius:30px; background:#d8f5da; color:#1a8d3d; font-weight:700; }
-        .seats-control { display:flex; justify-content:center; gap:14px; margin-top:12px; }
-        .btn-round { width:56px;height:56px;border-radius:12px; background:white; border:none; box-shadow:0 6px 16px rgba(0,0,0,0.08); font-size:22px; font-weight:800; }
-        .seats-num { width:70px; height:56px; display:flex; align-items:center; justify-content:center; background:white; border-radius:12px; box-shadow:0 6px 16px rgba(0,0,0,0.08); font-size:20px; font-weight:800; }
+        .status-row{
+            display:flex;
+            justify-content:center;
+            margin: 6px 0 10px;
+        }
 
-        .info-box { padding:12px; background:#f8fafc; border-radius:12px; margin-top:12px; }
-        .info-item { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #eef2f6; }
-        .info-item:last-child { border-bottom:0; }
-        .location-link { color:#0d6efd; font-weight:700; text-decoration:none; }
-        .location-link:hover { text-decoration:underline; }
+        /* Map matches screenshot: rounded, clean, no thick border */
+        .map-card-wrapper{
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            background: #fff;
+            height: 300px;
+            box-shadow: 0 10px 28px rgba(15,23,42,0.10);
+        }
+        #mainMap{ width:100%; height:100%; z-index:1; }
 
-        .footer-bar { position: fixed; bottom: 0; left: 0; width: 100%; height: 40px; background-color: #0f3878; z-index: 1000; }
+        /* Seats control row (pill buttons + center number) */
+        .seats-control{
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            gap: 14px;
+            margin-top: 14px;
+        }
+        .btn-seat{
+            width: 52px;
+            height: 46px;
+            border-radius: 10px;
+            border: 0;
+            background: #eef2f6;
+            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
+            font-size: 24px;
+            font-weight: 900;
+            line-height: 1;
+            color: #0f172a;
+        }
+        .seats-num{
+            width: 64px;
+            height: 46px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            font-size: 20px;
+            font-weight: 900;
+            color: #0f172a;
+        }
 
-        .alert-area { position: absolute; bottom: 20px; left: 20px; right: 20px; z-index: 900; pointer-events: none; }
-        .alert-area .alert { pointer-events: auto; }
+        /* Info table card like screenshot */
+        .info-card{
+            margin-top: 14px;
+            background: #eef2f6;
+            border-radius: 18px;
+            padding: 14px 14px;
+        }
+        .info-item{
+            display:flex;
+            justify-content:space-between;
+            padding: 10px 6px;
+            border-bottom: 1px solid rgba(148,163,184,0.45);
+            font-size: 0.85rem;
+        }
+        .info-item:last-child{ border-bottom:0; }
+        .info-label{ color:#0f172a; font-weight: 800; }
+        .info-value{ color:#0f172a; font-weight: 800; }
+
+        .location-link{
+            color: #0f172a;
+            font-weight: 900;
+            text-decoration: none;
+        }
+        .location-link:hover{ text-decoration: underline; }
+
+        /* Stop button: blue pill like screenshot */
+        .btn-stop{
+            margin-top: 14px;
+            width: 100%;
+            border: 0;
+            border-radius: 999px;
+            padding: 12px 16px;
+            font-weight: 900;
+            background: var(--blue);
+            color: #fff;
+            box-shadow: 0 12px 26px rgba(15, 56, 120, 0.28);
+        }
+        .btn-stop:hover{ background: #0b2f66; color:#fff; }
+
+        /* Remove big bottom bar; keep thin strip */
+        .footer-bar{
+            position: fixed;
+            bottom: 0; left: 0;
+            width: 100%;
+            height: 30px;
+            background: var(--blue);
+            z-index: 1000;
+        }
+
+        .alert-area{
+            position: absolute;
+            bottom: 14px;
+            left: 14px;
+            right: 14px;
+            z-index: 900;
+            pointer-events: none;
+        }
+        .alert-area .alert{ pointer-events:auto; }
 
         /* Hide the status select visually but keep it in DOM so JS can use it if needed */
-        #statusSelect {
-            display: none;
-        }
+        #statusSelect{ display:none; }
     </style>
 </head>
 <body>
@@ -156,12 +253,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
     <div class="main-content-wrapper">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <div>
-                <div class="h5 mb-0"><?= htmlspecialchars($busCode) ?></div>
-                <small class="text-muted"><?= htmlspecialchars($busRoute) ?></small>
-            </div>
-            <div class="status-pill" id="netStatus">Ready</div>
+
+        <div class="status-row">
+            <div class="status-pill" id="netStatus">Active</div>
         </div>
 
         <div class="map-card-wrapper">
@@ -170,9 +264,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         </div>
 
         <div class="seats-control">
-            <button id="seatMinus" class="btn-round">-</button>
+            <button id="seatMinus" class="btn-seat" type="button">−</button>
             <div id="seatsCount" class="seats-num"><?= intval($seatsTotal) ?></div>
-            <button id="seatPlus" class="btn-round">+</button>
+            <button id="seatPlus" class="btn-seat" type="button">+</button>
         </div>
 
         <!-- statusSelect is kept but hidden; JS will update it automatically -->
@@ -182,31 +276,28 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             <option value="full">full</option>
         </select>
 
-        <!-- Info box with Location + Last Update (+ commented Arrival & My Location as requested) -->
-        <div class="info-box">
+        <div class="info-card">
             <div class="info-item">
-                <div>Location</div>
-                <div><a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a></div>
+                <div class="info-label">Bus Number</div>
+                <div class="info-value"><?= htmlspecialchars((string)$busId) ?></div>
             </div>
             <div class="info-item">
-                <div>Last Update</div>
-                <div id="lastUpdate">-</div>
-            </div>
-            <!--
-            <div class="info-item">
-                <div>Arrival</div>
-                <div id="arrivalTime">-</div>
+                <div class="info-label">Route</div>
+                <div class="info-value"><?= htmlspecialchars($busRoute ?: '-') ?></div>
             </div>
             <div class="info-item">
-                <div>My Location</div>
-                <div id="myLocation">-</div>
+                <div class="info-label">Location</div>
+                <div class="info-value">
+                    <a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a>
+                </div>
             </div>
-            -->
+            <div class="info-item">
+                <div class="info-label">Last Update</div>
+                <div class="info-value" id="lastUpdate">00:00</div>
+            </div>
         </div>
 
-        <div class="mt-3">
-            <button id="stopBtn" class="btn btn-danger w-100 py-3 rounded-pill fw-bold shadow-sm">STOP TRACKING</button>
-        </div>
+        <button id="stopBtn" class="btn-stop" type="button">Stop Tracking</button>
     </div>
 
     <div class="footer-bar"></div>
@@ -228,15 +319,11 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     const netStatus = el('netStatus');
 
     // --- Auto-status tracking vars ---
-    let lastMoveCheck = {
-        time: 0,
-        lat: null,
-        lng: null
-    };
+    let lastMoveCheck = { time: 0, lat: null, lng: null };
     let lastComputedStatus = 'available';
 
-    const MOVE_THRESHOLD_METERS = 3;    // how far bus must move to count as moving
-    const STOP_TIME_MS = 5000;          // how long of no movement => on_stop
+    const MOVE_THRESHOLD_METERS = 3;
+    const STOP_TIME_MS = 5000;
 
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
@@ -256,7 +343,6 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         try { map.panTo(latlng); } catch(e){}
     }
 
-    // Load route features (polygons) used to resolve named locations
     async function loadRouteFeatures() {
         try {
             const res = await fetch('../map_data.php', { cache: 'no-store' });
@@ -267,7 +353,6 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         } catch (e) { console.warn('Failed to load route features', e); }
     }
 
-    // point-in-polygon helper (ray-casting)
     function pointInRing(x, y, ring) {
       let inside = false;
       for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
@@ -309,23 +394,16 @@ $seatsTotal  = (int)$currentBus['seats_total'];
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     }
 
-    // Decide status based on seats + movement
     function autoComputeStatus(currentLat, currentLng) {
         const now = Date.now();
 
-        // 1) No seats left -> full
         if (seats <= 0) {
             lastComputedStatus = 'full';
             return lastComputedStatus;
         }
 
-        // 2) First fix: initialize reference; assume available
         if (lastMoveCheck.lat === null || lastMoveCheck.lng === null) {
-            lastMoveCheck = {
-                time: now,
-                lat: currentLat,
-                lng: currentLng
-            };
+            lastMoveCheck = { time: now, lat: currentLat, lng: currentLng };
             lastComputedStatus = 'available';
             return lastComputedStatus;
         }
@@ -333,29 +411,22 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         const dist = distanceMeters(lastMoveCheck.lat, lastMoveCheck.lng, currentLat, currentLng);
 
         if (dist > MOVE_THRESHOLD_METERS) {
-            // moved => reset timer and treat as available
-            lastMoveCheck = {
-                time: now,
-                lat: currentLat,
-                lng: currentLng
-            };
+            lastMoveCheck = { time: now, lat: currentLat, lng: currentLng };
             lastComputedStatus = 'available';
             return lastComputedStatus;
         }
 
-        // Not enough movement: check how long it's been still
         if (now - lastMoveCheck.time >= STOP_TIME_MS) {
             lastComputedStatus = 'on_stop';
             return lastComputedStatus;
         }
 
-        // Default between updates
         lastComputedStatus = 'available';
         return lastComputedStatus;
     }
 
     async function sendDataToServer(lat, lng, locName) {
-        if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.className = 'badge bg-warning text-dark'; }
+        if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.style.background = '#fde68a'; netStatus.style.color = '#111827'; }
 
         const statusSelect = el('statusSelect');
         const status = lastComputedStatus || (statusSelect?.value || 'available');
@@ -387,9 +458,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
-            if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
+            if(netStatus) { netStatus.textContent = 'Active'; netStatus.style.background = '#d8f5da'; netStatus.style.color = '#1a8d3d'; }
         } catch (e) {
-            if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
+            if(netStatus) { netStatus.textContent = 'Offline'; netStatus.style.background = '#fecaca'; netStatus.style.color = '#991b1b'; }
         }
     }
 
@@ -410,23 +481,16 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             currentLocationEl.href = mapsUrl;
             currentLocationEl.title = `Open in Google Maps`;
         }
+
         const lastUpdateEl = el('lastUpdate');
         if (lastUpdateEl) {
-            lastUpdateEl.textContent = new Date().toLocaleTimeString();
-        }
-        const myLocationEl = el('myLocation');
-        if (myLocationEl) {
-            myLocationEl.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            lastUpdateEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        // NEW: compute auto status
         const autoStatus = autoComputeStatus(lat, lng);
 
-        // Keep hidden select in sync (for debugging / consistency)
         const statusSelect = el('statusSelect');
-        if (statusSelect) {
-            statusSelect.value = autoStatus;
-        }
+        if (statusSelect) statusSelect.value = autoStatus;
 
         const now = Date.now();
         if (now - lastNetworkSync > SYNC_INTERVAL) {
@@ -471,12 +535,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             return;
         }
 
-        // Recalculate status using last known location
         const autoStatus = autoComputeStatus(lastKnownLocation.lat, lastKnownLocation.lng);
         const statusSelect = el('statusSelect');
-        if (statusSelect) {
-            statusSelect.value = autoStatus;
-        }
+        if (statusSelect) statusSelect.value = autoStatus;
 
         sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
         lastNetworkSync = Date.now();
@@ -498,36 +559,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             triggerManualUpdate();
         });
 
-        // No manual status change listener; status is auto
-        // el('statusSelect').addEventListener('change', triggerManualUpdate);
-
-        el('stopBtn').addEventListener('click', () => {
-            stopTracking();
-        });
-
-        // Make location link open maps only when it has a real href
-        const currentLocationEl = el('currentLocation');
-        if (currentLocationEl) {
-            currentLocationEl.addEventListener('click', (ev) => {
-                const href = currentLocationEl.getAttribute('href');
-                if (!href || href === '#') {
-                    ev.preventDefault();
-                    if (lastKnownLocation) {
-                        showAlert(`Location: ${lastKnownLocation.locName}`, 'info');
-                    } else {
-                        showAlert('Waiting for GPS fix...', 'info');
-                    }
-                }
-            });
-        }
-
-        // optional: re-request wakeLock on visibilitychange
-        let wakeLock = null;
-        document.addEventListener('visibilitychange', async () => {
-            if (wakeLock !== null && document.visibilityState === 'visible') {
-                try { wakeLock = await navigator.wakeLock.request('screen'); } catch(e){}
-            }
-        });
+        el('stopBtn').addEventListener('click', () => stopTracking());
     });
     </script>
 </body>
