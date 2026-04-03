@@ -289,8 +289,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Removed: rebuild_base_from_current (too dangerous for production admin UI) */
-
     } catch (Throwable $e) {
         $msg = $e->getMessage();
         if (stripos($msg, 'bus_fare_snapshots') !== false || stripos($msg, 'bus_fare_snapshot_rows') !== false) {
@@ -374,6 +372,32 @@ $backLink = 'admin.php';
             background: rgba(248,250,252,0.75);
             border-radius: 12px;
             padding: 10px 12px;
+        }
+
+        /* ONLY CHANGE 1: labels should be black */
+        .form-label { color: #000 !important; }
+
+        /* ONLY CHANGE 1b: section headers that were text-primary should be black */
+        .card-header-std.text-primary { color: #000 !important; }
+
+        /* ONLY CHANGE 2: all outline buttons become solid like Save */
+        .btn-outline-primary {
+            background-color: var(--brand) !important;
+            border-color: var(--brand) !important;
+            color: #fff !important;
+        }
+        .btn-outline-secondary {
+            background-color: #64748b !important;   /* solid gray */
+            border-color: #64748b !important;
+            color: #fff !important;
+        }
+        .btn-outline-primary:hover,
+        .btn-outline-primary:focus {
+            filter: brightness(0.95);
+        }
+        .btn-outline-secondary:hover,
+        .btn-outline-secondary:focus {
+            filter: brightness(0.95);
         }
 
         @media (max-width: 991.98px) {
