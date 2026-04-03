@@ -16,374 +16,356 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 
 $pdo = db();
 $message = '';
-$error = '';
+$error   = '';
 
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-// --- Handle Form Submissions (BUSES ONLY) ---
+/**
+ * Only two statuses:
+ * - available
+ * - unavailable
+ */
+$ALLOWED_STATUS = ['available', 'unavailable'];
+
+// --- Handle Form Submissions ---
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
     try {
-        // Add New Bus
+        // ADD BUS (code only, auto-available)
         if ($action === 'add_bus') {
-            $code  = trim((string)($_POST['code'] ?? ''));
-            $route = trim((string)($_POST['route'] ?? ''));
-            $route = ($route === '') ? null : $route;
+            $code = trim((string)($_POST['code'] ?? ''));
 
-            // Always default to 25 seats
-            $seats  = 25;
-            $status = (string)($_POST['status'] ?? 'unavailable');
+            // new buses are always available
+            $status     = 'available';
+            $totalSeats = 25;
 
             if ($code === '') {
-                $error = "Bus Code is required.";
+                $error = 'Bus Code is required.';
             } else {
                 $stmt = $pdo->prepare(
                     "INSERT INTO busses (code, route, total_seats, seat_availability, status)
-                     VALUES (?, ?, ?, ?, ?)"
+                     VALUES (?, NULL, ?, ?, ?)"
                 );
-                $stmt->execute([$code, $route, $seats, $seats, $status]);
-                $message = "Bus <strong>" . h($code) . "</strong> added successfully!";
+                $stmt->execute([$code, $totalSeats, $totalSeats, $status]);
+                $message = "Bus <strong>" . h($code) . "</strong> added as available.";
             }
         }
-        // Delete Bus
-        elseif ($action === 'delete_bus') {
-            $id = $_POST['id'] ?? null;
-            if ($id) {
-                $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?")->execute([$id]);
-                $message = "Bus deleted.";
-            } else {
-                $error = "Invalid delete request.";
-            }
-        }
-        // Update Bus Route/Seats/Status (optional quick edit)
+
+        // UPDATE BUS STATUS
         elseif ($action === 'update_bus') {
-            $id = $_POST['id'] ?? null;
-            $route = trim((string)($_POST['route'] ?? ''));
-            $route = ($route === '') ? null : $route;
+            $id     = $_POST['id'] ?? null;       // this will be Bus_ID
+            $status = (string)($_POST['status'] ?? 'unavailable');
 
-            $totalSeats = (int)($_POST['total_seats'] ?? 25);
-            $status     = (string)($_POST['status'] ?? 'unavailable');
-
-            $allowedStatuses = ['available', 'on_stop', 'full', 'unavailable'];
+            if (!in_array($status, $ALLOWED_STATUS, true)) {
+                $status = 'unavailable';
+            }
 
             if (!$id) {
-                $error = "Invalid update request.";
-            } elseif ($totalSeats < 1) {
-                $error = "Total seats must be valid.";
-            } elseif (!in_array($status, $allowedStatuses, true)) {
-                $error = "Invalid status.";
+                $error = 'Invalid update request (empty ID).';
             } else {
                 $stmt = $pdo->prepare("
                     UPDATE busses
-                    SET route = ?,
-                        total_seats = ?,
-                        seat_availability = LEAST(seat_availability, ?),
-                        status = ?
+                    SET status = ?
                     WHERE Bus_ID = ?
                 ");
-                $stmt->execute([$route, $totalSeats, $totalSeats, $status, $id]);
-                $message = "Bus updated.";
+                $stmt->execute([$status, $id]);
+                $message = 'Bus updated.';
             }
         }
-    } catch (Exception $e) {
-        $error = "Database error: " . $e->getMessage();
+
+        // DELETE BUS
+        elseif ($action === 'delete_bus') {
+            $id = $_POST['id'] ?? null;            // this will be Bus_ID
+
+            if (!$id) {
+                $error = 'Invalid delete request (empty ID).';
+            } else {
+                $stmt = $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?");
+                $stmt->execute([$id]);
+
+                if ($stmt->rowCount() === 0) {
+                    $error = 'No bus deleted. Check that Bus_ID ' . h($id) . ' exists.';
+                } else {
+                    $message = 'Bus deleted.';
+                }
+            }
+        }
+    } catch (Throwable $e) {
+        $error = 'Database error: ' . $e->getMessage();
     }
 }
 
-// --- Fetch Buses ---
+// --- Fetch All Buses (simple list) ---
 $buses = [];
 try {
-    $buses = $pdo->query("SELECT * FROM busses ORDER BY code ASC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
+    $buses = $pdo
+        ->query("SELECT * FROM busses ORDER BY code ASC")
+        ->fetchAll(PDO::FETCH_ASSOC);
+} catch (Throwable $e) {
     $buses = [];
 }
 
 /* === navbarAdmin config (component) === */
 $pageDepth = '../../';
-$pageType = 'manageBuses';
-$backLink = 'admin.php';
+$pageType  = 'manageBuses';
+$backLink  = 'admin.php';
 /* === END === */
-
-// Group into 4 backend statuses (same text as backend)
-$groups = ['available'=>[], 'on_stop'=>[], 'full'=>[], 'unavailable'=>[]];
-foreach ($buses as $bus) {
-    $st = (string)($bus['status'] ?? 'unavailable');
-    if (!isset($groups[$st])) $st = 'unavailable';
-    $groups[$st][] = $bus;
-}
-
-$labels = [
-    'available' => 'Available',
-    'on_stop' => 'On Stop',
-    'full' => 'Full',
-    'unavailable' => 'Unavailable',
-];
-
-$colors = [
-    'available' => '#A7CCF5',
-    'on_stop' => '#74B3E7',
-    'full' => '#2B7AC1',
-    'unavailable' => '#1E5FA5',
-];
 ?>
 <!doctype html>
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>ByaHero — Manage Buses</title>
+    <title>ByaHero — Total Buses</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-
-        .page-wrap { padding: 16px; }
-        .alert { border-radius: 14px; }
-
-        .status-section {
-            border-radius: 18px;
-            padding: 14px;
-            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.10);
-            margin-bottom: 14px;
+        body {
+            background: #f8f9fa;
+            color: #212529;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
         }
-
-        .section-head { display:flex; align-items:center; justify-content:space-between; gap:10px; }
-        .section-title { font-weight: 900; margin: 0; font-size: 1rem; color:#0f172a; }
-        .section-meta { font-size:.85rem; color: rgba(15,23,42,0.75); }
-
-        .btn-add {
-            border: 0;
-            background: rgba(255,255,255,0.85);
-            border-radius: 999px;
-            font-weight: 900;
-            padding: 8px 12px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            box-shadow: 0 6px 14px rgba(0,0,0,0.15);
-        }
-        .btn-add .plus {
-            width: 28px; height: 28px;
-            border-radius: 999px;
-            background: #fff;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            font-weight:900;
-        }
-
-        /* key: phone-friendly even with many buses */
-        .bus-list {
+        .app-shell {
+            max-width: 420px;
+            margin: 0 auto;
+            min-height: 100vh;
+            background: #f5f6f8;
             display: flex;
             flex-direction: column;
-            gap: 10px;
-            margin-top: 10px;
-            max-height: 300px;
-            overflow: auto;
-            padding-right: 4px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.05);
+        }
+        .app-content {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: #000;
+            margin-bottom: 16px;
+        }
+
+        .add-bus-card {
+            background: #f4f5f7;
+            border-radius: 16px;
+            padding: 20px;
+            border: 1px solid #e5e7eb;
+            margin-bottom: 30px;
+        }
+        .add-bus-input {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 15px;
+            background: #ffffff;
+            font-size: 0.95rem;
+        }
+        .add-bus-input::placeholder {
+            color: #9ca3af;
         }
 
         .bus-card {
-            background: rgba(255,255,255,0.92);
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            padding: 14px 14px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .bus-icon {
-            width: 56px;
-            height: 56px;
+            background: #ffffff;
             border-radius: 16px;
-            background: #f1f5f9;
+            padding: 20px;
+            margin-bottom: 16px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+            border: none;
+        }
+        .bus-card-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        .bus-card-label {
+            color: #4b5563;
+            font-size: 0.9rem;
+        }
+        .bus-card-value {
+            font-weight: 700;
+            color: #000;
+        }
+        .bus-icon-container {
+            width: 60px;
+            flex-shrink: 0;
+            display: flex;
+            justify-content: center;
+            margin-top: 5px;
+        }
+        .bus-icon-container img {
+            max-width: 100%;
+            height: auto;
+        }
+
+        .badge-status {
+            border-radius: 999px;
+            padding: 4px 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        .badge-available {
+            background: #a7f3d0;
+            color: #065f46;
+        }
+        .badge-unavailable {
+            background: #fecaca;
+            color: #991b1b;
+        }
+
+        /* Actions row: label on left, compact pill-style select on right */
+        .bus-card-row.actions-row {
+            align-items: center;
+            margin-top: 4px;
+        }
+        .actions-right {
             display: flex;
             align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            overflow: hidden;
+            justify-content: flex-end;
         }
-        .bus-icon img { width: 40px; height: 40px; object-fit: contain; display: block; }
-
-        .bus-title { font-weight: 900; font-size: 1.05rem; margin: 0; }
-        .bus-sub { margin: 0; font-size: .85rem; color: #64748b; }
-
-        .status-pill {
+        .action-select {
+            background-color: #f3f4f6;
+            border: none;
             border-radius: 999px;
-            padding: 6px 12px;
-            font-weight: 900;
-            font-size: .75rem;
-            letter-spacing: .3px;
-            text-transform: uppercase;
-            flex: 0 0 auto;
-            background: rgba(255,255,255,0.8);
-            color: #0f172a;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 26px 4px 12px;
+            color: #000;
+            cursor: pointer;
+            box-shadow: inset 0 0 0 1px #e5e7eb;
+            min-width: 120px;
+        }
+        .action-select:focus {
+            outline: none;
+            box-shadow: inset 0 0 0 1px #1e5dd9;
         }
 
-        .bus-actions {
-            margin-top: 10px;
-            display: grid;
-            grid-template-columns: 1fr auto auto;
-            gap: 10px;
-            align-items: center;
+        .btn-pill {
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            padding: 6px 20px;
+            border: none;
         }
-
-        .form-control, .form-select { border-radius: 12px; }
-        .btn-soft { border-radius: 12px; font-weight: 800; padding: 8px 12px; }
-        .btn-delete { border-radius: 12px; font-weight: 900; padding: 8px 12px; }
-        .pill-btn { border-radius: 999px; font-weight: 800; letter-spacing: .2px; }
-
-        .modal-content { border-radius: 18px; }
+        .btn-primary-custom {
+            background-color: #1e5dd9;
+            color: #fff;
+        }
+        .btn-primary-custom:hover {
+            background-color: #164bb8;
+            color: #fff;
+        }
+        .btn-danger-custom {
+            background-color: #b91c1c;
+            color: #fff;
+        }
+        .btn-danger-custom:hover {
+            background-color: #991b1b;
+            color: #fff;
+        }
     </style>
 </head>
 <body>
 
-<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
+<div class="app-shell">
+    <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="page-wrap">
+    <div class="app-content">
 
-    <?php if($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
-            <?= $message ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php if($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
-            <?= $error ?>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-    <?php endif; ?>
-
-    <?php foreach (['available','on_stop','full','unavailable'] as $st): ?>
-        <div class="status-section" style="background: <?= h($colors[$st]) ?>;">
-            <div class="section-head">
-                <div>
-                    <p class="section-title"><?= h($labels[$st]) ?></p>
-                    <div class="section-meta"><?= count($groups[$st]) ?> bus<?= count($groups[$st])===1?'':'es' ?></div>
-                </div>
-
-                <button
-                    type="button"
-                    class="btn-add"
-                    data-bs-toggle="modal"
-                    data-bs-target="#addBusModal"
-                    data-status="<?= h($st) ?>"
-                >
-                    Add Bus <span class="plus">+</span>
-                </button>
+        <?php if ($message): ?>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <?= $message ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
             </div>
+        <?php endif; ?>
 
-            <div class="bus-list">
-                <?php if (empty($groups[$st])): ?>
-                    <div class="text-muted small" style="background: rgba(255,255,255,0.7); border-radius: 12px; padding: 10px;">
-                        No buses in this status.
-                    </div>
-                <?php else: foreach ($groups[$st] as $bus):
-                    $busId = $bus['Bus_ID'] ?? $bus['id'] ?? null;
+        <?php if ($error): ?>
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <?= $error ?>
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+        <?php endif; ?>
+
+        <div class="add-bus-card">
+            <h2 class="section-title">Add Bus</h2>
+            <form method="POST">
+                <input type="hidden" name="action" value="add_bus">
+                <div class="mb-3">
+                    <input type="text" name="code" class="form-control add-bus-input w-100" placeholder="Bus 00001" required>
+                </div>
+                <div class="text-end">
+                    <button type="submit" class="btn btn-primary-custom btn-pill">Save</button>
+                </div>
+            </form>
+        </div>
+
+        <div>
+            <h2 class="section-title">All Buses</h2>
+
+            <?php if (empty($buses)): ?>
+                <p class="text-muted small">No buses yet. Add one above.</p>
+            <?php else: ?>
+                <?php foreach ($buses as $bus):
+                    $id     = $bus['Bus_ID'] ?? null;
+                    $status = in_array(($bus['status'] ?? ''), $ALLOWED_STATUS, true) ? $bus['status'] : 'unavailable';
                 ?>
-                    <div class="bus-card">
-                        <div class="bus-icon" aria-hidden="true">
-                            <img src="../../assets/images/icons/activeBus.png" alt="Bus">
+                    <div class="bus-card d-flex gap-3">
+                        <div class="bus-icon-container">
+                            <img src="../../assets/images/busonallbuses.svg" alt="Bus Icon">
                         </div>
 
                         <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <p class="bus-title"><?= h($bus['code'] ?? 'BUS') ?></p>
-                                    <p class="bus-sub">Route: <?= !empty($bus['route']) ? h($bus['route']) : '<em class="text-muted">None</em>' ?></p>
-                                    <p class="bus-sub">Available Seats: <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?></p>
+                            <div class="bus-card-row">
+                                <span class="bus-card-label">Code</span>
+                                <span class="bus-card-value"><?= h($bus['code'] ?? 'BUS') ?></span>
+                            </div>
+
+                            <div class="bus-card-row">
+                                <span class="bus-card-label">Status</span>
+                                <?php if ($status === 'available'): ?>
+                                    <span class="badge-status badge-available">Available</span>
+                                <?php else: ?>
+                                    <span class="badge-status badge-unavailable">Unavailable</span>
+                                <?php endif; ?>
+                            </div>
+
+                            <!-- Actions row: label + compact dropdown -->
+                            <div class="bus-card-row actions-row">
+                                <span class="bus-card-label">Actions</span>
+                                <div class="actions-right">
+                                    <select form="update-form-<?= $id ?>" name="status" class="form-select action-select">
+                                        <option value="available"   <?= $status === 'available'   ? 'selected' : '' ?>>Available</option>
+                                        <option value="unavailable" <?= $status === 'unavailable' ? 'selected' : '' ?>>Unavailable</option>
+                                    </select>
                                 </div>
-                                <span class="status-pill"><?= h($labels[$st]) ?></span>
                             </div>
 
-                            <div class="bus-actions">
-                                <form method="POST" class="d-flex gap-2 align-items-center w-100">
+                            <div class="d-flex justify-content-end gap-2 mt-3">
+                                <form method="POST" id="update-form-<?= $id ?>" class="m-0">
                                     <input type="hidden" name="action" value="update_bus">
-                                    <input type="hidden" name="id" value="<?= h($busId) ?>">
-
-                                    <select name="route" class="form-select">
-                                        <option value="" <?= empty($bus['route']) ? 'selected' : '' ?>>None</option>
-                                        <option value="LAUREL - TANAUAN" <?= ($bus['route'] ?? '') === 'LAUREL - TANAUAN' ? 'selected' : '' ?>>LAUREL - TANAUAN</option>
-                                        <option value="TANAUAN - LAUREL" <?= ($bus['route'] ?? '') === 'TANAUAN - LAUREL' ? 'selected' : '' ?>>TANAUAN - LAUREL</option>
-                                    </select>
-
-                                    <select name="status" class="form-select select-status" style="width:auto">
-                                        <option value="available" <?= $st==='available'?'selected':'' ?>>Available</option>
-                                        <option value="on_stop" <?= $st==='on_stop'?'selected':'' ?>>On Stop</option>
-                                        <option value="full" <?= $st==='full'?'selected':'' ?>>Full</option>
-                                        <option value="unavailable" <?= $st==='unavailable'?'selected':'' ?>>Unavailable</option>
-                                    </select>
-
-                                    <button class="btn btn-outline-primary btn-soft" type="submit">Save</button>
+                                    <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                                    <button type="submit" class="btn btn-primary-custom btn-pill">Save</button>
                                 </form>
 
-                                <form method="POST" onsubmit="return confirm('Delete bus <?= h($bus['code']) ?>?');">
+                                <form method="POST" class="m-0" onsubmit="return confirm('Delete bus <?= h($bus['code'] ?? '') ?>?');">
                                     <input type="hidden" name="action" value="delete_bus">
-                                    <input type="hidden" name="id" value="<?= h($busId) ?>">
-                                    <button class="btn btn-outline-danger btn-delete" type="submit">Delete</button>
+                                    <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                                    <button type="submit" class="btn btn-danger-custom btn-pill">Delete</button>
                                 </form>
                             </div>
+
                         </div>
                     </div>
-                <?php endforeach; endif; ?>
-            </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
         </div>
-    <?php endforeach; ?>
 
-</div>
-
-<!-- Add Bus Modal (minimal) -->
-<div class="modal fade" id="addBusModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title">Add New Bus</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <form method="POST">
-        <div class="modal-body">
-            <input type="hidden" name="action" value="add_bus">
-            <input type="hidden" name="status" id="addBusStatus" value="unavailable">
-
-            <div class="mb-3">
-                <label class="form-label small fw-bold text-uppercase">Bus Code / Plate</label>
-                <input type="text" name="code" class="form-control" placeholder="e.g. BUS-001" required>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label small fw-bold text-uppercase">Default Route</label>
-                <select name="route" class="form-select">
-                    <option value="" selected>-- Select Route --</option>
-                    <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
-                    <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
-                </select>
-            </div>
-        </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-outline-secondary btn-soft" data-bs-dismiss="modal">Cancel</button>
-            <button type="submit" class="btn btn-primary btn-soft">Create</button>
-        </div>
-      </form>
     </div>
-  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    const addBusModal = document.getElementById('addBusModal');
-    const addBusStatus = document.getElementById('addBusStatus');
-
-    addBusModal?.addEventListener('show.bs.modal', (event) => {
-        const btn = event.relatedTarget;
-        const st = btn?.getAttribute('data-status') || 'unavailable';
-        addBusStatus.value = st;
-    });
-</script>
 </body>
 </html>
