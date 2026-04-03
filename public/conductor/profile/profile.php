@@ -44,7 +44,7 @@ $pdo = db();
 $id = (int)$_SESSION['user_id'];
 
 /**
- * conductors table columns (from your screenshot):
+ * conductors table columns:
  * id, email, password, created_at
  */
 $stmt = $pdo->prepare("SELECT id, email, password, created_at FROM conductors WHERE id = ? LIMIT 1");
@@ -175,7 +175,6 @@ $iconEdit = '../../../assets/images/icons/edit.png';
 
         html, body{ height: 100%; }
 
-        /* FIX: allow bottom-sheet to flex so footer-bar is visible without scrolling */
         body{
             background: var(--page-bg);
             font-family: 'Segoe UI', sans-serif;
@@ -218,11 +217,8 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             background: var(--sheet-bg);
             border-top-left-radius: var(--radius-lg);
             border-top-right-radius: var(--radius-lg);
-
-            /* FIX: remove forced min-height that pushes footer down */
             min-height: 0;
             flex: 1;
-
             padding: 22px 18px 30px;
         }
 
@@ -257,8 +253,6 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             width: 22px;
             height: 22px;
             object-fit: contain;
-
-            /* reduce blur on scaled PNGs */
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             transform: translateZ(0);
@@ -295,7 +289,6 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             width: 18px;
             height: 18px;
             object-fit: contain;
-
             image-rendering: -webkit-optimize-contrast;
             image-rendering: crisp-edges;
             transform: translateZ(0);
@@ -343,6 +336,23 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             margin-bottom: 18px;
             line-height: 1.4;
         }
+
+        /* Password toggle bar pattern (from manageConductors) */
+        .pw-wrap{
+            position: relative;
+        }
+        .pw-eye{
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            font-weight: 900;
+            color: #334155;
+            padding: 6px 8px;
+        }
+
         .modal-actions{
             display: flex;
             justify-content: center;
@@ -365,7 +375,7 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             width: 100%;
             height: 35px;
             background-color: var(--header-blue);
-            flex: 0 0 auto; /* make sure it stays visible */
+            flex: 0 0 auto;
         }
     </style>
 </head>
@@ -423,8 +433,6 @@ $iconEdit = '../../../assets/images/icons/edit.png';
             </button>
         </div>
 
-        <!-- Logout card REMOVED (logout is now in the hamburger menu outside) -->
-
     </div>
 
     <div class="footer-bar"></div>
@@ -443,14 +451,28 @@ $iconEdit = '../../../assets/images/icons/edit.png';
         </div>
     </div>
 
+    <!-- PASSWORD MODAL (NOW WITH TOGGLE BUTTONS) -->
     <div id="passwordModal" class="modal-overlay">
         <div class="custom-box">
             <h3>Edit Password</h3>
             <p>Enter your current and new password below.</p>
+
             <form method="POST" action="profile.php">
-                <input type="password" name="current_password" class="form-control mb-3" style="border-radius: 10px; padding: 10px;" placeholder="Current password" required>
-                <input type="password" name="new_password" class="form-control mb-3" style="border-radius: 10px; padding: 10px;" placeholder="New password" required>
-                <input type="password" name="confirm_new_password" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="Confirm new password" required>
+                <div class="pw-wrap mb-3">
+                    <input type="password" name="current_password" id="pwCurrent" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Current password" required>
+                    <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">👁</button>
+                </div>
+
+                <div class="pw-wrap mb-3">
+                    <input type="password" name="new_password" id="pwNew" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="New password" required>
+                    <button type="button" class="pw-eye" data-target="pwNew" aria-label="Show password">👁</button>
+                </div>
+
+                <div class="pw-wrap mb-4">
+                    <input type="password" name="confirm_new_password" id="pwConfirm" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Confirm new password" required>
+                    <button type="button" class="pw-eye" data-target="pwConfirm" aria-label="Show password">👁</button>
+                </div>
+
                 <div class="modal-actions">
                     <button type="button" class="modal-btn btn-no" onclick="closePasswordModal()">Cancel</button>
                     <button type="submit" name="update_password" class="modal-btn btn-yes">Save</button>
@@ -465,6 +487,19 @@ $iconEdit = '../../../assets/images/icons/edit.png';
 
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+        // Toggle bar logic (same pattern as manageConductors, but for multiple fields)
+        document.querySelectorAll('.pw-eye').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-target');
+                const input = id ? document.getElementById(id) : null;
+                if (!input) return;
+
+                const isPw = input.type === 'password';
+                input.type = isPw ? 'text' : 'password';
+                btn.textContent = isPw ? '🙈' : '👁';
+            });
+        });
     </script>
 </body>
 </html>
