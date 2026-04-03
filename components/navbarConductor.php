@@ -20,6 +20,10 @@ $logoutUrl  = $base . '/public/logout.php';
 $hamburgerImg = $base . '/assets/images/hamburger.png';
 $personImg    = $base . '/assets/images/person.svg';
 $logoutImg    = $base . '/assets/images/logout.svg';
+
+/* NEW: detect if current page is conductor profile.php so we can render a special top bar */
+$path = $_SERVER['REQUEST_URI'] ?? '';
+$isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !== false);
 ?>
 
 <style>
@@ -97,7 +101,7 @@ $logoutImg    = $base . '/assets/images/logout.svg';
 
     /* Blue shade header like passenger offcanvas */
     .conductor-menu-header {
-        background: #0f3878;                 /* blue shade */
+        background: #0f3878;
         color: #fff;
         padding: 16px;
         border-bottom-left-radius: 18px;
@@ -111,7 +115,7 @@ $logoutImg    = $base . '/assets/images/logout.svg';
         font-size: 28px;
         line-height: 1.1;
         word-break: break-word;
-        padding-right: 44px; /* room for close button */
+        padding-right: 44px;
     }
 
     .conductor-menu-divider {
@@ -170,52 +174,105 @@ $logoutImg    = $base . '/assets/images/logout.svg';
         width: 28px;
         object-fit: contain;
     }
+
+    /* ===== NEW: Special topbar for conductor profile.php (X + Profile text) ===== */
+    .nav-conductor-profilebar {
+        background-color: #0f3878;
+        padding: 12px 20px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        border-bottom-left-radius: 20px;
+        border-bottom-right-radius: 20px;
+        height: 70px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        position: sticky;
+        top: 0;
+        z-index: 1050;
+    }
+
+    .nav-conductor-profilebar a {
+        color: #fff;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+    }
+
+    .nav-conductor-profilebar a:active {
+        transform: scale(0.98);
+    }
+
+    .nav-conductor-profilebar .title {
+        color: #fff;
+        font-weight: 800;
+        font-size: 1rem;
+        margin: 0;
+    }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
 
-<div class="nav-conductor-top">
-    <img src="<?= htmlspecialchars($logoUrl) ?>" alt="ByaHero" class="nav-conductor-logo" onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'">
+<?php if ($isConductorProfile): ?>
 
-    <div class="nav-conductor-live-title">BUS LIVE</div>
-
-    <button type="button" class="nav-conductor-hamburger" data-bs-toggle="offcanvas" data-bs-target="#conductorMenu" aria-controls="conductorMenu" aria-label="Menu">
-        <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
-    </button>
-</div>
-
-<!-- Offcanvas Menu (Profile + Logout only) -->
-<div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel">
-    <div class="conductor-menu-header">
-        <button type="button" class="conductor-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
-            <span class="material-symbols-rounded">close</span>
-        </button>
-
-        <h5 class="conductor-menu-title" id="conductorMenuLabel">
-            <?= htmlspecialchars($_SESSION['user_name'] ?? 'Menu') ?>
-        </h5>
-
-        <div class="conductor-menu-divider"></div>
+    <!-- SPECIAL NAVBAR FOR PROFILE PAGE -->
+    <div class="nav-conductor-profilebar">
+        <a href="<?= htmlspecialchars($base . '/public/conductor/conductor.php') ?>" aria-label="Close">
+            <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+        </a>
+        <div class="title">Profile</div>
     </div>
 
-    <div class="offcanvas-body conductor-menu-body">
-        <div class="d-grid gap-3">
-            <a href="<?= htmlspecialchars($profileUrl) ?>" class="conductor-menu-btn">
-                <div class="icon-wrap">
-                    <img src="<?= htmlspecialchars($personImg) ?>" alt="Profile">
-                </div>
-                Profile
-            </a>
+<?php else: ?>
 
-            <a href="<?= htmlspecialchars($logoutUrl) ?>" class="conductor-menu-btn">
-                <div class="icon-wrap">
-                    <img src="<?= htmlspecialchars($logoutImg) ?>" alt="Logout">
-                </div>
-                Log out
-            </a>
+    <!-- DEFAULT NAVBAR FOR ALL OTHER CONDUCTOR PAGES -->
+    <div class="nav-conductor-top">
+        <img src="<?= htmlspecialchars($logoUrl) ?>" alt="ByaHero" class="nav-conductor-logo" onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'">
+
+        <div class="nav-conductor-live-title">BUS LIVE</div>
+
+        <button type="button" class="nav-conductor-hamburger" data-bs-toggle="offcanvas" data-bs-target="#conductorMenu" aria-controls="conductorMenu" aria-label="Menu">
+            <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
+        </button>
+    </div>
+
+    <!-- Offcanvas Menu (Profile + Logout only) -->
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel">
+        <div class="conductor-menu-header">
+            <button type="button" class="conductor-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
+                <span class="material-symbols-rounded">close</span>
+            </button>
+
+            <h5 class="conductor-menu-title" id="conductorMenuLabel">
+                <?= htmlspecialchars($_SESSION['user_name'] ?? 'Menu') ?>
+            </h5>
+
+            <div class="conductor-menu-divider"></div>
+        </div>
+
+        <div class="offcanvas-body conductor-menu-body">
+            <div class="d-grid gap-3">
+                <a href="<?= htmlspecialchars($profileUrl) ?>" class="conductor-menu-btn">
+                    <div class="icon-wrap">
+                        <img src="<?= htmlspecialchars($personImg) ?>" alt="Profile">
+                    </div>
+                    Profile
+                </a>
+
+                <a href="<?= htmlspecialchars($logoutUrl) ?>" class="conductor-menu-btn">
+                    <div class="icon-wrap">
+                        <img src="<?= htmlspecialchars($logoutImg) ?>" alt="Logout">
+                    </div>
+                    Log out
+                </a>
+            </div>
         </div>
     </div>
-</div>
+
+<?php endif; ?>
 
 <script>
 /* Minimal page detection to scope the "BUS LIVE" header only to conductorLive.php */

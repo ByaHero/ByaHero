@@ -147,6 +147,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+/* Icon paths (relative to this file location) */
+$iconMail = '../../../assets/images/icons/mail.png';
+$iconPassword = '../../../assets/images/icons/password.png';
+$iconEdit = '../../../assets/images/icons/edit.png';
 ?>
 <!doctype html>
 <html lang="en">
@@ -156,243 +161,222 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <title>ByaHero - Profile</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
 
     <style>
-        :root {
-            --bg-light: #ffffff;
+        :root{
             --header-blue: #0f3878;
+            --page-bg: #ffffff;
             --sheet-bg: #eef2f6;
-            --card-bg: #f8f9fb;
-            --text-dark: #000000;
+            --muted: #6b7280;
+            --shadow: 0 6px 14px rgba(0,0,0,0.10);
+            --radius-lg: 26px;
+            --radius-card: 16px;
         }
 
-        body, html {
-            background-color: var(--bg-light);
+        html, body{ height: 100%; }
+
+        /* FIX: allow bottom-sheet to flex so footer-bar is visible without scrolling */
+        body{
+            background: var(--page-bg);
             font-family: 'Segoe UI', sans-serif;
             margin: 0;
-            padding: 0;
-            height: 100vh;
             display: flex;
             flex-direction: column;
+            min-height: 100%;
         }
 
-        .top-app-bar {
-            background-color: var(--header-blue);
-            color: white;
-            padding: 15px 20px;
+        /* Header */
+        .profile-header-wrap{
+            padding: 26px 18px 10px;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            font-size: 1rem;
-            border-bottom-left-radius: 16px;
-            border-bottom-right-radius: 16px;
-            position: relative;
-            z-index: 10;
+            gap: 8px;
         }
 
-        .top-app-bar a {
-            color: white;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            margin-right: 15px;
-        }
-
-        .profile-header-section {
-            display: flex;
-            align-items: center;
-            padding: 40px 30px;
-            background-color: white;
-        }
-
-        .avatar-circle {
+        .avatar-circle{
             width: 110px;
             height: 110px;
-            background-color: #f0f2f5;
             border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 20px;
-            overflow: hidden;
+            background: #d9d9d9;
+            display: grid;
+            place-items: center;
+            font-weight: 900;
+            font-size: 52px;
+            color: #111;
         }
 
-        .avatar-circle svg {
-            width: 80px;
-            height: 80px;
-            margin-top: 15px;
-        }
-
-        .profile-name {
-            font-size: 1.6rem;
+        .profile-name{
+            font-size: 1.15rem;
             font-weight: 800;
-            color: var(--text-dark);
+            color: #1d4ed8;
             margin: 0;
         }
 
-        .bottom-sheet {
-            background-color: var(--sheet-bg);
-            border-top-left-radius: 35px;
-            border-top-right-radius: 35px;
-            flex-grow: 1;
-            padding: 35px 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
+        /* Bottom sheet */
+        .bottom-sheet{
+            background: var(--sheet-bg);
+            border-top-left-radius: var(--radius-lg);
+            border-top-right-radius: var(--radius-lg);
+
+            /* FIX: remove forced min-height that pushes footer down */
+            min-height: 0;
+            flex: 1;
+
+            padding: 22px 18px 30px;
         }
 
-        .info-card {
-            background-color: var(--card-bg);
-            border-radius: 16px;
-            padding: 18px 20px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-            display: flex;
+        .section-title{
+            font-weight: 900;
+            font-size: 0.8rem;
+            color: #111;
+            margin: 12px 6px 14px;
+        }
+
+        /* Card layout */
+        .detail-card{
+            background: #f0f2f4;
+            border-radius: var(--radius-card);
+            box-shadow: var(--shadow);
+            padding: 14px 14px;
+            display: grid;
+            grid-template-columns: 34px 1fr 34px;
+            gap: 12px;
             align-items: center;
-            margin: 0;
-            border: 1px solid #f0f0f0;
+            margin-bottom: 14px;
         }
 
-        .card-label {
+        .detail-icon{
+            width: 30px;
+            height: 30px;
+            display: grid;
+            place-items: center;
+        }
+
+        .detail-icon img{
+            width: 22px;
+            height: 22px;
+            object-fit: contain;
+
+            /* reduce blur on scaled PNGs */
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            transform: translateZ(0);
+        }
+
+        .detail-main{ min-width: 0; }
+
+        .detail-label{
+            font-size: 0.72rem;
             font-weight: 800;
-            font-size: 0.95rem;
-            color: var(--text-dark);
-            width: 35%;
-            line-height: 1.2;
+            color: var(--muted);
+            margin: 0 0 2px;
         }
 
-        .card-input-wrapper {
-            width: 65%;
-            display: flex;
-            align-items: center;
-            background-color: white;
-            border-radius: 8px;
-            padding: 8px 12px;
-            box-shadow: inset 0 1px 2px rgba(0,0,0,0.02);
+        .detail-value{
+            font-size: 0.78rem;
+            font-weight: 900;
+            color: #111;
+            margin: 0;
+            word-break: break-word;
         }
 
-        .card-input {
-            border: none;
-            outline: none;
+        .detail-action{
+            width: 34px;
+            height: 34px;
+            border: 0;
             background: transparent;
-            width: 100%;
+            padding: 0;
+            display: grid;
+            place-items: center;
+        }
+
+        .detail-action img{
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: crisp-edges;
+            transform: translateZ(0);
+        }
+
+        /* Alert */
+        .msg{
+            border-radius: 12px;
+            font-weight: 700;
             font-size: 0.85rem;
-            color: #6c757d;
-            font-weight: 600;
+            padding: 10px 12px;
+            margin: 0 0 14px;
         }
 
-        .edit-btn {
-            background: none;
-            border: none;
-            color: var(--header-blue);
-            font-weight: 800;
-            font-size: 0.85rem;
-            cursor: pointer;
-            padding: 0 0 0 10px;
-            border-left: 1px solid #e9ecef;
-            margin-left: 10px;
-            text-decoration: none;
-            display: inline-block;
-        }
-
-        .logout-card {
-            cursor: pointer;
-            transition: transform 0.1s;
-        }
-
-        .logout-card:active {
-            transform: scale(0.98);
-        }
-
-        .logout-icon {
-            font-size: 28px;
-            color: #000;
-            margin-right: 15px;
-            transform: scaleX(-1);
-        }
-
-        .logout-text {
-            font-weight: 800;
-            font-size: 1.05rem;
-            color: var(--text-dark);
-        }
-
-        .footer-bar {
-            width: 100%;
-            height: 35px;
-            background-color: var(--header-blue);
-            margin-top: auto;
-        }
-
-        .modal-overlay {
+        /* Modals */
+        .modal-overlay{
             position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0, 0, 0, 0.4);
+            inset: 0;
+            background: rgba(0,0,0,0.40);
             display: none;
             justify-content: center;
             align-items: center;
             z-index: 1000;
             backdrop-filter: blur(2px);
+            padding: 18px;
         }
-
-        .custom-box {
-            background: white;
+        .custom-box{
+            background: #fff;
             border-radius: 24px;
-            padding: 30px;
-            width: 320px;
+            padding: 26px;
+            width: 100%;
+            max-width: 360px;
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
-
-        .custom-box h3 {
-            font-weight: 800;
-            font-size: 1.4rem;
-            margin-bottom: 10px;
+        .custom-box h3{
+            font-weight: 900;
+            font-size: 1.25rem;
+            margin: 0 0 8px;
             color: #000;
         }
-
-        .custom-box p {
+        .custom-box p{
             color: #4a4a4a;
             font-size: 0.9rem;
-            margin-bottom: 25px;
+            margin-bottom: 18px;
             line-height: 1.4;
         }
-
-        .modal-actions {
+        .modal-actions{
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 12px;
         }
-
-        .modal-btn {
+        .modal-btn{
             border-radius: 12px;
-            padding: 10px 30px;
-            font-weight: 700;
-            font-size: 1rem;
+            padding: 10px 18px;
+            font-weight: 800;
+            font-size: 0.95rem;
             border: none;
             cursor: pointer;
             text-decoration: none;
             flex: 1;
         }
+        .btn-no{ background-color: #f0f2f5; color: #333; }
+        .btn-yes{ background-color: var(--header-blue); color: #fff; }
 
-        .btn-no { background-color: #f0f2f5; color: #333; }
-        .btn-yes { background-color: var(--header-blue); color: white; }
+        .footer-bar{
+            width: 100%;
+            height: 35px;
+            background-color: var(--header-blue);
+            flex: 0 0 auto; /* make sure it stays visible */
+        }
     </style>
 </head>
 
 <body>
 
-    <div class="top-app-bar">
-        <a href="../conductor.php">
-            <span class="material-symbols-rounded" style="font-size: 22px;">close</span>
-        </a>
-        <span>Profile</span>
-    </div>
+    <?php include __DIR__ . '/../../../components/navbarConductor.php'; ?>
 
-    <div class="profile-header-section">
+    <div class="profile-header-wrap">
         <div class="avatar-circle">
-            <svg viewBox="0 0 24 24" fill="#000000">
-                <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
-            </svg>
+            <?php echo htmlspecialchars(strtoupper(substr($displayName, 0, 1))); ?>
         </div>
         <h2 class="profile-name"><?php echo htmlspecialchars($displayName); ?></h2>
     </div>
@@ -400,31 +384,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="bottom-sheet">
 
         <?php if ($message): ?>
-            <div class="alert alert-info py-2 text-center" style="border-radius: 10px; font-weight: 600;">
+            <div class="alert alert-info msg text-center">
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
 
-        <div class="info-card">
-            <div class="card-label">Email</div>
-            <div class="card-input-wrapper">
-                <input type="email" class="card-input" value="<?php echo htmlspecialchars($userEmail); ?>" readonly>
-                <button type="button" class="edit-btn" onclick="openEmailModal()">Edit</button>
+        <div class="section-title">Account Details</div>
+
+        <!-- Email Card -->
+        <div class="detail-card">
+            <div class="detail-icon">
+                <img src="<?php echo htmlspecialchars($iconMail); ?>" alt="Email" width="22" height="22">
             </div>
+
+            <div class="detail-main">
+                <p class="detail-label">Email Address</p>
+                <p class="detail-value"><?php echo htmlspecialchars($userEmail); ?></p>
+            </div>
+
+            <button type="button" class="detail-action" onclick="openEmailModal()" aria-label="Edit Email">
+                <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
+            </button>
         </div>
 
-        <div class="info-card">
-            <div class="card-label">Password</div>
-            <div class="card-input-wrapper">
-                <input type="password" class="card-input" placeholder="••••••••••" style="letter-spacing: 2px; color: #000;" readonly>
-                <button type="button" class="edit-btn" onclick="openPasswordModal()">Edit</button>
+        <!-- Password Card -->
+        <div class="detail-card">
+            <div class="detail-icon">
+                <img src="<?php echo htmlspecialchars($iconPassword); ?>" alt="Password" width="22" height="22">
             </div>
+
+            <div class="detail-main">
+                <p class="detail-label">Password</p>
+                <p class="detail-value">••••••••••••</p>
+            </div>
+
+            <button type="button" class="detail-action" onclick="openPasswordModal()" aria-label="Edit Password">
+                <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
+            </button>
         </div>
 
-        <div class="info-card logout-card" onclick="openLogoutModal()">
-            <span class="material-symbols-rounded logout-icon">logout</span>
-            <span class="logout-text">Logout</span>
-        </div>
+        <!-- Logout card REMOVED (logout is now in the hamburger menu outside) -->
 
     </div>
 
@@ -460,26 +459,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <div id="logoutModal" class="modal-overlay">
-        <div class="custom-box">
-            <h3>Logout</h3>
-            <p>Are you sure you want to logout from<br>ByaHero?</p>
-            <div class="modal-actions">
-                <button class="modal-btn btn-no" onclick="closeLogoutModal()">No</button>
-                <a href="../../logout.php" class="modal-btn btn-yes d-flex align-items-center justify-content-center">Yes</a>
-            </div>
-        </div>
-    </div>
-
     <script>
         function openEmailModal() { document.getElementById('emailModal').style.display = 'flex'; }
         function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; }
 
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
-
-        function openLogoutModal() { document.getElementById('logoutModal').style.display = 'flex'; }
-        function closeLogoutModal() { document.getElementById('logoutModal').style.display = 'none'; }
     </script>
 </body>
 </html>
