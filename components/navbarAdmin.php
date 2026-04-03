@@ -1,10 +1,16 @@
 <?php
-// --- SESSION CHECK ---
+// components/navbarAdmin.php
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 
-// 1) Resolve Paths (same pattern as navbarPassenger)
+/**
+ * Keep original behavior:
+ * - Dashboard: show logo + hamburger (offcanvas with Profile + Logout)
+ * - Other admin pages: show X (close) + page title (NO hamburger)
+ */
+
+// 1) Resolve Paths (same pattern as your original navbarAdmin)
 $depth = isset($pageDepth) ? $pageDepth : '../../';
 $defaultBack = $depth . 'public/ADMIN/admin.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
@@ -44,45 +50,65 @@ $titleMain = $pageTitle ?: adminTitleForType($adminPageType ?: 'dashboard');
 
 // ONLY show Profile + Logout on the admin dashboard
 $isDashboard = (($adminPageType ?: 'dashboard') === 'dashboard');
-
-// On other admin pages: show X button (close)
 $showClose = !$isDashboard;
-?>
-<style>
-  :root {
-    --admin-primary: #123e7a; /* Adjusted to match the exact dark blue in image */
-    --admin-primary-rgb: 18, 62, 122;
-  }
 
-  /* Reserve space for fixed topbar + fixed bottom bar */
+// Assets (your specified files)
+$logoUrl = $baseUrl . '/assets/images/byaheroLogo.png';
+$hamburgerImg = $baseUrl . '/assets/images/hamburger.png';
+
+// Menu links
+$profileUrl = $baseUrl . '/public/ADMIN/adminProfile.php';
+$logoutUrl  = $baseUrl . '/public/logout.php';
+
+// Menu icons (same as conductor menu)
+$personImg = $baseUrl . '/assets/images/person.svg';
+$logoutImg = $baseUrl . '/assets/images/logout.svg';
+?>
+
+<style>
+  /* Keep original spacing behavior (top + bottom reserved space) */
   body {
     padding-top: 85px !important;     /* thicker top bar */
     padding-bottom: 30px !important;  /* bottom blue strip */
   }
 
-  /* Make sure it stays above everything */
+  /* Fixed wrappers */
   .admin-topbar-wrap { z-index: 2000; }
+  .admin-bottombar-wrap { z-index: 1500; }
 
-  /* Thicker blue bar */
+  /* ===== Topbar matches conductor look (color/radius/shadow) but keeps 85px height ===== */
   .admin-topbar {
     height: 85px;
-    background: var(--admin-primary);
+    background: #0f3878;
     color: #fff;
     border-bottom-left-radius: 24px;
     border-bottom-right-radius: 24px;
     padding: 0 20px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
   }
 
-  /* Title must be top-left (not centered) */
+  /* Left area */
+  .admin-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
   .admin-title {
-    font-weight: 700;
+    font-weight: 800;
     letter-spacing: .2px;
-    font-size: 1.5rem; /* Larger font to match image */
+    font-size: 1.3rem;
     line-height: 1.1;
     white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  /* Close (X) button */
+  /* Close (X) button (kept from original behavior) */
   .admin-close-btn {
     width: 44px;
     height: 44px;
@@ -102,80 +128,182 @@ $showClose = !$isDashboard;
     color: #fff;
   }
 
-  /* Right-side logout icon */
-  .admin-topbar .icon-btn {
-    width: 36px;
-    height: 36px;
+  /* Dashboard logo */
+  .admin-logo {
+    height: 35px;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Hamburger (same idea as conductor) */
+  .admin-hamburger {
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+    width: 50px;
+    height: 50px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .admin-hamburger img {
+    height: 25px;
+    width: auto;
+    object-fit: contain;
+  }
+
+  /* Bottom blue strip (keep original) */
+  .admin-bottombar { height: 35px; background: #0f3878; }
+
+  /* Offcanvas layering consistent with conductor */
+  #adminMenu.offcanvas { z-index: 2005 !important; }
+  .offcanvas-backdrop { z-index: 2004 !important; }
+
+  /* Offcanvas header/body/buttons copied from conductor style */
+  .admin-menu-header {
+    background: #0f3878;
+    color: #fff;
+    padding: 16px;
+    border-bottom-left-radius: 18px;
+    border-bottom-right-radius: 18px;
+    position: relative;
+  }
+
+  .admin-menu-title {
+    margin: 0;
+    font-weight: 900;
+    font-size: 28px;
+    line-height: 1.1;
+    word-break: break-word;
+    padding-right: 44px;
+  }
+
+  .admin-menu-divider {
+    border-top: 2px solid #ffffff;
+    height: 3px;
+    margin-top: 10px;
+    opacity: 1;
+  }
+
+  .admin-menu-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
     border: 0;
-    background: transparent; /* Removed circular background */
-    display: inline-flex;
+    background: transparent;
+    color: #fff;
+    padding: 6px;
+    line-height: 1;
+  }
+
+  .admin-menu-body {
+    background: #f3f4f6;
+  }
+
+  .admin-menu-btn {
+    background: #ffffff;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+    border-radius: 16px;
+    padding: 14px 16px;
+    font-weight: 800;
+    text-align: left;
+    display: flex;
+    gap: 14px;
     align-items: center;
-    justify-content: center;
-    transition: transform 0.2s ease;
+    color: #111827;
     text-decoration: none;
-    margin-left: 8px; /* Spacing from the avatar */
-  }
-  .admin-topbar .icon-btn:hover {
-    transform: scale(1.05);
   }
 
-  /* Avatar look similar to reference (larger white circle with black icon) */
-  .admin-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 50%;
-    background: #fff;
-    display: inline-flex;
+  .admin-menu-btn .icon-wrap {
+    margin-left: 12px;
+    margin-right: 6px;
+    width: 34px;
+    display: flex;
     align-items: center;
     justify-content: center;
-  }
-  .admin-avatar svg {
-    width: 40px;
-    height: 40px;
-    fill: #111111; /* Changed to match the black icon in your image */
-    margin-top: 4px; /* Slight nudge down to center the shoulders */
+    flex-shrink: 0;
   }
 
-  /* Fixed bottom blue strip */
-  .admin-bottombar-wrap { z-index: 1500; }
-  .admin-bottombar { height: 35px; background: var(--admin-primary); }
+  .admin-menu-btn .icon-wrap img {
+    height: 28px;
+    width: 28px;
+    object-fit: contain;
+  }
 </style>
 
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+
 <div class="position-fixed top-0 start-0 w-100 admin-topbar-wrap">
-  <div class="container-fluid admin-topbar d-flex align-items-center justify-content-between">
+  <div class="container-fluid admin-topbar">
 
-    <div class="d-flex align-items-center gap-2">
+    <div class="admin-left">
       <?php if ($showClose): ?>
-        <a class="admin-close-btn" href="<?php echo htmlspecialchars($backTarget); ?>" title="Close" aria-label="Close">
-          <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-            <path fill="currentColor" d="M18.3 5.71 12 12l6.3 6.29-1.41 1.42L10.59 13.4 4.29 19.71 2.88 18.29 9.17 12 2.88 5.71 4.29 4.29l6.3 6.3 6.29-6.3z"/>
-          </svg>
+        <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
+          <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
         </a>
+        <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
+      <?php else: ?>
+        <img
+          src="<?= htmlspecialchars($logoUrl) ?>"
+          alt="ByaHero"
+          class="admin-logo"
+          onerror="this.outerHTML='<h4 class=\'text-white mb-0 fw-bold\'>ByaHero</h4>'"
+        >
       <?php endif; ?>
-
-      <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
     </div>
 
-    <div class="d-flex align-items-center">
+    <div>
       <?php if ($isDashboard): ?>
-        <div class="admin-avatar" title="<?= htmlspecialchars($displayHeaderName) ?>" aria-label="Admin profile">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 12c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm0 2c-3.33 0-10 1.67-10 5v2h20v-2c0-3.33-6.67-5-10-5z"/>
-          </svg>
-        </div>
-
-        <a class="icon-btn" href="<?php echo $depth; ?>public/ADMIN/logout.php" title="Logout" aria-label="Logout">
-          <svg viewBox="0 0 24 24" width="26" height="26" stroke="#000000" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-            <polyline points="16 17 21 12 16 7"></polyline>
-            <line x1="21" y1="12" x2="9" y2="12"></line>
-          </svg>
-        </a>
+        <button
+          type="button"
+          class="admin-hamburger"
+          data-bs-toggle="offcanvas"
+          data-bs-target="#adminMenu"
+          aria-controls="adminMenu"
+          aria-label="Menu">
+          <img src="<?= htmlspecialchars($hamburgerImg) ?>" alt="Menu">
+        </button>
       <?php endif; ?>
     </div>
 
   </div>
 </div>
+
+<?php if ($isDashboard): ?>
+  <!-- Offcanvas Menu (dashboard only) -->
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="adminMenu" aria-labelledby="adminMenuLabel">
+    <div class="admin-menu-header">
+      <button type="button" class="admin-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
+        <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
+      </button>
+
+      <h5 class="admin-menu-title" id="adminMenuLabel">
+        <?= htmlspecialchars($displayHeaderName) ?>
+      </h5>
+
+      <div class="admin-menu-divider"></div>
+    </div>
+
+    <div class="offcanvas-body admin-menu-body">
+      <div class="d-grid gap-3">
+        <a href="<?= htmlspecialchars($profileUrl) ?>" class="admin-menu-btn">
+          <div class="icon-wrap">
+            <img src="<?= htmlspecialchars($personImg) ?>" alt="Profile">
+          </div>
+          Profile
+        </a>
+
+        <a href="<?= htmlspecialchars($logoutUrl) ?>" class="admin-menu-btn">
+          <div class="icon-wrap">
+            <img src="<?= htmlspecialchars($logoutImg) ?>" alt="Logout">
+          </div>
+          Log out
+        </a>
+      </div>
+    </div>
+  </div>
+<?php endif; ?>
 
 <div class="position-fixed bottom-0 start-0 w-100 admin-bottombar-wrap">
   <div class="admin-bottombar"></div>
