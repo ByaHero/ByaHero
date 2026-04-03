@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 ini_set('display_errors', '1');
@@ -26,7 +27,8 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 $pdo = db();
 
 // --- Helper ---
-function h($s): string {
+function h($s): string
+{
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
@@ -44,7 +46,12 @@ $scheduleCount = 0;
 
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
-    $activeBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses WHERE status IN ('available','on_stop','full')")->fetchColumn();
+    $activeBusesCount = (int)$pdo->query("
+    SELECT COUNT(*)
+    FROM busses
+    WHERE current_conductor_id IS NOT NULL
+      AND status IN ('available','on_stop','full')
+")->fetchColumn();
     $driversCount = (int)$pdo->query("SELECT COUNT(*) FROM drivers")->fetchColumn();
     $conductorsCount = (int)$pdo->query("SELECT COUNT(*) FROM conductors")->fetchColumn();
 
@@ -68,6 +75,7 @@ $pageType = 'dashboard';
 ?>
 <!doctype html>
 <html lang="en">
+
 <head>
     <meta charset="utf-8">
     <title>ByaHero — Admin</title>
@@ -76,8 +84,15 @@ $pageType = 'dashboard';
     <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
-        :root { --brand: #2563eb; }
-        body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
+        :root {
+            --brand: #2563eb;
+        }
+
+        body {
+            background: #f8fafc;
+            color: #1e293b;
+            font-family: "Segoe UI", system-ui, sans-serif;
+        }
 
         .stat-card {
             border-radius: 20px;
@@ -85,7 +100,7 @@ $pageType = 'dashboard';
             color: white;
             padding: 1.25rem;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
             height: 160px;
             display: flex;
             flex-direction: column;
@@ -93,11 +108,21 @@ $pageType = 'dashboard';
             overflow: hidden;
             transition: transform 0.2s;
         }
-        .stat-card:hover { transform: translateY(-3px); }
 
-        .card-total { background: #4e85c5; }
+        .stat-card:hover {
+            transform: translateY(-3px);
+        }
 
-        .stat-card-title { font-size: 1.1rem; font-weight: 500; z-index: 2; }
+        .card-total {
+            background: #4e85c5;
+        }
+
+        .stat-card-title {
+            font-size: 1.1rem;
+            font-weight: 500;
+            z-index: 2;
+        }
+
         .stat-card-number {
             font-size: 3.5rem;
             font-weight: 700;
@@ -105,7 +130,7 @@ $pageType = 'dashboard';
             margin-top: auto;
             margin-bottom: 10px;
             z-index: 2;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         }
 
         .btn-manage-pill {
@@ -119,208 +144,250 @@ $pageType = 'dashboard';
             font-size: 0.75rem;
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
             cursor: pointer;
             z-index: 3;
             border: none;
             transition: background 0.2s;
         }
-        .btn-manage-pill:hover { background: #f1f5f9; color: var(--brand); }
 
-        .card-standard { border: none; border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); margin-bottom: 1.5rem; background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 600; padding: 1rem 1.25rem; border-radius: 10px 10px 0 0 !important; }
-        .map-wrapper { height: 500px; border-radius: 8px; overflow: hidden; border: 1px solid #e2e8f0; }
+        .btn-manage-pill:hover {
+            background: #f1f5f9;
+            color: var(--brand);
+        }
+
+        .card-standard {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            margin-bottom: 1.5rem;
+            background: #fff;
+        }
+
+        .card-header-std {
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            font-weight: 600;
+            padding: 1rem 1.25rem;
+            border-radius: 10px 10px 0 0 !important;
+        }
+
+        .map-wrapper {
+            height: 500px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 1px solid #e2e8f0;
+        }
 
         @media (max-width: 767px) {
-            .stat-card { height: 140px; padding: 1rem; }
-            .stat-card-number { font-size: 2.5rem; }
-            .stat-card-title { font-size: 0.95rem; }
-            .btn-manage-pill { padding: 3px 10px; font-size: 0.7rem; bottom: 12px; right: 12px; }
+            .stat-card {
+                height: 140px;
+                padding: 1rem;
+            }
+
+            .stat-card-number {
+                font-size: 2.5rem;
+            }
+
+            .stat-card-title {
+                font-size: 0.95rem;
+            }
+
+            .btn-manage-pill {
+                padding: 3px 10px;
+                font-size: 0.7rem;
+                bottom: 12px;
+                right: 12px;
+            }
         }
     </style>
 </head>
+
 <body>
 
-<!-- Use the new navbar component -->
-<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
+    <!-- Use the new navbar component -->
+    <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="container">
-    <div class="mb-4">
-        <h2 class="fw-bold mb-1">Dashboard</h2>
-        <p class="text-muted mb-0">Overview of your bus system</p>
+    <div class="container">
+        <div class="mb-4">
+            <h2 class="fw-bold mb-1">Dashboard</h2>
+            <p class="text-muted mb-0">Overview of your bus system</p>
+        </div>
+
+        <div class="row g-3 g-lg-4 mb-4">
+
+            <!-- Top Row: Total Buses + Active Buses + Bus Fares -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Total Buses</div>
+                    <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
+                    <div class="stat-card-number"><?= $totalBusesCount ?></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Active Buses</div>
+                    <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
+                    <div class="stat-card-number"><?= $activeBusesCount ?></div>
+                </div>
+            </div>
+
+            <!-- Bus Fares -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Bus Fares</div>
+                    <a class="btn-manage-pill" href="busFare.php">Manage</a>
+                    <div class="stat-card-number"><?= $faresCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Operation Schedule -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Operation Schedule</div>
+                    <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
+                    <div class="stat-card-number"><?= $scheduleCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Analytics card -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Analytics</div>
+                    <a class="btn-manage-pill" href="analytics.php">View</a>
+                    <div class="stat-card-number">—</div>
+                </div>
+            </div>
+
+            <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Drivers</div>
+                    <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                    <div class="stat-card-number"><?= $driversCount ?></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Bus Stops</div>
+                    <a class="btn-manage-pill" href="manageStops.php">Manage</a>
+                    <div class="stat-card-number"><?= $stopsCount ?></div>
+                </div>
+            </div>
+
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Conductors</div>
+                    <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                    <div class="stat-card-number"><?= $conductorsCount ?></div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="card card-standard">
+            <div class="card-header-std d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="material-icons-round text-primary">map</span>
+                    <span>Live Fleet Map</span>
+                </div>
+                <small class="text-muted d-flex align-items-center gap-1">
+                    <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
+                    Live Updates
+                </small>
+            </div>
+            <div class="card-body p-0">
+                <div id="map" class="map-wrapper"></div>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3 g-lg-4 mb-4">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const map = L.map('map').setView([14.0905, 121.0550], 12);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '© OpenStreetMap'
+            }).addTo(map);
 
-        <!-- Top Row: Total Buses + Active Buses + Bus Fares -->
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Total Buses</div>
-                <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
-                <div class="stat-card-number"><?= $totalBusesCount ?></div>
-            </div>
-        </div>
+            const activeBusIcon = L.icon({
+                iconUrl: '../../assets/images/icons/marker.svg',
+                iconSize: [34, 34],
+                iconAnchor: [17, 34],
+                popupAnchor: [0, -30]
+            });
 
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Active Buses</div>
-                <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
-                <div class="stat-card-number"><?= $activeBusesCount ?></div>
-            </div>
-        </div>
+            let busMarkers = {};
 
-        <!-- Bus Fares -->
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Bus Fares</div>
-                <a class="btn-manage-pill" href="busFare.php">Manage</a>
-                <div class="stat-card-number"><?= $faresCount ?></div>
-            </div>
-        </div>
+            async function updateBusMap() {
+                try {
+                    const res = await fetch('../api.php?action=get_buses');
+                    const data = await res.json();
 
-        <!-- ADDED: Operation Schedule -->
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Operation Schedule</div>
-                <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
-                <div class="stat-card-number"><?= $scheduleCount ?></div>
-            </div>
-        </div>
+                    if (data.success && data.buses) {
+                        const buses = data.buses;
+                        const fetchedIds = new Set();
 
-        <!-- ADDED: Analytics card -->
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Analytics</div>
-                <a class="btn-manage-pill" href="analytics.php">View</a>
-                <div class="stat-card-number">—</div>
-            </div>
-        </div>
+                        buses.forEach(bus => {
+                            if (['available', 'on_stop', 'full'].includes(bus.status)) {
+                                let coords = null;
 
-        <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Drivers</div>
-                <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                <div class="stat-card-number"><?= $driversCount ?></div>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Bus Stops</div>
-                <a class="btn-manage-pill" href="manageStops.php">Manage</a>
-                <div class="stat-card-number"><?= $stopsCount ?></div>
-            </div>
-        </div>
-
-        <div class="col-6 col-lg-4">
-            <div class="stat-card card-total">
-                <div class="stat-card-title">Conductors</div>
-                <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                <div class="stat-card-number"><?= $conductorsCount ?></div>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="card card-standard">
-        <div class="card-header-std d-flex justify-content-between align-items-center">
-            <div class="d-flex align-items-center gap-2">
-                <span class="material-icons-round text-primary">map</span>
-                <span>Live Fleet Map</span>
-            </div>
-            <small class="text-muted d-flex align-items-center gap-1">
-                <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
-                Live Updates
-            </small>
-        </div>
-        <div class="card-body p-0">
-            <div id="map" class="map-wrapper"></div>
-        </div>
-    </div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    const map = L.map('map').setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '© OpenStreetMap'
-    }).addTo(map);
-
-    const activeBusIcon = L.icon({
-        iconUrl: '../../assets/images/icons/marker.svg',
-        iconSize: [34, 34],
-        iconAnchor: [17, 34],
-        popupAnchor: [0, -30]
-    });
-
-    let busMarkers = {};
-
-    async function updateBusMap() {
-        try {
-            const res = await fetch('../api.php?action=get_buses');
-            const data = await res.json();
-
-            if (data.success && data.buses) {
-                const buses = data.buses;
-                const fetchedIds = new Set();
-
-                buses.forEach(bus => {
-                    if (['available', 'on_stop', 'full'].includes(bus.status)) {
-                        let coords = null;
-
-                        if (bus.lat && bus.lng) coords = [bus.lat, bus.lng];
-                        else if (bus.current_location) {
-                            try {
-                                const geo = JSON.parse(bus.current_location);
-                                if (geo.geometry && geo.geometry.coordinates) {
-                                    coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+                                if (bus.lat && bus.lng) coords = [bus.lat, bus.lng];
+                                else if (bus.current_location) {
+                                    try {
+                                        const geo = JSON.parse(bus.current_location);
+                                        if (geo.geometry && geo.geometry.coordinates) {
+                                            coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+                                        }
+                                    } catch (e) {}
                                 }
-                            } catch (e) {}
-                        }
 
-                        if (!coords) return;
+                                if (!coords) return;
 
-                        const id = bus.Bus_ID || bus.id;
-                        fetchedIds.add(String(id));
+                                const id = bus.Bus_ID || bus.id;
+                                fetchedIds.add(String(id));
 
-                        const popupContent = `
+                                const popupContent = `
                             <div class="fw-bold">${bus.code}</div>
                             <div class="small text-muted mb-1">${bus.route || 'No Route'}</div>
                             <div class="small">Status: <strong>${String(bus.status).toUpperCase()}</strong></div>
                             <div class="small mt-1">${bus.seat_availability}/${bus.total_seats} Seats</div>
                         `;
 
-                        if (busMarkers[id]) {
-                            busMarkers[id].setLatLng(coords);
-                            busMarkers[id].setIcon(activeBusIcon);
-                            busMarkers[id].setPopupContent(popupContent);
-                        } else {
-                            const marker = L.marker(coords, { icon: activeBusIcon }).addTo(map);
-                            marker.bindPopup(popupContent);
-                            busMarkers[id] = marker;
-                        }
-                    }
-                });
+                                if (busMarkers[id]) {
+                                    busMarkers[id].setLatLng(coords);
+                                    busMarkers[id].setIcon(activeBusIcon);
+                                    busMarkers[id].setPopupContent(popupContent);
+                                } else {
+                                    const marker = L.marker(coords, {
+                                        icon: activeBusIcon
+                                    }).addTo(map);
+                                    marker.bindPopup(popupContent);
+                                    busMarkers[id] = marker;
+                                }
+                            }
+                        });
 
-                Object.keys(busMarkers).forEach(id => {
-                    if (!fetchedIds.has(id)) {
-                        map.removeLayer(busMarkers[id]);
-                        delete busMarkers[id];
+                        Object.keys(busMarkers).forEach(id => {
+                            if (!fetchedIds.has(id)) {
+                                map.removeLayer(busMarkers[id]);
+                                delete busMarkers[id];
+                            }
+                        });
                     }
-                });
+                } catch (e) {
+                    console.error("Map Update Error:", e);
+                }
             }
-        } catch (e) {
-            console.error("Map Update Error:", e);
-        }
-    }
 
-    updateBusMap();
-    setInterval(updateBusMap, 3000);
-});
-</script>
+            updateBusMap();
+            setInterval(updateBusMap, 3000);
+        });
+    </script>
 </body>
+
 </html>
