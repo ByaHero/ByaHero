@@ -110,17 +110,38 @@ $backLink = 'admin.php';
         .page-head {
             margin-top: 16px;
             margin-bottom: 16px;
+            gap: 12px;
         }
+
+        /* NEW: better refresh button (pill + icon centered + doesn't look "off") */
+        .btn-refresh {
+            border-radius: 999px;
+            font-weight: 900;
+            padding: 10px 16px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            white-space: nowrap;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.22);
+        }
+        .btn-refresh .material-icons-round {
+            font-size: 20px;
+            line-height: 1;
+        }
+        .btn-refresh:active { transform: scale(0.99); }
 
         @media (max-width: 767px) {
             .stat-card-mini .stat-value { font-size: 1.5rem; }
             .chart-container { height: 250px; }
+
+            /* on small screens, stack the header so the button sits nicely */
+            .page-head { flex-direction: column; align-items: flex-start !important; }
+            .btn-refresh { width: 100%; justify-content: center; }
         }
     </style>
 </head>
 <body>
 
-<!-- REMOVED old navbar; use component -->
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
 <div class="loading-overlay" id="loadingOverlay">
@@ -136,9 +157,11 @@ $backLink = 'admin.php';
             <h2 class="mb-1 fw-bold">Analytics Dashboard</h2>
             <p class="text-muted mb-0">Real-time insights and user activity tracking</p>
         </div>
-        <button class="btn btn-primary" onclick="refreshData()">
-            <span class="material-icons-round" style="font-size: 1.2rem; vertical-align: middle;">refresh</span>
-            Refresh
+
+        <!-- UPDATED BUTTON -->
+        <button class="btn btn-primary btn-refresh" id="refreshBtn" type="button" onclick="refreshData()">
+            <span class="material-icons-round" aria-hidden="true">refresh</span>
+            <span>Refresh</span>
         </button>
     </div>
 
@@ -247,7 +270,10 @@ $backLink = 'admin.php';
 let charts = {};
 
 async function loadAnalytics() {
+    const refreshBtn = document.getElementById('refreshBtn');
+
     try {
+        refreshBtn?.setAttribute('disabled', 'disabled');
         document.getElementById('loadingOverlay').classList.remove('hidden');
 
         const response = await fetch('analytics_api.php');
@@ -275,12 +301,13 @@ async function loadAnalytics() {
         console.error('Error loading analytics:', error);
         alert('Error loading analytics: ' + error.message);
         document.getElementById('loadingOverlay').classList.add('hidden');
+    } finally {
+        refreshBtn?.removeAttribute('disabled');
     }
 }
 
 function renderEventTypesChart(eventTypes) {
     const ctx = document.getElementById('eventTypesChart');
-
     if (charts.eventTypes) charts.eventTypes.destroy();
 
     charts.eventTypes = new Chart(ctx, {
@@ -305,7 +332,6 @@ function renderEventTypesChart(eventTypes) {
 
 function renderFeedbackChart(ratings) {
     const ctx = document.getElementById('feedbackChart');
-
     if (charts.feedback) charts.feedback.destroy();
 
     const colors = ['#ef4444', '#f97316', '#eab308', '#84cc16', '#22c55e'];
@@ -331,7 +357,6 @@ function renderFeedbackChart(ratings) {
 
 function renderSettingsChart(settings) {
     const ctx = document.getElementById('settingsChart');
-
     if (charts.settings) charts.settings.destroy();
 
     const cleanSettings = settings.map(s => ({
@@ -362,7 +387,6 @@ function renderSettingsChart(settings) {
 
 function renderBusesChart(buses) {
     const ctx = document.getElementById('busesChart');
-
     if (charts.buses) charts.buses.destroy();
 
     const cleanBuses = buses.map(b => ({
