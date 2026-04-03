@@ -216,10 +216,18 @@ $backLink = 'admin.php';
             white-space: nowrap;
         }
 
-        .btn-remove {
-            border-radius: 10px;
+        /* CHANGED: Remove button is now pill + solid */
+        .btn-remove{
+            border-radius: 999px;
             font-weight: 900;
-            padding: 6px 10px;
+            padding: 8px 14px;
+            border: 0;
+            background: #dc2626;
+            color: #fff;
+        }
+        .btn-remove:hover{
+            background: #b91c1c;
+            color: #fff;
         }
     </style>
 </head>
@@ -308,7 +316,7 @@ $backLink = 'admin.php';
                         <input type="hidden" name="action" value="delete_user">
                         <input type="hidden" name="id" value="<?= h($u['id']) ?>">
                         <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
-                        <button class="btn btn-outline-danger btn-remove" type="submit">Remove</button>
+                        <button class="btn btn-remove" type="submit">Remove</button>
                     </form>
                 </div>
             </div>
