@@ -566,6 +566,8 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                         onLocationUpdate(pos);
                     }
                 );
+
+                startKeepAliveAudio();
                 
                 // Success!
                 alertBox.innerHTML = `<div class="alert alert-success border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">Background Tracking Started</div>`;
@@ -581,7 +583,29 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }
     }
 
+    // --- THE WEBVIEW KEEP-ALIVE HACK ---
+    let keepAliveAudio = null;
+
+    function startKeepAliveAudio() {
+        if (!keepAliveAudio) {
+            // A tiny, mathematically silent base64 audio file
+            keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+            keepAliveAudio.loop = true;
+            // Because the user clicks the "Start" button, the browser allows this to autoplay!
+            keepAliveAudio.play().catch(e => console.log('Audio hack failed:', e));
+        }
+    }
+
+    function stopKeepAliveAudio() {
+        if (keepAliveAudio) {
+            keepAliveAudio.pause();
+            keepAliveAudio = null;
+        }
+    }
+    // -----------------------------------
+
     async function stopTracking() {
+        stopKeepAliveAudio();
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
