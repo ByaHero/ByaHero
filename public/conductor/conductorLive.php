@@ -675,7 +675,37 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             triggerManualUpdate();
         });
 
-        el('stopBtn').addEventListener('click', () => stopTracking());
+        // --- NEW CODE: THE HEARTBEAT ---
+        // Force a database update every 10 seconds, even if the bus is parked/stationary
+        setInterval(() => {
+            if (lastKnownLocation) {
+                // Only force an update if the GPS hasn't naturally triggered one recently
+                if (Date.now() - lastNetworkSync > 8000) {
+                    console.log("Heartbeat ping: Forcing update while stationary");
+                    triggerManualUpdate();
+                }
+            }
+        }, 10000);
+        // -------------------------------
+
+        el('stopBtn').addEventListener('click', () => {
+            stopTracking();
+        });
+
+        const currentLocationEl = el('currentLocation');
+        if (currentLocationEl) {
+            currentLocationEl.addEventListener('click', (ev) => {
+                const href = currentLocationEl.getAttribute('href');
+                if (!href || href === '#') {
+                    ev.preventDefault();
+                    if (lastKnownLocation) {
+                        showAlert(`Location: ${lastKnownLocation.locName}`, 'info');
+                    } else {
+                        showAlert('Waiting for GPS fix...', 'info');
+                    }
+                }
+            });
+        }
     });
     </script>
 </body>
