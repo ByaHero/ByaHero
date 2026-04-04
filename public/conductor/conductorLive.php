@@ -279,7 +279,8 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         <div class="info-card">
             <div class="info-item">
                 <div class="info-label">Bus Number</div>
-                <div class="info-value"><?= htmlspecialchars((string)$busId) ?></div>
+                <!-- ONLY FIX: show the bus number/code, not the internal ID -->
+                <div class="info-value"><?= htmlspecialchars((string)$busCode) ?></div>
             </div>
             <div class="info-item">
                 <div class="info-label">Route</div>

@@ -3,8 +3,8 @@
     "geometry": {
         "type": "Point",
         "coordinates": [
-            121.17076544573239,
-            14.075106601099497
+            121.17069160163486,
+            14.075117751879457
         ]
     },
     "properties": {
@@ -12,9 +12,9 @@
         "code": "BUS-002",
         "route": "TANAUAN - LAUREL",
         "seats_available": 25,
-        "status": "on_stop",
-        "timestamp": "2026-04-04T17:04:50.118Z",
-        "current_location_name": "14.07511, 121.17077",
-        "Current Location": "14.07511, 121.17077"
+        "status": "available",
+        "timestamp": "2026-04-04T17:31:27.795Z",
+        "current_location_name": "14.07512, 121.17069",
+        "Current Location": "14.07512, 121.17069"
     }
 }
