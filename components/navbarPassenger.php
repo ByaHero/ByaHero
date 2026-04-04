@@ -576,6 +576,71 @@ else: ?>
 </div>
 
 <script>
+  window.ensureOneSignalSubscribedAfterLogin = async function (externalUserId) {
+    const OS = window.plugins?.OneSignal;
+    if (!OS) return;
+
+    try {
+      // 1) Identify the user to OneSignal (important after reinstall / new installs)
+      if (externalUserId) {
+        console.log("[OneSignal] login externalUserId:", externalUserId);
+        OS.login(String(externalUserId));
+      }
+
+      // 2) Ask permission if needed
+      const hasPerm = await OS.Notifications.hasPermission();
+      console.log("[OneSignal] hasPermission:", hasPerm);
+
+      if (!hasPerm) {
+        const accepted = await OS.Notifications.requestPermission(true);
+        console.log("[OneSignal] permission accepted:", accepted);
+      }
+
+      // 3) Ensure subscription is opted-in
+      OS.User.pushSubscription.optIn();
+
+      // 4) Wait for a real subscription id
+      const waitForId = () => new Promise((resolve) => {
+        const start = Date.now();
+        const t = setInterval(() => {
+          const id = OS.User?.pushSubscription?.id;
+          if (id) {
+            clearInterval(t);
+            resolve(id);
+          }
+          if (Date.now() - start > 20000) { // 20s timeout
+            clearInterval(t);
+            resolve(null);
+          }
+        }, 500);
+      });
+
+      const subId = await waitForId();
+      console.log("[OneSignal] subscription id:", subId);
+
+      if (!subId) {
+        console.warn("[OneSignal] No subscription id after 20s. Likely FCM/OneSignal Android setup issue.");
+        return;
+      }
+
+      // 5) Send it to your backend (tie token to the logged-in account)
+      const url = (window.APP_BASE_URL || "") + "/backend/registerOnesignalToken.php";
+      const res = await fetch(url, {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ player_id: subId })
+      });
+      const data = await res.json().catch(() => ({}));
+      console.log("[OneSignal] backend register response:", data);
+
+    } catch (e) {
+      console.error("[OneSignal] ensure subscribe error:", e);
+    }
+  };
+</script>
+
+<script>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
