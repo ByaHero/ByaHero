@@ -646,41 +646,44 @@ else: ?>
 </script>
 
 <script>
-  document.addEventListener('deviceready', async () => {
-    // Prevent re-initializing OneSignal when navbar is included multiple times
-    if (window.__ONESIGNAL_BOOTED__) {
-      console.log("[OneSignal] already booted, skipping init");
-      return;
-    }
-    window.__ONESIGNAL_BOOTED__ = true;
+  // --------- OneSignal Boot ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+  // ROOT CAUSE FIX: In Capacitor, 'deviceready' fires before the page's <script>
+  // tags are parsed, so addEventListener('deviceready') is always added too late
+  // and the callback never runs -- meaning no token is ever generated.
+  //
+  // window.Capacitor is set synchronously by the native bridge, so its presence
+  // means deviceready has already fired. We boot immediately in that case.
+  // The __ONESIGNAL_BOOTED__ guard ensures we never initialize twice.
 
-    const OS = window.plugins?.OneSignal;
-    if (!OS) {
-      console.log("[OneSignal] plugin not found");
-      return;
-    }
-
+  (function () {
     const APP_ID = "b755dd29-1de2-4cf1-9381-6a9b436bc049";
+
+    // ------ Multi-path plugin lookup ---------------------------------------------------------------------------------------------------------------------------------
+    // Cordova-compat path:        window.plugins.OneSignal
+    // Native Capacitor plugin:    window.Capacitor.Plugins.OneSignal
+    // Some build configs expose:  window.OneSignal
+    function getPlugin() {
+      return window.plugins?.OneSignal
+        || window.Capacitor?.Plugins?.OneSignal
+        || window.OneSignal
+        || null;
+    }
 
     async function registerIdToBackend(subId) {
       if (!subId) return;
-
       // Avoid spamming backend with the same id
       if (window.__ONESIGNAL_LAST_ID__ === subId) return;
       window.__ONESIGNAL_LAST_ID__ = subId;
 
       const url = (window.APP_BASE_URL || "") + "/backend/registerOnesignalToken.php";
-
       try {
-        console.log("[OneSignal] registering id to backend:", subId, "->", url);
-
+        console.log("[OneSignal] registering id:", subId, "->", url);
         const res = await fetch(url, {
           method: "POST",
           credentials: "include",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ player_id: subId }) // keep your backend key name
+          body: JSON.stringify({ player_id: subId })
         });
-
         const data = await res.json().catch(() => ({}));
         console.log("[OneSignal] backend response:", data);
       } catch (e) {
@@ -688,85 +691,95 @@ else: ?>
       }
     }
 
-    try {
-      console.log("[OneSignal] initialize()");
-      OS.initialize(APP_ID);
+    async function bootOneSignal() {
+      if (window.__ONESIGNAL_BOOTED__) {
+        console.log("[OneSignal] already booted, skipping");
+        return;
+      }
+      window.__ONESIGNAL_BOOTED__ = true;
 
-      // Tie the OneSignal subscription to this logged-in user account
-      <?php if (!empty($_SESSION['user_id'])): ?>
+      // ------ Plugin lookup with retry ---------------------------------------------------------------------------------------------------------------------------------------------
+      // Retry up to 3 s in case the plugin registers slightly after the event.
+      let OS = null;
+      for (let i = 0; i < 6; i++) {
+        OS = getPlugin();
+        if (OS) break;
+        await new Promise(r => setTimeout(r, 500));
+      }
+
+      if (!OS) {
+        console.warn("[OneSignal] plugin not available after retries -- not a native build?");
+        window.__ONESIGNAL_BOOTED__ = false; // allow a future retry
+        return;
+      }
+
       try {
-        OS.login("<?= (int)$_SESSION['user_id'] ?>");
-        console.log("[OneSignal] logged in with user_id: <?= (int)$_SESSION['user_id'] ?>");
-      } catch (e) {
-        console.warn("[OneSignal] login() failed:", e);
-      }
-      <?php endif; ?>
+        console.log("[OneSignal] initialize()");
+        OS.initialize(APP_ID);
 
-      // Request notification permission properly
-      let hasPerm = false;
-      try {
-        hasPerm = await OS.Notifications.hasPermission();
-      } catch (e) {
-        console.warn("[OneSignal] hasPermission() failed:", e);
-      }
-      console.log("[OneSignal] hasPermission:", hasPerm);
-
-      if (!hasPerm) {
-        const accepted = await OS.Notifications.requestPermission(true);
-        console.log("[OneSignal] requestPermission accepted:", accepted);
-      }
-
-      // Opt-in (important if the device got into an opted-out state)
-      try {
-        OS.User.pushSubscription.optIn();
-      } catch (e) {
-        console.warn("[OneSignal] optIn() failed:", e);
-      }
-
-      // 1) Try immediate id (async getIdAsync is more reliable than sync .id on some devices)
-      let idNow = OS.User?.pushSubscription?.id;
-      if (!idNow) {
-        try { idNow = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
-          console.warn("[OneSignal] getIdAsync() immediate failed:", e);
+        // Request notification permission if not already granted
+        let hasPerm = false;
+        try { hasPerm = await OS.Notifications.hasPermission(); } catch (e) {
+          console.warn("[OneSignal] hasPermission() failed:", e);
         }
-      }
-      console.log("[OneSignal] pushSubscription.id immediate:", idNow);
-      if (idNow) registerIdToBackend(idNow);
+        console.log("[OneSignal] hasPermission:", hasPerm);
 
-      // 2) Listen for changes (this is the most reliable)
-      OS.User.pushSubscription.addEventListener("change", (event) => {
-        const newId = event?.current?.id || OS.User?.pushSubscription?.id;
-        console.log("[OneSignal] pushSubscription change:", event);
-        console.log("[OneSignal] pushSubscription.id after change:", newId);
-        if (newId) registerIdToBackend(newId);
-      });
+        if (!hasPerm) {
+          const accepted = await OS.Notifications.requestPermission(true);
+          console.log("[OneSignal] requestPermission:", accepted);
+        }
 
-      // 3) Poll fallback (covers “id appears a bit later”) — uses getIdAsync for reliability
-      let attempts = 0;
-      const poll = setInterval(async () => {
-        attempts++;
-        let id = OS.User?.pushSubscription?.id;
-        if (!id) {
-          try { id = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
-            console.warn("[OneSignal] Poll getIdAsync() failed:", e);
+        // Opt-in -- recovers devices that ended up in an opted-out state
+        try { OS.User.pushSubscription.optIn(); } catch (e) {
+          console.warn("[OneSignal] optIn() failed:", e);
+        }
+
+        // 1) Immediate id check
+        const idNow = OS.User?.pushSubscription?.id;
+        console.log("[OneSignal] pushSubscription.id (immediate):", idNow);
+        if (idNow) registerIdToBackend(idNow);
+
+        // 2) Change listener -- fires when FCM assigns a token
+        OS.User.pushSubscription.addEventListener("change", (event) => {
+          const newId = event?.current?.id || OS.User?.pushSubscription?.id;
+          console.log("[OneSignal] subscription change, new id:", newId);
+          if (newId) registerIdToBackend(newId);
+        });
+
+        // 3) Polling fallback -- id sometimes appears a few seconds after init
+        let attempts = 0;
+        const poll = setInterval(() => {
+          attempts++;
+          const id = OS.User?.pushSubscription?.id;
+          if (id) {
+            console.log("[OneSignal] id via poll:", id);
+            registerIdToBackend(id);
+            clearInterval(poll);
           }
-        }
-        if (id) {
-          console.log("[OneSignal] pushSubscription.id via poll:", id);
-          registerIdToBackend(id);
-          clearInterval(poll);
-        }
-        if (attempts >= 20) {
-          console.warn("[OneSignal] no subscription id after 20s; likely FCM/OneSignal config issue");
-          clearInterval(poll);
-        }
-      }, 1000);
+          if (attempts >= 20) {
+            console.warn("[OneSignal] no subscription id after 20 s -- check FCM/google-services.json setup");
+            clearInterval(poll);
+          }
+        }, 1000);
 
-    } catch (e) {
-      console.error("[OneSignal] init error:", e);
+      } catch (e) {
+        console.error("[OneSignal] init error:", e);
+      }
     }
-  });
+
+    // ------ Dual-trigger strategy ------------------------------------------------------------------------------------------------------------------------------------------------------------
+    // Path A -- Cordova / Median: deviceready hasn't fired yet, so we wait for it
+    document.addEventListener('deviceready', bootOneSignal, false);
+
+    // Path B -- Capacitor: window.Capacitor exists synchronously after the bridge
+    // is ready, which happens BEFORE page scripts run. If it's present, deviceready
+    // has already fired and we must boot immediately.
+    if (window.Capacitor) {
+      bootOneSignal();
+    }
+  })();
 </script>
+
 
 <script>
   (function () {
