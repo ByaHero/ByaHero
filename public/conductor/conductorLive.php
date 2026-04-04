@@ -426,7 +426,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     }
 
     async function sendDataToServer(lat, lng, locName) {
-        if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.style.background = '#fde68a'; netStatus.style.color = '#111827'; }
+        if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.className = 'badge bg-warning text-dark'; }
 
         const statusSelect = el('statusSelect');
         const status = lastComputedStatus || (statusSelect?.value || 'available');
@@ -453,14 +453,33 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         };
 
         try {
-            await fetch('../update_geo_location.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if(netStatus) { netStatus.textContent = 'Active'; netStatus.style.background = '#d8f5da'; netStatus.style.color = '#1a8d3d'; }
+            // Native HTTP requires a full, absolute URL (not a relative one like '../')
+            // This automatically builds the full https://byahero.free.nf/... URL
+            const absoluteUrl = new URL('../update_geo_location.php', window.location.href).href;
+
+            // 1. Check if we are running on the phone and have the Native HTTP plugin
+            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp && Capacitor.isNativePlatform()) {
+                
+                // Send via Android Native Layer (Bypasses the sleeping browser!)
+                await window.Capacitor.Plugins.CapacitorHttp.post({
+                    url: absoluteUrl,
+                    headers: { 'Content-Type': 'application/json' },
+                    data: payload // Native HTTP takes the raw object, NO JSON.stringify needed here
+                });
+
+            } else {
+                // 2. Standard fallback for computer browsers
+                await fetch('../update_geo_location.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+            
+            if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
         } catch (e) {
-            if(netStatus) { netStatus.textContent = 'Offline'; netStatus.style.background = '#fecaca'; netStatus.style.color = '#991b1b'; }
+            console.error("Upload error:", e);
+            if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
         }
     }
 
