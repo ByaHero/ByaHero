@@ -106,7 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         window._sosPendingToken = null;
                         window.gonative_onesignal_info = function(info) {
                             var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
-                                (info.subscription && info.subscription.id) || info.oneSignalUserId);
+                                info.pushToken ||
+                                (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken)) || info.oneSignalUserId);
                             if (id) {
                                 window._sosPendingToken = id;
                                 if (window.sosBridge) window.sosBridge.saveToken(id);
@@ -212,7 +213,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     .then(function(info) {
                                         var id = info && (info.oneSignalId || info.userId ||
                                             info.subscriptionId ||
-                                            (info.subscription && info.subscription.id));
+                                            info.pushToken ||
+                                            (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken)));
                                         if (id) {
                                             syncThenRedirect(id);
                                         } else {
