@@ -579,41 +579,108 @@ else: ?>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
+
 <script>
   document.addEventListener('deviceready', async () => {
-  const OS = window.plugins?.OneSignal;
-  if (!OS) {
-    console.log("OneSignal plugin not found");
-    return;
-  }
+    // Prevent re-initializing OneSignal when navbar is included multiple times
+    if (window.__ONESIGNAL_BOOTED__) {
+      console.log("[OneSignal] already booted, skipping init");
+      return;
+    }
+    window.__ONESIGNAL_BOOTED__ = true;
 
-  try {
-    OS.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
-
-    // Android 13+ needs POST_NOTIFICATIONS runtime permission
-    const hasPerm = await OS.Notifications.hasPermission();
-    console.log("OneSignal hasPermission:", hasPerm);
-
-    if (!hasPerm) {
-      const accepted = await OS.Notifications.requestPermission(true);
-      console.log("requestPermission result:", accepted);
+    const OS = window.plugins?.OneSignal;
+    if (!OS) {
+      console.log("[OneSignal] plugin not found");
+      return;
     }
 
-    // Ensure subscribed
-    OS.User.pushSubscription.optIn();
+    const APP_ID = "b755dd29-1de2-4cf1-9381-6a9b436bc049";
 
-    // Wait for subscription id
-    const idNow = OS.User.pushSubscription.id;
-    console.log("pushSubscription.id (immediate):", idNow);
+    async function registerIdToBackend(subId) {
+      if (!subId) return;
 
-    OS.User.pushSubscription.addEventListener('change', (event) => {
-      console.log("pushSubscription change:", event);
-      console.log("pushSubscription.id (after change):", OS.User.pushSubscription.id);
-    });
-  } catch (e) {
-    console.error("OneSignal init error:", e);
-  }
-});
+      // Avoid spamming backend with the same id
+      if (window.__ONESIGNAL_LAST_ID__ === subId) return;
+      window.__ONESIGNAL_LAST_ID__ = subId;
+
+      const url = (window.APP_BASE_URL || "") + "/backend/registerOnesignalToken.php";
+
+      try {
+        console.log("[OneSignal] registering id to backend:", subId, "->", url);
+
+        const res = await fetch(url, {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ player_id: subId }) // keep your backend key name
+        });
+
+        const data = await res.json().catch(() => ({}));
+        console.log("[OneSignal] backend response:", data);
+      } catch (e) {
+        console.error("[OneSignal] backend register error:", e);
+      }
+    }
+
+    try {
+      console.log("[OneSignal] initialize()");
+      OS.initialize(APP_ID);
+
+      // Request notification permission properly
+      let hasPerm = false;
+      try {
+        hasPerm = await OS.Notifications.hasPermission();
+      } catch (e) {
+        console.warn("[OneSignal] hasPermission() failed:", e);
+      }
+      console.log("[OneSignal] hasPermission:", hasPerm);
+
+      if (!hasPerm) {
+        const accepted = await OS.Notifications.requestPermission(true);
+        console.log("[OneSignal] requestPermission accepted:", accepted);
+      }
+
+      // Opt-in (important if the device got into an opted-out state)
+      try {
+        OS.User.pushSubscription.optIn();
+      } catch (e) {
+        console.warn("[OneSignal] optIn() failed:", e);
+      }
+
+      // 1) Try immediate id
+      const idNow = OS.User?.pushSubscription?.id;
+      console.log("[OneSignal] pushSubscription.id immediate:", idNow);
+      if (idNow) registerIdToBackend(idNow);
+
+      // 2) Listen for changes (this is the most reliable)
+      OS.User.pushSubscription.addEventListener("change", (event) => {
+        const newId = event?.current?.id || OS.User?.pushSubscription?.id;
+        console.log("[OneSignal] pushSubscription change:", event);
+        console.log("[OneSignal] pushSubscription.id after change:", newId);
+        if (newId) registerIdToBackend(newId);
+      });
+
+      // 3) Poll fallback (covers “id appears a bit later”)
+      let attempts = 0;
+      const poll = setInterval(() => {
+        attempts++;
+        const id = OS.User?.pushSubscription?.id;
+        if (id) {
+          console.log("[OneSignal] pushSubscription.id via poll:", id);
+          registerIdToBackend(id);
+          clearInterval(poll);
+        }
+        if (attempts >= 20) {
+          console.warn("[OneSignal] no subscription id after 20s; likely FCM/OneSignal config issue");
+          clearInterval(poll);
+        }
+      }, 1000);
+
+    } catch (e) {
+      console.error("[OneSignal] init error:", e);
+    }
+  });
 </script>
 
 <script>
