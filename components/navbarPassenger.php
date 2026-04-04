@@ -580,72 +580,40 @@ else: ?>
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script>
-  document.addEventListener('deviceready', async function () {
-    if (window.plugins && window.plugins.OneSignal) {
-      try {
-        // 1. Initialize OneSignal Silent Boot
-        window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
+  document.addEventListener('deviceready', async () => {
+  const OS = window.plugins?.OneSignal;
+  if (!OS) {
+    console.log("OneSignal plugin not found");
+    return;
+  }
 
-        // 2. Safely check permissions (so it doesn't crash on restart)
-        if (window.plugins.OneSignal.Notifications && !window.plugins.OneSignal.Notifications.hasPermission) {
-            await window.plugins.OneSignal.Notifications.requestPermission(true);
-        }
+  try {
+    OS.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
 
-        // 3. Force device to remain subscribed
-        window.plugins.OneSignal.User.pushSubscription.optIn();
+    // Android 13+ needs POST_NOTIFICATIONS runtime permission
+    const hasPerm = await OS.Notifications.hasPermission();
+    console.log("OneSignal hasPermission:", hasPerm);
 
-        // 4. Background Database Sync Function
-        const syncTokenToDB = (subId) => {
-          if (!subId) return;
-          fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ player_id: subId })
-          })
-          .then(r => r.json())
-          .then(d => {
-             if(d.success) console.log("✓ Push token successfully restored on app restart!");
-          })
-          .catch(e => console.error("Token sync error:", e));
-        };
-
-        // 5. Try to grab the token immediately
-        let subId = window.plugins.OneSignal.User.pushSubscription.id;
-        
-        if (subId) {
-          // Token was already awake!
-          syncTokenToDB(subId);
-        } else {
-          // Token is asleep because the app just restarted. 
-          // Strategy A: Wait for the SDK to announce it's awake
-          window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function(event) {
-            if (event.current && event.current.id) {
-              syncTokenToDB(event.current.id);
-            }
-          });
-
-          // Strategy B: Polling Fallback (Checks every 1 second for up to 10 seconds)
-          let attempts = 0;
-          let pollInterval = setInterval(() => {
-              attempts++;
-              let awakeId = window.plugins.OneSignal.User.pushSubscription.id;
-              
-              if (awakeId) {
-                  syncTokenToDB(awakeId);
-                  clearInterval(pollInterval); // Stop checking once we have it
-              }
-              
-              // Give up after 10 seconds to save battery
-              if (attempts >= 10) clearInterval(pollInterval); 
-          }, 1000);
-        }
-
-      } catch (e) {
-        console.error("OneSignal Restart Init Error:", e);
-      }
+    if (!hasPerm) {
+      const accepted = await OS.Notifications.requestPermission(true);
+      console.log("requestPermission result:", accepted);
     }
-  }, false);
+
+    // Ensure subscribed
+    OS.User.pushSubscription.optIn();
+
+    // Wait for subscription id
+    const idNow = OS.User.pushSubscription.id;
+    console.log("pushSubscription.id (immediate):", idNow);
+
+    OS.User.pushSubscription.addEventListener('change', (event) => {
+      console.log("pushSubscription change:", event);
+      console.log("pushSubscription.id (after change):", OS.User.pushSubscription.id);
+    });
+  } catch (e) {
+    console.error("OneSignal init error:", e);
+  }
+});
 </script>
 
 <script>
