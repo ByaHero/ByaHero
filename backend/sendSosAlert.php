@@ -77,7 +77,7 @@ try {
         $payload = [
             'app_id' => ONESIGNAL_APP_ID,
             'target_channel' => 'push',
-            'include_aliases' => ['onesignal_id' => $playerIds],
+            'include_subscription_ids' => $playerIds, // <-- Changed this line to match test_push.php
             'headings' => ['en' => '🚨 SOS Alert'],
             'contents' => ['en' => "$senderName needs help$locSnippet!"],
             'data' => [
