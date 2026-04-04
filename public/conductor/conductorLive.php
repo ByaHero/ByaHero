@@ -499,25 +499,90 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }
     }
 
-    function startGeolocation() {
-        if (!navigator.geolocation) return showAlert('No GPS support', 'danger');
+    // Add a variable to store the background watcher ID
+    let bgWatcherId = null;
 
+    async function startGeolocation() {
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
+        // 1. Check if running inside the Capacitor Native App
+        if (window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
+            const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
+
+            try {
+                // Request background permissions
+                const permissions = await BackgroundGeolocation.requestPermissions();
+                if (permissions.location !== 'granted') {
+                    return showAlert('Background location permission denied.', 'danger');
+                }
+
+                // Start the background watcher
+                bgWatcherId = await BackgroundGeolocation.addWatcher(
+                    {
+                        backgroundMessage: "Cancel to prevent battery drain.",
+                        backgroundTitle: "Tracking ByaHero Bus.",
+                        requestPermissions: true,
+                        stale: false,
+                        distanceFilter: 3 // Matches your MOVE_THRESHOLD_METERS
+                    },
+                    function callback(location, error) {
+                        if (error) {
+                            console.error("Background location error:", error);
+                            return;
+                        }
+
+                        // Format the location to match what your existing code expects!
+                        // This allows the map, the status pill, AND the database to update seamlessly.
+                        const pos = {
+                            coords: {
+                                latitude: location.latitude,
+                                longitude: location.longitude
+                            }
+                        };
+                        
+                        // Pass it to your existing onLocationUpdate function!
+                        onLocationUpdate(pos);
+                    }
+                );
+                showAlert('Background Tracking Started', 'primary');
+            } catch (e) {
+                console.error("Capacitor BG Error:", e);
+                startWebGeolocation(); // Fallback if plugin fails
+            }
+        } else {
+            // 2. Fallback if running in a normal web browser (not the app)
+            startWebGeolocation();
+        }
+    }
+
+    // Standard web tracking fallback
+    function startWebGeolocation() {
+        if (!navigator.geolocation) return showAlert('No GPS support', 'danger');
+        
         watchId = navigator.geolocation.watchPosition(
             onLocationUpdate,
             (err) => showAlert('GPS Error: ' + err.message, 'danger'),
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
         );
-        showAlert('Tracking Started', 'primary');
+        showAlert('Web Tracking Started', 'primary');
     }
 
     async function stopTracking() {
+        // 1. Clear standard web watcher
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
         }
 
+        // 2. Clear Capacitor background watcher
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { 
+                await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); 
+            } catch(e){}
+            bgWatcherId = null;
+        }
+
+        // 3. Tell the database to release the bus
         try {
             await fetch('../api.php?action=stop_tracking', {
                 method: 'POST',

@@ -1,0 +1,13 @@
+{
+  "appId": "com.byahero.app",
+  "appName": "ByaHero",
+  "webDir": "www",
+  "bundledWebRuntime": false,
+  "server": {
+    "url": "https://byahero.free.nf/"
+  },
+  "allowNavigation": [
+    "byahero.free.nf",
+    "*.byahero.free.nf"
+  ]
+}
