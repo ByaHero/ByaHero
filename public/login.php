@@ -140,29 +140,75 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         document.addEventListener('deviceready', async function () {
-                            // Fallback: If OneSignal completely stalls, proceed after 6 seconds anyway
-                            let safetyTimeout = setTimeout(proceed, 6000);
+                            // Fallback: If OneSignal completely stalls, proceed after 10 seconds anyway
+                            let safetyTimeout = setTimeout(proceed, 10000);
 
                             try {
                                 if (window.plugins && window.plugins.OneSignal) {
-                                    console.log('[Login] OneSignal is loaded. Fetching ID...');
+                                    console.log('[Login] OneSignal is loaded. Requesting permission & opt-in...');
+                                    const OS = window.plugins.OneSignal;
 
-                                    // Get the Capacitor OneSignal Subscription ID
-                                    const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
+                                    // 1) Request notification permission (auto-subscribe)
+                                    try {
+                                        const hasPerm = await OS.Notifications.hasPermission();
+                                        if (!hasPerm) {
+                                            await OS.Notifications.requestPermission(true);
+                                        }
+                                    } catch (pe) {
+                                        console.warn('[Login] requestPermission failed:', pe);
+                                    }
+
+                                    // 2) Opt-in so device isn't stuck in opted-out state
+                                    try { OS.User.pushSubscription.optIn(); } catch (oe) {
+                                        console.warn('[Login] optIn() failed:', oe);
+                                    }
+
+                                    // 3) Try to get ID immediately (async — more reliable than sync .id)
+                                    let subId = null;
+                                    try {
+                                        subId = await OS.User.pushSubscription.getIdAsync();
+                                    } catch (ge) {
+                                        console.warn('[Login] getIdAsync() failed:', ge);
+                                    }
 
                                     if (subId) {
                                         clearTimeout(safetyTimeout);
                                         syncThenRedirect(subId);
-                                    } else {
-                                        console.log('[Login] ID not ready yet, waiting for change event...');
-                                        // If not immediately available, listen for it to attach
-                                        window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function (event) {
-                                            if (event.current.id && !_redirectDone) {
-                                                clearTimeout(safetyTimeout);
-                                                syncThenRedirect(event.current.id);
-                                            }
-                                        });
+                                        return;
                                     }
+
+                                    console.log('[Login] ID not ready yet, listening for change & polling...');
+
+                                    // 4) Listen for subscription change (fires when FCM assigns the token)
+                                    OS.User.pushSubscription.addEventListener('change', function (event) {
+                                        const newId = (event && event.current && event.current.id) || OS.User.pushSubscription.id;
+                                        if (newId && !_redirectDone) {
+                                            clearTimeout(safetyTimeout);
+                                            clearInterval(pollTimer);
+                                            syncThenRedirect(newId);
+                                        }
+                                    });
+
+                                    // 5) Poll every second (up to 8s) as a belt-and-suspenders fallback
+                                    let pollCount = 0;
+                                    const pollTimer = setInterval(async function () {
+                                        if (_redirectDone) { clearInterval(pollTimer); return; }
+                                        pollCount++;
+                                        let pid = OS.User?.pushSubscription?.id;
+                                        if (!pid) {
+                                            try { pid = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
+                                                console.warn('[Login] Poll getIdAsync() failed:', e);
+                                            }
+                                        }
+                                        if (pid) {
+                                            clearTimeout(safetyTimeout);
+                                            clearInterval(pollTimer);
+                                            syncThenRedirect(pid);
+                                        } else if (pollCount >= 8) {
+                                            clearInterval(pollTimer);
+                                            // Safety timeout will still fire if nothing else does
+                                        }
+                                    }, 1000);
                                 } else {
                                     console.warn('[Login] OneSignal plugin not found.');
                                     proceed();
