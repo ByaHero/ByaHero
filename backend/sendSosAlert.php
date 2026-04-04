@@ -4,7 +4,7 @@ header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 require_once '../config/firebase_push.php';
 
-if (!defined('FIREBASE_FUNCTIONS_PUSH_URL') || trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
+if (trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
     http_response_code(500);
     echo json_encode([
         'success' => false,
@@ -94,7 +94,7 @@ try {
         ];
 
         $headers = ['Content-Type: application/json'];
-        if (FIREBASE_FUNCTIONS_AUTH_SECRET !== '') {
+        if (trim((string) FIREBASE_FUNCTIONS_AUTH_SECRET) !== '') {
             $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
         }
 

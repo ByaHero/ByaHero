@@ -21,7 +21,7 @@ if (!$tokenRow) {
 
 $playerId = $tokenRow['player_id'];
 
-if (FIREBASE_FUNCTIONS_PUSH_URL === '') {
+if (trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
     echo json_encode([
         'success' => false,
         'message' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
@@ -43,7 +43,7 @@ $pushPayload = [
 
 // 3. Send it to Firebase Cloud Function via cURL
 $headers = ['Content-Type: application/json'];
-if (FIREBASE_FUNCTIONS_AUTH_SECRET !== '') {
+if (trim((string) FIREBASE_FUNCTIONS_AUTH_SECRET) !== '') {
     $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
 }
 
