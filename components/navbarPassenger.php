@@ -580,14 +580,45 @@ else: ?>
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script>
-  // Initialize OneSignal when Capacitor is ready
-  document.addEventListener('deviceready', function () {
+  document.addEventListener('deviceready', async function () {
     if (window.plugins && window.plugins.OneSignal) {
-      // Initialize with your App ID
-      window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
-      
-      // Request permission (Required for iOS, Android 13+)
-      window.plugins.OneSignal.Notifications.requestPermission(true);
+      try {
+        // 1. Initialize OneSignal (Required)
+        window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
+        window.plugins.OneSignal.Notifications.requestPermission(true);
+
+        // 2. Silent function to save the token to your database
+        const syncTokenToDB = (subId) => {
+          fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_id: subId })
+          })
+          .then(r => r.json())
+          .then(d => {
+             if(d.success) console.log("✓ Push token silently synced to DB");
+          })
+          .catch(e => console.error("Token sync error:", e));
+        };
+
+        // 3. Try to get the token immediately when the app opens
+        const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
+        
+        if (subId) {
+          syncTokenToDB(subId);
+        }
+
+        // 4. Listen for token generation (if it wasn't ready instantly)
+        window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function(event) {
+          if (event.current.id) {
+            syncTokenToDB(event.current.id);
+          }
+        });
+
+      } catch (e) {
+        console.error("OneSignal Background Init Error:", e);
+      }
     }
   }, false);
 </script>
