@@ -93,10 +93,6 @@ try {
             'ttl' => 3600
         ];
 
-        if (FIREBASE_FUNCTIONS_PUSH_URL === '') {
-            throw new RuntimeException('Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.');
-        }
-
         $headers = ['Content-Type: application/json'];
         if (FIREBASE_FUNCTIONS_AUTH_SECRET !== '') {
             $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
