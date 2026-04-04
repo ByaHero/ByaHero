@@ -10,6 +10,11 @@
   "android": {
     "useLegacyBridge": true
   },
+  "plugins": {
+    "OneSignal": {
+      "appId": "b755dd29-1de2-4cf1-9381-6a9b436bc049"
+    }
+  },
   "allowNavigation": [
     "byahero.free.nf",
     "*.byahero.free.nf"
