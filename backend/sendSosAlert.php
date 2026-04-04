@@ -3,8 +3,9 @@ session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 
-// ── OneSignal Credentials (loaded from config/onesignal.php, never hard-coded) ──
-require_once '../config/onesignal.php';
+// ── OneSignal Credentials ──
+define('ONESIGNAL_APP_ID', 'b755dd29-1de2-4cf1-9381-6a9b436bc049');
+define('ONESIGNAL_REST_API_KEY', 'os_v2_app_w5k52ki54jgpde4bnknug26ajffmpqdyhshutleosxotea2neg6pcnw6lqotnv67mcb7p3rr3d37pglprqyefcfihmdnqxbijny3pzi');
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
@@ -76,7 +77,7 @@ try {
         $payload = [
             'app_id' => ONESIGNAL_APP_ID,
             'target_channel' => 'push',
-            'include_subscription_ids' => $playerIds, // <-- Changed this line to match test_push.php
+            'include_aliases' => ['onesignal_id' => $playerIds],
             'headings' => ['en' => '🚨 SOS Alert'],
             'contents' => ['en' => "$senderName needs help$locSnippet!"],
             'data' => [

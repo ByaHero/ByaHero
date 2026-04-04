@@ -60,21 +60,21 @@
     return window._sosPendingToken || null;
   }
 
-  // Extracts the push subscription ID from any Median/OneSignal info object.
-  // NOTE: pushToken is the raw FCM/APNs device token – it is NOT a subscription ID
-  // and must not be sent to include_subscription_ids. It is intentionally omitted.
+  // Extracts the player/subscription ID from any Median/OneSignal info object
   function extractId(info) {
     if (!info) return null;
-    return info.subscriptionId
-        || info.oneSignalId
+    return info.oneSignalId
         || info.userId
+        || info.subscriptionId
         || info.oneSignalUserId
+        || info.pushToken
         || info.playerId
         || info.id
         || (info.subscription && (
               info.subscription.id
               || info.subscription.subscriptionId
               || info.subscription.playerId
+              || info.subscription.pushToken
               || info.subscription.userId
               || info.subscription.oneSignalId
            ))
@@ -346,26 +346,6 @@
     if (_registrationAttempted && !force) return Promise.resolve(false);
     _registrationAttempted = true;
 
-    // Capacitor plugin path (window.plugins.OneSignal)
-    try {
-      var capOS = window.plugins && window.plugins.OneSignal;
-      if (capOS && capOS.Notifications && typeof capOS.Notifications.requestPermission === 'function') {
-        dbg('log', '[SOS] Capacitor: calling requestPermission(true)');
-        return capOS.Notifications.requestPermission(true)
-          .then(function(granted) {
-            dbg('log', '[SOS] Capacitor requestPermission result: ' + granted);
-            try { capOS.User.pushSubscription.optIn(); } catch(e) {}
-            return granted;
-          })
-          .catch(function(e) {
-            dbg('warn', '[SOS] Capacitor requestPermission failed: ' + (e && e.message));
-            return false;
-          });
-      }
-    } catch (e) {
-      dbg('warn', '[SOS] Capacitor requestPermission threw: ' + (e && e.message));
-    }
-
     try {
       if (window.OneSignal && OneSignal.Notifications && typeof OneSignal.Notifications.requestPermission === 'function') {
         dbg('log', '[SOS] Called OneSignal.Notifications.requestPermission(true)');
@@ -410,28 +390,7 @@
   function tryOneSignalSdk() {
     return new Promise(function(resolve) {
       try {
-        // Capacitor plugin path (window.plugins.OneSignal)
-        var capOS = window.plugins && window.plugins.OneSignal;
-        if (capOS && capOS.User && capOS.User.pushSubscription) {
-          // Prefer async getIdAsync() — most reliable on Capacitor
-          if (typeof capOS.User.pushSubscription.getIdAsync === 'function') {
-            capOS.User.pushSubscription.getIdAsync()
-              .then(function(id) { resolve(id || null); })
-              .catch(function() {
-                // Fall back to sync id property
-                resolve((capOS.User.pushSubscription.id) || null);
-              });
-            return;
-          }
-          // Sync id fallback
-          var capId = capOS.User.pushSubscription.id;
-          if (capId) { resolve(capId); return; }
-        }
-      } catch (e) {
-        dbg('warn', '[SOS] Capacitor OneSignal lookup failed: ' + (e && e.message));
-      }
-      try {
-        // Newer SDKs expose User.PushSubscription.getId() – this is the push subscription ID
+        // Newer SDKs expose User.PushSubscription.getId(); some builds expose User.onesignalId; legacy uses getUserId()
         if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription
             && typeof OneSignal.User.PushSubscription.getId === 'function') {
           OneSignal.User.PushSubscription.getId()
@@ -439,15 +398,18 @@
             .catch(function() { resolve(null); });
           return;
         }
-        // Legacy SDKs (v3/v4) expose getUserId() which returns the player/subscription ID
-        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
-          OneSignal.getUserId()
-            .then(function(id) { resolve(id || null); })
-            .catch(function() { resolve(null); });
+        if (window.OneSignal && OneSignal.User && OneSignal.User.onesignalId) {
+          resolve(OneSignal.User.onesignalId || null);
           return;
         }
         if (window.OneSignal && typeof OneSignal.userId === 'string' && OneSignal.userId) {
           resolve(OneSignal.userId);
+          return;
+        }
+        if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
+          OneSignal.getUserId()
+            .then(function(id) { resolve(id || null); })
+            .catch(function() { resolve(null); });
           return;
         }
       } catch (e) {
