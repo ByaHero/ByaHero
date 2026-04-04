@@ -583,39 +583,46 @@ else: ?>
   document.addEventListener('deviceready', async function () {
     if (window.plugins && window.plugins.OneSignal) {
       try {
-        // 1. Initialize OneSignal (Required)
+        // 1. Initialize OneSignal silently
         window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
-        window.plugins.OneSignal.Notifications.requestPermission(true);
 
-        // 2. Silent function to save the token to your database
-        const syncTokenToDB = (subId) => {
-          fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
-            method: 'POST',
-            credentials: 'include',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ player_id: subId })
-          })
-          .then(r => r.json())
-          .then(d => {
-             if(d.success) console.log("✓ Push token silently synced to DB");
-          })
-          .catch(e => console.error("Token sync error:", e));
-        };
+        // 2. Request Permission (Only shows a popup ONCE on Android 13/15. If already allowed, it stays silent)
+        const hasPermission = await window.plugins.OneSignal.Notifications.requestPermission(true);
 
-        // 3. Try to get the token immediately when the app opens
-        const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
-        
-        if (subId) {
-          syncTokenToDB(subId);
-        }
+        if (hasPermission) {
+          // 3. Force device to subscribe
+          window.plugins.OneSignal.User.pushSubscription.optIn();
 
-        // 4. Listen for token generation (if it wasn't ready instantly)
-        window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function(event) {
-          if (event.current.id) {
-            syncTokenToDB(event.current.id);
+          // 4. Background function to silently save token to database
+          const syncTokenToDB = (subId) => {
+            fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
+              method: 'POST',
+              credentials: 'include',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ player_id: subId })
+            })
+            .then(r => r.json())
+            .then(d => {
+               if(d.success) console.log("✓ Token silently synced to DB");
+            })
+            .catch(e => console.error("Token sync error:", e));
+          };
+
+          // 5. Grab the token instantly if Firebase is fast
+          const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
+          if (subId) {
+            syncTokenToDB(subId);
           }
-        });
 
+          // 6. Wait and listen in the background if Firebase is slow
+          window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function(event) {
+            if (event.current.id) {
+              syncTokenToDB(event.current.id);
+            }
+          });
+        } else {
+            console.warn("User denied push notifications.");
+        }
       } catch (e) {
         console.error("OneSignal Background Init Error:", e);
       }
