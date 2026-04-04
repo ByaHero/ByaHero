@@ -317,18 +317,17 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     const el = id => document.getElementById(id);
     const alertBox = el('alertBox');
     const netStatus = el('netStatus');
+    let bgWatcherId = null;
 
-    // --- Auto-status tracking vars ---
     let lastMoveCheck = { time: 0, lat: null, lng: null };
     let lastComputedStatus = 'available';
-
     const MOVE_THRESHOLD_METERS = 3;
     const STOP_TIME_MS = 5000;
 
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
-        alertBox.innerHTML = `<div class="alert alert-${bsType} border-0 text-center fw-bold shadow-sm" style="border-radius: 12px;">${message}</div>`;
-        setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 2500);
+        alertBox.innerHTML = `<div class="alert alert-${bsType} border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">${message}</div>`;
+        setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 3000);
     }
 
     function initMap() {
@@ -396,40 +395,30 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
     function autoComputeStatus(currentLat, currentLng) {
         const now = Date.now();
-
-        if (seats <= 0) {
-            lastComputedStatus = 'full';
-            return lastComputedStatus;
-        }
+        if (seats <= 0) return 'full';
 
         if (lastMoveCheck.lat === null || lastMoveCheck.lng === null) {
             lastMoveCheck = { time: now, lat: currentLat, lng: currentLng };
-            lastComputedStatus = 'available';
-            return lastComputedStatus;
+            return 'available';
         }
 
         const dist = distanceMeters(lastMoveCheck.lat, lastMoveCheck.lng, currentLat, currentLng);
-
         if (dist > MOVE_THRESHOLD_METERS) {
             lastMoveCheck = { time: now, lat: currentLat, lng: currentLng };
-            lastComputedStatus = 'available';
-            return lastComputedStatus;
+            return 'available';
         }
 
-        if (now - lastMoveCheck.time >= STOP_TIME_MS) {
-            lastComputedStatus = 'on_stop';
-            return lastComputedStatus;
-        }
-
-        lastComputedStatus = 'available';
-        return lastComputedStatus;
+        if (now - lastMoveCheck.time >= STOP_TIME_MS) return 'on_stop';
+        return 'available';
     }
 
     async function sendDataToServer(lat, lng, locName) {
         if(netStatus) { netStatus.textContent = 'Saving...'; netStatus.className = 'badge bg-warning text-dark'; }
 
         const statusSelect = el('statusSelect');
-        const status = lastComputedStatus || (statusSelect?.value || 'available');
+        const status = autoComputeStatus(lat, lng) || (statusSelect?.value || 'available');
+        if (statusSelect) statusSelect.value = status;
+        lastComputedStatus = status;
 
         const payload = {
             bus_id: busId,
@@ -454,30 +443,24 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
         try {
             const absoluteUrl = new URL('../update_geo_location.php', window.location.href).href;
-
-            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp && Capacitor.isNativePlatform()) {
-                
-                // Native HTTP with Bot-Bypass Headers
+            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
                 await window.Capacitor.Plugins.CapacitorHttp.post({
                     url: absoluteUrl,
                     headers: { 
                         'Content-Type': 'application/json',
                         'Accept': 'application/json, text/plain, */*',
-                        'User-Agent': navigator.userAgent, // <-- THE MAGIC FIX: Tells InfinityFree this is a real browser
+                        'User-Agent': navigator.userAgent,
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     data: payload
                 });
-
             } else {
-                // Fallback for computer browsers
                 await fetch('../update_geo_location.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
             }
-            
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
         } catch (e) {
             console.error("Upload error:", e);
@@ -492,26 +475,15 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         const locName = resolved || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
         lastKnownLocation = { lat, lng, locName };
-
         updateMarker(lat, lng);
 
         const currentLocationEl = el('currentLocation');
         if (currentLocationEl) {
-            const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lat + ',' + lng)}`;
             currentLocationEl.textContent = locName;
-            currentLocationEl.href = mapsUrl;
-            currentLocationEl.title = `Open in Google Maps`;
+            currentLocationEl.href = `https://www.google.com/maps/search/?api=1&query=$${encodeURIComponent(lat + ',' + lng)}`;
         }
-
         const lastUpdateEl = el('lastUpdate');
-        if (lastUpdateEl) {
-            lastUpdateEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        const autoStatus = autoComputeStatus(lat, lng);
-
-        const statusSelect = el('statusSelect');
-        if (statusSelect) statusSelect.value = autoStatus;
+        if (lastUpdateEl) lastUpdateEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
         const now = Date.now();
         if (now - lastNetworkSync > SYNC_INTERVAL) {
@@ -520,79 +492,71 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }
     }
 
-    // Add a variable to store the background watcher ID
-    let bgWatcherId = null;
-
     async function startGeolocation() {
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
-        // 1. Check if the native Android bridge is successfully injected
-        if (window.Capacitor && window.Capacitor.Plugins) {
-            
-            // 2. Grab the plugin directly from the bridge
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
             const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
-
-            // 3. Safety check: Did Android actually load the native plugin?
-            if (!BackgroundGeolocation) {
-                showAlert('Plugin missing from Android build!', 'danger');
-                console.error("Plugins Android actually loaded:", Object.keys(window.Capacitor.Plugins));
-                return;
-            }
-
             try {
-                // Request permissions
                 const permissions = await BackgroundGeolocation.requestPermissions();
                 if (permissions.location !== 'granted') {
                     return showAlert('Background location permission denied.', 'danger');
                 }
 
-                // Start the background watcher
                 bgWatcherId = await BackgroundGeolocation.addWatcher(
                     {
-                        backgroundMessage: "Cancel to prevent battery drain.",
-                        backgroundTitle: "Tracking ByaHero Bus.",
+                        backgroundMessage: "Tracking active. Keep app open in background.",
+                        backgroundTitle: "Tracking ByaHero Bus",
                         requestPermissions: true,
                         stale: false,
                         distanceFilter: 0 
                     },
                     function callback(location, error) {
-                        if (error) {
-                            console.error("Background location error:", error);
-                            return;
-                        }
-
-                        // Send the coordinates to your existing map/database function
+                        if (error) { console.error("Background location error:", error); return; }
                         const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
                         onLocationUpdate(pos);
                     }
                 );
 
                 startKeepAliveAudio();
-                
-                // Success!
-                alertBox.innerHTML = `<div class="alert alert-success border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">Background Tracking Started</div>`;
-                setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 3000);
-                
+                showAlert('Background Tracking Started', 'primary');
             } catch (e) {
                 showAlert('Plugin Error: ' + e.message, 'danger');
-                console.error("Capacitor BG Error:", e);
+                startWebGeolocation();
             }
         } else {
-            // Fallback for standard computer web browsers
             startWebGeolocation();
         }
     }
 
-    // --- THE WEBVIEW KEEP-ALIVE HACK ---
-    let keepAliveAudio = null;
+    function startWebGeolocation() {
+        if (!navigator.geolocation) return showAlert('No GPS support', 'danger');
+        watchId = navigator.geolocation.watchPosition(
+            onLocationUpdate,
+            (err) => showAlert('GPS Error: ' + err.message, 'danger'),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+        startKeepAliveAudio();
+        showAlert('Web Tracking Started', 'primary');
+    }
 
+    // --- THE AUTOPLAY BYPASS ---
+    let keepAliveAudio = null;
     function startKeepAliveAudio() {
         if (!keepAliveAudio) {
-            // A tiny, mathematically silent base64 audio file
             keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
             keepAliveAudio.loop = true;
-            // Because the user clicks the "Start" button, the browser allows this to autoplay!
-            keepAliveAudio.play().catch(e => console.log('Audio hack failed:', e));
+            keepAliveAudio.play().catch(e => {
+                console.log('Audio autoplay blocked. Waiting for touch interaction...');
+                // If the browser blocks it, wait for the user to tap the screen even once!
+                const playOnInteraction = () => {
+                    if (keepAliveAudio) keepAliveAudio.play().catch(()=>{});
+                    document.removeEventListener('touchstart', playOnInteraction);
+                    document.removeEventListener('click', playOnInteraction);
+                };
+                document.addEventListener('touchstart', playOnInteraction);
+                document.addEventListener('click', playOnInteraction);
+            });
         }
     }
 
@@ -602,83 +566,51 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             keepAliveAudio = null;
         }
     }
-    // -----------------------------------
 
+    // --- THE UNIFIED STOP TRACKING FUNCTION ---
     async function stopTracking() {
         stopKeepAliveAudio();
-        if (watchId !== null) {
-            try { navigator.geolocation.clearWatch(watchId); } catch(e){}
-            watchId = null;
-        }
-
-        // Clear the new Background Watcher directly from the bridge
-        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
-            try { 
-                await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); 
-            } catch(e){}
-            bgWatcherId = null;
-        }
-
-        try {
-            await fetch('../api.php?action=stop_tracking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bus_id: busId })
-            }).catch(()=>{});
-        } catch (e) {}
-
-        window.location.href = 'conductor.php?stopped=1';
-    }
-
-    // Standard web tracking fallback
-    function startWebGeolocation() {
-        if (!navigator.geolocation) return showAlert('No GPS support', 'danger');
         
-        watchId = navigator.geolocation.watchPosition(
-            onLocationUpdate,
-            (err) => showAlert('GPS Error: ' + err.message, 'danger'),
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-        );
-        showAlert('Web Tracking Started', 'primary');
-    }
-
-    async function stopTracking() {
-        // 1. Clear standard web watcher
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
         }
-
-        // 2. Clear Capacitor background watcher
         if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
-            try { 
-                await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); 
-            } catch(e){}
+            try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
             bgWatcherId = null;
         }
 
-        // 3. Tell the database to release the bus
+        const payload = { bus_id: busId };
         try {
-            await fetch('../api.php?action=stop_tracking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ bus_id: busId })
-            }).catch(()=>{});
-        } catch (e) {}
+            const absoluteUrl = new URL('../api.php?action=stop_tracking', window.location.href).href;
+            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
+                // Guaranteed to bypass InfinityFree Security
+                await window.Capacitor.Plugins.CapacitorHttp.post({
+                    url: absoluteUrl,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: payload
+                });
+            } else {
+                await fetch('../api.php?action=stop_tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+            }
+        } catch (e) {
+            console.error("Stop tracking error:", e);
+        }
 
         window.location.href = 'conductor.php?stopped=1';
     }
 
     function triggerManualUpdate() {
-        if (!lastKnownLocation) {
-            showAlert('Waiting for GPS fix...', 'info');
-            return;
-        }
-
-        const autoStatus = autoComputeStatus(lastKnownLocation.lat, lastKnownLocation.lng);
-        const statusSelect = el('statusSelect');
-        if (statusSelect) statusSelect.value = autoStatus;
-
+        if (!lastKnownLocation) return;
         sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
         lastNetworkSync = Date.now();
     }
@@ -699,37 +631,13 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             triggerManualUpdate();
         });
 
-        // --- NEW CODE: THE HEARTBEAT ---
-        // Force a database update every 10 seconds, even if the bus is parked/stationary
         setInterval(() => {
-            if (lastKnownLocation) {
-                // Only force an update if the GPS hasn't naturally triggered one recently
-                if (Date.now() - lastNetworkSync > 8000) {
-                    console.log("Heartbeat ping: Forcing update while stationary");
-                    triggerManualUpdate();
-                }
+            if (lastKnownLocation && (Date.now() - lastNetworkSync > 8000)) {
+                triggerManualUpdate();
             }
         }, 10000);
-        // -------------------------------
 
-        el('stopBtn').addEventListener('click', () => {
-            stopTracking();
-        });
-
-        const currentLocationEl = el('currentLocation');
-        if (currentLocationEl) {
-            currentLocationEl.addEventListener('click', (ev) => {
-                const href = currentLocationEl.getAttribute('href');
-                if (!href || href === '#') {
-                    ev.preventDefault();
-                    if (lastKnownLocation) {
-                        showAlert(`Location: ${lastKnownLocation.locName}`, 'info');
-                    } else {
-                        showAlert('Waiting for GPS fix...', 'info');
-                    }
-                }
-            });
-        }
+        el('stopBtn').addEventListener('click', stopTracking);
     });
     </script>
 </body>
