@@ -84,8 +84,7 @@ header('Content-Type: text/html; charset=utf-8');
     // Test OneSignal API directly
     echo '<h2 style="margin-top:30px">OneSignal API Test</h2>';
 
-    define('ONESIGNAL_APP_ID', 'b755dd29-1de2-4cf1-9381-6a9b436bc049');
-    define('ONESIGNAL_REST_API_KEY', 'os_v2_app_w5k52ki54jgpde4bnknug26ajffmpqdyhshutleosxotea2neg6pcnw6lqotnv67mcb7p3rr3d37pglprqyefcfihmdnqxbijny3pzi');
+    require_once '../config/onesignal.php';
 
     // Get a valid player ID to test with
     $validTokens = $conn->query("SELECT player_id FROM user_onesignal_tokens WHERE LENGTH(player_id) >= 30 LIMIT 1");

@@ -112,7 +112,50 @@ ByaHero-Prototype-V2/
 - Database is a single SQLite file for easy portability
 - All dependencies loaded from CDN (no build process required)
 
-## Future Enhancements
+## OneSignal Push Notifications Setup
+
+ByaHero uses [OneSignal](https://onesignal.com) for SOS push alerts sent to emergency contacts.
+
+### Required credentials
+
+| Variable | Where to find it |
+|---|---|
+| `ONESIGNAL_APP_ID` | OneSignal Dashboard → Your App → Settings → Keys & IDs |
+| `ONESIGNAL_REST_API_KEY` | Same page — use the **REST API Key** (not Safari or user-auth keys) |
+
+### Configuration (never commit real keys)
+
+```bash
+cp config/onesignal.local.php.example config/onesignal.local.php
+# Edit config/onesignal.local.php and fill in your real App ID and REST API Key
+```
+
+`config/onesignal.local.php` is listed in `.gitignore` and is loaded automatically
+by `backend/sendSosAlert.php` and `backend/test_push.php` at runtime.
+
+For server environments without a local file, export environment variables instead:
+
+```bash
+export ONESIGNAL_APP_ID="your-app-id"
+export ONESIGNAL_REST_API_KEY="your-rest-api-key"
+```
+
+### Testing device registration
+
+1. Open the app on your Android/iOS device inside the ByaHero native wrapper.
+2. Log in to your passenger account.
+3. Navigate to: `public/passenger/onesignal_debug.php`
+4. The page will automatically attempt to pull your subscription ID and save it to the database.
+5. Check the **Subscription IDs in Database** section — your ID should appear there.
+6. To send a test push: call `backend/test_push.php` (requires `config/onesignal.local.php`).
+
+### Troubleshooting
+
+- **"No SDK found"** — You must open the page inside the native app, not a plain browser.
+- **"No subscription ID after 20 s"** — Check that `google-services.json` / `GoogleService-Info.plist` is correctly placed and that FCM is enabled in the OneSignal dashboard.
+- **Token saved but no push received** — Ensure `ONESIGNAL_REST_API_KEY` is correct and that `include_subscription_ids` is used in the payload (not `include_player_ids`).
+
+
 
 - User authentication for conductors
 - WebSocket support for real-time updates
