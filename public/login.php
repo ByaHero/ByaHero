@@ -140,30 +140,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         }
 
                         document.addEventListener('deviceready', async function () {
-                            // Fallback: If OneSignal completely stalls, proceed after 10 seconds anyway
-                            let safetyTimeout = setTimeout(proceed, 10000);
+                            // Reduced safety timeout to 4s for better UX. 
+                            // If this misses, navbarPassenger.php will catch the token on the next page.
+                            let safetyTimeout = setTimeout(proceed, 4000);
 
                             try {
                                 if (window.plugins && window.plugins.OneSignal) {
                                     console.log('[Login] OneSignal is loaded. Requesting permission & opt-in...');
                                     const OS = window.plugins.OneSignal;
 
-                                    // 1) Request notification permission (auto-subscribe)
-                                    try {
-                                        const hasPerm = await OS.Notifications.hasPermission();
-                                        if (!hasPerm) {
-                                            await OS.Notifications.requestPermission(true);
-                                        }
-                                    } catch (pe) {
-                                        console.warn('[Login] requestPermission failed:', pe);
-                                    }
+                                    // FIX 1: Explicitly initialize the SDK (Required for v5)
+                                    OS.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
 
-                                    // 2) Opt-in so device isn't stuck in opted-out state
+                                    // FIX 2: Explicitly tie the OneSignal session to the user immediately
+                                    OS.login("<?= $_SESSION['user_id'] ?>");
+
+                                    // FIX 3: Do NOT await the permission prompt. Awaiting pauses execution,
+                                    // causing the script to timeout if the user hesitates to click "Allow".
+                                    OS.Notifications.hasPermission().then(hasPerm => {
+                                        if (!hasPerm) {
+                                            OS.Notifications.requestPermission(true).catch(e => console.warn(e));
+                                        }
+                                    }).catch(pe => console.warn('[Login] requestPermission failed:', pe));
+
+                                    // Opt-in so device isn't stuck in opted-out state
                                     try { OS.User.pushSubscription.optIn(); } catch (oe) {
                                         console.warn('[Login] optIn() failed:', oe);
                                     }
 
-                                    // 3) Try to get ID immediately (async — more reliable than sync .id)
+                                    // Try to get ID immediately (async)
                                     let subId = null;
                                     try {
                                         subId = await OS.User.pushSubscription.getIdAsync();
@@ -179,7 +184,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                                     console.log('[Login] ID not ready yet, listening for change & polling...');
 
-                                    // 4) Listen for subscription change (fires when FCM assigns the token)
+                                    // Listen for subscription change (fires when FCM assigns the token)
                                     OS.User.pushSubscription.addEventListener('change', function (event) {
                                         const newId = (event && event.current && event.current.id) || OS.User.pushSubscription.id;
                                         if (newId && !_redirectDone) {
@@ -189,24 +194,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         }
                                     });
 
-                                    // 5) Poll every second (up to 8s) as a belt-and-suspenders fallback
+                                    // Poll every second (up to 4s)
                                     let pollCount = 0;
                                     const pollTimer = setInterval(async function () {
                                         if (_redirectDone) { clearInterval(pollTimer); return; }
                                         pollCount++;
                                         let pid = OS.User?.pushSubscription?.id;
                                         if (!pid) {
-                                            try { pid = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
-                                                console.warn('[Login] Poll getIdAsync() failed:', e);
-                                            }
+                                            try { pid = await OS.User.pushSubscription.getIdAsync(); } catch (e) {}
                                         }
                                         if (pid) {
                                             clearTimeout(safetyTimeout);
                                             clearInterval(pollTimer);
                                             syncThenRedirect(pid);
-                                        } else if (pollCount >= 8) {
+                                        } else if (pollCount >= 4) {
                                             clearInterval(pollTimer);
-                                            // Safety timeout will still fire if nothing else does
                                         }
                                     }, 1000);
                                 } else {
