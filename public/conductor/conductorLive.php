@@ -453,22 +453,24 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         };
 
         try {
-            // Native HTTP requires a full, absolute URL (not a relative one like '../')
-            // This automatically builds the full https://byahero.free.nf/... URL
             const absoluteUrl = new URL('../update_geo_location.php', window.location.href).href;
 
-            // 1. Check if we are running on the phone and have the Native HTTP plugin
             if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp && Capacitor.isNativePlatform()) {
                 
-                // Send via Android Native Layer (Bypasses the sleeping browser!)
+                // Native HTTP with Bot-Bypass Headers
                 await window.Capacitor.Plugins.CapacitorHttp.post({
                     url: absoluteUrl,
-                    headers: { 'Content-Type': 'application/json' },
-                    data: payload // Native HTTP takes the raw object, NO JSON.stringify needed here
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent, // <-- THE MAGIC FIX: Tells InfinityFree this is a real browser
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: payload
                 });
 
             } else {
-                // 2. Standard fallback for computer browsers
+                // Fallback for computer browsers
                 await fetch('../update_geo_location.php', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
