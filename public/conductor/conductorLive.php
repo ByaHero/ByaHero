@@ -106,7 +106,6 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/@capacitor/core@latest/dist/capacitor.global.js"></script>
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
 
     <style>
@@ -502,18 +501,23 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
     // Add a variable to store the background watcher ID
     let bgWatcherId = null;
-    
-    // 1. Initialize the plugin globally right here
-    let BackgroundGeolocation = null;
-    if (typeof Capacitor !== 'undefined') {
-        BackgroundGeolocation = Capacitor.registerPlugin('BackgroundGeolocation');
-    }
 
     async function startGeolocation() {
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
-        // 2. Check if the plugin loaded AND we are running natively on the phone
-        if (BackgroundGeolocation && Capacitor.isNativePlatform()) {
+        // 1. Check if the native Android bridge is successfully injected
+        if (window.Capacitor && window.Capacitor.Plugins) {
+            
+            // 2. Grab the plugin directly from the bridge
+            const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
+
+            // 3. Safety check: Did Android actually load the native plugin?
+            if (!BackgroundGeolocation) {
+                showAlert('Plugin missing from Android build!', 'danger');
+                console.error("Plugins Android actually loaded:", Object.keys(window.Capacitor.Plugins));
+                return;
+            }
+
             try {
                 // Request permissions
                 const permissions = await BackgroundGeolocation.requestPermissions();
@@ -542,37 +546,34 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                     }
                 );
                 
-                // If it succeeds, show a green success box!
+                // Success!
                 alertBox.innerHTML = `<div class="alert alert-success border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">Background Tracking Started</div>`;
                 setTimeout(() => { if (alertBox) alertBox.innerHTML = ''; }, 3000);
                 
             } catch (e) {
-                // If it fails, print the real error
                 showAlert('Plugin Error: ' + e.message, 'danger');
                 console.error("Capacitor BG Error:", e);
             }
         } else {
-            // 3. Fallback for when you test on a standard computer browser
+            // Fallback for standard computer web browsers
             startWebGeolocation();
         }
     }
 
     async function stopTracking() {
-        // Clear standard web watcher
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
         }
 
-        // Clear the new Background Watcher
-        if (bgWatcherId !== null && BackgroundGeolocation) {
+        // Clear the new Background Watcher directly from the bridge
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
             try { 
-                await BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); 
+                await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); 
             } catch(e){}
             bgWatcherId = null;
         }
 
-        // Tell the database to release the bus
         try {
             await fetch('../api.php?action=stop_tracking', {
                 method: 'POST',
