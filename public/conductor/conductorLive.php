@@ -519,6 +519,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                 );
 
                 startKeepAliveAudio();
+                acquireWakeLock();
                 showAlert('Background Tracking Started', 'primary');
             } catch (e) {
                 showAlert('Plugin Error: ' + e.message, 'danger');
@@ -537,7 +538,24 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
         );
         startKeepAliveAudio();
+        acquireWakeLock();
         showAlert('Web Tracking Started', 'primary');
+    }
+
+    // --- SCREEN WAKE LOCK (prevents Doze from pausing the WebView JS thread) ---
+    let wakeLock = null;
+    async function acquireWakeLock() {
+        if (!('wakeLock' in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                // Re-acquire when screen wakes up (e.g. user picks up phone)
+                if (document.visibilityState === 'visible') acquireWakeLock();
+            });
+        } catch (e) { console.warn('WakeLock not granted:', e); }
+    }
+    async function releaseWakeLock() {
+        if (wakeLock) { try { await wakeLock.release(); } catch(e){} wakeLock = null; }
     }
 
     // --- THE AUTOPLAY BYPASS ---
@@ -546,9 +564,9 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         if (!keepAliveAudio) {
             keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
             keepAliveAudio.loop = true;
+            keepAliveAudio.volume = 0.001; // Near-silent but non-zero keeps audio session alive
             keepAliveAudio.play().catch(e => {
                 console.log('Audio autoplay blocked. Waiting for touch interaction...');
-                // If the browser blocks it, wait for the user to tap the screen even once!
                 const playOnInteraction = () => {
                     if (keepAliveAudio) keepAliveAudio.play().catch(()=>{});
                     document.removeEventListener('touchstart', playOnInteraction);
@@ -567,9 +585,45 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }
     }
 
+    // --- VISIBILITY CHANGE: restart tracking if Android killed the watcher while screen was off ---
+    document.addEventListener('visibilitychange', async () => {
+        if (document.visibilityState === 'visible') {
+            // Re-acquire wake lock (it auto-releases when screen turns off)
+            acquireWakeLock();
+            // Re-start audio session if it got paused
+            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+            // If the background watcher was silently dropped (Android killed it), restart it
+            const trackingActive = bgWatcherId !== null || watchId !== null;
+            if (!trackingActive) {
+                console.warn('Watcher was lost — restarting geolocation...');
+                await startGeolocation();
+            } else if (lastKnownLocation) {
+                // Force an immediate sync on return so the passenger map updates without waiting
+                sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
+                lastNetworkSync = Date.now();
+            }
+        }
+    });
+
+    // --- CAPACITOR APP STATE: handle native foreground/background transitions ---
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                // App came back to foreground
+                acquireWakeLock();
+                if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+                if (lastKnownLocation) {
+                    sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
+                    lastNetworkSync = Date.now();
+                }
+            }
+        });
+    }
+
     // --- THE UNIFIED STOP TRACKING FUNCTION ---
     async function stopTracking() {
         stopKeepAliveAudio();
+        releaseWakeLock();
         
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
@@ -631,11 +685,18 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             triggerManualUpdate();
         });
 
-        setInterval(() => {
+        // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
+        setInterval(async () => {
+            const trackingActive = bgWatcherId !== null || watchId !== null;
+            if (!trackingActive) {
+                console.warn('Heartbeat detected dead watcher — restarting...');
+                await startGeolocation();
+                return;
+            }
             if (lastKnownLocation && (Date.now() - lastNetworkSync > 8000)) {
                 triggerManualUpdate();
             }
-        }, 10000);
+        }, 5000);
 
         el('stopBtn').addEventListener('click', stopTracking);
     });
