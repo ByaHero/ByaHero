@@ -4,7 +4,8 @@
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://byahero.free.nf/"
+    "url": "https://byahero.free.nf",
+    "cleartext": true
   },
   "allowNavigation": [
     "byahero.free.nf",

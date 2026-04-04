@@ -505,11 +505,12 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     async function startGeolocation() {
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
-        // 1. Check if running inside the Capacitor Native App
-        if (window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
-            const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
-
+        // 1. Check if the Capacitor bridge is injected
+        if (window.Capacitor) {
             try {
+                // MANUALLY REGISTER THE PLUGIN HERE
+                const BackgroundGeolocation = window.Capacitor.registerPlugin('BackgroundGeolocation');
+
                 // Request background permissions
                 const permissions = await BackgroundGeolocation.requestPermissions();
                 if (permissions.location !== 'granted') {
@@ -531,8 +532,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                             return;
                         }
 
-                        // Format the location to match what your existing code expects!
-                        // This allows the map, the status pill, AND the database to update seamlessly.
+                        // Format the location for the existing map function
                         const pos = {
                             coords: {
                                 latitude: location.latitude,
@@ -540,7 +540,6 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                             }
                         };
                         
-                        // Pass it to your existing onLocationUpdate function!
                         onLocationUpdate(pos);
                     }
                 );
@@ -550,7 +549,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                 startWebGeolocation(); // Fallback if plugin fails
             }
         } else {
-            // 2. Fallback if running in a normal web browser (not the app)
+            // 2. Fallback if Capacitor bridge is missing
             startWebGeolocation();
         }
     }
