@@ -583,48 +583,66 @@ else: ?>
   document.addEventListener('deviceready', async function () {
     if (window.plugins && window.plugins.OneSignal) {
       try {
-        // 1. Initialize OneSignal silently
+        // 1. Initialize OneSignal Silent Boot
         window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
 
-        // 2. Request Permission (Only shows a popup ONCE on Android 13/15. If already allowed, it stays silent)
-        const hasPermission = await window.plugins.OneSignal.Notifications.requestPermission(true);
+        // 2. Safely check permissions (so it doesn't crash on restart)
+        if (window.plugins.OneSignal.Notifications && !window.plugins.OneSignal.Notifications.hasPermission) {
+            await window.plugins.OneSignal.Notifications.requestPermission(true);
+        }
 
-        if (hasPermission) {
-          // 3. Force device to subscribe
-          window.plugins.OneSignal.User.pushSubscription.optIn();
+        // 3. Force device to remain subscribed
+        window.plugins.OneSignal.User.pushSubscription.optIn();
 
-          // 4. Background function to silently save token to database
-          const syncTokenToDB = (subId) => {
-            fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
-              method: 'POST',
-              credentials: 'include',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ player_id: subId })
-            })
-            .then(r => r.json())
-            .then(d => {
-               if(d.success) console.log("✓ Token silently synced to DB");
-            })
-            .catch(e => console.error("Token sync error:", e));
-          };
+        // 4. Background Database Sync Function
+        const syncTokenToDB = (subId) => {
+          if (!subId) return;
+          fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ player_id: subId })
+          })
+          .then(r => r.json())
+          .then(d => {
+             if(d.success) console.log("✓ Push token successfully restored on app restart!");
+          })
+          .catch(e => console.error("Token sync error:", e));
+        };
 
-          // 5. Grab the token instantly if Firebase is fast
-          const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
-          if (subId) {
-            syncTokenToDB(subId);
-          }
-
-          // 6. Wait and listen in the background if Firebase is slow
+        // 5. Try to grab the token immediately
+        let subId = window.plugins.OneSignal.User.pushSubscription.id;
+        
+        if (subId) {
+          // Token was already awake!
+          syncTokenToDB(subId);
+        } else {
+          // Token is asleep because the app just restarted. 
+          // Strategy A: Wait for the SDK to announce it's awake
           window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function(event) {
-            if (event.current.id) {
+            if (event.current && event.current.id) {
               syncTokenToDB(event.current.id);
             }
           });
-        } else {
-            console.warn("User denied push notifications.");
+
+          // Strategy B: Polling Fallback (Checks every 1 second for up to 10 seconds)
+          let attempts = 0;
+          let pollInterval = setInterval(() => {
+              attempts++;
+              let awakeId = window.plugins.OneSignal.User.pushSubscription.id;
+              
+              if (awakeId) {
+                  syncTokenToDB(awakeId);
+                  clearInterval(pollInterval); // Stop checking once we have it
+              }
+              
+              // Give up after 10 seconds to save battery
+              if (attempts >= 10) clearInterval(pollInterval); 
+          }, 1000);
         }
+
       } catch (e) {
-        console.error("OneSignal Background Init Error:", e);
+        console.error("OneSignal Restart Init Error:", e);
       }
     }
   }, false);
