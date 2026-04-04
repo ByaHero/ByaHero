@@ -20,4 +20,3 @@ if (!defined('FIREBASE_FUNCTIONS_PUSH_URL')) {
 if (!defined('FIREBASE_FUNCTIONS_AUTH_SECRET')) {
     define('FIREBASE_FUNCTIONS_AUTH_SECRET', (string) (getenv('FIREBASE_FUNCTIONS_AUTH_SECRET') ?: ''));
 }
-
