@@ -57,16 +57,21 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
       console.log('[OneSignal] Info received:', JSON.stringify(info));
 
-      // Try all possible property names for the subscription ID.
-      // NOTE: pushToken is the raw FCM/APNs device token — NOT the subscription ID.
+      // Try all possible property names for push-capable IDs/tokens.
       var id = info && (
+        info.pushToken ||
         info.subscriptionId ||
         info.oneSignalId ||
         info.userId ||
         info.oneSignalUserId ||
         info.playerId ||
         info.id ||
-        (info.subscription && info.subscription.id)
+        (info.subscription && (
+          info.subscription.pushToken ||
+          info.subscription.id ||
+          info.subscription.subscriptionId ||
+          info.subscription.playerId
+        ))
       );
 
       if (!id) {

@@ -112,33 +112,27 @@ ByaHero-Prototype-V2/
 - Database is a single SQLite file for easy portability
 - All dependencies loaded from CDN (no build process required)
 
-## OneSignal Push Notifications Setup
+## Firebase Cloud Functions Push Setup
 
-ByaHero uses [OneSignal](https://onesignal.com) for SOS push alerts sent to emergency contacts.
+ByaHero sends SOS push alerts through a Firebase Cloud Function HTTP endpoint.
 
-### Required credentials
+### Required configuration
 
-| Variable | Where to find it |
+| Variable | Purpose |
 |---|---|
-| `ONESIGNAL_APP_ID` | OneSignal Dashboard → Your App → Settings → Keys & IDs |
-| `ONESIGNAL_REST_API_KEY` | Same page — use the **REST API Key** (not Safari or user-auth keys) |
+| `FIREBASE_FUNCTIONS_PUSH_URL` | Full HTTPS URL of your deployed Firebase Cloud Function that sends push notifications |
+| `FIREBASE_FUNCTIONS_AUTH_SECRET` | Optional bearer secret expected by your Cloud Function for request authentication |
 
-### Configuration (never commit real keys)
+### Configuration (never commit real secrets)
 
-```bash
-cp config/onesignal.local.php.example config/onesignal.local.php
-# Edit config/onesignal.local.php and fill in your real App ID and REST API Key
-```
-
-`config/onesignal.local.php` is listed in `.gitignore` and is loaded automatically
-by `backend/sendSosAlert.php` and `backend/test_push.php` at runtime.
-
-For server environments without a local file, export environment variables instead:
+Set environment variables on your server:
 
 ```bash
-export ONESIGNAL_APP_ID="your-app-id"
-export ONESIGNAL_REST_API_KEY="your-rest-api-key"
+export FIREBASE_FUNCTIONS_PUSH_URL="https://<region>-<project>.cloudfunctions.net/sendPush"
+export FIREBASE_FUNCTIONS_AUTH_SECRET="your-shared-secret"
 ```
+
+The backend loads these values from `config/firebase_push.php`.
 
 ### Testing device registration
 
@@ -147,13 +141,13 @@ export ONESIGNAL_REST_API_KEY="your-rest-api-key"
 3. Navigate to: `public/passenger/onesignal_debug.php`
 4. The page will automatically attempt to pull your subscription ID and save it to the database.
 5. Check the **Subscription IDs in Database** section — your ID should appear there.
-6. To send a test push: call `backend/test_push.php` (requires `config/onesignal.local.php`).
+6. To send a test push: call `backend/test_push.php` (requires `FIREBASE_FUNCTIONS_PUSH_URL`).
 
 ### Troubleshooting
 
 - **"No SDK found"** — You must open the page inside the native app, not a plain browser.
-- **"No subscription ID after 20 s"** — Check that `google-services.json` / `GoogleService-Info.plist` is correctly placed and that FCM is enabled in the OneSignal dashboard.
-- **Token saved but no push received** — Ensure `ONESIGNAL_REST_API_KEY` is correct and that `include_subscription_ids` is used in the payload (not `include_player_ids`).
+- **"No subscription ID after 20 s"** — Check that `google-services.json` / `GoogleService-Info.plist` is correctly placed and that FCM is enabled in your mobile app configuration.
+- **Token saved but no push received** — Ensure `FIREBASE_FUNCTIONS_PUSH_URL` is correct and that your Cloud Function accepts `{ tokens, title, body, data, priority, ttl }`.
 
 
 

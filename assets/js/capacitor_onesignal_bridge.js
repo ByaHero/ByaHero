@@ -37,9 +37,9 @@
 
   function extractId(info) {
     if (!info) return null;
-    return info.subscriptionId || info.oneSignalId || info.userId ||
+    return info.pushToken || info.subscriptionId || info.oneSignalId || info.userId ||
            info.oneSignalUserId || info.playerId || info.id ||
-           (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.playerId)) || null;
+           (info.subscription && (info.subscription.pushToken || info.subscription.id || info.subscription.subscriptionId || info.subscription.playerId)) || null;
   }
 
   function saveToken(playerId) {
@@ -97,9 +97,21 @@
             dbg('log', '[Capacitor SOS] Got subscription ID: ' + id);
             saveToken(id);
           }
-        }).catch(e => dbg('warn', e));
+        }).catch(e => {
+          dbg('warn', e);
+          try {
+            if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
+              saveToken(OS.User.pushSubscription.token);
+            }
+          } catch (_) {}
+        });
+        if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
+          saveToken(OS.User.pushSubscription.token);
+        }
       } else if (OS.getUserId) {
         OS.getUserId().then(id => id && saveToken(id));
+      } else if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
+        saveToken(OS.User.pushSubscription.token);
       }
     };
 
