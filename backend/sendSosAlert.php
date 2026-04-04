@@ -2,10 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
-
-// ── OneSignal Credentials ──
-define('ONESIGNAL_APP_ID', 'b755dd29-1de2-4cf1-9381-6a9b436bc049');
-define('ONESIGNAL_REST_API_KEY', 'os_v2_app_w5k52ki54jgpde4bnknug26ajffmpqdyhshutleosxotea2neg6pcnw6lqotnv67mcb7p3rr3d37pglprqyefcfihmdnqxbijny3pzi');
+require_once '../config/firebase_push.php';
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
@@ -69,17 +66,15 @@ try {
         $tokenStmt->close();
     }
 
-    // 4. Blast the push notification to all found devices via OneSignal
+    // 4. Blast the push notification to all found devices via Firebase Cloud Functions
     $pushResult = ['skipped' => true];
     
     if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
         $payload = [
-            'app_id' => ONESIGNAL_APP_ID,
-            'target_channel' => 'push',
-            'include_aliases' => ['onesignal_id' => $playerIds],
-            'headings' => ['en' => '🚨 SOS Alert'],
-            'contents' => ['en' => "$senderName needs help$locSnippet!"],
+            'tokens' => array_values(array_unique($playerIds)),
+            'title' => '🚨 SOS Alert',
+            'body' => "$senderName needs help$locSnippet!",
             'data' => [
                 'type' => 'sos_alert',
                 'sender_name' => $senderName,
@@ -89,14 +84,20 @@ try {
             'ttl' => 3600
         ];
 
-        $ch = curl_init('https://onesignal.com/api/v1/notifications');
+        if (FIREBASE_FUNCTIONS_PUSH_URL === '') {
+            throw new RuntimeException('Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.');
+        }
+
+        $headers = ['Content-Type: application/json'];
+        if (FIREBASE_FUNCTIONS_AUTH_SECRET !== '') {
+            $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
+        }
+
+        $ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Basic ' . ONESIGNAL_REST_API_KEY
-            ],
+            CURLOPT_HTTPHEADER => $headers,
             CURLOPT_POSTFIELDS => json_encode($payload),
             CURLOPT_TIMEOUT => 10
         ]);
@@ -106,10 +107,11 @@ try {
         curl_close($ch);
 
         if ($error) {
-            error_log("OneSignal curl error: $error");
+            error_log("Firebase push curl error: $error");
             $pushResult = ['error' => $error];
         } else {
-            $pushResult = json_decode($response, true) ?? ['raw' => $response];
+            $decoded = json_decode($response, true);
+            $pushResult = is_array($decoded) ? $decoded : ['raw' => $response];
         }
     }
 

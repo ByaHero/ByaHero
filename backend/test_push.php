@@ -2,9 +2,7 @@
 session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
-
-// ── OneSignal Credentials (loaded from config/onesignal.php, never hard-coded) ──
-require_once '../config/onesignal.php';
+require_once '../config/firebase_push.php';
 
 // Force the test to use your User ID (12)
 $testUserId = 12; 
@@ -23,17 +21,19 @@ if (!$tokenRow) {
 
 $playerId = $tokenRow['player_id'];
 
-// 2. Build the Push Notification Payload
+if (FIREBASE_FUNCTIONS_PUSH_URL === '') {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
+    ]);
+    exit;
+}
+
 // 2. Build the Push Notification Payload
 $pushPayload = [
-    'app_id'          => ONESIGNAL_APP_ID,
-    
-    'target_channel'  => 'push',
-    // Use subscription/player IDs directly for targeting
-    'include_subscription_ids' => [$playerId],
-    
-    'headings'        => ['en' => '🚨 ByaHero SOS Test'],
-    'contents'        => ['en' => 'This is a test alert! If you see this, the bridge works perfectly.'],
+    'tokens'          => [$playerId],
+    'title'           => '🚨 ByaHero SOS Test',
+    'body'            => 'This is a test alert! If you see this, the bridge works perfectly.',
     'data'            => [
         'type'          => 'sos_alert',
         'sender_name'   => 'Test System',
@@ -41,15 +41,17 @@ $pushPayload = [
     ]
 ];
 
-// 3. Send it to OneSignal via cURL
-$ch = curl_init('https://onesignal.com/api/v1/notifications');
+// 3. Send it to Firebase Cloud Function via cURL
+$headers = ['Content-Type: application/json'];
+if (FIREBASE_FUNCTIONS_AUTH_SECRET !== '') {
+    $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
+}
+
+$ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL);
 curl_setopt_array($ch, [
     CURLOPT_RETURNTRANSFER => true,
     CURLOPT_POST           => true,
-    CURLOPT_HTTPHEADER     => [
-        'Content-Type: application/json',
-        'Authorization: Basic ' . ONESIGNAL_REST_API_KEY,
-    ],
+    CURLOPT_HTTPHEADER     => $headers,
     CURLOPT_POSTFIELDS     => json_encode($pushPayload),
     CURLOPT_TIMEOUT        => 10,
 ]);
@@ -61,6 +63,10 @@ curl_close($ch);
 if ($error) {
     echo json_encode(['success' => false, 'error' => $error]);
 } else {
-    echo json_encode(['success' => true, 'player_id_used' => $playerId, 'onesignal_response' => json_decode($response)]);
+    echo json_encode([
+        'success' => true,
+        'player_id_used' => $playerId,
+        'firebase_function_response' => json_decode($response, true)
+    ]);
 }
 ?>
