@@ -545,8 +545,12 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                 );
                 showAlert('Background Tracking Started', 'primary');
             } catch (e) {
+                // FORCE THE ERROR TO SHOW ON SCREEN
+                showAlert('Plugin Error: ' + e.message, 'danger');
                 console.error("Capacitor BG Error:", e);
-                startWebGeolocation(); // Fallback if plugin fails
+                
+                // Temporarily comment out the fallback so it doesn't hide the error
+                // startWebGeolocation(); 
             }
         } else {
             // 2. Fallback if Capacitor bridge is missing
