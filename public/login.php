@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Sends the token to registerOnesignalToken.php
                         function syncThenRedirect(playerId) {
-                            fetch('/backend/registerOnesignalToken.php', {
+                            fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
                                 method: 'POST',
                                 credentials: 'include',
                                 headers: { 'Content-Type': 'application/json' },
@@ -221,7 +221,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Try to save token, then redirect when done (or after timeout)
                         function syncThenRedirect(playerId) {
-                            fetch('/backend/registerOnesignalToken.php', {
+                            fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
                                 method: 'POST',
                                 credentials: 'include',
                                 headers: {
