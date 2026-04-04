@@ -575,92 +575,9 @@ else: ?>
   </div>
 </div>
 
-<!-- ==================== ONESIGNAL AUTO-REGISTRATION (Capacitor only) ==================== -->
 <script>
+  // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
-
-  let oneSignalInitialized = false;
-
-  async function syncOneSignalToken() {
-    if (oneSignalInitialized) return;
-    oneSignalInitialized = true;
-
-    console.log('[OneSignal] 🚀 Auto-registering token (Capacitor)...');
-
-    try {
-      // Initialize OneSignal
-      if (window.plugins && window.plugins.OneSignal) {
-        window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
-      }
-
-      // Force permission prompt (this fixes "Never Subscribed")
-      if (window.plugins && window.plugins.OneSignal && window.plugins.OneSignal.Notifications) {
-        const accepted = await window.plugins.OneSignal.Notifications.requestPermission(true);
-        console.log('[OneSignal] Permission accepted:', accepted);
-      }
-
-      // Get subscription ID immediately
-      let playerId = null;
-      if (window.plugins && window.plugins.OneSignal) {
-        try {
-          playerId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
-        } catch (e) {
-          console.log('[OneSignal] getIdAsync not ready yet');
-        }
-      }
-
-      // If not ready yet, listen for the change event (most reliable on Android)
-      if (!playerId) {
-        console.log('[OneSignal] Waiting for subscription change...');
-        const listener = (event) => {
-          if (event.current && event.current.id) {
-            console.log('[OneSignal] ✅ Got ID from change event:', event.current.id);
-            sendTokenToBackend(event.current.id);
-            // Remove listener after first success
-            if (window.plugins && window.plugins.OneSignal) {
-              window.plugins.OneSignal.User.pushSubscription.removeEventListener('change', listener);
-            }
-          }
-        };
-
-        if (window.plugins && window.plugins.OneSignal) {
-          window.plugins.OneSignal.User.pushSubscription.addEventListener('change', listener);
-        }
-        return;
-      }
-
-      if (playerId) {
-        console.log('[OneSignal] ✅ Got subscription ID immediately:', playerId);
-        sendTokenToBackend(playerId);
-      }
-    } catch (e) {
-      console.error('[OneSignal] ❌ Init error:', e);
-    }
-  }
-
-  function sendTokenToBackend(playerId) {
-    fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
-      method: 'POST',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id: playerId })
-    })
-    .then(r => r.json())
-    .then(d => {
-      if (d.success) {
-        console.log('✅ Token saved to DB for user', d.user_id);
-      } else {
-        console.error('❌ Token save failed:', d.message);
-      }
-    })
-    .catch(e => console.error('❌ Network error saving token:', e));
-  }
-
-  // Run automatically
-  document.addEventListener('deviceready', syncOneSignalToken, false);
-  document.addEventListener('DOMContentLoaded', () => {
-    setTimeout(syncOneSignalToken, 1200); // fallback for web testing / slow bridge
-  });
 </script>
 <script>
   document.addEventListener('deviceready', async function () {
