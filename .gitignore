@@ -1,2 +1,5 @@
 node_modules/
 android/
+
+# OneSignal local credentials (never commit real keys)
+config/onesignal.local.php

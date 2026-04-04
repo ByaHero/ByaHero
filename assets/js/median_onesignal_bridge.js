@@ -60,21 +60,21 @@
     return window._sosPendingToken || null;
   }
 
-  // Extracts the player/subscription ID from any Median/OneSignal info object
+  // Extracts the push subscription ID from any Median/OneSignal info object.
+  // NOTE: pushToken is the raw FCM/APNs device token – it is NOT a subscription ID
+  // and must not be sent to include_subscription_ids. It is intentionally omitted.
   function extractId(info) {
     if (!info) return null;
-    return info.oneSignalId
+    return info.subscriptionId
+        || info.oneSignalId
         || info.userId
-        || info.subscriptionId
         || info.oneSignalUserId
-        || info.pushToken
         || info.playerId
         || info.id
         || (info.subscription && (
               info.subscription.id
               || info.subscription.subscriptionId
               || info.subscription.playerId
-              || info.subscription.pushToken
               || info.subscription.userId
               || info.subscription.oneSignalId
            ))
@@ -431,7 +431,7 @@
         dbg('warn', '[SOS] Capacitor OneSignal lookup failed: ' + (e && e.message));
       }
       try {
-        // Newer SDKs expose User.PushSubscription.getId(); some builds expose User.onesignalId; legacy uses getUserId()
+        // Newer SDKs expose User.PushSubscription.getId() – this is the push subscription ID
         if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription
             && typeof OneSignal.User.PushSubscription.getId === 'function') {
           OneSignal.User.PushSubscription.getId()
@@ -439,18 +439,15 @@
             .catch(function() { resolve(null); });
           return;
         }
-        if (window.OneSignal && OneSignal.User && OneSignal.User.onesignalId) {
-          resolve(OneSignal.User.onesignalId || null);
-          return;
-        }
-        if (window.OneSignal && typeof OneSignal.userId === 'string' && OneSignal.userId) {
-          resolve(OneSignal.userId);
-          return;
-        }
+        // Legacy SDKs (v3/v4) expose getUserId() which returns the player/subscription ID
         if (window.OneSignal && typeof OneSignal.getUserId === 'function') {
           OneSignal.getUserId()
             .then(function(id) { resolve(id || null); })
             .catch(function() { resolve(null); });
+          return;
+        }
+        if (window.OneSignal && typeof OneSignal.userId === 'string' && OneSignal.userId) {
+          resolve(OneSignal.userId);
           return;
         }
       } catch (e) {
