@@ -321,8 +321,9 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                 <span class="chevron">v</span>
             </div>
             <div class="custom-select-options">
-                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'Laurel')">LAUREL - TANAUAN</div>
-                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'Tanauan')">TANAUAN - LAUREL</div>
+                <!-- FIX UI: the dropdown label should show the FULL selected route text -->
+                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</div>
+                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</div>
             </div>
             <input type="hidden" id="routeSelect" value="">
         </div>
