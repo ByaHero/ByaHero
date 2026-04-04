@@ -115,6 +115,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         // Sends the token to registerOnesignalToken.php
                         function syncThenRedirect(playerId) {
+                            console.log('[Login] Attempting to save token:', playerId);
+
                             fetch('<?= $baseUrl ?>/backend/registerOnesignalToken.php', {
                                 method: 'POST',
                                 credentials: 'include',
@@ -123,34 +125,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             })
                                 .then(function (r) { return r.json(); })
                                 .then(function (d) {
-                                    if (d.success) console.log('[Login] Token saved:', d.player_id);
-                                    else console.warn('[Login] Token save failed:', d.message);
+                                    if (d.success) {
+                                        console.log('[Login] ✓ Token saved successfully to DB!');
+                                    } else {
+                                        console.error('[Login] ❌ Token save failed backend logic:', d.message);
+                                    }
                                 })
-                                .catch(function (e) { console.warn('[Login] Token fetch error:', e.message); })
-                                .finally(function () { proceed(); });
+                                .catch(function (e) {
+                                    console.error('[Login] ❌ Fetch request failed entirely:', e.message);
+                                })
+                                .finally(function () {
+                                    proceed();
+                                });
                         }
 
                         document.addEventListener('deviceready', async function () {
-                            // Fallback: If OneSignal fails, proceed after 3 seconds anyway
-                            setTimeout(proceed, 3000);
+                            // Fallback: If OneSignal completely stalls, proceed after 6 seconds anyway
+                            let safetyTimeout = setTimeout(proceed, 6000);
 
                             try {
                                 if (window.plugins && window.plugins.OneSignal) {
+                                    console.log('[Login] OneSignal is loaded. Fetching ID...');
+
                                     // Get the Capacitor OneSignal Subscription ID
                                     const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
 
                                     if (subId) {
+                                        clearTimeout(safetyTimeout);
                                         syncThenRedirect(subId);
                                     } else {
+                                        console.log('[Login] ID not ready yet, waiting for change event...');
                                         // If not immediately available, listen for it to attach
                                         window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function (event) {
                                             if (event.current.id && !_redirectDone) {
+                                                clearTimeout(safetyTimeout);
                                                 syncThenRedirect(event.current.id);
                                             }
                                         });
                                     }
                                 } else {
-                                    // Not inside the Capacitor app (e.g., standard desktop browser)
+                                    console.warn('[Login] OneSignal plugin not found.');
                                     proceed();
                                 }
                             } catch (e) {
