@@ -346,6 +346,26 @@
     if (_registrationAttempted && !force) return Promise.resolve(false);
     _registrationAttempted = true;
 
+    // Capacitor plugin path (window.plugins.OneSignal)
+    try {
+      var capOS = window.plugins && window.plugins.OneSignal;
+      if (capOS && capOS.Notifications && typeof capOS.Notifications.requestPermission === 'function') {
+        dbg('log', '[SOS] Capacitor: calling requestPermission(true)');
+        return capOS.Notifications.requestPermission(true)
+          .then(function(granted) {
+            dbg('log', '[SOS] Capacitor requestPermission result: ' + granted);
+            try { capOS.User.pushSubscription.optIn(); } catch(e) {}
+            return granted;
+          })
+          .catch(function(e) {
+            dbg('warn', '[SOS] Capacitor requestPermission failed: ' + (e && e.message));
+            return false;
+          });
+      }
+    } catch (e) {
+      dbg('warn', '[SOS] Capacitor requestPermission threw: ' + (e && e.message));
+    }
+
     try {
       if (window.OneSignal && OneSignal.Notifications && typeof OneSignal.Notifications.requestPermission === 'function') {
         dbg('log', '[SOS] Called OneSignal.Notifications.requestPermission(true)');
@@ -389,6 +409,27 @@
 
   function tryOneSignalSdk() {
     return new Promise(function(resolve) {
+      try {
+        // Capacitor plugin path (window.plugins.OneSignal)
+        var capOS = window.plugins && window.plugins.OneSignal;
+        if (capOS && capOS.User && capOS.User.pushSubscription) {
+          // Prefer async getIdAsync() — most reliable on Capacitor
+          if (typeof capOS.User.pushSubscription.getIdAsync === 'function') {
+            capOS.User.pushSubscription.getIdAsync()
+              .then(function(id) { resolve(id || null); })
+              .catch(function() {
+                // Fall back to sync id property
+                resolve((capOS.User.pushSubscription.id) || null);
+              });
+            return;
+          }
+          // Sync id fallback
+          var capId = capOS.User.pushSubscription.id;
+          if (capId) { resolve(capId); return; }
+        }
+      } catch (e) {
+        dbg('warn', '[SOS] Capacitor OneSignal lookup failed: ' + (e && e.message));
+      }
       try {
         // Newer SDKs expose User.PushSubscription.getId(); some builds expose User.onesignalId; legacy uses getUserId()
         if (window.OneSignal && OneSignal.User && OneSignal.User.PushSubscription

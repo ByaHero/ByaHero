@@ -692,6 +692,16 @@ else: ?>
       console.log("[OneSignal] initialize()");
       OS.initialize(APP_ID);
 
+      // Tie the OneSignal subscription to this logged-in user account
+      <?php if (!empty($_SESSION['user_id'])): ?>
+      try {
+        OS.login("<?= (int)$_SESSION['user_id'] ?>");
+        console.log("[OneSignal] logged in with user_id: <?= (int)$_SESSION['user_id'] ?>");
+      } catch (e) {
+        console.warn("[OneSignal] login() failed:", e);
+      }
+      <?php endif; ?>
+
       // Request notification permission properly
       let hasPerm = false;
       try {
@@ -713,8 +723,13 @@ else: ?>
         console.warn("[OneSignal] optIn() failed:", e);
       }
 
-      // 1) Try immediate id
-      const idNow = OS.User?.pushSubscription?.id;
+      // 1) Try immediate id (async getIdAsync is more reliable than sync .id on some devices)
+      let idNow = OS.User?.pushSubscription?.id;
+      if (!idNow) {
+        try { idNow = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
+          console.warn("[OneSignal] getIdAsync() immediate failed:", e);
+        }
+      }
       console.log("[OneSignal] pushSubscription.id immediate:", idNow);
       if (idNow) registerIdToBackend(idNow);
 
@@ -726,11 +741,16 @@ else: ?>
         if (newId) registerIdToBackend(newId);
       });
 
-      // 3) Poll fallback (covers “id appears a bit later”)
+      // 3) Poll fallback (covers “id appears a bit later”) — uses getIdAsync for reliability
       let attempts = 0;
-      const poll = setInterval(() => {
+      const poll = setInterval(async () => {
         attempts++;
-        const id = OS.User?.pushSubscription?.id;
+        let id = OS.User?.pushSubscription?.id;
+        if (!id) {
+          try { id = await OS.User.pushSubscription.getIdAsync(); } catch (e) {
+            console.warn("[OneSignal] Poll getIdAsync() failed:", e);
+          }
+        }
         if (id) {
           console.log("[OneSignal] pushSubscription.id via poll:", id);
           registerIdToBackend(id);
