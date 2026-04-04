@@ -4,17 +4,17 @@ header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 require_once '../config/firebase_push.php';
 
+if (!isset($_SESSION['user_id'])) {
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    exit;
+}
+
 if (trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
     http_response_code(500);
     echo json_encode([
         'success' => false,
         'message' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
     ]);
-    exit;
-}
-
-if (!isset($_SESSION['user_id'])) {
-    echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
 

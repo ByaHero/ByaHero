@@ -4,8 +4,13 @@ header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 require_once '../config/firebase_push.php';
 
-// Force the test to use your User ID (12)
-$testUserId = 12; 
+if (!isset($_SESSION['user_id'])) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'message' => 'Not logged in']);
+    exit;
+}
+
+$testUserId = (int) $_SESSION['user_id'];
 
 // 1. Grab your Player ID from the database
 $stmt = $conn->prepare("SELECT player_id FROM user_onesignal_tokens WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1");
@@ -15,7 +20,7 @@ $result = $stmt->get_result();
 $tokenRow = $result->fetch_assoc();
 
 if (!$tokenRow) {
-    echo json_encode(['success' => false, 'message' => 'No Player ID found for User 12.']);
+    echo json_encode(['success' => false, 'message' => 'No push token found for current user.']);
     exit;
 }
 
@@ -66,7 +71,7 @@ if ($error) {
     echo json_encode([
         'success' => true,
         'player_id_used' => $playerId,
-        'firebase_function_response' => json_decode($response, true)
+        'firebase_function_response' => json_decode($response, true) ?? ['raw' => $response]
     ]);
 }
 ?>
