@@ -532,7 +532,7 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                         backgroundTitle: "Tracking ByaHero Bus.",
                         requestPermissions: true,
                         stale: false,
-                        distanceFilter: 3 
+                        distanceFilter: 0 
                     },
                     function callback(location, error) {
                         if (error) {
