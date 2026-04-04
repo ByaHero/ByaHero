@@ -284,24 +284,7 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   object-fit: contain;
   }
 </style>
-<script>
-  window._sosPendingToken = null;
-  window.gonative_onesignal_info = function (info) {
-    var id = info && (
-      info.oneSignalId || info.userId || info.subscriptionId ||
-      info.oneSignalUserId || info.pushToken || info.playerId || info.id ||
-      (info.subscription && (
-        info.subscription.id || info.subscription.subscriptionId ||
-        info.subscription.playerId || info.subscription.pushToken ||
-        info.subscription.userId || info.subscription.oneSignalId
-      ))
-    );
-    if (!id) return;
-    window._sosPendingToken = id;
-    if (window.sosBridge) window.sosBridge.saveToken(id);
-  };
-  window.median_onesignal_info = window.gonative_onesignal_info;
-</script>
+
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
 
@@ -596,7 +579,18 @@ else: ?>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
+<script>
+  // Initialize OneSignal when Capacitor is ready
+  document.addEventListener('deviceready', function () {
+    if (window.plugins && window.plugins.OneSignal) {
+      // Initialize with your App ID
+      window.plugins.OneSignal.initialize("b755dd29-1de2-4cf1-9381-6a9b436bc049");
+      
+      // Request permission (Required for iOS, Android 13+)
+      window.plugins.OneSignal.Notifications.requestPermission(true);
+    }
+  }, false);
+</script>
 
 <script>
   (function () {

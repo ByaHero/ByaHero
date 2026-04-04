@@ -87,7 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
 
                 // ── UI HANDOFF TO SYNC ONESIGNAL TOKEN ──
-?>
+                ?>
                 <!-- 
   REPLACE the handoff HTML block in login.php 
   (the block between "UI HANDOFF TO SYNC ONESIGNAL TOKEN" and the closing exit;)
@@ -103,16 +103,66 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     <!-- EARLY CATCHER: must be first script, before bridge loads -->
                     <script>
-                        window._sosPendingToken = null;
-                        window.gonative_onesignal_info = function(info) {
-                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
-                                (info.subscription && info.subscription.id) || info.oneSignalUserId);
-                            if (id) {
-                                window._sosPendingToken = id;
-                                if (window.sosBridge) window.sosBridge.saveToken(id);
+                        var _redirectUrl = "<?= addslashes($targetRedirect) ?>";
+                        var _redirectDone = false;
+
+                        function proceed() {
+                            if (!_redirectDone) {
+                                _redirectDone = true;
+                                window.location.replace(_redirectUrl);
                             }
-                        };
-                        window.median_onesignal_info = window.gonative_onesignal_info;
+                        }
+
+                        // Sends the token to registerOnesignalToken.php
+                        function syncThenRedirect(playerId) {
+                            fetch('/backend/registerOnesignalToken.php', {
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ player_id: playerId })
+                            })
+                                .then(function (r) { return r.json(); })
+                                .then(function (d) {
+                                    if (d.success) console.log('[Login] Token saved:', d.player_id);
+                                    else console.warn('[Login] Token save failed:', d.message);
+                                })
+                                .catch(function (e) { console.warn('[Login] Token fetch error:', e.message); })
+                                .finally(function () { proceed(); });
+                        }
+
+                        document.addEventListener('deviceready', async function () {
+                            // Fallback: If OneSignal fails, proceed after 3 seconds anyway
+                            setTimeout(proceed, 3000);
+
+                            try {
+                                if (window.plugins && window.plugins.OneSignal) {
+                                    // Get the Capacitor OneSignal Subscription ID
+                                    const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
+
+                                    if (subId) {
+                                        syncThenRedirect(subId);
+                                    } else {
+                                        // If not immediately available, listen for it to attach
+                                        window.plugins.OneSignal.User.pushSubscription.addEventListener('change', function (event) {
+                                            if (event.current.id && !_redirectDone) {
+                                                syncThenRedirect(event.current.id);
+                                            }
+                                        });
+                                    }
+                                } else {
+                                    // Not inside the Capacitor app (e.g., standard desktop browser)
+                                    proceed();
+                                }
+                            } catch (e) {
+                                console.error('[Login] OneSignal Error:', e);
+                                proceed();
+                            }
+                        }, false);
+
+                        // If deviceready doesn't fire (standard web browser), fallback immediately
+                        if (!window.cordova && !window.Capacitor) {
+                            setTimeout(proceed, 1000);
+                        }
                     </script>
 
                     <script src="/assets/js/median_onesignal_bridge.js"></script>
@@ -172,31 +222,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         // Try to save token, then redirect when done (or after timeout)
                         function syncThenRedirect(playerId) {
                             fetch('/backend/registerOnesignalToken.php', {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        player_id: playerId
-                                    })
+                                method: 'POST',
+                                credentials: 'include',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({
+                                    player_id: playerId
                                 })
-                                .then(function(r) {
+                            })
+                                .then(function (r) {
                                     return r.json();
                                 })
-                                .then(function(d) {
+                                .then(function (d) {
                                     if (d.success) console.log('[Login] Token saved, user_id:', d.user_id);
                                     else console.warn('[Login] Token save returned:', d.message);
                                 })
-                                .catch(function(e) {
+                                .catch(function (e) {
                                     console.warn('[Login] Token fetch error:', e.message);
                                 })
-                                .finally(function() {
+                                .finally(function () {
                                     proceed();
                                 });
                         }
 
-                        document.addEventListener('DOMContentLoaded', function() {
+                        document.addEventListener('DOMContentLoaded', function () {
                             // Safety: always redirect within 3 seconds no matter what
                             setTimeout(proceed, 3000);
 
@@ -209,7 +259,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             // Pull from Median JS API
                             if (window.gonative && window.gonative.onesignal) {
                                 window.gonative.onesignal.getInfo()
-                                    .then(function(info) {
+                                    .then(function (info) {
                                         var id = info && (info.oneSignalId || info.userId ||
                                             info.subscriptionId ||
                                             (info.subscription && info.subscription.id));
@@ -219,7 +269,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                             proceed();
                                         }
                                     })
-                                    .catch(function() {
+                                    .catch(function () {
                                         proceed();
                                     });
                             } else {
@@ -231,7 +281,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </body>
 
                 </html>
-<?php
+                <?php
                 exit;
             } else {
                 $err = 'Invalid email or password.';
@@ -484,7 +534,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', function () {
             const pwd = document.getElementById('password');
             const toggle = document.getElementById('togglePwd');
             const eye = document.getElementById('eyeIcon');
@@ -505,7 +555,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             syncIcon();
 
-            toggle.addEventListener('click', function() {
+            toggle.addEventListener('click', function () {
                 pwd.type = (pwd.type === 'password') ? 'text' : 'password';
                 syncIcon();
                 pwd.focus();

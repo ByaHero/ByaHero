@@ -7,6 +7,9 @@
     "url": "https://byahero.free.nf",
     "cleartext": true
   },
+  "android": {
+    "useLegacyBridge": true
+  },
   "allowNavigation": [
     "byahero.free.nf",
     "*.byahero.free.nf"

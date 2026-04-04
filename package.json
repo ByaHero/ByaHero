@@ -23,6 +23,7 @@
     "@capacitor/android": "^8.3.0",
     "@capacitor/cli": "^8.3.0",
     "@capacitor/core": "^8.3.0",
-    "@capacitor/geolocation": "^8.2.0"
+    "@capacitor/geolocation": "^8.2.0",
+    "onesignal-cordova-plugin": "^5.3.6"
   }
 }
