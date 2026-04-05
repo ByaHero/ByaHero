@@ -93,31 +93,23 @@
 
     dbg('log', '[Capacitor SOS] OneSignal plugin detected — setting up listeners');
 
-    // === ADD THIS NEW BLOCK: The Subscription Observer ===
-    // This catches the token the moment FCM finishes generating it, 
-    // or the moment the user taps "Allow" on the permission prompt.
+    // --- ADD THIS OBSERVER BACK ---
+    // This catches the token the millisecond Google finishes generating it
     try {
       if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.addEventListener === 'function') {
-        // For OneSignal v5 API
         OS.User.pushSubscription.addEventListener('change', function(event) {
-          dbg('log', '[Capacitor SOS] Push Subscription changed:', event);
-          var newId = event.current ? event.current.id : null;
-          if (!newId && OS.User.pushSubscription.token) {
-               newId = OS.User.pushSubscription.token;
-          }
+          var newId = (event.current && event.current.id) ? event.current.id : null;
+          if (!newId && OS.User.pushSubscription.token) newId = OS.User.pushSubscription.token;
           if (newId) saveToken(newId);
         });
       } else if (typeof OS.addSubscriptionObserver === 'function') {
-        // For OneSignal v4 API
         OS.addSubscriptionObserver(function(event) {
-          dbg('log', '[Capacitor SOS] Subscription Observer fired:', event);
-          var newId = event.to ? event.to.userId : null;
-          if (newId) saveToken(newId);
+          if (event.to && event.to.userId) saveToken(event.to.userId);
         });
       }
-    } catch (e) {
-       dbg('warn', '[Capacitor SOS] Error adding subscription observer:', e);
-    }
+    } catch (e) {}
+    // ------------------------------
+
     // =====================================================
 
     // Get subscription ID (player_id / onesignal_id)

@@ -79,38 +79,11 @@ function formatErrorMessage(err) {
     if (!err) return 'Unknown error';
     if (typeof err === 'string') return err;
     if (err.message) return err.message;
-    try { return JSON.stringify(err); } catch (jsonError) {}
+    try { return JSON.stringify(err); } catch (e) {}
     return String(err);
 }
 
-function extractTokenFromInfo(info) {
-    if (!info) return null;
-    const subscription = info.subscription || null;
-    const subscriptionToken = subscription && (
-        subscription.pushToken ||
-        subscription.id ||
-        subscription.subscriptionId ||
-        subscription.playerId
-    );
-    return info.pushToken ||
-           info.subscriptionId ||
-           info.oneSignalId ||
-           info.userId ||
-           info.oneSignalUserId ||
-           info.playerId ||
-           info.id ||
-           subscriptionToken ||
-           null;
-}
-
-// Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
-const CAPACITOR_READY_DELAY_MS = 700;
-// Empirically observed in field testing: ~800ms reliably allows native init context to settle after registration.
-const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
-const INIT_CONTEXT_ERROR_MARKER = 'initwithcontext';
 const CAPACITOR_ONESIGNAL_APP_ID = 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
-let _oneSignalInitialized = false;
-let _oneSignalInitializing = null;
 
 function setStatusMessage(text, className) {
     const el = document.getElementById('save-status');
@@ -124,164 +97,8 @@ function setDetectedMessage(text, className) {
     el.textContent = text || '';
 }
 
-function setDetectedTokenAndRegister(token) {
-    setDetectedMessage(token, 'fw-bold text-break');
-    registerToken(token);
-}
-
-/**
- * Waits for the specified number of milliseconds.
- * @param {number} ms Milliseconds to delay.
- * @returns {Promise<void>}
- */
-function sleep(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-// Attempts available Capacitor OneSignal registration APIs in priority order to make token reads ready.
-async function ensureCapacitorPushReady(oneSignalPlugin, attempts) {
-    if (!oneSignalPlugin) return;
-    await ensureOneSignalInitialized(oneSignalPlugin, attempts);
-
-    try {
-        if (oneSignalPlugin.Notifications && typeof oneSignalPlugin.Notifications.requestPermission === 'function') {
-            await oneSignalPlugin.Notifications.requestPermission(true);
-            return;
-        }
-    } catch (err) {
-        attempts && attempts.push('Capacitor requestPermission failed: ' + formatErrorMessage(err));
-    }
-
-    try {
-        if (typeof oneSignalPlugin.registerForPushNotifications === 'function') {
-            // Defensive: some plugin builds return void, others are thenable.
-            await Promise.resolve(oneSignalPlugin.registerForPushNotifications());
-            return;
-        }
-    } catch (err) {
-        attempts && attempts.push('Capacitor registerForPushNotifications failed: ' + formatErrorMessage(err));
-    }
-
-    try {
-        if (oneSignalPlugin.User && oneSignalPlugin.User.pushSubscription && typeof oneSignalPlugin.User.pushSubscription.optIn === 'function') {
-            // Defensive: support both sync and promise-returning implementations.
-            await Promise.resolve(oneSignalPlugin.User.pushSubscription.optIn());
-            return;
-        }
-    } catch (err) {
-        attempts && attempts.push('Capacitor pushSubscription.optIn failed: ' + formatErrorMessage(err));
-    }
-}
-
-async function ensureOneSignalInitialized(oneSignalPlugin, attempts) {
-    if (_oneSignalInitialized) return;
-    if (_oneSignalInitializing) {
-        await _oneSignalInitializing;
-        return;
-    }
-    _oneSignalInitializing = (async function() {
-        try {
-            if (typeof oneSignalPlugin.initialize === 'function') {
-                await Promise.resolve(oneSignalPlugin.initialize(CAPACITOR_ONESIGNAL_APP_ID));
-            } else if (typeof oneSignalPlugin.setAppId === 'function') {
-                oneSignalPlugin.setAppId(CAPACITOR_ONESIGNAL_APP_ID);
-            }
-            _oneSignalInitialized = true;
-        } catch (err) {
-            attempts && attempts.push('Capacitor init/setAppId failed: ' + formatErrorMessage(err));
-        }
-    })();
-    try {
-        await _oneSignalInitializing;
-    } finally {
-        _oneSignalInitializing = null;
-    }
-}
-
-async function pullFromCapacitor() {
-    setDetectedMessage('Fetching token...', 'fw-bold text-break text-warning');
-    const attempts = [];
-
-    try {
-        const OS = window.plugins && window.plugins.OneSignal;
-        if (OS) {
-            await ensureCapacitorPushReady(OS, attempts);
-
-            // Try v5
-            if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
-                try {
-                    const id = await OS.User.pushSubscription.getIdAsync();
-                    if (id) {
-                        setDetectedTokenAndRegister(id);
-                        return;
-                    }
-                    attempts.push('getIdAsync returned empty');
-                } catch (err) {
-                    attempts.push('getIdAsync failed: ' + formatErrorMessage(err));
-                }
-            }
-
-            // Try v4
-            if (typeof OS.getDeviceState === 'function') {
-                OS.getDeviceState(function(state) {
-                    if (state && state.userId) {
-                        setDetectedTokenAndRegister(state.userId);
-                    } else {
-                        const detected = document.getElementById('detected-id');
-                        detected.className = 'fw-bold text-break text-danger';
-                        detected.textContent = 'Device state ready, but token is null (Check Play Services/Permissions).';
-                    }
-                });
-                return; // Let the callback handle the rest
-            }
-
-            // Try v3
-            if (typeof OS.getIds === 'function') {
-                OS.getIds(function(ids) {
-                    if (ids && ids.userId) {
-                        setDetectedTokenAndRegister(ids.userId);
-                    } else {
-                        const detected = document.getElementById('detected-id');
-                        detected.className = 'fw-bold text-break text-danger';
-                        detected.textContent = 'getIds ready, but userId is null.';
-                    }
-                });
-                return; // Let the callback handle the rest
-            }
-        } else {
-            attempts.push('window.plugins.OneSignal unavailable');
-        }
-
-        const detected = document.getElementById('detected-id');
-        detected.className = 'fw-bold text-break text-danger';
-        detected.textContent = 'No token available yet. Open push permission first and retry in capacitor app.';
-        if (attempts.length) {
-            const detail = document.createElement('small');
-            detail.className = 'text-muted d-block mt-1';
-            detail.textContent = attempts.join(' | ');
-            detected.appendChild(detail);
-        }
-    } catch (e) {
-        const detected = document.getElementById('detected-id');
-        detected.className = 'fw-bold text-break text-danger';
-        detected.textContent = 'Error: ' + formatErrorMessage(e);
-    }
-}
-
-/**
- * Returns true when an error message indicates OneSignal native init-context timing failure.
- * @param {unknown} err Error object/string from plugin call.
- * @returns {boolean}
- */
-function isInitContextError(err) {
-    const message = formatErrorMessage(err).toLowerCase();
-    return message.includes(INIT_CONTEXT_ERROR_MARKER);
-}
-
 function registerToken(playerId) {
     setStatusMessage('Saving to database...', 'text-primary');
-
-    // We use a relative path here to avoid subfolder 404 errors
     fetch('../../backend/registerOnesignalToken.php', {
         method: 'POST',
         credentials: 'include',
@@ -290,99 +107,90 @@ function registerToken(playerId) {
     })
     .then(r => r.json())
     .then(d => {
-        if (d.success) {
-            setStatusMessage('✓ Saved successfully! Refresh page to see it above.', 'text-success fw-bold');
-        } else {
-            setStatusMessage('✗ Backend Error: ' + (d.message || 'Unknown backend error'), 'text-danger');
-        }
+        if (d.success) setStatusMessage('✓ Saved successfully! Refresh page to see it.', 'text-success fw-bold');
+        else setStatusMessage('✗ Backend Error: ' + (d.message || 'Unknown error'), 'text-danger');
     })
-    .catch(e => {
-        setStatusMessage('✗ Network error: ' + formatErrorMessage(e), 'text-danger');
-    });
+    .catch(e => setStatusMessage('✗ Network error: ' + formatErrorMessage(e), 'text-danger'));
+}
+
+async function checkTokenOnce(OS) {
+    // Try v5 API
+    if (OS.User && OS.User.pushSubscription) {
+        if (typeof OS.User.pushSubscription.getIdAsync === 'function') {
+            try { 
+                let id = await OS.User.pushSubscription.getIdAsync(); 
+                if (id) return id;
+            } catch(e) {}
+        }
+        if (OS.User.pushSubscription.token) return OS.User.pushSubscription.token;
+        if (OS.User.pushSubscription.id) return OS.User.pushSubscription.id;
+    }
+    
+    // Try v4 API
+    if (typeof OS.getDeviceState === 'function') {
+        return new Promise(resolve => {
+            OS.getDeviceState(state => resolve((state && state.userId) ? state.userId : null));
+        });
+    }
+
+    // Try v3 API
+    if (typeof OS.getIds === 'function') {
+        return new Promise(resolve => {
+            OS.getIds(ids => resolve((ids && ids.userId) ? ids.userId : null));
+        });
+    }
+    
+    // Try generic wrapper
+    if (typeof OS.getUserId === 'function') {
+        try { return await OS.getUserId(); } catch(e) {}
+    }
+    return null;
 }
 
 async function pullFromCapacitor() {
-    setDetectedMessage('Fetching token...', 'fw-bold text-break text-warning');
-    const attempts = [];
-
-    try {
-        const OS = window.plugins && window.plugins.OneSignal;
-        if (OS) {
-            await ensureCapacitorPushReady(OS, attempts);
-
-            if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
-                try {
-                    const id = await OS.User.pushSubscription.getIdAsync();
-                    if (id) {
-                        setDetectedTokenAndRegister(id);
-                        return;
-                    }
-                    attempts.push('Capacitor getIdAsync returned empty');
-                } catch (err) {
-                    attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
-                    if (isInitContextError(err)) {
-                        // Some builds need a short post-registration delay before getIdAsync can return.
-                        await sleep(CAPACITOR_INIT_RETRY_DELAY_MS);
-                        try {
-                            const retryId = await OS.User.pushSubscription.getIdAsync();
-                            if (retryId) {
-                                setDetectedTokenAndRegister(retryId);
-                                return;
-                            }
-                            attempts.push('Capacitor getIdAsync retry returned empty');
-                        } catch (retryErr) {
-                            attempts.push('Capacitor getIdAsync retry failed: ' + formatErrorMessage(retryErr));
-                        }
-                    }
-                }
-            }
-
-            if (OS.User && OS.User.pushSubscription) {
-                const tokenOrId = OS.User.pushSubscription.token || OS.User.pushSubscription.id;
-                if (tokenOrId) {
-                    setDetectedTokenAndRegister(tokenOrId);
-                    return;
-                }
-                attempts.push('Capacitor pushSubscription token/id unavailable');
-            }
-
-            if (typeof OS.getUserId === 'function') {
-                try {
-                    const id = await OS.getUserId();
-                    if (id) {
-                        setDetectedTokenAndRegister(id);
-                        return;
-                    }
-                    attempts.push('Capacitor getUserId returned empty');
-                } catch (err) {
-                    attempts.push('Capacitor getUserId failed: ' + formatErrorMessage(err));
-                }
-            }
-        } else {
-            attempts.push('window.plugins.OneSignal unavailable');
-        }
-
-        const detected = document.getElementById('detected-id');
-        detected.className = 'fw-bold text-break text-danger';
-        detected.textContent = 'No token available yet. Open push permission first and retry in Capacitor app.';
-        if (attempts.length) {
-            const detail = document.createElement('small');
-            detail.className = 'text-muted d-block mt-1';
-            detail.textContent = attempts.join(' | ');
-            detected.appendChild(detail);
-        }
-    } catch (e) {
-        const detected = document.getElementById('detected-id');
-        detected.className = 'fw-bold text-break text-danger';
-        detected.textContent = 'Error: ' + formatErrorMessage(e);
+    setDetectedMessage('Initializing OneSignal...', 'fw-bold text-break text-warning');
+    const OS = window.plugins && window.plugins.OneSignal;
+    
+    if (!OS) {
+        setDetectedMessage('window.plugins.OneSignal unavailable. Are you in the Capacitor app?', 'text-danger');
+        return;
     }
+
+    // Ensure Init
+    try {
+        if (typeof OS.initialize === 'function') OS.initialize(CAPACITOR_ONESIGNAL_APP_ID);
+        else if (typeof OS.setAppId === 'function') OS.setAppId(CAPACITOR_ONESIGNAL_APP_ID);
+        
+        if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
+            await OS.Notifications.requestPermission(true);
+        } else if (typeof OS.registerForPushNotifications === 'function') {
+            OS.registerForPushNotifications();
+        }
+    } catch(e) {}
+
+    // Polling Loop: Try every 2 seconds, up to 8 times (16 seconds total)
+    let attempts = 0;
+    const maxAttempts = 8;
+    
+    const pollInterval = setInterval(async () => {
+        attempts++;
+        setDetectedMessage(`Waiting for Google FCM Token... (Attempt ${attempts}/${maxAttempts})`, 'text-warning fw-bold');
+        
+        let token = await checkTokenOnce(OS);
+        
+        if (token) {
+            clearInterval(pollInterval);
+            setDetectedMessage(token, 'fw-bold text-break text-success');
+            registerToken(token);
+        } else if (attempts >= maxAttempts) {
+            clearInterval(pollInterval);
+            setDetectedMessage('No token returned after 16 seconds. Check device network or Google Play Services.', 'text-danger fw-bold');
+        }
+    }, 2000);
 }
 
-// Auto-run when Capacitor is ready
+// Start immediately
 document.addEventListener('deviceready', pullFromCapacitor, false);
-document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(pullFromCapacitor, CAPACITOR_READY_DELAY_MS);
-});
 </script>
 </body>
 </html>
