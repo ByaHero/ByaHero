@@ -1,26 +1,20 @@
 <?php
-// Accept requests from any origin (your Capacitor app)
+session_start();
+header('Content-Type: application/json');
+
+// Accept requests from your Capacitor app
 if (isset($_SERVER['HTTP_ORIGIN'])) {
     header("Access-Control-Allow-Origin: {$_SERVER['HTTP_ORIGIN']}");
 } else {
     header("Access-Control-Allow-Origin: *");
 }
-
 header('Access-Control-Allow-Credentials: true');
-
-// Handle preflight network requests
 if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) {
-        header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
-    }
-    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) {
-        header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
-    }
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_METHOD'])) header("Access-Control-Allow-Methods: GET, POST, OPTIONS");
+    if (isset($_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS'])) header("Access-Control-Allow-Headers: {$_SERVER['HTTP_ACCESS_CONTROL_REQUEST_HEADERS']}");
     exit(0);
 }
 
-session_start();
-header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 require_once '../config/firebase_push.php';
 
@@ -29,11 +23,19 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
+if (trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
+    ]);
+    exit;
+}
+
 $senderId = (int)$_SESSION['user_id'];
 $senderName = $_SESSION['user_name'] ?? ($_SESSION['user_email'] ?? 'A user');
-$hasPushEndpoint = trim((string) FIREBASE_FUNCTIONS_PUSH_URL) !== '';
 
-// 1. Get the payload from the frontend (the specific friends selected)
+// 1. Get the payload from the frontend
 $input = json_decode(file_get_contents('php://input'), true);
 $recipients = $input['recipients'] ?? [];
 $locationText = trim($input['location_text'] ?? '');
@@ -43,7 +45,6 @@ if (empty($recipients) || !is_array($recipients)) {
     exit;
 }
 
-// Clean the array to ensure they are valid integers
 $recipients = array_values(array_unique(array_map('intval', $recipients)));
 
 try {
@@ -52,7 +53,7 @@ try {
     $playerIds = [];
     $validRecipients = [];
 
-    // 2. Insert the SOS into the database so it shows up in their in-app Notification Bell
+    // 2. Insert the SOS into the database
     $insertStmt = $conn->prepare("INSERT INTO sos_alerts (sender_user_id, recipient_user_id, location_text, status) VALUES (?, ?, ?, 'active')");
     
     foreach ($recipients as $recipientId) {
@@ -64,7 +65,7 @@ try {
     }
     $insertStmt->close();
 
-    // 3. Look up the physical device tokens for everyone in the recipient list
+    // 3. Look up the physical device tokens (OneSignal Player IDs)
     if (!empty($validRecipients)) {
         $placeholders = implode(',', array_fill(0, count($validRecipients), '?'));
         $types = str_repeat('i', count($validRecipients));
@@ -87,15 +88,15 @@ try {
         $tokenStmt->close();
     }
 
-    // 4. Blast the push notification to all found devices via OneSignal REST API
+    // 4. Blast the push notification via OneSignal API
     $pushResult = ['skipped' => true];
     
     if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
         
-        // FORMATTED FOR ONESIGNAL
+        // --- THIS IS THE CRITICAL ONESIGNAL FORMAT FIX ---
         $payload = [
-            'app_id' => 'b755dd29-1de2-4cf1-9381-6a9b436bc049', // Your OneSignal App ID
+            'app_id' => 'b755dd29-1de2-4cf1-9381-6a9b436bc049', // Required by OneSignal
             'include_player_ids' => array_values(array_unique($playerIds)),
             'headings' => [
                 'en' => '🚨 SOS Alert'
@@ -110,12 +111,14 @@ try {
             ]
         ];
 
+        // OneSignal requires "Basic" authorization, not "Bearer"
         $headers = [
             'Content-Type: application/json',
-            'Authorization: Basic ' . FIREBASE_FUNCTIONS_AUTH_SECRET // This uses your os_v2_app... key
+            'Authorization: Basic ' . FIREBASE_FUNCTIONS_AUTH_SECRET
         ];
 
-        $ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL); // https://onesignal.com/api/v1/notifications
+        // Should be exactly: https://onesignal.com/api/v1/notifications
+        $ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
