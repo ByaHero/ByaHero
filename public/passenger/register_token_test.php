@@ -105,6 +105,7 @@ function extractTokenFromInfo(info) {
 
 // Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
 const CAPACITOR_READY_DELAY_MS = 700;
+// Brief post-registration wait helps some Android builds settle native OneSignal init context.
 const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
 
 function setStatusMessage(text, className) {
@@ -142,6 +143,7 @@ async function ensureCapacitorPushReady(OS, attempts) {
 
     try {
         if (typeof OS.registerForPushNotifications === 'function') {
+            // Defensive: some plugin builds return void, others are thenable.
             await Promise.resolve(OS.registerForPushNotifications());
             return;
         }
@@ -151,6 +153,7 @@ async function ensureCapacitorPushReady(OS, attempts) {
 
     try {
         if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
+            // Defensive: support both sync and promise-returning implementations.
             await Promise.resolve(OS.User.pushSubscription.optIn());
             return;
         }
