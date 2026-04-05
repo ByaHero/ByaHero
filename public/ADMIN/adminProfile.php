@@ -153,6 +153,9 @@ $iconMail = '../../assets/images/icons/mail.png';
 $iconPassword = '../../assets/images/icons/password.png';
 $iconEdit = '../../assets/images/icons/edit.png';
 
+/* ONLY CHANGE: show icon for password toggle */
+$iconShow = '../../assets/images/icons/show.png';
+
 /* navbarAdmin config (component) */
 $pageDepth = '../../';
 $pageType  = 'adminProfile';
@@ -358,6 +361,14 @@ $backLink  = 'admin.php';
             padding: 6px 8px;
         }
 
+        /* ONLY CHANGE: make the show.png icon bigger */
+        .pw-eye img{
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            display: block;
+        }
+
         .modal-actions{
             display: flex;
             justify-content: center;
@@ -457,17 +468,23 @@ $backLink  = 'admin.php';
             <form method="POST" action="adminProfile.php">
                 <div class="pw-wrap mb-3">
                     <input type="password" name="current_password" id="pwCurrent" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Current password" required>
-                    <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">👁</button>
+                    <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">
+                        <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
+                    </button>
                 </div>
 
                 <div class="pw-wrap mb-3">
                     <input type="password" name="new_password" id="pwNew" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="New password" required>
-                    <button type="button" class="pw-eye" data-target="pwNew" aria-label="Show password">👁</button>
+                    <button type="button" class="pw-eye" data-target="pwNew" aria-label="Show password">
+                        <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
+                    </button>
                 </div>
 
                 <div class="pw-wrap mb-4">
                     <input type="password" name="confirm_new_password" id="pwConfirm" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Confirm new password" required>
-                    <button type="button" class="pw-eye" data-target="pwConfirm" aria-label="Show password">👁</button>
+                    <button type="button" class="pw-eye" data-target="pwConfirm" aria-label="Show password">
+                        <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
+                    </button>
                 </div>
 
                 <div class="modal-actions">
@@ -485,7 +502,7 @@ $backLink  = 'admin.php';
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
 
-        // Toggle bar logic (same pattern as manageConductors, but for multiple fields)
+        // Toggle bar logic (show.png / 🙈)
         document.querySelectorAll('.pw-eye').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-target');
@@ -494,7 +511,10 @@ $backLink  = 'admin.php';
 
                 const isPw = input.type === 'password';
                 input.type = isPw ? 'text' : 'password';
-                btn.textContent = isPw ? '🙈' : '👁';
+
+                btn.innerHTML = isPw
+                    ? '🙈'
+                    : '<img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">';
             });
         });
     </script>
