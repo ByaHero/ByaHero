@@ -200,6 +200,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             proceed();
                         });
                     </script>
+                    <script src="../assets/js/capacitor_onesignal_bridge.js"></script>
                 </body>
 
                 </html>
@@ -454,6 +455,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </div>
         </div>
     </div>
+    <script src="../assets/js/capacitor_onesignal_bridge.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
