@@ -105,7 +105,7 @@ function extractTokenFromInfo(info) {
 
 // Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
 const CAPACITOR_READY_DELAY_MS = 700;
-// Empirical delay for Android/Capacitor builds where OneSignal init context appears shortly after registration.
+// Empirically observed in field testing: ~800ms reliably allows native init context to settle after registration.
 const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
 const INIT_CONTEXT_ERROR_MARKER = 'initwithcontext';
 
@@ -126,6 +126,11 @@ function setDetectedTokenAndRegister(token) {
     registerToken(token);
 }
 
+/**
+ * Waits for the specified number of milliseconds.
+ * @param {number} ms Milliseconds to delay.
+ * @returns {Promise<void>}
+ */
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -165,6 +170,11 @@ async function ensureCapacitorPushReady(OS, attempts) {
 }
 
 // Detects known native init-context timing failures from OneSignal plugin error messages.
+/**
+ * Returns true when an error message indicates OneSignal native init-context timing failure.
+ * @param {unknown} err Error object/string from plugin call.
+ * @returns {boolean}
+ */
 function isInitContextError(err) {
     const message = formatErrorMessage(err).toLowerCase();
     return message.includes(INIT_CONTEXT_ERROR_MARKER);
