@@ -45,11 +45,27 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../config/db_connection.php';
+require_once __DIR__ . '/../config/db_connection.php';
 
 $userId   = (int)$_SESSION['user_id'];
-$input    = json_decode(file_get_contents('php://input'), true);
-$playerId = trim($input['player_id'] ?? '');
+$playerId = '';
+
+if (isset($_POST['player_id'])) {
+    $playerId = trim((string)$_POST['player_id']);
+} else {
+    $raw = file_get_contents('php://input');
+    $input = json_decode($raw, true);
+    if (is_array($input) && isset($input['player_id'])) {
+        $playerId = trim((string)$input['player_id']);
+    }
+}
+
+if ($playerId !== '' && !preg_match('/^[A-Za-z0-9_-]{8,255}$/', $playerId)) {
+    http_response_code(400);
+    echo json_encode(['success' => false, 'message' => 'invalid player_id format']);
+    error_log('[registerOnesignalToken] Invalid player_id format');
+    exit;
+}
 
 error_log('[registerOnesignalToken] user_id=' . $userId . ' | player_id=' . $playerId);
 

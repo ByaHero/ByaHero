@@ -485,14 +485,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </div>
 
-    <!--
-        Bridge runs on the login page (before submit) so it can capture the
-        OneSignal token as early as possible and cache it in localStorage.
-        APP_BASE_URL must be set first so REGISTER_URL is built correctly.
-    -->
-    <script>window.APP_BASE_URL = "<?= addslashes($baseUrl) ?>";</script>
-    <script src="../assets/js/capacitor_onesignal_bridge.js"></script>
-
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const pwd = document.getElementById('password');

@@ -4,35 +4,68 @@
   const REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
   const ONESIGNAL_APP_ID = window.CAPACITOR_ONESIGNAL_APP_ID || 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
   const PENDING_KEY = 'byahero_pending_fcm_token';
+  const BRIDGE_LOCK_KEY = '__byaheroPushBridgeStarted';
 
-  const FAST_WINDOW_MS = 7000;
-  const TOTAL_WINDOW_MS = 30000;
-  const FAST_INTERVAL_MS = 180;
-  const NORMAL_INTERVAL_MS = 700;
+  const FAST_WINDOW_MS = 10000;
+  const TOTAL_WINDOW_MS = 120000;
+  const FAST_INTERVAL_MS = 150;
+  const NORMAL_INTERVAL_MS = 1200;
 
   let started = false;
   let registered = false;
   let inFlight = false;
   let lastPosted = null;
   let startedAt = Date.now();
+  let initialized = false;
+
+  function storageGet(k) {
+    try { return localStorage.getItem(k); } catch (e) { return null; }
+  }
+
+  function storageSet(k, v) {
+    try { localStorage.setItem(k, v); } catch (e) {}
+  }
+
+  function storageRemove(k) {
+    try { localStorage.removeItem(k); } catch (e) {}
+  }
+
+  function setPendingToken(token) {
+    if (!token) return;
+    storageSet(PENDING_KEY, token);
+    try { window._sosPendingToken = token; } catch (e) {}
+  }
 
   function log() {
     try { console.log.apply(console, ['[ByaHero Push]'].concat([].slice.call(arguments))); } catch(e) {}
   }
 
-  function postToken(token) {
+  function readTokenFromPayload(data) {
+    if (!data || typeof data !== 'object') return null;
+    return (
+      data.id ||
+      data.token ||
+      data.userId ||
+      data.subscriptionId ||
+      data.current?.id ||
+      data.current?.token ||
+      null
+    );
+  }
+
+  function postTokenUrlEncoded(token) {
     if (!token || registered) return Promise.resolve(false);
     if (inFlight && token === lastPosted) return Promise.resolve(false);
 
     inFlight = true;
     lastPosted = token;
-    localStorage.setItem(PENDING_KEY, token);
+    setPendingToken(token);
 
     return fetch(REGISTER_URL, {
       method: 'POST',
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ player_id: token })
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+      body: 'player_id=' + encodeURIComponent(token)
     })
     .then(function (r) {
       var ct = r.headers.get('content-type') || '';
@@ -42,20 +75,24 @@
     .then(function (d) {
       if (d && d.success) {
         registered = true;
-        localStorage.removeItem(PENDING_KEY);
-        log('✅ token registered user_id=', d.user_id);
+        storageRemove(PENDING_KEY);
+        log('token registered user_id=', d.user_id);
         return true;
       }
-      log('ℹ register deferred:', d && d.message);
+      log('register deferred:', d && d.message);
       return false;
     })
     .catch(function (e) {
-      log('⚠ register error:', e.message);
+      log('register error:', e.message);
       return false;
     })
     .finally(function () {
       inFlight = false;
     });
+  }
+
+  function postToken(token) {
+    return postTokenUrlEncoded(token);
   }
 
   function getV5Token(OS) {
@@ -92,7 +129,7 @@
   async function captureAndPost(OS) {
     if (registered) return;
 
-    var pending = localStorage.getItem(PENDING_KEY);
+    var pending = storageGet(PENDING_KEY);
     if (pending) {
       await postToken(pending);
       if (registered) return;
@@ -100,15 +137,22 @@
 
     var t = getV5Token(OS);
     if (t) {
+      setPendingToken(t);
       await postToken(t);
       if (registered) return;
     }
 
     var lt = await getLegacyToken(OS);
-    if (lt) await postToken(lt);
+    if (lt) {
+      setPendingToken(lt);
+      await postToken(lt);
+    }
   }
 
   function initOneSignal(OS) {
+    if (initialized) return;
+    initialized = true;
+
     try {
       if (typeof OS.initialize === 'function') OS.initialize(ONESIGNAL_APP_ID);
       else if (typeof OS.setAppId === 'function') OS.setAppId(ONESIGNAL_APP_ID);
@@ -119,14 +163,20 @@
     try {
       if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.addEventListener === 'function') {
         OS.User.pushSubscription.addEventListener('change', function (e) {
-          var id =
-            (e && e.current && (e.current.id || e.current.token)) ||
+          var id = readTokenFromPayload(e) ||
             (OS.User.pushSubscription && (OS.User.pushSubscription.id || OS.User.pushSubscription.token));
-          if (id) postToken(id);
+          if (id) {
+            setPendingToken(id);
+            postToken(id);
+          }
         });
       } else if (typeof OS.addSubscriptionObserver === 'function') {
         OS.addSubscriptionObserver(function (e) {
-          if (e && e.to && e.to.userId) postToken(e.to.userId);
+          var id = readTokenFromPayload(e && e.to ? e.to : e);
+          if (id) {
+            setPendingToken(id);
+            postToken(id);
+          }
         });
       }
     } catch (e) {
@@ -136,10 +186,20 @@
     try {
       if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
         OS.Notifications.requestPermission(true).then(function () {
-          setTimeout(function () { captureAndPost(OS); }, 300);
-          setTimeout(function () { captureAndPost(OS); }, 1200);
-          setTimeout(function () { captureAndPost(OS); }, 2500);
+          setTimeout(function () { captureAndPost(OS); }, 150);
+          setTimeout(function () { captureAndPost(OS); }, 800);
+          setTimeout(function () { captureAndPost(OS); }, 2000);
         }).catch(function () {});
+      }
+    } catch (e) {}
+
+    try {
+      if (typeof OS.promptForPushNotificationsWithUserResponse === 'function') {
+        OS.promptForPushNotificationsWithUserResponse(function () {
+          setTimeout(function () { captureAndPost(OS); }, 150);
+          setTimeout(function () { captureAndPost(OS); }, 800);
+          setTimeout(function () { captureAndPost(OS); }, 2000);
+        });
       }
     } catch (e) {}
   }
@@ -163,10 +223,15 @@
 
   function start() {
     if (started) return;
+    if (window[BRIDGE_LOCK_KEY]) return;
+    window[BRIDGE_LOCK_KEY] = true;
     started = true;
 
-    var pending = localStorage.getItem(PENDING_KEY);
-    if (pending) postToken(pending);
+    var pending = storageGet(PENDING_KEY);
+    if (pending) {
+      window._sosPendingToken = pending;
+      postToken(pending);
+    }
 
     var tries = 0;
     var timer = setInterval(function () {
@@ -181,7 +246,7 @@
         return;
       }
 
-      if (tries > 120) clearInterval(timer); // ~12s
+      if (tries > 200) clearInterval(timer); // ~20s
     }, 100);
   }
 
