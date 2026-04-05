@@ -93,21 +93,30 @@
 
     dbg('log', '[Capacitor SOS] OneSignal plugin detected — setting up listeners');
 
-    // --- ADD THIS OBSERVER BACK ---
-    // This catches the token the millisecond Google finishes generating it
+    // === ADD THIS PERMISSION PROMPT BLOCK ===
     try {
-      if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.addEventListener === 'function') {
-        OS.User.pushSubscription.addEventListener('change', function(event) {
-          var newId = (event.current && event.current.id) ? event.current.id : null;
-          if (!newId && OS.User.pushSubscription.token) newId = OS.User.pushSubscription.token;
-          if (newId) saveToken(newId);
+      // For OneSignal v5
+      if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
+        OS.Notifications.requestPermission(true).then(function(accepted) {
+          dbg('log', '[Capacitor SOS] User accepted notifications (v5):', accepted);
         });
-      } else if (typeof OS.addSubscriptionObserver === 'function') {
-        OS.addSubscriptionObserver(function(event) {
-          if (event.to && event.to.userId) saveToken(event.to.userId);
+      } 
+      // For OneSignal v4 / v3
+      else if (typeof OS.promptForPushNotificationsWithUserResponse === 'function') {
+        OS.promptForPushNotificationsWithUserResponse(function(accepted) {
+          dbg('log', '[Capacitor SOS] User accepted notifications (v4):', accepted);
         });
       }
-    } catch (e) {}
+      // Very old fallback
+      else if (typeof OS.registerForPushNotifications === 'function') {
+        OS.registerForPushNotifications();
+      }
+    } catch (e) {
+      dbg('warn', '[Capacitor SOS] Error requesting notification permission:', e);
+    }
+    // ========================================
+
+    // ... (rest of your existing setup code like observer and getSubscriptionId) ...
     // ------------------------------
 
     // =====================================================
