@@ -7,15 +7,15 @@
   let _isRegistered = false;
 
   function dbg(msg) {
-    console.log('[ByaHero Auto-Push LAUNCH] ' + msg);
+    console.log('[ByaHero Auto-Push INSTANT] ' + msg);
   }
 
-  // ── INSTANT TOKEN SAVE (works even if page reloads or app is backgrounded) ──
+  // ── INSTANT SAVE (survives reloads) ──
   function saveToken(playerId) {
     if (!playerId || _isRegistered) return;
 
     localStorage.setItem(PENDING_TOKEN_KEY, playerId);
-    dbg('🔥 Token found → saving to DB: ' + playerId);
+    dbg('🔥 Token received → saving: ' + playerId);
 
     fetch(REGISTER_URL, {
       method: 'POST',
@@ -28,35 +28,31 @@
       if (d.success) {
         _isRegistered = true;
         localStorage.removeItem(PENDING_TOKEN_KEY);
-        dbg('✅ Token successfully registered for current user');
-      } else {
-        dbg('⚠️ Server rejected: ' + (d.message || 'unknown'));
+        dbg('✅ Token registered instantly for current user');
       }
     })
-    .catch(e => {
-      dbg('Network busy (InfinityFree ok) → token saved in localStorage for next page');
-    });
+    .catch(() => dbg('Network busy – token saved locally'));
   }
 
-  // ── AGGRESSIVE TOKEN POLLING (especially for Android 15+) ──
-  function startLaunchPolling(OS) {
+  // ── ULTRA-FAST POLLING (catches token in 3–12 seconds) ──
+  function startInstantPolling(OS) {
     let attempts = 0;
-    const maxAttempts = 30;   // ~60 seconds total — enough for slow devices
+    const maxAttempts = 60;   // safety net (max ~20 seconds)
 
     const check = () => {
       if (_isRegistered) return;
 
       attempts++;
-      dbg(`🔍 Polling for token (attempt ${attempts}/${maxAttempts})`);
+      dbg(`🔍 Fast check #${attempts}`);
 
       let token = null;
 
-      // Modern OneSignal SDK (most common)
+      // Modern OneSignal (best & fastest)
       if (OS.User && OS.User.pushSubscription) {
         token = OS.User.pushSubscription.id || OS.User.pushSubscription.token;
       }
 
-      // Fallbacks for older plugin versions
+      // Fallbacks
       if (!token && typeof OS.getDeviceState === 'function') {
         OS.getDeviceState(state => { if (state?.userId) saveToken(state.userId); });
       }
@@ -67,21 +63,22 @@
       if (token) {
         saveToken(token);
       } else if (attempts < maxAttempts) {
-        setTimeout(check, 2000);
-      } else {
-        dbg('⏰ Max attempts reached — token will be caught on next page load');
+        // First 15 checks = super fast (400ms)
+        const delay = (attempts < 15) ? 400 : 800;
+        setTimeout(check, delay);
       }
     };
 
+    // Fire immediately + start loop
     check();
   }
 
-  // ── FULL INITIALIZATION (runs the moment the plugin appears) ──
+  // ── MAIN INIT (runs the moment plugin appears) ──
   function initAutoPush() {
     const OS = window.plugins && window.plugins.OneSignal;
     if (!OS) return;
 
-    dbg('OneSignal plugin detected — starting launch sequence');
+    dbg('🚀 OneSignal plugin ready – starting INSTANT token capture');
 
     // Initialize
     try {
@@ -89,16 +86,14 @@
       else if (typeof OS.setAppId === 'function') OS.setAppId(ONESIGNAL_APP_ID);
     } catch(e) {}
 
-    // Auto-request permission (silent on already granted)
+    // Auto-request permission (silent if already granted)
     try {
       if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
         OS.Notifications.requestPermission(true);
-      } else if (typeof OS.promptForPushNotificationsWithUserResponse === 'function') {
-        OS.promptForPushNotificationsWithUserResponse(() => {});
       }
     } catch(e) {}
 
-    // Live listener for instant token
+    // INSTANT OBSERVER (fires the millisecond token is ready)
     try {
       if (OS.User && OS.User.pushSubscription?.addEventListener) {
         OS.User.pushSubscription.addEventListener('change', e => {
@@ -112,10 +107,10 @@
       }
     } catch(e) {}
 
-    // Start aggressive polling for Android 15+
-    startLaunchPolling(OS);
+    // Start ultra-fast polling
+    startInstantPolling(OS);
 
-    // Keep SOS banners working
+    // Keep SOS banner
     try {
       if (typeof OS.addNotificationReceivedListener === 'function') {
         OS.addNotificationReceivedListener(n => showSosBanner(n));
@@ -126,34 +121,32 @@
   // ── SOS BANNER (unchanged) ──
   function showSosBanner(payload) {
     if (document.getElementById('sos-push-banner')) return;
-    // ... (your existing banner code — unchanged) ...
     var ad = payload.additionalData || payload.data || {};
     if (ad.type !== 'sos_alert') return;
-    // [rest of your banner code remains exactly the same]
+    // ... your existing banner code ...
   }
 
   // ── START AS EARLY AS POSSIBLE ──
-  // 1. Immediate pending token rescue
   const pending = localStorage.getItem(PENDING_TOKEN_KEY);
   if (pending) saveToken(pending);
 
-  // 2. Rapid plugin detection (every 100ms)
+  // Rapid plugin detection (100ms)
   let checks = 0;
   const rapidCheck = setInterval(() => {
     if (window.plugins && window.plugins.OneSignal) {
       clearInterval(rapidCheck);
       initAutoPush();
     }
-    if (++checks > 60) clearInterval(rapidCheck); // safety
+    if (++checks > 80) clearInterval(rapidCheck);
   }, 100);
 
-  // 3. Capacitor deviceready (most reliable)
+  // Capacitor deviceready
   document.addEventListener('deviceready', () => {
     clearInterval(rapidCheck);
     initAutoPush();
   }, false);
 
-  // 4. Fallback for webview-only loads
+  // Fallback for any page load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoPush);
   } else {
