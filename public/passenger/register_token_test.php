@@ -123,6 +123,40 @@ function setDetectedTokenAndRegister(token) {
     registerToken(token);
 }
 
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function ensureCapacitorPushReady(OS, attempts) {
+    if (!OS) return;
+
+    try {
+        if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
+            await OS.Notifications.requestPermission(true);
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor requestPermission failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (typeof OS.registerForPushNotifications === 'function') {
+            OS.registerForPushNotifications();
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor registerForPushNotifications failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
+            OS.User.pushSubscription.optIn();
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor pushSubscription.optIn failed: ' + formatErrorMessage(err));
+    }
+}
+
 function registerToken(playerId) {
     setStatusMessage('Saving to database...', 'text-primary');
 
@@ -153,6 +187,8 @@ async function pullFromCapacitor() {
     try {
         const OS = window.plugins && window.plugins.OneSignal;
         if (OS) {
+            await ensureCapacitorPushReady(OS, attempts);
+
             if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
                 try {
                     const id = await OS.User.pushSubscription.getIdAsync();
@@ -163,6 +199,19 @@ async function pullFromCapacitor() {
                     attempts.push('Capacitor getIdAsync returned empty');
                 } catch (err) {
                     attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
+                    // Some builds need registration/init context before getIdAsync can return.
+                    await ensureCapacitorPushReady(OS, attempts);
+                    await sleep(800);
+                    try {
+                        const retryId = await OS.User.pushSubscription.getIdAsync();
+                        if (retryId) {
+                            setDetectedTokenAndRegister(retryId);
+                            return;
+                        }
+                        attempts.push('Capacitor getIdAsync retry returned empty');
+                    } catch (retryErr) {
+                        attempts.push('Capacitor getIdAsync retry failed: ' + formatErrorMessage(retryErr));
+                    }
                 }
             }
 
