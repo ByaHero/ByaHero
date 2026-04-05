@@ -5,10 +5,10 @@
   var _saved = false;
   var _retryTimer = null;
   var _playerId = null;
-  var _autoPollTimer = null;
-  var _autoPollAttempts = 0;
+  var _registrationAttempted = false;
+  var _resumeCooldownTimer = null;
   var PENDING_TOKEN_KEY = 'sos_pending_token';
-  var MAX_AUTO_POLL_ATTEMPTS = 15;
+  var RESUME_COOLDOWN_MS = 800;
 
   function dbg(level, msg) {
     try { if (console && console[level]) console[level](msg); } catch(e) {}
@@ -73,7 +73,8 @@
   window.sosBridge = {
     saveToken: saveToken,
     isSaved: () => _saved,
-    getPlayerId: () => _playerId
+    getPlayerId: () => _playerId,
+    requestPushPermission: requestPushPermission
   };
 
   // ──────────────────────────────────────────────
@@ -116,6 +117,7 @@
     };
 
     // Auto-fetch token
+    ensurePushRegistration();
     getSubscriptionId();
 
     // Notification received while app is open
@@ -144,12 +146,90 @@
     return true;
   }
 
+  function ensurePushRegistration(force) {
+    if (_registrationAttempted && !force) return Promise.resolve(false);
+    _registrationAttempted = true;
+
+    const OS = window.plugins && window.plugins.OneSignal;
+    if (!OS) return Promise.resolve(false);
+
+    try {
+      if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
+        return OS.Notifications.requestPermission(true).catch(() => false);
+      }
+    } catch (_) {}
+
+    try {
+      if (typeof OS.registerForPushNotifications === 'function') {
+        OS.registerForPushNotifications();
+        return Promise.resolve(true);
+      }
+    } catch (_) {}
+
+    try {
+      if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
+        OS.User.pushSubscription.optIn();
+        return Promise.resolve(true);
+      }
+    } catch (_) {}
+
+    return Promise.resolve(false);
+  }
+
+  function requestPushPermission() {
+    return ensurePushRegistration(true).then(() => {
+      startAutoPoll();
+      return true;
+    });
+  }
+
   // In-app SOS banner (same as before)
   function showSosBanner(payload) {
     if (document.getElementById('sos-push-banner')) return;
-    // ... (exact same banner code you already have in median_onesignal_bridge.js)
-    // Copy the entire showSosBanner function from your old file here
-    // (I kept it identical so no UI change)
+    var ad      = payload.additionalData || payload.data || {};
+    var heading = payload.title   || payload.heading || 'SOS Alert';
+    var body    = payload.message || payload.body    || ((ad.sender_name || 'Someone') + ' needs help!');
+    var locText = ad.location_text || '';
+
+    var banner = document.createElement('div');
+    banner.id  = 'sos-push-banner';
+    Object.assign(banner.style, {
+      position: 'fixed', top: '0', left: '0', right: '0', zIndex: '99999',
+      background: 'linear-gradient(135deg,#dc3545,#b02a37)', color: '#fff',
+      padding: '14px 16px 12px', display: 'flex', alignItems: 'flex-start',
+      gap: '12px', cursor: 'pointer', fontFamily: '"Segoe UI",sans-serif',
+    });
+    banner.innerHTML =
+      '<span style="font-size:2rem;line-height:1;flex-shrink:0">&#128680;</span>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:700;font-size:.95rem;margin-bottom:2px">' + esc(heading) + '</div>' +
+        '<div style="font-size:.82rem;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(body) + '</div>' +
+        (locText ? '<div style="font-size:.75rem;opacity:.75;margin-top:3px">&#128205; ' + esc(locText) + '</div>' : '') +
+      '</div>' +
+      '<button id="sos-banner-x" style="background:none;border:none;color:#fff;font-size:1.3rem;cursor:pointer;flex-shrink:0">&#x2715;</button>';
+
+    document.body.appendChild(banner);
+    var t = setTimeout(dismiss, 8000);
+    banner.addEventListener('click', function(e) {
+      if (e.target.id === 'sos-banner-x') { clearTimeout(t); dismiss(); }
+      else { window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php'; }
+    });
+    if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+
+    function dismiss() {
+      var b = document.getElementById('sos-push-banner');
+      if (!b) return;
+      b.style.transition = 'transform .3s,opacity .3s';
+      b.style.transform  = 'translateY(-110%)';
+      b.style.opacity    = '0';
+      setTimeout(function() { if (b.parentElement) b.remove(); }, 320);
+    }
+  }
+
+  function esc(s) {
+    return String(s || '').replace(/[&<>"']/g, function(c) {
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]);
+    });
   }
 
   // Auto-poll + resume logic (same as before)
@@ -163,6 +243,8 @@
   // Resume when app comes back to foreground
   function resumeIfNeeded() {
     if (_saved) return;
+    if (_resumeCooldownTimer) return;
+    _resumeCooldownTimer = setTimeout(() => { _resumeCooldownTimer = null; }, RESUME_COOLDOWN_MS);
     const pending = getPendingToken();
     if (pending) saveToken(pending);
     startAutoPoll();
