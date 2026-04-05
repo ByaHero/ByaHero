@@ -1,6 +1,6 @@
 {
   "appId": "com.byahero.app",
-  "appName": "ByaHero",
+  "appName": "BH Conductor",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
@@ -9,6 +9,17 @@
   },
   "android": {
     "useLegacyBridge": true
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchShowDuration": 3000,
+      "launchAutoHide": true,
+      "backgroundColor": "#ffffff",
+      "androidSplashResourceName": "splash",
+      "androidScaleType": "CENTER_CROP",
+      "showSpinner": true,
+      "spinnerColor": "#0f3878"
+    }
   },
   "allowNavigation": [
     "byahero.free.nf",
