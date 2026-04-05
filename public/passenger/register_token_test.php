@@ -105,6 +105,9 @@ function extractTokenFromInfo(info) {
 
 // Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
 const CAPACITOR_READY_DELAY_MS = 700;
+// Empirically observed in field testing: ~800ms reliably allows native init context to settle after registration.
+const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
+const INIT_CONTEXT_ERROR_MARKER = 'initwithcontext';
 
 function setStatusMessage(text, className) {
     const el = document.getElementById('save-status');
@@ -121,6 +124,59 @@ function setDetectedMessage(text, className) {
 function setDetectedTokenAndRegister(token) {
     setDetectedMessage(token, 'fw-bold text-break');
     registerToken(token);
+}
+
+/**
+ * Waits for the specified number of milliseconds.
+ * @param {number} ms Milliseconds to delay.
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Attempts available Capacitor OneSignal registration APIs in priority order to make token reads ready.
+async function ensureCapacitorPushReady(oneSignalPlugin, attempts) {
+    if (!oneSignalPlugin) return;
+
+    try {
+        if (oneSignalPlugin.Notifications && typeof oneSignalPlugin.Notifications.requestPermission === 'function') {
+            await oneSignalPlugin.Notifications.requestPermission(true);
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor requestPermission failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (typeof oneSignalPlugin.registerForPushNotifications === 'function') {
+            // Defensive: some plugin builds return void, others are thenable.
+            await Promise.resolve(oneSignalPlugin.registerForPushNotifications());
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor registerForPushNotifications failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (oneSignalPlugin.User && oneSignalPlugin.User.pushSubscription && typeof oneSignalPlugin.User.pushSubscription.optIn === 'function') {
+            // Defensive: support both sync and promise-returning implementations.
+            await Promise.resolve(oneSignalPlugin.User.pushSubscription.optIn());
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor pushSubscription.optIn failed: ' + formatErrorMessage(err));
+    }
+}
+
+/**
+ * Returns true when an error message indicates OneSignal native init-context timing failure.
+ * @param {unknown} err Error object/string from plugin call.
+ * @returns {boolean}
+ */
+function isInitContextError(err) {
+    const message = formatErrorMessage(err).toLowerCase();
+    return message.includes(INIT_CONTEXT_ERROR_MARKER);
 }
 
 function registerToken(playerId) {
@@ -153,6 +209,8 @@ async function pullFromCapacitor() {
     try {
         const OS = window.plugins && window.plugins.OneSignal;
         if (OS) {
+            await ensureCapacitorPushReady(OS, attempts);
+
             if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
                 try {
                     const id = await OS.User.pushSubscription.getIdAsync();
@@ -163,6 +221,20 @@ async function pullFromCapacitor() {
                     attempts.push('Capacitor getIdAsync returned empty');
                 } catch (err) {
                     attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
+                    if (isInitContextError(err)) {
+                        // Some builds need a short post-registration delay before getIdAsync can return.
+                        await sleep(CAPACITOR_INIT_RETRY_DELAY_MS);
+                        try {
+                            const retryId = await OS.User.pushSubscription.getIdAsync();
+                            if (retryId) {
+                                setDetectedTokenAndRegister(retryId);
+                                return;
+                            }
+                            attempts.push('Capacitor getIdAsync retry returned empty');
+                        } catch (retryErr) {
+                            attempts.push('Capacitor getIdAsync retry failed: ' + formatErrorMessage(retryErr));
+                        }
+                    }
                 }
             }
 
