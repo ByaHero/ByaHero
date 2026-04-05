@@ -42,7 +42,7 @@ if (isset($_SESSION['user_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     
-    <script src="../assets/js/median_onesignal_bridge.js"></script>
+    <script src="../assets/js/capacitor_onesignal_bridge.js"></script>
 
     <style>
         /* Your existing CSS remains the same */
@@ -155,34 +155,9 @@ if (isset($_SESSION['user_id'])) {
                         if (window.sosBridge && window._sosPendingToken) {
                             console.log('[Signup] Using pending token:', window._sosPendingToken);
                             window.sosBridge.saveToken(window._sosPendingToken);
-                        } else if (window.gonative && window.gonative.onesignal) {
-                            console.log('[Signup] Calling gonative.onesignal.getInfo()...');
-                            window.gonative.onesignal.getInfo()
-                                .then(function(info) {
-                                    console.log('[Signup] getInfo() result:', JSON.stringify(info));
-                                    // Try ALL possible property names
-                                    var id = info && (
-                                        info.oneSignalId ||
-                                        info.userId ||
-                                        info.subscriptionId ||
-                                        info.oneSignalUserId ||
-                                        info.pushToken ||
-                                        info.playerId ||
-                                        info.id ||
-                                        (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken))
-                                    );
-                                    if (id && window.sosBridge) {
-                                        console.log('[Signup] Token found:', id);
-                                        window.sosBridge.saveToken(id);
-                                    } else {
-                                        console.warn('[Signup] No token yet, retrying in 500ms...');
-                                        setTimeout(trySaveToken, 500);
-                                    }
-                                })
-                                .catch(function(e) {
-                                    console.warn('[Signup] getInfo() error:', e);
-                                    setTimeout(trySaveToken, 500);
-                                });
+                        } else {
+                            console.warn('[Signup] No pending token yet, retrying in 500ms...');
+                            setTimeout(trySaveToken, 500);
                         }
                     }
                     trySaveToken();
