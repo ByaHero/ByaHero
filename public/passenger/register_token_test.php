@@ -136,12 +136,12 @@ function sleep(ms) {
 }
 
 // Attempts available Capacitor OneSignal registration APIs in priority order to make token reads ready.
-async function ensureCapacitorPushReady(OS, attempts) {
-    if (!OS) return;
+async function ensureCapacitorPushReady(oneSignalPlugin, attempts) {
+    if (!oneSignalPlugin) return;
 
     try {
-        if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
-            await OS.Notifications.requestPermission(true);
+        if (oneSignalPlugin.Notifications && typeof oneSignalPlugin.Notifications.requestPermission === 'function') {
+            await oneSignalPlugin.Notifications.requestPermission(true);
             return;
         }
     } catch (err) {
@@ -149,9 +149,9 @@ async function ensureCapacitorPushReady(OS, attempts) {
     }
 
     try {
-        if (typeof OS.registerForPushNotifications === 'function') {
+        if (typeof oneSignalPlugin.registerForPushNotifications === 'function') {
             // Defensive: some plugin builds return void, others are thenable.
-            await Promise.resolve(OS.registerForPushNotifications());
+            await Promise.resolve(oneSignalPlugin.registerForPushNotifications());
             return;
         }
     } catch (err) {
@@ -159,9 +159,9 @@ async function ensureCapacitorPushReady(OS, attempts) {
     }
 
     try {
-        if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
+        if (oneSignalPlugin.User && oneSignalPlugin.User.pushSubscription && typeof oneSignalPlugin.User.pushSubscription.optIn === 'function') {
             // Defensive: support both sync and promise-returning implementations.
-            await Promise.resolve(OS.User.pushSubscription.optIn());
+            await Promise.resolve(oneSignalPlugin.User.pushSubscription.optIn());
             return;
         }
     } catch (err) {
@@ -169,7 +169,6 @@ async function ensureCapacitorPushReady(OS, attempts) {
     }
 }
 
-// Detects known native init-context timing failures from OneSignal plugin error messages.
 /**
  * Returns true when an error message indicates OneSignal native init-context timing failure.
  * @param {unknown} err Error object/string from plugin call.
