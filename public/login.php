@@ -147,30 +147,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             var REDIRECT_URL = "<?= addslashes($targetRedirect) ?>";
                             var REGISTER_URL = "/backend/registerOnesignalToken.php";
                             var PENDING_KEY = "byahero_pending_fcm_token";
-
-                            // Max wait before forcing redirect (adjust 8000-12000 as needed)
                             var HARD_TIMEOUT_MS = 10000;
-
                             var done = false;
-                            var startedAt = Date.now();
 
-                            function log() {
-                                try { console.log.apply(console, ['[Login Token-First]'].concat([].slice.call(arguments))); } catch (e) { }
-                            }
-
-                            function proceed(reason) {
+                            function proceed() {
                                 if (done) return;
                                 done = true;
-                                log('➡ redirecting:', reason, '| waited(ms)=', Date.now() - startedAt);
                                 window.location.replace(REDIRECT_URL);
                             }
 
-                            // Registers token to backend (session now valid), resolves true/false
                             function registerToken(token) {
                                 if (!token) return Promise.resolve(false);
-
-                                log('registerToken start:', token);
-
                                 return fetch(REGISTER_URL, {
                                     method: 'POST',
                                     credentials: 'include',
@@ -179,41 +166,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 })
                                     .then(function (r) {
                                         var ct = r.headers.get('content-type') || '';
-                                        if (!ct.includes('application/json')) {
-                                            throw new Error('Non-JSON response (HTTP ' + r.status + ')');
-                                        }
+                                        if (!ct.includes('application/json')) throw new Error('Non-JSON response');
                                         return r.json();
                                     })
                                     .then(function (d) {
                                         if (d && d.success) {
                                             localStorage.removeItem(PENDING_KEY);
-                                            log('✅ token registered user_id=', d.user_id);
                                             return true;
                                         }
-                                        log('⚠ register returned:', d && d.message);
                                         return false;
                                     })
-                                    .catch(function (e) {
-                                        log('⚠ register error:', e.message);
-                                        return false;
-                                    });
+                                    .catch(function () { return false; });
                             }
 
-                            // Try to read OneSignal token from plugin if available
                             function readTokenFromPlugin() {
                                 return new Promise(function (resolve) {
                                     var OS = window.plugins && window.plugins.OneSignal;
                                     if (!OS) return resolve(null);
 
                                     try {
-                                        // v5
                                         if (OS.User && OS.User.pushSubscription) {
                                             var t = OS.User.pushSubscription.id || OS.User.pushSubscription.token || null;
                                             if (t) return resolve(t);
                                         }
                                     } catch (e) { }
 
-                                    // legacy fallbacks
                                     try {
                                         if (typeof OS.getDeviceState === 'function') {
                                             return OS.getDeviceState(function (state) {
@@ -234,53 +211,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 });
                             }
 
-                            // One pass:
-                            // 1) use pending localStorage token if exists
-                            // 2) else try plugin token
-                            // 3) if got token, register it
-                            async function trySyncOnce() {
-                                var pending = localStorage.getItem(PENDING_KEY);
-                                if (pending) {
-                                    log('pending token found in localStorage');
-                                    var ok = await registerToken(pending);
-                                    if (ok) return true;
+                            async function run() {
+                                setTimeout(proceed, HARD_TIMEOUT_MS);
+
+                                for (var i = 0; i < 16 && !done; i++) {
+                                    var pending = localStorage.getItem(PENDING_KEY);
+                                    if (pending) {
+                                        var ok = await registerToken(pending);
+                                        if (ok) return proceed();
+                                    }
+
+                                    var token = await readTokenFromPlugin();
+                                    if (token) {
+                                        localStorage.setItem(PENDING_KEY, token);
+                                        var ok2 = await registerToken(token);
+                                        if (ok2) return proceed();
+                                    }
+
+                                    await new Promise(function (r) { setTimeout(r, i < 6 ? 400 : 800); });
                                 }
 
-                                var pluginToken = await readTokenFromPlugin();
-                                if (pluginToken) {
-                                    localStorage.setItem(PENDING_KEY, pluginToken); // preserve first
-                                    log('plugin token found');
-                                    var ok2 = await registerToken(pluginToken);
-                                    if (ok2) return true;
-                                }
-
-                                return false;
+                                proceed();
                             }
 
-                            async function startTokenFirstFlow() {
-                                // Hard fallback redirect
-                                setTimeout(function () { proceed('hard-timeout'); }, HARD_TIMEOUT_MS);
-
-                                // Poll a few times quickly, then slower
-                                var attempts = 0;
-                                var maxAttempts = 16; // around 8-10 sec total
-                                while (!done && attempts < maxAttempts) {
-                                    attempts++;
-                                    log('sync attempt #' + attempts);
-
-                                    var success = await trySyncOnce();
-                                    if (success) return proceed('token-registered');
-
-                                    var delay = attempts < 6 ? 400 : 800;
-                                    await new Promise(function (r) { setTimeout(r, delay); });
-                                }
-
-                                proceed('no-token-yet');
-                            }
-
-                            document.addEventListener('DOMContentLoaded', function () {
-                                startTokenFirstFlow();
-                            });
+                            document.addEventListener('DOMContentLoaded', run);
                         })();
                     </script>
                 </body>
@@ -571,6 +525,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
     </script>
+    <?php require __DIR__ . '/partials/push_bootstrap.php'; ?>
 </body>
 
 </html>

@@ -1,36 +1,31 @@
 (function () {
   'use strict';
 
-  // ── CONFIG ──────────────────────────────────────────────────────────────────
   const REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
   const ONESIGNAL_APP_ID = window.CAPACITOR_ONESIGNAL_APP_ID || 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
   const PENDING_KEY = 'byahero_pending_fcm_token';
 
-  // aggressive timing profile
-  const FAST_WINDOW_MS = 7000;      // very frequent checks
-  const TOTAL_WINDOW_MS = 30000;    // stop heavy polling after this
-  const FAST_INTERVAL_MS = 180;     // aggressive early checks
-  const NORMAL_INTERVAL_MS = 700;   // backoff checks
+  const FAST_WINDOW_MS = 7000;
+  const TOTAL_WINDOW_MS = 30000;
+  const FAST_INTERVAL_MS = 180;
+  const NORMAL_INTERVAL_MS = 700;
 
-  let _started = false;
-  let _registered = false;
-  let _registerInFlight = false;
-  let _lastPostedToken = null;
-  let _startAt = Date.now();
+  let started = false;
+  let registered = false;
+  let inFlight = false;
+  let lastPosted = null;
+  let startedAt = Date.now();
 
   function log() {
-    try { console.log.apply(console, ['[ByaHero FastPush]'].concat([].slice.call(arguments))); } catch(e) {}
+    try { console.log.apply(console, ['[ByaHero Push]'].concat([].slice.call(arguments))); } catch(e) {}
   }
 
-  // ── POST TOKEN TO BACKEND ───────────────────────────────────────────────────
   function postToken(token) {
-    if (!token || _registered) return Promise.resolve(false);
-    if (_registerInFlight && _lastPostedToken === token) return Promise.resolve(false);
+    if (!token || registered) return Promise.resolve(false);
+    if (inFlight && token === lastPosted) return Promise.resolve(false);
 
-    _registerInFlight = true;
-    _lastPostedToken = token;
-
-    // persist first so nothing is lost
+    inFlight = true;
+    lastPosted = token;
     localStorage.setItem(PENDING_KEY, token);
 
     return fetch(REGISTER_URL, {
@@ -39,32 +34,30 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_id: token })
     })
-      .then(function (r) {
-        var ct = r.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) throw new Error('Non-JSON response (HTTP ' + r.status + ')');
-        return r.json();
-      })
-      .then(function (d) {
-        if (d && d.success) {
-          _registered = true;
-          localStorage.removeItem(PENDING_KEY);
-          log('✅ registered token for user_id=', d.user_id);
-          return true;
-        }
-        log('ℹ register deferred:', d && d.message);
-        return false;
-      })
-      .catch(function (e) {
-        // keep local token; retry later
-        log('⚠ register error, kept local token:', e.message);
-        return false;
-      })
-      .finally(function () {
-        _registerInFlight = false;
-      });
+    .then(function (r) {
+      var ct = r.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) throw new Error('Non-JSON response (HTTP ' + r.status + ')');
+      return r.json();
+    })
+    .then(function (d) {
+      if (d && d.success) {
+        registered = true;
+        localStorage.removeItem(PENDING_KEY);
+        log('✅ token registered user_id=', d.user_id);
+        return true;
+      }
+      log('ℹ register deferred:', d && d.message);
+      return false;
+    })
+    .catch(function (e) {
+      log('⚠ register error:', e.message);
+      return false;
+    })
+    .finally(function () {
+      inFlight = false;
+    });
   }
 
-  // ── TOKEN EXTRACTION ────────────────────────────────────────────────────────
   function getV5Token(OS) {
     try {
       if (OS.User && OS.User.pushSubscription) {
@@ -76,7 +69,6 @@
 
   function getLegacyToken(OS) {
     return new Promise(function (resolve) {
-      // v3/v4 getDeviceState
       try {
         if (typeof OS.getDeviceState === 'function') {
           return OS.getDeviceState(function (state) {
@@ -85,7 +77,6 @@
         }
       } catch (e) {}
 
-      // older getIds
       try {
         if (typeof OS.getIds === 'function') {
           return OS.getIds(function (ids) {
@@ -99,40 +90,32 @@
   }
 
   async function captureAndPost(OS) {
-    if (_registered) return;
+    if (registered) return;
 
-    // cached token first (fastest path after login/session changes)
-    var cached = localStorage.getItem(PENDING_KEY);
-    if (cached) {
-      await postToken(cached);
-      if (_registered) return;
+    var pending = localStorage.getItem(PENDING_KEY);
+    if (pending) {
+      await postToken(pending);
+      if (registered) return;
     }
 
-    // v5 immediate
     var t = getV5Token(OS);
     if (t) {
       await postToken(t);
-      if (_registered) return;
+      if (registered) return;
     }
 
-    // legacy fallback
     var lt = await getLegacyToken(OS);
-    if (lt) {
-      await postToken(lt);
-    }
+    if (lt) await postToken(lt);
   }
 
-  // ── ONESIGNAL INIT (single source of truth in JS) ──────────────────────────
   function initOneSignal(OS) {
     try {
       if (typeof OS.initialize === 'function') OS.initialize(ONESIGNAL_APP_ID);
       else if (typeof OS.setAppId === 'function') OS.setAppId(ONESIGNAL_APP_ID);
-      log('OneSignal initialized');
     } catch (e) {
-      log('OneSignal init note:', e.message);
+      log('init note:', e.message);
     }
 
-    // observer for instant capture when subscription becomes available
     try {
       if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.addEventListener === 'function') {
         OS.User.pushSubscription.addEventListener('change', function (e) {
@@ -141,90 +124,69 @@
             (OS.User.pushSubscription && (OS.User.pushSubscription.id || OS.User.pushSubscription.token));
           if (id) postToken(id);
         });
-        log('Attached v5 pushSubscription change listener');
       } else if (typeof OS.addSubscriptionObserver === 'function') {
         OS.addSubscriptionObserver(function (e) {
           if (e && e.to && e.to.userId) postToken(e.to.userId);
         });
-        log('Attached legacy subscription observer');
       }
     } catch (e) {
-      log('Observer attach note:', e.message);
+      log('observer note:', e.message);
     }
 
-    // request permission ASAP (Android 13+)
     try {
       if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
         OS.Notifications.requestPermission(true).then(function () {
-          // immediate retries right after dialog interaction
           setTimeout(function () { captureAndPost(OS); }, 300);
           setTimeout(function () { captureAndPost(OS); }, 1200);
           setTimeout(function () { captureAndPost(OS); }, 2500);
         }).catch(function () {});
-        log('Permission request triggered');
       }
     } catch (e) {}
   }
 
-  // ── POLLING STRATEGY ────────────────────────────────────────────────────────
-  function startAggressivePolling(OS) {
-    _startAt = Date.now();
+  function startPolling(OS) {
+    startedAt = Date.now();
 
     async function tick() {
-      if (_registered) return;
+      if (registered) return;
 
-      var elapsed = Date.now() - _startAt;
+      var elapsed = Date.now() - startedAt;
       await captureAndPost(OS);
-      if (_registered) return;
+      if (registered) return;
 
-      if (elapsed < FAST_WINDOW_MS) {
-        setTimeout(tick, FAST_INTERVAL_MS);   // very frequent first seconds
-      } else if (elapsed < TOTAL_WINDOW_MS) {
-        setTimeout(tick, NORMAL_INTERVAL_MS); // backoff
-      } else {
-        log('Polling window ended, token not yet registered (will retry next page/app load)');
-      }
+      if (elapsed < FAST_WINDOW_MS) setTimeout(tick, FAST_INTERVAL_MS);
+      else if (elapsed < TOTAL_WINDOW_MS) setTimeout(tick, NORMAL_INTERVAL_MS);
     }
 
     tick();
   }
 
-  // ── BOOT ─────────────────────────────────────────────────────────────────────
   function start() {
-    if (_started) return;
-    _started = true;
+    if (started) return;
+    started = true;
 
-    // immediate attempt with cached token even before plugin readiness
     var pending = localStorage.getItem(PENDING_KEY);
     if (pending) postToken(pending);
 
-    // wait for plugin readiness with short aggressive probe
     var tries = 0;
-    var probe = setInterval(function () {
+    var timer = setInterval(function () {
       var OS = window.plugins && window.plugins.OneSignal;
       tries++;
 
       if (OS) {
-        clearInterval(probe);
-        log('OneSignal plugin detected');
+        clearInterval(timer);
         initOneSignal(OS);
         captureAndPost(OS);
-        startAggressivePolling(OS);
+        startPolling(OS);
         return;
       }
 
-      if (tries > 120) { // ~12s max probe
-        clearInterval(probe);
-        log('OneSignal plugin not detected in probe window');
-      }
+      if (tries > 120) clearInterval(timer); // ~12s
     }, 100);
   }
 
-  // Start from all likely lifecycle points
   document.addEventListener('deviceready', start, false);
   document.addEventListener('DOMContentLoaded', start, false);
   if (document.readyState !== 'loading') start();
-
-  // extra nudge after full load
   window.addEventListener('load', function () { setTimeout(start, 0); });
 })();

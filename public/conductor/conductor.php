@@ -592,5 +592,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             el('startBtn').addEventListener('click', startTracking);
         });
     </script>
-</body>
+    </script>
+        <?php require __DIR__ . '/../partials/push_bootstrap.php'; ?>
+    </body>
 </html>
