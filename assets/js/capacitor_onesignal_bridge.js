@@ -177,9 +177,9 @@
   }
 
   function requestPushPermission() {
-    return ensurePushRegistration(true).then(() => {
+    return ensurePushRegistration(true).then((granted) => {
       startAutoPoll();
-      return true;
+      return !!granted;
     });
   }
 
@@ -228,7 +228,7 @@
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, function(c) {
-      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]);
+      return ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] || c);
     });
   }
 
