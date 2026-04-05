@@ -79,12 +79,19 @@ function formatErrorMessage(err) {
     if (!err) return 'Unknown error';
     if (typeof err === 'string') return err;
     if (err.message) return err.message;
-    try { return JSON.stringify(err); } catch (_) {}
+    try { return JSON.stringify(err); } catch (jsonError) {}
     return String(err);
 }
 
 function extractTokenFromInfo(info) {
     if (!info) return null;
+    const subscription = info.subscription || null;
+    const subscriptionToken = subscription && (
+        subscription.pushToken ||
+        subscription.id ||
+        subscription.subscriptionId ||
+        subscription.playerId
+    );
     return info.pushToken ||
            info.subscriptionId ||
            info.oneSignalId ||
@@ -92,12 +99,32 @@ function extractTokenFromInfo(info) {
            info.oneSignalUserId ||
            info.playerId ||
            info.id ||
-           (info.subscription && (info.subscription.pushToken || info.subscription.id || info.subscription.subscriptionId || info.subscription.playerId)) ||
+           subscriptionToken ||
            null;
 }
 
+// Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
+const CAPACITOR_READY_DELAY_MS = 700;
+
+function setStatusMessage(text, className) {
+    const el = document.getElementById('save-status');
+    el.className = className || '';
+    el.textContent = text || '';
+}
+
+function setDetectedMessage(text, className) {
+    const el = document.getElementById('detected-id');
+    el.className = className || '';
+    el.textContent = text || '';
+}
+
+function setDetectedTokenAndRegister(token) {
+    setDetectedMessage(token, 'fw-bold text-break');
+    registerToken(token);
+}
+
 function registerToken(playerId) {
-    document.getElementById('save-status').innerHTML = '<span class="text-primary">Saving to database...</span>';
+    setStatusMessage('Saving to database...', 'text-primary');
 
     // We use a relative path here to avoid subfolder 404 errors
     fetch('../../backend/registerOnesignalToken.php', {
@@ -109,18 +136,18 @@ function registerToken(playerId) {
     .then(r => r.json())
     .then(d => {
         if (d.success) {
-            document.getElementById('save-status').innerHTML = '<span class="text-success fw-bold">✓ Saved successfully! Refresh page to see it above.</span>';
+            setStatusMessage('✓ Saved successfully! Refresh page to see it above.', 'text-success fw-bold');
         } else {
-            document.getElementById('save-status').innerHTML = '<span class="text-danger">✗ Backend Error: ' + d.message + '</span>';
+            setStatusMessage('✗ Backend Error: ' + (d.message || 'Unknown backend error'), 'text-danger');
         }
     })
     .catch(e => {
-        document.getElementById('save-status').innerHTML = '<span class="text-danger">✗ Network error: ' + e.message + '</span>';
+        setStatusMessage('✗ Network error: ' + formatErrorMessage(e), 'text-danger');
     });
 }
 
 async function pullFromCapacitor() {
-    document.getElementById('detected-id').innerHTML = '<span class="text-warning">Fetching token...</span>';
+    setDetectedMessage('Fetching token...', 'fw-bold text-break text-warning');
     const attempts = [];
 
     try {
@@ -130,8 +157,7 @@ async function pullFromCapacitor() {
                 try {
                     const id = await OS.User.pushSubscription.getIdAsync();
                     if (id) {
-                        document.getElementById('detected-id').textContent = id;
-                        registerToken(id);
+                        setDetectedTokenAndRegister(id);
                         return;
                     }
                     attempts.push('Capacitor getIdAsync returned empty');
@@ -141,10 +167,9 @@ async function pullFromCapacitor() {
             }
 
             if (OS.User && OS.User.pushSubscription) {
-                const immediateId = OS.User.pushSubscription.token || OS.User.pushSubscription.id;
-                if (immediateId) {
-                    document.getElementById('detected-id').textContent = immediateId;
-                    registerToken(immediateId);
+                const tokenOrId = OS.User.pushSubscription.token || OS.User.pushSubscription.id;
+                if (tokenOrId) {
+                    setDetectedTokenAndRegister(tokenOrId);
                     return;
                 }
                 attempts.push('Capacitor pushSubscription token/id unavailable');
@@ -154,8 +179,7 @@ async function pullFromCapacitor() {
                 try {
                     const id = await OS.getUserId();
                     if (id) {
-                        document.getElementById('detected-id').textContent = id;
-                        registerToken(id);
+                        setDetectedTokenAndRegister(id);
                         return;
                     }
                     attempts.push('Capacitor getUserId returned empty');
@@ -173,23 +197,20 @@ async function pullFromCapacitor() {
                     && typeof window.OneSignal.User.PushSubscription.getId === 'function') {
                     const id = await window.OneSignal.User.PushSubscription.getId();
                     if (id) {
-                        document.getElementById('detected-id').textContent = id;
-                        registerToken(id);
+                        setDetectedTokenAndRegister(id);
                         return;
                     }
                 }
                 const fallbackSdkId = (window.OneSignal.User && window.OneSignal.User.onesignalId)
                     || window.OneSignal.userId;
                 if (fallbackSdkId) {
-                    document.getElementById('detected-id').textContent = fallbackSdkId;
-                    registerToken(fallbackSdkId);
+                    setDetectedTokenAndRegister(fallbackSdkId);
                     return;
                 }
                 if (typeof window.OneSignal.getUserId === 'function') {
                     const id = await window.OneSignal.getUserId();
                     if (id) {
-                        document.getElementById('detected-id').textContent = id;
-                        registerToken(id);
+                        setDetectedTokenAndRegister(id);
                         return;
                     }
                 }
@@ -204,8 +225,7 @@ async function pullFromCapacitor() {
                 const info = await Promise.resolve(window.gonative.onesignal.getInfo());
                 const id = extractTokenFromInfo(info);
                 if (id) {
-                    document.getElementById('detected-id').textContent = id;
-                    registerToken(id);
+                    setDetectedTokenAndRegister(id);
                     return;
                 }
                 attempts.push('gonative.onesignal.getInfo returned no token fields');
@@ -214,17 +234,26 @@ async function pullFromCapacitor() {
             }
         }
 
-        const detail = attempts.length ? '<br><small class="text-muted">' + attempts.join(' | ') + '</small>' : '';
-        document.getElementById('detected-id').innerHTML = '<span class="text-danger">No token available yet. Open push permission first and retry.</span>' + detail;
+        const detected = document.getElementById('detected-id');
+        detected.className = 'fw-bold text-break text-danger';
+        detected.textContent = 'No token available yet. Open push permission first and retry.';
+        if (attempts.length) {
+            const detail = document.createElement('small');
+            detail.className = 'text-muted d-block mt-1';
+            detail.textContent = attempts.join(' | ');
+            detected.appendChild(detail);
+        }
     } catch (e) {
-        document.getElementById('detected-id').innerHTML = '<span class="text-danger">Error: ' + formatErrorMessage(e) + '</span>';
+        const detected = document.getElementById('detected-id');
+        detected.className = 'fw-bold text-break text-danger';
+        detected.textContent = 'Error: ' + formatErrorMessage(e);
     }
 }
 
 // Auto-run when Capacitor is ready
 document.addEventListener('deviceready', pullFromCapacitor, false);
 document.addEventListener('DOMContentLoaded', function () {
-    setTimeout(pullFromCapacitor, 700);
+    setTimeout(pullFromCapacitor, CAPACITOR_READY_DELAY_MS);
 });
 </script>
 </body>
