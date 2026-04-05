@@ -183,16 +183,88 @@ async function ensureOneSignalInitialized(oneSignalPlugin, attempts) {
         try {
             if (typeof oneSignalPlugin.initialize === 'function') {
                 await Promise.resolve(oneSignalPlugin.initialize(CAPACITOR_ONESIGNAL_APP_ID));
+            } else if (typeof oneSignalPlugin.setAppId === 'function') {
+                oneSignalPlugin.setAppId(CAPACITOR_ONESIGNAL_APP_ID);
             }
             _oneSignalInitialized = true;
         } catch (err) {
-            attempts && attempts.push('Capacitor initialize failed: ' + formatErrorMessage(err));
+            attempts && attempts.push('Capacitor init/setAppId failed: ' + formatErrorMessage(err));
         }
     })();
     try {
         await _oneSignalInitializing;
     } finally {
         _oneSignalInitializing = null;
+    }
+}
+
+async function pullFromCapacitor() {
+    setDetectedMessage('Fetching token...', 'fw-bold text-break text-warning');
+    const attempts = [];
+
+    try {
+        const OS = window.plugins && window.plugins.OneSignal;
+        if (OS) {
+            await ensureCapacitorPushReady(OS, attempts);
+
+            // Try v5
+            if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
+                try {
+                    const id = await OS.User.pushSubscription.getIdAsync();
+                    if (id) {
+                        setDetectedTokenAndRegister(id);
+                        return;
+                    }
+                    attempts.push('getIdAsync returned empty');
+                } catch (err) {
+                    attempts.push('getIdAsync failed: ' + formatErrorMessage(err));
+                }
+            }
+
+            // Try v4
+            if (typeof OS.getDeviceState === 'function') {
+                OS.getDeviceState(function(state) {
+                    if (state && state.userId) {
+                        setDetectedTokenAndRegister(state.userId);
+                    } else {
+                        const detected = document.getElementById('detected-id');
+                        detected.className = 'fw-bold text-break text-danger';
+                        detected.textContent = 'Device state ready, but token is null (Check Play Services/Permissions).';
+                    }
+                });
+                return; // Let the callback handle the rest
+            }
+
+            // Try v3
+            if (typeof OS.getIds === 'function') {
+                OS.getIds(function(ids) {
+                    if (ids && ids.userId) {
+                        setDetectedTokenAndRegister(ids.userId);
+                    } else {
+                        const detected = document.getElementById('detected-id');
+                        detected.className = 'fw-bold text-break text-danger';
+                        detected.textContent = 'getIds ready, but userId is null.';
+                    }
+                });
+                return; // Let the callback handle the rest
+            }
+        } else {
+            attempts.push('window.plugins.OneSignal unavailable');
+        }
+
+        const detected = document.getElementById('detected-id');
+        detected.className = 'fw-bold text-break text-danger';
+        detected.textContent = 'No token available yet. Open push permission first and retry in capacitor app.';
+        if (attempts.length) {
+            const detail = document.createElement('small');
+            detail.className = 'text-muted d-block mt-1';
+            detail.textContent = attempts.join(' | ');
+            detected.appendChild(detail);
+        }
+    } catch (e) {
+        const detected = document.getElementById('detected-id');
+        detected.className = 'fw-bold text-break text-danger';
+        detected.textContent = 'Error: ' + formatErrorMessage(e);
     }
 }
 

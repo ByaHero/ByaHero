@@ -123,6 +123,7 @@
     // Get subscription ID (player_id / onesignal_id)
     const getSubscriptionId = () => {
       if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
+        // v5 API
         OS.User.pushSubscription.getIdAsync().then(id => {
           if (id) {
             dbg('log', '[Capacitor SOS] Got subscription ID: ' + id);
@@ -136,13 +137,19 @@
             }
           } catch (_) {}
         });
-        if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
-          saveToken(OS.User.pushSubscription.token);
-        }
+      } else if (typeof OS.getDeviceState === 'function') {
+        // v4 API
+        OS.getDeviceState(function(state) {
+          dbg('log', '[Capacitor SOS] Device State:', state);
+          if (state && state.userId) saveToken(state.userId);
+        });
+      } else if (typeof OS.getIds === 'function') {
+        // v3 API
+        OS.getIds(function(ids) {
+          if (ids && ids.userId) saveToken(ids.userId);
+        });
       } else if (OS.getUserId) {
         OS.getUserId().then(id => id && saveToken(id));
-      } else if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
-        saveToken(OS.User.pushSubscription.token);
       }
     };
 
@@ -218,6 +225,7 @@
     _initializing = new Promise(function(resolve) {
       try {
         if (typeof OS.initialize === 'function') {
+          // OneSignal v5
           var maybePromise = OS.initialize(ONESIGNAL_APP_ID);
           Promise.resolve(maybePromise)
             .then(function() {
@@ -227,6 +235,12 @@
             .catch(function() {
               resolve(false);
             });
+          return;
+        } else if (typeof OS.setAppId === 'function') {
+          // OneSignal v4 and v3
+          OS.setAppId(ONESIGNAL_APP_ID);
+          _initialized = true;
+          resolve(true);
           return;
         }
       } catch (_) {
