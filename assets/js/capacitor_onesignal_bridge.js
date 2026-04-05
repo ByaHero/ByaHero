@@ -7,8 +7,11 @@
   var _playerId = null;
   var _registrationAttempted = false;
   var _resumeCooldownTimer = null;
+  var _initialized = false;
+  var _initializing = null;
   var PENDING_TOKEN_KEY = 'sos_pending_token';
   var RESUME_COOLDOWN_MS = 800;
+  var ONESIGNAL_APP_ID = window.CAPACITOR_ONESIGNAL_APP_ID || 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
 
   function dbg(level, msg) {
     try { if (console && console[level]) console[level](msg); } catch(e) {}
@@ -117,8 +120,9 @@
     };
 
     // Auto-fetch token
-    ensurePushRegistration();
-    getSubscriptionId();
+    ensurePushRegistration().then(function() {
+      getSubscriptionId();
+    });
 
     // Notification received while app is open
     OS.addNotificationReceivedListener(notification => {
@@ -126,7 +130,6 @@
       try {
         const data = notification.additionalData || notification.data || {};
         if (data.type === 'sos_alert') {
-          window.gonative_onesignal_notification_received = window.gonative_onesignal_notification_received || showSosBanner;
           showSosBanner(notification);
         }
       } catch(e) {}
@@ -153,27 +156,63 @@
     const OS = window.plugins && window.plugins.OneSignal;
     if (!OS) return Promise.resolve(false);
 
-    try {
-      if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
-        return OS.Notifications.requestPermission(true).catch(() => false);
-      }
-    } catch (_) {}
+    return initOneSignal(OS).then(function() {
+      try {
+        if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
+          return OS.Notifications.requestPermission(true).catch(() => false);
+        }
+      } catch (_) {}
 
-    try {
-      if (typeof OS.registerForPushNotifications === 'function') {
-        OS.registerForPushNotifications();
-        return Promise.resolve(true);
-      }
-    } catch (_) {}
+      try {
+        if (typeof OS.registerForPushNotifications === 'function') {
+          OS.registerForPushNotifications();
+          return Promise.resolve(true);
+        }
+      } catch (_) {}
 
-    try {
-      if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
-        OS.User.pushSubscription.optIn();
-        return Promise.resolve(true);
-      }
-    } catch (_) {}
+      try {
+        if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
+          OS.User.pushSubscription.optIn();
+          return Promise.resolve(true);
+        }
+      } catch (_) {}
 
-    return Promise.resolve(false);
+      return Promise.resolve(false);
+    }).catch(function() {
+      return false;
+    });
+  }
+
+  function initOneSignal(OS) {
+    if (!OS) return Promise.resolve(false);
+    if (_initialized) return Promise.resolve(true);
+    if (_initializing) return _initializing;
+
+    _initializing = new Promise(function(resolve) {
+      try {
+        if (typeof OS.initialize === 'function') {
+          var maybePromise = OS.initialize(ONESIGNAL_APP_ID);
+          Promise.resolve(maybePromise)
+            .then(function() {
+              _initialized = true;
+              resolve(true);
+            })
+            .catch(function() {
+              resolve(false);
+            });
+          return;
+        }
+      } catch (_) {
+        resolve(false);
+        return;
+      }
+      _initialized = true;
+      resolve(true);
+    }).finally(function() {
+      _initializing = null;
+    });
+
+    return _initializing;
   }
 
   function requestPushPermission() {

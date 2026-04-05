@@ -104,16 +104,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <!-- EARLY CATCHER: must be first script, before bridge loads -->
                     <script>
                         window._sosPendingToken = null;
-                        window.gonative_onesignal_info = function(info) {
-                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
-                                info.pushToken ||
-                                (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken)) || info.oneSignalUserId);
-                            if (id) {
-                                window._sosPendingToken = id;
-                                if (window.sosBridge) window.sosBridge.saveToken(id);
-                            }
-                        };
-                        window.median_onesignal_info = window.gonative_onesignal_info;
                     </script>
 
                     <script src="../assets/js/capacitor_onesignal_bridge.js"></script>
@@ -207,27 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 return;
                             }
 
-                            // Pull from Median JS API
-                            if (window.gonative && window.gonative.onesignal) {
-                                window.gonative.onesignal.getInfo()
-                                    .then(function(info) {
-                                        var id = info && (info.oneSignalId || info.userId ||
-                                            info.subscriptionId ||
-                                            info.pushToken ||
-                                            (info.subscription && (info.subscription.id || info.subscription.subscriptionId || info.subscription.pushToken)));
-                                        if (id) {
-                                            syncThenRedirect(id);
-                                        } else {
-                                            proceed();
-                                        }
-                                    })
-                                    .catch(function() {
-                                        proceed();
-                                    });
-                            } else {
-                                // Not in Median shell — just redirect
-                                proceed();
-                            }
+                            proceed();
                         });
                     </script>
                 </body>
