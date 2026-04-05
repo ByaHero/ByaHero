@@ -1,152 +1,179 @@
 (function () {
   'use strict';
 
-  const REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
+  // ── CONFIG ──────────────────────────────────────────────────────────────────
+  // APP_BASE_URL must be set by the page BEFORE this script loads:
+  //   <script>window.APP_BASE_URL = "<?= $baseUrl ?>";</script>
+  // On production (byahero.free.nf) it is an empty string, which is correct.
+  const REGISTER_URL    = (window.APP_BASE_URL || '') + '/backend/registerOnesignalToken.php';
   const ONESIGNAL_APP_ID = window.CAPACITOR_ONESIGNAL_APP_ID || 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
-  const PENDING_TOKEN_KEY = 'byahero_pending_fcm_token';
+  const PENDING_KEY     = 'byahero_pending_fcm_token';   // ← must match login.php exactly
+
+  // Prevent double-registration within a single page load
   let _isRegistered = false;
 
   function dbg(msg) {
-    console.log('[ByaHero Auto-Push INSTANT] ' + msg);
+    console.log('[ByaHero Bridge] ' + msg);
   }
 
-  // ── INSTANT SAVE (survives reloads) ──
+  // ── SAVE TOKEN ──────────────────────────────────────────────────────────────
+  // Persists the token in localStorage immediately (survives any reload/redirect)
+  // then attempts to register it with the backend.
+  // • If the user is not logged in the endpoint returns 401 — that is expected on
+  //   the login page. The token stays in localStorage and login.php's handoff page
+  //   will register it once the session exists.
+  // • If the user IS logged in the endpoint registers the token and clears
+  //   localStorage so it is not re-sent unnecessarily on the next page load.
   function saveToken(playerId) {
     if (!playerId || _isRegistered) return;
 
-    localStorage.setItem(PENDING_TOKEN_KEY, playerId);
-    dbg('🔥 Token received → saving: ' + playerId);
+    // Persist first — never lose the token due to a network glitch
+    localStorage.setItem(PENDING_KEY, playerId);
+    dbg('Token received → stored locally: ' + playerId);
 
     fetch(REGISTER_URL, {
       method: 'POST',
-      credentials: 'include',
+      credentials: 'include',                           // send the PHP session cookie
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ player_id: playerId })
     })
-    .then(r => r.json())
-    .then(d => {
+    .then(function (r) {
+      // Guard against InfinityFree anti-bot HTML pages being returned instead of JSON.
+      // If that happens we throw so the .catch() path keeps the token in localStorage.
+      var ct = r.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        throw new Error('Non-JSON response (HTTP ' + r.status + ')');
+      }
+      return r.json();
+    })
+    .then(function (d) {
       if (d.success) {
         _isRegistered = true;
-        localStorage.removeItem(PENDING_TOKEN_KEY);
-        dbg('✅ Token registered instantly for current user');
+        localStorage.removeItem(PENDING_KEY);
+        dbg('✅ Token registered for user_id=' + d.user_id);
+      } else {
+        // 401 = not logged in yet; token stays in localStorage for the handoff page
+        dbg('⚠️ Register returned: ' + (d.message || 'unknown'));
       }
     })
-    .catch(() => dbg('Network busy – token saved locally'));
+    .catch(function (e) {
+      // Network error or non-JSON body — token stays in localStorage
+      dbg('Network error — token kept locally: ' + e.message);
+    });
   }
 
-  // ── ULTRA-FAST POLLING (catches token in 3–12 seconds) ──
-  function startInstantPolling(OS) {
-    let attempts = 0;
-    const maxAttempts = 60;   // safety net (max ~20 seconds)
+  // ── FAST POLLING ────────────────────────────────────────────────────────────
+  // Checks for the OneSignal subscription ID repeatedly until it appears.
+  // Uses a fast interval at first, then backs off to avoid hammering.
+  function startPolling(OS) {
+    var attempts    = 0;
+    var maxAttempts = 60;  // ~24 seconds total
 
-    const check = () => {
+    function check() {
       if (_isRegistered) return;
 
       attempts++;
-      dbg(`🔍 Fast check #${attempts}`);
+      dbg('Poll #' + attempts);
 
-      let token = null;
+      var token = null;
 
-      // Modern OneSignal (best & fastest)
+      // OneSignal v5 (Capacitor plugin & native SDK)
       if (OS.User && OS.User.pushSubscription) {
-        token = OS.User.pushSubscription.id || OS.User.pushSubscription.token;
+        token = OS.User.pushSubscription.id || OS.User.pushSubscription.token || null;
       }
 
-      // Fallbacks
+      // Fallback: OneSignal v3/v4 getDeviceState
       if (!token && typeof OS.getDeviceState === 'function') {
-        OS.getDeviceState(state => { if (state?.userId) saveToken(state.userId); });
+        OS.getDeviceState(function (state) {
+          if (state && state.userId) saveToken(state.userId);
+        });
       }
+
+      // Fallback: even older getIds API
       if (!token && typeof OS.getIds === 'function') {
-        OS.getIds(ids => { if (ids?.userId) saveToken(ids.userId); });
+        OS.getIds(function (ids) {
+          if (ids && ids.userId) saveToken(ids.userId);
+        });
       }
 
       if (token) {
         saveToken(token);
       } else if (attempts < maxAttempts) {
-        // First 15 checks = super fast (400ms)
-        const delay = (attempts < 15) ? 400 : 800;
-        setTimeout(check, delay);
+        // First 20 checks every 400 ms, then every 800 ms
+        setTimeout(check, attempts < 20 ? 400 : 800);
       }
-    };
+    }
 
-    // Fire immediately + start loop
     check();
   }
 
-  // ── MAIN INIT (runs the moment plugin appears) ──
+  // ── MAIN INIT ────────────────────────────────────────────────────────────────
   function initAutoPush() {
-    const OS = window.plugins && window.plugins.OneSignal;
+    var OS = window.plugins && window.plugins.OneSignal;
     if (!OS) return;
 
-    dbg('🚀 OneSignal plugin ready – starting INSTANT token capture');
+    dbg('OneSignal plugin ready — starting token capture');
 
-    // Initialize
+    // Initialize the SDK (idempotent if already initialised from MainActivity.java)
     try {
-      if (typeof OS.initialize === 'function') OS.initialize(ONESIGNAL_APP_ID);
+      if (typeof OS.initialize === 'function')    OS.initialize(ONESIGNAL_APP_ID);
       else if (typeof OS.setAppId === 'function') OS.setAppId(ONESIGNAL_APP_ID);
-    } catch(e) {}
+    } catch (e) { /* already initialised */ }
 
-    // Auto-request permission (silent if already granted)
+    // Request notification permission silently if not already granted.
+    // On Android ≤ 12 this is a no-op (permission is implicit).
+    // On Android 13+ this triggers the system permission dialog.
     try {
       if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
         OS.Notifications.requestPermission(true);
       }
-    } catch(e) {}
+    } catch (e) {}
 
-    // INSTANT OBSERVER (fires the millisecond token is ready)
+    // ── INSTANT OBSERVER: fires the moment a subscription is created/updated ──
     try {
-      if (OS.User && OS.User.pushSubscription?.addEventListener) {
-        OS.User.pushSubscription.addEventListener('change', e => {
-          const id = e.current?.id || OS.User.pushSubscription?.id;
+      if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.addEventListener) {
+        OS.User.pushSubscription.addEventListener('change', function (e) {
+          var id = (e.current && e.current.id) || (OS.User.pushSubscription && OS.User.pushSubscription.id);
           if (id) saveToken(id);
         });
       } else if (typeof OS.addSubscriptionObserver === 'function') {
-        OS.addSubscriptionObserver(e => {
-          if (e.to?.userId) saveToken(e.to.userId);
+        OS.addSubscriptionObserver(function (e) {
+          if (e.to && e.to.userId) saveToken(e.to.userId);
         });
       }
-    } catch(e) {}
+    } catch (e) {}
 
-    // Start ultra-fast polling
-    startInstantPolling(OS);
-
-    // Keep SOS banner
-    try {
-      if (typeof OS.addNotificationReceivedListener === 'function') {
-        OS.addNotificationReceivedListener(n => showSosBanner(n));
-      }
-    } catch(e) {}
+    // Polling runs alongside the observer as a fallback
+    startPolling(OS);
   }
 
-  // ── SOS BANNER (unchanged) ──
-  function showSosBanner(payload) {
-    if (document.getElementById('sos-push-banner')) return;
-    var ad = payload.additionalData || payload.data || {};
-    if (ad.type !== 'sos_alert') return;
-    // ... your existing banner code ...
-  }
+  // ── STARTUP ──────────────────────────────────────────────────────────────────
 
-  // ── START AS EARLY AS POSSIBLE ──
-  const pending = localStorage.getItem(PENDING_TOKEN_KEY);
-  if (pending) saveToken(pending);
+  // 1. If there is already a locally-stored token (e.g. captured before login),
+  //    attempt to register it immediately on this page load.
+  //    • login.php (not logged in) → will get 401 → stays in localStorage ✓
+  //    • Any post-login page       → will succeed → clears localStorage    ✓
+  var _pending = localStorage.getItem(PENDING_KEY);
+  if (_pending) saveToken(_pending);
 
-  // Rapid plugin detection (100ms)
-  let checks = 0;
-  const rapidCheck = setInterval(() => {
+  // 2. Detect OneSignal plugin — it may appear any time between script parse
+  //    and several seconds after deviceready, so we poll rapidly.
+  var _pluginChecks = 0;
+  var _pluginTimer = setInterval(function () {
     if (window.plugins && window.plugins.OneSignal) {
-      clearInterval(rapidCheck);
+      clearInterval(_pluginTimer);
       initAutoPush();
     }
-    if (++checks > 80) clearInterval(rapidCheck);
+    if (++_pluginChecks > 80) clearInterval(_pluginTimer); // give up after ~8 s
   }, 100);
 
-  // Capacitor deviceready
-  document.addEventListener('deviceready', () => {
-    clearInterval(rapidCheck);
+  // 3. Capacitor/Cordova deviceready is the canonical trigger.
+  document.addEventListener('deviceready', function () {
+    clearInterval(_pluginTimer);
     initAutoPush();
   }, false);
 
-  // Fallback for any page load
+  // 4. Plain browser / WebView fallback (no Capacitor).
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAutoPush);
   } else {
