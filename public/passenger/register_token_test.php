@@ -75,6 +75,27 @@ if ($userId) {
 </div>
 
 <script>
+function formatErrorMessage(err) {
+    if (!err) return 'Unknown error';
+    if (typeof err === 'string') return err;
+    if (err.message) return err.message;
+    try { return JSON.stringify(err); } catch (_) {}
+    return String(err);
+}
+
+function extractTokenFromInfo(info) {
+    if (!info) return null;
+    return info.pushToken ||
+           info.subscriptionId ||
+           info.oneSignalId ||
+           info.userId ||
+           info.oneSignalUserId ||
+           info.playerId ||
+           info.id ||
+           (info.subscription && (info.subscription.pushToken || info.subscription.id || info.subscription.subscriptionId || info.subscription.playerId)) ||
+           null;
+}
+
 function registerToken(playerId) {
     document.getElementById('save-status').innerHTML = '<span class="text-primary">Saving to database...</span>';
 
@@ -99,27 +120,112 @@ function registerToken(playerId) {
 }
 
 async function pullFromCapacitor() {
-    if (window.plugins && window.plugins.OneSignal) {
-        try {
-            document.getElementById('detected-id').innerHTML = '<span class="text-warning">Fetching from Google/Firebase...</span>';
-            const subId = await window.plugins.OneSignal.User.pushSubscription.getIdAsync();
-            
-            if (subId) {
-                document.getElementById('detected-id').textContent = subId;
-                registerToken(subId);
-            } else {
-                document.getElementById('detected-id').innerHTML = '<span class="text-danger">No Token Generated (Check Firebase/Google Services)</span>';
+    document.getElementById('detected-id').innerHTML = '<span class="text-warning">Fetching token...</span>';
+    const attempts = [];
+
+    try {
+        const OS = window.plugins && window.plugins.OneSignal;
+        if (OS) {
+            if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
+                try {
+                    const id = await OS.User.pushSubscription.getIdAsync();
+                    if (id) {
+                        document.getElementById('detected-id').textContent = id;
+                        registerToken(id);
+                        return;
+                    }
+                    attempts.push('Capacitor getIdAsync returned empty');
+                } catch (err) {
+                    attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
+                }
             }
-        } catch (e) {
-            document.getElementById('detected-id').innerHTML = '<span class="text-danger">Error: ' + e.message + '</span>';
+
+            if (OS.User && OS.User.pushSubscription) {
+                const immediateId = OS.User.pushSubscription.token || OS.User.pushSubscription.id;
+                if (immediateId) {
+                    document.getElementById('detected-id').textContent = immediateId;
+                    registerToken(immediateId);
+                    return;
+                }
+                attempts.push('Capacitor pushSubscription token/id unavailable');
+            }
+
+            if (typeof OS.getUserId === 'function') {
+                try {
+                    const id = await OS.getUserId();
+                    if (id) {
+                        document.getElementById('detected-id').textContent = id;
+                        registerToken(id);
+                        return;
+                    }
+                    attempts.push('Capacitor getUserId returned empty');
+                } catch (err) {
+                    attempts.push('Capacitor getUserId failed: ' + formatErrorMessage(err));
+                }
+            }
+        } else {
+            attempts.push('window.plugins.OneSignal unavailable');
         }
-    } else {
-        document.getElementById('detected-id').innerHTML = '<span class="text-danger">Capacitor OneSignal Plugin Not Found!</span>';
+
+        if (window.OneSignal) {
+            try {
+                if (window.OneSignal.User && window.OneSignal.User.PushSubscription
+                    && typeof window.OneSignal.User.PushSubscription.getId === 'function') {
+                    const id = await window.OneSignal.User.PushSubscription.getId();
+                    if (id) {
+                        document.getElementById('detected-id').textContent = id;
+                        registerToken(id);
+                        return;
+                    }
+                }
+                const fallbackSdkId = (window.OneSignal.User && window.OneSignal.User.onesignalId)
+                    || window.OneSignal.userId;
+                if (fallbackSdkId) {
+                    document.getElementById('detected-id').textContent = fallbackSdkId;
+                    registerToken(fallbackSdkId);
+                    return;
+                }
+                if (typeof window.OneSignal.getUserId === 'function') {
+                    const id = await window.OneSignal.getUserId();
+                    if (id) {
+                        document.getElementById('detected-id').textContent = id;
+                        registerToken(id);
+                        return;
+                    }
+                }
+                attempts.push('OneSignal web SDK did not return token');
+            } catch (err) {
+                attempts.push('OneSignal web SDK failed: ' + formatErrorMessage(err));
+            }
+        }
+
+        if (window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.getInfo === 'function') {
+            try {
+                const info = await Promise.resolve(window.gonative.onesignal.getInfo());
+                const id = extractTokenFromInfo(info);
+                if (id) {
+                    document.getElementById('detected-id').textContent = id;
+                    registerToken(id);
+                    return;
+                }
+                attempts.push('gonative.onesignal.getInfo returned no token fields');
+            } catch (err) {
+                attempts.push('gonative.onesignal.getInfo failed: ' + formatErrorMessage(err));
+            }
+        }
+
+        const detail = attempts.length ? '<br><small class="text-muted">' + attempts.join(' | ') + '</small>' : '';
+        document.getElementById('detected-id').innerHTML = '<span class="text-danger">No token available yet. Open push permission first and retry.</span>' + detail;
+    } catch (e) {
+        document.getElementById('detected-id').innerHTML = '<span class="text-danger">Error: ' + formatErrorMessage(e) + '</span>';
     }
 }
 
 // Auto-run when Capacitor is ready
 document.addEventListener('deviceready', pullFromCapacitor, false);
+document.addEventListener('DOMContentLoaded', function () {
+    setTimeout(pullFromCapacitor, 700);
+});
 </script>
 </body>
 </html>
