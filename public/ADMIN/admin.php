@@ -388,7 +388,6 @@ $pageType = 'dashboard';
             setInterval(updateBusMap, 3000);
         });
     </script>
-    <?php require __DIR__ . '/../partials/push_bootstrap.php'; ?>
 </body>
 
 </html>

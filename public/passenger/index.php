@@ -934,7 +934,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     setInterval(updateBuses, 4000);
   </script>
-  <?php require __DIR__ . '/../partials/push_bootstrap.php'; ?>
 </body>
 
 </html>
