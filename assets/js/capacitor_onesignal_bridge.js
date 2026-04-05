@@ -320,6 +320,9 @@
   // ──────────────────────────────────────────────
   // Lifecycle Management
   // ──────────────────────────────────────────────
+  // ──────────────────────────────────────────────
+  // Lifecycle Management (OPTIMIZED FOR PHP MULTI-PAGE)
+  // ──────────────────────────────────────────────
   function startAutoPoll() {
     if (_saved) return;
     setupCapacitorOneSignal();
@@ -344,20 +347,23 @@
     const pending = getPendingToken();
     if (pending) saveToken(pending);
 
-    document.addEventListener('deviceready', () => {
-      dbg('log', '[Capacitor SOS] deviceready fired');
-      startAutoPoll();
-    }, false);
+    // AGGRESSIVE POLLING: Bypasses the slow Cordova deviceready event.
+    // Checks for the plugin every 50ms so it grabs the token instantly on page load.
+    let pluginCheckAttempts = 0;
+    function rapidStart() {
+        if (window.plugins && window.plugins.OneSignal) {
+            dbg('log', '[Capacitor SOS] Plugin found via rapid polling! Starting instant fetch.');
+            startAutoPoll();
+        } else if (pluginCheckAttempts < 100) { // Try aggressively for 5 seconds
+            pluginCheckAttempts++;
+            setTimeout(rapidStart, 50);
+        }
+    }
+    rapidStart();
 
-    setTimeout(() => {
-      if (!window.plugins || !window.plugins.OneSignal) {
-        dbg('warn', '[Capacitor SOS] Plugin not ready yet — retrying in 1s');
-        setTimeout(startAutoPoll, 1000);
-      } else {
-        startAutoPoll();
-      }
-    }, 800);
-
+    // Fallback events
+    document.addEventListener('deviceready', () => { startAutoPoll(); }, false);
+    
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') resumeIfNeeded();
     });
