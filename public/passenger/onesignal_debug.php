@@ -92,9 +92,6 @@ if ($userId && isset($conn)) {
             }
         }
 
-        window.gonative_onesignal_info = handleOneSignalInfo;
-        window.median_onesignal_info   = handleOneSignalInfo;
-
         function updateDisplay() {
             var el = document.getElementById('pending-token');
             if (!el) return;
