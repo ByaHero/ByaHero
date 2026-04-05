@@ -9,17 +9,9 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-if (trim((string) FIREBASE_FUNCTIONS_PUSH_URL) === '') {
-    http_response_code(500);
-    echo json_encode([
-        'success' => false,
-        'message' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
-    ]);
-    exit;
-}
-
 $senderId = (int)$_SESSION['user_id'];
 $senderName = $_SESSION['user_name'] ?? ($_SESSION['user_email'] ?? 'A user');
+$hasPushEndpoint = trim((string) FIREBASE_FUNCTIONS_PUSH_URL) !== '';
 
 // 1. Get the payload from the frontend (the specific friends selected)
 $input = json_decode(file_get_contents('php://input'), true);
@@ -78,7 +70,12 @@ try {
     // 4. Blast the push notification to all found devices via Firebase Cloud Functions
     $pushResult = ['skipped' => true];
     
-    if (!empty($playerIds)) {
+    if (!$hasPushEndpoint) {
+        $pushResult = [
+            'skipped' => true,
+            'reason' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
+        ];
+    } elseif (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
         $payload = [
             'tokens' => array_values(array_unique($playerIds)),
