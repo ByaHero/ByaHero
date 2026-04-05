@@ -31,31 +31,32 @@ if ($redirectAfter !== '' && $redirectAfter[0] !== '/' && !preg_match('~^https?:
 }
 
 $roleTables = [
-    'admins'     => ['role' => 'admin',     'redirect' => $baseUrl . '/public/ADMIN/admin.php'],
-    'drivers'    => ['role' => 'driver',    'redirect' => $baseUrl . '/public/driver/dashboard.php'],
+    'admins' => ['role' => 'admin', 'redirect' => $baseUrl . '/public/ADMIN/admin.php'],
+    'drivers' => ['role' => 'driver', 'redirect' => $baseUrl . '/public/driver/dashboard.php'],
     'conductors' => ['role' => 'conductor', 'redirect' => $baseUrl . '/public/conductor/conductor.php'],
-    'users'      => ['role' => 'user',      'redirect' => $baseUrl . '/public/passenger/index.php'],
+    'users' => ['role' => 'user', 'redirect' => $baseUrl . '/public/passenger/index.php'],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $email    = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
+    $email = mb_strtolower(trim((string) ($_POST['email'] ?? '')));
     $password = (string) ($_POST['password'] ?? '');
 
     if ($email === '' || $password === '') {
         $err = 'Email and password are required.';
     } else {
         try {
-            $pdo           = db();
+            $pdo = db();
             $authenticated = false;
-            $userRecord    = null;
-            $userRole      = null;
+            $userRecord = null;
+            $userRole = null;
             $targetRedirect = $redirectAfter;
 
             foreach ($roleTables as $table => $info) {
                 $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
                 $stmt->execute([$email]);
                 $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$row) continue;
+                if (!$row)
+                    continue;
 
                 $hash = $row['password'] ?? '';
 
@@ -67,22 +68,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     try {
                         $up = $pdo->prepare("UPDATE {$table} SET password = ? WHERE id = ? LIMIT 1");
                         $up->execute([$newHash, $row['id']]);
-                    } catch (Exception $ignore) {}
+                    } catch (Exception $ignore) {
+                    }
                 }
 
                 if ($authenticated) {
-                    $userRecord     = $row;
-                    $userRole       = $info['role'];
+                    $userRecord = $row;
+                    $userRole = $info['role'];
                     $targetRedirect = $info['redirect'] ?? $targetRedirect;
                     break;
                 }
             }
 
             if ($authenticated && $userRecord) {
-                $_SESSION['user_id']    = $userRecord['id'];
+                $_SESSION['user_id'] = $userRecord['id'];
                 $_SESSION['user_email'] = $userRecord['email'];
-                $_SESSION['user_role']  = $userRole;
-                $_SESSION['user_name']  = $userRecord['name'] ?? $userRecord['email'];
+                $_SESSION['user_role'] = $userRole;
+                $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
 
                 // ── UI HANDOFF: sync any pending OneSignal token, then redirect ──
                 // The bridge script (running on the login page before this POST) captures
@@ -92,115 +94,199 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 //
                 // Now that the session is valid we read that key here and POST it to
                 // the register endpoint before navigating to the real destination.
-?>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <title>Logging in…</title>
-    <style>
-        body {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            font-family: "Segoe UI", sans-serif;
-            background: #fff;
-        }
-        .spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #2563eb;
-            border-radius: 50%;
-            animation: spin .9s linear infinite;
-            margin-bottom: 20px;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        h3 { color: #111827; font-size: 1.1rem; margin: 0; }
-    </style>
-</head>
-<body>
-    <div class="spinner"></div>
-    <h3>Logging in…</h3>
+                ?>
+                <!DOCTYPE html>
+                <html lang="en">
 
-    <script>
-    (function () {
-        // ─────────────────────────────────────────────────────────────────────
-        // CONSTANTS — must match capacitor_onesignal_bridge.js exactly
-        // ─────────────────────────────────────────────────────────────────────
-        var REDIRECT_URL  = "<?= addslashes($targetRedirect) ?>";
-        var REGISTER_URL  = "/backend/registerOnesignalToken.php";
-        var PENDING_KEY   = "byahero_pending_fcm_token";
+                <head>
+                    <meta charset="utf-8">
+                    <meta name="viewport" content="width=device-width,initial-scale=1">
+                    <title>Logging in…</title>
+                    <style>
+                        body {
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            margin: 0;
+                            font-family: "Segoe UI", sans-serif;
+                            background: #fff;
+                        }
 
-        var _done = false;
+                        .spinner {
+                            width: 40px;
+                            height: 40px;
+                            border: 4px solid #f3f3f3;
+                            border-top: 4px solid #2563eb;
+                            border-radius: 50%;
+                            animation: spin .9s linear infinite;
+                            margin-bottom: 20px;
+                        }
 
-        // Navigate to the dashboard. Called exactly once.
-        function proceed() {
-            if (!_done) {
-                _done = true;
-                window.location.replace(REDIRECT_URL);
-            }
-        }
+                        @keyframes spin {
+                            to {
+                                transform: rotate(360deg);
+                            }
+                        }
 
-        // POST the pending token to the register endpoint (session is now valid),
-        // clean up localStorage on success, then redirect.
-        function registerThenRedirect(token) {
-            fetch(REGISTER_URL, {
-                method: 'POST',
-                credentials: 'include',                          // send session cookie
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ player_id: token })
-            })
-            .then(function (r) {
-                // Guard against InfinityFree anti-bot HTML responses
-                var ct = r.headers.get('content-type') || '';
-                if (!ct.includes('application/json')) {
-                    throw new Error('Non-JSON response');
-                }
-                return r.json();
-            })
-            .then(function (d) {
-                if (d.success) {
-                    localStorage.removeItem(PENDING_KEY);
-                    console.log('[Login] ✅ Token registered for user_id:', d.user_id);
-                } else {
-                    console.warn('[Login] ⚠️ Token register returned:', d.message);
-                }
-            })
-            .catch(function (e) {
-                // Network error or non-JSON body — token stays in localStorage
-                // and will be retried by the bridge on the next page load.
-                console.warn('[Login] ⚠️ Token register error:', e.message);
-            })
-            .finally(function () {
-                proceed();
-            });
-        }
+                        h3 {
+                            color: #111827;
+                            font-size: 1.1rem;
+                            margin: 0;
+                        }
+                    </style>
+                </head>
 
-        document.addEventListener('DOMContentLoaded', function () {
-            // Hard deadline: never block the user for more than 4 seconds
-            setTimeout(proceed, 4000);
+                <body>
+                    <div class="spinner"></div>
+                    <h3>Logging in…</h3>
 
-            // Read the token the bridge saved before the user was logged in
-            var pending = localStorage.getItem(PENDING_KEY);
+                    <script>
+                        (function () {
+                            var REDIRECT_URL = "<?= addslashes($targetRedirect) ?>";
+                            var REGISTER_URL = "/backend/registerOnesignalToken.php";
+                            var PENDING_KEY = "byahero_pending_fcm_token";
 
-            if (pending) {
-                // Session is now valid — register and then redirect
-                registerThenRedirect(pending);
-            } else {
-                // No pending token; redirect straight away
-                proceed();
-            }
-        });
-    })();
-    </script>
-</body>
-</html>
-<?php
+                            // Max wait before forcing redirect (adjust 8000-12000 as needed)
+                            var HARD_TIMEOUT_MS = 10000;
+
+                            var done = false;
+                            var startedAt = Date.now();
+
+                            function log() {
+                                try { console.log.apply(console, ['[Login Token-First]'].concat([].slice.call(arguments))); } catch (e) { }
+                            }
+
+                            function proceed(reason) {
+                                if (done) return;
+                                done = true;
+                                log('➡ redirecting:', reason, '| waited(ms)=', Date.now() - startedAt);
+                                window.location.replace(REDIRECT_URL);
+                            }
+
+                            // Registers token to backend (session now valid), resolves true/false
+                            function registerToken(token) {
+                                if (!token) return Promise.resolve(false);
+
+                                log('registerToken start:', token);
+
+                                return fetch(REGISTER_URL, {
+                                    method: 'POST',
+                                    credentials: 'include',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ player_id: token })
+                                })
+                                    .then(function (r) {
+                                        var ct = r.headers.get('content-type') || '';
+                                        if (!ct.includes('application/json')) {
+                                            throw new Error('Non-JSON response (HTTP ' + r.status + ')');
+                                        }
+                                        return r.json();
+                                    })
+                                    .then(function (d) {
+                                        if (d && d.success) {
+                                            localStorage.removeItem(PENDING_KEY);
+                                            log('✅ token registered user_id=', d.user_id);
+                                            return true;
+                                        }
+                                        log('⚠ register returned:', d && d.message);
+                                        return false;
+                                    })
+                                    .catch(function (e) {
+                                        log('⚠ register error:', e.message);
+                                        return false;
+                                    });
+                            }
+
+                            // Try to read OneSignal token from plugin if available
+                            function readTokenFromPlugin() {
+                                return new Promise(function (resolve) {
+                                    var OS = window.plugins && window.plugins.OneSignal;
+                                    if (!OS) return resolve(null);
+
+                                    try {
+                                        // v5
+                                        if (OS.User && OS.User.pushSubscription) {
+                                            var t = OS.User.pushSubscription.id || OS.User.pushSubscription.token || null;
+                                            if (t) return resolve(t);
+                                        }
+                                    } catch (e) { }
+
+                                    // legacy fallbacks
+                                    try {
+                                        if (typeof OS.getDeviceState === 'function') {
+                                            return OS.getDeviceState(function (state) {
+                                                resolve((state && state.userId) ? state.userId : null);
+                                            });
+                                        }
+                                    } catch (e) { }
+
+                                    try {
+                                        if (typeof OS.getIds === 'function') {
+                                            return OS.getIds(function (ids) {
+                                                resolve((ids && ids.userId) ? ids.userId : null);
+                                            });
+                                        }
+                                    } catch (e) { }
+
+                                    resolve(null);
+                                });
+                            }
+
+                            // One pass:
+                            // 1) use pending localStorage token if exists
+                            // 2) else try plugin token
+                            // 3) if got token, register it
+                            async function trySyncOnce() {
+                                var pending = localStorage.getItem(PENDING_KEY);
+                                if (pending) {
+                                    log('pending token found in localStorage');
+                                    var ok = await registerToken(pending);
+                                    if (ok) return true;
+                                }
+
+                                var pluginToken = await readTokenFromPlugin();
+                                if (pluginToken) {
+                                    localStorage.setItem(PENDING_KEY, pluginToken); // preserve first
+                                    log('plugin token found');
+                                    var ok2 = await registerToken(pluginToken);
+                                    if (ok2) return true;
+                                }
+
+                                return false;
+                            }
+
+                            async function startTokenFirstFlow() {
+                                // Hard fallback redirect
+                                setTimeout(function () { proceed('hard-timeout'); }, HARD_TIMEOUT_MS);
+
+                                // Poll a few times quickly, then slower
+                                var attempts = 0;
+                                var maxAttempts = 16; // around 8-10 sec total
+                                while (!done && attempts < maxAttempts) {
+                                    attempts++;
+                                    log('sync attempt #' + attempts);
+
+                                    var success = await trySyncOnce();
+                                    if (success) return proceed('token-registered');
+
+                                    var delay = attempts < 6 ? 400 : 800;
+                                    await new Promise(function (r) { setTimeout(r, delay); });
+                                }
+
+                                proceed('no-token-yet');
+                            }
+
+                            document.addEventListener('DOMContentLoaded', function () {
+                                startTokenFirstFlow();
+                            });
+                        })();
+                    </script>
+                </body>
+
+                </html>
+                <?php
                 exit;
             } else {
                 $err = 'Invalid email or password.';
@@ -218,10 +304,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8" />
     <title>ByaHero — Login</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" />
-    <link rel="stylesheet"
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
     <style>
         :root {
             --brand: #2563eb;
@@ -318,8 +402,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 6px;
         }
 
-        .input-addon:focus  { outline: none; box-shadow: none; }
-        .input-addon:active { transform: translateY(-50%) scale(.98); }
+        .input-addon:focus {
+            outline: none;
+            box-shadow: none;
+        }
+
+        .input-addon:active {
+            transform: translateY(-50%) scale(.98);
+        }
 
         .forgot {
             display: inline-block;
@@ -347,7 +437,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             justify-content: center;
         }
 
-        .submit-pill:active { transform: translateY(1px); }
+        .submit-pill:active {
+            transform: translateY(1px);
+        }
 
         .small-muted {
             font-size: .85rem;
@@ -363,11 +455,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         @media (max-width: 420px) {
-            .brand-logo  { width: 110px; }
-            .form-card   { padding: 1.25rem; border-radius: 12px; }
-            .submit-pill { width: 72px; height: 36px; font-size: 0.85rem; }
-            .input-addon { right: 10px; width: 26px; height: 26px; }
-            .input-pill  { padding-right: 2.5rem; }
+            .brand-logo {
+                width: 110px;
+            }
+
+            .form-card {
+                padding: 1.25rem;
+                border-radius: 12px;
+            }
+
+            .submit-pill {
+                width: 72px;
+                height: 36px;
+                font-size: 0.85rem;
+            }
+
+            .input-addon {
+                right: 10px;
+                width: 26px;
+                height: 26px;
+            }
+
+            .input-pill {
+                padding-right: 2.5rem;
+            }
         }
     </style>
 </head>
@@ -389,17 +500,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <form method="POST" novalidate>
                     <div class="mb-3">
-                        <input name="email" type="email" inputmode="email" autocomplete="username"
-                            placeholder="Email" class="form-control input-pill" required
+                        <input name="email" type="email" inputmode="email" autocomplete="username" placeholder="Email"
+                            class="form-control input-pill" required
                             value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>" />
                     </div>
 
                     <div class="mb-2 input-group-pill">
-                        <input id="password" name="password" type="password"
-                            autocomplete="current-password" placeholder="Password"
-                            class="form-control input-pill" required />
-                        <button type="button" id="togglePwd" class="input-addon"
-                            aria-pressed="false" aria-label="Show password" title="Show password">
+                        <input id="password" name="password" type="password" autocomplete="current-password"
+                            placeholder="Password" class="form-control input-pill" required />
+                        <button type="button" id="togglePwd" class="input-addon" aria-pressed="false"
+                            aria-label="Show password" title="Show password">
                             <span id="eyeIcon" class="material-icons-round"
                                 style="font-size:18px;line-height:1;">visibility_off</span>
                         </button>
@@ -431,9 +541,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const pwd    = document.getElementById('password');
+            const pwd = document.getElementById('password');
             const toggle = document.getElementById('togglePwd');
-            const eye    = document.getElementById('eyeIcon');
+            const eye = document.getElementById('eyeIcon');
 
             function syncIcon() {
                 if (pwd.type === 'password') {
