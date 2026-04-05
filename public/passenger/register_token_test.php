@@ -105,6 +105,7 @@ function extractTokenFromInfo(info) {
 
 // Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
 const CAPACITOR_READY_DELAY_MS = 700;
+const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
 
 function setStatusMessage(text, className) {
     const el = document.getElementById('save-status');
@@ -201,7 +202,7 @@ async function pullFromCapacitor() {
                     attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
                     // Some builds need registration/init context before getIdAsync can return.
                     await ensureCapacitorPushReady(OS, attempts);
-                    await sleep(800);
+                    await sleep(CAPACITOR_INIT_RETRY_DELAY_MS);
                     try {
                         const retryId = await OS.User.pushSubscription.getIdAsync();
                         if (retryId) {
