@@ -152,6 +152,7 @@ async function ensureCapacitorPushReady(OS, attempts) {
     try {
         if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.optIn === 'function') {
             await Promise.resolve(OS.User.pushSubscription.optIn());
+            return;
         }
     } catch (err) {
         attempts && attempts.push('Capacitor pushSubscription.optIn failed: ' + formatErrorMessage(err));
