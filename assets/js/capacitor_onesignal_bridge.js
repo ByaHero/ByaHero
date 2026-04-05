@@ -91,95 +91,149 @@
       return false;
     }
 
-    dbg('log', '[Capacitor SOS] OneSignal plugin detected — setting up listeners');
+    dbg('log', '[Capacitor SOS] Plugin detected — setting up Universal Listeners');
 
-    // === ADD THIS PERMISSION PROMPT BLOCK ===
+    // =========================================================================
+    // 1. UNIVERSAL PERMISSION REQUEST
+    // (Android 13+ will show the prompt. Android 12 and below will silently ignore it).
+    // =========================================================================
     try {
-      // For OneSignal v5
       if (OS.Notifications && typeof OS.Notifications.requestPermission === 'function') {
-        OS.Notifications.requestPermission(true).then(function(accepted) {
-          dbg('log', '[Capacitor SOS] User accepted notifications (v5):', accepted);
-        });
-      } 
-      // For OneSignal v4 / v3
-      else if (typeof OS.promptForPushNotificationsWithUserResponse === 'function') {
-        OS.promptForPushNotificationsWithUserResponse(function(accepted) {
-          dbg('log', '[Capacitor SOS] User accepted notifications (v4):', accepted);
-        });
-      }
-      // Very old fallback
-      else if (typeof OS.registerForPushNotifications === 'function') {
-        OS.registerForPushNotifications();
+        OS.Notifications.requestPermission(true); // OneSignal v5
+      } else if (typeof OS.promptForPushNotificationsWithUserResponse === 'function') {
+        OS.promptForPushNotificationsWithUserResponse(function() {}); // OneSignal v4
+      } else if (typeof OS.registerForPushNotifications === 'function') {
+        OS.registerForPushNotifications(); // OneSignal v3
       }
     } catch (e) {
-      dbg('warn', '[Capacitor SOS] Error requesting notification permission:', e);
+      dbg('warn', '[Capacitor SOS] Error requesting permission:', e);
     }
-    // ========================================
 
-    // ... (rest of your existing setup code like observer and getSubscriptionId) ...
-    // ------------------------------
-
-    // =====================================================
-
-    // Get subscription ID (player_id / onesignal_id)
-    const getSubscriptionId = () => {
-      if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
-        // v5 API
-        OS.User.pushSubscription.getIdAsync().then(id => {
-          if (id) {
-            dbg('log', '[Capacitor SOS] Got subscription ID: ' + id);
-            saveToken(id);
-          }
-        }).catch(e => {
-          dbg('warn', e);
-          try {
-            if (OS.User && OS.User.pushSubscription && OS.User.pushSubscription.token) {
-              saveToken(OS.User.pushSubscription.token);
-            }
-          } catch (_) {}
+    // =========================================================================
+    // 2. UNIVERSAL OBSERVER
+    // (Catches the exact millisecond Google/Apple generates the token)
+    // =========================================================================
+    try {
+      if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.addEventListener === 'function') {
+        OS.User.pushSubscription.addEventListener('change', function(event) {
+          var newId = (event.current && event.current.id) ? event.current.id : null;
+          if (!newId && OS.User.pushSubscription.token) newId = OS.User.pushSubscription.token;
+          if (newId) saveToken(newId);
         });
-      } else if (typeof OS.getDeviceState === 'function') {
-        // v4 API
-        OS.getDeviceState(function(state) {
-          dbg('log', '[Capacitor SOS] Device State:', state);
-          if (state && state.userId) saveToken(state.userId);
+      } else if (typeof OS.addSubscriptionObserver === 'function') {
+        OS.addSubscriptionObserver(function(event) {
+          if (event.to && event.to.userId) saveToken(event.to.userId);
         });
-      } else if (typeof OS.getIds === 'function') {
-        // v3 API
-        OS.getIds(function(ids) {
-          if (ids && ids.userId) saveToken(ids.userId);
-        });
-      } else if (OS.getUserId) {
-        OS.getUserId().then(id => id && saveToken(id));
       }
+    } catch (e) {
+      dbg('warn', '[Capacitor SOS] Error adding observer:', e);
+    }
+
+    // =========================================================================
+    // 3. UNIVERSAL POLLING LOOP
+    // (Fallback for Android 15 delays or users taking a long time to click "Allow")
+    // =========================================================================
+    const getSubscriptionIdUniversally = () => {
+      let attempts = 0;
+      const maxAttempts = 15; // Checks every 2s for up to 30 seconds
+
+      const checkToken = () => {
+        attempts++;
+        dbg('log', `[Capacitor SOS] Checking for token (Attempt ${attempts}/${maxAttempts})...`);
+        
+        let foundToken = null;
+
+        // Try v5 properties
+        if (OS.User && OS.User.pushSubscription) {
+          if (OS.User.pushSubscription.id) foundToken = OS.User.pushSubscription.id;
+          else if (OS.User.pushSubscription.token) foundToken = OS.User.pushSubscription.token;
+        }
+
+        if (foundToken) {
+           dbg('log', '[Capacitor SOS] Universal Token Match: ' + foundToken);
+           saveToken(foundToken);
+           return; // Stop the loop on success
+        }
+
+        // Try v4 / v3 callbacks
+        if (typeof OS.getDeviceState === 'function') {
+            OS.getDeviceState(function(state) {
+                if (state && state.userId) saveToken(state.userId);
+                else if (attempts < maxAttempts) setTimeout(checkToken, 2000);
+            });
+            return;
+        } else if (typeof OS.getIds === 'function') {
+            OS.getIds(function(ids) {
+                if (ids && ids.userId) saveToken(ids.userId);
+                else if (attempts < maxAttempts) setTimeout(checkToken, 2000);
+            });
+            return;
+        }
+
+        // Try v5 async
+        if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
+            OS.User.pushSubscription.getIdAsync().then(id => {
+                if (id) saveToken(id);
+                else if (attempts < maxAttempts) setTimeout(checkToken, 2000);
+            }).catch(() => {
+                if (attempts < maxAttempts) setTimeout(checkToken, 2000);
+            });
+            return;
+        }
+
+        // Loop continuation
+        if (attempts < maxAttempts) {
+           setTimeout(checkToken, 2000);
+        } else {
+           dbg('warn', '[Capacitor SOS] Max attempts reached. OS is blocking or user denied permission.');
+        }
+      };
+
+      checkToken();
     };
 
-    // Auto-fetch token
+    // Trigger the polling loop safely after initialization is confirmed
     ensurePushRegistration().then(function() {
-      getSubscriptionId();
+      getSubscriptionIdUniversally();
     });
 
-    // Notification received while app is open
-    OS.addNotificationReceivedListener(notification => {
-      dbg('log', '[Capacitor SOS] Notification received:', notification);
-      try {
-        const data = notification.additionalData || notification.data || {};
-        if (data.type === 'sos_alert') {
-          showSosBanner(notification);
-        }
-      } catch(e) {}
-    });
+    // =========================================================================
+    // 4. UNIVERSAL NOTIFICATION HANDLERS (Foreground & Tap Events)
+    // =========================================================================
+    
+    // Foreground receiving
+    if (typeof OS.addNotificationReceivedListener === 'function') {
+      OS.addNotificationReceivedListener(notification => {
+        try {
+          const data = notification.additionalData || notification.data || {};
+          if (data.type === 'sos_alert') showSosBanner(notification);
+        } catch(e) {}
+      });
+    } else if (OS.Notifications && typeof OS.Notifications.addEventListener === 'function') {
+      OS.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+         try {
+           const data = event.notification.additionalData || {};
+           if (data.type === 'sos_alert') showSosBanner(event.notification);
+         } catch(e) {}
+      });
+    }
 
-    // Notification opened (tapped)
-    OS.addNotificationOpenedListener(notification => {
-      dbg('log', '[Capacitor SOS] Notification opened:', notification);
-      try {
-        const data = notification.additionalData || notification.data || {};
-        if (data.type === 'sos_alert') {
-          window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php';
-        }
-      } catch(e) {}
-    });
+    // Tapping the notification
+    if (typeof OS.addNotificationOpenedListener === 'function') {
+      OS.addNotificationOpenedListener(notification => {
+        try {
+          const data = notification.additionalData || notification.data || {};
+          if (data.type === 'sos_alert') window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php';
+        } catch(e) {}
+      });
+    } else if (OS.Notifications && typeof OS.Notifications.addEventListener === 'function') {
+       OS.Notifications.addEventListener('click', (event) => {
+         try {
+           const data = event.notification.additionalData || {};
+           if (data.type === 'sos_alert') window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php';
+         } catch(e) {}
+       });
+    }
 
     return true;
   }
