@@ -87,35 +87,35 @@ try {
         $tokenStmt->close();
     }
 
-    // 4. Blast the push notification to all found devices via Firebase Cloud Functions
+    // 4. Blast the push notification to all found devices via OneSignal REST API
     $pushResult = ['skipped' => true];
     
-    if (!$hasPushEndpoint) {
-        $pushResult = [
-            'skipped' => true,
-            'reason' => 'Push endpoint is not configured. Set FIREBASE_FUNCTIONS_PUSH_URL.'
-        ];
-    } elseif (!empty($playerIds)) {
+    if (!empty($playerIds)) {
         $locSnippet = $locationText ? " at $locationText" : "";
+        
+        // FORMATTED FOR ONESIGNAL
         $payload = [
-            'tokens' => array_values(array_unique($playerIds)),
-            'title' => '🚨 SOS Alert',
-            'body' => "$senderName needs help$locSnippet!",
+            'app_id' => 'b755dd29-1de2-4cf1-9381-6a9b436bc049', // Your OneSignal App ID
+            'include_player_ids' => array_values(array_unique($playerIds)),
+            'headings' => [
+                'en' => '🚨 SOS Alert'
+            ],
+            'contents' => [
+                'en' => "$senderName needs help$locSnippet!"
+            ],
             'data' => [
                 'type' => 'sos_alert',
                 'sender_name' => $senderName,
                 'location_text' => $locationText
-            ],
-            'priority' => 10,
-            'ttl' => 3600
+            ]
         ];
 
-        $headers = ['Content-Type: application/json'];
-        if (trim((string) FIREBASE_FUNCTIONS_AUTH_SECRET) !== '') {
-            $headers[] = 'Authorization: Bearer ' . FIREBASE_FUNCTIONS_AUTH_SECRET;
-        }
+        $headers = [
+            'Content-Type: application/json',
+            'Authorization: Basic ' . FIREBASE_FUNCTIONS_AUTH_SECRET // This uses your os_v2_app... key
+        ];
 
-        $ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL);
+        $ch = curl_init(FIREBASE_FUNCTIONS_PUSH_URL); // https://onesignal.com/api/v1/notifications
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_POST => true,
@@ -129,7 +129,7 @@ try {
         curl_close($ch);
 
         if ($error) {
-            error_log("Firebase push curl error: $error");
+            error_log("OneSignal push curl error: $error");
             $pushResult = ['error' => $error];
         } else {
             $decoded = json_decode($response, true);
