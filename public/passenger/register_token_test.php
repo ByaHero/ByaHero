@@ -105,6 +105,12 @@ function extractTokenFromInfo(info) {
 
 // Small delay to let Capacitor/OneSignal plugin finish bootstrapping on some devices.
 const CAPACITOR_READY_DELAY_MS = 700;
+// Empirically observed in field testing: ~800ms reliably allows native init context to settle after registration.
+const CAPACITOR_INIT_RETRY_DELAY_MS = 800;
+const INIT_CONTEXT_ERROR_MARKER = 'initwithcontext';
+const CAPACITOR_ONESIGNAL_APP_ID = 'b755dd29-1de2-4cf1-9381-6a9b436bc049';
+let _oneSignalInitialized = false;
+let _oneSignalInitializing = null;
 
 function setStatusMessage(text, className) {
     const el = document.getElementById('save-status');
@@ -121,6 +127,83 @@ function setDetectedMessage(text, className) {
 function setDetectedTokenAndRegister(token) {
     setDetectedMessage(token, 'fw-bold text-break');
     registerToken(token);
+}
+
+/**
+ * Waits for the specified number of milliseconds.
+ * @param {number} ms Milliseconds to delay.
+ * @returns {Promise<void>}
+ */
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Attempts available Capacitor OneSignal registration APIs in priority order to make token reads ready.
+async function ensureCapacitorPushReady(oneSignalPlugin, attempts) {
+    if (!oneSignalPlugin) return;
+    await ensureOneSignalInitialized(oneSignalPlugin, attempts);
+
+    try {
+        if (oneSignalPlugin.Notifications && typeof oneSignalPlugin.Notifications.requestPermission === 'function') {
+            await oneSignalPlugin.Notifications.requestPermission(true);
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor requestPermission failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (typeof oneSignalPlugin.registerForPushNotifications === 'function') {
+            // Defensive: some plugin builds return void, others are thenable.
+            await Promise.resolve(oneSignalPlugin.registerForPushNotifications());
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor registerForPushNotifications failed: ' + formatErrorMessage(err));
+    }
+
+    try {
+        if (oneSignalPlugin.User && oneSignalPlugin.User.pushSubscription && typeof oneSignalPlugin.User.pushSubscription.optIn === 'function') {
+            // Defensive: support both sync and promise-returning implementations.
+            await Promise.resolve(oneSignalPlugin.User.pushSubscription.optIn());
+            return;
+        }
+    } catch (err) {
+        attempts && attempts.push('Capacitor pushSubscription.optIn failed: ' + formatErrorMessage(err));
+    }
+}
+
+async function ensureOneSignalInitialized(oneSignalPlugin, attempts) {
+    if (_oneSignalInitialized) return;
+    if (_oneSignalInitializing) {
+        await _oneSignalInitializing;
+        return;
+    }
+    _oneSignalInitializing = (async function() {
+        try {
+            if (typeof oneSignalPlugin.initialize === 'function') {
+                await Promise.resolve(oneSignalPlugin.initialize(CAPACITOR_ONESIGNAL_APP_ID));
+            }
+            _oneSignalInitialized = true;
+        } catch (err) {
+            attempts && attempts.push('Capacitor initialize failed: ' + formatErrorMessage(err));
+        }
+    })();
+    try {
+        await _oneSignalInitializing;
+    } finally {
+        _oneSignalInitializing = null;
+    }
+}
+
+/**
+ * Returns true when an error message indicates OneSignal native init-context timing failure.
+ * @param {unknown} err Error object/string from plugin call.
+ * @returns {boolean}
+ */
+function isInitContextError(err) {
+    const message = formatErrorMessage(err).toLowerCase();
+    return message.includes(INIT_CONTEXT_ERROR_MARKER);
 }
 
 function registerToken(playerId) {
@@ -153,6 +236,8 @@ async function pullFromCapacitor() {
     try {
         const OS = window.plugins && window.plugins.OneSignal;
         if (OS) {
+            await ensureCapacitorPushReady(OS, attempts);
+
             if (OS.User && OS.User.pushSubscription && typeof OS.User.pushSubscription.getIdAsync === 'function') {
                 try {
                     const id = await OS.User.pushSubscription.getIdAsync();
@@ -163,6 +248,20 @@ async function pullFromCapacitor() {
                     attempts.push('Capacitor getIdAsync returned empty');
                 } catch (err) {
                     attempts.push('Capacitor getIdAsync failed: ' + formatErrorMessage(err));
+                    if (isInitContextError(err)) {
+                        // Some builds need a short post-registration delay before getIdAsync can return.
+                        await sleep(CAPACITOR_INIT_RETRY_DELAY_MS);
+                        try {
+                            const retryId = await OS.User.pushSubscription.getIdAsync();
+                            if (retryId) {
+                                setDetectedTokenAndRegister(retryId);
+                                return;
+                            }
+                            attempts.push('Capacitor getIdAsync retry returned empty');
+                        } catch (retryErr) {
+                            attempts.push('Capacitor getIdAsync retry failed: ' + formatErrorMessage(retryErr));
+                        }
+                    }
                 }
             }
 
@@ -191,52 +290,9 @@ async function pullFromCapacitor() {
             attempts.push('window.plugins.OneSignal unavailable');
         }
 
-        if (window.OneSignal) {
-            try {
-                if (window.OneSignal.User && window.OneSignal.User.PushSubscription
-                    && typeof window.OneSignal.User.PushSubscription.getId === 'function') {
-                    const id = await window.OneSignal.User.PushSubscription.getId();
-                    if (id) {
-                        setDetectedTokenAndRegister(id);
-                        return;
-                    }
-                }
-                const fallbackSdkId = (window.OneSignal.User && window.OneSignal.User.onesignalId)
-                    || window.OneSignal.userId;
-                if (fallbackSdkId) {
-                    setDetectedTokenAndRegister(fallbackSdkId);
-                    return;
-                }
-                if (typeof window.OneSignal.getUserId === 'function') {
-                    const id = await window.OneSignal.getUserId();
-                    if (id) {
-                        setDetectedTokenAndRegister(id);
-                        return;
-                    }
-                }
-                attempts.push('OneSignal web SDK did not return token');
-            } catch (err) {
-                attempts.push('OneSignal web SDK failed: ' + formatErrorMessage(err));
-            }
-        }
-
-        if (window.gonative && window.gonative.onesignal && typeof window.gonative.onesignal.getInfo === 'function') {
-            try {
-                const info = await Promise.resolve(window.gonative.onesignal.getInfo());
-                const id = extractTokenFromInfo(info);
-                if (id) {
-                    setDetectedTokenAndRegister(id);
-                    return;
-                }
-                attempts.push('gonative.onesignal.getInfo returned no token fields');
-            } catch (err) {
-                attempts.push('gonative.onesignal.getInfo failed: ' + formatErrorMessage(err));
-            }
-        }
-
         const detected = document.getElementById('detected-id');
         detected.className = 'fw-bold text-break text-danger';
-        detected.textContent = 'No token available yet. Open push permission first and retry.';
+        detected.textContent = 'No token available yet. Open push permission first and retry in Capacitor app.';
         if (attempts.length) {
             const detail = document.createElement('small');
             detail.className = 'text-muted d-block mt-1';

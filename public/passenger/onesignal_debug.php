@@ -92,9 +92,6 @@ if ($userId && isset($conn)) {
             }
         }
 
-        window.gonative_onesignal_info = handleOneSignalInfo;
-        window.median_onesignal_info   = handleOneSignalInfo;
-
         function updateDisplay() {
             var el = document.getElementById('pending-token');
             if (!el) return;
@@ -107,7 +104,7 @@ if ($userId && isset($conn)) {
     </script>
 
     <!-- Load the bridge script -->
-    <script src="../../assets/js/median_onesignal_bridge.js"></script>
+    <script src="../../assets/js/capacitor_onesignal_bridge.js"></script>
 
     <style>
         body { padding: 20px; background: #f5f5f5; }
@@ -189,13 +186,11 @@ if ($userId && isset($conn)) {
     }
 
     function checkSdk() {
-        var medianAvail   = !!(window.gonative && window.gonative.onesignal);
         var capacitorAvail = !!(window.plugins && window.plugins.OneSignal);
         var webSdkAvail   = !!(window.OneSignal);
-        var any = medianAvail || capacitorAvail || webSdkAvail;
+        var any = capacitorAvail || webSdkAvail;
 
         var label = [];
-        if (medianAvail)    label.push('Median/gonative');
         if (capacitorAvail) label.push('Capacitor plugin');
         if (webSdkAvail)    label.push('window.OneSignal');
         if (!any)           label.push('NOT available (web browser — push notifications require the native app)');
@@ -204,7 +199,7 @@ if ($userId && isset($conn)) {
         el.className = 'status-badge ' + (any ? 'status-yes' : 'status-no');
         el.textContent = label.join(' + ');
 
-        log('getinfo-log', 'SDK check: Median=' + medianAvail + ', Capacitor=' + capacitorAvail + ', WebSDK=' + webSdkAvail, any ? 'success' : 'error');
+        log('getinfo-log', 'SDK check: Capacitor=' + capacitorAvail + ', WebSDK=' + webSdkAvail, any ? 'success' : 'error');
     }
 
     function pullToken() {
@@ -251,12 +246,10 @@ if ($userId && isset($conn)) {
                             updateDisplay();
                         } else {
                             log('getinfo-log', 'PushSubscription.getId() returned null', 'error');
-                            tryMedianGetInfo();
                         }
                     })
                     .catch(function(e) {
                         log('getinfo-log', 'PushSubscription.getId() failed: ' + e.message, 'error');
-                        tryMedianGetInfo();
                     });
                 return;
             }
@@ -269,51 +262,14 @@ if ($userId && isset($conn)) {
                         updateDisplay();
                     } else {
                         log('getinfo-log', 'OneSignal.getUserId() returned null', 'error');
-                        tryMedianGetInfo();
                     }
                 }).catch(function(e) {
                     log('getinfo-log', 'OneSignal.getUserId() failed: ' + e.message, 'error');
-                    tryMedianGetInfo();
                 });
                 return;
             }
         }
-
-        tryMedianGetInfo();
-    }
-
-    // Path 3: Median/gonative getInfo()
-    function tryMedianGetInfo() {
-        if (!window.gonative || !window.gonative.onesignal) {
-            log('getinfo-log', 'No SDK found. Open this page inside the ByaHero native app.', 'error');
-            return;
-        }
-        if (typeof window.gonative.onesignal.getInfo !== 'function') {
-            log('getinfo-log', 'gonative.onesignal.getInfo() not available', 'error');
-            return;
-        }
-        try {
-            log('getinfo-log', 'Calling gonative.onesignal.getInfo()…');
-            var result = window.gonative.onesignal.getInfo();
-            Promise.resolve(result)
-                .then(function(info) {
-                    log('getinfo-log', 'getInfo() resolved: ' + JSON.stringify(info));
-                    window._getInfoLog.push({ time: new Date().toISOString(), info: info });
-                    var id = _extractOSId(info);
-                    if (id) {
-                        log('getinfo-log', 'Subscription ID extracted: ' + id, 'success');
-                        window._sosPendingToken = id;
-                        updateDisplay();
-                    } else {
-                        log('getinfo-log', 'No subscription ID found in getInfo() response – check FCM setup', 'error');
-                    }
-                })
-                .catch(function(e) {
-                    log('getinfo-log', 'getInfo() rejected: ' + e.message, 'error');
-                });
-        } catch (e) {
-            log('getinfo-log', 'getInfo() threw: ' + e.message, 'error');
-        }
+        log('getinfo-log', 'No token source available yet. Open this page inside the Capacitor app.', 'error');
     }
 
     function savePendingToken() {

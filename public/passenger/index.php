@@ -48,46 +48,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <script>
     window._sosPendingToken = null;
-    window._gonativeInfoLog = [];
-
-    function _sosHandleInfo(info) {
-      window._gonativeInfoLog.push({
-        time: new Date().toISOString(),
-        info: info
-      });
-      console.log('[OneSignal] Info received:', JSON.stringify(info));
-
-      // Try all possible property names for push-capable IDs/tokens.
-      var id = info && (
-        info.pushToken ||
-        info.subscriptionId ||
-        info.oneSignalId ||
-        info.userId ||
-        info.oneSignalUserId ||
-        info.playerId ||
-        info.id ||
-        (info.subscription && (
-          info.subscription.pushToken ||
-          info.subscription.id ||
-          info.subscription.subscriptionId ||
-          info.subscription.playerId
-        ))
-      );
-
-      if (!id) {
-        console.warn('[OneSignal] No ID found in info object');
-        return;
-      }
-
-      console.log('[OneSignal] Extracted token:', id);
-      window._sosPendingToken = id;
-      if (window.sosBridge) {
-        window.sosBridge.saveToken(id);
-      }
-    }
-
-    window.gonative_onesignal_info = _sosHandleInfo;
-    window.median_onesignal_info = _sosHandleInfo;
   </script>
   <script src="../../assets/js/accessibility.js"></script>
 
