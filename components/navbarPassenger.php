@@ -273,21 +273,34 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   .nav-item-btn:not(.active-nav) img {
     opacity: 0.6;
   }
-
   #nav-info-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
   }
-
   #nav-location-icon {
-    width: 20px;
-    height: 20px;
-    object-fit: contain;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
   }
 </style>
 <script>
   window._sosPendingToken = null;
+  window.gonative_onesignal_info = function (info) {
+    var id = info && (
+      info.oneSignalId || info.userId || info.subscriptionId ||
+      info.oneSignalUserId || info.pushToken || info.playerId || info.id ||
+      (info.subscription && (
+        info.subscription.id || info.subscription.subscriptionId ||
+        info.subscription.playerId || info.subscription.pushToken ||
+        info.subscription.userId || info.subscription.oneSignalId
+      ))
+    );
+    if (!id) return;
+    window._sosPendingToken = id;
+    if (window.sosBridge) window.sosBridge.saveToken(id);
+  };
+  window.median_onesignal_info = window.gonative_onesignal_info;
 </script>
 <link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
 <script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
@@ -516,14 +529,6 @@ else: ?>
         onesignal
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>public/passenger/token_status_debug.php">
-        <div style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="debug" height="30">
-        </div>
-        Token Status Debug
-      </a>
-
       <?php if (isset($_SESSION['user_id'])): ?>
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
           href="<?php echo $depth; ?>public/logout.php">
@@ -591,7 +596,7 @@ else: ?>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_onesignal_bridge.js"></script>
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/median_onesignal_bridge.js"></script>
 
 <script>
   (function () {

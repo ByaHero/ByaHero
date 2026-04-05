@@ -5,15 +5,10 @@
   "bundledWebRuntime": false,
   "server": {
     "url": "https://byahero.free.nf",
-    "cleartext": false
+    "cleartext": true
   },
   "android": {
     "useLegacyBridge": true
-  },
-  "plugins": {
-    "OneSignal": {
-      "appId": "b755dd29-1de2-4cf1-9381-6a9b436bc049"
-    }
   },
   "allowNavigation": [
     "byahero.free.nf",

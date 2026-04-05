@@ -86,22 +86,37 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_role'] = $userRole;
                 $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
 
-                // ── UI HANDOFF: sync any pending OneSignal token, then redirect ──
-                // The bridge script (running on the login page before this POST) captures
-                // the OneSignal token and stores it in localStorage under the key
-                // 'byahero_pending_fcm_token' when the register endpoint returns 401
-                // (because the user was not yet logged in).
-                //
-                // Now that the session is valid we read that key here and POST it to
-                // the register endpoint before navigating to the real destination.
-                ?>
+                // ── UI HANDOFF TO SYNC ONESIGNAL TOKEN ──
+?>
+                <!-- 
+  REPLACE the handoff HTML block in login.php 
+  (the block between "UI HANDOFF TO SYNC ONESIGNAL TOKEN" and the closing exit;)
+  with this corrected version.
+-->
                 <!DOCTYPE html>
                 <html lang="en">
 
                 <head>
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width,initial-scale=1">
-                    <title>Logging in…</title>
+                    <title>Logging in...</title>
+
+                    <!-- EARLY CATCHER: must be first script, before bridge loads -->
+                    <script>
+                        window._sosPendingToken = null;
+                        window.gonative_onesignal_info = function(info) {
+                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
+                                (info.subscription && info.subscription.id) || info.oneSignalUserId);
+                            if (id) {
+                                window._sosPendingToken = id;
+                                if (window.sosBridge) window.sosBridge.saveToken(id);
+                            }
+                        };
+                        window.median_onesignal_info = window.gonative_onesignal_info;
+                    </script>
+
+                    <script src="/assets/js/median_onesignal_bridge.js"></script>
+
                     <style>
                         body {
                             display: flex;
@@ -120,127 +135,103 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             border: 4px solid #f3f3f3;
                             border-top: 4px solid #2563eb;
                             border-radius: 50%;
-                            animation: spin .9s linear infinite;
+                            animation: spin 1s linear infinite;
                             margin-bottom: 20px;
                         }
 
                         @keyframes spin {
-                            to {
-                                transform: rotate(360deg);
+                            0% {
+                                transform: rotate(0deg)
+                            }
+
+                            100% {
+                                transform: rotate(360deg)
                             }
                         }
 
                         h3 {
                             color: #111827;
                             font-size: 1.1rem;
-                            margin: 0;
                         }
                     </style>
                 </head>
 
                 <body>
-                    <div class="spinner"></div>
-                    <h3>Logging in…</h3>
-
+                    <h3>Logging in...</h3>
                     <script>
-                        (function () {
-                            var REDIRECT_URL = "<?= addslashes($targetRedirect) ?>";
-                            var REGISTER_URL = "/backend/registerOnesignalToken.php";
-                            var PENDING_KEY = "byahero_pending_fcm_token";
-                            var HARD_TIMEOUT_MS = 10000;
-                            var done = false;
+                        var _redirectUrl = "<?= addslashes($targetRedirect) ?>";
+                        var _redirectDone = false;
 
-                            function proceed() {
-                                if (done) return;
-                                done = true;
-                                window.location.replace(REDIRECT_URL);
+                        function proceed() {
+                            if (!_redirectDone) {
+                                _redirectDone = true;
+                                window.location.replace(_redirectUrl);
                             }
+                        }
 
-                            function registerToken(token) {
-                                if (!token) return Promise.resolve(false);
-                                return fetch(REGISTER_URL, {
+                        // Try to save token, then redirect when done (or after timeout)
+                        function syncThenRedirect(playerId) {
+                            fetch('/backend/registerOnesignalToken.php', {
                                     method: 'POST',
                                     credentials: 'include',
-                                    headers: { 'Content-Type': 'application/json' },
-                                    body: JSON.stringify({ player_id: token })
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({
+                                        player_id: playerId
+                                    })
                                 })
-                                    .then(function (r) {
-                                        var ct = r.headers.get('content-type') || '';
-                                        if (!ct.includes('application/json')) throw new Error('Non-JSON response');
-                                        return r.json();
-                                    })
-                                    .then(function (d) {
-                                        if (d && d.success) {
-                                            localStorage.removeItem(PENDING_KEY);
-                                            return true;
-                                        }
-                                        return false;
-                                    })
-                                    .catch(function () { return false; });
-                            }
-
-                            function readTokenFromPlugin() {
-                                return new Promise(function (resolve) {
-                                    var OS = window.plugins && window.plugins.OneSignal;
-                                    if (!OS) return resolve(null);
-
-                                    try {
-                                        if (OS.User && OS.User.pushSubscription) {
-                                            var t = OS.User.pushSubscription.id || OS.User.pushSubscription.token || null;
-                                            if (t) return resolve(t);
-                                        }
-                                    } catch (e) { }
-
-                                    try {
-                                        if (typeof OS.getDeviceState === 'function') {
-                                            return OS.getDeviceState(function (state) {
-                                                resolve((state && state.userId) ? state.userId : null);
-                                            });
-                                        }
-                                    } catch (e) { }
-
-                                    try {
-                                        if (typeof OS.getIds === 'function') {
-                                            return OS.getIds(function (ids) {
-                                                resolve((ids && ids.userId) ? ids.userId : null);
-                                            });
-                                        }
-                                    } catch (e) { }
-
-                                    resolve(null);
+                                .then(function(r) {
+                                    return r.json();
+                                })
+                                .then(function(d) {
+                                    if (d.success) console.log('[Login] Token saved, user_id:', d.user_id);
+                                    else console.warn('[Login] Token save returned:', d.message);
+                                })
+                                .catch(function(e) {
+                                    console.warn('[Login] Token fetch error:', e.message);
+                                })
+                                .finally(function() {
+                                    proceed();
                                 });
+                        }
+
+                        document.addEventListener('DOMContentLoaded', function() {
+                            // Safety: always redirect within 3 seconds no matter what
+                            setTimeout(proceed, 3000);
+
+                            var pending = window._sosPendingToken;
+                            if (pending) {
+                                syncThenRedirect(pending);
+                                return;
                             }
 
-                            async function run() {
-                                setTimeout(proceed, HARD_TIMEOUT_MS);
-
-                                for (var i = 0; i < 16 && !done; i++) {
-                                    var pending = localStorage.getItem(PENDING_KEY);
-                                    if (pending) {
-                                        var ok = await registerToken(pending);
-                                        if (ok) return proceed();
-                                    }
-
-                                    var token = await readTokenFromPlugin();
-                                    if (token) {
-                                        localStorage.setItem(PENDING_KEY, token);
-                                        var ok2 = await registerToken(token);
-                                        if (ok2) return proceed();
-                                    }
-
-                                    await new Promise(function (r) { setTimeout(r, i < 6 ? 400 : 800); });
-                                }
-
+                            // Pull from Median JS API
+                            if (window.gonative && window.gonative.onesignal) {
+                                window.gonative.onesignal.getInfo()
+                                    .then(function(info) {
+                                        var id = info && (info.oneSignalId || info.userId ||
+                                            info.subscriptionId ||
+                                            (info.subscription && info.subscription.id));
+                                        if (id) {
+                                            syncThenRedirect(id);
+                                        } else {
+                                            proceed();
+                                        }
+                                    })
+                                    .catch(function() {
+                                        proceed();
+                                    });
+                            } else {
+                                // Not in Median shell — just redirect
                                 proceed();
                             }
-
-                            document.addEventListener('DOMContentLoaded', run);
-                        })();
+                        });
                     </script>
                 </body>
 
                 </html>
-                <?php
+<?php
                 exit;
             } else {
                 $err = 'Invalid email or password.';
@@ -258,46 +249,53 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta charset="utf-8" />
     <title>ByaHero — Login</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <script src="../assets/js/median_onesignal_bridge.js"></script>
     <style>
+        /* ... Your existing CSS remains exactly the same ... */
         :root {
             --brand: #2563eb;
-            --bg: #f8faff;
+            --bg: #ffffff;
             --muted: #6b7280;
         }
 
+        html,
         body {
-            min-height: 100vh;
-            background: var(--bg);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            height: 100%;
+            background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+            font-family: "Segoe UI", system-ui, -apple-system, Arial;
+            color: #0f172a;
         }
 
         .login-outer {
-            width: 100%;
-            max-width: 400px;
-            padding: 1.5rem;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
         }
 
         .login-card {
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
+            width: 100%;
+            max-width: 420px;
+            background: transparent;
         }
 
         .brand-wrap {
             text-align: center;
+            margin-bottom: 1.25rem;
         }
 
         .brand-logo {
-            width: 130px;
-            margin-bottom: .4rem;
+            width: 132px;
+            height: auto;
+            display: block;
+            margin: 0 auto 0.75rem;
         }
 
         .brand-title {
-            font-size: 1.15rem;
+            font-size: 0.85rem;
             letter-spacing: 1px;
             color: #111827;
             font-weight: bold;
@@ -408,7 +406,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-radius: 8px;
         }
 
-        @media (max-width: 420px) {
+        @media (max-width:420px) {
             .brand-logo {
                 width: 110px;
             }
@@ -486,7 +484,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', function() {
             const pwd = document.getElementById('password');
             const toggle = document.getElementById('togglePwd');
             const eye = document.getElementById('eyeIcon');
@@ -507,7 +505,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             syncIcon();
 
-            toggle.addEventListener('click', function () {
+            toggle.addEventListener('click', function() {
                 pwd.type = (pwd.type === 'password') ? 'text' : 'password';
                 syncIcon();
                 pwd.focus();
@@ -517,7 +515,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             });
         });
     </script>
-    <?php require __DIR__ . '/partials/push_bootstrap.php'; ?>
 </body>
 
 </html>

@@ -185,6 +185,7 @@ $pageDepth = "../../../";
         <div class="row justify-content-center">
             <div class="col-12 col-md-8 col-lg-5">
 
+                <!-- Location card -->
                 <div class="card border-0 shadow-sm rounded-4 mb-5">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center overflow-hidden">
@@ -201,6 +202,7 @@ $pageDepth = "../../../";
                     </div>
                 </div>
 
+                <!-- SOS button -->
                 <div class="sos-btn-container mb-5">
                     <div class="sos-ring"></div>
                     <div class="sos-ring"></div>
@@ -211,21 +213,17 @@ $pageDepth = "../../../";
                     </button>
                 </div>
 
+                <!-- Friend group section -->
                 <section class="text-center my-3">
                     <div id="friends-avatars" class="avatar-stack mb-1"></div>
                     <p id="friends-status" class="small text-muted mb-0">Loading…</p>
                 </section>
 
-                <div class="text-center mt-4">
-                    <button class="btn btn-outline-danger rounded-pill px-4 fw-bold" onclick="openSosFriendsModal()">
-                        <i class="bi bi-person-lines-fill me-2"></i> Select specific friends
-                    </button>
-                </div>
-
             </div>
         </div>
     </main>
 
+    <!-- SOS countdown layer -->
     <div id="sos-countdown-layer" class="d-none">
         <main class="flex-grow-1 d-flex flex-column align-items-center pt-5 text-center w-100">
             <h1 class="text-dark-red fw-bold display-6 mb-2">Slide to cancel</h1>
@@ -256,6 +254,7 @@ $pageDepth = "../../../";
         </main>
     </div>
 
+    <!-- Friends modal -->
     <div class="modal fade" id="sosFriendsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
@@ -270,17 +269,17 @@ $pageDepth = "../../../";
                             Select all
                         </button>
                     </div>
-                    <div id="friends-list" class="list-group small mb-3">
+                    <div id="friends-list" class="list-group small">
                         <div class="list-group-item">Loading…</div>
                     </div>
-                    <div class="alert alert-info mb-0 small">
+                    <div class="alert alert-info mt-3 mb-0 small">
                         This will send an <strong>in-app SOS alert</strong> to the selected friends.
                         They will see it in <strong>Notifications → SOS Alerts</strong>.
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancel</button>
-                    <button class="btn btn-danger fw-bold" id="btn-send-specific-sos" type="button" onclick="sendSosToSelectedFriends()">
+                    <button class="btn btn-danger fw-bold" type="button" onclick="sendSosToSelectedFriends()">
                         Send SOS
                     </button>
                 </div>
@@ -448,15 +447,9 @@ $pageDepth = "../../../";
 
         async function sendSosToSelectedFriends() {
             const statusEl = document.getElementById("friends-status");
-            const btnSend = document.getElementById("btn-send-specific-sos");
-            
             const selected = Array.from(document.querySelectorAll(".friend-checkbox:checked")).map(c => parseInt(c.value, 10));
             if (selected.length === 0) { alert("Select at least one friend."); return; }
-            
             const locText = await getResolvedLocationText();
-            btnSend.disabled = true;
-            btnSend.textContent = "Sending...";
-
             try {
                 if (statusEl) statusEl.textContent = "Sending…";
                 const res = await fetch("../../../backend/sendSosAlert.php", {
@@ -464,29 +457,13 @@ $pageDepth = "../../../";
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ recipients: selected, location_text: locText })
                 });
-
-                const textResp = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(textResp);
-                } catch(err) {
-                    screenLog("Server returned HTML (InfinityFree anti-bot?): " + textResp.substring(0, 50));
-                    throw new Error("Server returned HTML instead of JSON. Ensure anti-bot is disabled or test natively.");
-                }
-
+                const data = await res.json();
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
                 if (statusEl) statusEl.textContent = `Your SOS will be sent to ${selected.length} people`;
-                
-                alert(`SUCCESS! Alert successfully sent to ${data.sent_to?.length || selected.length} circle member(s).`);
-
                 if (sosFriendsModal) sosFriendsModal.hide();
             } catch (e) {
                 if (statusEl) statusEl.textContent = "Failed to send";
-                alert("Error: " + e.message);
-                screenLog("Modal Error: " + e.message);
-            } finally {
-                btnSend.disabled = false;
-                btnSend.textContent = "Send SOS";
+                alert(e.message);
             }
         }
 
@@ -537,7 +514,6 @@ $pageDepth = "../../../";
 
             if (recipients.length === 0) {
                 screenLog("ERROR: No circle members found in the app to notify.");
-                alert("You don't have anyone in your circle to notify!");
                 countdownLayer.classList.add('d-none');
                 isSOSActive = false;
                 return;
@@ -545,7 +521,7 @@ $pageDepth = "../../../";
 
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
-                screenLog("1. Timer finished. Sending request to backend...");
+                screenLog("1. Button slid. Sending request to backend...");
                 screenLog("Payload: " + JSON.stringify({ recipients, location_text: locText }));
 
                 const res = await fetch("../../../backend/sendSosAlert.php", {
@@ -554,27 +530,20 @@ $pageDepth = "../../../";
                     body: JSON.stringify({ recipients, location_text: locText })
                 });
 
-                const textResp = await res.text();
-                let data;
-                try {
-                    data = JSON.parse(textResp);
-                } catch(err) {
-                    screenLog("Server returned HTML instead of JSON: " + textResp.substring(0, 100));
-                    throw new Error("Server rejected API request (HTML response). Check InfinityFree anti-bot status.");
-                }
+                const data = await res.json();
 
                 screenLog("2. Backend replied!");
-                screenLog(data);
+                screenLog(data); // THIS IS THE MAGIC LINE that prints the DB results
 
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-                if (statusEl) statusEl.textContent = `Your SOS was sent to ${recipients.length} people`;
+                if (statusEl) statusEl.textContent = `Your SOS will be sent to ${recipients.length} people`;
 
-                alert(`🚨 SOS ALERT SENT!\nSuccessfully notified ${data.sent_to?.length || recipients.length} circle member(s).`);
+                // Temporarily disable the alert so it doesn't interrupt our reading
+                // alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
 
             } catch (e) {
                 screenLog("3. FATAL ERROR: " + e.message);
                 if (statusEl) statusEl.textContent = "Failed to send SOS";
-                alert("Failed to send SOS: " + e.message);
             } finally {
                 isSOSActive = false;
                 countdownLayer.classList.add('d-none');
@@ -626,8 +595,9 @@ $pageDepth = "../../../";
         document.addEventListener('touchend', endDrag);
     </script>
     
+    <!-- Debug Console -->
     <div id="debug-console"
-        style="position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
+        style="display:none; position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
         <strong style="color:#fff;">Backend Response Console</strong><br>
     </div>
 
