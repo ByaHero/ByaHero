@@ -106,9 +106,11 @@
       if (pending) saveToken(pending);
       
       // Auto initialize if Capacitor is available
-      if (window.Capacitor) {
-        setTimeout(initializePushNotifications, 1000);
-      }
+      setTimeout(() => {
+        if (window.Capacitor) {
+           initializePushNotifications();
+        }
+      }, 1000);
     });
   
     function showSosBanner(payload) {
