@@ -1,6 +1,6 @@
 {
   "appId": "com.byahero.app",
-  "appName": "BH Conductor",
+  "appName": "ByaHero",
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {

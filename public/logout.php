@@ -10,7 +10,7 @@ if (isset($_SESSION['user_id'])) {
         $userId = (int)$_SESSION['user_id'];
         
         // Delete all token associations for this user so they stop receiving pushes
-        $stmt = $conn->prepare("DELETE FROM user_onesignal_tokens WHERE user_id = ?");
+        $stmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?");
         if ($stmt) {
             $stmt->bind_param("i", $userId);
             $stmt->execute();
