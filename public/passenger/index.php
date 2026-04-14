@@ -40,10 +40,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <meta name="theme-color" content="#1e3a8a">
 
 
-  <!-- Bottom sheet component CSS -->
   <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=3">
 
-  <!-- Global Accessibility CSS and JS -->
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
 
   <script>
@@ -51,7 +49,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   </script>
   <script src="../../assets/js/accessibility.js"></script>
 
-  <!-- Analytics JS -->
   <script src="../../assets/js/analytics.js"></script>
 
   <style>
@@ -165,7 +162,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     </div>
   </div>
 
-  <!-- Bottom sheet component -->
   <?php include __DIR__ . '/../../components/passengerBottomSheet.php'; ?>
 
   <div class="d-none d-lg-block h-100">
@@ -223,7 +219,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <!-- Bottom sheet component JS (contains ALL bottom-sheet logic) -->
   <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
 
   <script>
@@ -523,9 +518,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       if (activeBuses.length === 0) {
         container.innerHTML = `
     <div class="p-3">
-      <div class="d-flex justify-content-between align-items-center mb-2">
-        <span class="small fw-bold text-uppercase text-black">BUS LOCATION</span>
-      </div>
       <div class="d-flex flex-column justify-content-center align-items-center text-muted text-center">
         <img src="../../assets/images/icons/noBus.svg" alt="No Bus" class="mb-2 no-bus-icon" />
         <span class="fw-bold">No Available Bus</span>

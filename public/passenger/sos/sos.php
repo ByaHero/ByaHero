@@ -36,9 +36,16 @@ $pageDepth = "../../../";
             background-color: var(--bs-bg-light);
         }
 
+        /* Set up the main layer to take full height */
+        #sos-idle-layer {
+            min-height: calc(100vh - 80px); /* Full height minus navbar */
+            display: flex;
+            flex-direction: column;
+        }
+
         .sos-btn-container {
-            width: 180px;
-            height: 180px;
+            width: 220px; /* Increased size for easier thumb reach */
+            height: 220px;
             margin: 0 auto;
             position: relative;
         }
@@ -181,18 +188,17 @@ $pageDepth = "../../../";
 
     <?php include "../../../components/navbarPassenger.php"; ?>
 
-    <main id="sos-idle-layer" class="container pt-2 mt-2">
-        <div class="row justify-content-center">
-            <div class="col-12 col-md-8 col-lg-5">
+    <main id="sos-idle-layer" class="container pt-3">
+        <div class="row justify-content-center flex-grow-1">
+            <div class="col-12 col-md-8 col-lg-5 d-flex flex-column">
 
-                <!-- Location card -->
-                <div class="card border-0 shadow-sm rounded-4 mb-5">
+                <div class="card border-0 shadow-sm rounded-4 mb-3 w-100">
                     <div class="card-body p-3 d-flex align-items-center justify-content-between">
                         <div class="d-flex align-items-center overflow-hidden">
                             <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-3 flex-shrink-0">
                                 <span class="material-symbols-rounded">my_location</span>
                             </div>
-                            <div class="overflow-hidden">
+                            <div class="text-start overflow-hidden">
                                 <small class="text-muted fw-bold d-block"
                                     style="font-size: 0.7rem; letter-spacing: 0.5px;">YOUR LOCATION</small>
                                 <span class="fw-bold text-dark text-truncate d-block"
@@ -202,28 +208,28 @@ $pageDepth = "../../../";
                     </div>
                 </div>
 
-                <!-- SOS button -->
-                <div class="sos-btn-container mb-5">
-                    <div class="sos-ring"></div>
-                    <div class="sos-ring"></div>
-                    <button class="main-sos-btn" onclick="startCountdown()">
-                        <h1 class="material-symbols-rounded text-white display-1 mb-0"
-                            style="font-variation-settings: 'FILL' 1;">sos</h1>
-                        <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
-                    </button>
-                </div>
+                <div class="d-flex flex-column justify-content-center align-items-center flex-grow-1 pb-5">
+                    
+                    <div class="sos-btn-container mb-4">
+                        <div class="sos-ring"></div>
+                        <div class="sos-ring"></div>
+                        <button class="main-sos-btn" onclick="startCountdown()">
+                            <h1 class="material-symbols-rounded text-white mb-0"
+                                style="font-variation-settings: 'FILL' 1; font-size: 4rem;">sos</h1>
+                            <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
+                        </button>
+                    </div>
 
-                <!-- Friend group section -->
-                <section class="text-center my-3">
-                    <div id="friends-avatars" class="avatar-stack mb-1"></div>
-                    <p id="friends-status" class="small text-muted mb-0">Loading…</p>
-                </section>
+                    <section class="text-center mt-3">
+                        <div id="friends-avatars" class="avatar-stack mb-1"></div>
+                        <p id="friends-status" class="small text-muted mb-0">Loading…</p>
+                    </section>
+                </div>
 
             </div>
         </div>
     </main>
 
-    <!-- SOS countdown layer -->
     <div id="sos-countdown-layer" class="d-none">
         <main class="flex-grow-1 d-flex flex-column align-items-center pt-5 text-center w-100">
             <h1 class="text-dark-red fw-bold display-6 mb-2">Slide to cancel</h1>
@@ -254,7 +260,6 @@ $pageDepth = "../../../";
         </main>
     </div>
 
-    <!-- Friends modal -->
     <div class="modal fade" id="sosFriendsModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content rounded-4">
@@ -668,7 +673,6 @@ $pageDepth = "../../../";
         document.addEventListener('touchend', endDrag);
     </script>
     
-    <!-- Debug Console -->
     <div id="debug-console"
         style="display:none; position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
         <strong style="color:#fff;">Backend Response Console</strong><br>

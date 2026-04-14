@@ -153,6 +153,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       user-select: none;
       line-height: 1;
     }
+
+    /* ONLY CHANGE: make the show.png icon bigger */
+    .toggle-password img{
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+      display: block;
+    }
   </style>
 </head>
 <body>
@@ -200,7 +208,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               required
               placeholder="Enter current password"
             >
-            <button type="button" class="toggle-password" data-target="current_password" aria-label="Show password">👁</button>
+            <button type="button" class="toggle-password" data-target="current_password" aria-label="Show password">
+              <img src="../../../assets/images/icons/show.png" alt="Show">
+            </button>
           </div>
         </div>
 
@@ -216,7 +226,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               minlength="6"
               placeholder="Enter new password"
             >
-            <button type="button" class="toggle-password" data-target="new_password" aria-label="Show password">👁</button>
+            <button type="button" class="toggle-password" data-target="new_password" aria-label="Show password">
+              <img src="../../../assets/images/icons/show.png" alt="Show">
+            </button>
           </div>
         </div>
 
@@ -232,7 +244,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               minlength="6"
               placeholder="Confirm new password"
             >
-            <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password">👁</button>
+            <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password">
+              <img src="../../../assets/images/icons/show.png" alt="Show">
+            </button>
           </div>
         </div>
 
@@ -262,7 +276,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <script src="../../../assets/js/accessibility.js"></script>
   <script src="../../../assets/js/analytics.js"></script>
   <script>
-    // Toggle password visibility (manageConductors pattern: 👁 / 🙈)
+    // Toggle password visibility (show.png / 🙈)
     document.querySelectorAll('.toggle-password').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-target');
@@ -271,7 +285,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         const isPw = field.type === 'password';
         field.type = isPw ? 'text' : 'password';
-        btn.textContent = isPw ? '🙈' : '👁';
+
+        btn.innerHTML = isPw
+          ? '🙈'
+          : '<img src="../../../assets/images/icons/show.png" alt="Show">';
       });
     });
 

@@ -82,7 +82,14 @@ if (!isset($baseUrl)) {
   </div>
 
   <div class="flex-grow-1 pb-4 px-3 bottom-sheet-body" style="min-height: 0;">
-    <div id="view-location" class="mt-2">
+    
+    <div id="view-location" class="mt-3">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em; text-transform: uppercase;">
+          BUS LOCATION
+        </div>
+      </div>
+      
       <div id="busListMobile">
         <div class="text-center text-muted mt-4 small">Loading buses...</div>
       </div>
