@@ -459,7 +459,33 @@ $pageDepth = "../../../";
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-                if (statusEl) statusEl.textContent = `Your SOS will be sent to ${selected.length} people`;
+                if (statusEl) statusEl.textContent = `SOS Alert recorded. Sending pushes...`;
+                
+                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: data.jwt })
+                    });
+                    const tokenData = await tokenRes.json();
+                    if (tokenData.access_token) {
+                        const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
+                        await Promise.all(data.fcm_tokens.map(async (token) => {
+                            await fetch(fcmUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenData.access_token}` },
+                                body: JSON.stringify({
+                                    message: {
+                                        token: token,
+                                        notification: { title: '🚨 SOS Alert', body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '') },
+                                        data: { type: 'sos_alert', sender_name: data.sender_name, location_text: data.location_text || '' }
+                                    }
+                                })
+                            });
+                        }));
+                    }
+                }
+                
+                if (statusEl) statusEl.textContent = `SOS sent successfully to ${selected.length} people`;
                 if (sosFriendsModal) sosFriendsModal.hide();
             } catch (e) {
                 if (statusEl) statusEl.textContent = "Failed to send";
@@ -533,13 +559,60 @@ $pageDepth = "../../../";
                 const data = await res.json();
 
                 screenLog("2. Backend replied!");
-                screenLog(data); // THIS IS THE MAGIC LINE that prints the DB results
+                screenLog(data);
 
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
-                if (statusEl) statusEl.textContent = `Your SOS will be sent to ${recipients.length} people`;
+                if (statusEl) statusEl.textContent = `Alerting ${recipients.length} people...`;
 
-                // Temporarily disable the alert so it doesn't interrupt our reading
-                // alert(`SOS sent to ${data.sent_to?.length || recipients.length} circle member(s).`);
+                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+                    try {
+                        screenLog("3. Bypassing InfinityFree... Fetching Firebase Access Token using JWT...");
+                        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: new URLSearchParams({
+                                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
+                                assertion: data.jwt
+                            })
+                        });
+                        const tokenData = await tokenRes.json();
+                        if (!tokenData.access_token) throw new Error("Could not get access token: " + JSON.stringify(tokenData));
+                        
+                        screenLog("4. Token acquired, blasting push notifications...");
+                        const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
+                        
+                        await Promise.all(data.fcm_tokens.map(async (token) => {
+                            await fetch(fcmUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${tokenData.access_token}`
+                                },
+                                body: JSON.stringify({
+                                    message: {
+                                        token: token,
+                                        notification: {
+                                            title: '🚨 SOS Alert',
+                                            body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '')
+                                        },
+                                        data: {
+                                            type: 'sos_alert',
+                                            sender_name: data.sender_name,
+                                            location_text: data.location_text || ''
+                                        }
+                                    }
+                                })
+                            });
+                        }));
+                        screenLog("5. Push notifications sent successfully from frontend!");
+                        if (statusEl) statusEl.textContent = `SOS successfully forwarded to ${data.fcm_tokens.length} devices!`;
+                    } catch (pushErr) {
+                        screenLog("Push Error: " + pushErr.message);
+                        if (statusEl) statusEl.textContent = `SOS saved, but push warning: ${pushErr.message}`;
+                    }
+                } else {
+                    if (statusEl) statusEl.textContent = `SOS saved. (No FCM tokens found for friends)`;
+                }
 
             } catch (e) {
                 screenLog("3. FATAL ERROR: " + e.message);

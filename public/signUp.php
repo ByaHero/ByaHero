@@ -42,7 +42,7 @@ if (isset($_SESSION['user_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     
-    <script src="../assets/js/median_onesignal_bridge.js"></script>
+    <script src="../assets/js/capacitor_firebase_bridge.js"></script>
 
     <style>
         /* Your existing CSS remains the same */

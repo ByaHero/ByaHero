@@ -3,9 +3,22 @@ session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 
-// ── OneSignal Credentials ──
-define('ONESIGNAL_APP_ID', 'b755dd29-1de2-4cf1-9381-6a9b436bc049');
-define('ONESIGNAL_REST_API_KEY', 'os_v2_app_w5k52ki54jgpde4bnknug26ajffmpqdyhshutleosxotea2neg6pcnw6lqotnv67mcb7p3rr3d37pglprqyefcfihmdnqxbijny3pzi');
+// Auto-migration for Infinity Free: ensure the table exists in case no one registered a token yet
+$conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  fcm_token VARCHAR(255) NOT NULL,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY (user_id),
+  INDEX idx_token (fcm_token)
+)");
+
+// Infinity Free Bypass Strategy:
+// Instead of sending the HTTP request from PHP (which might be blocked on Infinity Free),
+// We sign the JWT using the Firebase Service Account locally in PHP.
+// Then we return the FCM tokens AND the signed JWT to the frontend JS.
+// The frontend (which has unrestricted internet) will exchange the JWT for an Access Token
+// and dispatch the push notifications directly to Google's FCM API.
 
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
@@ -15,7 +28,6 @@ if (!isset($_SESSION['user_id'])) {
 $senderId = (int)$_SESSION['user_id'];
 $senderName = $_SESSION['user_name'] ?? ($_SESSION['user_email'] ?? 'A user');
 
-// 1. Get the payload from the frontend (the specific friends selected)
 $input = json_decode(file_get_contents('php://input'), true);
 $recipients = $input['recipients'] ?? [];
 $locationText = trim($input['location_text'] ?? '');
@@ -25,33 +37,30 @@ if (empty($recipients) || !is_array($recipients)) {
     exit;
 }
 
-// Clean the array to ensure they are valid integers
 $recipients = array_values(array_unique(array_map('intval', $recipients)));
 
 try {
     $conn->begin_transaction();
 
-    $playerIds = [];
+    $fcmTokens = [];
     $validRecipients = [];
 
-    // 2. Insert the SOS into the database so it shows up in their in-app Notification Bell
+    // 1. Insert the SOS into DB
     $insertStmt = $conn->prepare("INSERT INTO sos_alerts (sender_user_id, recipient_user_id, location_text, status) VALUES (?, ?, ?, 'active')");
-    
     foreach ($recipients as $recipientId) {
         if ($recipientId <= 0) continue;
-        
         $insertStmt->bind_param("iis", $senderId, $recipientId, $locationText);
         $insertStmt->execute();
         $validRecipients[] = $recipientId;
     }
     $insertStmt->close();
 
-    // 3. Look up the physical device tokens for everyone in the recipient list
+    // 2. Look up the physical device FCM tokens
     if (!empty($validRecipients)) {
         $placeholders = implode(',', array_fill(0, count($validRecipients), '?'));
         $types = str_repeat('i', count($validRecipients));
         
-        $tokenSql = "SELECT player_id FROM user_onesignal_tokens WHERE user_id IN ($placeholders) AND player_id != ''";
+        $tokenSql = "SELECT fcm_token FROM user_fcm_tokens WHERE user_id IN ($placeholders) AND fcm_token != ''";
         $tokenStmt = $conn->prepare($tokenSql);
         
         $bindNames = [$types];
@@ -64,66 +73,63 @@ try {
         $tokenRes = $tokenStmt->get_result();
         
         while ($row = $tokenRes->fetch_assoc()) {
-            $playerIds[] = $row['player_id'];
+            $fcmTokens[] = $row['fcm_token'];
         }
         $tokenStmt->close();
     }
 
-    // 4. Blast the push notification to all found devices via OneSignal
-    $pushResult = ['skipped' => true];
+    $conn->commit();
+
+    // 3. Generate the self-signed JWT for the Frontend Bypass!
+    $clientEmail = '';
+    $privateKey = '';
+    $projectId = '';
     
-    if (!empty($playerIds)) {
-        $locSnippet = $locationText ? " at $locationText" : "";
-        $payload = [
-            'app_id' => ONESIGNAL_APP_ID,
-            'target_channel' => 'push',
-            'include_aliases' => ['onesignal_id' => $playerIds],
-            'headings' => ['en' => '🚨 SOS Alert'],
-            'contents' => ['en' => "$senderName needs help$locSnippet!"],
-            'data' => [
-                'type' => 'sos_alert',
-                'sender_name' => $senderName,
-                'location_text' => $locationText
-            ],
-            'priority' => 10,
-            'ttl' => 3600
-        ];
-
-        $ch = curl_init('https://onesignal.com/api/v1/notifications');
-        curl_setopt_array($ch, [
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_POST => true,
-            CURLOPT_HTTPHEADER => [
-                'Content-Type: application/json',
-                'Authorization: Basic ' . ONESIGNAL_REST_API_KEY
-            ],
-            CURLOPT_POSTFIELDS => json_encode($payload),
-            CURLOPT_TIMEOUT => 10
-        ]);
-
-        $response = curl_exec($ch);
-        $error = curl_error($ch);
-        curl_close($ch);
-
-        if ($error) {
-            error_log("OneSignal curl error: $error");
-            $pushResult = ['error' => $error];
-        } else {
-            $pushResult = json_decode($response, true) ?? ['raw' => $response];
+    $serviceAccountPath = __DIR__ . '/serviceAccountKey.json';
+    if (file_exists($serviceAccountPath)) {
+        $sa = json_decode(file_get_contents($serviceAccountPath), true);
+        if ($sa) {
+            $clientEmail = $sa['client_email'] ?? '';
+            $privateKey = $sa['private_key'] ?? '';
+            $projectId = $sa['project_id'] ?? '';
         }
     }
 
-    $conn->commit();
-    
+    $signedJwt = null;
+    if ($clientEmail && $privateKey) {
+        $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
+        $now = time();
+        $payload = json_encode([
+            'iss' => $clientEmail,
+            'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
+            'aud' => 'https://oauth2.googleapis.com/token',
+            'exp' => $now + 3600,
+            'iat' => $now
+        ]);
+        
+        // Base64Url encode
+        $b64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
+        $b64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
+        $signatureInput = $b64Header . "." . $b64Payload;
+        
+        // Sign the JWT
+        @openssl_sign($signatureInput, $signature, $privateKey, "sha256WithRSAEncryption");
+        $b64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
+        $signedJwt = $signatureInput . "." . $b64Signature;
+    }
+
     echo json_encode([
         'success' => true,
         'sent_to' => $validRecipients,
-        'push_sent' => count($playerIds),
-        'push_result' => $pushResult
+        'fcm_tokens' => $fcmTokens,
+        'jwt' => $signedJwt,
+        'project_id' => $projectId,
+        'sender_name' => $senderName,
+        'location_text' => $locationText
     ]);
 
 } catch (Exception $e) {
-    $conn->rollback();
+    if (isset($conn)) $conn->rollback();
     error_log("sendSosAlert failed: " . $e->getMessage());
     echo json_encode(['success' => false, 'message' => 'System error: ' . $e->getMessage()]);
 }

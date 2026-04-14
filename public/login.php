@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
-    <script src="../assets/js/median_onesignal_bridge.js"></script>
+    <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <style>
         /* ... Your existing CSS remains exactly the same ... */
         :root {
