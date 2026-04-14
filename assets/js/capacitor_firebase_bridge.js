@@ -48,8 +48,12 @@
     };
   
     // Listen for incoming pushes when app is in foreground
+    let _listenersSetup = false;
     function setupPushListeners() {
+      if (_listenersSetup) return;
       if (!window.Capacitor || !window.Capacitor.Plugins.PushNotifications) return;
+      _listenersSetup = true;
+      
       const PushNotifications = window.Capacitor.Plugins.PushNotifications;
   
       PushNotifications.addListener('registration', (obj) => {
@@ -85,6 +89,10 @@
       }
       
       const PushNotifications = window.Capacitor.Plugins.PushNotifications;
+      
+      // CRITICAL START: Set up listeners immediately so we don't miss the token while the prompt is open 
+      setupPushListeners();
+      
       let permStatus = await PushNotifications.checkPermissions();
   
       if (permStatus.receive === 'prompt' || forceRegister) {
@@ -96,7 +104,6 @@
         return false;
       }
   
-      setupPushListeners();
       await PushNotifications.register();
       return true;
     }
