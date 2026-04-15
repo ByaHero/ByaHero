@@ -514,6 +514,14 @@ else: ?>
       </a>
 
       <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        href="<?php echo $depth; ?>public/passenger/showGuide/showGuide.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
+        </div>
+        User Guide
+      </a>
+
+      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/register_token_test.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
