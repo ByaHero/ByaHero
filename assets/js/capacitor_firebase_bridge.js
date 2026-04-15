@@ -51,8 +51,7 @@
     let _listenersSetup = false;
     let _tokenReceived = false;
     let _retryTimer = null;
-    const MAX_REGISTER_RETRIES = 5;
-    const BASE_RETRY_DELAY_MS = 4000;
+    const RETRY_DELAYS_MS = [500, 1000, 2000, 3000, 4000, 5000];
 
     function cancelRetries() {
       if (_retryTimer) {
@@ -108,12 +107,12 @@
       cancelRetries();
 
       _registerAttempt = fromAttempt;
-      if (_registerAttempt >= MAX_REGISTER_RETRIES) {
-        dbg('warn', '[SOS-FCM] Max retries (' + MAX_REGISTER_RETRIES + ') reached. Giving up automatic retry.');
+      if (_registerAttempt >= RETRY_DELAYS_MS.length) {
+        dbg('warn', '[SOS-FCM] Max retries (' + RETRY_DELAYS_MS.length + ') reached. Giving up automatic retry.');
         return;
       }
 
-      const delay = BASE_RETRY_DELAY_MS + (_registerAttempt * 1000); // 4s, 5s, 6s, 7s, 8s
+      const delay = RETRY_DELAYS_MS[_registerAttempt];
       dbg('log', '[SOS-FCM] Scheduling register() retry #' + (_registerAttempt + 1) + ' in ' + delay + 'ms');
 
       _retryTimer = setTimeout(async () => {
@@ -162,19 +161,33 @@
       return true;
     }
   
+    function initWhenReady() {
+      const path = window.location.pathname.toLowerCase();
+      const isAuthPage = path.includes('login.php') || path.includes('signup.php') || path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/');
+      
+      if (isAuthPage) return;
+
+      let pollAttempts = 0;
+      function poll() {
+        if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
+          initializePushNotifications();
+        } else {
+          pollAttempts++;
+          if (pollAttempts < 60) { // 3 seconds max (50ms * 60)
+            setTimeout(poll, 50);
+          } else {
+            dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
+          }
+        }
+      }
+      poll();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       const pending = localStorage.getItem(PENDING_TOKEN_KEY);
       if (pending) saveToken(pending);
       
-      // Auto initialize if Capacitor is available and we are NOT on a login/signup screen
-      setTimeout(() => {
-        const path = window.location.pathname.toLowerCase();
-        const isAuthPage = path.includes('login.php') || path.includes('signup.php') || path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/');
-        
-        if (window.Capacitor && !isAuthPage) {
-           initializePushNotifications();
-        }
-      }, 1000);
+      initWhenReady();
     });
   
     function showSosBanner(payload) {
