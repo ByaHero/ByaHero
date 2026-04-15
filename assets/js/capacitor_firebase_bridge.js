@@ -132,6 +132,60 @@
       }, delay);
     }
 
+    function showPermissionPopup(callback) {
+      if (document.getElementById('fcm-permission-modal')) return;
+
+      const overlay = document.createElement('div');
+      overlay.id = 'fcm-permission-modal';
+      Object.assign(overlay.style, {
+        position: 'fixed', top: '0', left: '0', width: '100vw', height: '100vh',
+        backgroundColor: 'rgba(0,0,0,0.5)', zIndex: '999999',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        opacity: '0', transition: 'opacity 0.3s'
+      });
+
+      const modal = document.createElement('div');
+      Object.assign(modal.style, {
+        backgroundColor: '#fff', borderRadius: '16px', padding: '24px',
+        width: '90%', maxWidth: '340px', boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        textAlign: 'center', fontFamily: '"Segoe UI",sans-serif',
+        transform: 'translateY(20px)', transition: 'transform 0.3s'
+      });
+
+      modal.innerHTML = `
+        <div style="width:60px;height:60px;background:#e0e7ff;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <span style="font-size:28px;line-height:1;">🔔</span>
+        </div>
+        <h3 style="margin:0 0 10px;font-size:1.2rem;color:#1e3a8a;font-weight:700;">Enable Notifications</h3>
+        <p style="margin:0 0 24px;font-size:0.9rem;color:#4b5563;line-height:1.4;">
+          Stay updated instantly with bus arrivals, emergency SOS alerts, and important announcements directly on your screen.
+        </p>
+        <div style="display:flex;gap:12px;">
+          <button id="fcm-btn-deny" style="flex:1;padding:12px;border:none;background:#f3f4f6;color:#4b5563;border-radius:8px;font-weight:600;font-size:0.95rem;cursor:pointer;">Not Now</button>
+          <button id="fcm-btn-allow" style="flex:1;padding:12px;border:none;background:#1e3a8a;color:#fff;border-radius:8px;font-weight:600;font-size:0.95rem;cursor:pointer;">Allow</button>
+        </div>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Animate in
+      requestAnimationFrame(() => {
+        overlay.style.opacity = '1';
+        modal.style.transform = 'translateY(0)';
+      });
+
+      function close(accepted) {
+        overlay.style.opacity = '0';
+        modal.style.transform = 'translateY(20px)';
+        setTimeout(() => overlay.remove(), 300);
+        callback(accepted);
+      }
+
+      document.getElementById('fcm-btn-deny').addEventListener('click', () => close(false));
+      document.getElementById('fcm-btn-allow').addEventListener('click', () => close(true));
+    }
+
     async function initializePushNotifications(forceRegister = false) {
       if (!window.Capacitor || !window.Capacitor.Plugins.PushNotifications) {
         dbg('warn', '[SOS-FCM] Capacitor PushNotifications plugin not found.');
@@ -145,7 +199,26 @@
       
       let permStatus = await PushNotifications.checkPermissions();
   
-      if (permStatus.receive === 'prompt' || forceRegister) {
+      if (permStatus.receive === 'prompt' && !forceRegister) {
+        // Show our beautiful custom pre-prompt
+        return new Promise((resolve) => {
+          showPermissionPopup(async (accepted) => {
+            if (accepted) {
+              permStatus = await PushNotifications.requestPermissions();
+              if (permStatus.receive === 'granted') {
+                await PushNotifications.register();
+                scheduleRegisterRetry(0);
+                resolve(true);
+              } else {
+                resolve(false);
+              }
+            } else {
+              dbg('log', '[SOS-FCM] User dismissed pre-permission prompt.');
+              resolve(false);
+            }
+          });
+        });
+      } else if (permStatus.receive === 'prompt' || forceRegister) {
         permStatus = await PushNotifications.requestPermissions();
       }
   
