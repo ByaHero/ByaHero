@@ -670,21 +670,62 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         lastNetworkSync = Date.now();
     }
 
+    let updateDebounceTimer = null;
+    function debouncedManualUpdate() {
+        clearTimeout(updateDebounceTimer);
+        // Wait 1.5 seconds after the last press to prevent hitting InfinityFree limits
+        updateDebounceTimer = setTimeout(() => {
+            triggerManualUpdate();
+        }, 1500);
+    }
+
+    function updateMediaSessionMetadata() {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata({
+                title: 'Manage Seating Capacity',
+                artist: `Seats Available: ${seats}`,
+                album: busCode || 'ByaHero Conductor',
+                artwork: [
+                    { src: '../../assets/img/icon-512.png', sizes: '512x512', type: 'image/png' }
+                ]
+            });
+            navigator.mediaSession.playbackState = "playing";
+        }
+    }
+
+    function incrementSeats() {
+        seats = seats + 1;
+        el('seatsCount').textContent = seats;
+        updateMediaSessionMetadata();
+        debouncedManualUpdate();
+    }
+
+    function decrementSeats() {
+        seats = Math.max(0, seats - 1);
+        el('seatsCount').textContent = seats;
+        updateMediaSessionMetadata();
+        debouncedManualUpdate();
+    }
+
+    // Media Session Action Handlers
+    function setupMediaSession() {
+        if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
+            navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
+            updateMediaSessionMetadata();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
         initMap();
         loadRouteFeatures().catch(()=>{});
         startGeolocation();
 
-        el('seatPlus').addEventListener('click', () => {
-            seats = seats + 1;
-            el('seatsCount').textContent = seats;
-            triggerManualUpdate();
-        });
-        el('seatMinus').addEventListener('click', () => {
-            seats = Math.max(0, seats - 1);
-            el('seatsCount').textContent = seats;
-            triggerManualUpdate();
-        });
+        // Hook up Media Session as soon as the DOM loads
+        setupMediaSession();
+
+        el('seatPlus').addEventListener('click', incrementSeats);
+        el('seatMinus').addEventListener('click', decrementSeats);
 
         // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
         setInterval(async () => {
