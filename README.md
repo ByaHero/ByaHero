@@ -3,9 +3,14 @@ Capstone project
 
 ## DEVELOPERS
 
-- CHRISTOPHER JR. A. ARTUZ
+- CJ
+- EDGAR
+- TIMOTHY
+- CHELSEA
+- MIEL
+- PAUL
 
-A lightweight PHP prototype for real-time bus tracking using Leaflet maps and SQLite database.
+A lightweight PHP prototype for real-time bus tracking.
 
 ## Features
 
@@ -27,42 +32,13 @@ A lightweight PHP prototype for real-time bus tracking using Leaflet maps and SQ
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/sijey-CJAA/ByaHero-Prototype-V2.git
-   cd ByaHero-Prototype-V2
+   git clone https://github.com/sijey-CJAA/ByaHero-Prototype-V3.git
    ```
 
-2. **Initialize the database**
-   ```bash
-   php init_db.php
-   ```
-
-   This will create the SQLite database at `data/db.sqlite` and seed it with three buses:
-   - BUS-001
-   - BUS-002
-   - BUS-003
-
-3. **Start the PHP development server**
-   ```bash
-   php -S localhost:8000 -t public
-   ```
-
-4. **Access the application**
-   - **Passenger View**: http://localhost:8000/index.php
-   - **Conductor View**: http://localhost:8000/conductor.php
-
-## Usage
-
-### For Passengers
-
-1. Open http://localhost:8000/index.php
-2. View real-time bus locations on the map
-3. Filter buses by route using the dropdown
-4. Click on bus markers to see details (route, seats available, status)
-5. The map updates automatically every 3 seconds
+2. **Ask for access for the database**
 
 ### For Conductors
 
-1. Open http://localhost:8000/conductor.php
 2. Select your bus from the dropdown
 3. Enter the route name for your trip
 4. Click "Start Tracking" to begin sharing your location
