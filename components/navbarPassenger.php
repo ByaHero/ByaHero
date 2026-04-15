@@ -597,6 +597,7 @@ else: ?>
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_firebase_bridge.js"></script>
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_back_button.js"></script>
 
 <script>
   (function () {

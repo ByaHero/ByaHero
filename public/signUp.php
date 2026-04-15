@@ -43,6 +43,7 @@ if (isset($_SESSION['user_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
     
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
+    <script src="../assets/js/capacitor_back_button.js"></script>
 
     <style>
         /* Your existing CSS remains the same */

@@ -298,3 +298,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
     } catch (e) {}
 })();
 </script>
+<script>
+  window.APP_BASE_URL = window.APP_BASE_URL || '<?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>';
+</script>
+<script src="<?= htmlspecialchars($base) ?>/assets/js/capacitor_back_button.js"></script>
