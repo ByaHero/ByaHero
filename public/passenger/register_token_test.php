@@ -110,11 +110,30 @@ async function pullFromCapacitor() {
     // Set up listeners just for debugging
     PN.removeAllListeners();
     
-    PN.addListener('registration', (obj) => {
+    PN.addListener('registration', async (obj) => {
         setDetectedMessage('<span class="text-success">' + obj.value + '</span>', '');
-        setStatusMessage('Token captured natively. Sending to PHP...', 'text-primary');
-        window.sosBridge.saveToken(obj.value);
-        setTimeout(() => setStatusMessage('PHP should have saved it. Refresh page to verify.', 'text-success fw-bold'), 2000);
+        setStatusMessage('Token captured! Sending directly to PHP...', 'text-primary');
+        
+        try {
+            const url = '../../backend/registerFcmToken.php';
+            const res = await fetch(url, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ fcm_token: obj.value })
+            });
+            const text = await res.text();
+            let parsed;
+            try { parsed = JSON.parse(text); } catch(e) { parsed = null; }
+            
+            if (parsed && parsed.success) {
+                setStatusMessage('✅ SAVED! user_id=' + parsed.user_id + '. Refresh to verify.', 'text-success fw-bold');
+            } else {
+                setStatusMessage('❌ PHP Error (HTTP ' + res.status + '): ' + text, 'text-danger fw-bold');
+            }
+        } catch(e) {
+            setStatusMessage('❌ Network Error: ' + String(e), 'text-danger fw-bold');
+        }
     });
 
     PN.addListener('registrationError', (err) => {
