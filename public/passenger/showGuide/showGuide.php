@@ -13,19 +13,20 @@ if (!empty($userName)) {
 
 // The exact order of the ByaHero guide images
 $guideSteps = [
-    "welcome.svg", 
-    "BUS LOC.svg",
-    "CIRCLE.svg",
-    "FILTER ROUTES.svg",
-    "FILTER ROUTES-1.svg",
-    "PICKUP PNTS.svg",
-    "BUS INFO.svg",
-    "SOS.svg",
-    "LOCATION.svg",
-    "HOMEPAGE.svg",
-    "HOMEPAGE-1.svg",
-    "NOTIFICATION.svg",
-    "DONEE.svg"
+    "WELCOME.png", 
+    "BUS LOC.png",
+    "CIRCLE.png",
+    "FILTER ROUTES.png",
+    "FILTER ROUTES-1.png",
+    "PICKUP PNTS.png",
+    "BUS INFO.png",
+    "SOS.png",
+    "SOS-1.png",
+    "LOCATION.png",
+    "HOMEPAGE.png",
+    "HOMEPAGE-1.png",
+    "NOTIFICATION.png",
+    "DONE.png"
 ];
 
 // Convert the PHP array to a JSON format for JavaScript
