@@ -679,16 +679,24 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }, 1500);
     }
 
-    function updateMediaSessionMetadata() {
-        if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata({
-                title: 'Manage Seating Capacity',
-                artist: `Seats Available: ${seats}`,
-                album: busCode || 'ByaHero Conductor',
-                artwork: [
-                    { src: '../../assets/img/icon-512.png', sizes: '512x512', type: 'image/png' }
-                ]
-            });
+    async function updateMediaSessionMetadata() {
+        const metadata = {
+            title: 'Manage Seating Capacity',
+            artist: `Seats Available: ${seats}`,
+            album: busCode || 'ByaHero Conductor',
+            artwork: [
+                { src: '../../assets/icon/icon.png', sizes: '512x512', type: 'image/png' } // Fallback to local path
+            ]
+        };
+
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
+            try {
+                const MediaSession = window.Capacitor.Plugins.MediaSession;
+                await MediaSession.setMetadata(metadata);
+                await MediaSession.setPlaybackState({ playbackState: 'playing' });
+            } catch(e) { console.warn("Native MediaSession err", e); }
+        } else if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata(metadata);
             navigator.mediaSession.playbackState = "playing";
         }
     }
@@ -708,8 +716,15 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     }
 
     // Media Session Action Handlers
-    function setupMediaSession() {
-        if ('mediaSession' in navigator) {
+    async function setupMediaSession() {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
+            try {
+                const MediaSession = window.Capacitor.Plugins.MediaSession;
+                await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
+                await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
+                await updateMediaSessionMetadata();
+            } catch(e) { console.warn("Native MediaSession setup err", e); }
+        } else if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
             navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
             updateMediaSessionMetadata();
