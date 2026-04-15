@@ -49,6 +49,18 @@
   
     // Listen for incoming pushes when app is in foreground
     let _listenersSetup = false;
+    let _tokenReceived = false;
+    let _retryTimer = null;
+    const MAX_REGISTER_RETRIES = 5;
+    const BASE_RETRY_DELAY_MS = 4000;
+
+    function cancelRetries() {
+      if (_retryTimer) {
+        clearTimeout(_retryTimer);
+        _retryTimer = null;
+      }
+    }
+
     function setupPushListeners() {
       if (_listenersSetup) return;
       if (!window.Capacitor || !window.Capacitor.Plugins.PushNotifications) return;
@@ -58,11 +70,18 @@
   
       PushNotifications.addListener('registration', (obj) => {
         dbg('log', '[SOS-FCM] Registration successful, token: ' + obj.value);
+        _tokenReceived = true;
+        cancelRetries();
         saveToken(obj.value);
       });
   
       PushNotifications.addListener('registrationError', (error) => {
         dbg('warn', '[SOS-FCM] Registration error: ' + JSON.stringify(error));
+        // Don't wait for the normal retry timer — kick off an immediate retry
+        if (!_tokenReceived) {
+          dbg('log', '[SOS-FCM] Will retry register() after error...');
+          scheduleRegisterRetry(0);
+        }
       });
   
       PushNotifications.addListener('pushNotificationReceived', (notification) => {
@@ -81,7 +100,39 @@
         }
       });
     }
-  
+
+    let _registerAttempt = 0;
+
+    function scheduleRegisterRetry(fromAttempt) {
+      if (_tokenReceived || _saved) return;
+      cancelRetries();
+
+      _registerAttempt = fromAttempt;
+      if (_registerAttempt >= MAX_REGISTER_RETRIES) {
+        dbg('warn', '[SOS-FCM] Max retries (' + MAX_REGISTER_RETRIES + ') reached. Giving up automatic retry.');
+        return;
+      }
+
+      const delay = BASE_RETRY_DELAY_MS + (_registerAttempt * 1000); // 4s, 5s, 6s, 7s, 8s
+      dbg('log', '[SOS-FCM] Scheduling register() retry #' + (_registerAttempt + 1) + ' in ' + delay + 'ms');
+
+      _retryTimer = setTimeout(async () => {
+        if (_tokenReceived || _saved) return;
+        _registerAttempt++;
+        dbg('log', '[SOS-FCM] Retry #' + _registerAttempt + ' — calling register() again');
+        try {
+          const PN = window.Capacitor.Plugins.PushNotifications;
+          await PN.register();
+        } catch (e) {
+          dbg('warn', '[SOS-FCM] register() threw during retry: ' + (e.message || e));
+        }
+        // Schedule the next retry in case this one also doesn't produce a token
+        if (!_tokenReceived && !_saved) {
+          scheduleRegisterRetry(_registerAttempt);
+        }
+      }, delay);
+    }
+
     async function initializePushNotifications(forceRegister = false) {
       if (!window.Capacitor || !window.Capacitor.Plugins.PushNotifications) {
         dbg('warn', '[SOS-FCM] Capacitor PushNotifications plugin not found.');
@@ -105,6 +156,9 @@
       }
   
       await PushNotifications.register();
+
+      // Start the retry loop — if the registration event fires quickly, retries are cancelled
+      scheduleRegisterRetry(0);
       return true;
     }
   
