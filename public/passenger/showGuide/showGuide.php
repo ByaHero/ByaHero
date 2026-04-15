@@ -11,23 +11,26 @@ if (!empty($userName)) {
     $personalizedWelcome = "Welcome!";
 }
 
+// Set this once: 'png' or 'svg'
+$imgExt = 'png';
+
 // The exact order of the ByaHero guide images
 $guideSteps = [
-    "welcome.svg", 
-    "BUS LOC.svg",
-    "CIRCLE.svg",
-    "FILTER ROUTES.svg",
-    "FILTER ROUTES-1.svg",
-    "PICKUP PNTS.svg",
-    "BUS INFO.svg",
-    "SOS.svg",
-    "LOCATION.svg",
-    "HOMEPAGE.svg",
-    "HOMEPAGE-1.svg",
-    "NOTIFICATION.svg",
-    "DONEE.svg"
+    "WELCOME.$imgExt", 
+    "BUS LOC.$imgExt",
+    "CIRCLE.$imgExt",
+    "FILTER ROUTES.$imgExt",
+    "FILTER ROUTES-1.$imgExt",
+    "PICKUP PNTS.$imgExt",
+    "BUS INFO.$imgExt",
+    "SOS.$imgExt",
+    "SOS-1.$imgExt",
+    "LOCATION.$imgExt",
+    "HOMEPAGE.$imgExt",
+    "HOMEPAGE-1.$imgExt",
+    "NOTIFICATION.$imgExt",
+    "DONE.$imgExt"
 ];
-
 // Convert the PHP array to a JSON format for JavaScript
 $stepsJson = json_encode($guideSteps);
 ?>
