@@ -112,9 +112,12 @@
       const pending = localStorage.getItem(PENDING_TOKEN_KEY);
       if (pending) saveToken(pending);
       
-      // Auto initialize if Capacitor is available
+      // Auto initialize if Capacitor is available and we are NOT on a login/signup screen
       setTimeout(() => {
-        if (window.Capacitor) {
+        const path = window.location.pathname.toLowerCase();
+        const isAuthPage = path.includes('login.php') || path.includes('signup.php') || path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/');
+        
+        if (window.Capacitor && !isAuthPage) {
            initializePushNotifications();
         }
       }, 1000);
