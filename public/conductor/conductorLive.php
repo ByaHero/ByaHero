@@ -626,6 +626,11 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         stopKeepAliveAudio();
         releaseWakeLock();
         
+        if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'none';
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
+            try { window.Capacitor.Plugins.MediaSession.setPlaybackState({ playbackState: 'none' }).catch(()=>{}); } catch(e){}
+        }
+
         if (watchId !== null) {
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
@@ -681,11 +686,11 @@ $seatsTotal  = (int)$currentBus['seats_total'];
 
     async function updateMediaSessionMetadata() {
         const metadata = {
-            title: 'Manage Seating Capacity',
-            artist: `Seats Available: ${seats}`,
-            album: busCode || 'ByaHero Conductor',
+            title: `BUS ${busCode} • ${busRoute}`, // Bus number and route
+            artist: `Manage Seats | Available: ${seats}`,
+            album: 'ByaHero Conductor Tracker',
             artwork: [
-                { src: '../../assets/icon/icon.png', sizes: '512x512', type: 'image/png' } // Fallback to local path
+                { src: '../../assets/images/byaheroLogo.png', sizes: '512x512', type: 'image/png' } // High quality logo for Android color extraction
             ]
         };
 
