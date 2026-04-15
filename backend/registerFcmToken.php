@@ -55,9 +55,14 @@ if ($legacyCheck && $legacyCheck->num_rows > 0) {
 }
 
 $userId   = (int)$_SESSION['user_id'];
-$input    = json_decode(file_get_contents('php://input'), true);
-$fcmToken = trim($input['fcm_token'] ?? '');
+// Check standard POST first to bypass InfinityFree JSON filtering
+$fcmToken = trim($_POST['fcm_token'] ?? '');
 
+// Fallback to JSON payload if empty
+if (empty($fcmToken)) {
+    $input    = json_decode(file_get_contents('php://input'), true);
+    $fcmToken = trim($input['fcm_token'] ?? '');
+}
 if ($fcmToken === '') {
     http_response_code(400);
     echo json_encode(['success' => false, 'message' => 'fcm_token required']);

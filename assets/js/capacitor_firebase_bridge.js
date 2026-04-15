@@ -17,8 +17,8 @@
       fetch(REGISTER_URL, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fcm_token: token })
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'fcm_token=' + encodeURIComponent(token)
       })
       .then(r => r.json())
       .then(d => {
