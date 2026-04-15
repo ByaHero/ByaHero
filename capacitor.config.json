@@ -5,7 +5,8 @@
   "bundledWebRuntime": false,
   "server": {
     "url": "https://byahero.free.nf",
-    "cleartext": true
+    "cleartext": true,
+    "errorPath": "error.html"
   },
   "android": {
     "useLegacyBridge": true
