@@ -11,8 +11,8 @@ $conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
   user_id INT NOT NULL,
   fcm_token VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (user_id),
-  INDEX idx_token (fcm_token)
+  UNIQUE KEY unique_token (fcm_token),
+  INDEX idx_user (user_id)
 )");
 
 $existingTokens = [];

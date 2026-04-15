@@ -37,14 +37,19 @@ if (!isset($_SESSION['user_id'])) {
 require_once '../config/db_connection.php';
 
 // Auto-migration: ensure the table exists
+// UNIQUE on fcm_token (not user_id) so one user can have multiple devices
 $conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   fcm_token VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (user_id),
-  INDEX idx_token (fcm_token)
+  UNIQUE KEY unique_token (fcm_token),
+  INDEX idx_user (user_id)
 )");
+
+// Fix legacy schema: if the old UNIQUE(user_id) constraint exists, drop it
+$conn->query("ALTER TABLE user_fcm_tokens DROP INDEX user_id");
+$conn->query("ALTER TABLE user_fcm_tokens ADD UNIQUE KEY unique_token (fcm_token)");
 
 $userId   = (int)$_SESSION['user_id'];
 $input    = json_decode(file_get_contents('php://input'), true);
@@ -57,17 +62,18 @@ if ($fcmToken === '') {
 }
 
 try {
-    // 1. Delete this specific device token from ANY other user accounts
+    // 1. If this device token was previously attached to a DIFFERENT user, reassign it
     $cleanStmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE fcm_token = ? AND user_id != ?");
     $cleanStmt->bind_param("si", $fcmToken, $userId);
     $cleanStmt->execute();
     $cleanStmt->close();
 
-    // 2. Insert or update the token for the CURRENT user.
+    // 2. Insert or update: keyed on fcm_token (unique per device)
+    //    This allows the SAME user to have MULTIPLE devices registered.
     $stmt = $conn->prepare(
         "INSERT INTO user_fcm_tokens (user_id, fcm_token)
          VALUES (?, ?)
-         ON DUPLICATE KEY UPDATE fcm_token = VALUES(fcm_token), updated_at = CURRENT_TIMESTAMP"
+         ON DUPLICATE KEY UPDATE user_id = VALUES(user_id), updated_at = CURRENT_TIMESTAMP"
     );
     
     if (!$stmt) throw new Exception('Prepare failed: ' . $conn->error);

@@ -4,14 +4,19 @@ header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 
 // Auto-migration for Infinity Free: ensure the table exists in case no one registered a token yet
+// UNIQUE on fcm_token (not user_id) so one user can have multiple devices
 $conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NOT NULL,
   fcm_token VARCHAR(255) NOT NULL,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY (user_id),
-  INDEX idx_token (fcm_token)
+  UNIQUE KEY unique_token (fcm_token),
+  INDEX idx_user (user_id)
 )");
+
+// Fix legacy schema: if the old UNIQUE(user_id) constraint exists, drop it
+@$conn->query("ALTER TABLE user_fcm_tokens DROP INDEX user_id");
+@$conn->query("ALTER TABLE user_fcm_tokens ADD UNIQUE KEY unique_token (fcm_token)");
 
 // Infinity Free Bypass Strategy:
 // Instead of sending the HTTP request from PHP (which might be blocked on Infinity Free),
