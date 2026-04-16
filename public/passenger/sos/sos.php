@@ -234,6 +234,7 @@ $pageDepth = "../../../";
             font-size: 14px;
             user-select: none;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
 
         .stack-avatar:first-child {
@@ -462,6 +463,11 @@ $pageDepth = "../../../";
             avatarsEl.innerHTML = shown.map(f => {
                 const init = initialsFromFriend(f);
                 const bg = colorFromString(f.email || f.name || init);
+                if (f.profile_picture) {
+                    const basePath = window.APP_BASE_URL || "<?php echo isset($pageDepth) ? $pageDepth : '../../../'; ?>";
+                    const cleanPath = f.profile_picture.startsWith('/') ? f.profile_picture.substring(1) : f.profile_picture;
+                    return `<div class="stack-avatar" style="background:${bg}"><img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
+                }
                 return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
             }).join("");
             statusEl.textContent = `Your SOS will be sent to ${friendsCache.length} people`;
