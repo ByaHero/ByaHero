@@ -102,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       display: flex;
       align-items: center;
       justify-content: center;
@@ -116,12 +116,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       margin-bottom: 0.5rem;
     }
     .form-control:focus {
-      border-color: #10b981;
-      box-shadow: 0 0 0 0.2rem rgba(16, 185, 129, 0.25);
+      border-color: #2563eb;
+      box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
     }
     .password-requirements {
-      background: #f0fdf4;
-      border: 1px solid #86efac;
+      background: #eff6ff;
+      border: 1px solid #bfdbfe;
       border-radius: 8px;
       padding: 1rem;
       margin-top: 1rem;
@@ -131,7 +131,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       padding-left: 1.5rem;
     }
     .password-requirements li {
-      color: #15803d;
+      color: #1d4ed8;
       font-size: 0.9rem;
     }
 
@@ -251,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="password-requirements">
-          <strong class="d-block mb-2" style="color: #15803d;">Password Requirements:</strong>
+          <strong class="d-block mb-2" style="color: #1d4ed8;">Password Requirements:</strong>
           <ul>
             <li>At least 6 characters long</li>
             <li>Mix of letters and numbers recommended</li>
@@ -260,11 +260,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="d-grid gap-2 mt-4">
-          <button type="submit" class="btn btn-success">
+          <button type="submit" class="btn btn-primary rounded-pill py-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none;">
             <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">shield</span>
             Update Password
           </button>
-          <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='accountSettings.php'">
+          <button type="button" class="btn btn-outline-secondary rounded-pill py-2" onclick="window.location.href='accountSettings.php'">
             Cancel
           </button>
         </div>
