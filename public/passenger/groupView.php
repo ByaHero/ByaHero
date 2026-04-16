@@ -5,24 +5,65 @@
         </div>
     </div>
     <div class="p-3 bg-light rounded-4 mb-2">
-        <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center justify-content-between mb-2">
             <div>
-                <h6 class="mb-1 fw-bold text-dark">Your Invite Code</h6>
-                <small class="text-muted">Share this code to add friends</small>
+                <h6 class="mb-0 fw-bold text-dark">Your Invite Code</h6>
+                <small class="text-muted">Invite friends to your circle</small>
             </div>
-            <!-- CHANGED: Refresh -> Copy -->
-            <button class="btn btn-sm btn-primary rounded-pill" onclick="copyInviteCode()">Copy</button>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="generateInviteCode(true)" title="Reset Code">
+                <span class="material-symbols-rounded" style="font-size: 16px;">refresh</span>
+            </button>
         </div>
-        <div class="mt-2">
-            <span id="invite-code" class="fw-bold fs-5 text-primary">------</span>
+        
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <div id="invite-code" class="fw-bold fs-4 text-primary bg-white border rounded-3 px-3 py-2 flex-grow-1 text-center" style="letter-spacing: 2px;">------</div>
+            <button class="btn btn-primary rounded-3 px-3 py-2" onclick="copyInviteCode()" style="height: 48px;">
+                <span class="material-symbols-rounded">content_copy</span>
+            </button>
+        </div>
+
+        <div class="row g-2">
+            <div class="col-6">
+                <button class="btn btn-primary w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" onclick="showInviteQR()">
+                    <span class="material-symbols-rounded">qr_code_2</span>
+                    QR Code
+                </button>
+            </div>
+            <div class="col-6">
+                <button class="btn btn-outline-primary w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" onclick="shareInviteLink()">
+                    <span class="material-symbols-rounded">share</span>
+                    Share Link
+                </button>
+            </div>
         </div>
     </div>
 
+    <!-- QR Modal / Container -->
+    <div id="qr-display-container" class="d-none p-3 bg-white border rounded-4 mb-3 text-center shadow-sm">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <span class="fw-bold small text-muted">SCAN TO JOIN</span>
+            <button type="button" class="btn-close" onclick="document.getElementById('qr-display-container').classList.add('d-none')"></button>
+        </div>
+        <div id="qr-code-img-container" class="mb-2"></div>
+        <small class="text-muted d-block">Let your friend scan this code to instantly join your circle.</small>
+    </div>
+
     <div class="p-3 bg-light rounded-4 mb-3">
-        <h6 class="mb-2 fw-bold text-dark">Join a Circle</h6>
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="mb-0 fw-bold text-dark">Join a Circle</h6>
+            <button class="btn btn-sm btn-primary rounded-pill d-flex align-items-center gap-1" onclick="toggleScanner()">
+                <span class="material-symbols-rounded" style="font-size: 18px;">qr_code_scanner</span>
+                Scan
+            </button>
+        </div>
+        
+        <div id="qr-scanner-container" class="d-none mb-3 overflow-hidden rounded-3 border" style="width: 100%; max-width: 400px; margin: 0 auto;">
+            <div id="qr-reader" style="width: 100%;"></div>
+        </div>
+
         <div class="d-flex gap-2">
-            <input id="join-code-input" class="form-control" placeholder="Enter invite code" />
-            <button class="btn btn-primary rounded-pill" onclick="joinByCode()">Join</button>
+            <input id="join-code-input" class="form-control rounded-pill" placeholder="Enter 6-digit code" />
+            <button class="btn btn-primary rounded-pill px-4" onclick="joinByCode()">Join</button>
         </div>
         <small id="join-message" class="d-block mt-2 text-muted"></small>
     </div>
@@ -263,21 +304,121 @@
         }
     }
 
-    async function generateInviteCode() {
+    let html5QrScanner = null;
+
+    async function generateInviteCode(isReset = false) {
         if (!inviteCodeEl) return;
         inviteCodeEl.textContent = '...';
 
         try {
-            const res = await fetch('../../backend/getInviteCode.php', { cache: 'no-store' });
+            const url = isReset ? '../../backend/getInviteCode.php?reset=1' : '../../backend/getInviteCode.php';
+            const res = await fetch(url, { cache: 'no-store' });
             const data = await res.json();
-            inviteCodeEl.textContent = data.success ? data.invite_code : '------';
+            if (data.success) {
+                inviteCodeEl.textContent = data.invite_code;
+                // If QR is visible, update it
+                if (!document.getElementById('qr-display-container').classList.contains('d-none')) {
+                    showInviteQR();
+                }
+            } else {
+                inviteCodeEl.textContent = '------';
+            }
         } catch (err) {
             inviteCodeEl.textContent = '------';
         }
     }
 
-    // ADDED: copy to clipboard
-    async function copyInviteCode() {
+    // NEW: Show QR Code using Google Charts API
+    function showInviteQR() {
+        const code = (inviteCodeEl.textContent || '').trim();
+        if (!code || code === '------' || code === '...') {
+            alert('Wait for invite code to load...');
+            return;
+        }
+
+        const qrContainer = document.getElementById('qr-display-container');
+        const imgContainer = document.getElementById('qr-code-img-container');
+        
+        // Google Charts QR API
+        const qrUrl = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${code}&choe=UTF-8`;
+        
+        imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2" style="max-width: 200px;">`;
+        qrContainer.classList.remove('d-none');
+    }
+
+    // NEW: Share via Native Web Share API
+    async function shareInviteLink() {
+        const code = (inviteCodeEl.textContent || '').trim();
+        if (!code || code === '------' || code === '...') {
+            alert('Wait for invite code to load...');
+            return;
+        }
+
+        const shareUrl = `${window.location.origin}${window.APP_BASE_URL || ''}/public/passenger/index.php?join_circle=${code}`;
+        const shareData = {
+            title: 'Join my ByaHero Circle',
+            text: `Join my safety circle on ByaHero! Use this link to add me instantly:`,
+            url: shareUrl
+        };
+
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+            } else {
+                // Fallback: Copy to clipboard
+                copyInviteCode(true); // pass true to indicate it's from sharing
+            }
+        } catch (err) {
+            console.error('Share failed:', err);
+        }
+    }
+
+    // NEW: QR Scanner Toggle
+    function toggleScanner() {
+        const container = document.getElementById('qr-scanner-container');
+        if (container.classList.contains('d-none')) {
+            container.classList.remove('d-none');
+            startScanner();
+        } else {
+            stopScanner();
+            container.classList.add('d-none');
+        }
+    }
+
+    function startScanner() {
+        if (!html5QrScanner) {
+            html5QrScanner = new Html5Qrcode("qr-reader");
+        }
+        
+        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        
+        html5QrScanner.start(
+            { facingMode: "environment" }, 
+            config,
+            (decodedText) => {
+                // Success: decodedText is expected to be the 6-digit code
+                document.getElementById('join-code-input').value = decodedText;
+                stopScanner();
+                document.getElementById('qr-scanner-container').classList.add('d-none');
+                joinByCode(); // Auto-join after scan
+            },
+            (errorMessage) => {
+                // Silent error (normal during scanning)
+            }
+        ).catch(err => {
+            console.error('Camera access failed:', err);
+            alert('Unable to access camera. Please check permissions.');
+            document.getElementById('qr-scanner-container').classList.add('d-none');
+        });
+    }
+
+    function stopScanner() {
+        if (html5QrScanner && html5QrScanner.isScanning) {
+            html5QrScanner.stop().catch(err => console.error('Stop error:', err));
+        }
+    }
+
+    async function copyInviteCode(fromShare = false) {
         if (!inviteCodeEl) return;
 
         const code = (inviteCodeEl.textContent || '').trim();
@@ -286,13 +427,16 @@
             return;
         }
 
+        const shareUrl = fromShare 
+            ? `${window.location.origin}${window.APP_BASE_URL || ''}/public/passenger/index.php?join_circle=${code}`
+            : code;
+
         try {
             if (navigator.clipboard && window.isSecureContext) {
-                await navigator.clipboard.writeText(code);
+                await navigator.clipboard.writeText(shareUrl);
             } else {
-                // fallback for non-HTTPS / older browsers
                 const ta = document.createElement('textarea');
-                ta.value = code;
+                ta.value = shareUrl;
                 ta.setAttribute('readonly', '');
                 ta.style.position = 'absolute';
                 ta.style.left = '-9999px';
@@ -301,8 +445,7 @@
                 document.execCommand('copy');
                 document.body.removeChild(ta);
             }
-
-            alert('Invite code copied!');
+            alert(fromShare ? 'Invite link copied to clipboard!' : 'Invite code copied!');
         } catch (e) {
             console.error('Copy failed:', e);
             alert('Copy failed. Please copy manually.');
@@ -312,8 +455,9 @@
     async function joinByCode() {
         if (!joinMessageEl) return;
 
-        const code = document.getElementById('join-code-input').value.trim();
-        joinMessageEl.textContent = '';
+        const codeInput = document.getElementById('join-code-input');
+        const code = codeInput.value.trim();
+        joinMessageEl.textContent = 'Joining...';
 
         if (!code) {
             joinMessageEl.textContent = 'Please enter a code.';
@@ -328,9 +472,16 @@
             });
 
             const data = await res.json();
-            joinMessageEl.textContent = data.message || (data.success ? 'Joined!' : 'Failed');
-
-            if (data.success) loadGroupMembers();
+            
+            if (data.success) {
+                joinMessageEl.innerHTML = `<span class="text-success fw-bold">${data.message || 'Joined successfully!'}</span>`;
+                codeInput.value = '';
+                loadGroupMembers();
+                // If it was scanned, provide tactile feedback
+                if (navigator.vibrate) navigator.vibrate(50);
+            } else {
+                joinMessageEl.innerHTML = `<span class="text-danger">${data.message || 'Failed to join'}</span>`;
+            }
         } catch (err) {
             joinMessageEl.textContent = 'Join failed.';
         }

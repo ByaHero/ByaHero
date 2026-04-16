@@ -219,6 +219,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
+  <script src="https://unpkg.com/html5-qrcode"></script>
   <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
 
   <script>
@@ -913,8 +914,37 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     // --------------------- INIT ---------------------
     document.addEventListener('DOMContentLoaded', function() {
-      var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) locationPermissionGranted = false;
+
+      // Deep Link Joining Logic
+      const urlParams = new URLSearchParams(window.location.search);
+      const joinCode = urlParams.get('join_circle');
+      if (joinCode) {
+        // Clear the URL parameter so it doesn't try to join again on refresh
+        window.history.replaceState({}, document.title, window.location.pathname);
+        
+        // Call the join backend
+        fetch('../../backend/joinCircleByCode.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invite_code: joinCode })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.success) {
+            alert('Welcome! You have successfully joined the circle.');
+            // Switch to groups tab if switchSheetTab is available
+            if (typeof switchSheetTab === 'function') switchSheetTab('groups');
+          } else {
+            console.warn('Auto-join failed:', data.message);
+            if (data.message !== 'Already in circle') {
+              alert('Join failed: ' + data.message);
+            }
+          }
+        })
+        .catch(err => console.error('Deep link join error:', err));
+      }
     });
 
     startUserLocationWatch();
