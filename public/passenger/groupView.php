@@ -35,6 +35,8 @@
     let groupMarkers = [];
     let activeFriendMarker = null;
     let locationTimer = null;
+    let currentFriendsData = [];
+    let isGroupTabActive = false;
 
     let groupListEl;
     let inviteCodeEl;
@@ -75,19 +77,53 @@
     }
 
     function showGroupVisuals() {
-        if (!window.userLocation || !window.map) return;
-
-        hideGroupVisuals();
+        if (!window.map) return;
+        isGroupTabActive = true;
+        renderGroupMarkersOnMap();
     }
 
     function hideGroupVisuals() {
-        if (groupCircleLayer) { map.removeLayer(groupCircleLayer); groupCircleLayer = null; }
-        groupMarkers.forEach(m => map.removeLayer(m));
+        isGroupTabActive = false;
+        if (groupCircleLayer) { window.map.removeLayer(groupCircleLayer); groupCircleLayer = null; }
+        groupMarkers.forEach(m => window.map.removeLayer(m));
         groupMarkers = [];
         if (activeFriendMarker) {
-            map.removeLayer(activeFriendMarker);
+            window.map.removeLayer(activeFriendMarker);
             activeFriendMarker = null;
         }
+    }
+
+    function renderGroupMarkersOnMap() {
+        groupMarkers.forEach(m => window.map.removeLayer(m));
+        groupMarkers = [];
+        if (activeFriendMarker) {
+            window.map.removeLayer(activeFriendMarker);
+            activeFriendMarker = null;
+        }
+        
+        if (!isGroupTabActive || !window.map) return;
+
+        const seenIds = new Set();
+        
+        currentFriendsData.forEach(friend => {
+            const id = friend && friend.id != null ? String(friend.id) : null;
+            if (id && seenIds.has(id)) return;
+            if (id) seenIds.add(id);
+
+            const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
+            const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+            const marker = createPersonMarker(lat, lng, friend.name || friend.email);
+            
+            if (!isLocationFresh(friend.updated_at)) {
+                marker.setOpacity(0.6);
+                marker.bindPopup(`<b>${friend.name || friend.email}</b><br><small class="text-muted">${getLastSeenLabel(friend.updated_at)}</small>`);
+            }
+            
+            marker.addTo(window.map);
+            groupMarkers.push(marker);
+        });
     }
 
     function createPersonMarker(lat, lng, label = '') {
@@ -101,7 +137,7 @@
                 className: 'person-marker',
                 iconSize: [32, 32]
             })
-        }).bindPopup(label);
+        }).bindPopup(`<b>${label}</b>`);
     }
 
     async function loadGroupMembers() {
@@ -118,11 +154,14 @@
 
             if (!data.friends || data.friends.length === 0) {
                 groupListEl.innerHTML = `<small class="text-muted">No circle members yet.</small>`;
+                currentFriendsData = [];
+                renderGroupMarkersOnMap();
                 return;
             }
 
             // Dedupe: if backend returns duplicates, we only show one card per user id
             const seenIds = new Set();
+            currentFriendsData = data.friends || [];
 
             groupListEl.innerHTML = '';
             data.friends.forEach(friend => {
@@ -165,13 +204,21 @@
                         return;
                     }
 
-                    if (activeFriendMarker) map.removeLayer(activeFriendMarker);
-                    activeFriendMarker = createPersonMarker(lat, lng, friend.name || friend.email).addTo(map);
-                    map.setView([lat, lng], 16);
+                    window.map.setView([lat, lng], 16);
+                    
+                    const targetMarker = groupMarkers.find(m => {
+                        const mll = m.getLatLng();
+                        return Math.abs(mll.lat - lat) < 0.000001 && Math.abs(mll.lng - lng) < 0.000001;
+                    });
+                    if (targetMarker) targetMarker.openPopup();
                 });
 
                 groupListEl.appendChild(card);
             });
+
+            if (isGroupTabActive) {
+                renderGroupMarkersOnMap();
+            }
         } catch (err) {
             console.error(err);
             groupListEl.innerHTML = `<small class="text-danger">Error loading group data.</small>`;
