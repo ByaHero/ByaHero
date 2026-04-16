@@ -38,14 +38,20 @@
         </div>
     </div>
 
-    <!-- QR Modal / Container -->
-    <div id="qr-display-container" class="d-none p-3 bg-white border rounded-4 mb-3 text-center shadow-sm">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <span class="fw-bold small text-muted">SCAN TO JOIN</span>
-            <button type="button" class="btn-close" onclick="document.getElementById('qr-display-container').classList.add('d-none')"></button>
+    <!-- QR Code Modal -->
+    <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-dialog-centered modal-sm">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <span class="fw-bold small text-muted" id="qrCodeModalLabel">SCAN TO JOIN</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-2 pb-4">
+                    <div id="qr-code-img-container" class="mb-3 d-flex justify-content-center"></div>
+                    <small class="text-muted d-block px-2">Let your friend scan this code to instantly join your circle.</small>
+                </div>
+            </div>
         </div>
-        <div id="qr-code-img-container" class="mb-2"></div>
-        <small class="text-muted d-block">Let your friend scan this code to instantly join your circle.</small>
     </div>
 
     <div class="p-3 bg-light rounded-4 mb-3">
@@ -336,14 +342,16 @@
             return;
         }
 
-        const qrContainer = document.getElementById('qr-display-container');
         const imgContainer = document.getElementById('qr-code-img-container');
         
         // Using QRServer API (Google Charts is deprecated)
         const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(code)}`;
         
-        imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2" style="max-width: 200px;">`;
-        qrContainer.classList.remove('d-none');
+        imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2 shadow-sm" style="max-width: 200px;">`;
+        
+        const qrModalEl = document.getElementById('qrCodeModal');
+        const modal = bootstrap.Modal.getInstance(qrModalEl) || new bootstrap.Modal(qrModalEl);
+        modal.show();
     }
 
     // NEW: Share via Native Web Share API
