@@ -50,15 +50,50 @@ if ($already) {
     exit;
 }
 
-// Insert member
+// Insert member (the user scanning the code into the owner's circle)
 $insertStmt = $conn->prepare("INSERT INTO circle_members (circle_id, member_user_id, status) VALUES (?, ?, 'active')");
 $insertStmt->bind_param("ii", $circleId, $userId);
 
 if ($insertStmt->execute()) {
+    $insertStmt->close();
+
+    // Two-way logic: Find or create the scanning user's circle
+    $myCircleStmt = $conn->prepare("SELECT id FROM circles WHERE owner_user_id = ? LIMIT 1");
+    $myCircleStmt->bind_param("i", $userId);
+    $myCircleStmt->execute();
+    $myCircleRes = $myCircleStmt->get_result();
+    $myCircle = $myCircleRes->fetch_assoc();
+    $myCircleStmt->close();
+
+    if (!$myCircle) {
+        $createStmt = $conn->prepare("INSERT INTO circles (owner_user_id, name) VALUES (?, 'My Circle')");
+        $createStmt->bind_param("i", $userId);
+        $createStmt->execute();
+        $myCircleId = $createStmt->insert_id;
+        $createStmt->close();
+    } else {
+        $myCircleId = $myCircle['id'];
+    }
+
+    $ownerId = $circle['owner_user_id'];
+
+    // Insert owner into scanning user's circle
+    $checkMyStmt = $conn->prepare("SELECT id FROM circle_members WHERE circle_id = ? AND member_user_id = ? LIMIT 1");
+    $checkMyStmt->bind_param("ii", $myCircleId, $ownerId);
+    $checkMyStmt->execute();
+    $myAlready = $checkMyStmt->get_result()->fetch_assoc();
+    $checkMyStmt->close();
+
+    if (!$myAlready) {
+        $insertMyStmt = $conn->prepare("INSERT INTO circle_members (circle_id, member_user_id, status) VALUES (?, ?, 'active')");
+        $insertMyStmt->bind_param("ii", $myCircleId, $ownerId);
+        $insertMyStmt->execute();
+        $insertMyStmt->close();
+    }
+
     echo json_encode(['success' => true, 'message' => 'Joined circle successfully']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to join circle']);
+    $insertStmt->close();
 }
-
-$insertStmt->close();
 $conn->close();

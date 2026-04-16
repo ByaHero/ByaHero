@@ -37,14 +37,32 @@ $delStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND me
 $delStmt->bind_param("ii", $circleId, $friendId);
 
 if ($delStmt->execute()) {
-    if ($delStmt->affected_rows > 0) {
+    $affected = $delStmt->affected_rows;
+    $delStmt->close();
+
+    // 2. Remove ME from the FRIEND'S circle
+    $friendCircleStmt = $conn->prepare("SELECT id FROM circles WHERE owner_user_id = ? LIMIT 1");
+    $friendCircleStmt->bind_param("i", $friendId);
+    $friendCircleStmt->execute();
+    $friendCircleRes = $friendCircleStmt->get_result();
+    $friendCircle = $friendCircleRes->fetch_assoc();
+    $friendCircleStmt->close();
+
+    if ($friendCircle) {
+        $friendCircleId = $friendCircle['id'];
+        $delMeStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND member_user_id = ?");
+        $delMeStmt->bind_param("ii", $friendCircleId, $ownerId);
+        $delMeStmt->execute();
+        $delMeStmt->close();
+    }
+
+    if ($affected > 0) {
         echo json_encode(['success' => true, 'message' => 'Friend removed successfully']);
     } else {
-        echo json_encode(['success' => false, 'message' => 'Friend not found in your circle']);
+        echo json_encode(['success' => true, 'message' => 'Friend was already removed']);
     }
 } else {
     echo json_encode(['success' => false, 'message' => 'Failed to remove friend']);
+    $delStmt->close();
 }
-
-$delStmt->close();
 $conn->close();
