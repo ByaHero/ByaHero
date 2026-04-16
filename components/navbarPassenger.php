@@ -105,11 +105,6 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     z-index: 2002 !important;
   }
 
-  /* ADDED: spacer so page content doesn't hide behind fixed topbar */
-  .passenger-topbar-spacer {
-    display: block;
-    width: 100%;
-  }
 
   /* Centered Byahero wordmark in top bar */
   .topbar-wordmark {
@@ -320,7 +315,6 @@ if (isset($pageType) && $pageType === 'Notifications'): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
   </div>
-  <span class="passenger-topbar-spacer" style="height:56px;"></span>
 
   <?php
   // CASE B: SOS
@@ -334,7 +328,6 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
   </div>
-  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
   <?php
   // CASE C: SETTINGS PAGES (Specific Titles)
@@ -365,7 +358,6 @@ elseif (isset($pageType) && $pageType === 'settings'):
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
-  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
   <?php
   // CASE D: PROFILE PAGES
@@ -390,7 +382,6 @@ elseif (isset($pageType) && $pageType === 'profile'):
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
   </div>
-  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
   <?php
   // CASE E: GENERIC PAGE
@@ -404,7 +395,6 @@ elseif (isset($pageTitle)): ?>
     </a>
     <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
   </div>
-  <span class="passenger-topbar-spacer" style="height:40px;"></span>
 
   <?php
   // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
@@ -437,7 +427,6 @@ else: ?>
       </button>
     </div>
   </div>
-  <span class="passenger-topbar-spacer" style="height:54px;"></span>
 <?php endif; ?>
 
 <div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel">
