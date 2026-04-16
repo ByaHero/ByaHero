@@ -85,6 +85,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_email'] = $userRecord['email'];
                 $_SESSION['user_role'] = $userRole;
                 $_SESSION['user_name'] = $userRecord['name'] ?? $userRecord['email'];
+                $_SESSION['user_profile_picture'] = array_key_exists('profile_picture', $userRecord) ? $userRecord['profile_picture'] : null;
 
                 // ── UI HANDOFF TO SYNC ONESIGNAL TOKEN ──
 ?>

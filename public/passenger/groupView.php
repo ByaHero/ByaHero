@@ -132,7 +132,7 @@
             const initials = initialsFromFriend(friend);
             const bgColor = colorFromString(friend.email || friend.name || initials);
 
-            const marker = createPersonMarker(lat, lng, friendName, initials, bgColor);
+            const marker = createPersonMarker(lat, lng, friendName, initials, bgColor, friend.profile_picture);
             
             if (!isLocationFresh(friend.updated_at)) {
                 marker.setOpacity(0.6);
@@ -144,13 +144,20 @@
         });
     }
 
-    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a') {
+    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a', profilePicture = null) {
+        let innerHtml = initials;
+        if (profilePicture) {
+            const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
+            // Strip leading slashes to prevent double slashes if basePath has one
+            const cleanPath = profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture;
+            innerHtml = `<img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+        }
         return L.marker([lat, lng], {
             icon: L.divIcon({
                 html: `
           <div style="background:${bgColor}; color:white; border-radius:50%; width:36px; height:36px;
-              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px;">
-              ${initials}
+              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px; overflow: hidden;">
+              ${innerHtml}
           </div>`,
                 className: 'person-marker',
                 iconSize: [36, 36],
@@ -207,9 +214,16 @@
                 const card = document.createElement('div');
                 card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
 
+                let avatarHtml = initials;
+                if (friend.profile_picture) {
+                    const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
+                    const cleanPath = friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture;
+                    avatarHtml = `<img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                }
+
                 card.innerHTML = `
-          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px;">
-              ${initials}
+          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
+              ${avatarHtml}
           </div>
           <div>
               <h6 class="mb-0 fw-bold text-dark">${friendName}</h6>

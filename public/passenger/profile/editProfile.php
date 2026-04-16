@@ -121,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 // Update session
                 $_SESSION['user_name'] = $name;
                 $_SESSION['user_email'] = $email;
+                $_SESSION['user_profile_picture'] = $userData['profile_picture'] ?? null;
                 
                 $message = "Profile updated successfully!";
                 

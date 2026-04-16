@@ -11,6 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 $userId = $_SESSION['user_id'];
 $userName = $_SESSION['user_name'] ?? '';
 $userEmail = $_SESSION['user_email'] ?? '';
+$userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 ?>
 <!doctype html>
 <html lang="en">
@@ -154,6 +155,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
       font-weight: bold;
       flex-shrink: 0;
       border: 2px solid #1e3a8a;
+      overflow: hidden;
     }
 
     .user-info {
@@ -233,7 +235,11 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
     <div class="user-profile-card">
       <div class="user-avatar">
-        <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
+        <?php if ($userProfilePic): ?>
+          <img src="<?= $pageDepth . htmlspecialchars($userProfilePic) ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+        <?php else: ?>
+          <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
+        <?php endif; ?>
       </div>
       <div class="user-info">
         <div class="user-name"><?= htmlspecialchars($userName ?: 'User') ?></div>

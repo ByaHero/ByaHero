@@ -30,6 +30,7 @@ $displayHeaderName = $displayName ?: ($displayEmail ?: 'Guest');
 
 // Extract the first letter for the profile avatar
 $userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
+$userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 
 // Optional: if a page provides this variable, it can force-hide dot without breaking anything
 $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNotifications : false;
@@ -135,6 +136,7 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     font-weight: bold;
     flex-shrink: 0;
     margin-left: 10px;
+    overflow: hidden;
   }
 
   /* Active state for bottom nav buttons */
@@ -439,7 +441,11 @@ else: ?>
     <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">
 
       <div class="profile-initial-circle">
-        <?php echo htmlspecialchars($userInitial); ?>
+        <?php if ($userProfilePic): ?>
+          <img src="<?php echo $depth . htmlspecialchars($userProfilePic); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+        <?php else: ?>
+          <?php echo htmlspecialchars($userInitial); ?>
+        <?php endif; ?>
       </div>
 
       <div class="fw-bold text-break"
