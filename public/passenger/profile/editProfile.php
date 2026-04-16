@@ -93,14 +93,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       width: 80px;
       height: 80px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-color: #ffffff;
+      color: #1e3a8a;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
       font-size: 2rem;
       font-weight: bold;
       margin: 0 auto 1.5rem;
+      border: 2px solid #1e3a8a;
     }
     .form-label {
       font-weight: 600;

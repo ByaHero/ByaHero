@@ -100,9 +100,7 @@ if (!empty($currentUser['phone'])) {
             background-color: var(--byahero-primary) !important;
         }
 
-        .avatar-gradient {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        }
+        /* Removed old avatar-gradient */
 
         .sheet {
             background-color: #eff1f5;
@@ -138,8 +136,7 @@ if (!empty($currentUser['phone'])) {
     ?>
 
     <section class="text-center py-4 pt-5 mt-2">
-        <div class="d-inline-flex align-items-center justify-content-center rounded-circle text-white fw-bold avatar-gradient shadow-sm"
-            style="width: 80px; height: 80px; font-size: 2rem;">
+        <div class="shadow-sm" style="width: 80px; height: 80px; background-color: #ffffff; color: var(--bs-primary); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 36px; font-weight: bold; border: 2px solid #1e3a8a; margin: 0 auto;">
             <?= htmlspecialchars($initial) ?>
         </div>
 

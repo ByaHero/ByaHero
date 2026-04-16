@@ -17,24 +17,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
     $code = htmlspecialchars($_POST['code'] ?? ("BUS-" . $busId), ENT_QUOTES, 'UTF-8');
     $route = htmlspecialchars($_POST['route'] ?? '', ENT_QUOTES, 'UTF-8');
     $seats_total = (int)($_POST['seats_total'] ?? 25);
+    $initial_available_seats = isset($_POST['initial_available_seats']) ? (int)$_POST['initial_available_seats'] : $seats_total;
 
-    // Try to "claim" this bus for this conductor
-    $stmt = $pdo->prepare("
-        UPDATE busses
-        SET current_conductor_id = :uid
-        WHERE Bus_ID = :bus_id
-          AND (current_conductor_id IS NULL OR current_conductor_id = :uid)
-    ");
-    $stmt->execute([
-        ':uid'    => $userId,
-        ':bus_id' => $busId,
-    ]);
+    // Check who owns the bus to prevent rowCount() === 0 false positives when no row is modified
+    $checkStmt = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = :bus_id");
+    $checkStmt->execute([':bus_id' => $busId]);
+    $busOwner = $checkStmt->fetchColumn();
 
-    if ($stmt->rowCount() === 0) {
+    if ($busOwner !== false && $busOwner !== null && $busOwner != $userId) {
         // Someone else already has this bus
         unset($_SESSION['current_bus']);
         header('Location: conductor.php?error=bus_taken');
         exit;
+    } else {
+        // Claim the bus / update it
+        $stmt = $pdo->prepare("UPDATE busses SET current_conductor_id = :uid WHERE Bus_ID = :bus_id");
+        $stmt->execute([':uid' => $userId, ':bus_id' => $busId]);
     }
 
     // Also store on the conductor
@@ -49,7 +47,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
         'id'          => $busId,
         'code'        => $code,
         'route'       => $route,
-        'seats_total' => $seats_total
+        'seats_total' => $seats_total,
+        'seats_available' => $initial_available_seats
     ];
 }
 
@@ -65,7 +64,7 @@ if (empty($_SESSION['current_bus'])) {
     if ($currentBusId > 0) {
         // Double-check the bus is still assigned to this conductor
         $stmtBus = $pdo->prepare("
-            SELECT Bus_ID, code, route, total_seats
+            SELECT Bus_ID, code, route, total_seats, seat_availability
             FROM busses
             WHERE Bus_ID = ? AND current_conductor_id = ?
             LIMIT 1
@@ -80,6 +79,7 @@ if (empty($_SESSION['current_bus'])) {
                 'code'        => $busRow['code'] ?? ("BUS-" . $busRow['Bus_ID']),
                 'route'       => $busRow['route'] ?? '',
                 'seats_total' => (int)($busRow['total_seats'] ?? 25),
+                'seats_available' => (int)($busRow['seat_availability'] ?? $busRow['total_seats'] ?? 25)
             ];
         }
     }
@@ -96,6 +96,7 @@ $busId       = (int)$currentBus['id'];
 $busCode     = $currentBus['code'];
 $busRoute    = $currentBus['route'];
 $seatsTotal  = (int)$currentBus['seats_total'];
+$seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seats_available'] : $seatsTotal;
 ?>
 <!doctype html>
 <html lang="en">
@@ -263,9 +264,10 @@ $seatsTotal  = (int)$currentBus['seats_total'];
             <div id="mainMap"></div>
         </div>
 
-        <div class="seats-control">
+        <div class="text-center fw-bold mt-3 mb-1" style="color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Seats Available</div>
+        <div class="seats-control" style="margin-top: 0;">
             <button id="seatMinus" class="btn-seat" type="button">−</button>
-            <div id="seatsCount" class="seats-num"><?= intval($seatsTotal) ?></div>
+            <div id="seatsCount" class="seats-num"><?= intval($seatsAvailable) ?></div>
             <button id="seatPlus" class="btn-seat" type="button">+</button>
         </div>
 
@@ -311,7 +313,8 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     const busId = <?= json_encode($busId) ?>;
     const busCode = <?= json_encode($busCode) ?>;
     const busRoute = <?= json_encode($busRoute) ?>;
-    let seats = parseInt(document.getElementById('seatsCount').textContent) || <?= intval($seatsTotal) ?>;
+    let _htmlSeats = parseInt(document.getElementById('seatsCount').textContent);
+    let seats = isNaN(_htmlSeats) ? <?= intval($seatsAvailable) ?> : _htmlSeats;
     let map = null, marker = null, watchId = null, lastNetworkSync = 0, lastKnownLocation = null;
     let routeFeatures = [];
     const SYNC_INTERVAL = 1000;

@@ -145,14 +145,15 @@ $userEmail = $_SESSION['user_email'] ?? '';
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background-color: #ffffff;
+      color: #1e3a8a;
       display: flex;
       align-items: center;
       justify-content: center;
-      color: white;
       font-size: 1.6rem;
       font-weight: bold;
       flex-shrink: 0;
+      border: 2px solid #1e3a8a;
     }
 
     .user-info {
@@ -179,7 +180,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
     }
 
     .btn-edit-profile {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       color: white;
       border: none;
       padding: 0.5rem 1rem;
@@ -192,7 +193,7 @@ $userEmail = $_SESSION['user_email'] ?? '';
 
     .btn-edit-profile:hover {
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
       color: white;
     }
 
