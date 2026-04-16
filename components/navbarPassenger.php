@@ -521,7 +521,7 @@ else: ?>
         User Guide
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <!-- <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
         href="<?php echo $depth; ?>public/passenger/register_token_test.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
@@ -535,7 +535,7 @@ else: ?>
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
         onesignal
-      </a>
+      </a> -->
 
       <?php if (isset($_SESSION['user_id'])): ?>
         <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"

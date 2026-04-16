@@ -684,25 +684,29 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         }, 1500);
     }
 
+    let isTrackingActive = true;
+
     async function updateMediaSessionMetadata() {
         const metadata = {
-            title: `BUS ${busCode} • ${busRoute}`, // Bus number and route
-            artist: `Manage Seats | Available: ${seats}`,
+            title: `Bus ${busCode} • ${busRoute}`, // Song Title equivalent
+            artist: `${seats} Seats Open  |  ByaHero Live`, // Artist equivalent
             album: 'ByaHero Conductor Tracker',
             artwork: [
-                { src: '../../assets/images/byaheroLogo.png', sizes: '512x512', type: 'image/png' } // High quality logo for Android color extraction
+                { src: '../../assets/images/mediasession_cover.png', sizes: '512x512', type: 'image/png' } // High quality vibrant logo for Spotify-like color extraction
             ]
         };
+
+        const currentPlaybackState = isTrackingActive ? 'playing' : 'paused';
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
             try {
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
                 await MediaSession.setMetadata(metadata);
-                await MediaSession.setPlaybackState({ playbackState: 'playing' });
+                await MediaSession.setPlaybackState({ playbackState: currentPlaybackState });
             } catch(e) { console.warn("Native MediaSession err", e); }
         } else if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata(metadata);
-            navigator.mediaSession.playbackState = "playing";
+            navigator.mediaSession.playbackState = currentPlaybackState;
         }
     }
 
@@ -720,6 +724,16 @@ $seatsTotal  = (int)$currentBus['seats_total'];
         debouncedManualUpdate();
     }
 
+    function toggleTrackingState() {
+        isTrackingActive = !isTrackingActive;
+        updateMediaSessionMetadata();
+        if (isTrackingActive) {
+            showAlert('Tracking Resumed', 'primary');
+        } else {
+            showAlert('Tracking Paused', 'warning');
+        }
+    }
+
     // Media Session Action Handlers
     async function setupMediaSession() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
@@ -727,11 +741,15 @@ $seatsTotal  = (int)$currentBus['seats_total'];
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
                 await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
                 await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
+                await MediaSession.setActionHandler({ action: 'play' }, toggleTrackingState);
+                await MediaSession.setActionHandler({ action: 'pause' }, toggleTrackingState);
                 await updateMediaSessionMetadata();
             } catch(e) { console.warn("Native MediaSession setup err", e); }
         } else if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
             navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
+            navigator.mediaSession.setActionHandler('play', toggleTrackingState);
+            navigator.mediaSession.setActionHandler('pause', toggleTrackingState);
             updateMediaSessionMetadata();
         }
     }
