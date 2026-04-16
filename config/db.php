@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+// Set global timezone to Philippine Time
+date_default_timezone_set('Asia/Manila');
+
 function db(): PDO {
     static $pdo = null;
     if ($pdo instanceof PDO) return $pdo;

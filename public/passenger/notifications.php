@@ -238,7 +238,7 @@ function notification_icon(string $type): array
                   SOS from <?= htmlspecialchars(($a['sender_name'] ?: $a['sender_email']) ?? 'Unknown') ?>
                 </span>
                 <small class="text-muted" style="font-size: 0.75rem;">
-                  <?= htmlspecialchars((string) ($a['created_at'] ?? '')) ?>
+                  <?= date('M j, g:i A', strtotime($a['created_at'])) ?>
                 </small>
               </div>
 
@@ -278,7 +278,7 @@ function notification_icon(string $type): array
                   <?= htmlspecialchars((string) ($n['title'] ?? '')) ?>
                 </span>
                 <small class="text-muted" style="font-size: 0.75rem;">
-                  <?= htmlspecialchars((string) ($n['created_at'] ?? '')) ?>
+                  <?= date('M j, g:i A', strtotime($n['created_at'])) ?>
                 </small>
               </div>
 

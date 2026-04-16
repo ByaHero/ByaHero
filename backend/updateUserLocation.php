@@ -1,7 +1,4 @@
 <?php
-// Force the correct timezone so the database uses Philippine Standard Time
-date_default_timezone_set('Asia/Manila');
-
 session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';

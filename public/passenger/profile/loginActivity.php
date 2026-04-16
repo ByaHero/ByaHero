@@ -1,9 +1,6 @@
 <?php
 session_start();
 
-// Force the correct timezone so time() matches your database timestamps accurately
-date_default_timezone_set('Asia/Manila');
-
 // Redirect to login if not logged in
 if (!isset($_SESSION['user_id'])) {
     header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));

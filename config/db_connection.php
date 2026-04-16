@@ -1,4 +1,7 @@
 <?php
+// Set global timezone to Philippine Time
+date_default_timezone_set('Asia/Manila');
+
 // Auto-detect if running on localhost
 $is_localhost = ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1');
 
