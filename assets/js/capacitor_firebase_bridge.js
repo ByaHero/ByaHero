@@ -95,7 +95,7 @@
         dbg('log', '[SOS-FCM] Push action performed: ' + JSON.stringify(notificationAction));
         const type = (notificationAction.notification.data && notificationAction.notification.data.type) || '';
         if (type === 'sos_alert') {
-          window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php';
+          window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/notifications.php';
         }
       });
     }
@@ -302,7 +302,7 @@
       
       banner.addEventListener('click', (e) => {
         if (e.target.id === 'sos-banner-x') { clearTimeout(t); dismiss(); }
-        else { window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/passengerSettings/sosAlerts.php'; }
+        else { window.location.href = (window.APP_BASE_URL || '') + '/public/passenger/notifications.php'; }
       });
       
       if (navigator.vibrate) navigator.vibrate([300, 100, 300]);

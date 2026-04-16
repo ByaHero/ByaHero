@@ -263,6 +263,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         html,
         body {
+            overscroll-behavior: none;
             height: 100%;
             background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
             font-family: "Segoe UI", system-ui, -apple-system, Arial;

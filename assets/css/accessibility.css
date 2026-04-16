@@ -1,3 +1,8 @@
+/* Disable elastic/rubber-band scrolling effect for cleaner Capacitor UI */
+html, body {
+  overscroll-behavior: none;
+}
+
 /* ✅ ADJUSTED: Global text size classes - ALL SIZES REDUCED to prevent overlaps */
 
 body.text-small {
