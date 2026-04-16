@@ -44,22 +44,22 @@ $stepsJson = json_encode($guideSteps);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            background-color: #e9ecef;
+            background-color: #0c3e87;
             display: flex;
             justify-content: center;
             align-items: center;
-            min-height: 100vh;
+            height: 100vh;
+            width: 100vw;
+            overflow: hidden; /* prevents all scrolling */
             margin: 0;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         /* Mobile phone simulation container */
         .guide-container {
-            width: 100%;
-            max-width: 414px; 
+            width: 100vw;
+            max-width: 100vw; 
+            height: 100%;
             background: #ffffff;
-            border-radius: 20px;
-            overflow: hidden;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
             position: relative;
             display: flex;
             flex-direction: column;
@@ -70,7 +70,7 @@ $stepsJson = json_encode($guideSteps);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 12px 20px;
+            padding: 6px 15px; /* Lessened thickness for bigger images */
             background: #0c3e87; /* ByaHero Dark Blue */
             border-bottom: none; 
             z-index: 10;
@@ -78,7 +78,7 @@ $stepsJson = json_encode($guideSteps);
         }
         
         .step-indicator {
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             color: white; 
             font-weight: 500;
         }
@@ -88,9 +88,9 @@ $stepsJson = json_encode($guideSteps);
             background-color: #0c3e87 !important; /* Matches top bar blue */
             color: white !important; 
             border: 1px solid white !important; /* White border */
-            border-radius: 5px;
-            padding: 4px 12px;
-            font-size: 0.85rem;
+            border-radius: 4px;
+            padding: 2px 10px;
+            font-size: 0.75rem;
             transition: all 0.2s ease;
         }
         .top-bar #skipBtn:hover {
@@ -102,13 +102,14 @@ $stepsJson = json_encode($guideSteps);
         .image-wrapper {
             position: relative;
             width: 100%;
-            aspect-ratio: 9 / 19; 
-            background-color: #f8f9fa;
+            flex: 1; /* fills remaining space */
+            background-color: #ffffff;
+            overflow: hidden;
         }
         .guide-image {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: fill; /* Stretches to completely eliminate all margins */
             position: absolute;
             top: 0;
             left: 0;
@@ -196,31 +197,71 @@ $stepsJson = json_encode($guideSteps);
             box-shadow: 0 4px 10px rgba(30, 75, 155, 0.3);
         }
 
-        /* Done Slide Overlay */
+        /* Done Slide Overlay Modal */
         #doneOverlay { 
-            top: 56%; 
-            gap: 15px; 
-            flex-direction: row; 
-        } 
-        .btn-back {
-            background-color: #f8f9fa; 
-            color: #1e293b; 
-            padding: 11px 15px;
-            border-radius: 30px;
-            border: 1px solid #cbd5e1; 
-            font-weight: 600;
-            width: 120px;
+            top: 0; 
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5); /* darkened dim background */
+            display: none; 
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+        }
+        .done-modal-card {
+            background: white;
+            padding: 30px 20px;
+            border-radius: 24px;
+            text-align: center;
+            width: 90%;
+            max-width: 350px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.25);
+            animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            pointer-events: auto;
+        }
+        @keyframes popIn {
+            0% { transform: scale(0.85); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        .done-modal-card h4 {
+            color: #0c3e87;
+            font-weight: 800;
+            font-size: 1.4rem;
+            margin-bottom: 12px;
+        }
+        .done-modal-card p {
+            color: #334155;
             font-size: 0.95rem;
+            line-height: 1.5;
+            margin-bottom: 24px;
+        }
+        .done-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+        }
+        .btn-back {
+            background-color: #f1f5f9; 
+            color: #475569; 
+            padding: 12px 0;
+            border-radius: 14px;
+            border: none;
+            font-weight: 700;
+            flex: 1;
+            font-size: 1rem;
+            transition: background 0.2s;
         }
         .btn-continue {
             background-color: #0c3e87; 
             color: white;
-            padding: 11px 15px;
-            border-radius: 30px;
+            padding: 12px 0;
+            border-radius: 14px;
             border: none;
-            font-weight: 600;
-            width: 120px;
-            font-size: 0.95rem;
+            font-weight: 700;
+            flex: 1;
+            font-size: 1rem;
+            transition: background 0.2s;
         }
     </style>
 </head>
@@ -247,8 +288,14 @@ $stepsJson = json_encode($guideSteps);
             </div>
 
             <div class="overlay-container" id="doneOverlay">
-                <button class="btn-back" onclick="changeStep(-1)">Back</button>
-                <button class="btn-continue" onclick="finishGuide()">Continue</button>
+                <div class="done-modal-card">
+                    <h4>You're All Set, <?php echo htmlspecialchars($userName ?: 'Passenger'); ?>!</h4>
+                    <p>Great! You've read the guide!<br>Dive in and enjoy everything ByaHero has ready for you.<br><br><b style="color:#0c3e87;">Safe Travels!</b></p>
+                    <div class="done-buttons">
+                        <button class="btn-back" onclick="changeStep(-1)">Back</button>
+                        <button class="btn-continue" onclick="finishGuide()">Continue</button>
+                    </div>
+                </div>
             </div>
         </div>
 
