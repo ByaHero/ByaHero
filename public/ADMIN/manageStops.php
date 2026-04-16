@@ -24,6 +24,15 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
 }
 
 $pdo = db();
+
+try {
+    // Silent auto-migration for the InfinityFree database 
+    $pdo->exec("ALTER TABLE busstopsterminal ADD COLUMN route varchar(100) DEFAULT 'LAUREL - TANAUAN' AFTER type");
+    $pdo->exec("ALTER TABLE busstopsterminal ADD COLUMN sort_order int(11) DEFAULT 0 AFTER lng");
+} catch (Exception $e) {
+    // Ignore error if columns already exist
+}
+
 $message = '';
 $error   = '';
 
@@ -61,13 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please click on the map to pick a location.";
             } else {
                 // New stops get sort_order at the end of this route
-                $stmtMax = $pdo->prepare("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM busStopsTerminal WHERE route = ?");
+                $stmtMax = $pdo->prepare("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM busstopsterminal WHERE route = ?");
                 $stmtMax->execute([$route]);
                 $maxSort = (int)($stmtMax->fetchColumn() ?? 0);
                 $newSort = $maxSort + 1;
 
                 $stmt = $pdo->prepare("
-                    INSERT INTO busStopsTerminal (name, type, route, location_name, location_landmark, lat, lng, sort_order)
+                    INSERT INTO busstopsterminal (name, type, route, location_name, location_landmark, lat, lng, sort_order)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
                 $stmt->execute([
@@ -86,7 +95,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         } elseif ($action === 'delete_stop') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
-                $pdo->prepare("DELETE FROM busStopsTerminal WHERE id = ?")->execute([$id]);
+                $pdo->prepare("DELETE FROM busstopsterminal WHERE id = ?")->execute([$id]);
                 $message = "Stop deleted.";
             } else {
                 $error = "Invalid delete request.";
@@ -103,11 +112,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!empty($ids)) {
                     // Reset sort_order for this route
-                    $pdo->prepare("UPDATE busStopsTerminal SET sort_order = 0 WHERE route = ?")
+                    $pdo->prepare("UPDATE busstopsterminal SET sort_order = 0 WHERE route = ?")
                         ->execute([$routeName]);
 
                     $upd = $pdo->prepare("
-                        UPDATE busStopsTerminal
+                        UPDATE busstopsterminal
                         SET sort_order = ?
                         WHERE id = ? AND route = ?
                     ");
@@ -132,7 +141,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch all stops (for table + map)
 $stops = [];
 try {
-    $stops = $pdo->query("SELECT * FROM busStopsTerminal ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
+    $stops = $pdo->query("SELECT * FROM busstopsterminal ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
 } catch (Exception $e) {
     $stops = [];
 }
@@ -142,7 +151,7 @@ $stopsForward = [];
 $stopsReverse = [];
 
 try {
-    $stmt = $pdo->prepare("SELECT * FROM busStopsTerminal WHERE route = ? ORDER BY sort_order ASC, id ASC");
+    $stmt = $pdo->prepare("SELECT * FROM busstopsterminal WHERE route = ? ORDER BY sort_order ASC, id ASC");
     $stmt->execute([ROUTE_FORWARD]);
     $stopsForward = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
