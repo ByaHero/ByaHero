@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_phone'])) {
 }
 
 // Fetch user data from database
-$stmt = $conn->prepare("SELECT name, email, contacts FROM users WHERE id = ?");
+$stmt = $conn->prepare("SELECT name, email, contacts, profile_picture FROM users WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -49,7 +49,8 @@ $stmt->close();
 $currentUser = [
     'name' => $userData['name'] ?? 'User',
     'phone' => $userData['contacts'] ?? '',
-    'email' => $userData['email'] ?? 'user@email.com'
+    'email' => $userData['email'] ?? 'user@email.com',
+    'profile_picture' => $userData['profile_picture'] ?? null
 ];
 
 // Helper for avatar initial
@@ -136,8 +137,12 @@ if (!empty($currentUser['phone'])) {
     ?>
 
     <section class="text-center py-4 pt-5 mt-2">
-        <div class="shadow-sm" style="width: 80px; height: 80px; background-color: #ffffff; color: var(--bs-primary); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 36px; font-weight: bold; border: 2px solid #1e3a8a; margin: 0 auto;">
-            <?= htmlspecialchars($initial) ?>
+        <div class="shadow-sm overflow-hidden" style="width: 80px; height: 80px; background-color: #ffffff; color: var(--bs-primary); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 36px; font-weight: bold; border: 2px solid #1e3a8a; margin: 0 auto;">
+            <?php if ($currentUser['profile_picture']): ?>
+                <img src="<?= $pageDepth . htmlspecialchars($currentUser['profile_picture']) ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+            <?php else: ?>
+                <?= htmlspecialchars($initial) ?>
+            <?php endif; ?>
         </div>
 
         <h2 class="h5 fw-bold mt-3 mb-0" style="color: var(--byahero-primary);">
