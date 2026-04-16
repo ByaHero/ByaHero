@@ -114,11 +114,14 @@
             const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
-            const marker = createPersonMarker(lat, lng, friend.name || friend.email);
+            const friendName = friend.name || friend.email || "?";
+            const initials = friendName.substring(0, 1).toUpperCase();
+
+            const marker = createPersonMarker(lat, lng, friendName, initials);
             
             if (!isLocationFresh(friend.updated_at)) {
                 marker.setOpacity(0.6);
-                marker.bindPopup(`<b>${friend.name || friend.email}</b><br><small class="text-muted">${getLastSeenLabel(friend.updated_at)}</small>`);
+                marker.bindPopup(`<b>${friendName}</b><br><small class="text-muted">${getLastSeenLabel(friend.updated_at)}</small>`);
             }
             
             marker.addTo(window.map);
@@ -126,16 +129,18 @@
         });
     }
 
-    function createPersonMarker(lat, lng, label = '') {
+    function createPersonMarker(lat, lng, label = '', initials = '?') {
         return L.marker([lat, lng], {
             icon: L.divIcon({
                 html: `
-          <div style="background:#1e3a8a; color:white; border-radius:50%; width:32px; height:32px;
-              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 5px rgba(0,0,0,0.3)">
-              <span class="material-symbols-rounded" style="font-size:20px">person</span>
+          <div style="background:white; color:#1e3a8a; border-radius:50%; width:36px; height:36px;
+              display:flex; align-items:center; justify-content:center; border:2px solid #1e3a8a; box-shadow:0 2px 5px rgba(0,0,0,0.3); font-weight:bold; font-size:16px;">
+              ${initials}
           </div>`,
                 className: 'person-marker',
-                iconSize: [32, 32]
+                iconSize: [36, 36],
+                iconAnchor: [18, 18],
+                popupAnchor: [0, -18]
             })
         }).bindPopup(`<b>${label}</b>`);
     }
@@ -389,7 +394,8 @@
     }
 
     function openGroupView() {
-        showGroupVisuals();
+        // Do NOT call showGroupVisuals() immediately on load because the default tab is usually Location.
+        // It will be triggered natively by switchSheetTab('groups') when the user actually switches tabs.
         generateInviteCode();
         loadGroupMembers();
         startLocationUpdates();
