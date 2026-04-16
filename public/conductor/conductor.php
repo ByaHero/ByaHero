@@ -336,6 +336,28 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
     <div class="footer-bar"></div>
 
+    <!-- PRE-DEPARTURE MODAL -->
+    <div class="modal fade" id="preDepartureModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-dialog-centered px-4">
+            <div class="modal-content" style="border-radius: var(--card-radius); border: none;">
+                <div class="modal-header border-0 pb-0">
+                    <h5 class="modal-title fw-bold" style="color: var(--btn-blue);">Pre-Departure Check</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body text-center pt-2">
+                    <p class="text-muted small mb-4">How many passengers have already boarded?</p>
+                    <div class="d-flex justify-content-center align-items-center gap-3 mb-2">
+                        <input type="number" id="boardedCount" class="form-control text-center fw-bold fs-1 border-0 shadow-sm mx-auto" placeholder="0" min="0" style="width: 150px; height: 80px; border-radius: 20px;">
+                    </div>
+                    <small id="seatsTotalHelper" class="text-muted d-block mt-3"></small>
+                </div>
+                <div class="modal-footer border-0 pt-0 pb-4 justify-content-center">
+                    <button type="button" class="btn w-100 fw-bold py-3 text-white" style="border-radius: 12px; background-color: var(--btn-blue);" onclick="confirmStartTracking()">CONFIRM & START</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -550,6 +572,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             }
         }
 
+        let preDepartureModalInstance = null;
+
         function startTracking() {
             const busId = el('busSelect').value;
             const route = el('routeSelect').value;
@@ -557,11 +581,29 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             if (!busId) return showAlert('Please select a bus first.', 'danger');
             if (!route) return showAlert('Please select a route first.', 'danger');
 
+            const seatsTotal = selectedBusMeta?.seats_total || 25;
+            el('seatsTotalHelper').textContent = `Maximum seats: ${seatsTotal}`;
+            el('boardedCount').value = "";
+
+            if (!preDepartureModalInstance) {
+                preDepartureModalInstance = new bootstrap.Modal(el('preDepartureModal'));
+            }
+            preDepartureModalInstance.show();
+        }
+
+        function confirmStartTracking() {
+            const busId = el('busSelect').value;
+            const route = el('routeSelect').value;
+            const seatsTotal = selectedBusMeta?.seats_total || 25;
+            const boarded = parseInt(el('boardedCount').value) || 0;
+            const initialAvailableSeats = Math.max(0, seatsTotal - boarded);
+
             const payload = {
                 bus_id: busId,
                 code: selectedBusMeta?.code || `BUS-${busId}`,
-                seats_total: selectedBusMeta?.seats_total || 25,
-                route: route
+                seats_total: seatsTotal,
+                route: route,
+                initial_available_seats: initialAvailableSeats
             };
 
             const form = document.createElement('form');
