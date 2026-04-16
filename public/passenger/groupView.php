@@ -339,8 +339,8 @@
         const qrContainer = document.getElementById('qr-display-container');
         const imgContainer = document.getElementById('qr-code-img-container');
         
-        // Google Charts QR API
-        const qrUrl = `https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${code}&choe=UTF-8`;
+        // Using QRServer API (Google Charts is deprecated)
+        const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(code)}`;
         
         imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2" style="max-width: 200px;">`;
         qrContainer.classList.remove('d-none');
