@@ -63,9 +63,21 @@
             </button>
         </div>
         
-        <div id="qr-scanner-container" class="d-none mb-3 overflow-hidden rounded-3 border" style="width: 100%; max-width: 400px; margin: 0 auto;">
-            <div id="qr-reader" style="width: 100%;"></div>
+    <!-- QR Scanner Modal -->
+    <div class="modal fade" id="qrScannerModal" tabindex="-1" aria-labelledby="qrScannerModalLabel" aria-hidden="true" style="z-index: 2000;">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-4 border-0 shadow">
+                <div class="modal-header border-0 pb-0">
+                    <span class="fw-bold small text-muted" id="qrScannerModalLabel">SCAN QR CODE</span>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()"></button>
+                </div>
+                <div class="modal-body text-center pt-2 pb-4">
+                    <div id="qr-reader" style="width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden;" class="mx-auto border"></div>
+                    <small class="text-muted d-block mt-3 px-2">Position the QR code within the frame to scan.</small>
+                </div>
+            </div>
         </div>
+    </div>
 
         <div class="d-flex gap-2">
             <input id="join-code-input" class="form-control rounded-pill" placeholder="Enter 6-digit code" />
@@ -423,14 +435,24 @@
 
     // NEW: QR Scanner Toggle
     function toggleScanner() {
-        const container = document.getElementById('qr-scanner-container');
-        if (container.classList.contains('d-none')) {
-            container.classList.remove('d-none');
-            startScanner();
-        } else {
-            stopScanner();
-            container.classList.add('d-none');
+        const scannerModalEl = document.getElementById('qrScannerModal');
+        
+        // Move modal to body to prevent stacking context issues
+        if (scannerModalEl.parentNode !== document.body) {
+            document.body.appendChild(scannerModalEl);
         }
+
+        const modal = bootstrap.Modal.getInstance(scannerModalEl) || new bootstrap.Modal(scannerModalEl);
+        modal.show();
+
+        // Let the modal open first
+        setTimeout(() => {
+            startScanner();
+        }, 300);
+
+        scannerModalEl.addEventListener('hidden.bs.modal', function () {
+            stopScanner();
+        }, { once: true });
     }
 
     function startScanner() {
@@ -447,7 +469,11 @@
                 // Success: decodedText is expected to be the 6-digit code
                 document.getElementById('join-code-input').value = decodedText;
                 stopScanner();
-                document.getElementById('qr-scanner-container').classList.add('d-none');
+                
+                const scannerModalEl = document.getElementById('qrScannerModal');
+                const modal = bootstrap.Modal.getInstance(scannerModalEl);
+                if (modal) modal.hide();
+                
                 joinByCode(); // Auto-join after scan
             },
             (errorMessage) => {
@@ -456,7 +482,10 @@
         ).catch(err => {
             console.error('Camera access failed:', err);
             alert('Unable to access camera. Please check permissions.');
-            document.getElementById('qr-scanner-container').classList.add('d-none');
+            
+            const scannerModalEl = document.getElementById('qrScannerModal');
+            const modal = bootstrap.Modal.getInstance(scannerModalEl);
+            if (modal) modal.hide();
         });
     }
 
