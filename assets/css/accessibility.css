@@ -1,75 +1,193 @@
-/* Disable elastic/rubber-band scrolling effect for cleaner Capacitor UI */
-html, body {
-  overscroll-behavior: none;
-}
-
 /* ✅ ADJUSTED: Global text size classes - ALL SIZES REDUCED to prevent overlaps */
 
 body.text-small {
   font-size: 0.85rem !important;
 }
 
-body.text-small h1 { font-size: 1.65rem !important; }
-body.text-small h2 { font-size: 1.45rem !important; }
-body.text-small h3 { font-size: 1.2rem !important; }
-body.text-small h4 { font-size: 1.05rem !important; }
-body.text-small h5 { font-size: 0.95rem !important; }
-body.text-small h6 { font-size: 0.9rem !important; }
-body.text-small p, body.text-small span, body.text-small div, body.text-small a, body.text-small button { 
+body.text-small h1 {
+  font-size: 1.65rem !important;
+}
+
+body.text-small h2 {
+  font-size: 1.45rem !important;
+}
+
+body.text-small h3 {
+  font-size: 1.2rem !important;
+}
+
+body.text-small h4 {
+  font-size: 1.05rem !important;
+}
+
+body.text-small h5 {
+  font-size: 0.95rem !important;
+}
+
+body.text-small h6 {
+  font-size: 0.9rem !important;
+}
+
+body.text-small p,
+body.text-small span,
+body.text-small div,
+body.text-small a,
+body.text-small button {
   font-size: 0.85rem !important;
 }
-body.text-small .badge { font-size: 0.72rem !important; }
-body.text-small .btn { font-size: 0.85rem !important; }
+
+body.text-small .badge {
+  font-size: 0.72rem !important;
+}
+
+body.text-small .btn {
+  font-size: 0.85rem !important;
+}
 
 /* Navbar specific - small */
-body.text-small .nav-btn .small { font-size: 0.63rem !important; }
-body.text-small .nav-btn .material-symbols-rounded { font-size: 1.45rem !important; }
+body.text-small .nav-btn .small {
+  font-size: 0.63rem !important;
+}
+
+body.text-small .nav-btn .material-symbols-rounded {
+  font-size: 1.45rem !important;
+}
 
 body.text-medium {
   font-size: 0.95rem !important;
 }
 
-body.text-medium h1 { font-size: 1.9rem !important; }
-body.text-medium h2 { font-size: 1.66rem !important; }
-body.text-medium h3 { font-size: 1.43rem !important; }
-body.text-medium h4 { font-size: 1.19rem !important; }
-body.text-medium h5 { font-size: 1.05rem !important; }
-body.text-medium h6 { font-size: 0.95rem !important; }
-body.text-medium p, body.text-medium span, body.text-medium div, body.text-medium a, body.text-medium button { 
+body.text-medium h1 {
+  font-size: 1.9rem !important;
+}
+
+body.text-medium h2 {
+  font-size: 1.66rem !important;
+}
+
+body.text-medium h3 {
+  font-size: 1.43rem !important;
+}
+
+body.text-medium h4 {
+  font-size: 1.19rem !important;
+}
+
+body.text-medium h5 {
+  font-size: 1.05rem !important;
+}
+
+body.text-medium h6 {
   font-size: 0.95rem !important;
 }
-body.text-medium .badge { font-size: 0.81rem !important; }
-body.text-medium .btn { font-size: 0.95rem !important; }
+
+body.text-medium p,
+body.text-medium span,
+body.text-medium div,
+body.text-medium a,
+body.text-medium button {
+  font-size: 0.95rem !important;
+}
+
+body.text-medium .badge {
+  font-size: 0.81rem !important;
+}
+
+body.text-medium .btn {
+  font-size: 0.95rem !important;
+}
 
 /* Navbar specific - medium */
-body.text-medium .nav-btn .small { font-size: 0.71rem !important; }
-body.text-medium .nav-btn .material-symbols-rounded { font-size: 1.9rem !important; }
+body.text-medium .nav-btn .small {
+  font-size: 0.71rem !important;
+}
+
+body.text-medium .nav-btn .material-symbols-rounded {
+  font-size: 1.9rem !important;
+}
 
 /* ✅ ADJUSTED: Large text size - 7% bigger than medium (0.95rem × 1.07 = 1.0165rem ≈ 1.02rem) */
 body.text-large {
-  font-size: 1.02rem !important; /* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
+  font-size: 1.02rem !important;
+  /* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
 }
 
-body.text-large h1 { font-size: 2.03rem !important; } /* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
-body.text-large h2 { font-size: 1.78rem !important; } /* 1.66rem × 1.07 = 1.7762rem ≈ 1.78rem */
-body.text-large h3 { font-size: 1.53rem !important; } /* 1.43rem × 1.07 = 1.5301rem ≈ 1.53rem */
-body.text-large h4 { font-size: 1.27rem !important; } /* 1.19rem × 1.07 = 1.2733rem ≈ 1.27rem */
-body.text-large h5 { font-size: 1.12rem !important; } /* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
-body.text-large h6 { font-size: 1.02rem !important; } /* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
-body.text-large p, body.text-large span, body.text-large div, body.text-large a, body.text-large button { 
-  font-size: 1.02rem !important; /* Same as body */
+body.text-large h1 {
+  font-size: 2.03rem !important;
 }
-body.text-large .badge { font-size: 0.87rem !important; } /* 0.81rem × 1.07 = 0.8667rem ≈ 0.87rem */
-body.text-large .btn { font-size: 1.02rem !important; } /* Same as body */
+
+/* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
+body.text-large h2 {
+  font-size: 1.78rem !important;
+}
+
+/* 1.66rem × 1.07 = 1.7762rem ≈ 1.78rem */
+body.text-large h3 {
+  font-size: 1.53rem !important;
+}
+
+/* 1.43rem × 1.07 = 1.5301rem ≈ 1.53rem */
+body.text-large h4 {
+  font-size: 1.27rem !important;
+}
+
+/* 1.19rem × 1.07 = 1.2733rem ≈ 1.27rem */
+body.text-large h5 {
+  font-size: 1.12rem !important;
+}
+
+/* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
+body.text-large h6 {
+  font-size: 1.02rem !important;
+}
+
+/* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
+body.text-large p,
+body.text-large span,
+body.text-large div,
+body.text-large a,
+body.text-large button {
+  font-size: 1.02rem !important;
+  /* Same as body */
+}
+
+body.text-large .badge {
+  font-size: 0.87rem !important;
+}
+
+/* 0.81rem × 1.07 = 0.8667rem ≈ 0.87rem */
+body.text-large .btn {
+  font-size: 1.02rem !important;
+}
+
+/* Same as body */
 
 /* ✅ ADJUSTED: Navbar specific - large (7% bigger than medium) */
-body.text-large .nav-btn .small { font-size: 0.76rem !important; } /* 0.71rem × 1.07 = 0.7597rem ≈ 0.76rem */
-body.text-large .nav-btn .material-symbols-rounded { font-size: 2.03rem !important; } /* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
+body.text-large .nav-btn .small {
+  font-size: 0.76rem !important;
+}
+
+/* 0.71rem × 1.07 = 0.7597rem ≈ 0.76rem */
+body.text-large .nav-btn .material-symbols-rounded {
+  font-size: 2.03rem !important;
+}
+
+/* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
 
 /* Top navbar text */
-body.text-small .bg-primary h6 { font-size: 0.9rem !important; }
-body.text-medium .bg-primary h6 { font-size: 1.05rem !important; }
-body.text-large .bg-primary h6 { font-size: 1.12rem !important; } /* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
+body.text-small .bg-primary h6 {
+  font-size: 0.9rem !important;
+}
+
+body.text-medium .bg-primary h6 {
+  font-size: 1.05rem !important;
+}
+
+body.text-large .bg-primary h6 {
+  font-size: 1.12rem !important;
+}
+
+/* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
 
 /* High Contrast Mode */
 body.high-contrast-mode {

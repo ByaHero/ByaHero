@@ -111,10 +111,6 @@ $seatsTotal  = (int)$currentBus['seats_total'];
     <style>
         :root { --bg: #f5f7fa; --blue:#0f3878; }
 
-        html, body {
-            overscroll-behavior: none;
-        }
-
         body{
             background: #fff;
             font-family: 'Segoe UI', sans-serif;

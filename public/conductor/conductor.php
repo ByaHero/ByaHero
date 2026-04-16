@@ -67,10 +67,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             --card-radius: 20px;
         }
 
-        html, body {
-            overscroll-behavior: none;
-        }
-
         body {
             background-color: var(--bg-light);
             font-family: 'Segoe UI', sans-serif;
