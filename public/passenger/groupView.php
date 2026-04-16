@@ -322,8 +322,9 @@
             const data = await res.json();
             if (data.success) {
                 inviteCodeEl.textContent = data.invite_code;
-                // If QR is visible, update it
-                if (!document.getElementById('qr-display-container').classList.contains('d-none')) {
+                // If QR modal is visible, update it
+                const qrModalEl = document.getElementById('qrCodeModal');
+                if (qrModalEl && qrModalEl.classList.contains('show')) {
                     showInviteQR();
                 }
             } else {
@@ -350,6 +351,12 @@
         imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2 shadow-sm" style="max-width: 200px;">`;
         
         const qrModalEl = document.getElementById('qrCodeModal');
+        
+        // Move modal to body to prevent stacking context issues with the bottom sheet backdrop
+        if (qrModalEl.parentNode !== document.body) {
+            document.body.appendChild(qrModalEl);
+        }
+
         const modal = bootstrap.Modal.getInstance(qrModalEl) || new bootstrap.Modal(qrModalEl);
         modal.show();
     }
