@@ -180,15 +180,18 @@
                 if (hasLocationNow) statusText = 'Live location available';
                 else if (friend.updated_at) statusText = getLastSeenLabel(friend.updated_at);
 
+                const friendName = friend.name || friend.email || "?";
+                const initials = friendName.substring(0, 1).toUpperCase();
+
                 const card = document.createElement('div');
                 card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
 
                 card.innerHTML = `
-          <div class="bg-secondary-subtle rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
-              <span class="material-symbols-rounded fs-3 text-primary">person</span>
+          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold bg-white" style="width: 48px; height: 48px; border: 2px solid #1e3a8a; color: #1e3a8a; font-size: 22px;">
+              ${initials}
           </div>
           <div>
-              <h6 class="mb-0 fw-bold text-dark">${friend.name || friend.email}</h6>
+              <h6 class="mb-0 fw-bold text-dark">${friendName}</h6>
               <small class="text-muted d-block" style="font-size: 0.75rem;">${statusText}</small>
           </div>
         `;
