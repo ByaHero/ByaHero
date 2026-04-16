@@ -42,8 +42,11 @@ if (!isset($baseUrl)) {
           <div id="tab-location"
             class="sheet-tab active bg-primary text-white rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
-            <img id="location-tab-icon"
+            <img class="tab-icon-active"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopWhiteIcon.png"
+              alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
+            <img class="tab-icon-idle"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopBlueIcon.png"
               alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
         </div>
@@ -52,7 +55,10 @@ if (!isset($baseUrl)) {
           <div id="tab-routes"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
-            <img id="routes-tab-icon"
+            <img class="tab-icon-active"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/routes active.svg" alt="Routes"
+              style="width: 26px; height: 26px; object-fit: contain;" />
+            <img class="tab-icon-idle"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/routes idle.svg" alt="Routes"
               style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
@@ -62,7 +68,10 @@ if (!isset($baseUrl)) {
           <div id="tab-groups"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
-            <img id="groups-tab-icon"
+            <img class="tab-icon-active"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsActive.svg"
+              alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
+            <img class="tab-icon-idle"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/groupsIdle.svg"
               alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>
@@ -72,7 +81,10 @@ if (!isset($baseUrl)) {
           <div id="tab-busstops"
             class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
             style="height: 44px; padding: 0 18px;">
-            <img id="busstops-tab-icon"
+            <img class="tab-icon-active"
+              src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalWhite.svg"
+              alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
+            <img class="tab-icon-idle"
               src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busStopMarkerFinalBlue.svg"
               alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
           </div>

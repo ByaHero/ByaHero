@@ -203,40 +203,6 @@ window.switchSheetTab = function switchSheetTab(tabName) {
     }
   }
 
-  // ── Icon swaps ──
-  var base = window.APP_BASE_URL || '';
-
-  // Location tab icon
-  var locationIcon = document.getElementById('location-tab-icon');
-  if (locationIcon) {
-    locationIcon.src = tabName === 'location'
-      ? base + '/assets/images/icons/busStopWhiteIcon.png'
-      : base + '/assets/images/icons/busStopBlueIcon.png';
-  }
-
-  // Bus stops tab icon
-  var busstopsIcon = document.getElementById('busstops-tab-icon');
-  if (busstopsIcon) {
-    busstopsIcon.src = tabName === 'busstops'
-      ? base + '/assets/images/icons/busStopMarkerFinalWhite.svg'
-      : base + '/assets/images/icons/busStopMarkerFinalBlue.svg';
-  }
-
-  // Routes tab icon
-  var routesIcon = document.getElementById('routes-tab-icon');
-  if (routesIcon) {
-    routesIcon.src = tabName === 'routes'
-      ? base + '/assets/images/icons/routes active.svg'
-      : base + '/assets/images/icons/routes idle.svg';
-  }
-
-  var groupsIcon = document.getElementById('groups-tab-icon');
-  if (groupsIcon) {
-    groupsIcon.src = tabName === 'groups'
-      ? base + '/assets/images/icons/groupsActive.svg'
-      : base + '/assets/images/icons/groupsIdle.svg';
-  }
-
   // ── Sync route pills ──
   if (typeof window.updateRoutePills === 'function') {
     window.updateRoutePills();

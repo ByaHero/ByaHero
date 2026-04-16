@@ -181,3 +181,21 @@
   color: #374151;
   white-space: nowrap;
 }
+/* =============================
+   Tab Icon Instant Switching
+   ============================= */
+.sheet-tab .tab-icon-active {
+  display: none !important;
+}
+
+.sheet-tab .tab-icon-idle {
+  display: block !important;
+}
+
+.sheet-tab.active .tab-icon-active {
+  display: block !important;
+}
+
+.sheet-tab.active .tab-icon-idle {
+  display: none !important;
+}
