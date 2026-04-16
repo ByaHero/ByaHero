@@ -158,7 +158,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
     </div>
 
     <div class="mt-3 d-flex justify-content-center gap-2">
-      <button class="btn btn-secondary px-4" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Cancel Feedback'); window.location.href='settings.php';">Cancel</button>
+      <button class="btn btn-secondary px-4" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Cancel Feedback'); window.location.href='../index.php';">Cancel</button>
       <button class="btn btn-primary px-4" onclick="submitFeedback()" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>>Submit Feedback</button>
     </div>
   </div>
