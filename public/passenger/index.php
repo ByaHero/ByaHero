@@ -40,7 +40,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <meta name="theme-color" content="#1e3a8a">
 
 
-  <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=3">
+  <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=5">
 
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
 
