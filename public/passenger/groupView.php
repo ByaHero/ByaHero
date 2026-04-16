@@ -93,6 +93,20 @@
         }
     }
 
+    function initialsFromFriend(f) {
+        const base = (f.name || f.email || "??").trim();
+        const parts = base.split(/\s+/).filter(Boolean);
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return base.slice(0, 2).toUpperCase();
+    }
+
+    function colorFromString(str) {
+        const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
+        let h = 0;
+        for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+        return colors[h % colors.length];
+    }
+
     function renderGroupMarkersOnMap() {
         groupMarkers.forEach(m => window.map.removeLayer(m));
         groupMarkers = [];
@@ -115,9 +129,10 @@
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
 
             const friendName = friend.name || friend.email || "?";
-            const initials = friendName.substring(0, 1).toUpperCase();
+            const initials = initialsFromFriend(friend);
+            const bgColor = colorFromString(friend.email || friend.name || initials);
 
-            const marker = createPersonMarker(lat, lng, friendName, initials);
+            const marker = createPersonMarker(lat, lng, friendName, initials, bgColor);
             
             if (!isLocationFresh(friend.updated_at)) {
                 marker.setOpacity(0.6);
@@ -129,12 +144,12 @@
         });
     }
 
-    function createPersonMarker(lat, lng, label = '', initials = '?') {
+    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a') {
         return L.marker([lat, lng], {
             icon: L.divIcon({
                 html: `
-          <div style="background:white; color:#1e3a8a; border-radius:50%; width:36px; height:36px;
-              display:flex; align-items:center; justify-content:center; border:2px solid #1e3a8a; box-shadow:0 2px 5px rgba(0,0,0,0.3); font-weight:bold; font-size:16px;">
+          <div style="background:${bgColor}; color:white; border-radius:50%; width:36px; height:36px;
+              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px;">
               ${initials}
           </div>`,
                 className: 'person-marker',
@@ -186,13 +201,14 @@
                 else if (friend.updated_at) statusText = getLastSeenLabel(friend.updated_at);
 
                 const friendName = friend.name || friend.email || "?";
-                const initials = friendName.substring(0, 1).toUpperCase();
+                const initials = initialsFromFriend(friend);
+                const bgColor = colorFromString(friend.email || friend.name || initials);
 
                 const card = document.createElement('div');
                 card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
 
                 card.innerHTML = `
-          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold bg-white" style="width: 48px; height: 48px; border: 2px solid #1e3a8a; color: #1e3a8a; font-size: 22px;">
+          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px;">
               ${initials}
           </div>
           <div>
