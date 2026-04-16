@@ -558,7 +558,7 @@ else: ?>
           <img id="nav-location-icon"
             src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location"
             style="width: 24px; height: 24px; object-fit: contain;" />
-          <span class="nav-label">LOCATION</span>
+          <span class="nav-label"> LOCATION </span>
         </button>
       </div>
 
