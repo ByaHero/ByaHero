@@ -2,8 +2,8 @@
 // Set global timezone to Philippine Time
 date_default_timezone_set('Asia/Manila');
 
-// Auto-detect if running on localhost
-$is_localhost = ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1');
+// Auto-detect if running on localhost or CLI
+$is_localhost = (PHP_SAPI === 'cli' || $_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1');
 
 if ($is_localhost) {
     // Localhost Settings (XAMPP/WAMP)
