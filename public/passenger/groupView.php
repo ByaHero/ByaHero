@@ -269,16 +269,21 @@
                 }
 
                 card.innerHTML = `
-          <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
-              ${avatarHtml}
+          <div class="d-flex align-items-center flex-grow-1 card-fly-content" style="min-width:0;">
+              <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm flex-shrink-0" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
+                  ${avatarHtml}
+              </div>
+              <div class="text-truncate">
+                  <h6 class="mb-0 fw-bold text-dark text-truncate">${friendName}</h6>
+                  <small class="text-muted d-block text-truncate" style="font-size: 0.75rem;">${statusText}</small>
+              </div>
           </div>
-          <div>
-              <h6 class="mb-0 fw-bold text-dark">${friendName}</h6>
-              <small class="text-muted d-block" style="font-size: 0.75rem;">${statusText}</small>
-          </div>
+          <button class="btn btn-sm btn-outline-danger rounded-pill px-3 ms-2 remove-friend-btn" style="font-size: 0.8rem;">
+              Remove
+          </button>
         `;
 
-                card.addEventListener('click', () => {
+                card.querySelector('.card-fly-content').addEventListener('click', () => {
                     if (!hasCoords) {
                         alert('Location is not available for this user. They may need to enable Share Location.');
                         return;
@@ -298,6 +303,11 @@
                     if (targetMarker) targetMarker.openPopup();
                 });
 
+                card.querySelector('.remove-friend-btn').addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    removeFriend(friend.id, friendName);
+                });
+
                 groupListEl.appendChild(card);
             });
 
@@ -307,6 +317,29 @@
         } catch (err) {
             console.error(err);
             groupListEl.innerHTML = `<small class="text-danger">Error loading group data.</small>`;
+        }
+    }
+
+    async function removeFriend(id, name) {
+        if (!confirm(`Are you sure you want to remove ${name} from your circle?`)) return;
+
+        try {
+            const res = await fetch('../../backend/removeFriend.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ friend_id: id })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                loadGroupMembers(); // Refresh list to remove the friend visually
+                if (navigator.vibrate) navigator.vibrate(50);
+            } else {
+                alert(data.message || 'Failed to remove friend');
+            }
+        } catch (err) {
+            console.error('Remove friend error:', err);
+            alert('An error occurred while removing the friend.');
         }
     }
 
