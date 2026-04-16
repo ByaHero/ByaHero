@@ -29,6 +29,23 @@ $pageDepth = "../../../";
             --bs-primary: #1e3a8a;
             --bs-bg-light: #f3f4f6;
             --sos-red-dark: #b02a37;
+            --sos-btn-size: 220px;
+        }
+
+        @media (max-width: 380px) {
+            :root { --sos-btn-size: 190px; }
+        }
+
+        @media (min-height: 800px) {
+            :root { --sos-btn-size: 250px; }
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            overscroll-behavior: none;
         }
 
         body {
@@ -41,13 +58,15 @@ $pageDepth = "../../../";
             min-height: calc(100vh - 80px); /* Full height minus navbar */
             display: flex;
             flex-direction: column;
+            justify-content: space-between;
         }
 
         .sos-btn-container {
-            width: 220px; /* Increased size for easier thumb reach */
-            height: 220px;
+            width: var(--sos-btn-size);
+            height: var(--sos-btn-size);
             margin: 0 auto;
             position: relative;
+            transition: width 0.3s ease, height 0.3s ease;
         }
 
         .main-sos-btn {
@@ -65,10 +84,11 @@ $pageDepth = "../../../";
             position: relative;
             z-index: 2;
             transition: transform 0.2s;
+            -webkit-tap-highlight-color: transparent;
         }
 
         .main-sos-btn:active {
-            transform: scale(0.95);
+            transform: scale(0.92);
         }
 
         .sos-ring {
@@ -80,25 +100,20 @@ $pageDepth = "../../../";
             height: 100%;
             border-radius: 50%;
             border: 2px solid #dc3545;
-            animation: pulse 2s infinite;
+            animation: pulse 2.5s infinite;
             z-index: 1;
         }
 
         .sos-ring:nth-child(2) {
-            animation-delay: 0.5s;
-        }
-
-        .sos-ring:nth-child(3) {
-            animation-delay: 1s;
+            animation-delay: 0.8s;
         }
 
         @keyframes pulse {
             0% {
-                width: 50%;
-                height: 50%;
-                opacity: 1;
+                width: 80%;
+                height: 80%;
+                opacity: 0.8;
             }
-
             100% {
                 width: 200%;
                 height: 200%;
@@ -112,10 +127,16 @@ $pageDepth = "../../../";
             left: 0;
             width: 100%;
             height: 100%;
-            background-color: #f8f9fa;
-            z-index: 2000;
+            background-color: #ffffff;
+            z-index: 3000; /* Higher than navbar */
             display: flex;
             flex-direction: column;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
         .text-dark-red {
@@ -123,38 +144,74 @@ $pageDepth = "../../../";
         }
 
         .countdown-wrapper {
-            width: 140px;
-            height: 140px;
+            width: 160px;
+            height: 160px;
+            margin: 2rem auto;
         }
 
         .countdown-inner {
-            width: 120px;
-            height: 120px;
-            font-size: 3.5rem;
+            width: 130px;
+            height: 130px;
+            font-size: 4rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
         }
 
         .slider-track {
-            height: 70px;
-            max-width: 350px;
-            background-color: #635f5f;
+            height: 76px;
+            max-width: 400px;
+            width: 90%;
+            background-color: #f1f5f9;
+            border: 2px solid #e2e8f0;
             touch-action: none;
             position: relative;
             overflow: hidden;
-            margin: 0 auto 2rem auto;
+            margin: auto auto 3rem auto;
+            border-radius: 100px;
         }
 
         .slider-handle {
-            width: 60px;
-            height: 60px;
-            top: 5px;
-            right: 5px;
+            width: 64px;
+            height: 64px;
+            top: 4px;
+            right: 4px;
             cursor: grab;
             position: absolute;
             z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
         }
 
         .slider-handle:active {
             cursor: grabbing;
+        }
+
+        .slider-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #dc3545;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            user-select: none;
+            padding-right: 50px; /* Offset for handle */
+            animation: glow 2s infinite ease-in-out;
+        }
+
+        @keyframes glow {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
         }
 
         .avatar-stack {
@@ -173,9 +230,10 @@ $pageDepth = "../../../";
             font-weight: 700;
             color: #fff;
             border: 3px solid #fff;
-            margin-left: -10px;
+            margin-left: -12px;
             font-size: 14px;
             user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
 
         .stack-avatar:first-child {
@@ -188,7 +246,7 @@ $pageDepth = "../../../";
 
     <?php include "../../../components/navbarPassenger.php"; ?>
 
-    <main id="sos-idle-layer" class="container pt-3">
+    <main id="sos-idle-layer" class="container pt-5">
         <div class="row justify-content-center flex-grow-1">
             <div class="col-12 col-md-8 col-lg-5 d-flex flex-column">
 
@@ -244,15 +302,12 @@ $pageDepth = "../../../";
                     id="timer">10</div>
             </div>
 
-            <div class="slider-track w-100 shadow mb-4 rounded-pill position-relative" id="sliderContainer"
-                style="width: 90%;">
-                <div
-                    class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center z-1">
-                    <span class="text-danger fw-bold fs-5 user-select-none">Slide to cancel SOS</span>
+            <div class="slider-track shadow-sm position-relative" id="sliderContainer">
+                <div class="slider-text">
+                    <span>Slide left to cancel SOS</span>
                 </div>
-                <div class="slider-handle bg-danger rounded-circle shadow-sm d-flex align-items-center justify-content-center z-2"
-                    id="sliderHandle">
-                    <i class="bi bi-chevron-left text-white opacity-50"></i>
+                <div class="slider-handle shadow-sm" id="sliderHandle">
+                    <span class="material-symbols-rounded" style="font-size: 32px;">chevron_left</span>
                 </div>
             </div>
 
@@ -511,11 +566,14 @@ $pageDepth = "../../../";
         function startCountdown() {
             if (navigator.vibrate) navigator.vibrate([200]);
             countdownLayer.classList.remove('d-none');
-            timeLeft = 10;
-            timerElement.textContent = timeLeft;
-            timerElement.classList.replace('bg-secondary', 'bg-danger');
+            timerElement.classList.remove('bg-secondary');
+            timerElement.classList.add('bg-danger');
+            
             document.querySelector('#sos-countdown-layer h1').textContent = "Slide to cancel";
             document.querySelector('#sos-countdown-layer p').textContent = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
+            
+            timeLeft = 10;
+            timerElement.textContent = timeLeft;
             sliderHandle.style.transform = `translateX(0px)`;
             isSOSActive = true;
             countdownInterval = setInterval(() => {
@@ -529,11 +587,14 @@ $pageDepth = "../../../";
         function cancelSOS() {
             isSOSActive = false;
             clearInterval(countdownInterval);
-            timerElement.classList.replace('bg-danger', 'bg-secondary');
-            timerElement.textContent = "X";
+            timerElement.classList.remove('bg-danger');
+            timerElement.classList.add('bg-secondary');
+            timerElement.textContent = "✕";
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
             document.querySelector('#sos-countdown-layer p').textContent = "Your SOS has been cancelled. Returning to home...";
-            setTimeout(() => { countdownLayer.classList.add('d-none'); }, 1000);
+            setTimeout(() => { 
+                countdownLayer.classList.add('d-none'); 
+            }, 1200);
         }
 
         async function sendSOS() {
