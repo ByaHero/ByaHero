@@ -113,8 +113,9 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
 
   /* Centered Byahero wordmark in top bar */
   .topbar-wordmark {
-    margin: 0 auto;
-    display: block;
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   /* UPDATED: Allows long names to wrap nicely without overflowing */
@@ -409,14 +410,14 @@ elseif (isset($pageTitle)): ?>
   // CASE F: DEFAULT / HOME (Logo + Title + Notifications + Hamburger)
 else: ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 54px;">
 
     <div class="d-flex align-items-center" style="width: 60px; height: 100%;">
       <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="32">
     </div>
 
-    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="32" class="topbar-wordmark">
+    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="30" class="topbar-wordmark">
 
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
