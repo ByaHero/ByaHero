@@ -556,7 +556,7 @@ else: ?>
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
           data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
           <img id="nav-location-icon"
-            src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationActive.svg" alt="Bus Location"
+            src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location"
             style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="nav-label">LOCATION</span>
         </button>
@@ -657,7 +657,7 @@ else: ?>
     // Update Location icon
     if (locationIcon) {
       if (activeButton === locationBtn) {
-        locationIcon.src = `${base}/assets/images/icons/locationActive.svg`;
+        locationIcon.src = `${base}/assets/images/icons/locationBlack.svg`;
       } else {
         locationIcon.src = `${base}/assets/images/icons/locationIdle.svg`;
       }
