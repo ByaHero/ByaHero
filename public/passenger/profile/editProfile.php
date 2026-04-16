@@ -86,6 +86,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         $fileName = 'user_' . $userId . '_' . time() . '.' . $type;
                         $uploadPath = 'public/uploads/profile_pictures/' . $fileName;
                         $fullPath = __DIR__ . '/../../../' . $uploadPath;
+                        $dirPath = dirname($fullPath);
+
+                        // Ensure directory exists
+                        if (!is_dir($dirPath)) {
+                            if (!mkdir($dirPath, 0777, true)) {
+                                throw new Exception("Failed to create upload directory. Please create 'public/uploads/profile_pictures/' manually via FTP.");
+                            }
+                        }
 
                         if (file_put_contents($fullPath, $imgData)) {
                             // Update database with relative path from root
