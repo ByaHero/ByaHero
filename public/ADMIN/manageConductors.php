@@ -103,6 +103,7 @@ $backLink = 'admin.php';
     <title>ByaHero — Manage Conductors & Drivers</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <style>
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
         .page-wrap { padding: 16px; }
@@ -149,14 +150,20 @@ $backLink = 'admin.php';
         }
         .pw-eye {
             position: absolute;
-            right: 10px;
+            right: 12px;
             top: 50%;
             transform: translateY(-50%);
             border: 0;
             background: transparent;
-            font-weight: 900;
             color: #334155;
-            padding: 6px 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 4px;
+            cursor: pointer;
+            width: 28px;
+            height: 28px;
+            border-radius: 6px;
         }
 
         .save-wrap {
@@ -279,7 +286,9 @@ $backLink = 'admin.php';
                     <div class="field-label">Password</div>
                     <div class="pw-wrap">
                         <input type="password" name="password" id="pwField" class="form-control pill-input pe-5" required>
-                        <button type="button" class="pw-eye" id="togglePw" aria-label="Show password">👁</button>
+                        <button type="button" class="pw-eye" id="togglePw" aria-pressed="false" aria-label="Show password" title="Show password">
+                            <span id="eyeIcon" class="material-icons-round" style="font-size:18px;line-height:1;">visibility_off</span>
+                        </button>
                     </div>
                 </div>
 
@@ -327,13 +336,35 @@ $backLink = 'admin.php';
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const pw = document.getElementById('pwField');
-    const btn = document.getElementById('togglePw');
+    document.addEventListener('DOMContentLoaded', function() {
+        const pw = document.getElementById('pwField');
+        const toggle = document.getElementById('togglePw');
+        const eye = document.getElementById('eyeIcon');
 
-    btn?.addEventListener('click', () => {
-        const isPw = pw.type === 'password';
-        pw.type = isPw ? 'text' : 'password';
-        btn.textContent = isPw ? '🙈' : '👁';
+        function syncIcon() {
+            if (pw.type === 'password') {
+                eye.textContent = 'visibility_off';
+                toggle.setAttribute('aria-pressed', 'false');
+                toggle.setAttribute('title', 'Show password');
+                toggle.setAttribute('aria-label', 'Show password');
+            } else {
+                eye.textContent = 'visibility';
+                toggle.setAttribute('aria-pressed', 'true');
+                toggle.setAttribute('title', 'Hide password');
+                toggle.setAttribute('aria-label', 'Hide password');
+            }
+        }
+
+        syncIcon();
+
+        toggle?.addEventListener('click', () => {
+            pw.type = (pw.type === 'password') ? 'text' : 'password';
+            syncIcon();
+            pw.focus();
+            const val = pw.value;
+            pw.value = '';
+            pw.value = val;
+        });
     });
 </script>
 </body>
