@@ -16,7 +16,8 @@ if (isset($_SESSION['user_id'])) {
   $currentUser = [
     'id' => $_SESSION['user_id'],
     'name' => $_SESSION['user_name'] ?? null,
-    'email' => $_SESSION['user_email'] ?? null
+    'email' => $_SESSION['user_email'] ?? null,
+    'profile_picture' => $_SESSION['user_profile_picture'] ?? null
   ];
 }
 
@@ -129,6 +130,19 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     .leaflet-marker-icon {
       pointer-events: auto;
+    }
+
+    .user-profile-marker {
+      background-color: #ffffff;
+      color: var(--bs-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 18px;
+      font-weight: bold;
+      box-shadow: 0 0 0 3px #3b82f6, 0 4px 6px rgba(0,0,0,0.3);
+      overflow: hidden;
     }
 
     .location-notice {
@@ -292,6 +306,25 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     // --------------------- USER LOCATION ---------------------
     var userLocation = null;
+    var userProfilePic = <?= json_encode($currentUser['profile_picture'] ?? null) ?>;
+    var rawUserName = <?= json_encode($currentUser['name'] ?? $currentUser['email'] ?? 'Guest') ?>;
+    var userInitial = (typeof rawUserName === 'string' && rawUserName.length > 0) ? rawUserName.charAt(0).toUpperCase() : '?';
+
+    function getUserIcon() {
+      var htmlContent = '';
+      if (userProfilePic) {
+         var safePic = userProfilePic.replace(/^\/+/, '');
+         htmlContent = '<img src="' + window.PROJECT_BASE + '/' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
+      } else {
+         htmlContent = userInitial;
+      }
+      return L.divIcon({
+        className: 'user-profile-marker',
+        html: htmlContent,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+    }
     var userMarker = null;
     var selectedRoute = '';
     var locationPermissionGranted = true;
@@ -381,11 +414,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         };
 
         if (!userMarker) {
-          userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 8,
-            color: '#2563eb',
-            fillColor: '#60a5fa',
-            fillOpacity: 0.9
+          userMarker = L.marker([userLocation.lat, userLocation.lng], {
+            icon: getUserIcon(),
+            zIndexOffset: 1000
           }).addTo(map);
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
@@ -475,11 +506,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
-          userMarker = L.circleMarker([userLocation.lat, userLocation.lng], {
-            radius: 8,
-            color: '#2563eb',
-            fillColor: '#60a5fa',
-            fillOpacity: 0.9
+          userMarker = L.marker([userLocation.lat, userLocation.lng], {
+            icon: getUserIcon(),
+            zIndexOffset: 1000
           }).addTo(map);
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
