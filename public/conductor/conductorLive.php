@@ -93,6 +93,17 @@ if (empty($_SESSION['current_bus'])) {
 
 $currentBus  = $_SESSION['current_bus'];
 $busId       = (int)$currentBus['id'];
+
+// Fetch latest seat availability from DB, as it might have been updated by
+// background tasks (e.g. MediaSession adjustments from push notifications).
+$stmtRefresh = $pdo->prepare("SELECT seat_availability FROM busses WHERE Bus_ID = ? LIMIT 1");
+$stmtRefresh->execute([$busId]);
+$refreshRow = $stmtRefresh->fetch(PDO::FETCH_ASSOC);
+if ($refreshRow && isset($refreshRow['seat_availability'])) {
+    $currentBus['seats_available'] = (int)$refreshRow['seat_availability'];
+    $_SESSION['current_bus']['seats_available'] = $currentBus['seats_available'];
+}
+
 $busCode     = $currentBus['code'];
 $busRoute    = $currentBus['route'];
 $seatsTotal  = (int)$currentBus['seats_total'];
