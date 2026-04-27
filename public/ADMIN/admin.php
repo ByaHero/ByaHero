@@ -44,6 +44,10 @@ $faresCount = 0;
 $scheduleCount = 0;
 /* === END ADDED === */
 
+/* === ADDED: lost and found count === */
+$lostFoundCount = 0;
+/* === END ADDED === */
+
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
     $activeBusesCount = (int)$pdo->query("
@@ -63,6 +67,10 @@ try {
 
     /* === ADDED: operation schedule count query === */
     $scheduleCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_schedule")->fetchColumn();
+    /* === END ADDED === */
+
+    /* === ADDED: lost and found count query === */
+    $lostFoundCount = (int)$pdo->query("SELECT COUNT(*) FROM lost_and_found")->fetchColumn();
     /* === END ADDED === */
 } catch (Exception $e) {
     // keep zeros if something fails
@@ -282,6 +290,15 @@ $pageType = 'dashboard';
                     <div class="stat-card-title">Conductors</div>
                     <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
                     <div class="stat-card-number"><?= $conductorsCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Lost and Found -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Lost & Found</div>
+                    <a class="btn-manage-pill" href="manageLostAndFound.php">Manage</a>
+                    <div class="stat-card-number"><?= $lostFoundCount ?></div>
                 </div>
             </div>
 

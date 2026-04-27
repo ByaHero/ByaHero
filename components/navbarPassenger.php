@@ -431,7 +431,7 @@ else: ?>
   </div>
 <?php endif; ?>
 
-<div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel">
+<div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel" style="width: 80vw;">
   <div class="bg-primary text-white p-3 rounded-bottom-4 position-relative">
     <button type="button" class="btn p-0 position-absolute top-0 end-0 m-3 text-white" data-bs-dismiss="offcanvas"
       aria-label="Close">
@@ -458,10 +458,10 @@ else: ?>
     </div>
   </div>
 
-  <div class="offcanvas-body bg-light">
+  <div class="offcanvas-body bg-white">
     <div class="d-grid gap-3">
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold "
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/profile/profile.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/person.svg" alt="person" height="30">
@@ -469,7 +469,7 @@ else: ?>
         Profile
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/accessibility.svg" alt="accessibility" height="30">
@@ -477,7 +477,7 @@ else: ?>
         Accessibility
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/privacy.svg" alt="privacy" height="30">
@@ -485,7 +485,7 @@ else: ?>
         Privacy and Security
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/feedback.svg" alt="feedback" height="30">
@@ -493,7 +493,15 @@ else: ?>
         Feedback
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/lostAndFound/lostAndFound.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/lostandfound.svg" alt="lost and found" height="30">
+        </div>
+        Lost and Found
+      </a>
+
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/about.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/about.svg" alt="about" height="30">
@@ -501,15 +509,7 @@ else: ?>
         About
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
-        <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
-        </div>
-        Share ByaHero
-      </a>
-
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/showGuide/showGuide.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
@@ -517,24 +517,16 @@ else: ?>
         User Guide
       </a>
 
-      <!-- <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>public/passenger/register_token_test.php">
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
-        Register Push Token (Test)
+        Share ByaHero
       </a>
 
-      <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
-        href="<?php echo $depth; ?>backend/check_tokens.php">
-        <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
-        </div>
-        onesignal
-      </a> -->
-
       <?php if (isset($_SESSION['user_id'])): ?>
-        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
           href="<?php echo $depth; ?>public/logout.php">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
             <img src="<?php echo $depth; ?>assets/images/logout.svg" alt="logout" height="30">
@@ -542,9 +534,9 @@ else: ?>
           Log out
         </a>
       <?php else: ?>
-        <a class="btn bg-white shadow-sm rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold"
+        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
           href="<?php echo $depth; ?>public/login.php">
-          <span class="material-symbols-rounded">login</span>
+          <span class="material-symbols-rounded" style="margin-left: 20px; margin-right: 10px; font-size: 30px;">login</span>
           Log in
         </a>
       <?php endif; ?>
