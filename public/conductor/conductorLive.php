@@ -172,33 +172,29 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             margin-top: 14px;
         }
         .btn-seat{
-            width: 70px;
-            height: 60px;
-            border-radius: 14px;
+            width: 52px;
+            height: 46px;
+            border-radius: 10px;
             border: 0;
             background: #eef2f6;
-            box-shadow: 0 10px 22px rgba(15,23,42,0.15);
-            font-size: 32px;
+            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
+            font-size: 24px;
             font-weight: 900;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            line-height: 1;
             color: #0f172a;
-            transition: transform 0.1s active;
         }
-        .btn-seat:active { transform: scale(0.95); }
         .seats-num{
-            width: 80px;
-            height: 60px;
-            border-radius: 14px;
+            width: 64px;
+            height: 46px;
+            border-radius: 10px;
             background: #ffffff;
             box-shadow: 0 10px 22px rgba(15,23,42,0.10);
             display:flex;
             align-items:center;
             justify-content:center;
-            font-size: 28px;
+            font-size: 20px;
             font-weight: 900;
-            color: #1a8d3d;
+            color: #0f172a;
         }
 
         /* Info table card like screenshot */
@@ -524,6 +520,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
                 bgWatcherId = await BackgroundGeolocation.addWatcher(
                     {
+                        backgroundMessage: "Tracking active. Keep app open in background.",
+                        backgroundTitle: "Tracking ByaHero Bus",
                         requestPermissions: true,
                         stale: false,
                         distanceFilter: 0 
@@ -701,23 +699,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     async function updateMediaSessionMetadata() {
-        // Robust path resolution for Android native layer
-        const artworkUrl = new URL('../../assets/images/byahero_media_artwork.png', window.location.href).href;
-        const logoUrl = new URL('../../assets/images/byaheroLogo.png', window.location.href).href;
-        
-        // Clean up route display
-        const routeDisplay = busRoute ? busRoute.replace(/\s*-\s*/g, ' ➜ ') : 'ByaHero Tracking';
-        
-        // Move seats to the artist field to ensure visibility on all Android themes
-        const busDetails = `${busCode || 'Bus'} • ${seats} Seats Left`;
-
         const metadata = {
-            title: routeDisplay,
-            artist: busDetails,
-            album: 'ByaHero Conductor',
+            title: `BUS ${busCode} • ${busRoute}`, // Bus number and route
+            artist: `Available Seats: ${seats}`,
+            album: 'ByaHero Conductor Tracker',
             artwork: [
-                { src: artworkUrl, sizes: '512x512', type: 'image/png' },
-                { src: logoUrl, sizes: '192x192', type: 'image/png' }
+                { src: '../../assets/images/byaheroLogo.png', sizes: '512x512', type: 'image/png' } // High quality logo for Android color extraction
             ]
         };
 
@@ -752,7 +739,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
             try {
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
-                // Next/Prev for seats (Play/Pause removed as requested)
                 await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
                 await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
                 await updateMediaSessionMetadata();
