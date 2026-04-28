@@ -209,7 +209,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
     <div class="privacy-section">
       <div class="settings-section-header">Additional Resources</div>
 
-      <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Privacy Policy'); window.location.href='privacyPolicy.php';">
+      <div class="privacy-item" onclick="window.location.href='privacyPolicy.php';">
         <div class="item-content">
           <span class="material-symbols-rounded privacy-icon">description</span>
           <div class="item-text">
@@ -220,7 +220,7 @@ $isLoggedIn = isset($_SESSION['user_id']);
         <span class="material-symbols-rounded chevron-icon">chevron_right</span>
       </div>
 
-      <div class="privacy-item" onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Terms of Service'); window.location.href='termsOfService.php';">
+      <div class="privacy-item" onclick="window.location.href='termsOfService.php';">
         <div class="item-content">
           <span class="material-symbols-rounded privacy-icon">gavel</span>
           <div class="item-text">
@@ -236,7 +236,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/images/js/accessibility.js"></script>
-  <script src="../../../assets/images/js/analytics.js"></script>
   <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
 
@@ -284,11 +283,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
       const isActive = toggle.classList.toggle('active');
       
       localStorage.setItem('byahero_location_services', isActive ? '1' : '0');
-      
-      // Track setting change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Location Services', isActive ? 'ON' : 'OFF');
-      }
       
       if (isLoggedIn) {
         saveToDatabase('location_services', isActive ? 1 : 0);

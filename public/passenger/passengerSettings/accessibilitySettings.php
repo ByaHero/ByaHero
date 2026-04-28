@@ -222,7 +222,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/images/js/accessibility.js"></script>
-  <script src="../../../assets/images/js/analytics.js"></script>
   <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
     let currentTextSize = localStorage.getItem('byahero_text_size') || 'medium';
@@ -267,11 +266,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
       localStorage.setItem('byahero_text_size', currentTextSize);
       updateTextSizeDisplay();
       
-      // Track setting change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Text Size', currentTextSize);
-      }
-      
       // Save to database if logged in
       if (isLoggedIn) {
         saveToDatabase('text_size', currentTextSize);
@@ -291,20 +285,10 @@ $isLoggedIn = isset($_SESSION['user_id']);
         document.body.classList.add('high-contrast-mode');
         localStorage.setItem('byahero_high_contrast', '1');
         
-        // Track setting change
-        if (typeof analytics !== 'undefined') {
-          analytics.settingChanged('High Contrast Mode', 'ON');
-        }
-        
         if (isLoggedIn) saveToDatabase('high_contrast_mode', 1);
       } else {
         document.body.classList.remove('high-contrast-mode');
         localStorage.setItem('byahero_high_contrast', '0');
-        
-        // Track setting change
-        if (typeof analytics !== 'undefined') {
-          analytics.settingChanged('High Contrast Mode', 'OFF');
-        }
         
         if (isLoggedIn) saveToDatabase('high_contrast_mode', 0);
       }
@@ -315,11 +299,6 @@ $isLoggedIn = isset($_SESSION['user_id']);
       const isActive = toggle.classList.toggle('active');
       
       localStorage.setItem('byahero_screen_reader', isActive ? '1' : '0');
-      
-      // Track setting change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Screen Reader Support', isActive ? 'ON' : 'OFF');
-      }
       
       if (isLoggedIn) {
         saveToDatabase('screen_reader_support', isActive ? 1 : 0);

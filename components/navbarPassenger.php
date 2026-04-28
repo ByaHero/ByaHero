@@ -414,8 +414,7 @@ else: ?>
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
-        style="width: 40px; height: 40px;"
-        onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Notifications Button');">
+        style="width: 40px; height: 40px;">
 
         <img id="topbar-notification-icon"
           src="<?php echo $depth; ?>assets/images/<?php echo !empty($hasUnreadNotifications) ? 'notificationAlert.svg' : 'notification bell.svg'; ?>"
