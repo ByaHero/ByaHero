@@ -48,6 +48,10 @@ $scheduleCount = 0;
 $lostFoundCount = 0;
 /* === END ADDED === */
 
+/* === ADDED: reports count === */
+$reportsCount = 0;
+/* === END ADDED === */
+
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
     $activeBusesCount = (int)$pdo->query("
@@ -71,6 +75,10 @@ try {
 
     /* === ADDED: lost and found count query === */
     $lostFoundCount = (int)$pdo->query("SELECT COUNT(*) FROM lost_and_found")->fetchColumn();
+    /* === END ADDED === */
+
+    /* === ADDED: reports count query === */
+    $reportsCount = (int)$pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetchColumn();
     /* === END ADDED === */
 } catch (Exception $e) {
     // keep zeros if something fails
@@ -259,15 +267,6 @@ $pageType = 'dashboard';
                 </div>
             </div>
 
-            <!-- ADDED: Analytics card -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Analytics</div>
-                    <a class="btn-manage-pill" href="analytics.php">View</a>
-                    <div class="stat-card-number">—</div>
-                </div>
-            </div>
-
             <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
             <div class="col-6 col-lg-4">
                 <div class="stat-card card-total">
@@ -299,6 +298,15 @@ $pageType = 'dashboard';
                     <div class="stat-card-title">Lost & Found</div>
                     <a class="btn-manage-pill" href="manageLostAndFound.php">Manage</a>
                     <div class="stat-card-number"><?= $lostFoundCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Reports -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Reports</div>
+                    <a class="btn-manage-pill" href="manageReports.php">Manage</a>
+                    <div class="stat-card-number"><?= $reportsCount ?></div>
                 </div>
             </div>
 
