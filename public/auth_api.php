@@ -351,7 +351,7 @@ try {
                 $_SESSION['user_profile_picture'] = $profilePic;
             }
 
-            respond(true, 'Signup successful', ['redirect' => $roleRedirects['passenger']]);
+            respond(true, 'Signup successful', ['redirect' => 'passenger/showGuide/showGuide.php']);
         }
     }
 
