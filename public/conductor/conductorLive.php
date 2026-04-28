@@ -524,8 +524,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
                 bgWatcherId = await BackgroundGeolocation.addWatcher(
                     {
-                        backgroundMessage: "Tracking active. Keep app open in background.",
-                        backgroundTitle: "Tracking ByaHero Bus",
+                        backgroundMessage: "",
+                        backgroundTitle: "",
                         requestPermissions: true,
                         stale: false,
                         distanceFilter: 0 
