@@ -29,5 +29,8 @@ function db(): PDO {
         PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
     ]);
 
+    // Ensure MySQL session is also in GMT+8
+    $pdo->exec("SET time_zone = '+08:00'");
+
     return $pdo;
 }
