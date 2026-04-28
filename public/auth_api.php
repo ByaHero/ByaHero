@@ -205,11 +205,41 @@ try {
         respond(true, 'Password changed');
     }
 
-    // LOGOUT
-    if ($action === 'logout') {
+    // DELETE ACCOUNT
+    if ($action === 'delete_account') {
+        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) respond(false, 'Not authenticated');
+        $password = (string)($_POST['password'] ?? '');
+        if ($password === '') respond(false, 'Password required for confirmation');
+
+        $role = $_SESSION['user_role'];
+        $userId = (int)$_SESSION['user_id'];
+        $table = $roleTables[$role] ?? 'users';
+
+        $stmt = $pdo->prepare("SELECT password FROM {$table} WHERE id = ? LIMIT 1");
+        $stmt->execute([$userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) respond(false, 'Account not found');
+
+        // Verify password
+        if (!password_verify($password, $row['password'])) {
+            respond(false, 'Incorrect password');
+        }
+
+        // Delete related data (best effort)
+        try {
+            $pdo->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?")->execute([$userId]);
+        } catch (\Throwable $e) {}
+        try {
+            $pdo->prepare("DELETE FROM emergency_contacts WHERE user_id = ?")->execute([$userId]);
+        } catch (\Throwable $e) {}
+        
+        // Delete the main user record
+        $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$userId]);
+
         session_unset();
         session_destroy();
-        respond(true, 'Logged out');
+        respond(true, 'Account deleted', ['redirect' => 'accountDeleted.php']);
     }
 
     respond(false, 'Unsupported action');

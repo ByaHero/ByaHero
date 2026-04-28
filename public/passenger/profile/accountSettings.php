@@ -276,6 +276,20 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
       </div>
     </div>
 
+    <div class="account-section">
+      <div class="account-section-header" style="color: #dc2626;">Danger Zone</div>
+      <div class="settings-item" onclick="window.location.href='deleteAccount.php'" style="border-color: #fee2e2;">
+        <div class="item-label">
+          <span class="material-symbols-rounded settings-icon" style="color: #dc2626;">delete_forever</span>
+          <div class="item-text">
+            <div class="item-title" style="color: #dc2626;">Delete Account</div>
+            <div class="item-subtitle">Permanently remove your account data</div>
+          </div>
+        </div>
+        <span class="material-symbols-rounded chevron" style="color: #fca5a5;">chevron_right</span>
+      </div>
+    </div>
+
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
