@@ -414,6 +414,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
         updateBuses();
+        if (window.allStops) renderStopsList(window.allStops);
       }, function(error) {
         console.error('Location error:', error);
         if (error.code === error.PERMISSION_DENIED) {
@@ -775,31 +776,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       }
 
       var stops = json.data;
+      window.allStops = stops; // Store globally for re-rendering on location update
 
       // ---------- render list ----------
-      if (listEl) {
-        if (!stops.length) {
-          listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
-        } else {
-          listEl.innerHTML = stops.map(function(s) {
-            var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
-            var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
-
-            return `
-          <button type="button"
-                  class="bus-stop-card"
-                  onclick="focusStop('${String(s.id)}')">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="me-2">
-                <div class="bus-stop-title">${escapeHtml(s.name)}</div>
-                <div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>
-              </div>
-              <span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>
-            </div>
-          </button>`;
-          }).join('');
-        }
-      }
+      renderStopsList(stops);
 
       // ---------- markers on the map ----------
       var ids = new Set(stops.map(function(s) {
@@ -844,6 +824,54 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       resizeStopMarkersForZoom(map.getZoom());
     }
 
+    function renderStopsList(stops) {
+      var listEl = document.getElementById('busStopsListMobile');
+      if (!listEl || !stops) return;
+
+      if (locationPermissionGranted && userLocation) {
+        stops.forEach(function(s) {
+          var lat = parseFloat(s.lat);
+          var lng = parseFloat(s.lng);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+             s.distance = distanceMeters(lat, lng, userLocation.lat, userLocation.lng);
+          } else {
+             s.distance = 9999999;
+          }
+        });
+        // create a copy to avoid mutating the original array order permanently if location is lost
+        stops = stops.slice().sort(function(a, b) {
+          return (a.distance || 0) - (b.distance || 0);
+        });
+      }
+
+      if (!stops.length) {
+        listEl.innerHTML = '<div class="text-center text-muted mt-4 small">No bus stops yet.</div>';
+      } else {
+        listEl.innerHTML = stops.map(function(s) {
+          var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
+          var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
+          var distHtml = '';
+          if (s.distance !== undefined && s.distance < 9999999) {
+             var dText = s.distance < 1000 ? Math.round(s.distance) + ' m away' : (s.distance / 1000).toFixed(1) + ' km away';
+             distHtml = '<div class="small fw-bold text-primary mt-1 d-flex align-items-center gap-1"><span class="material-symbols-rounded" style="font-size: 14px;">directions_walk</span> ' + dText + '</div>';
+          }
+
+          return `
+          <button type="button"
+                  class="bus-stop-card"
+                  onclick="focusStop('${String(s.id)}')">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="me-2">
+                <div class="bus-stop-title">${escapeHtml(s.name)}</div>
+                <div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>
+                ${distHtml}
+              </div>
+              <span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>
+            </div>
+          </button>`;
+        }).join('');
+      }
+    }
 
 
     // --------------------- MAP OFFSET HELPER ---------------------

@@ -93,107 +93,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
 
-        /* Bulk amount adjustment (amount-only, with optional distance range filter) */
-        elseif ($action === 'bulk_adjust') {
-            $direction = (string)($_POST['direction'] ?? 'increase');
-            $applyTo   = (string)($_POST['apply_to'] ?? 'both');
+        /* Matrix Generator (LTFRB Exact Formula) */
+        elseif ($action === 'generate_matrix') {
+            $baseKm = parseFloat((string)($_POST['base_km'] ?? '4'));
+            $regBase = parseFloat((string)($_POST['reg_base'] ?? '14.00'));
+            $discBase = parseFloat((string)($_POST['disc_base'] ?? '11.25'));
+            $regRate = parseFloat((string)($_POST['reg_rate'] ?? '2.20'));
+            $discRate = parseFloat((string)($_POST['disc_rate'] ?? '1.76'));
 
-            $valueRaw  = trim((string)($_POST['value'] ?? ''));
-            $minRaw    = trim((string)($_POST['min_distance_km'] ?? ''));
-            $maxRaw    = trim((string)($_POST['max_distance_km'] ?? ''));
-
-            if ($valueRaw === '' || !is_numeric($valueRaw)) {
-                $error = "Enter a valid amount (₱) for adjustment.";
+            if ($baseKm === null || $regBase === null || $discBase === null || $regRate === null || $discRate === null) {
+                $error = "Please enter valid numeric values for all fields.";
+            } elseif ($baseKm < 0 || $regBase < 0 || $discBase < 0 || $regRate < 0 || $discRate < 0) {
+                $error = "Values cannot be negative.";
             } else {
-                $value = (float)$valueRaw;
-                if ($value < 0) {
-                    $error = "Value cannot be negative.";
-                } else {
-                    $delta = ($direction === 'decrease') ? -$value : $value;
-
-                    $where = [];
-                    $whereParams = [];
-
-                    // Range filter:
-                    // Min => distance_km >= Min
-                    // Max => distance_km <= Max
-                    if ($minRaw !== '' && is_numeric($minRaw)) {
-                        $where[] = "distance_km >= ?";
-                        $whereParams[] = (float)$minRaw;
-                    }
-                    if ($maxRaw !== '' && is_numeric($maxRaw)) {
-                        $where[] = "distance_km <= ?";
-                        $whereParams[] = (float)$maxRaw;
-                    }
-
-                    if ($minRaw !== '' && $maxRaw !== '' && is_numeric($minRaw) && is_numeric($maxRaw) && (float)$minRaw > (float)$maxRaw) {
-                        $error = "Min (km) cannot be greater than Max (km).";
-                    } else {
-                        $whereSql = $where ? (" WHERE " . implode(" AND ", $where)) : "";
-
-                        $setParts = [];
-                        $setParams = [];
-
-                        if ($applyTo === 'regular' || $applyTo === 'both') {
-                            $setParts[] = "regular_fare = GREATEST(0, ROUND(regular_fare + ?, 2))";
-                            $setParams[] = $delta;
-                        }
-                        if ($applyTo === 'discounted' || $applyTo === 'both') {
-                            $setParts[] = "discounted_fare = GREATEST(0, ROUND(discounted_fare + ?, 2))";
-                            $setParams[] = $delta;
-                        }
-
-                        if (empty($setParts)) {
-                            $error = "Choose what to apply (regular/discounted/both).";
-                        } else {
-                            $sql = "UPDATE bus_fares
-                                    SET " . implode(", ", $setParts) . ",
-                                        updated_at = CURRENT_TIMESTAMP
-                                    $whereSql";
-                            $stmt = $pdo->prepare($sql);
-                            $stmt->execute(array_merge($setParams, $whereParams));
-                            $affected = $stmt->rowCount();
-
-                            // Keep discounted <= regular
-                            $fix = $pdo->prepare("
-                                UPDATE bus_fares
-                                SET discounted_fare = LEAST(discounted_fare, regular_fare),
-                                    updated_at = CURRENT_TIMESTAMP
-                                $whereSql
-                            ");
-                            $fix->execute($whereParams);
-
-                            $rangeText = "all distances";
-                            if ($where) {
-                                $parts = [];
-                                if ($minRaw !== '' && is_numeric($minRaw)) $parts[] = ">= " . (float)$minRaw . "km";
-                                if ($maxRaw !== '' && is_numeric($maxRaw)) $parts[] = "<= " . (float)$maxRaw . "km";
-                                $rangeText = implode(" and ", $parts);
-                            }
-
-                            $message = "Bulk adjustment of ₱" . number_format($value, 2) . " applied to {$affected} row(s) ({$rangeText}).";
-                        }
-                    }
-                }
-            }
-        }
-
-        /* Distance Rule (custom, safe & non-stacking; computed from base_* columns) */
-        elseif ($action === 'apply_distance_rule') {
-            $thresholdRaw = (string)($_POST['threshold_km'] ?? $defaultThresholdKm);
-            $rateRaw = (string)($_POST['rate_per_km'] ?? $defaultRatePerKm);
-
-            $thresholdKm = parseFloat($thresholdRaw);
-            $ratePerKm = parseFloat($rateRaw);
-
-            if ($thresholdKm === null || $ratePerKm === null) {
-                $error = "Enter valid numbers for threshold km and rate per km.";
-            } elseif ($thresholdKm < 0) {
-                $error = "Threshold cannot be negative.";
-            } elseif ($ratePerKm < 0) {
-                $error = "Rate per km cannot be negative.";
-            } else {
-                // Ensure base exists (only if NULL)
+                // We use base_* columns just as a safety net (non-stacking is irrelevant since we overwrite absolutely based on distance_km)
+                // But let's keep base_* populated if null
                 $pdo->exec("
                     UPDATE bus_fares
                     SET base_regular_fare = regular_fare,
@@ -202,27 +116,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                        OR base_discounted_fare IS NULL
                 ");
 
+                // Execute exact LTFRB matrix formula
                 $stmt = $pdo->prepare("
-                    UPDATE bus_fares
-                    SET
-                        regular_fare = ROUND(
-                            base_regular_fare + GREATEST(0, distance_km - ?) * ?
-                        , 2),
-                        discounted_fare = ROUND(
-                            LEAST(
-                                base_discounted_fare + GREATEST(0, distance_km - ?) * ?,
-                                base_regular_fare + GREATEST(0, distance_km - ?) * ?
-                            )
-                        , 2),
+                    UPDATE bus_fares 
+                    SET 
+                        regular_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
+                        discounted_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
                         updated_at = CURRENT_TIMESTAMP
                 ");
                 $stmt->execute([
-                    $thresholdKm, $ratePerKm,
-                    $thresholdKm, $ratePerKm,
-                    $thresholdKm, $ratePerKm
+                    $regBase, $baseKm, $regRate,
+                    $discBase, $baseKm, $discRate
                 ]);
 
-                $message = "Distance rule applied: 0–{$thresholdKm}km unchanged; above {$thresholdKm}km adds ₱" . number_format($ratePerKm, 2) . "/km. Rows updated: " . $stmt->rowCount();
+                // Ensure discounted is never somehow magically higher than regular
+                $pdo->exec("
+                    UPDATE bus_fares
+                    SET discounted_fare = LEAST(discounted_fare, regular_fare)
+                    WHERE discounted_fare > regular_fare
+                ");
+
+                $message = "LTFRB Matrix applied to all routes based on distance. Rows updated: " . $stmt->rowCount();
             }
         }
 
@@ -428,105 +342,60 @@ $backLink = 'admin.php';
     <div class="row g-4">
         <div class="col-lg-4">
 
-            <!-- Bulk adjustment -->
-            <div class="card card-standard mb-4">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">payments</span>
-                    Bulk Amount Adjustment (₱ only)
+            <!-- LTFRB Matrix Generator -->
+            <div class="card card-standard mb-4 border-primary" style="border: 2px solid var(--brand);">
+                <div class="card-header-std bg-primary text-white" style="border-radius: 12px 12px 0 0 !important; color: white !important;">
+                    <span class="material-icons-round align-middle me-1">auto_awesome</span>
+                    Automated LTFRB Matrix
                 </div>
                 <div class="card-body">
                     <div class="help-box small text-muted mb-3">
-                        <div class="fw-bold text-dark mb-1">What Min/Max km means</div>
-                        <div><strong>Min (km)</strong>: applies only to fares where <code>distance_km ≥ Min</code></div>
-                        <div><strong>Max (km)</strong>: applies only to fares where <code>distance_km ≤ Max</code></div>
-                        <div class="mt-2">
-                            Example: Min=5 and Max=10 updates only fares with distance 5–10km.
-                            Leave both blank to apply to all fares.
-                        </div>
+                        <div class="fw-bold text-dark mb-1">LTFRB Exact Formula</div>
+                        <div>This tool instantly calculates the fare for all 900+ routes based on their exact distance (km).</div>
+                        <div class="mt-2 text-danger fw-bold"><span class="material-icons-round" style="font-size: 14px; vertical-align: middle;">warning</span> This will overwrite ALL current fares.</div>
                     </div>
 
-                    <form method="POST" onsubmit="return confirm('Apply bulk amount adjustment?');">
-                        <input type="hidden" name="action" value="bulk_adjust">
+                    <form method="POST" onsubmit="return confirm('WARNING: This will instantly overwrite all 900+ rows with mathematical matrix calculations. Proceed?');">
+                        <input type="hidden" name="action" value="generate_matrix">
 
                         <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Adjustment Type</label>
-                            <select class="form-select" name="direction">
-                                <option value="increase">Increase (+)</option>
-                                <option value="decrease">Decrease (-)</option>
-                            </select>
-                        </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Amount (₱)</label>
-                            <input class="form-control" name="value" placeholder="e.g. 5.50" required>
+                            <label class="form-label small fw-bold text-uppercase">Base Distance (km)</label>
+                            <input class="form-control mono" name="base_km" value="4">
                         </div>
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Min (km)</label>
-                                <input class="form-control" name="min_distance_km" placeholder="(optional)">
+                                <label class="form-label small fw-bold text-uppercase">Reg. Base (₱)</label>
+                                <input class="form-control mono" name="reg_base" value="14.00">
                             </div>
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Max (km)</label>
-                                <input class="form-control" name="max_distance_km" placeholder="(optional)">
+                                <label class="form-label small fw-bold text-uppercase">Disc. Base (₱)</label>
+                                <input class="form-control mono" name="disc_base" value="11.25">
                             </div>
                         </div>
-
-                        <div class="mb-3">
-                            <label class="form-label small fw-bold text-uppercase">Apply To</label>
-                            <select class="form-select" name="apply_to">
-                                <option value="both">Regular + Discounted</option>
-                                <option value="regular">Regular only</option>
-                                <option value="discounted">Discounted only</option>
-                            </select>
-                        </div>
-
-                        <div class="d-grid">
-                            <button class="btn btn-primary pill-btn">Apply Adjustment</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-
-            <!-- Distance rule (custom + safe) -->
-            <div class="card card-standard mb-4">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">rule</span>
-                    Distance Rule (Custom, Safe)
-                </div>
-                <div class="card-body">
-                    <div class="help-box small text-muted mb-3">
-                        <div class="fw-bold text-dark mb-1">How it works</div>
-                        <div>Uses <code>base_regular_fare</code> / <code>base_discounted_fare</code> so it is <strong>non-stacking</strong>.</div>
-                        <div>Distances up to the threshold stay the same. Above it, adds <strong>Rate per km</strong>.</div>
-                        <div class="mt-2">To revoke: use <strong>Reset fares to Base</strong> below.</div>
-                    </div>
-
-                    <form method="POST" onsubmit="return confirm('Apply distance rule to ALL fares with these settings?');">
-                        <input type="hidden" name="action" value="apply_distance_rule">
 
                         <div class="row g-2 mb-3">
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Threshold (km)</label>
-                                <input class="form-control" name="threshold_km" value="<?= h($defaultThresholdKm) ?>">
+                                <label class="form-label small fw-bold text-uppercase">Reg. Rate / km</label>
+                                <input class="form-control mono" name="reg_rate" value="2.20">
                             </div>
                             <div class="col-6">
-                                <label class="form-label small fw-bold text-uppercase">Rate / km (₱)</label>
-                                <input class="form-control" name="rate_per_km" value="<?= h($defaultRatePerKm) ?>">
+                                <label class="form-label small fw-bold text-uppercase">Disc. Rate / km</label>
+                                <input class="form-control mono" name="disc_rate" value="1.76">
                             </div>
                         </div>
 
-                        <div class="d-grid">
-                            <button class="btn btn-outline-primary pill-btn">Apply Distance Rule</button>
+                        <div class="d-grid mt-2">
+                            <button class="btn btn-primary pill-btn fw-bold">Generate Matrix</button>
                         </div>
                     </form>
-
+                    
                     <hr>
 
-                    <form method="POST" onsubmit="return confirm('Revoke changes by resetting ALL fares back to base?');">
+                    <form method="POST" onsubmit="return confirm('Revoke changes by resetting ALL fares back to their original base values?');">
                         <input type="hidden" name="action" value="reset_to_base">
                         <div class="d-grid">
-                            <button class="btn btn-outline-secondary pill-btn">Reset fares to Base (Revoke)</button>
+                            <button class="btn btn-outline-secondary pill-btn">Undo (Reset to Base)</button>
                         </div>
                     </form>
                 </div>
