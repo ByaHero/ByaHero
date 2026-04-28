@@ -127,11 +127,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     @media (min-width: 992px) {
-      .map-and-sidebar {
-        display: grid;
-        grid-template-columns: 1fr 350px;
-        height: calc(100vh - 56px);
-      }
+      /* Removed .map-and-sidebar to allow full screen map on desktop */
     }
 
     .leaflet-marker-icon {
@@ -176,23 +172,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
 <body class="bg-light">
 
-  <div class="d-lg-none d-flex flex-column vh-100 w-100">
+  <div class="d-flex flex-column vh-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
     </div>
   </div>
 
   <?php include __DIR__ . '/../../components/passengerBottomSheet.php'; ?>
-
-  <div class="d-none d-lg-block h-100">
-    <div class="map-and-sidebar">
-      <div id="map-desktop-placeholder" class="h-100"></div>
-      <div class="overflow-y-auto bg-white border-start">
-        <h6 class="p-3 border-bottom bg-light m-0 sticky-top">Active Buses</h6>
-        <div id="busListDesktop" class="list-group list-group-flush"></div>
-      </div>
-    </div>
-  </div>
 
   <div class="modal fade" id="settingsModal" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -258,8 +244,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     })();
 
     // --------------------- MAP INIT ---------------------
-    var isMobile = document.querySelector('.d-lg-none')?.offsetParent !== null;
-    var mapId = isMobile ? 'map' : 'map-desktop-placeholder';
+    var mapId = 'map';
     var map = L.map(mapId, {
       zoomControl: false
     }).setView([14.0905, 121.0550], 12);
@@ -542,9 +527,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     function renderBusList(buses) {
-      var container = isMobile ?
-        document.getElementById('busListMobile') :
-        document.getElementById('busListDesktop');
+      var container = document.getElementById('busListMobile');
       if (!container) return;
 
       var activeBuses = buses.filter(function(b) {
@@ -568,11 +551,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
 
-        if (isMobile) {
-          return `<div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')"><div class="card-body py-3 px-4"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span><div style="width:30px;height:12px;border-radius:6px;background:${color}"></div></div><div class="d-flex justify-content-between small text-muted"><span>${b.locName}</span><span>${b.seats} Seats</span></div>${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}<div class="timeline-container bg-secondary-subtle position-relative"><div class="timeline-progress bg-primary position-absolute top-0 bottom-0 start-0 rounded-pill" style="width:${progress}%"></div><span class="material-symbols-rounded timeline-icon position-absolute bg-white rounded-circle text-primary border" style="left:${progress}%;font-size:18px">directions_bus</span><span class="material-symbols-rounded timeline-icon stop-point stop-commuter position-absolute bg-white rounded-circle" style="right:6px;transform:translateX(0);">place</span></div></div></div>`;
-        }
-
-        return `<button class="list-group-item list-group-item-action" onclick="focusBus('${b.id}')"><h6 class="mb-1 fw-bold">${b.code}</h6><small>${b.locName}</small></button>`;
+        return `<div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')"><div class="card-body py-3 px-4"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span><div style="width:30px;height:12px;border-radius:6px;background:${color}"></div></div><div class="d-flex justify-content-between small text-muted"><span>${b.locName}</span><span>${b.seats} Seats</span></div>${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}<div class="timeline-container bg-secondary-subtle position-relative"><div class="timeline-progress bg-primary position-absolute top-0 bottom-0 start-0 rounded-pill" style="width:${progress}%"></div><span class="material-symbols-rounded timeline-icon position-absolute bg-white rounded-circle text-primary border" style="left:${progress}%;font-size:18px">directions_bus</span><span class="material-symbols-rounded timeline-icon stop-point stop-commuter position-absolute bg-white rounded-circle" style="right:6px;transform:translateX(0);">place</span></div></div></div>`;
       }).join('');
 
       container.innerHTML = html;
