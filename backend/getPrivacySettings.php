@@ -11,7 +11,7 @@ require_once '../config/db_connection.php';
 
 $user_id = $_SESSION['user_id'];
 
-$stmt = $conn->prepare("SELECT location_services, tracking_enabled, analytics_enabled, stolen_device_protection FROM user_settings WHERE user_id = ?");
+$stmt = $conn->prepare("SELECT location_services, tracking_enabled, stolen_device_protection FROM user_settings WHERE user_id = ?");
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -26,7 +26,6 @@ if ($result->num_rows > 0) {
         'settings' => [
             'location_services' => 1,
             'tracking_enabled' => 0,
-            'analytics_enabled' => 1,
             'stolen_device_protection' => 0
         ]
     ]);

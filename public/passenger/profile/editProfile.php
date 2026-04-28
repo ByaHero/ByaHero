@@ -320,7 +320,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/js/accessibility.js"></script>
-  <script src="../../../assets/js/analytics.js"></script>
   <script>
     // Smart Auto-Resize Logic
     const imageInput = document.getElementById('imageInput');
@@ -410,9 +409,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Track profile update
     const form = document.getElementById('profileForm');
     form.addEventListener('submit', function() {
-      if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Profile Updated');
-      }
     });
   </script>
 </body>

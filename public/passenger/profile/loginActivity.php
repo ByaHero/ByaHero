@@ -11,35 +11,13 @@ require_once '../../../config/db_connection.php';
 
 $userId = $_SESSION['user_id'];
 
-// Note: For true accuracy, you should log a specific 'login_success' event in your backend 
-// rather than relying on page views of the login page.
-$stmt = $conn->prepare("
-    SELECT 
-        event_data,
-        page,
-        user_agent,
-        ip_address,
-        created_at
-    FROM analytics_events 
-    WHERE user_id = ? AND (event_type = 'login' OR (event_type = 'page_view' AND page LIKE '%login%'))
-    ORDER BY created_at DESC 
-    LIMIT 20
-");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$result = $stmt->get_result();
-$loginActivity = $result->fetch_all(MYSQLI_ASSOC);
-$stmt->close();
-
 // If no login activity in analytics, create sample data from current session
-if (empty($loginActivity)) {
-    $loginActivity = [[
-        'event_data' => json_encode(['device' => 'Current Device']),
-        'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
-        'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
-        'created_at' => date('Y-m-d H:i:s')
-    ]];
-}
+$loginActivity = [[
+    'event_data' => json_encode(['device' => 'Current Device']),
+    'user_agent' => $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown',
+    'ip_address' => $_SERVER['REMOTE_ADDR'] ?? 'Unknown',
+    'created_at' => date('Y-m-d H:i:s')
+]];
 
 // Function to parse user agent
 function parseUserAgent($userAgent) {
@@ -180,6 +158,5 @@ function getDeviceType($userAgent) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/js/accessibility.js"></script>
-  <script src="../../../assets/js/analytics.js"></script>
 </body>
 </html>

@@ -56,8 +56,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   </script>
   <script src="../../assets/js/accessibility.js"></script>
 
-  <script src="../../assets/js/analytics.js"></script>
-
   <style>
     :root {
       --bs-primary: #1e3a8a;
@@ -475,7 +473,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         }
       } catch (e) {
         console.error('Bus fetch error:', e);
-        if (typeof analytics !== 'undefined') analytics.error('Bus fetch error: ' + e.message);
       }
     }
 
@@ -607,13 +604,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       if (!m) return;
       map.flyTo(m.getLatLng(), 15);
       m.openPopup();
-
-      if (typeof analytics !== 'undefined') {
-        analytics.busTracked(id);
-        analytics.featureUsed('Bus Tracking', {
-          bus_id: id
-        });
-      }
     };
 
     var allBuses = [];
@@ -623,12 +613,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       var label = document.getElementById('filterLabelMobile');
       if (label) label.textContent = r ? r.substring(0, 12) + '...' : 'FILTER ROUTES';
-
-      if (typeof analytics !== 'undefined') {
-        analytics.featureUsed('Route Filter', {
-          route: r || 'All Routes'
-        });
-      }
 
       updateBuses();
       setTimeout(function() {

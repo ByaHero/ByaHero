@@ -14,7 +14,7 @@ $setting = $_POST['setting'] ?? '';
 $value = $_POST['value'] ?? 0;
 
 // Validate setting name
-$allowed_settings = ['location_services', 'tracking_enabled', 'analytics_enabled', 'stolen_device_protection'];
+$allowed_settings = ['location_services', 'tracking_enabled', 'stolen_device_protection'];
 if (!in_array($setting, $allowed_settings)) {
     echo json_encode(['success' => false, 'message' => 'Invalid setting']);
     exit;

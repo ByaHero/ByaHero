@@ -146,7 +146,6 @@ function notification_icon(string $type): array
   <meta name="theme-color" content="#1e3a8a">
 
   <link rel="stylesheet" href="../../assets/css/accessibility.css">
-  <script src="../../assets/js/analytics.js"></script>
 
   <style>
     body {

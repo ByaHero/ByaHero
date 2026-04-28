@@ -1,7 +1,7 @@
 <!-- Settings Button Component -->
 <button
   class="btn btn-light rounded-circle shadow p-0 d-flex align-items-center justify-content-center border-0 h-40px w-40px topbar-btn"
-  onclick="if(typeof analytics !== 'undefined') analytics.buttonClick('Settings Button'); window.location.href='<?= $settingsButtonPath ?? './passengerSettings/settings.php' ?>';">
+  onclick="window.location.href='<?= $settingsButtonPath ?? './passengerSettings/settings.php' ?>';">
   <span class="material-symbols-rounded topbar-icon">settings</span>
 </button>
 
