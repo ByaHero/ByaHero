@@ -471,7 +471,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
 
                     <div class="d-flex justify-content-start">
-                        <a class="forgot" href="#" tabindex="-1">Forgot Password?</a>
+                        <a class="forgot" href="forgotPassword.php" tabindex="-1">Forgot Password?</a>
                     </div>
 
                     <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectAfter) ?>" />

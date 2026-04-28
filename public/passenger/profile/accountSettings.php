@@ -236,7 +236,11 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
     <div class="user-profile-card">
       <div class="user-avatar">
         <?php if ($userProfilePic): ?>
-          <img src="<?= $pageDepth . htmlspecialchars($userProfilePic) ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+          <?php 
+            $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+            $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
+          ?>
+          <img src="<?= $imgSrc ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
         <?php else: ?>
           <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
         <?php endif; ?>

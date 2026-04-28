@@ -389,6 +389,69 @@ try {
         respond(false, 'Database error');
     }
 
+    // FORGOT PASSWORD FLOW
+    if ($action === 'request_otp') {
+        $email = trim((string)($_POST['email'] ?? ''));
+        if ($email === '') respond(false, 'Email is required');
+
+        // Check if user exists
+        $stmt = $pdo->prepare("SELECT id, name FROM users WHERE email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch();
+
+        if (!$user) {
+            // Delay slightly to prevent timing attacks
+            usleep(200000); 
+            respond(false, 'Email not found');
+        }
+
+        // Generate 6 digit code
+        $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expires = date('Y-m-d H:i:s', time() + 900); // 15 mins
+
+        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at) VALUES (?, ?, ?)")
+            ->execute([$email, $otp, $expires]);
+
+        // Simulating email send by returning the OTP directly to frontend for DEV prototype
+        respond(true, 'OTP requested', ['dev_otp' => $otp]);
+    }
+
+    if ($action === 'verify_otp') {
+        $email = trim((string)($_POST['email'] ?? ''));
+        $otp = trim((string)($_POST['otp'] ?? ''));
+        if ($email === '' || $otp === '') respond(false, 'Email and OTP are required');
+
+        $stmt = $pdo->prepare("SELECT id FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$email, $otp]);
+        if (!$stmt->fetch()) {
+            respond(false, 'Invalid or expired OTP code');
+        }
+
+        respond(true, 'OTP verified');
+    }
+
+    if ($action === 'reset_password') {
+        $email = trim((string)($_POST['email'] ?? ''));
+        $otp = trim((string)($_POST['otp'] ?? ''));
+        $newPass = trim((string)($_POST['new_password'] ?? ''));
+        
+        if ($email === '' || $otp === '' || $newPass === '') respond(false, 'All fields are required');
+
+        $stmt = $pdo->prepare("SELECT id FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $stmt->execute([$email, $otp]);
+        if (!$stmt->fetch()) {
+            respond(false, 'Invalid or expired OTP code');
+        }
+
+        $hash = password_hash($newPass, PASSWORD_DEFAULT);
+        $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")->execute([$hash, $email]);
+
+        // Cleanup
+        $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
+
+        respond(true, 'Password successfully reset');
+    }
+
     respond(false, 'Unsupported action');
 
 } catch (\Throwable $e) {

@@ -139,7 +139,11 @@ if (!empty($currentUser['phone'])) {
     <section class="text-center py-4 pt-5 mt-2">
         <div class="shadow-sm overflow-hidden" style="width: 80px; height: 80px; background-color: #ffffff; color: var(--bs-primary); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 36px; font-weight: bold; border: 2px solid #1e3a8a; margin: 0 auto;">
             <?php if ($currentUser['profile_picture']): ?>
-                <img src="<?= $pageDepth . htmlspecialchars($currentUser['profile_picture']) ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+                <?php 
+                    $isAbsolute = preg_match('~^https?://~i', $currentUser['profile_picture']);
+                    $imgSrc = $isAbsolute ? htmlspecialchars($currentUser['profile_picture']) : $pageDepth . ltrim(htmlspecialchars($currentUser['profile_picture']), '/');
+                ?>
+                <img src="<?= $imgSrc ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
             <?php else: ?>
                 <?= htmlspecialchars($initial) ?>
             <?php endif; ?>

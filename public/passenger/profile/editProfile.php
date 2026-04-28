@@ -236,7 +236,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <div class="profile-card">
       <div class="profile-avatar" onclick="document.getElementById('imageInput').click()">
         <?php if (!empty($userData['profile_picture'])): ?>
-            <img src="<?= $pageDepth . htmlspecialchars($userData['profile_picture']) ?>" id="currentAvatar" alt="Avatar">
+            <?php 
+                $isAbsolute = preg_match('~^https?://~i', $userData['profile_picture']);
+                $imgSrc = $isAbsolute ? htmlspecialchars($userData['profile_picture']) : $pageDepth . ltrim(htmlspecialchars($userData['profile_picture']), '/');
+            ?>
+            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar">
         <?php else: ?>
             <span id="avatarInitial"><?= strtoupper(substr($userData['name'] ?: $userData['email'], 0, 1)) ?></span>
         <?php endif; ?>
