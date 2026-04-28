@@ -390,16 +390,29 @@ try {
     }
 
     // FORGOT PASSWORD FLOW
+    $roleTables = [
+        'admins' => 'admin',
+        'drivers' => 'driver',
+        'conductors' => 'conductor',
+        'users' => 'user'
+    ];
+
     if ($action === 'request_otp') {
         $email = trim((string)($_POST['email'] ?? ''));
         if ($email === '') respond(false, 'Email is required');
 
-        // Check if user exists
-        $stmt = $pdo->prepare("SELECT id, name FROM users WHERE email = ?");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch();
+        // Check all tables for the user
+        $foundTable = null;
+        foreach ($roleTables as $table => $role) {
+            $stmt = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
+            $stmt->execute([$email]);
+            if ($stmt->fetch()) {
+                $foundTable = $table;
+                break;
+            }
+        }
 
-        if (!$user) {
+        if (!$foundTable) {
             // Delay slightly to prevent timing attacks
             usleep(200000); 
             respond(false, 'Email not found');
@@ -409,8 +422,8 @@ try {
         $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
         $expires = date('Y-m-d H:i:s', time() + 900); // 15 mins
 
-        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at) VALUES (?, ?, ?)")
-            ->execute([$email, $otp, $expires]);
+        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, ?)")
+            ->execute([$email, $otp, $expires, $foundTable]);
 
         // Simulating email send by returning the OTP directly to frontend for DEV prototype
         respond(true, 'OTP requested', ['dev_otp' => $otp]);
@@ -437,14 +450,22 @@ try {
         
         if ($email === '' || $otp === '' || $newPass === '') respond(false, 'All fields are required');
 
-        $stmt = $pdo->prepare("SELECT id FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $stmt = $pdo->prepare("SELECT role FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
         $stmt->execute([$email, $otp]);
-        if (!$stmt->fetch()) {
+        $resetRec = $stmt->fetch();
+        if (!$resetRec) {
             respond(false, 'Invalid or expired OTP code');
         }
 
+        $targetTable = $resetRec['role'] ?: 'users';
         $hash = password_hash($newPass, PASSWORD_DEFAULT);
-        $pdo->prepare("UPDATE users SET password = ? WHERE email = ?")->execute([$hash, $email]);
+        
+        // Safety check to ensure targetTable is valid
+        if (!array_key_exists($targetTable, $roleTables)) {
+            $targetTable = 'users';
+        }
+
+        $pdo->prepare("UPDATE {$targetTable} SET password = ? WHERE email = ?")->execute([$hash, $email]);
 
         // Cleanup
         $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
@@ -455,10 +476,6 @@ try {
     respond(false, 'Unsupported action');
 
 } catch (\Throwable $e) {
-    // In development use debug mode: call endpoint with ?debug=1 to see error message.
-    $debug = (isset($_GET['debug']) && $_GET['debug'] === '1') || (isset($_REQUEST['debug']) && $_REQUEST['debug'] === '1');
-    if ($debug) {
-        respond(false, 'Server error: ' . $e->getMessage());
-    }
-    respond(false, 'Server error');
+    // Always show error for debugging
+    respond(false, 'Server error: ' . $e->getMessage());
 }
