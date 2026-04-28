@@ -172,29 +172,33 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             margin-top: 14px;
         }
         .btn-seat{
-            width: 52px;
-            height: 46px;
-            border-radius: 10px;
+            width: 70px;
+            height: 60px;
+            border-radius: 14px;
             border: 0;
             background: #eef2f6;
-            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
-            font-size: 24px;
+            box-shadow: 0 10px 22px rgba(15,23,42,0.15);
+            font-size: 32px;
             font-weight: 900;
-            line-height: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             color: #0f172a;
+            transition: transform 0.1s active;
         }
+        .btn-seat:active { transform: scale(0.95); }
         .seats-num{
-            width: 64px;
-            height: 46px;
-            border-radius: 10px;
+            width: 80px;
+            height: 60px;
+            border-radius: 14px;
             background: #ffffff;
             box-shadow: 0 10px 22px rgba(15,23,42,0.10);
             display:flex;
             align-items:center;
             justify-content:center;
-            font-size: 20px;
+            font-size: 28px;
             font-weight: 900;
-            color: #0f172a;
+            color: #1a8d3d;
         }
 
         /* Info table card like screenshot */
@@ -699,12 +703,20 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     async function updateMediaSessionMetadata() {
+        // Robust path resolution for Android native layer
+        const artworkUrl = new URL('../../assets/images/byahero_media_artwork.png', window.location.href).href;
+        const logoUrl = new URL('../../assets/images/byaheroLogo.png', window.location.href).href;
+        
+        // Clean up route display
+        const routeDisplay = busRoute ? busRoute.replace(/\s*-\s*/g, ' ➜ ') : 'ByaHero Tracking';
+
         const metadata = {
-            title: `BUS ${busCode} • ${busRoute}`, // Bus number and route
-            artist: `Available Seats: ${seats}`,
-            album: 'ByaHero Conductor Tracker',
+            title: routeDisplay,
+            artist: busCode || 'ByaHero Bus',
+            album: `${seats} Available Seats`,
             artwork: [
-                { src: '../../assets/images/byaheroLogo.png', sizes: '512x512', type: 'image/png' } // High quality logo for Android color extraction
+                { src: artworkUrl, sizes: '512x512', type: 'image/png' },
+                { src: logoUrl, sizes: '192x192', type: 'image/png' }
             ]
         };
 
@@ -739,13 +751,33 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
             try {
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
+                // Next/Prev for seats
                 await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
                 await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
+                
+                // Play/Pause support for "Spotify-like" center button
+                await MediaSession.setActionHandler({ action: 'play' }, () => {
+                    if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+                    navigator.mediaSession.playbackState = "playing";
+                });
+                await MediaSession.setActionHandler({ action: 'pause' }, () => {
+                    if (keepAliveAudio) keepAliveAudio.pause();
+                    navigator.mediaSession.playbackState = "paused";
+                });
+
                 await updateMediaSessionMetadata();
             } catch(e) { console.warn("Native MediaSession setup err", e); }
         } else if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
             navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
+            navigator.mediaSession.setActionHandler('play', () => {
+                if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+                navigator.mediaSession.playbackState = "playing";
+            });
+            navigator.mediaSession.setActionHandler('pause', () => {
+                if (keepAliveAudio) keepAliveAudio.pause();
+                navigator.mediaSession.playbackState = "paused";
+            });
             updateMediaSessionMetadata();
         }
     }
