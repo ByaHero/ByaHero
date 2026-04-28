@@ -157,7 +157,10 @@ try {
 
         <div class="col-lg-4">
             <div class="card card-standard">
-                <div class="card-header-std">List of Bus Stops</div>
+                <div class="card-header-std d-flex justify-content-between align-items-center">
+                    List of Bus Stops
+                    <span id="sortStatus" class="badge bg-secondary fw-normal" style="font-size: 0.7rem;">Locating...</span>
+                </div>
                 <div class="card-body p-0">
                     <div class="list-group list-group-flush" id="stopsList">
                         <?php if (empty($stops)): ?>
@@ -183,8 +186,10 @@ try {
                                 ?>
                                 <button
                                     type="button"
-                                    class="list-group-item list-group-item-action"
-                                    data-stop-id="<?= h($s['id']) ?>">
+                                    class="list-group-item list-group-item-action stop-item"
+                                    data-stop-id="<?= h($s['id']) ?>"
+                                    data-lat="<?= h($s['lat']) ?>"
+                                    data-lng="<?= h($s['lng']) ?>">
                                     <div class="d-flex justify-content-between align-items-start">
                                         <div class="me-2">
                                             <div class="fw-bold"><?= h($s['name']) ?></div>
@@ -193,6 +198,7 @@ try {
                                             <?php else: ?>
                                                 <div class="small text-muted"><?= h($label) ?></div>
                                             <?php endif; ?>
+                                            <div class="small fw-bold text-primary distance-label mt-1" style="display:none;"></div>
                                         </div>
                                         <span class="badge badge-type <?= h($badgeClass) ?> text-uppercase">
                                             <?= h($label) ?>
@@ -317,8 +323,95 @@ try {
             const latLng = marker.getLatLng();
             map.setView(latLng, Math.max(map.getZoom(), 14));
             marker.openPopup();
+            
+            // On mobile, scroll up to map smoothly
+            if (window.innerWidth < 992) {
+                document.getElementById('stopsMap').scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
         }
     });
+
+    // --- GEOLOCATION & SORTING BY NEAREST ---
+    
+    // Haversine formula to calculate distance between coordinates
+    function getDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Radius of earth in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = 
+            Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    const sortStatus = document.getElementById('sortStatus');
+    
+    if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+
+                // Add a marker for the user
+                const userIcon = L.divIcon({
+                    html: `<span class="material-icons-round text-primary" style="font-size: 32px; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.4));">person_pin_circle</span>`,
+                    className: '',
+                    iconSize: [32, 32],
+                    iconAnchor: [16, 32],
+                    popupAnchor: [0, -32]
+                });
+                
+                L.marker([userLat, userLng], {icon: userIcon}).addTo(map)
+                    .bindPopup("<div class='fw-bold'>You are here</div>")
+                    .openPopup();
+
+                // Sort the list
+                const listContainer = document.getElementById('stopsList');
+                if (listContainer) {
+                    const items = Array.from(listContainer.querySelectorAll('.stop-item'));
+                    
+                    items.forEach(item => {
+                        const sLat = parseFloat(item.getAttribute('data-lat'));
+                        const sLng = parseFloat(item.getAttribute('data-lng'));
+                        
+                        if (!isNaN(sLat) && !isNaN(sLng)) {
+                            const dist = getDistance(userLat, userLng, sLat, sLng);
+                            item.dataset.distance = dist;
+                            
+                            const distLabel = item.querySelector('.distance-label');
+                            if (distLabel) {
+                                distLabel.style.display = 'block';
+                                distLabel.innerHTML = `<span class="material-icons-round" style="font-size: 14px; vertical-align: middle;">directions_walk</span> ${dist < 1 ? Math.round(dist * 1000) + ' m' : dist.toFixed(1) + ' km'} away`;
+                            }
+                        } else {
+                            item.dataset.distance = 999999;
+                        }
+                    });
+                    
+                    items.sort((a, b) => parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance));
+                    items.forEach(item => listContainer.appendChild(item));
+                    
+                    if (sortStatus) {
+                        sortStatus.innerText = 'Sorted by Nearest';
+                        sortStatus.classList.replace('bg-secondary', 'bg-success');
+                    }
+                }
+            },
+            (error) => {
+                console.warn("Geolocation error:", error);
+                if (sortStatus) {
+                    sortStatus.innerText = 'Alphabetical';
+                    sortStatus.classList.replace('bg-secondary', 'bg-dark');
+                    sortStatus.title = 'Location access denied or unavailable.';
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+        );
+    } else {
+        if (sortStatus) sortStatus.style.display = 'none';
+    }
 </script>
 </body>
 </html>
