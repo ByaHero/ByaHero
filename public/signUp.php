@@ -323,6 +323,7 @@ if (isset($_SESSION['user_id'])) {
                             }
                         } catch (error) {
                             console.error('Native Google Sign-In error:', error);
+                            alert('Google Sign-In Error: ' + (error.message || JSON.stringify(error)));
                         }
                     });
                 }

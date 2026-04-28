@@ -639,6 +639,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             }
                         } catch (error) {
                             console.error('Native Google Sign-In error:', error);
+                            alert('Google Sign-In Error: ' + (error.message || JSON.stringify(error)));
                         }
                     });
                 }
