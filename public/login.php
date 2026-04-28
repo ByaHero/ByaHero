@@ -596,15 +596,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             
             // Determine if it's running natively via Capacitor
             const isNative = window.Capacitor.isNative || 
-                            (window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || 
-                            window.Capacitor.getPlatform() === 'android' || 
-                            window.Capacitor.getPlatform() === 'ios';
+                            (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+                            navigator.userAgent.includes('Capacitor') ||
+                            window.location.href.includes('capacitor://');
                             
             if (isNative) {
                 const webContainer = document.getElementById('gsi-web-container');
                 const nativeContainer = document.getElementById('gsi-native-container');
+                
                 if (webContainer) webContainer.style.display = 'none';
-                if (nativeContainer) nativeContainer.style.display = 'flex';
+                if (nativeContainer) {
+                    nativeContainer.style.setProperty('display', 'flex', 'important');
+                    nativeContainer.style.opacity = '1';
+                    nativeContainer.style.visibility = 'visible';
+                }
                 
                 if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
                     try {

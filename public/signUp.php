@@ -105,21 +105,40 @@ if (isset($_SESSION['user_id'])) {
                     <span class="mx-2 text-muted small">OR</span>
                     <hr class="flex-grow-1">
                 </div>
-                <div id="g_id_onload"
-                    data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
-                    data-context="signup"
-                    data-ux_mode="popup"
-                    data-callback="handleGoogleLogin"
-                    data-auto_prompt="false">
-                </div>
-                <div class="g_id_signin"
-                    data-type="standard"
-                    data-shape="pill"
-                    data-theme="outline"
-                    data-text="signup_with"
-                    data-size="large"
-                    data-logo_alignment="left"
-                    style="display: flex; justify-content: center;">
+
+                <div id="google-auth-container">
+                    <!-- Standard Web Flow -->
+                    <div id="gsi-web-container">
+                        <div id="g_id_onload"
+                            data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                            data-context="signup"
+                            data-ux_mode="popup"
+                            data-callback="handleGoogleLogin"
+                            data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                            data-type="standard"
+                            data-shape="pill"
+                            data-theme="outline"
+                            data-text="signup_with"
+                            data-size="large"
+                            data-logo_alignment="left"
+                            style="display: flex; justify-content: center;">
+                        </div>
+                    </div>
+
+                    <!-- Native Capacitor Button (Hidden by default) -->
+                    <div id="gsi-native-container" style="display: none; justify-content: center;">
+                        <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: all 0.2s;">
+                            <svg width="18" height="18" viewBox="0 0 48 48" style="display: block;">
+                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
+                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            </svg>
+                            Continue with Google
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -256,6 +275,71 @@ if (isset($_SESSION['user_id'])) {
                 document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger small py-2">An error occurred during Google sign in.</div>`;
             });
         }
+        // Capacitor Native Google Auth integration
+        function initNativeCapacitorGoogleAuth() {
+            if (!window.Capacitor) return false;
+            
+            const isNative = window.Capacitor.isNative || 
+                            (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+                            navigator.userAgent.includes('Capacitor') ||
+                            window.location.href.includes('capacitor://');
+                            
+            if (isNative) {
+                const webContainer = document.getElementById('gsi-web-container');
+                const nativeContainer = document.getElementById('gsi-native-container');
+                
+                if (webContainer) webContainer.style.display = 'none';
+                if (nativeContainer) {
+                    nativeContainer.style.setProperty('display', 'flex', 'important');
+                    nativeContainer.style.opacity = '1';
+                    nativeContainer.style.visibility = 'visible';
+                }
+                
+                if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+                    try {
+                        window.Capacitor.Plugins.GoogleAuth.initialize({
+                            clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                            scopes: ['profile', 'email'],
+                            grantOfflineAccess: true,
+                        });
+                    } catch (e) {
+                        console.warn('GoogleAuth initialize issue:', e);
+                    }
+                }
+                
+                const nativeBtn = document.getElementById('native-google-btn');
+                if (nativeBtn) {
+                    nativeBtn.addEventListener('click', async function() {
+                        if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                            alert('Google Auth plugin not loaded properly.');
+                            return;
+                        }
+                        try {
+                            const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                            if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                                handleGoogleLogin({ credential: googleUser.authentication.idToken });
+                            } else {
+                                alert('Google login failed: Could not retrieve ID token.');
+                            }
+                        } catch (error) {
+                            console.error('Native Google Sign-In error:', error);
+                        }
+                    });
+                }
+                return true;
+            }
+            return true;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            let attempts = 0;
+            const pollTimer = setInterval(() => {
+                if (initNativeCapacitorGoogleAuth() || attempts > 20) {
+                    clearInterval(pollTimer);
+                }
+                attempts++;
+            }, 100);
+        });
     </script>
 </body>
 </html>

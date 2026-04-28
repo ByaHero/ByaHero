@@ -253,8 +253,11 @@ try {
         }
 
         // Must verify issuer and audience
-        if (!in_array($payload['aud'], ['299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com'])) {
-            respond(false, 'Invalid Google Client ID audience');
+        if (!in_array($payload['aud'], [
+            '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+            '299495970056-moul8j6nolsl5lvjd37atjknqvogbtcj.apps.googleusercontent.com'
+        ])) {
+            respond(false, 'Invalid Google Client ID audience (Received: ' . $payload['aud'] . ')');
         }
         
         if (!in_array($payload['iss'], ['accounts.google.com', 'https://accounts.google.com'])) {
