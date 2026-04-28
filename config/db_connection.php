@@ -31,4 +31,7 @@ if ($conn->connect_error) {
 }
 
 $conn->set_charset("utf8mb4");
+
+// Ensure MySQL session is also in GMT+8
+$conn->query("SET time_zone = '+08:00'");
 ?>
