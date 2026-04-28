@@ -591,13 +591,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         // Capacitor Native Google Auth integration
-        document.addEventListener('DOMContentLoaded', function() {
-            // Check if we are running inside native Capacitor wrapper
-            if (window.Capacitor && window.Capacitor.isNative) {
-                document.getElementById('gsi-web-container').style.display = 'none';
-                document.getElementById('gsi-native-container').style.display = 'flex';
+        function initNativeCapacitorGoogleAuth() {
+            if (!window.Capacitor) return false;
+            
+            // Determine if it's running natively via Capacitor
+            const isNative = window.Capacitor.isNative || 
+                            (window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform()) || 
+                            window.Capacitor.getPlatform() === 'android' || 
+                            window.Capacitor.getPlatform() === 'ios';
+                            
+            if (isNative) {
+                const webContainer = document.getElementById('gsi-web-container');
+                const nativeContainer = document.getElementById('gsi-native-container');
+                if (webContainer) webContainer.style.display = 'none';
+                if (nativeContainer) nativeContainer.style.display = 'flex';
                 
-                // Try to initialize, though Capacitor config handles Android automatically
                 if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
                     try {
                         window.Capacitor.Plugins.GoogleAuth.initialize({
@@ -610,24 +618,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 
-                document.getElementById('native-google-btn').addEventListener('click', async function() {
-                    if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
-                        alert('Google Auth plugin not loaded properly.');
-                        return;
-                    }
-                    try {
-                        const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-                        if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
-                            // Forward the token to the existing PHP handlers
-                            handleGoogleLogin({ credential: googleUser.authentication.idToken });
-                        } else {
-                            alert('Google login failed: Could not retrieve ID token.');
+                const nativeBtn = document.getElementById('native-google-btn');
+                if (nativeBtn) {
+                    nativeBtn.addEventListener('click', async function() {
+                        if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                            alert('Google Auth plugin not loaded properly.');
+                            return;
                         }
-                    } catch (error) {
-                        console.error('Native Google Sign-In error:', error);
-                    }
-                });
+                        try {
+                            const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                            if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                                handleGoogleLogin({ credential: googleUser.authentication.idToken });
+                            } else {
+                                alert('Google login failed: Could not retrieve ID token.');
+                            }
+                        } catch (error) {
+                            console.error('Native Google Sign-In error:', error);
+                        }
+                    });
+                }
+                return true;
             }
+            return true; // Stop polling if Capacitor is found but not native
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Because login.php is loaded remotely over the internet, the Capacitor 
+            // bridge might inject milliseconds after the DOM is ready. We poll for it.
+            let attempts = 0;
+            const pollTimer = setInterval(() => {
+                if (initNativeCapacitorGoogleAuth() || attempts > 20) { // Try for 2 seconds
+                    clearInterval(pollTimer);
+                }
+                attempts++;
+            }, 100);
         });
     </script>
 </body>
