@@ -1,3 +1,22 @@
+<?php
+session_start();
+
+/**
+ * SECURE SYSTEM:
+ * Require login before accessing to prevent URL manipulation.
+ */
+if (!isset($_SESSION['user_id'])) {
+    $r = $_SERVER['SCRIPT_NAME'] ?? '';
+    $p = rtrim(str_replace('\\', '/', dirname($r)), '/');
+    $b = preg_replace('~/public/.*$~', '', $p) ?: '';
+    header('Location: ' . $b . '/public/login.php', true, 302);
+    exit;
+}
+$pageDepth = "../../";
+$pageType = "settings";
+$backLink = "../index.php";
+$pageTitle = "Safety & Emergency";
+?>
 <!doctype html>
 <html lang="en text-gray-900">
 
@@ -90,25 +109,7 @@
 </head>
 
 <body>
-  <?php
-  session_start();
-
-/**
- * SECURE SYSTEM:
- * Require login before accessing to prevent URL manipulation.
- */
-if (!isset($_SESSION['user_id'])) {
-    $r = $_SERVER['SCRIPT_NAME'] ?? '';
-    $p = rtrim(str_replace('\', '/', dirname($r)), '/');
-    $b = preg_replace('~/public/.*$~', '', $p) ?: '';
-    header('Location: ' . $b . '/public/login.php', true, 302);
-    exit;
-}
-$pageTitle = 'Safety';
-  $backLink = '../index.php';
-  $pageDepth = '../../../';
-  include __DIR__ . "/../../../components/navbarPassenger.php";
-  ?>
+    <?php include '../../components/navbarPassenger.php'; ?>
 
   <main class="container-custom px-3">
     <div class="app-header">

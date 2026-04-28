@@ -36,7 +36,6 @@ $pageTitle = $pageTitle ?? null;
 function adminTitleForType(?string $t): string {
   $map = [
     'dashboard' => 'Hello, Admin!',
-    'analytics' => 'Analytics',
     'operationSchedule' => 'Bus Operation Schedule',
     'manageBuses' => 'Total Buses',
     'manageActiveBuses' => 'Active Buses',
@@ -44,6 +43,8 @@ function adminTitleForType(?string $t): string {
     'manageConductors' => 'Drivers & Conductors',
     'busFare' => 'Bus Fares',
     'adminProfile' => 'Profile',
+    'manageLostAndFound' => 'Lost & Found',
+    'manageReports' => 'Passenger Reports',
   ];
   return $map[$t] ?? 'Admin';
 }
@@ -64,7 +65,7 @@ $isAdminProfile =
 $showClose = (!$isDashboard && !$isAdminProfile);
 
 // Assets
-$logoUrl = $baseUrl . '/assets/images/byaheroLogo.png';
+$logoUrl = $baseUrl . '/assets/images/topBarLogo.svg';
 $hamburgerImg = $baseUrl . '/assets/images/hamburger.png';
 
 // Menu links

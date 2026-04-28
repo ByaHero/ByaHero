@@ -472,12 +472,22 @@ else: ?>
         Profile
       </a>
 
+      <!--
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/accessibility.svg" alt="accessibility" height="30">
         </div>
         Accessibility
+      </a>
+      -->
+
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/showGuide/showGuide.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
+        </div>
+        User Guide
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
@@ -486,14 +496,6 @@ else: ?>
           <img src="<?php echo $depth; ?>assets/images/privacy.svg" alt="privacy" height="30">
         </div>
         Privacy and Security
-      </a>
-
-      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
-        <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/feedback.svg" alt="feedback" height="30">
-        </div>
-        Feedback
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
@@ -513,11 +515,19 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/showGuide/showGuide.php">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <img src="<?php echo $depth; ?>assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
+          <img src="<?php echo $depth; ?>assets/images/feedback.svg" alt="feedback" height="30">
         </div>
-        User Guide
+        Feedback
+      </a>
+
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/report/report.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/report.svg" alt="report a problem" height="30">
+        </div>
+        Report a Problem
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
