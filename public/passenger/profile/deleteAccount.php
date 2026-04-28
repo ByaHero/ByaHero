@@ -10,20 +10,6 @@ if (!isset($_SESSION['user_id'])) {
 $userName = $_SESSION['user_name'] ?? 'User';
 $userId = $_SESSION['user_id'];
 
-require_once '../../../config/db_connection.php';
-$stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$res = $stmt->get_result();
-$userData = $res->fetch_assoc();
-$stmt->close();
-
-$hasPassword = !empty($userData['password']);
-
-if (!$hasPassword) {
-    header("Location: changePassword.php?from=delete");
-    exit;
-}
 ?>
 <!doctype html>
 <html lang="en">
@@ -158,13 +144,8 @@ if (!$hasPassword) {
 
       <form id="deleteForm">
         <div class="mb-4">
-          <label for="password" class="form-label">Enter Password to Confirm</label>
-          <div class="position-relative">
-            <input type="password" class="form-control form-control-lg" id="password" name="password" required placeholder="Current password">
-            <button type="button" class="toggle-password" id="togglePassword">
-              <span class="material-symbols-rounded" style="font-size: 20px;">visibility_off</span>
-            </button>
-          </div>
+          <label for="confirmText" class="form-label">Type "delete my account" to Confirm</label>
+          <input type="text" class="form-control form-control-lg" id="confirmText" name="confirmText" required placeholder="delete my account" autocomplete="off">
         </div>
 
         <div class="form-check mb-4">
@@ -205,18 +186,7 @@ if (!$hasPassword) {
       `;
     }
 
-    // Toggle Password Visibility
-    document.getElementById('togglePassword').addEventListener('click', function() {
-      const password = document.getElementById('password');
-      const icon = this.querySelector('.material-symbols-rounded');
-      if (password.type === 'password') {
-        password.type = 'text';
-        icon.textContent = 'visibility';
-      } else {
-        password.type = 'password';
-        icon.textContent = 'visibility_off';
-      }
-    });
+
 
     form.addEventListener('submit', async function(e) {
       e.preventDefault();
@@ -232,7 +202,7 @@ if (!$hasPassword) {
         return;
       }
 
-      const password = document.getElementById('password').value;
+      const confirmText = document.getElementById('confirmText').value;
       
       // UI State: Loading
       submitBtn.disabled = true;
@@ -243,7 +213,7 @@ if (!$hasPassword) {
       try {
         const formData = new FormData();
         formData.append('action', 'delete_account');
-        formData.append('password', password);
+        formData.append('confirmText', confirmText);
 
         const response = await fetch('../../auth_api.php', {
           method: 'POST',

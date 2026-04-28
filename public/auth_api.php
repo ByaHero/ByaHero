@@ -210,27 +210,15 @@ try {
     // DELETE ACCOUNT
     if ($action === 'delete_account') {
         if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) respond(false, 'Not authenticated');
-        $password = (string)($_POST['password'] ?? '');
+        $confirmText = strtolower(trim((string)($_POST['confirmText'] ?? '')));
+        
+        if ($confirmText !== 'delete my account') {
+            respond(false, "Please type 'delete my account' exactly to confirm.");
+        }
 
         $role = $_SESSION['user_role'];
         $userId = (int)$_SESSION['user_id'];
         $table = $roleTables[$role] ?? 'users';
-
-        $stmt = $pdo->prepare("SELECT password FROM {$table} WHERE id = ? LIMIT 1");
-        $stmt->execute([$userId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$row) respond(false, 'Account not found');
-
-        // Verify password if they have one
-        $hasPassword = !empty($row['password']);
-        
-        if ($hasPassword) {
-            if ($password === '') respond(false, 'Password required for confirmation');
-            if (!password_verify($password, $row['password'])) {
-                respond(false, 'Incorrect password');
-            }
-        }
 
         // Delete related data (best effort)
         try {
