@@ -465,8 +465,9 @@ $pageDepth = "../../../";
                 const bg = colorFromString(f.email || f.name || init);
                 if (f.profile_picture) {
                     const basePath = window.APP_BASE_URL || "<?php echo isset($pageDepth) ? $pageDepth : '../../../'; ?>";
-                    const cleanPath = f.profile_picture.startsWith('/') ? f.profile_picture.substring(1) : f.profile_picture;
-                    return `<div class="stack-avatar" style="background:${bg}"><img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
+                    const isAbsolute = /^https?:\/\//i.test(f.profile_picture);
+                    const safePath = isAbsolute ? f.profile_picture : basePath + (f.profile_picture.startsWith('/') ? f.profile_picture.substring(1) : f.profile_picture);
+                    return `<div class="stack-avatar" style="background:${bg}"><img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
                 }
                 return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
             }).join("");

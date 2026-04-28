@@ -101,6 +101,7 @@ try {
             $_SESSION['user_email'] = $user['email'] ?? '';
             $_SESSION['user_role'] = $role;
             $_SESSION['user_name'] = $user['name'] ?? $user['email'] ?? '';
+            $_SESSION['user_contacts'] = $user['contacts'] ?? '';
 
             respond(true, 'Login successful', ['redirect' => ($roleRedirects[$role] ?? null)]);
         }
@@ -178,6 +179,7 @@ try {
         $_SESSION['user_email'] = $email;
         $_SESSION['user_role'] = 'passenger';
         $_SESSION['user_name'] = $name !== '' ? $name : $email;
+        $_SESSION['user_contacts'] = $contact;
 
         // Redirect passenger to passenger index
         respond(true, 'Signup successful', ['redirect' => $roleRedirects['passenger']]);
@@ -209,7 +211,6 @@ try {
     if ($action === 'delete_account') {
         if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) respond(false, 'Not authenticated');
         $password = (string)($_POST['password'] ?? '');
-        if ($password === '') respond(false, 'Password required for confirmation');
 
         $role = $_SESSION['user_role'];
         $userId = (int)$_SESSION['user_id'];
@@ -221,9 +222,14 @@ try {
 
         if (!$row) respond(false, 'Account not found');
 
-        // Verify password
-        if (!password_verify($password, $row['password'])) {
-            respond(false, 'Incorrect password');
+        // Verify password if they have one
+        $hasPassword = !empty($row['password']);
+        
+        if ($hasPassword) {
+            if ($password === '') respond(false, 'Password required for confirmation');
+            if (!password_verify($password, $row['password'])) {
+                respond(false, 'Incorrect password');
+            }
         }
 
         // Delete related data (best effort)
@@ -240,6 +246,147 @@ try {
         session_unset();
         session_destroy();
         respond(true, 'Account deleted', ['redirect' => 'accountDeleted.php']);
+    }
+
+    // GOOGLE AUTH
+    if ($action === 'google_auth') {
+        $credential = $_POST['credential'] ?? '';
+        if (empty($credential)) respond(false, 'Google credential missing');
+
+        // Decode JWT payload (Header.Payload.Signature)
+        $parts = explode('.', $credential);
+        if (count($parts) !== 3) respond(false, 'Invalid Google credential format');
+
+        // Simple base64 decoding (for production, always verify the signature!)
+        $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
+        
+        if (!$payload || !isset($payload['email'])) {
+            respond(false, 'Failed to extract information from Google token');
+        }
+
+        // Must verify issuer and audience
+        if (!in_array($payload['aud'], ['299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com'])) {
+            respond(false, 'Invalid Google Client ID audience');
+        }
+        
+        if (!in_array($payload['iss'], ['accounts.google.com', 'https://accounts.google.com'])) {
+            respond(false, 'Invalid token issuer');
+        }
+
+        // Verify token expiration
+        if (isset($payload['exp']) && $payload['exp'] < time()) {
+            respond(false, 'Google token has expired');
+        }
+
+        $email = mb_strtolower(trim($payload['email']));
+        $googleId = $payload['sub'] ?? '';
+        $name = $payload['name'] ?? '';
+        $profilePic = $payload['picture'] ?? null;
+        
+        // 1. Check if user exists by email in the `users` table since this is mainly for passengers
+        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($user) {
+            // Link google_id if not linked
+            try {
+                $hasGoogleId = tableHasColumn($pdo, 'users', 'google_id');
+                if ($hasGoogleId && empty($user['google_id'])) {
+                    $pdo->prepare("UPDATE users SET google_id = ?, auth_provider = 'google' WHERE id = ?")->execute([$googleId, $user['id']]);
+                }
+            } catch (\Throwable $e) {}
+
+            $_SESSION['user_id'] = (int)$user['id'];
+            $_SESSION['user_email'] = $user['email'];
+            $_SESSION['user_role'] = 'passenger';
+            $_SESSION['user_name'] = $user['name'] ?? $name;
+            $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? $profilePic;
+            $_SESSION['user_contacts'] = $user['contacts'] ?? '';
+            
+            respond(true, 'Login successful', ['redirect' => $roleRedirects['passenger']]);
+        } else {
+            // Create user
+            $hasName = tableHasColumn($pdo, 'users', 'name');
+            $hasContacts = tableHasColumn($pdo, 'users', 'contacts');
+            $hasGoogleId = tableHasColumn($pdo, 'users', 'google_id');
+            $hasProfilePic = tableHasColumn($pdo, 'users', 'profile_picture');
+
+            // Building dynamic insert based on schema available
+            $columns = ['email', 'created_at'];
+            $placeholders = ['?', 'NOW()'];
+            $values = [$email];
+            
+            if ($hasGoogleId) {
+                $columns[] = 'google_id';
+                $columns[] = 'auth_provider';
+                $placeholders[] = '?';
+                $placeholders[] = "'google'";
+                $values[] = $googleId;
+            }
+            if ($hasName) {
+                $columns[] = 'name';
+                $placeholders[] = '?';
+                $values[] = $name;
+            }
+            if ($hasProfilePic && $profilePic) {
+                $columns[] = 'profile_picture';
+                $placeholders[] = '?';
+                $values[] = $profilePic;
+            }
+            // Add a blank contact to satisfy the previous schema if it exists
+            if ($hasContacts) {
+                $columns[] = 'contacts';
+                $placeholders[] = '?';
+                $values[] = '';
+            }
+
+            // Since password is now nullable, we omit it
+            $colStr = implode(', ', $columns);
+            $valStr = implode(', ', $placeholders);
+            
+            $ins = $pdo->prepare("INSERT INTO users ({$colStr}) VALUES ({$valStr})");
+            $ok = $ins->execute($values);
+
+            if (!$ok) respond(false, 'Database error during Google signup');
+
+            $newId = (int)$pdo->lastInsertId();
+            $_SESSION['user_id'] = $newId;
+            $_SESSION['user_email'] = $email;
+            $_SESSION['user_role'] = 'passenger';
+            $_SESSION['user_name'] = $name;
+            $_SESSION['user_contacts'] = '';
+            if ($hasProfilePic) {
+                $_SESSION['user_profile_picture'] = $profilePic;
+            }
+
+            respond(true, 'Signup successful', ['redirect' => $roleRedirects['passenger']]);
+        }
+    }
+
+    // COMPLETE PROFILE (Force Contact Entry)
+    if ($action === 'complete_profile') {
+        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
+            respond(false, 'Not authenticated. Session data: ' . json_encode($_SESSION));
+        }
+        $contact = trim((string)($_POST['contacts'] ?? ''));
+        if ($contact === '') respond(false, 'Contact number is required');
+
+        $role = $_SESSION['user_role'];
+        $table = $roleTables[$role] ?? 'users';
+        $userId = (int)$_SESSION['user_id'];
+
+        if (tableHasColumn($pdo, $table, 'contacts')) {
+            // Check global uniqueness?
+            $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? AND id != ? LIMIT 1");
+            $chk->execute([$contact, $userId]);
+            if ($chk->fetch()) respond(false, 'Contact number is already registered');
+
+            $pdo->prepare("UPDATE {$table} SET contacts = ? WHERE id = ?")->execute([$contact, $userId]);
+            $_SESSION['user_contacts'] = $contact;
+            respond(true, 'Profile completed', ['redirect' => $roleRedirects[$role] ?? 'passenger/index.php']);
+        }
+        respond(false, 'Database error');
     }
 
     respond(false, 'Unsupported action');

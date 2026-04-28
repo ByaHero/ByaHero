@@ -13,6 +13,16 @@ $userId = $_SESSION['user_id'];
 $message = '';
 $error = '';
 
+// Check if user has a password set
+$stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$res = $stmt->get_result();
+$userData = $res->fetch_assoc();
+$stmt->close();
+
+$hasPassword = !empty($userData['password']);
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentPassword = $_POST['current_password'] ?? '';
@@ -20,42 +30,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirmPassword = $_POST['confirm_password'] ?? '';
     
     // Validation
-    if (empty($currentPassword) || empty($newPassword) || empty($confirmPassword)) {
-        $error = "All fields are required.";
+    if ($hasPassword && empty($currentPassword)) {
+        $error = "Current password is required.";
+    } elseif (empty($newPassword) || empty($confirmPassword)) {
+        $error = "New password fields are required.";
     } elseif (strlen($newPassword) < 6) {
         $error = "New password must be at least 6 characters long.";
     } elseif ($newPassword !== $confirmPassword) {
         $error = "New passwords do not match.";
     } else {
-        // Verify current password
-        $stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-        $stmt->bind_param("i", $userId);
-        $stmt->execute();
-        $result = $stmt->get_result();
-        
-        if ($result->num_rows === 0) {
-            $error = "User not found. Please log in again.";
-            $stmt->close();
+        // Verify current password ONLY if they have one
+        if ($hasPassword && !password_verify($currentPassword, $userData['password'])) {
+            $error = "Current password is incorrect.";
         } else {
-            $user = $result->fetch_assoc();
-            $stmt->close();
-            
-            if (!password_verify($currentPassword, $user['password'])) {
-                $error = "Current password is incorrect.";
-            } else {
-                // Update password
-                $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-                $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-                $stmt->bind_param("si", $newPasswordHash, $userId);
+            // Update password
+            $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
+            $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
+            $stmt->bind_param("si", $newPasswordHash, $userId);
                 
                 if ($stmt->execute()) {
-                    $message = "Password changed successfully!";
+                    $message = $hasPassword ? "Password changed successfully!" : "Password set successfully!";
+                    $hasPassword = true; // Update state after setting
                     $stmt->close();
                     
                     // Track password change (security event)
                     try {
                         $stmt = $conn->prepare("INSERT INTO analytics_events (user_id, event_type, event_data, page) VALUES (?, 'setting_changed', ?, ?)");
-                        $eventData = json_encode(['setting' => 'Password', 'value' => 'Changed']);
+                        $eventData = json_encode(['setting' => 'Password', 'value' => 'Changed/Set']);
                         $page = '/profile/changePassword';
                         $stmt->bind_param("iss", $userId, $eventData, $page);
                         $stmt->execute();
@@ -64,10 +65,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         error_log("Analytics error: " . $e->getMessage());
                     }
                 } else {
-                    $error = "Failed to change password. Please try again.";
+                    $error = "Failed to update password. Please try again.";
                     $stmt->close();
                 }
-            }
         }
     }
 }
@@ -177,8 +177,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <span class="material-symbols-rounded">lock</span>
       </div>
       
-      <h4 class="text-center fw-bold mb-1">Change Password</h4>
-      <p class="text-center text-muted mb-4">Update your password to keep your account secure</p>
+      <h4 class="text-center fw-bold mb-1"><?= $hasPassword ? 'Change Password' : 'Set Password' ?></h4>
+      <p class="text-center text-muted mb-4">
+        <?= $hasPassword ? 'Update your password to keep your account secure' : 'Create a password for your account so you can log in without Google.' ?>
+      </p>
+
+      <?php if (isset($_GET['from']) && $_GET['from'] === 'delete'): ?>
+        <div class="alert alert-warning text-center" style="font-size: 0.9rem;">
+          <span class="material-symbols-rounded" style="vertical-align:middle; font-size:18px;">security</span>
+          <strong>Security Notice:</strong> You must set a password to verify your identity before you can delete your account.
+        </div>
+      <?php endif; ?>
 
       <?php if ($message): ?>
         <div class="alert alert-success alert-dismissible fade show" role="alert">
@@ -197,6 +206,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <?php endif; ?>
 
       <form method="POST" id="passwordForm">
+        <?php if ($hasPassword): ?>
         <div class="mb-3">
           <label for="current_password" class="form-label">Current Password</label>
           <div class="input-wrapper">
@@ -213,6 +223,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             </button>
           </div>
         </div>
+        <?php endif; ?>
 
         <div class="mb-3">
           <label for="new_password" class="form-label">New Password</label>

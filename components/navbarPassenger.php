@@ -442,7 +442,11 @@ else: ?>
 
       <div class="profile-initial-circle">
         <?php if ($userProfilePic): ?>
-          <img src="<?php echo $depth . htmlspecialchars($userProfilePic); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
+          <?php 
+            $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+            $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $depth . ltrim(htmlspecialchars($userProfilePic), '/');
+          ?>
+          <img src="<?php echo $imgSrc; ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
         <?php else: ?>
           <?php echo htmlspecialchars($userInitial); ?>
         <?php endif; ?>

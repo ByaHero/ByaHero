@@ -207,9 +207,9 @@
         let innerHtml = initials;
         if (profilePicture) {
             const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
-            // Strip leading slashes to prevent double slashes if basePath has one
-            const cleanPath = profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture;
-            innerHtml = `<img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            const isAbsolute = /^https?:\/\//i.test(profilePicture);
+            const safePath = isAbsolute ? profilePicture : basePath + (profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture);
+            innerHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         }
         return L.marker([lat, lng], {
             icon: L.divIcon({
@@ -276,8 +276,9 @@
                 let avatarHtml = initials;
                 if (friend.profile_picture) {
                     const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
-                    const cleanPath = friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture;
-                    avatarHtml = `<img src="${basePath}${cleanPath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+                    const isAbsolute = /^https?:\/\//i.test(friend.profile_picture);
+                    const safePath = isAbsolute ? friend.profile_picture : basePath + (friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture);
+                    avatarHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                 }
 
                 card.innerHTML = `

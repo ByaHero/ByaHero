@@ -11,6 +11,12 @@ if (!isset($_SESSION['user_id'])) {
   exit;
 }
 
+// GATEKEEPER: Ensure user has a contact number
+if (empty($_SESSION['user_contacts'])) {
+  header('Location: completeProfile.php', true, 302);
+  exit;
+}
+
 $currentUser = null;
 if (isset($_SESSION['user_id'])) {
   $currentUser = [
@@ -313,8 +319,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     function getUserIcon() {
       var htmlContent = '';
       if (userProfilePic) {
-         var safePic = userProfilePic.replace(/^\/+/, '');
-         htmlContent = '<img src="' + window.PROJECT_BASE + '/' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
+         var isAbsolute = /^https?:\/\//i.test(userProfilePic);
+         var safePic = isAbsolute ? userProfilePic : window.PROJECT_BASE + '/' + userProfilePic.replace(/^\/+/, '');
+         htmlContent = '<img src="' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
       } else {
          htmlContent = userInitial;
       }

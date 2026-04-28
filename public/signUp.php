@@ -24,9 +24,9 @@ if (!$loaded) {
 
 if (isset($_SESSION['user_id'])) {
     if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
-        header("Location: /conductor/conductor.php");
+        header("Location: conductor/conductor.php");
     } else {
-        header("Location: /passenger/index.php");
+        header("Location: passenger/index.php");
     }
     exit;
 }
@@ -44,6 +44,7 @@ if (isset($_SESSION['user_id'])) {
     
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
         /* Your existing CSS remains the same */
@@ -97,6 +98,30 @@ if (isset($_SESSION['user_id'])) {
                 </div>
                 <button type="submit" class="btn btn-primary w-100 mb-4 shadow-sm">SIGN UP</button>
             </form>
+
+            <div class="mt-3 mb-2">
+                <div class="d-flex align-items-center mb-3">
+                    <hr class="flex-grow-1">
+                    <span class="mx-2 text-muted small">OR</span>
+                    <hr class="flex-grow-1">
+                </div>
+                <div id="g_id_onload"
+                    data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                    data-context="signup"
+                    data-ux_mode="popup"
+                    data-callback="handleGoogleLogin"
+                    data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin"
+                    data-type="standard"
+                    data-shape="pill"
+                    data-theme="outline"
+                    data-text="signup_with"
+                    data-size="large"
+                    data-logo_alignment="left"
+                    style="display: flex; justify-content: center;">
+                </div>
+            </div>
         </div>
 
         <div class="text-center small-muted">
@@ -202,6 +227,35 @@ if (isset($_SESSION['user_id'])) {
                 btn.disabled = false;
             }
         });
+
+        // Google Sign-In Callback Handler
+        function handleGoogleLogin(response) {
+            const credential = response.credential;
+
+            const formData = new FormData();
+            formData.append('action', 'google_auth');
+            formData.append('credential', credential);
+            
+            // Assume we want to redirect to the passenger dashboard upon signin
+            const targetRedirect = 'passenger/index.php';
+
+            fetch('auth_api.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect || targetRedirect;
+                } else {
+                    document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger small py-2">Google signup failed: ${data.message}</div>`;
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger small py-2">An error occurred during Google sign in.</div>`;
+            });
+        }
     </script>
 </body>
 </html>

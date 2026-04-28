@@ -254,6 +254,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         /* ... Your existing CSS remains exactly the same ... */
         :root {
@@ -477,6 +478,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <button type="submit" class="submit-pill">Login</button>
                 </form>
 
+                <div class="mt-4 mb-2">
+                    <div class="d-flex align-items-center mb-3">
+                        <hr class="flex-grow-1">
+                        <span class="mx-2 text-muted small">OR</span>
+                        <hr class="flex-grow-1">
+                    </div>
+                    <div id="g_id_onload"
+                        data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                        data-context="signin"
+                        data-ux_mode="popup"
+                        data-callback="handleGoogleLogin"
+                        data-auto_prompt="false">
+                    </div>
+                    <div class="g_id_signin"
+                        data-type="standard"
+                        data-shape="pill"
+                        data-theme="outline"
+                        data-text="signin_with"
+                        data-size="large"
+                        data-logo_alignment="left"
+                        style="display: flex; justify-content: center;">
+                    </div>
+                </div>
+
                 <div class="small-muted">
                     Don't have an account?
                     <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
@@ -516,6 +541,35 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 pwd.value = val;
             });
         });
+
+        // Google Sign-In Callback Handler
+        function handleGoogleLogin(response) {
+            const credential = response.credential;
+            const redirectUrl = document.querySelector('input[name="redirect"]').value;
+
+            // Submit the credential to our backend
+            const formData = new FormData();
+            formData.append('action', 'google_auth');
+            formData.append('credential', credential);
+            formData.append('redirect', redirectUrl);
+
+            fetch('auth_api.php', {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    window.location.href = data.redirect || redirectUrl;
+                } else {
+                    alert('Google login failed: ' + data.message);
+                }
+            })
+            .catch(err => {
+                console.error(err);
+                alert('An error occurred during Google sign in.');
+            });
+        }
     </script>
 </body>
 

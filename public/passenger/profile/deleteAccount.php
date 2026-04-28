@@ -8,6 +8,22 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userName = $_SESSION['user_name'] ?? 'User';
+$userId = $_SESSION['user_id'];
+
+require_once '../../../config/db_connection.php';
+$stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$res = $stmt->get_result();
+$userData = $res->fetch_assoc();
+$stmt->close();
+
+$hasPassword = !empty($userData['password']);
+
+if (!$hasPassword) {
+    header("Location: changePassword.php?from=delete");
+    exit;
+}
 ?>
 <!doctype html>
 <html lang="en">
