@@ -156,7 +156,6 @@ if (!isset($_SESSION['user_id'])) {
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/js/accessibility.js"></script>
-  <script src="../../../assets/js/analytics.js"></script>
   <script>
     // Fetch settings on page load
     window.onload = function() {
@@ -171,11 +170,6 @@ if (!isset($_SESSION['user_id'])) {
         })
         .catch(error => {
           console.error('Error fetching settings:', error);
-          
-          // Track error
-          if (typeof analytics !== 'undefined') {
-            analytics.error('Failed to fetch notification settings: ' + error.message);
-          }
         });
     };
 
@@ -184,20 +178,6 @@ if (!isset($_SESSION['user_id'])) {
       const formData = new FormData();
       formData.append('setting_name', settingName);
       formData.append('setting_value', value ? 1 : 0);
-
-      // Track setting change before saving
-      if (typeof analytics !== 'undefined') {
-        const settingDisplayNames = {
-          'notify_bus_schedule': 'Bus Schedule Notification',
-          'notify_bus_arrival': 'Bus Arrival Notification',
-          'notify_seat_availability': 'Seat Availability Notification'
-        };
-        
-        analytics.settingChanged(
-          settingDisplayNames[settingName] || settingName, 
-          value ? 'ON' : 'OFF'
-        );
-      }
 
       fetch('../../../backend/updateSettings.php', {
         method: 'POST',
@@ -209,21 +189,11 @@ if (!isset($_SESSION['user_id'])) {
           console.log('Setting updated successfully');
         } else {
           alert('Failed to update setting: ' + data.message);
-          
-          // Track error
-          if (typeof analytics !== 'undefined') {
-            analytics.error('Failed to update notification setting: ' + data.message);
-          }
         }
       })
       .catch(error => {
         console.error('Error updating setting:', error);
         alert('An error occurred while updating the setting.');
-        
-        // Track error
-        if (typeof analytics !== 'undefined') {
-          analytics.error('Error updating notification setting: ' + error.message);
-        }
       });
     }
 

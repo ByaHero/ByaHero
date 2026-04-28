@@ -1,86 +1,28 @@
 <?php
 session_start();
 
-// Redirect to login if not logged in
+/**
+ * SECURE SYSTEM:
+ * Require login before accessing to prevent URL manipulation.
+ */
 if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
+    $r = $_SERVER['SCRIPT_NAME'] ?? '';
+    $p = rtrim(str_replace('\\', '/', dirname($r)), '/');
+    $b = preg_replace('~/public/.*$~', '', $p) ?: '';
+    header('Location: ' . $b . '/public/login.php', true, 302);
     exit;
 }
 
-require_once '../../../config/db_connection.php';
-
-$userId = $_SESSION['user_id'];
-$message = '';
-$error = '';
-
-// Check if user has a password set
-$stmt = $conn->prepare("SELECT password FROM users WHERE id = ?");
-$stmt->bind_param("i", $userId);
-$stmt->execute();
-$res = $stmt->get_result();
-$userData = $res->fetch_assoc();
-$stmt->close();
-
-$hasPassword = !empty($userData['password']);
-
-// Handle form submission
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $currentPassword = $_POST['current_password'] ?? '';
-    $newPassword = $_POST['new_password'] ?? '';
-    $confirmPassword = $_POST['confirm_password'] ?? '';
-    
-    // Validation
-    if ($hasPassword && empty($currentPassword)) {
-        $error = "Current password is required.";
-    } elseif (empty($newPassword) || empty($confirmPassword)) {
-        $error = "New password fields are required.";
-    } elseif (strlen($newPassword) < 6) {
-        $error = "New password must be at least 6 characters long.";
-    } elseif ($newPassword !== $confirmPassword) {
-        $error = "New passwords do not match.";
-    } else {
-        // Verify current password ONLY if they have one
-        if ($hasPassword && !password_verify($currentPassword, $userData['password'])) {
-            $error = "Current password is incorrect.";
-        } else {
-            // Update password
-            $newPasswordHash = password_hash($newPassword, PASSWORD_DEFAULT);
-            $stmt = $conn->prepare("UPDATE users SET password = ? WHERE id = ?");
-            $stmt->bind_param("si", $newPasswordHash, $userId);
-                
-                if ($stmt->execute()) {
-                    $message = $hasPassword ? "Password changed successfully!" : "Password set successfully!";
-                    $hasPassword = true; // Update state after setting
-                    $stmt->close();
-                    
-                    // Track password change (security event)
-                    try {
-                        $stmt = $conn->prepare("INSERT INTO analytics_events (user_id, event_type, event_data, page) VALUES (?, 'setting_changed', ?, ?)");
-                        $eventData = json_encode(['setting' => 'Password', 'value' => 'Changed/Set']);
-                        $page = '/profile/changePassword';
-                        $stmt->bind_param("iss", $userId, $eventData, $page);
-                        $stmt->execute();
-                        $stmt->close();
-                    } catch (Exception $e) {
-                        error_log("Analytics error: " . $e->getMessage());
-                    }
-                } else {
-                    $error = "Failed to update password. Please try again.";
-                    $stmt->close();
-                }
-        }
-    }
-}
 ?>
 <!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-  <title>Change Password - ByaHero</title>
+  <title>Terms of Service - ByaHero</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet">
-  <link rel="stylesheet" href="../../../assets/css/accessibility.css">
+  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
   
   <style>
     body {
@@ -88,238 +30,250 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-    .password-container {
+    .policy-container {
       margin-top: 70px;
-      max-width: 600px;
-    }
-    .password-card {
       background: white;
       border-radius: 12px;
       padding: 2rem;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     }
-    .security-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 2.5rem;
-      margin: 0 auto 1.5rem;
+    .policy-header {
+      border-bottom: 3px solid #1e3a8a;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
     }
-    .form-label {
+    .policy-section {
+      margin-bottom: 2rem;
+    }
+    .policy-section h2 {
+      color: #1e3a8a;
+      font-size: 1.5rem;
       font-weight: 600;
+      margin-bottom: 1rem;
+    }
+    .policy-section h3 {
       color: #374151;
-      margin-bottom: 0.5rem;
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin-top: 1.5rem;
+      margin-bottom: 0.75rem;
     }
-    .form-control:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
+    .policy-section p, .policy-section li {
+      color: #4b5563;
+      line-height: 1.8;
     }
-    .password-requirements {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-top: 1rem;
-    }
-    .password-requirements ul {
-      margin: 0;
+    .policy-section ul {
       padding-left: 1.5rem;
     }
-    .password-requirements li {
-      color: #1d4ed8;
+    .last-updated {
+      background: #f3f4f6;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
       font-size: 0.9rem;
+      color: #6b7280;
+      margin-bottom: 2rem;
     }
-
-    /* Keep your existing wrapper */
-    .input-wrapper { position: relative; }
-
-    /* CHANGE: eye button to match the "toggle bar" pattern (manageConductors) */
-    .toggle-password{
-      position: absolute;
-      right: 10px;
-      top: 50%;
-      transform: translateY(-50%);
-      border: 0;
-      background: transparent;
-      font-weight: 900;
-      color: #334155;
-      padding: 6px 8px;
-      cursor: pointer;
-      user-select: none;
-      line-height: 1;
-    }
-
-    /* ONLY CHANGE: make the show.png icon bigger */
-    .toggle-password img{
-      width: 24px;
-      height: 24px;
-      object-fit: contain;
-      display: block;
+    .important-notice {
+      background: #fef3c7;
+      border-left: 4px solid #f59e0b;
+      padding: 1rem;
+      border-radius: 8px;
+      margin: 1.5rem 0;
     }
   </style>
 </head>
 <body>
   <?php
   $pageType = 'settings';
-  $backLink = 'accountSettings.php';
+  $backLink = 'privacySecurity.php';
   $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container password-container">
-    <div class="password-card">
-      <div class="security-icon">
-        <span class="material-symbols-rounded">lock</span>
-      </div>
-      
-      <h4 class="text-center fw-bold mb-1"><?= $hasPassword ? 'Change Password' : 'Set Password' ?></h4>
-      <p class="text-center text-muted mb-4">
-        <?= $hasPassword ? 'Update your password to keep your account secure' : 'Create a password for your account so you can log in without Google.' ?>
-      </p>
+  <div class="container policy-container">
+    <div class="policy-header">
+      <h1 class="fw-bold text-primary mb-2">Terms of Service</h1>
+      <p class="text-muted mb-0">Agreement between you and ByaHero</p>
+    </div>
 
-      <?php if (isset($_GET['from']) && $_GET['from'] === 'delete'): ?>
-        <div class="alert alert-warning text-center" style="font-size: 0.9rem;">
-          <span class="material-symbols-rounded" style="vertical-align:middle; font-size:18px;">security</span>
-          <strong>Security Notice:</strong> You must set a password to verify your identity before you can delete your account.
-        </div>
-      <?php endif; ?>
+    <div class="last-updated">
+      <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">schedule</span>
+      Last Updated: February 7, 2026
+    </div>
 
-      <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-          <span class="material-symbols-rounded" style="font-size:20px; vertical-align:middle">check_circle</span>
-          <?= htmlspecialchars($message) ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <?php endif; ?>
+    <div class="important-notice">
+      <strong>⚠️ Important:</strong> By using ByaHero, you agree to these terms. Please read them carefully.
+    </div>
 
-      <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-          <span class="material-symbols-rounded" style="font-size:20px; vertical-align:middle">error</span>
-          <?= htmlspecialchars($error) ?>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-        </div>
-      <?php endif; ?>
+    <div class="policy-section">
+      <h2>1. Acceptance of Terms</h2>
+      <p>By accessing and using ByaHero ("the Service"), you accept and agree to be bound by the terms and conditions of this agreement. If you do not agree to these terms, please do not use the Service.</p>
+    </div>
 
-      <form method="POST" id="passwordForm">
-        <?php if ($hasPassword): ?>
-        <div class="mb-3">
-          <label for="current_password" class="form-label">Current Password</label>
-          <div class="input-wrapper">
-            <input 
-              type="password" 
-              class="form-control pe-5"
-              id="current_password" 
-              name="current_password" 
-              required
-              placeholder="Enter current password"
-            >
-            <button type="button" class="toggle-password" data-target="current_password" aria-label="Show password">
-              <img src="../../../assets/images/icons/show.png" alt="Show">
-            </button>
-          </div>
-        </div>
-        <?php endif; ?>
+    <div class="policy-section">
+      <h2>2. Description of Service</h2>
+      <p>ByaHero provides a real-time bus tracking and route information service for public transportation in Tanauan City, Batangas. The Service includes:</p>
+      <ul>
+        <li>Real-time bus location tracking</li>
+        <li>Estimated arrival times</li>
+        <li>Route information and schedules</li>
+        <li>Safety and emergency features</li>
+        <li>Passenger feedback and communication tools</li>
+      </ul>
+    </div>
 
-        <div class="mb-3">
-          <label for="new_password" class="form-label">New Password</label>
-          <div class="input-wrapper">
-            <input 
-              type="password" 
-              class="form-control pe-5"
-              id="new_password" 
-              name="new_password" 
-              required
-              minlength="6"
-              placeholder="Enter new password"
-            >
-            <button type="button" class="toggle-password" data-target="new_password" aria-label="Show password">
-              <img src="../../../assets/images/icons/show.png" alt="Show">
-            </button>
-          </div>
-        </div>
+    <div class="policy-section">
+      <h2>3. User Accounts</h2>
+      <h3>3.1 Account Creation</h3>
+      <p>To access certain features, you must create an account. You agree to:</p>
+      <ul>
+        <li>Provide accurate and complete information</li>
+        <li>Maintain the security of your password</li>
+        <li>Accept responsibility for all activities under your account</li>
+        <li>Notify us immediately of any unauthorized access</li>
+      </ul>
 
-        <div class="mb-3">
-          <label for="confirm_password" class="form-label">Confirm New Password</label>
-          <div class="input-wrapper">
-            <input 
-              type="password" 
-              class="form-control pe-5"
-              id="confirm_password" 
-              name="confirm_password" 
-              required
-              minlength="6"
-              placeholder="Confirm new password"
-            >
-            <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password">
-              <img src="../../../assets/images/icons/show.png" alt="Show">
-            </button>
-          </div>
-        </div>
+      <h3>3.2 Account Termination</h3>
+      <p>We reserve the right to suspend or terminate your account if you violate these terms or engage in fraudulent or harmful activities.</p>
+    </div>
 
-        <div class="password-requirements">
-          <strong class="d-block mb-2" style="color: #1d4ed8;">Password Requirements:</strong>
-          <ul>
-            <li>At least 6 characters long</li>
-            <li>Mix of letters and numbers recommended</li>
-            <li>Avoid common passwords</li>
-          </ul>
-        </div>
+    <div class="policy-section">
+      <h2>4. User Responsibilities</h2>
+      <p>You agree to:</p>
+      <ul>
+        <li><strong>Accuracy:</strong> Not provide false or misleading information</li>
+        <li><strong>Legal Use:</strong> Use the Service only for lawful purposes</li>
+        <li><strong>Respect:</strong> Treat other users, drivers, and conductors with respect</li>
+        <li><strong>Safety:</strong> Not use the Service while operating a vehicle</li>
+        <li><strong>Security:</strong> Not attempt to access unauthorized areas or data</li>
+        <li><strong>Content:</strong> Not post offensive, harmful, or inappropriate content</li>
+      </ul>
+    </div>
 
-        <div class="d-grid gap-2 mt-4">
-          <button type="submit" class="btn btn-primary rounded-pill py-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none;">
-            <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">shield</span>
-            Update Password
-          </button>
-          <button type="button" class="btn btn-outline-secondary rounded-pill py-2" onclick="window.location.href='accountSettings.php'">
-            Cancel
-          </button>
-        </div>
-      </form>
+    <div class="policy-section">
+      <h2>5. Service Availability</h2>
+      <p>We strive to provide uninterrupted service, but we do not guarantee:</p>
+      <ul>
+        <li>Continuous, error-free operation</li>
+        <li>100% accurate real-time information</li>
+        <li>Availability during maintenance or technical issues</li>
+        <li>Compatibility with all devices and browsers</li>
+      </ul>
+      <p><strong>The Service is provided "as is" without warranties of any kind.</strong></p>
+    </div>
+
+    <div class="policy-section">
+      <h2>6. Location Services</h2>
+      <p>By enabling location services, you consent to:</p>
+      <ul>
+        <li>Real-time tracking of your device location</li>
+        <li>Use of GPS data to calculate distances and ETAs</li>
+        <li>Display of your approximate location on the map</li>
+      </ul>
+      <p>You can disable location services at any time in Privacy & Security settings. Location data is not permanently stored.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>7. Emergency Features</h2>
+      <p>ByaHero provides emergency contact and safety features. However:</p>
+      <ul>
+        <li>We are not a substitute for emergency services (call 911/local authorities)</li>
+        <li>Emergency features depend on network connectivity</li>
+        <li>We cannot guarantee immediate response or assistance</li>
+        <li>Use emergency features responsibly and only when genuinely needed</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>8. Limitation of Liability</h2>
+      <p><strong>Important:</strong> ByaHero is an information service only. We are not responsible for:</p>
+      <ul>
+        <li>Actions or decisions you make based on information provided</li>
+        <li>Delays, cancellations, or changes in bus services</li>
+        <li>Lost or stolen property</li>
+        <li>Personal injury or harm</li>
+        <li>Interactions with bus operators or other passengers</li>
+        <li>Inaccuracies in real-time data or ETAs</li>
+        <li>Service interruptions or technical failures</li>
+      </ul>
+      <p><strong>Use the Service at your own risk.</strong></p>
+    </div>
+
+    <div class="policy-section">
+      <h2>9. Intellectual Property</h2>
+      <p>All content, features, and functionality of ByaHero are owned by us and protected by copyright, trademark, and other intellectual property laws. You may not:</p>
+      <ul>
+        <li>Copy, modify, or distribute our content</li>
+        <li>Reverse engineer or decompile the Service</li>
+        <li>Use our trademarks without permission</li>
+        <li>Create derivative works based on our Service</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>10. User-Generated Content</h2>
+      <h3>10.1 Feedback and Comments</h3>
+      <p>By submitting feedback, ratings, or comments, you grant us the right to use, modify, and display your content for service improvement purposes.</p>
+
+      <h3>10.2 Prohibited Content</h3>
+      <p>You may not submit content that is:</p>
+      <ul>
+        <li>Offensive, defamatory, or hateful</li>
+        <li>False or misleading</li>
+        <li>Violates privacy or intellectual property rights</li>
+        <li>Contains viruses or malicious code</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>11. Privacy</h2>
+      <p>Your use of the Service is also governed by our <a href="privacyPolicy.php" class="text-primary fw-bold">Privacy Policy</a>. Please review it to understand how we collect, use, and protect your information.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>12. Changes to Terms</h2>
+      <p>We reserve the right to modify these terms at any time. Changes will be effective immediately upon posting. Continued use of the Service after changes constitutes acceptance of the new terms.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>13. Termination</h2>
+      <p>You may stop using the Service at any time. We may suspend or terminate your access if you violate these terms. Upon termination:</p>
+      <ul>
+        <li>Your account will be deactivated</li>
+        <li>You must cease all use of the Service</li>
+        <li>We may retain certain data as required by law</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>14. Governing Law</h2>
+      <p>These terms are governed by the laws of the Philippines. Any disputes will be resolved in the courts of Tanauan City, Batangas.</p>
+    </div>
+
+    <div class="policy-section">
+      <h2>15. Contact Information</h2>
+      <p>For questions about these terms, please contact us:</p>
+      <ul>
+        <li><strong>Email:</strong> legal@byahero.com</li>
+        <li><strong>Address:</strong> ByaHero, Inc., Tanauan City, Batangas, Philippines</li>
+        <li><strong>In-App:</strong> Use the Feedback feature in Settings</li>
+      </ul>
+    </div>
+
+    <div class="policy-section">
+      <h2>16. Acknowledgment</h2>
+      <p>By using ByaHero, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and our Privacy Policy.</p>
+    </div>
+
+    <div class="text-center mt-5 mb-3">
+      <button class="btn btn-primary px-4" onclick="window.location.href='privacySecurity.php'">
+        <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">arrow_back</span>
+        Back to Privacy & Security
+      </button>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../../assets/js/accessibility.js"></script>
-  <script src="../../../assets/js/analytics.js"></script>
-  <script>
-    // Toggle password visibility (show.png / 🙈)
-    document.querySelectorAll('.toggle-password').forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-target');
-        const field = id ? document.getElementById(id) : null;
-        if (!field) return;
-
-        const isPw = field.type === 'password';
-        field.type = isPw ? 'text' : 'password';
-
-        btn.innerHTML = isPw
-          ? '🙈'
-          : '<img src="../../../assets/images/icons/show.png" alt="Show">';
-      });
-    });
-
-    // Password validation
-    const form = document.getElementById('passwordForm');
-    form.addEventListener('submit', function(e) {
-      const newPassword = document.getElementById('new_password').value;
-      const confirmPassword = document.getElementById('confirm_password').value;
-      
-      if (newPassword !== confirmPassword) {
-        e.preventDefault();
-        alert('New passwords do not match!');
-        return false;
-      }
-      
-      // Track password change
-      if (typeof analytics !== 'undefined') {
-        analytics.settingChanged('Password', 'Changed');
-      }
-    });
-  </script>
+  <script src="../../../assets/images/js/accessibility.js"></script>
 </body>
 </html>
