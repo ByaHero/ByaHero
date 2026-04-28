@@ -485,21 +485,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <span class="mx-2 text-muted small">OR</span>
                         <hr class="flex-grow-1">
                     </div>
-                    <div id="g_id_onload"
-                        data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
-                        data-context="signin"
-                        data-ux_mode="popup"
-                        data-callback="handleGoogleLogin"
-                        data-auto_prompt="false">
-                    </div>
-                    <div class="g_id_signin"
-                        data-type="standard"
-                        data-shape="pill"
-                        data-theme="outline"
-                        data-text="signin_with"
-                        data-size="large"
-                        data-logo_alignment="left"
-                        style="display: flex; justify-content: center;">
+                    <div id="google-auth-container">
+                        <!-- Standard Web Flow -->
+                        <div id="gsi-web-container">
+                            <div id="g_id_onload"
+                                data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                                data-context="signin"
+                                data-ux_mode="popup"
+                                data-callback="handleGoogleLogin"
+                                data-auto_prompt="false">
+                            </div>
+                            <div class="g_id_signin"
+                                data-type="standard"
+                                data-shape="pill"
+                                data-theme="outline"
+                                data-text="signin_with"
+                                data-size="large"
+                                data-logo_alignment="left"
+                                style="display: flex; justify-content: center;">
+                            </div>
+                        </div>
+
+                        <!-- Native Capacitor Button (Hidden by default) -->
+                        <div id="gsi-native-container" style="display: none; justify-content: center;">
+                            <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: all 0.2s;">
+                                <svg width="18" height="18" viewBox="0 0 48 48" style="display: block;">
+                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
+                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                </svg>
+                                Continue with Google
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -571,6 +589,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 alert('An error occurred during Google sign in.');
             });
         }
+
+        // Capacitor Native Google Auth integration
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if we are running inside native Capacitor wrapper
+            if (window.Capacitor && window.Capacitor.isNative) {
+                document.getElementById('gsi-web-container').style.display = 'none';
+                document.getElementById('gsi-native-container').style.display = 'flex';
+                
+                // Try to initialize, though Capacitor config handles Android automatically
+                if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+                    try {
+                        window.Capacitor.Plugins.GoogleAuth.initialize({
+                            clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                            scopes: ['profile', 'email'],
+                            grantOfflineAccess: true,
+                        });
+                    } catch (e) {
+                        console.warn('GoogleAuth initialize issue:', e);
+                    }
+                }
+                
+                document.getElementById('native-google-btn').addEventListener('click', async function() {
+                    if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                        alert('Google Auth plugin not loaded properly.');
+                        return;
+                    }
+                    try {
+                        const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                        if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                            // Forward the token to the existing PHP handlers
+                            handleGoogleLogin({ credential: googleUser.authentication.idToken });
+                        } else {
+                            alert('Google login failed: Could not retrieve ID token.');
+                        }
+                    } catch (error) {
+                        console.error('Native Google Sign-In error:', error);
+                    }
+                });
+            }
+        });
     </script>
 </body>
 
