@@ -10,14 +10,12 @@
 session_start();
 header('Content-Type: application/json');
 
-// CORS support
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if ($origin) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-    header('Access-Control-Allow-Credentials: true');
-    header('Access-Control-Allow-Headers: Content-Type');
-    header('Access-Control-Allow-Methods: POST, OPTIONS');
-}
+// CORS support - Restrict to app's own origin
+$allowed_origin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+header('Access-Control-Allow-Origin: ' . $allowed_origin);
+header('Access-Control-Allow-Credentials: true');
+header('Access-Control-Allow-Headers: Content-Type');
+header('Access-Control-Allow-Methods: POST, OPTIONS');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -98,6 +96,6 @@ try {
 } catch (Exception $e) {
     error_log('[registerFcmToken] DB error: ' . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['success' => false, 'message' => 'DB error: ' . $e->getMessage()]);
+    echo json_encode(['success' => false, 'message' => 'Internal server error occurred.']);
 }
 ?>

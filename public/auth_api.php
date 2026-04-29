@@ -2,6 +2,10 @@
 declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 session_start();
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: same-origin');
 
 $configPaths = [
     __DIR__ . '/config/db.php',
@@ -96,7 +100,8 @@ try {
                 continue;
             }
 
-            // set session
+            // set session and regenerate ID to prevent fixation
+            session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['user_email'] = $user['email'] ?? '';
             $_SESSION['user_role'] = $role;
@@ -175,6 +180,7 @@ try {
 
         // Auto-login: set session from lastInsertId
         $newId = (int)$pdo->lastInsertId();
+        session_regenerate_id(true);
         $_SESSION['user_id'] = $newId;
         $_SESSION['user_email'] = $email;
         $_SESSION['user_role'] = 'passenger';
@@ -416,8 +422,8 @@ try {
         $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, ?)")
             ->execute([$email, $otp, $expires, $foundTable]);
 
-        // Simulating email send by returning the OTP directly to frontend for DEV prototype
-        respond(true, 'OTP requested', ['dev_otp' => $otp]);
+        // Simulating email send (in production, integrate an actual mail provider)
+        respond(true, 'An OTP has been sent to your email.');
     }
 
     if ($action === 'verify_otp') {
@@ -467,6 +473,7 @@ try {
     respond(false, 'Unsupported action');
 
 } catch (\Throwable $e) {
-    // Always show error for debugging
-    respond(false, 'Server error: ' . $e->getMessage());
+    // Log error internally and show generic message to user
+    error_log('Auth API Error: ' . $e->getMessage());
+    respond(false, 'An internal server error occurred.');
 }

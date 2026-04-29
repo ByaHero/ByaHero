@@ -1,0 +1,10 @@
+# Deny direct access to all files in this directory
+Order deny,allow
+Deny from all
+
+# Allow access to specific API entry points if needed, 
+# but usually it's better to keep APIs in a public/ folder.
+# For now, we block everything to protect .json and .php logic.
+<FilesMatch "^(registerFcmToken\.php|sendSosAlert\.php|updateUserLocation\.php)$">
+    Allow from all
+</FilesMatch>

@@ -3,6 +3,11 @@
 if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
+// SECURITY HEADERS
+header('X-Frame-Options: SAMEORIGIN');
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: strict-origin-when-cross-origin');
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
@@ -272,8 +277,8 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     opacity: 0.6;
   }
 </style>
-<link rel="stylesheet" href="<?php echo $depth; ?>assets/css/accessibility.css">
-<script src="<?php echo $depth; ?>assets/js/accessibility.js"></script>
+<link rel="stylesheet" href="<?php echo htmlspecialchars($depth); ?>assets/css/accessibility.css">
+<script src="<?php echo htmlspecialchars($depth); ?>assets/js/accessibility.js"></script>
 
 <?php
 // --- TOP BAR RENDERING (PHP) ---
@@ -417,7 +422,7 @@ else: ?>
             $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
             $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $depth . ltrim(htmlspecialchars($userProfilePic), '/');
           ?>
-          <img src="<?php echo $imgSrc; ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+          <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
         <?php else: ?>
           <?php echo htmlspecialchars($userInitial); ?>
         <?php endif; ?>
