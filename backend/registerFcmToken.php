@@ -10,9 +10,18 @@
 session_start();
 header('Content-Type: application/json');
 
-// CORS support - Restrict to app's own origin
-$allowed_origin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
-header('Access-Control-Allow-Origin: ' . $allowed_origin);
+// CORS support - Allow app origins (including Capacitor mobile)
+$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+$server_origin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
+$allowed_origins = ['http://localhost', 'capacitor://localhost', $server_origin];
+
+if (in_array($origin, $allowed_origins)) {
+    header('Access-Control-Allow-Origin: ' . $origin);
+} else {
+    // Fallback to server origin if no match (standard security)
+    header('Access-Control-Allow-Origin: ' . $server_origin);
+}
+
 header('Access-Control-Allow-Credentials: true');
 header('Access-Control-Allow-Headers: Content-Type');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
