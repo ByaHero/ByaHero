@@ -114,10 +114,8 @@ The backend loads these values from `config/firebase_push.php`.
 
 1. Open the app on your Android/iOS device inside the ByaHero native wrapper.
 2. Log in to your passenger account.
-3. Navigate to: `public/passenger/onesignal_debug.php`
-4. The page will automatically attempt to pull your subscription ID and save it to the database.
-5. Check the **Subscription IDs in Database** section — your ID should appear there.
-6. To send a test push: call `backend/test_push.php` (requires `FIREBASE_FUNCTIONS_PUSH_URL`).
+3. The app will automatically register your device token to the database via `backend/registerFcmToken.php`.
+4. You can verify push receipt by triggering an SOS alert.
 
 ### Troubleshooting
 

@@ -7,7 +7,6 @@
   
     // Safe console wrapper
     function dbg(level, msg) {
-      try { if (console && console[level]) console[level](msg); } catch(e) {}
     }
   
     function saveToken(token) {

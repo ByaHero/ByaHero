@@ -364,7 +364,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             if (json && Array.isArray(json.features)) {
                 routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
             }
-        } catch (e) { console.warn('Failed to load route features', e); }
+        } catch (e) { }
     }
 
     function pointInRing(x, y, ring) {
@@ -478,7 +478,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             }
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
         } catch (e) {
-            console.error("Upload error:", e);
             if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
         }
     }
@@ -527,7 +526,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                         distanceFilter: 0 
                     },
                     function callback(location, error) {
-                        if (error) { console.error("Background location error:", error); return; }
+                        if (error) { return; }
                         const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
                         onLocationUpdate(pos);
                     }
@@ -537,7 +536,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 acquireWakeLock();
                 showAlert('Background Tracking Started', 'primary');
             } catch (e) {
-                showAlert('Plugin Error: ' + e.message, 'danger');
+                showAlert('Plugin Error', 'danger');
                 startWebGeolocation();
             }
         } else {
@@ -567,7 +566,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 // Re-acquire when screen wakes up (e.g. user picks up phone)
                 if (document.visibilityState === 'visible') acquireWakeLock();
             });
-        } catch (e) { console.warn('WakeLock not granted:', e); }
+        } catch (e) { }
     }
     async function releaseWakeLock() {
         if (wakeLock) { try { await wakeLock.release(); } catch(e){} wakeLock = null; }
@@ -581,7 +580,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             keepAliveAudio.loop = true;
             keepAliveAudio.volume = 0.001; // Near-silent but non-zero keeps audio session alive
             keepAliveAudio.play().catch(e => {
-                console.log('Audio autoplay blocked. Waiting for touch interaction...');
                 const playOnInteraction = () => {
                     if (keepAliveAudio) keepAliveAudio.play().catch(()=>{});
                     document.removeEventListener('touchstart', playOnInteraction);
@@ -610,7 +608,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             // If the background watcher was silently dropped (Android killed it), restart it
             const trackingActive = bgWatcherId !== null || watchId !== null;
             if (!trackingActive) {
-                console.warn('Watcher was lost — restarting geolocation...');
                 await startGeolocation();
             } else if (lastKnownLocation) {
                 // Force an immediate sync on return so the passenger map updates without waiting
@@ -677,7 +674,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 });
             }
         } catch (e) {
-            console.error("Stop tracking error:", e);
         }
 
         window.location.href = 'conductor.php?stopped=1';
@@ -713,7 +709,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
                 await MediaSession.setMetadata(metadata);
                 await MediaSession.setPlaybackState({ playbackState: 'playing' });
-            } catch(e) { console.warn("Native MediaSession err", e); }
+            } catch(e) { }
         } else if ('mediaSession' in navigator) {
             navigator.mediaSession.metadata = new MediaMetadata(metadata);
             navigator.mediaSession.playbackState = "playing";
@@ -742,7 +738,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
                 await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
                 await updateMediaSessionMetadata();
-            } catch(e) { console.warn("Native MediaSession setup err", e); }
+            } catch(e) { }
         } else if ('mediaSession' in navigator) {
             navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
             navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
@@ -765,7 +761,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         setInterval(async () => {
             const trackingActive = bgWatcherId !== null || watchId !== null;
             if (!trackingActive) {
-                console.warn('Heartbeat detected dead watcher — restarting...');
                 await startGeolocation();
                 return;
             }

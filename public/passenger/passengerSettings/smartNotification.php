@@ -87,7 +87,7 @@ if (!isset($_SESSION['user_id'])) {
       <div class="d-flex align-items-start gap-3">
         <div class="flex-grow-1">
           <div class="fw-semibold text-dark mb-1">Enable push notifications</div>
-          <div class="small text-muted mb-1">Allow alerts on this device and re-sync your OneSignal subscription.</div>
+          <div class="small text-muted mb-1">Allow alerts on this device and sync your notification settings.</div>
           <div class="small text-muted">You must be logged in to link this device to your account.</div>
         </div>
         <button type="button" class="btn btn-primary btn-sm align-self-center" id="openPushPermissionModal">
@@ -142,7 +142,7 @@ if (!isset($_SESSION['user_id'])) {
           <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <p class="mb-2">We will ask your device for notification permission and sync your OneSignal subscription.</p>
+          <p class="mb-2">We will ask your device for notification permission and sync your notification ID.</p>
           <p class="small text-muted mb-0">Tap "Allow & Subscribe" to continue, then accept the permission prompt.</p>
           <div class="mt-3 small text-muted" id="push-permission-status"></div>
         </div>

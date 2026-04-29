@@ -170,6 +170,4 @@
       showExitToast();
     }
   });
-
-  console.log('[ByaHero] Android back-button handler registered.');
 })();

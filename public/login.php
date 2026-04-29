@@ -88,13 +88,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $_SESSION['user_profile_picture'] = array_key_exists('profile_picture', $userRecord) ? $userRecord['profile_picture'] : null;
                 $_SESSION['user_contacts'] = array_key_exists('contacts', $userRecord) ? $userRecord['contacts'] : '';
 
-                // ── UI HANDOFF TO SYNC ONESIGNAL TOKEN ──
 ?>
-                <!-- 
-  REPLACE the handoff HTML block in login.php 
-  (the block between "UI HANDOFF TO SYNC ONESIGNAL TOKEN" and the closing exit;)
-  with this corrected version.
--->
                 <!DOCTYPE html>
                 <html lang="en">
 
@@ -102,23 +96,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <meta charset="utf-8">
                     <meta name="viewport" content="width=device-width,initial-scale=1">
                     <title>Logging in...</title>
-
-                    <!-- EARLY CATCHER: must be first script, before bridge loads -->
-                    <script>
-                        window._sosPendingToken = null;
-                        window.gonative_onesignal_info = function(info) {
-                            var id = info && (info.oneSignalId || info.userId || info.subscriptionId ||
-                                (info.subscription && info.subscription.id) || info.oneSignalUserId);
-                            if (id) {
-                                window._sosPendingToken = id;
-                                if (window.sosBridge) window.sosBridge.saveToken(id);
-                            }
-                        };
-                        window.median_onesignal_info = window.gonative_onesignal_info;
-                    </script>
-
-                    <script src="/assets/js/median_onesignal_bridge.js"></script>
-
                     <style>
                         body {
                             display: flex;
@@ -130,7 +107,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             font-family: "Segoe UI", sans-serif;
                             background: #fff;
                         }
-
                         .spinner {
                             width: 40px;
                             height: 40px;
@@ -140,98 +116,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             animation: spin 1s linear infinite;
                             margin-bottom: 20px;
                         }
-
                         @keyframes spin {
-                            0% {
-                                transform: rotate(0deg)
-                            }
-
-                            100% {
-                                transform: rotate(360deg)
-                            }
+                            0% { transform: rotate(0deg) }
+                            100% { transform: rotate(360deg) }
                         }
-
                         h3 {
                             color: #111827;
                             font-size: 1.1rem;
                         }
                     </style>
                 </head>
-
                 <body>
+                    <div class="spinner"></div>
                     <h3>Logging in...</h3>
                     <script>
-                        var _redirectUrl = "<?= addslashes($targetRedirect) ?>";
-                        var _redirectDone = false;
-
-                        function proceed() {
-                            if (!_redirectDone) {
-                                _redirectDone = true;
-                                window.location.replace(_redirectUrl);
-                            }
-                        }
-
-                        // Try to save token, then redirect when done (or after timeout)
-                        function syncThenRedirect(playerId) {
-                            fetch('/backend/registerOnesignalToken.php', {
-                                    method: 'POST',
-                                    credentials: 'include',
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({
-                                        player_id: playerId
-                                    })
-                                })
-                                .then(function(r) {
-                                    return r.json();
-                                })
-                                .then(function(d) {
-                                    if (d.success) console.log('[Login] Token saved, user_id:', d.user_id);
-                                    else console.warn('[Login] Token save returned:', d.message);
-                                })
-                                .catch(function(e) {
-                                    console.warn('[Login] Token fetch error:', e.message);
-                                })
-                                .finally(function() {
-                                    proceed();
-                                });
-                        }
-
-                        document.addEventListener('DOMContentLoaded', function() {
-                            // Safety: always redirect within 3 seconds no matter what
-                            setTimeout(proceed, 3000);
-
-                            var pending = window._sosPendingToken;
-                            if (pending) {
-                                syncThenRedirect(pending);
-                                return;
-                            }
-
-                            // Pull from Median JS API
-                            if (window.gonative && window.gonative.onesignal) {
-                                window.gonative.onesignal.getInfo()
-                                    .then(function(info) {
-                                        var id = info && (info.oneSignalId || info.userId ||
-                                            info.subscriptionId ||
-                                            (info.subscription && info.subscription.id));
-                                        if (id) {
-                                            syncThenRedirect(id);
-                                        } else {
-                                            proceed();
-                                        }
-                                    })
-                                    .catch(function() {
-                                        proceed();
-                                    });
-                            } else {
-                                // Not in Median shell — just redirect
-                                proceed();
-                            }
-                        });
+                        window.location.replace("<?= addslashes($targetRedirect) ?>");
                     </script>
                 </body>
-
                 </html>
 <?php
                 exit;

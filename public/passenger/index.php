@@ -178,30 +178,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <?php include __DIR__ . '/../../components/passengerBottomSheet.php'; ?>
 
-  <div class="modal fade" id="settingsModal" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body text-center">Settings</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="safetyModal" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body text-center">Safety Features</div>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal fade" id="infoModal" tabindex="-1">
-    <div class="modal-dialog modal-sm modal-dialog-centered">
-      <div class="modal-content">
-        <div class="modal-body text-center">Bus Information</div>
-      </div>
-    </div>
-  </div>
-
   <div class="modal fade" id="profileModal" tabindex="-1">
     <div class="modal-dialog modal-sm modal-dialog-centered">
       <div class="modal-content">

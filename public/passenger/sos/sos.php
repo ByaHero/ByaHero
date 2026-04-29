@@ -612,7 +612,6 @@ $pageDepth = "../../../";
                 : [];
 
             if (recipients.length === 0) {
-                screenLog("ERROR: No circle members found in the app to notify.");
                 countdownLayer.classList.add('d-none');
                 isSOSActive = false;
                 return;
@@ -620,8 +619,6 @@ $pageDepth = "../../../";
 
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
-                screenLog("1. Button slid. Sending request to backend...");
-                screenLog("Payload: " + JSON.stringify({ recipients, location_text: locText }));
 
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
@@ -631,15 +628,11 @@ $pageDepth = "../../../";
 
                 const data = await res.json();
 
-                screenLog("2. Backend replied!");
-                screenLog(data);
-
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
                 if (statusEl) statusEl.textContent = `Alerting ${recipients.length} people...`;
 
                 if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
                     try {
-                        screenLog("3. Bypassing InfinityFree... Fetching Firebase Access Token using JWT...");
                         const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
@@ -651,7 +644,6 @@ $pageDepth = "../../../";
                         const tokenData = await tokenRes.json();
                         if (!tokenData.access_token) throw new Error("Could not get access token: " + JSON.stringify(tokenData));
                         
-                        screenLog("4. Token acquired, blasting push notifications...");
                         const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
                         
                         await Promise.all(data.fcm_tokens.map(async (token) => {
@@ -677,10 +669,8 @@ $pageDepth = "../../../";
                                 })
                             });
                         }));
-                        screenLog("5. Push notifications sent successfully from frontend!");
                         if (statusEl) statusEl.textContent = `SOS successfully forwarded to ${data.fcm_tokens.length} devices!`;
                     } catch (pushErr) {
-                        screenLog("Push Error: " + pushErr.message);
                         if (statusEl) statusEl.textContent = `SOS saved, but push warning: ${pushErr.message}`;
                     }
                 } else {
@@ -688,7 +678,6 @@ $pageDepth = "../../../";
                 }
 
             } catch (e) {
-                screenLog("3. FATAL ERROR: " + e.message);
                 if (statusEl) statusEl.textContent = "Failed to send SOS";
             } finally {
                 isSOSActive = false;
@@ -741,23 +730,6 @@ $pageDepth = "../../../";
         document.addEventListener('touchend', endDrag);
     </script>
     
-    <div id="debug-console"
-        style="display:none; position:fixed; top:50px; left:10px; right:10px; height:250px; background:rgba(0,0,0,0.85); color:#0f0; font-family:monospace; font-size:11px; overflow-y:scroll; z-index:99999; padding:10px; border-radius:8px; pointer-events:auto;">
-        <strong style="color:#fff;">Backend Response Console</strong><br>
-    </div>
-
-    <script>
-        function screenLog(msg) {
-            const consoleEl = document.getElementById('debug-console');
-            if (consoleEl) {
-                const time = new Date().toLocaleTimeString();
-                const text = typeof msg === 'object' ? JSON.stringify(msg, null, 2) : msg;
-                consoleEl.innerHTML += `<div style="margin-bottom:5px; border-bottom:1px solid #333; padding-bottom:5px;">[${time}] ${text}</div>`;
-                consoleEl.scrollTop = consoleEl.scrollHeight;
-            }
-            console.log(msg);
-        }
-    </script>
 </body>
 
 </html>
