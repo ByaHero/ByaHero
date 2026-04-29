@@ -327,6 +327,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let _htmlSeats = parseInt(document.getElementById('seatsCount').textContent);
     let seats = isNaN(_htmlSeats) ? <?= intval($seatsAvailable) ?> : _htmlSeats;
     let map = null, marker = null, watchId = null, lastNetworkSync = 0, lastKnownLocation = null;
+    let heartbeatInterval = null;
     let routeFeatures = [];
     const SYNC_INTERVAL = 1000;
     const el = id => document.getElementById(id);
@@ -651,6 +652,13 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             bgWatcherId = null;
         }
 
+        // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
+        lastKnownLocation = null;
+        if (heartbeatInterval) {
+            clearInterval(heartbeatInterval);
+            heartbeatInterval = null;
+        }
+
         const payload = { bus_id: busId };
         try {
             const absoluteUrl = new URL('../api.php?action=stop_tracking', window.location.href).href;
@@ -758,9 +766,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         el('seatMinus').addEventListener('click', decrementSeats);
 
         // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
-        setInterval(async () => {
-            const trackingActive = bgWatcherId !== null || watchId !== null;
+        heartbeatInterval = setInterval(async () => {
+            const trackingActive = (bgWatcherId !== null || watchId !== null) && lastKnownLocation !== null;
             if (!trackingActive) {
+                // If we explicitly stopped, lastKnownLocation is null, so we don't restart
+                if ((bgWatcherId === null && watchId === null) && lastKnownLocation === null) return;
+                
                 await startGeolocation();
                 return;
             }

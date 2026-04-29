@@ -263,6 +263,23 @@ function updateLocation(): array {
     // Update DB: store friendly name string in current_location column
     $pdo = db();
 
+    // MANDATORY SECURITY: Only the assigned conductor can update this bus
+    session_start();
+    $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+    if ($currentUserId <= 0) {
+        http_response_code(401);
+        return ['success' => false, 'error' => 'Login required'];
+    }
+
+    $stCheck = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = ?");
+    $stCheck->execute([$busId]);
+    $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
+
+    if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
+        http_response_code(403);
+        return ['success' => false, 'error' => 'Not assigned to this bus'];
+    }
+
     $fields = [];
     $params = [];
 
@@ -348,7 +365,7 @@ function stopTracking(): array {
             updated             = NULL,
             current_conductor_id = NULL
         WHERE Bus_ID = :bus_id
-          AND (current_conductor_id = :uid OR current_conductor_id IS NULL)
+          AND current_conductor_id = :uid
     ");
     $stmt->execute([
         ':bus_id' => $busId,

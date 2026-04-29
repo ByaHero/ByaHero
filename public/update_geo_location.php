@@ -25,22 +25,26 @@ $busId = (int)$input['bus_id'];
 
 $pdo = db();
 
-// Optional safety: ensure this user is allowed to update this bus
-if ($currentUserId > 0) {
-    $stCheck = $pdo->prepare("
-        SELECT current_conductor_id
-        FROM busses
-        WHERE Bus_ID = ?
-        LIMIT 1
-    ");
-    $stCheck->execute([$busId]);
-    $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
+// MANDATORY: Enforce that the user is logged in and is the conductor assigned to this bus
+if ($currentUserId <= 0) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Login required']);
+    exit;
+}
 
-    if ($rowCheck && $rowCheck['current_conductor_id'] !== null && (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
-        http_response_code(403);
-        echo json_encode(['success' => false, 'error' => 'You are not assigned to this bus']);
-        exit;
-    }
+$stCheck = $pdo->prepare("
+    SELECT current_conductor_id
+    FROM busses
+    WHERE Bus_ID = ?
+    LIMIT 1
+");
+$stCheck->execute([$busId]);
+$rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
+
+if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => 'You are not currently assigned to track this bus.']);
+    exit;
 }
 
 // Build geojson (accept geojson or lat/lng)
