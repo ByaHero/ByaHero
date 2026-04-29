@@ -35,116 +35,248 @@ if (isset($_SESSION['user_id'])) {
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Sign Up - ByaHero</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <title>ByaHero — Sign Up</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
     
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
 
     <style>
-        /* Your existing CSS remains the same */
-        :root { --bs-primary: #1e40af; --bs-primary-hover: #172e6e; }
-        body { font-family: 'Poppins', sans-serif; background-color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .signup-container { width: 100%; max-width: 420px; }
-        .form-control { background-color: #f3f4f6; border: none; padding: 12px 20px; font-size: 0.95rem; border-radius: 12px; }
-        .form-control:focus { background-color: #fff; box-shadow: 0 0 0 3px rgba(30, 64, 175, 0.1); }
-        .password-wrapper { position: relative; }
-        .password-toggle { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #6c757d; border: none; background: none; padding: 0; }
-        .btn-primary { background-color: var(--bs-primary); border: none; padding: 12px; font-weight: 600; border-radius: 50px; transition: all 0.3s ease; }
-        .btn-primary:hover { background-color: var(--bs-primary-hover); transform: translateY(-1px); }
-        .logo-img { width: 150px; height: auto; margin-bottom: 5px; }
-        .small-muted { margin-top: 0.75rem; }
+        :root {
+            --brand: #2563eb;
+            --bg: #ffffff;
+            --muted: #6b7280;
+        }
+
+        html, body {
+            height: 100%;
+            background: #ffffff;
+            font-family: "Segoe UI", system-ui, -apple-system, Arial;
+            color: #0f172a;
+        }
+
+        .login-outer {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: transparent;
+        }
+
+        .brand-wrap {
+            text-align: center;
+            margin-bottom: 1.25rem;
+        }
+
+        .brand-logo {
+            width: 132px;
+            height: auto;
+            display: block;
+            margin: 0 auto 0.75rem;
+        }
+
+        .brand-title {
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: #111827;
+            font-weight: bold;
+        }
+
+        .form-card {
+            background: var(--bg);
+            padding: 2rem;
+            border-radius: 14px;
+            box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+        }
+
+        .form-heading {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--brand);
+            margin-bottom: 1rem;
+            letter-spacing: .6px;
+        }
+
+        .input-pill {
+            border-radius: 999px;
+            background: #fff;
+            box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+            border: none;
+            padding: 0.6rem 1.2rem;
+            height: 48px;
+        }
+
+        .input-pill:focus {
+            outline: none;
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.12), 0 0 0 3px rgba(37, 99, 235, 0.06);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .input-addon {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: none;
+            background: transparent;
+            color: #374151;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+        }
+
+        .submit-pill {
+            width: 100px;
+            height: 40px;
+            border-radius: 999px;
+            background: var(--brand);
+            border: none;
+            margin: 1.6rem auto 0;
+            box-shadow: 0 8px 22px rgba(37, 99, 235, 0.18);
+            color: #ffffff;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: .6px;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .submit-pill:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .small-muted {
+            font-size: .85rem;
+            color: var(--muted);
+            text-align: center;
+            margin-top: .75rem;
+        }
+
+        .alert-small {
+            font-size: .9rem;
+            padding: .45rem .75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        @media (max-width:420px) {
+            .form-card { padding: 1.5rem; }
+            .brand-logo { width: 110px; }
+        }
     </style>
 </head>
 <body>
 
-    <div class="container signup-container text-center">
-        <div class="mb-3">
-            <img src="../assets/images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="logo-img">
-            <h5 class="fw-bold text-dark mt-1" style="letter-spacing: 1px; font-size: 14px;">BYAHERO</h5>
-        </div>
+    <div class="login-outer">
+        <div class="login-card">
+            <div class="brand-wrap">
+                <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
+                <div class="brand-title">BYAHERO</div>
+            </div>
 
-        <div class="text-start mb-4">
-            <h6 class="fw-bold text-primary mb-3">CREATE NEW ACCOUNT</h6>
-            <div id="signupAlert"></div>
+            <div class="form-card">
+                <div class="form-heading">CREATE NEW ACCOUNT</div>
+                
+                <div id="signupAlert"></div>
 
-            <form id="signupForm" autocomplete="off">
-                <input type="hidden" name="action" value="signup">
-                <div class="mb-3">
-                    <input type="text" name="name" class="form-control" placeholder="Full Name (optional)">
-                </div>
-                <div class="mb-3">
-                    <input type="email" name="email" class="form-control" placeholder="Email" required>
-                </div>
-                <div class="mb-3">
-                    <input type="tel" name="contacts" class="form-control" placeholder="Contact Number" required inputmode="tel" autocomplete="tel" minlength="7" maxlength="20">
-                </div>
-                <div class="mb-3 password-wrapper">
-                    <input type="password" name="password" id="passInput" class="form-control" placeholder="Password" required minlength="6" autocomplete="new-password">
-                    <button type="button" class="password-toggle" onclick="togglePass('passInput', 'iconPass')">
-                        <span class="material-symbols-rounded fs-5" id="iconPass">visibility_off</span>
-                    </button>
-                </div>
-                <div class="mb-4 password-wrapper">
-                    <input type="password" name="confirm_password" id="confirmInput" class="form-control" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
-                    <button type="button" class="password-toggle" onclick="togglePass('confirmInput', 'iconConfirm')">
-                        <span class="material-symbols-rounded fs-5" id="iconConfirm">visibility_off</span>
-                    </button>
-                </div>
-                <button type="submit" class="btn btn-primary w-100 mb-4 shadow-sm">SIGN UP</button>
-            </form>
-
-            <div class="mt-3 mb-2">
-                <div class="d-flex align-items-center mb-3">
-                    <hr class="flex-grow-1">
-                    <span class="mx-2 text-muted small">OR</span>
-                    <hr class="flex-grow-1">
-                </div>
-
-                <div id="google-auth-container">
-                    <!-- Standard Web Flow -->
-                    <div id="gsi-web-container">
-                        <div id="g_id_onload"
-                            data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
-                            data-context="signup"
-                            data-ux_mode="popup"
-                            data-callback="handleGoogleLogin"
-                            data-auto_prompt="false">
-                        </div>
-                        <div class="g_id_signin"
-                            data-type="standard"
-                            data-shape="pill"
-                            data-theme="outline"
-                            data-text="signup_with"
-                            data-size="large"
-                            data-logo_alignment="left"
-                            style="display: flex; justify-content: center;">
-                        </div>
+                <form id="signupForm" autocomplete="off">
+                    <input type="hidden" name="action" value="signup">
+                    
+                    <div class="mb-3">
+                        <input type="text" name="name" class="form-control input-pill" placeholder="Full Name (optional)">
                     </div>
-
-                    <!-- Native Capacitor Button (Hidden by default) -->
-                    <div id="gsi-native-container" style="display: none; justify-content: center;">
-                        <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: all 0.2s;">
-                            <svg width="18" height="18" viewBox="0 0 48 48" style="display: block;">
-                                <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
-                                <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                                <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                                <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                            </svg>
-                            Continue with Google
+                    
+                    <div class="mb-3">
+                        <input type="email" name="email" class="form-control input-pill" placeholder="Email" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number" required inputmode="tel" autocomplete="tel">
+                    </div>
+                    
+                    <div class="mb-3 password-wrapper">
+                        <input type="password" name="password" id="passInput" class="form-control input-pill pe-5" placeholder="Password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
+                            <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
                         </button>
                     </div>
+                    
+                    <div class="mb-2 password-wrapper">
+                        <input type="password" name="confirm_password" id="confirmInput" class="form-control input-pill pe-5" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
+                        <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
+                            <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="submit-pill">Sign Up</button>
+                </form>
+
+                <div class="mt-4 mb-2">
+                    <div class="d-flex align-items-center mb-3">
+                        <hr class="flex-grow-1">
+                        <span class="mx-2 text-muted small">OR</span>
+                        <hr class="flex-grow-1">
+                    </div>
+
+                    <div id="google-auth-container">
+                        <div id="gsi-web-container">
+                            <div id="g_id_onload"
+                                data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                                data-context="signup"
+                                data-ux_mode="popup"
+                                data-callback="handleGoogleLogin"
+                                data-auto_prompt="false">
+                            </div>
+                            <div class="g_id_signin"
+                                data-type="standard"
+                                data-shape="pill"
+                                data-theme="outline"
+                                data-text="signup_with"
+                                data-size="large"
+                                data-logo_alignment="left"
+                                style="display: flex; justify-content: center;">
+                            </div>
+                        </div>
+
+                        <div id="gsi-native-container" style="display: none; justify-content: center;">
+                            <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                                <svg width="18" height="18" viewBox="0 0 48 48">
+                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
+                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                </svg>
+                                Continue with Google
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="small-muted">
+                    Already have an account?
+                    <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a>
                 </div>
             </div>
-        </div>
-
-        <div class="text-center small-muted">
-            <p class="text-muted small mb-0">Already have an account? <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a></p>
         </div>
     </div>
 
@@ -166,7 +298,6 @@ if (isset($_SESSION['user_id'])) {
 
         document.getElementById('signupForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-
             const form = e.target;
             const btn = form.querySelector('button[type="submit"]');
             const alertBox = document.getElementById('signupAlert');
@@ -176,117 +307,71 @@ if (isset($_SESSION['user_id'])) {
             const p2 = document.getElementById('confirmInput').value;
 
             if (p1 !== p2) {
-                alertBox.innerHTML = '<div class="alert alert-danger small py-2">Passwords do not match.</div>';
+                alertBox.innerHTML = '<div class="alert alert-danger alert-small">Passwords do not match.</div>';
                 return;
             }
 
-            btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creating...';
+            btn.innerHTML = '...';
             btn.disabled = true;
             alertBox.innerHTML = '';
 
             try {
                 const fd = new FormData(form);
                 const res = await fetch('auth_api.php', { method: 'POST', body: fd });
-                const text = await res.text();
-                let data;
-                try { data = JSON.parse(text); } catch (err) { throw new Error("Server Error"); }
+                const data = await res.json();
 
                 if (data.success) {
-                    alertBox.innerHTML = '<div class="alert alert-success small py-2">Success! Syncing connection...</div>';
-                    form.reset();
-
-                    // Redirect to user guide
-                    setTimeout(() => {
-                        window.location.href = 'passenger/showGuide/showGuide.php';
-                    }, 1200);
+                    alertBox.innerHTML = '<div class="alert alert-success alert-small">Success! Redirecting...</div>';
+                    setTimeout(() => { window.location.href = 'passenger/showGuide/showGuide.php'; }, 1000);
                 } else {
                     throw new Error(data.message || 'Signup failed');
                 }
-
             } catch (err) {
-                alertBox.innerHTML = `<div class="alert alert-danger small py-2">${err.message}</div>`;
+                alertBox.innerHTML = `<div class="alert alert-danger alert-small">${err.message}</div>`;
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
         });
 
-        // Google Sign-In Callback Handler
         function handleGoogleLogin(response) {
             const credential = response.credential;
-
             const formData = new FormData();
             formData.append('action', 'google_auth');
             formData.append('credential', credential);
             
-            // Assume we want to redirect to the passenger dashboard upon signin
-            const targetRedirect = 'passenger/index.php';
-
-            fetch('auth_api.php', {
-                method: 'POST',
-                body: formData
-            })
+            fetch('auth_api.php', { method: 'POST', body: formData })
             .then(res => res.json())
             .then(data => {
                 if (data.success) {
-                    window.location.href = data.redirect || targetRedirect;
+                    window.location.href = data.redirect || 'passenger/index.php';
                 } else {
-                    document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger small py-2">Google signup failed: ${data.message}</div>`;
+                    document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger alert-small">Google error: ${data.message}</div>`;
                 }
             })
             .catch(err => {
                 console.error(err);
-                document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger small py-2">An error occurred during Google sign in.</div>`;
+                document.getElementById('signupAlert').innerHTML = `<div class="alert alert-danger alert-small">Server error.</div>`;
             });
         }
-        // Capacitor Native Google Auth integration
+
         function initNativeCapacitorGoogleAuth() {
             if (!window.Capacitor) return false;
-            
-            const isNative = window.Capacitor.isNative || 
-                            (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
-                            navigator.userAgent.includes('Capacitor') ||
-                            window.location.href.includes('capacitor://');
-                            
+            const isNative = window.Capacitor.isNative || (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web');
             if (isNative) {
-                const webContainer = document.getElementById('gsi-web-container');
+                document.getElementById('gsi-web-container').style.display = 'none';
                 const nativeContainer = document.getElementById('gsi-native-container');
-                
-                if (webContainer) webContainer.style.display = 'none';
-                if (nativeContainer) {
-                    nativeContainer.style.setProperty('display', 'flex', 'important');
-                    nativeContainer.style.opacity = '1';
-                    nativeContainer.style.visibility = 'visible';
-                }
-                
-                if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
-                    try {
-                        window.Capacitor.Plugins.GoogleAuth.initialize({
-                            clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
-                            scopes: ['profile', 'email'],
-                            grantOfflineAccess: true,
-                        });
-                    } catch (e) {
-                        console.warn('GoogleAuth initialize issue:', e);
-                    }
-                }
+                nativeContainer.style.setProperty('display', 'flex', 'important');
                 
                 const nativeBtn = document.getElementById('native-google-btn');
                 if (nativeBtn) {
                     nativeBtn.addEventListener('click', async function() {
-                        if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
-                            alert('Google Auth plugin not loaded properly.');
-                            return;
-                        }
                         try {
                             const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
-                            if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                            if (googleUser?.authentication?.idToken) {
                                 handleGoogleLogin({ credential: googleUser.authentication.idToken });
-                            } else {
-                                alert('Google login failed: Could not retrieve ID token.');
                             }
                         } catch (error) {
-                            console.error('Native Google Sign-In error:', error);
-                            alert('Google Sign-In Error: ' + (error.message || JSON.stringify(error)));
+                            console.error('Native Google error:', error);
                         }
                     });
                 }
@@ -295,15 +380,13 @@ if (isset($_SESSION['user_id'])) {
             return true;
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             let attempts = 0;
             const pollTimer = setInterval(() => {
-                if (initNativeCapacitorGoogleAuth() || attempts > 20) {
-                    clearInterval(pollTimer);
-                }
+                if (initNativeCapacitorGoogleAuth() || attempts > 20) clearInterval(pollTimer);
                 attempts++;
             }, 100);
         });
     </script>
 </body>
-</html>
+</html>
