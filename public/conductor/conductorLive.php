@@ -726,8 +726,14 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     function scheduleEventFlush() {
-        clearTimeout(eventFlushTimer);
-        eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
+        if (document.hidden) {
+            // When screen is locked or app is in background, don't trust setTimeout.
+            // Flush immediately to ensure the data is sent before the OS suspends the JS thread.
+            flushPendingEvents();
+        } else {
+            clearTimeout(eventFlushTimer);
+            eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
+        }
     }
 
     // --- THE UNIFIED STOP TRACKING FUNCTION ---
