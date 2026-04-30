@@ -365,7 +365,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let pendingBoards = 0;
     let pendingDeparts = 0;
     let eventFlushTimer = null;
-    const EVENT_DEBOUNCE_MS = 1500; // 1.5 seconds
+    const EVENT_DEBOUNCE_MS = 1000; // 1 second as requested
 
     /**
      * Standardized POST helper. 
@@ -520,6 +520,10 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         try {
             const json = await safePost('../update_geo_location.php', payload);
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
+            
+            // Fallback: Always try to flush pending passenger events during a network sync
+            // This ensures data is sent even if the debounce timer was throttled in the background
+            flushPendingEvents();
         } catch (e) {
             if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
         }
@@ -726,14 +730,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     function scheduleEventFlush() {
-        if (document.hidden) {
-            // When screen is locked or app is in background, don't trust setTimeout.
-            // Flush immediately to ensure the data is sent before the OS suspends the JS thread.
-            flushPendingEvents();
-        } else {
-            clearTimeout(eventFlushTimer);
-            eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
-        }
+        // Restore the 1-second debounce even for background to allow the "cancel mistake" logic.
+        // If the OS suspends this timer while locked, the fallback in sendDataToServer() 
+        // (which runs every 10s via background geolocation) will catch and flush the data.
+        clearTimeout(eventFlushTimer);
+        eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
     }
 
     // --- THE UNIFIED STOP TRACKING FUNCTION ---
