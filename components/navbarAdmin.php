@@ -351,7 +351,17 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
         <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
       </button>
 
-      <h5 class="admin-menu-title" id="adminMenuLabel">
+      <?php
+        $nameLen = strlen($displayHeaderName);
+        if ($nameLen > 25) {
+          $titleSize = '18px';
+        } elseif ($nameLen > 15) {
+          $titleSize = '22px';
+        } else {
+          $titleSize = '28px';
+        }
+      ?>
+      <h5 class="admin-menu-title" id="adminMenuLabel" style="font-size: <?= $titleSize ?>;">
         <?= htmlspecialchars($displayHeaderName) ?>
       </h5>
 

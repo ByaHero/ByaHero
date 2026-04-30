@@ -428,8 +428,18 @@ else: ?>
         <?php endif; ?>
       </div>
 
+      <?php
+        $nameLen = strlen($displayHeaderName);
+        if ($nameLen > 25) {
+          $titleSize = '20px';
+        } elseif ($nameLen > 15) {
+          $titleSize = '24px';
+        } else {
+          $titleSize = '32px';
+        }
+      ?>
       <div class="fw-bold text-break"
-        style="font-size: 32px !important; line-height: 1.1 !important; flex: 1; padding-right: 15px;">
+        style="font-size: <?= $titleSize ?> !important; line-height: 1.1 !important; flex: 1; padding-right: 15px;">
         <?php echo htmlspecialchars($displayHeaderName); ?>
       </div>
 
