@@ -365,7 +365,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let pendingBoards = 0;
     let pendingDeparts = 0;
     let eventFlushTimer = null;
-    const EVENT_DEBOUNCE_MS = 1000; // 1 second as requested
+    const EVENT_DEBOUNCE_MS = 5000; // 1 second as requested
 
     /**
      * Standardized POST helper. 
