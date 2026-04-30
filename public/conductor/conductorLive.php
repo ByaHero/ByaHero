@@ -521,9 +521,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             const json = await safePost('../update_geo_location.php', payload);
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
             
-            // Fallback: Always try to flush pending passenger events during a network sync
-            // This ensures data is sent even if the debounce timer was throttled in the background
-            flushPendingEvents();
+            // Fallback: Only flush if no sync timer is active.
+            // This prevents a moving bus (which syncs every 10s) from flushing 
+            // a button press that happened only 1-2 seconds ago.
+            if (!syncTimer) {
+                flushPendingEvents();
+            }
         } catch (e) {
             if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
         }
@@ -741,6 +744,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             
             // 2. Log analytics events (Historical Flow)
             await flushPendingEvents();
+
+            syncTimer = null;
         }, SYNC_DEBOUNCE_MS);
     }
 
