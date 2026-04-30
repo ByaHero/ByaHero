@@ -155,6 +155,7 @@ $iconEdit = '../../../assets/images/icons/edit.png';
 
 /* ONLY CHANGE: eye icon image path */
 $iconShow = '../../../assets/images/icons/show.png';
+$iconHide = '../../../assets/images/icons/shownot.svg';
 ?>
 <!doctype html>
 <html lang="en">
@@ -515,9 +516,9 @@ $iconShow = '../../../assets/images/icons/show.png';
                 const isPw = input.type === 'password';
                 input.type = isPw ? 'text' : 'password';
 
-                // Keep monkey emoji when password is visible, keep show.png when hidden
+                // Keep shownot.svg when password is visible, keep show.png when hidden
                 btn.innerHTML = isPw
-                    ? '🙈'
+                    ? '<img src="<?php echo htmlspecialchars($iconHide); ?>" alt="Hide">'
                     : '<img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">';
             });
         });

@@ -287,7 +287,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   <script src="../../../assets/js/accessibility.js"></script>
   <script src="../../../assets/js/analytics.js"></script>
   <script>
-    // Toggle password visibility (show.png / 🙈)
+    // Toggle password visibility (show.png / shownot.svg)
     document.querySelectorAll('.toggle-password').forEach((btn) => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-target');
@@ -298,7 +298,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         field.type = isPw ? 'text' : 'password';
 
         btn.innerHTML = isPw
-          ? '🙈'
+          ? '<img src="../../../assets/images/icons/shownot.svg" alt="Hide">'
           : '<img src="../../../assets/images/icons/show.png" alt="Show">';
       });
     });

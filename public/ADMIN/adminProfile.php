@@ -155,6 +155,7 @@ $iconEdit = '../../assets/images/icons/edit.png';
 
 /* ONLY CHANGE: show icon for password toggle */
 $iconShow = '../../assets/images/icons/show.png';
+$iconHide = '../../assets/images/icons/shownot.svg';
 
 /* navbarAdmin config (component) */
 $pageDepth = '../../';
@@ -502,7 +503,7 @@ $backLink  = 'admin.php';
         function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
         function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
 
-        // Toggle bar logic (show.png / 🙈)
+        // Toggle bar logic (show.png / shownot.svg)
         document.querySelectorAll('.pw-eye').forEach((btn) => {
             btn.addEventListener('click', () => {
                 const id = btn.getAttribute('data-target');
@@ -513,7 +514,7 @@ $backLink  = 'admin.php';
                 input.type = isPw ? 'text' : 'password';
 
                 btn.innerHTML = isPw
-                    ? '🙈'
+                    ? '<img src="<?php echo htmlspecialchars($iconHide); ?>" alt="Hide">'
                     : '<img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">';
             });
         });
