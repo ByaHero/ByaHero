@@ -309,6 +309,15 @@ $pageType = 'dashboard';
                 </div>
             </div>
 
+            <!-- ADDED: Analytics Dashboard -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card" style="background: linear-gradient(135deg, #1d4ed8, #7c3aed);">
+                    <div class="stat-card-title">Analytics</div>
+                    <a class="btn-manage-pill" href="analytics.php">View</a>
+                    <div class="stat-card-number" style="font-size:2rem;">📊</div>
+                </div>
+            </div>
+
         </div>
 
         <div class="card card-standard">

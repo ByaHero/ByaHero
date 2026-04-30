@@ -18,6 +18,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
     $route = htmlspecialchars($_POST['route'] ?? '', ENT_QUOTES, 'UTF-8');
     $seats_total = (int)($_POST['seats_total'] ?? 25);
     $initial_available_seats = isset($_POST['initial_available_seats']) ? (int)$_POST['initial_available_seats'] : $seats_total;
+    $pre_departure_count = isset($_POST['pre_departure_count']) ? (int)$_POST['pre_departure_count'] : 0;
 
     // Check who owns the bus to prevent rowCount() === 0 false positives when no row is modified
     $checkStmt = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = :bus_id");
@@ -37,10 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
 
     // Also store on the conductor
     $stmt2 = $pdo->prepare("UPDATE conductors SET current_bus_id = :bus_id WHERE id = :uid");
-    $stmt2->execute([
-        ':bus_id' => $busId,
-        ':uid'    => $userId,
-    ]);
+    $stmt2->execute([':bus_id' => $busId, ':uid' => $userId]);
 
     // store into session to allow reloads
     $_SESSION['current_bus'] = [
@@ -48,7 +46,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
         'code'        => $code,
         'route'       => $route,
         'seats_total' => $seats_total,
-        'seats_available' => $initial_available_seats
+        'seats_available' => $initial_available_seats,
+        'pre_departure_count' => $pre_departure_count,
+        'is_new_session' => true
     ];
 }
 
@@ -81,6 +81,14 @@ if (empty($_SESSION['current_bus'])) {
                 'seats_total' => (int)($busRow['total_seats'] ?? 25),
                 'seats_available' => (int)($busRow['seat_availability'] ?? $busRow['total_seats'] ?? 25)
             ];
+
+            // Recover active operation_id for analytics
+            $stmtOp = $pdo->prepare("SELECT id FROM bus_operations WHERE bus_id = ? AND conductor_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
+            $stmtOp->execute([(int)$busRow['Bus_ID'], $userId]);
+            $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
+            if ($opRow) {
+                $_SESSION['current_bus']['operation_id'] = (int)$opRow['id'];
+            }
         }
     }
 }
@@ -275,14 +283,14 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             <div id="mainMap"></div>
         </div>
 
-        <div class="text-center fw-bold mt-3 mb-1" style="color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Seats Available</div>
+        <div class="text-center fw-bold mt-3 mb-1" style="color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Passenger Count</div>
         <div class="seats-control" style="margin-top: 0;">
             <button id="seatMinus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
-                <img src="../../assets/images/increase.svg" alt="Boarding" style="width: 28px; height: 28px;">
-            </button>
-            <div id="seatsCount" class="seats-num"><?= intval($seatsAvailable) ?></div>
-            <button id="seatPlus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
                 <img src="../../assets/images/decrease.svg" alt="Leaving" style="width: 28px; height: 28px;">
+            </button>
+            <div id="seatsCount" class="seats-num"><?= intval($seatsTotal - $seatsAvailable) ?></div>
+            <button id="seatPlus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
+                <img src="../../assets/images/increase.svg" alt="Boarding" style="width: 28px; height: 28px;">
             </button>
         </div>
 
@@ -328,8 +336,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     const busId = <?= json_encode($busId) ?>;
     const busCode = <?= json_encode($busCode) ?>;
     const busRoute = <?= json_encode($busRoute) ?>;
-    let _htmlSeats = parseInt(document.getElementById('seatsCount').textContent);
-    let seats = isNaN(_htmlSeats) ? <?= intval($seatsAvailable) ?> : _htmlSeats;
+    const seatsTotal = <?= intval($seatsTotal) ?>;
+    
+    // In conductor view, we display Passenger Count (Total - Available)
+    // But 'seats' variable in JS will continue to represent seatsAvailable for API syncing
+    let seats = <?= intval($seatsAvailable) ?>;
+    
     let map = null, marker = null, watchId = null, lastNetworkSync = 0, lastKnownLocation = null;
     let heartbeatInterval = null;
     let routeFeatures = [];
@@ -343,6 +355,17 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let lastComputedStatus = 'available';
     const MOVE_THRESHOLD_METERS = 3;
     const STOP_TIME_MS = 5000;
+
+    // --- ANALYTICS: Operation tracking ---
+    let operationId = <?= json_encode((int)($currentBus['operation_id'] ?? 0)) ?>;
+    const isNewSession = <?= json_encode(!empty($currentBus['is_new_session'])) ?>;
+    const preDepartureCount = <?= json_encode((int)($currentBus['pre_departure_count'] ?? 0)) ?>;
+
+    // Debounce-cancel system: tracks net seat changes before flushing to server
+    let pendingBoards = 0;
+    let pendingDeparts = 0;
+    let eventFlushTimer = null;
+    const EVENT_DEBOUNCE_MS = 1500; // 1.5 seconds
 
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
@@ -637,8 +660,78 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         });
     }
 
+    // --- ANALYTICS: Start operation on first load ---
+    async function initOperation() {
+        if (operationId > 0 || !isNewSession) return; // already has one or is a resume
+        try {
+            const res = await fetch('../api.php?action=start_operation', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bus_id: busId,
+                    route: busRoute,
+                    pre_departure_count: preDepartureCount,
+                    start_location: lastKnownLocation?.locName || null
+                })
+            });
+            const json = await res.json();
+            if (json.success && json.operation_id) {
+                operationId = json.operation_id;
+            }
+        } catch(e) { console.error('Failed to start operation:', e); }
+    }
+
+    // --- ANALYTICS: Debounce-cancel event flushing ---
+    function flushPendingEvents() {
+        // Calculate net change
+        const netBoards = pendingBoards;
+        const netDeparts = pendingDeparts;
+        pendingBoards = 0;
+        pendingDeparts = 0;
+
+        // Cancel out: only log the net difference
+        const net = netBoards - netDeparts;
+        if (net === 0) return; // They cancelled each other!
+
+        const eventType = net > 0 ? 'board' : 'depart';
+        const count = Math.abs(net);
+        const locName = lastKnownLocation?.locName || null;
+        const lat = lastKnownLocation?.lat || null;
+        const lng = lastKnownLocation?.lng || null;
+
+        if (operationId <= 0) return;
+
+        // Show toast
+        const action = eventType === 'board' ? 'boarded' : 'departed';
+        const loc = locName || 'current location';
+        showAlert(`${count} passenger${count > 1 ? 's' : ''} ${action} at ${loc}`, 'info');
+
+        // Fire and forget
+        fetch('../api.php?action=log_passenger_event', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                operation_id: operationId,
+                event_type: eventType,
+                count: count,
+                location_name: locName,
+                lat: lat,
+                lng: lng
+            })
+        }).catch(e => console.error('Event log error:', e));
+    }
+
+    function scheduleEventFlush() {
+        clearTimeout(eventFlushTimer);
+        eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
+    }
+
     // --- THE UNIFIED STOP TRACKING FUNCTION ---
     async function stopTracking() {
+        // Flush any pending events immediately before stopping
+        clearTimeout(eventFlushTimer);
+        flushPendingEvents();
+
         stopKeepAliveAudio();
         releaseWakeLock();
         
@@ -663,11 +756,13 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             heartbeatInterval = null;
         }
 
-        const payload = { bus_id: busId };
+        const payload = {
+            bus_id: busId,
+            end_location: lastKnownLocation?.locName || null
+        };
         try {
             const absoluteUrl = new URL('../api.php?action=stop_tracking', window.location.href).href;
             if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
-                // Guaranteed to bypass InfinityFree Security
                 await window.Capacitor.Plugins.CapacitorHttp.post({
                     url: absoluteUrl,
                     headers: { 
@@ -728,18 +823,35 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         }
     }
 
-    function incrementSeats() {
-        seats = seats + 1;
-        el('seatsCount').textContent = seats;
-        updateMediaSessionMetadata();
-        debouncedManualUpdate();
+    function incrementPassengers() {
+        if (seats > 0) {
+            seats = seats - 1;
+            updateSeatsUI();
+            updateMediaSessionMetadata();
+            debouncedManualUpdate();
+            // Analytics: passenger boarded (seat taken)
+            pendingBoards++;
+            scheduleEventFlush();
+        } else {
+            showAlert('Bus is full!', 'danger');
+        }
     }
 
-    function decrementSeats() {
-        seats = Math.max(0, seats - 1);
-        el('seatsCount').textContent = seats;
-        updateMediaSessionMetadata();
-        debouncedManualUpdate();
+    function decrementPassengers() {
+        if (seats < seatsTotal) {
+            seats = seats + 1;
+            updateSeatsUI();
+            updateMediaSessionMetadata();
+            debouncedManualUpdate();
+            // Analytics: passenger departed (seat freed)
+            pendingDeparts++;
+            scheduleEventFlush();
+        }
+    }
+
+    function updateSeatsUI() {
+        // Display Passenger Count: Total - Available
+        el('seatsCount').textContent = seatsTotal - seats;
     }
 
     // Media Session Action Handlers
@@ -766,8 +878,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         // Hook up Media Session as soon as the DOM loads
         setupMediaSession();
 
-        el('seatPlus').addEventListener('click', incrementSeats);
-        el('seatMinus').addEventListener('click', decrementSeats);
+        el('seatPlus').addEventListener('click', incrementPassengers);
+        el('seatMinus').addEventListener('click', decrementPassengers);
+
+        // ANALYTICS: Create operation after a short delay to allow GPS to resolve
+        setTimeout(initOperation, 2000);
 
         // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
         heartbeatInterval = setInterval(async () => {

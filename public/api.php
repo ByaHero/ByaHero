@@ -10,6 +10,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
 require __DIR__ . '/../config/db.php';
 
+// ── Auto-migration: create analytics tables if they don't exist ──
+(function(){
+    $p = db();
+    $p->exec("CREATE TABLE IF NOT EXISTS bus_operations (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        bus_id INT NOT NULL,
+        conductor_id INT UNSIGNED NOT NULL,
+        route VARCHAR(100) NOT NULL,
+        pre_departure_count INT UNSIGNED NOT NULL DEFAULT 0,
+        started_at DATETIME NOT NULL,
+        ended_at DATETIME DEFAULT NULL,
+        start_location VARCHAR(100) DEFAULT NULL,
+        end_location VARCHAR(100) DEFAULT NULL,
+        total_boarded INT UNSIGNED NOT NULL DEFAULT 0,
+        total_departed INT UNSIGNED NOT NULL DEFAULT 0,
+        status ENUM('active','completed') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_bus_date (bus_id, started_at),
+        INDEX idx_conductor (conductor_id),
+        INDEX idx_route_date (route, started_at),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $p->exec("CREATE TABLE IF NOT EXISTS passenger_events (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        operation_id INT UNSIGNED NOT NULL,
+        event_type ENUM('board','depart') NOT NULL,
+        count INT UNSIGNED NOT NULL DEFAULT 1,
+        location_name VARCHAR(100) DEFAULT NULL,
+        lat DECIMAL(10,7) DEFAULT NULL,
+        lng DECIMAL(10,7) DEFAULT NULL,
+        recorded_at DATETIME NOT NULL,
+        INDEX idx_operation (operation_id),
+        INDEX idx_type_time (event_type, recorded_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+})();
+
+
 function loadGeojsonFileForBus(int $busId): ?array {
     $file = __DIR__ . '/../data/current_locations/bus_' . $busId . '.geojson';
     if (!is_file($file)) return null;
@@ -354,6 +391,16 @@ function stopTracking(): array {
 
     $pdo = db();
 
+    // ── ANALYTICS: Finalize the active bus_operation ──
+    $endLoc = isset($data['end_location']) ? trim($data['end_location']) : null;
+    $stOp = $pdo->prepare("
+        UPDATE bus_operations
+        SET ended_at = NOW(), end_location = ?, status = 'completed'
+        WHERE bus_id = ? AND conductor_id = ? AND status = 'active'
+        ORDER BY id DESC LIMIT 1
+    ");
+    $stOp->execute([$endLoc, $busId, $userId]);
+
     // 1) Clear live tracking fields and release bus only if this conductor holds it
     $stmt = $pdo->prepare("
         UPDATE busses
@@ -367,10 +414,7 @@ function stopTracking(): array {
         WHERE Bus_ID = :bus_id
           AND current_conductor_id = :uid
     ");
-    $stmt->execute([
-        ':bus_id' => $busId,
-        ':uid'    => $userId,
-    ]);
+    $stmt->execute([':bus_id' => $busId, ':uid' => $userId]);
 
     // 2) Clear the conductor's current_bus_id only if it matches this bus
     $stmt2 = $pdo->prepare("
@@ -379,10 +423,7 @@ function stopTracking(): array {
         WHERE id = :uid
           AND current_bus_id = :bus_id
     ");
-    $stmt2->execute([
-        ':uid'    => $userId,
-        ':bus_id' => $busId,
-    ]);
+    $stmt2->execute([':uid' => $userId, ':bus_id' => $busId]);
 
     // 3) Clear session state for this bus so auto-resume won't trigger after explicit stop
     if (isset($_SESSION['current_bus']) && (int)($_SESSION['current_bus']['id'] ?? 0) === $busId) {
@@ -396,40 +437,241 @@ function stopTracking(): array {
     return ['success' => true, 'message' => 'Stopped tracking for bus'];
 }
 
+/**
+ * Start a new bus operation (called when conductor starts tracking).
+ * Creates a row in bus_operations and returns the operation_id.
+ */
+function startOperation(): array {
+    session_start();
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data) { http_response_code(400); return ['success' => false, 'error' => 'Invalid JSON']; }
+
+    $busId      = (int)($data['bus_id'] ?? 0);
+    $userId     = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
+    $route      = trim($data['route'] ?? '');
+    $preDep     = (int)($data['pre_departure_count'] ?? 0);
+    $startLoc   = isset($data['start_location']) ? trim($data['start_location']) : null;
+
+    if ($busId <= 0 || $userId <= 0 || $route === '') {
+        http_response_code(400);
+        return ['success' => false, 'error' => 'Missing bus_id, user, or route'];
+    }
+
+    $pdo = db();
+
+    // Close any stale active operations for this conductor (safety)
+    $pdo->prepare("UPDATE bus_operations SET status='completed', ended_at=NOW() WHERE conductor_id=? AND status='active'")->execute([$userId]);
+
+    $st = $pdo->prepare("
+        INSERT INTO bus_operations (bus_id, conductor_id, route, pre_departure_count, started_at, start_location, total_boarded, total_departed, status)
+        VALUES (?, ?, ?, ?, NOW(), ?, ?, 0, 'active')
+    ");
+    $st->execute([$busId, $userId, $route, $preDep, $startLoc, $preDep]);
+    $opId = (int)$pdo->lastInsertId();
+
+    // If there are pre-departure passengers, log them as a batch board event
+    if ($preDep > 0) {
+        $pdo->prepare("
+            INSERT INTO passenger_events (operation_id, event_type, count, location_name, recorded_at)
+            VALUES (?, 'board', ?, ?, NOW())
+        ")->execute([$opId, $preDep, $startLoc ?? 'Terminal']);
+    }
+
+    return ['success' => true, 'operation_id' => $opId];
+}
+
+/**
+ * Log a passenger board/depart event (called from conductor seat +/- with debounce).
+ */
+function logPassengerEvent(): array {
+    session_start();
+    $data = json_decode(file_get_contents('php://input'), true);
+    if (!$data) { http_response_code(400); return ['success' => false, 'error' => 'Invalid JSON']; }
+
+    $opId       = (int)($data['operation_id'] ?? 0);
+    $eventType  = $data['event_type'] ?? '';
+    $count      = max(1, (int)($data['count'] ?? 1));
+    $locName    = isset($data['location_name']) ? trim($data['location_name']) : null;
+    $lat        = isset($data['lat']) ? (float)$data['lat'] : null;
+    $lng        = isset($data['lng']) ? (float)$data['lng'] : null;
+
+    if ($opId <= 0 || !in_array($eventType, ['board', 'depart'], true)) {
+        http_response_code(400);
+        return ['success' => false, 'error' => 'Invalid operation_id or event_type'];
+    }
+
+    $pdo = db();
+
+    // Verify the operation is active and belongs to this conductor
+    $userId = (int)($_SESSION['user_id'] ?? 0);
+    $chk = $pdo->prepare("SELECT id FROM bus_operations WHERE id=? AND conductor_id=? AND status='active' LIMIT 1");
+    $chk->execute([$opId, $userId]);
+    if (!$chk->fetch()) {
+        http_response_code(403);
+        return ['success' => false, 'error' => 'Operation not found or not yours'];
+    }
+
+    // Insert event
+    $pdo->prepare("
+        INSERT INTO passenger_events (operation_id, event_type, count, location_name, lat, lng, recorded_at)
+        VALUES (?, ?, ?, ?, ?, ?, NOW())
+    ")->execute([$opId, $eventType, $count, $locName, $lat, $lng]);
+
+    // Update running counters on bus_operations
+    $col = ($eventType === 'board') ? 'total_boarded' : 'total_departed';
+    $pdo->prepare("UPDATE bus_operations SET {$col} = {$col} + ? WHERE id = ?")->execute([$count, $opId]);
+
+    return ['success' => true, 'logged' => $eventType, 'count' => $count];
+}
+
+/**
+ * Get analytics data for the admin dashboard.
+ */
+function getAnalytics(): array {
+    session_start();
+    if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+        http_response_code(403);
+        return ['success' => false, 'error' => 'Admin only'];
+    }
+
+    $pdo = db();
+    $period = $_GET['period'] ?? 'today';
+
+    // Date filter
+    switch ($period) {
+        case 'week':  $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"; break;
+        case 'month': $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"; break;
+        default:      $dateFilter = "AND DATE(o.started_at) = CURDATE()"; break;
+    }
+
+    // Summary stats
+    $sum = $pdo->query("SELECT
+        COUNT(*) AS total_trips,
+        COALESCE(SUM(o.total_boarded),0) AS total_passengers,
+        COALESCE(SUM(o.pre_departure_count),0) AS total_pre_departure,
+        COALESCE(SUM(o.total_departed),0) AS total_departed,
+        COALESCE(AVG(TIMESTAMPDIFF(MINUTE, o.started_at, o.ended_at)),0) AS avg_trip_minutes
+        FROM bus_operations o WHERE o.status='completed' {$dateFilter}")->fetch(PDO::FETCH_ASSOC);
+
+    // Per-route breakdown
+    $routes = $pdo->query("SELECT o.route, COUNT(*) AS trips, COALESCE(SUM(o.total_boarded),0) AS passengers
+        FROM bus_operations o WHERE 1=1 {$dateFilter} GROUP BY o.route ORDER BY passengers DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Per-bus breakdown (trips and passengers)
+    $buses = $pdo->query("SELECT b.code, o.bus_id, COUNT(*) AS trips, COALESCE(SUM(o.total_boarded),0) AS passengers,
+        GROUP_CONCAT(DISTINCT o.route SEPARATOR ', ') AS routes,
+        GROUP_CONCAT(DISTINCT c.email SEPARATOR ', ') AS conductors
+        FROM bus_operations o 
+        JOIN busses b ON b.Bus_ID = o.bus_id
+        JOIN conductors c ON c.id = o.conductor_id
+        WHERE 1=1 {$dateFilter} GROUP BY o.bus_id, b.code ORDER BY passengers DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Fetch all departures in this period grouped by bus and location
+    $busDepQueries = $pdo->query("SELECT o.bus_id, pe.location_name, SUM(pe.count) AS total
+        FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+        WHERE pe.event_type='depart' AND pe.location_name IS NOT NULL {$dateFilter}
+        GROUP BY o.bus_id, pe.location_name ORDER BY total DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Nest hotspots into each bus
+    foreach ($buses as &$bus) {
+        $bus['hotspots'] = array_filter($busDepQueries, function($h) use ($bus) {
+            return (int)$h['bus_id'] === (int)$bus['bus_id'];
+        });
+        $bus['hotspots'] = array_values($bus['hotspots']); // Reset keys
+    }
+
+    // Per-conductor breakdown
+    $conductors = $pdo->query("SELECT c.email, o.conductor_id, COUNT(*) AS trips, COALESCE(SUM(o.total_boarded),0) AS passengers
+        FROM bus_operations o JOIN conductors c ON c.id = o.conductor_id
+        WHERE 1=1 {$dateFilter} GROUP BY o.conductor_id, c.email ORDER BY trips DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Hourly passenger flow
+    $hourly = $pdo->query("SELECT HOUR(pe.recorded_at) AS hr, SUM(pe.count) AS total
+        FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+        WHERE pe.event_type='board' {$dateFilter}
+        GROUP BY HOUR(pe.recorded_at) ORDER BY hr")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Global Departure locations (optional, keeping for summary if needed, but per-bus is priority)
+    $departures = $pdo->query("SELECT pe.location_name, SUM(pe.count) AS total
+        FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+        WHERE pe.event_type='depart' AND pe.location_name IS NOT NULL {$dateFilter}
+        GROUP BY pe.location_name ORDER BY total DESC LIMIT 20")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Recent operations
+    $recent = $pdo->query("SELECT o.*, b.code AS bus_code, c.email AS conductor_email,
+        TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW())) AS duration_min
+        FROM bus_operations o
+        JOIN busses b ON b.Bus_ID = o.bus_id
+        JOIN conductors c ON c.id = o.conductor_id
+        WHERE 1=1 {$dateFilter}
+        ORDER BY o.started_at DESC LIMIT 20")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Location Activity Log (Boarding/Departure per location)
+    $locationLogs = $pdo->query("SELECT 
+        pe.location_name, 
+        pe.recorded_at, 
+        b.code AS bus_code, 
+        c.email AS conductor_email, 
+        o.route,
+        SUM(CASE WHEN pe.event_type = 'board' THEN pe.count ELSE 0 END) AS boarded,
+        SUM(CASE WHEN pe.event_type = 'depart' THEN pe.count ELSE 0 END) AS departed
+        FROM passenger_events pe
+        JOIN bus_operations o ON o.id = pe.operation_id
+        JOIN busses b ON b.Bus_ID = o.bus_id
+        JOIN conductors c ON c.id = o.conductor_id
+        WHERE 1=1 {$dateFilter}
+        GROUP BY pe.operation_id, pe.location_name, pe.recorded_at
+        ORDER BY pe.recorded_at DESC LIMIT 50")->fetchAll(PDO::FETCH_ASSOC);
+
+    return [
+        'success' => true,
+        'period' => $period,
+        'summary' => $sum,
+        'routes' => $routes,
+        'buses' => $buses,
+        'conductors' => $conductors,
+        'hourly_flow' => $hourly,
+        'departure_locations' => $departures,
+        'recent_operations' => $recent,
+        'location_logs' => $locationLogs
+    ];
+}
+
+/** Public passenger summary — dynamic stats for the app */
+function getPublicStats(): array {
+    $pdo = db();
+    $row = $pdo->query("SELECT
+        COALESCE(ROUND(AVG(daily_total)),0) AS avg_daily_passengers
+        FROM (SELECT DATE(started_at) AS d, SUM(total_boarded) AS daily_total
+              FROM bus_operations WHERE status='completed' AND started_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
+              GROUP BY DATE(started_at)) AS sub")->fetch(PDO::FETCH_ASSOC);
+    $todayTrips = (int)$pdo->query("SELECT COUNT(*) FROM bus_operations WHERE DATE(started_at)=CURDATE()")->fetchColumn();
+    return [
+        'success' => true,
+        'avg_daily_passengers' => (int)($row['avg_daily_passengers'] ?? 0),
+        'today_trips' => $todayTrips
+    ];
+}
+
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 
 try {
     switch ($action) {
-        case 'get_buses':                 // passenger / public
-            $response = getBuses();
-            break;
-
-        case 'get_buses_conductor':       // conductor-only view
-            $response = getBusesConductor();
-            break;
-
-        case 'get_bus_stops_terminal':
-            $response = getBusStopsTerminal();
-            break;
-
-        case 'get_filtered_buses':        // filter buses by route
-            $response = getFilteredBuses();
-            break;
-
-        case 'update_location':
-            $response = updateLocation();
-            break;
-
-        case 'stop_tracking':
-            $response = stopTracking();
-            break;
-
+        case 'get_buses':                 $response = getBuses(); break;
+        case 'get_buses_conductor':       $response = getBusesConductor(); break;
+        case 'get_bus_stops_terminal':    $response = getBusStopsTerminal(); break;
+        case 'get_filtered_buses':        $response = getFilteredBuses(); break;
+        case 'update_location':           $response = updateLocation(); break;
+        case 'stop_tracking':             $response = stopTracking(); break;
+        case 'start_operation':           $response = startOperation(); break;
+        case 'log_passenger_event':       $response = logPassengerEvent(); break;
+        case 'get_analytics':             $response = getAnalytics(); break;
+        case 'get_public_stats':          $response = getPublicStats(); break;
         default:
             http_response_code(400);
             $response = ['success' => false, 'error' => 'Invalid action'];
     }
-
     echo json_encode($response);
 } catch (Throwable $e) {
     http_response_code(500);

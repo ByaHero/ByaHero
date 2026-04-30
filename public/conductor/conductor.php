@@ -603,7 +603,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                 code: selectedBusMeta?.code || `BUS-${busId}`,
                 seats_total: seatsTotal,
                 route: route,
-                initial_available_seats: initialAvailableSeats
+                initial_available_seats: initialAvailableSeats,
+                pre_departure_count: boarded
             };
 
             const form = document.createElement('form');
