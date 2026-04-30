@@ -367,6 +367,39 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let eventFlushTimer = null;
     const EVENT_DEBOUNCE_MS = 1500; // 1.5 seconds
 
+    /**
+     * Standardized POST helper. 
+     * Uses CapacitorHttp (Native side) if available to bypass WebView background throttling.
+     */
+    async function safePost(relativeUrl, payload) {
+        const url = new URL(relativeUrl, window.location.href).href;
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
+                const res = await window.Capacitor.Plugins.CapacitorHttp.post({
+                    url,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: payload
+                });
+                return res.data;
+            } else {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                return await res.json();
+            }
+        } catch(e) {
+            console.error('safePost error:', e);
+            return { success: false, error: e.message };
+        }
+    }
+
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
         alertBox.innerHTML = `<div class="alert alert-${bsType} border-0 text-center fw-bold shadow-sm" style="border-radius: 12px; padding: 10px;">${message}</div>`;
@@ -485,25 +518,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         };
 
         try {
-            const absoluteUrl = new URL('../update_geo_location.php', window.location.href).href;
-            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
-                await window.Capacitor.Plugins.CapacitorHttp.post({
-                    url: absoluteUrl,
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json, text/plain, */*',
-                        'User-Agent': navigator.userAgent,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    data: payload
-                });
-            } else {
-                await fetch('../update_geo_location.php', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
+            const json = await safePost('../update_geo_location.php', payload);
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
         } catch (e) {
             if(netStatus) { netStatus.textContent = 'Offline'; netStatus.className = 'badge bg-danger'; }
@@ -663,22 +678,15 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     // --- ANALYTICS: Start operation on first load ---
     async function initOperation() {
         if (operationId > 0 || !isNewSession) return; // already has one or is a resume
-        try {
-            const res = await fetch('../api.php?action=start_operation', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    bus_id: busId,
-                    route: busRoute,
-                    pre_departure_count: preDepartureCount,
-                    start_location: lastKnownLocation?.locName || null
-                })
-            });
-            const json = await res.json();
-            if (json.success && json.operation_id) {
-                operationId = json.operation_id;
-            }
-        } catch(e) { console.error('Failed to start operation:', e); }
+        const json = await safePost('../api.php?action=start_operation', {
+            bus_id: busId,
+            route: busRoute,
+            pre_departure_count: preDepartureCount,
+            start_location: lastKnownLocation?.locName || null
+        });
+        if (json.success && json.operation_id) {
+            operationId = json.operation_id;
+        }
     }
 
     // --- ANALYTICS: Debounce-cancel event flushing ---
@@ -707,18 +715,14 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         showAlert(`${count} passenger${count > 1 ? 's' : ''} ${action} at ${loc}`, 'info');
 
         // Fire and forget
-        fetch('../api.php?action=log_passenger_event', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                operation_id: operationId,
-                event_type: eventType,
-                count: count,
-                location_name: locName,
-                lat: lat,
-                lng: lng
-            })
-        }).catch(e => console.error('Event log error:', e));
+        safePost('../api.php?action=log_passenger_event', {
+            operation_id: operationId,
+            event_type: eventType,
+            count: count,
+            location_name: locName,
+            lat: lat,
+            lng: lng
+        });
     }
 
     function scheduleEventFlush() {
@@ -760,28 +764,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             bus_id: busId,
             end_location: lastKnownLocation?.locName || null
         };
-        try {
-            const absoluteUrl = new URL('../api.php?action=stop_tracking', window.location.href).href;
-            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
-                await window.Capacitor.Plugins.CapacitorHttp.post({
-                    url: absoluteUrl,
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json, text/plain, */*',
-                        'User-Agent': navigator.userAgent,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    data: payload
-                });
-            } else {
-                await fetch('../api.php?action=stop_tracking', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-            }
-        } catch (e) {
-        }
+        await safePost('../api.php?action=stop_tracking', payload);
 
         window.location.href = 'conductor.php?stopped=1';
     }
