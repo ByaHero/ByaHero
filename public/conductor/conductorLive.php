@@ -365,6 +365,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let pendingBoards = 0;
     let pendingDeparts = 0;
     let syncTimer = null;
+    let lastActionTime = 0;
     const SYNC_DEBOUNCE_MS = 3000; // Increased to 3s for InfinityFree stability
 
     /**
@@ -521,10 +522,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             const json = await safePost('../update_geo_location.php', payload);
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
             
-            // Fallback: Only flush if no sync timer is active.
-            // This prevents a moving bus (which syncs every 10s) from flushing 
-            // a button press that happened only 1-2 seconds ago.
-            if (!syncTimer) {
+            // Fallback: Flush if no timer is active, OR if the timer appears to be stuck.
+            // A stuck timer happens when the phone is locked and the OS pauses JS execution.
+            // We force a flush if the last action was more than 5 seconds ago.
+            const timeSinceAction = Date.now() - lastActionTime;
+            if (!syncTimer || timeSinceAction > (SYNC_DEBOUNCE_MS + 2000)) {
                 flushPendingEvents();
             }
         } catch (e) {
@@ -737,6 +739,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
      * Serializing these calls prevents InfinityFree from blocking simultaneous requests.
      */
     function scheduleSync() {
+        lastActionTime = Date.now();
         clearTimeout(syncTimer);
         syncTimer = setTimeout(async () => {
             // 1. Update current status (Location + Current Seat Count)
