@@ -804,7 +804,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     async function updateMediaSessionMetadata() {
         const metadata = {
             title: `BUS ${busCode} • ${busRoute}`, // Bus number and route
-            artist: `Available Seats: ${seats}`,
+            artist: `Passenger Count: ${seatsTotal - seats}`,
             album: 'ByaHero Conductor Tracker',
             artwork: [
                 { src: '../../assets/images/byaheroLogo.png', sizes: '512x512', type: 'image/png' } // High quality logo for Android color extraction
@@ -859,13 +859,13 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
             try {
                 const MediaSession = window.Capacitor.Plugins.MediaSession;
-                await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementSeats);
-                await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementSeats);
+                await MediaSession.setActionHandler({ action: 'nexttrack' }, incrementPassengers);
+                await MediaSession.setActionHandler({ action: 'previoustrack' }, decrementPassengers);
                 await updateMediaSessionMetadata();
             } catch(e) { }
         } else if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('nexttrack', incrementSeats);
-            navigator.mediaSession.setActionHandler('previoustrack', decrementSeats);
+            navigator.mediaSession.setActionHandler('nexttrack', incrementPassengers);
+            navigator.mediaSession.setActionHandler('previoustrack', decrementPassengers);
             updateMediaSessionMetadata();
         }
     }
