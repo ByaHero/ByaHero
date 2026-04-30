@@ -277,9 +277,13 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         <div class="text-center fw-bold mt-3 mb-1" style="color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Seats Available</div>
         <div class="seats-control" style="margin-top: 0;">
-            <button id="seatMinus" class="btn-seat" type="button">−</button>
+            <button id="seatMinus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
+                <img src="../../assets/images/increase.svg" alt="Boarding" style="width: 28px; height: 28px;">
+            </button>
             <div id="seatsCount" class="seats-num"><?= intval($seatsAvailable) ?></div>
-            <button id="seatPlus" class="btn-seat" type="button">+</button>
+            <button id="seatPlus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
+                <img src="../../assets/images/decrease.svg" alt="Leaving" style="width: 28px; height: 28px;">
+            </button>
         </div>
 
         <!-- statusSelect is kept but hidden; JS will update it automatically -->

@@ -283,15 +283,10 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     <!-- SPECIAL NAVBAR FOR adminProfile.php -->
     <div class="container-fluid admin-profilebar position-relative">
       <div class="d-flex align-items-center gap-2" style="z-index: 1;">
-        <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
-          <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+        <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Back" aria-label="Back">
+          <span class="material-symbols-rounded" style="font-size: 26px;">arrow_back</span>
         </a>
         <div class="title">Profile</div>
-      </div>
-      
-      <!-- Centered Logo -->
-      <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
-        <img src="<?= htmlspecialchars($baseUrl . '/assets/images/ByaHero.png') ?>" alt="ByaHero" style="height: 35px; object-fit: contain;">
       </div>
     </div>
 
@@ -301,8 +296,8 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     <div class="container-fluid admin-topbar position-relative">
       <div class="admin-left" style="z-index: 1;">
         <?php if ($showClose): ?>
-          <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
-            <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+          <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Back" aria-label="Back">
+            <span class="material-symbols-rounded" style="font-size: 26px;">arrow_back</span>
           </a>
           <div class="admin-title"><?= htmlspecialchars($titleMain) ?></div>
         <?php else: ?>
@@ -315,6 +310,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
         <?php endif; ?>
       </div>
 
+      <?php if ($isDashboard): ?>
       <!-- Centered Logo -->
       <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
         <img
@@ -323,6 +319,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
           style="height: 35px; object-fit: contain;"
         >
       </div>
+      <?php endif; ?>
 
       <div style="z-index: 1;">
         <?php if ($isDashboard): ?>
