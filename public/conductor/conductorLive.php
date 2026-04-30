@@ -364,8 +364,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     // Debounce-cancel system: tracks net seat changes before flushing to server
     let pendingBoards = 0;
     let pendingDeparts = 0;
-    let eventFlushTimer = null;
-    const EVENT_DEBOUNCE_MS = 3000; // 1 second as requested
+    let syncTimer = null;
+    const SYNC_DEBOUNCE_MS = 3000; // Increased to 3s for InfinityFree stability
 
     /**
      * Standardized POST helper. 
@@ -719,7 +719,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         showAlert(`${count} passenger${count > 1 ? 's' : ''} ${action} at ${loc}`, 'info');
 
         // Fire and forget
-        safePost('../api.php?action=log_passenger_event', {
+        return safePost('../api.php?action=log_passenger_event', {
             operation_id: operationId,
             event_type: eventType,
             count: count,
@@ -729,18 +729,25 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         });
     }
 
-    function scheduleEventFlush() {
-        // Restore the 1-second debounce even for background to allow the "cancel mistake" logic.
-        // If the OS suspends this timer while locked, the fallback in sendDataToServer() 
-        // (which runs every 10s via background geolocation) will catch and flush the data.
-        clearTimeout(eventFlushTimer);
-        eventFlushTimer = setTimeout(flushPendingEvents, EVENT_DEBOUNCE_MS);
+    /**
+     * Unified Sync: Handles both seat/location updates and analytics logging.
+     * Serializing these calls prevents InfinityFree from blocking simultaneous requests.
+     */
+    function scheduleSync() {
+        clearTimeout(syncTimer);
+        syncTimer = setTimeout(async () => {
+            // 1. Update current status (Location + Current Seat Count)
+            await triggerManualUpdate();
+            
+            // 2. Log analytics events (Historical Flow)
+            await flushPendingEvents();
+        }, SYNC_DEBOUNCE_MS);
     }
 
     // --- THE UNIFIED STOP TRACKING FUNCTION ---
     async function stopTracking() {
         // Flush any pending events immediately before stopping
-        clearTimeout(eventFlushTimer);
+        clearTimeout(syncTimer);
         flushPendingEvents();
 
         stopKeepAliveAudio();
@@ -778,17 +785,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
     function triggerManualUpdate() {
         if (!lastKnownLocation) return;
-        sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
-        lastNetworkSync = Date.now();
-    }
-
-    let updateDebounceTimer = null;
-    function debouncedManualUpdate() {
-        clearTimeout(updateDebounceTimer);
-        // Wait 1.5 seconds after the last press to prevent hitting InfinityFree limits
-        updateDebounceTimer = setTimeout(() => {
-            triggerManualUpdate();
-        }, 3000);
+        return sendDataToServer(lastKnownLocation.lat, lastKnownLocation.lng, lastKnownLocation.locName);
     }
 
     async function updateMediaSessionMetadata() {
@@ -818,10 +815,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             seats = seats - 1;
             updateSeatsUI();
             updateMediaSessionMetadata();
-            debouncedManualUpdate();
-            // Analytics: passenger boarded (seat taken)
             pendingBoards++;
-            scheduleEventFlush();
+            scheduleSync();
         } else {
             showAlert('Bus is full!', 'danger');
         }
@@ -832,10 +827,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             seats = seats + 1;
             updateSeatsUI();
             updateMediaSessionMetadata();
-            debouncedManualUpdate();
-            // Analytics: passenger departed (seat freed)
             pendingDeparts++;
-            scheduleEventFlush();
+            scheduleSync();
         }
     }
 

@@ -11,9 +11,9 @@
         "bus_id": 6,
         "code": "T-00002",
         "route": "LAUREL - TANAUAN",
-        "seats_available": 7,
+        "seats_available": 2,
         "status": "on_stop",
-        "timestamp": "2026-04-30T18:18:51.924Z",
+        "timestamp": "2026-04-30T18:22:51.924Z",
         "current_location_name": "San Isidro",
         "Current Location": "San Isidro"
     }
