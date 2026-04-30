@@ -225,9 +225,8 @@ $pageType = 'dashboard';
     <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
     <div class="container">
-        <div class="mb-4">
-            <h2 class="fw-bold mb-1">Dashboard</h2>
-            <p class="text-muted mb-0">Overview of your bus system</p>
+        <div class="mb-4 mt-4">
+            <h2 class="fw-bold mb-0">Dashboard</h2>
         </div>
 
         <div class="row g-3 g-lg-4 mb-4">

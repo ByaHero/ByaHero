@@ -281,18 +281,25 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
   <?php if ($isAdminProfile): ?>
 
     <!-- SPECIAL NAVBAR FOR adminProfile.php -->
-    <div class="container-fluid admin-profilebar">
-      <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
-        <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
-      </a>
-      <div class="title">Profile</div>
+    <div class="container-fluid admin-profilebar position-relative">
+      <div class="d-flex align-items-center gap-2" style="z-index: 1;">
+        <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
+          <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
+        </a>
+        <div class="title">Profile</div>
+      </div>
+      
+      <!-- Centered Logo -->
+      <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
+        <img src="<?= htmlspecialchars($baseUrl . '/assets/images/ByaHero.png') ?>" alt="ByaHero" style="height: 35px; object-fit: contain;">
+      </div>
     </div>
 
   <?php else: ?>
 
     <!-- DEFAULT NAVBAR -->
-    <div class="container-fluid admin-topbar">
-      <div class="admin-left">
+    <div class="container-fluid admin-topbar position-relative">
+      <div class="admin-left" style="z-index: 1;">
         <?php if ($showClose): ?>
           <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Close" aria-label="Close">
             <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
@@ -308,7 +315,16 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
         <?php endif; ?>
       </div>
 
-      <div>
+      <!-- Centered Logo -->
+      <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
+        <img
+          src="<?= htmlspecialchars($baseUrl . '/assets/images/ByaHero.png') ?>"
+          alt="ByaHero"
+          style="height: 35px; object-fit: contain;"
+        >
+      </div>
+
+      <div style="z-index: 1;">
         <?php if ($isDashboard): ?>
           <button
             type="button"
@@ -329,7 +345,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
 
 <?php if ($isDashboard): ?>
   <!-- Offcanvas Menu (dashboard only) -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="adminMenu" aria-labelledby="adminMenuLabel">
+  <div class="offcanvas offcanvas-end" tabindex="-1" id="adminMenu" aria-labelledby="adminMenuLabel" style="width: 85vw;">
     <div class="admin-menu-header">
       <button type="button" class="admin-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
         <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
