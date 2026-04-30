@@ -187,6 +187,14 @@ $backLink = 'admin.php';
             margin: 18px auto 8px;
             font-weight: 900;
             color: #0f172a;
+            cursor: pointer;
+            user-select: none;
+        }
+        .transition-icon {
+            transition: transform 0.3s ease;
+        }
+        .list-title[aria-expanded="true"] .transition-icon {
+            transform: rotate(180deg);
         }
 
         .list-card {
@@ -307,29 +315,34 @@ $backLink = 'admin.php';
         </div>
     </div>
 
-    <div class="list-title">Registered Staff</div>
-    <div class="list-card">
-        <?php if(empty($staff)): ?>
-            <div class="text-center text-muted py-4">No staff accounts found.</div>
-        <?php else: foreach($staff as $u): ?>
-            <div class="staff-row">
-                <div style="min-width:0">
-                    <p class="staff-email text-truncate"><?= h($u['email']) ?></p>
-                    <p class="staff-sub"><?= h($u['created_at'] ?? '') ?></p>
-                </div>
+    <div class="list-title d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#staffListCollapse" aria-expanded="false" aria-controls="staffListCollapse">
+        <span>Registered Staff</span>
+        <span class="material-icons-round transition-icon text-muted">expand_more</span>
+    </div>
+    <div class="collapse" id="staffListCollapse">
+        <div class="list-card mb-4">
+            <?php if(empty($staff)): ?>
+                <div class="text-center text-muted py-4">No staff accounts found.</div>
+            <?php else: foreach($staff as $u): ?>
+                <div class="staff-row">
+                    <div style="min-width:0">
+                        <p class="staff-email text-truncate"><?= h($u['email']) ?></p>
+                        <p class="staff-sub"><?= h($u['created_at'] ?? '') ?></p>
+                    </div>
 
-                <div class="d-flex align-items-center gap-2">
-                    <span class="role-pill"><?= h($u['role'] ?? 'staff') ?></span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="role-pill"><?= h($u['role'] ?? 'staff') ?></span>
 
-                    <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');" class="m-0">
-                        <input type="hidden" name="action" value="delete_user">
-                        <input type="hidden" name="id" value="<?= h($u['id']) ?>">
-                        <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
-                        <button class="btn btn-remove" type="submit">Remove</button>
-                    </form>
+                        <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');" class="m-0">
+                            <input type="hidden" name="action" value="delete_user">
+                            <input type="hidden" name="id" value="<?= h($u['id']) ?>">
+                            <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
+                            <button class="btn btn-remove" type="submit">Remove</button>
+                        </form>
+                    </div>
                 </div>
-            </div>
-        <?php endforeach; endif; ?>
+            <?php endforeach; endif; ?>
+        </div>
     </div>
 
 </div>

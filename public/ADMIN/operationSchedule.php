@@ -165,6 +165,7 @@ $backLink  = 'admin.php';
             border-radius: 14px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.06);
             background: #fff;
+            color: #1d4ed8; /* darker blue */
         }
         .card-header-std {
             background: #fff;
@@ -186,10 +187,8 @@ $backLink  = 'admin.php';
         }
         .form-control, .form-select {
             border-radius: 12px;
+            color: #1e293b;
         }
-
-        /* keep your previous change */
-        .card-header-std.text-primary { color: #000 !important; }
 
         /* NEW (UI): route containers to visually separate both routes */
         .route-card {
@@ -232,9 +231,8 @@ $backLink  = 'admin.php';
     <div class="row g-4 mt-1">
         <div class="col-lg-8 mx-auto">
             <div class="card card-standard">
-                <div class="card-header-std text-primary d-flex align-items-center gap-2">
-                    <span class="material-icons-round">schedule</span>
-                    <span>Operation Schedule</span>
+                <div class="card-header-std d-flex align-items-center gap-2">
+                    <span class="fs-4">Operation Schedule</span>
                 </div>
 
                 <div class="card-body">
@@ -337,14 +335,7 @@ $backLink  = 'admin.php';
                             <button class="btn btn-primary pill-btn">Save Schedules</button>
                         </div>
 
-                        <div class="help-card small text-muted mt-3">
-                            <div class="fw-bold text-dark mb-1">Notes</div>
-                            <ul class="mb-0 ps-3">
-                                <li>This page only manages LAUREL - TANAUAN and TANAUAN - LAUREL.</li>
-                                <li>If a route is not suspended, Open and Close times must be filled.</li>
-                                <li>If a route is suspended, the message is optional.</li>
-                            </ul>
-                        </div>
+
                     </form>
                 </div>
 

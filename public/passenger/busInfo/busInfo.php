@@ -56,11 +56,10 @@ $backLink = 'javascript:history.back()';
             padding-bottom: 80px;
         }
 
-        .content-sheet {
-            border-top-left-radius: 30px;
-            border-top-right-radius: 30px;
-            min-height: calc(100vh - 280px);
-        }
+        .text-primary { color: #1d4ed8 !important; }
+        .shadow-sm { box-shadow: none !important; }
+        .border { border-color: #e2e8f0 !important; }
+        .btn-custom-toggle { border: 1px solid #e2e8f0 !important; }
 
         #fareAmount.fare-text {
             font-weight: 900 !important;
@@ -153,12 +152,8 @@ $backLink = 'javascript:history.back()';
         <?php endif; ?>
 
         <h4 class="text-primary fw-bold mt-4 mb-3 fs-5 ps-1">Bus Fare Check</h4>
-    </div>
 
-    <div class="content-sheet bg-light pt-4 px-3 pb-5 mt-4 shadow-sm">
-        <div class="container p-0">
-
-            <div class="row g-2 mb-3">
+        <div class="row g-2 mb-3">
 
                 <div class="col-6">
                     <div class="dropdown w-100">
@@ -233,11 +228,10 @@ $backLink = 'javascript:history.back()';
 
             <div id="errorMessage" class="text-danger small text-center mt-3 fw-medium" style="min-height: 20px;"></div>
 
-            <div class="text-primary text-center mt-4 d-flex align-items-baseline justify-content-center gap-2">
+            <div class="text-primary text-center mt-4 pb-5 d-flex align-items-baseline justify-content-center gap-2">
                 <span class="fs-1 fw-bold lh-1" style="font-size: clamp(3rem, 12vw, 4.5rem) !important;">Php</span>
                 <span id="fareAmount" class="fare-text fw-bolder">0.00</span>
             </div>
-        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

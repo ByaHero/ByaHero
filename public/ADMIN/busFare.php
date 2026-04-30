@@ -288,11 +288,7 @@ $backLink = 'admin.php';
             padding: 10px 12px;
         }
 
-        /* ONLY CHANGE 1: labels should be black */
-        .form-label { color: #000 !important; }
-
-        /* ONLY CHANGE 1b: section headers that were text-primary should be black */
-        .card-header-std.text-primary { color: #000 !important; }
+        .form-label { color: #1d4ed8 !important; }
 
         /* ONLY CHANGE 2: all outline buttons become solid like Save */
         .btn-outline-primary {
@@ -343,17 +339,9 @@ $backLink = 'admin.php';
         <div class="col-lg-4">
 
             <!-- LTFRB Matrix Generator -->
-            <div class="card card-standard mb-4 border-primary" style="border: 2px solid var(--brand);">
-                <div class="card-header-std bg-primary text-white" style="border-radius: 12px 12px 0 0 !important; color: white !important;">
-                    <span class="material-icons-round align-middle me-1">auto_awesome</span>
-                    Automated LTFRB Matrix
-                </div>
-                <div class="card-body">
-                    <div class="help-box small text-muted mb-3">
-                        <div class="fw-bold text-dark mb-1">LTFRB Exact Formula</div>
-                        <div>This tool instantly calculates the fare for all 900+ routes based on their exact distance (km).</div>
-                        <div class="mt-2 text-danger fw-bold"><span class="material-icons-round" style="font-size: 14px; vertical-align: middle;">warning</span> This will overwrite ALL current fares.</div>
-                    </div>
+            <div>
+
+                <div class="mb-4" style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; background: #fff;">
 
                     <form method="POST" onsubmit="return confirm('WARNING: This will instantly overwrite all 900+ rows with mathematical matrix calculations. Proceed?');">
                         <input type="hidden" name="action" value="generate_matrix">
@@ -402,16 +390,11 @@ $backLink = 'admin.php';
             </div>
 
             <!-- Snapshots -->
-            <div class="card card-standard">
-                <div class="card-header-std text-primary">
-                    <span class="material-icons-round align-middle me-1">history</span>
+            <div>
+                <h6 class="fw-bold mb-3 mt-2" style="color: #1d4ed8;">
                     Snapshots (Rollback)
-                </div>
-                <div class="card-body">
-                    <div class="help-box small text-muted mb-3">
-                        <div class="fw-bold text-dark mb-1">Best practice</div>
-                        <div>Create a snapshot before doing big updates. If anything goes wrong, restore it.</div>
-                    </div>
+                </h6>
+                <div class="mb-4" style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; background: #fff;">
 
                     <form method="POST" class="mb-3" onsubmit="return confirm('Create snapshot of ALL fares now?');">
                         <input type="hidden" name="action" value="snapshot_create">
@@ -448,19 +431,18 @@ $backLink = 'admin.php';
 
         <!-- Fare list -->
         <div class="col-lg-8">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center flex-wrap gap-2">
-                    <span>
-                        <span class="material-icons-round text-primary align-middle me-1">list</span>
+            <div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <h6 class="fw-bold m-0" style="color: #1d4ed8;">
                         Current Fares
-                    </span>
+                    </h6>
                     <form class="d-flex gap-2" method="GET">
                         <input class="form-control form-control-sm" name="q" value="<?= h($q) ?>" placeholder="Search origin/destination...">
-                        <button class="btn btn-sm btn-outline-primary pill-btn px-3">Filter</button>
+                        <button class="btn btn-sm btn-primary pill-btn px-3">Filter</button>
                     </form>
                 </div>
 
-                <div class="table-responsive">
+                <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; overflow: hidden;">
                     <table class="table table-hover mb-0">
                         <thead class="table-light text-muted small">
                             <tr>
