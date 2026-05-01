@@ -196,16 +196,26 @@
       // CRITICAL START: Set up listeners immediately so we don't miss the token while the prompt is open 
       setupPushListeners();
       
-      let permStatus = await PushNotifications.checkPermissions();
+      let permStatus = { receive: 'granted' }; // Default to granted for older Androids
+      try {
+        permStatus = await PushNotifications.checkPermissions();
+      } catch (e) {
+        dbg('warn', '[SOS-FCM] checkPermissions threw error (expected on older Androids): ' + e);
+      }
   
       if (permStatus.receive === 'prompt' && !forceRegister) {
         // Show our beautiful custom pre-prompt
         return new Promise((resolve) => {
           showPermissionPopup(async (accepted) => {
             if (accepted) {
-              permStatus = await PushNotifications.requestPermissions();
+              try {
+                permStatus = await PushNotifications.requestPermissions();
+              } catch (e) {
+                dbg('warn', '[SOS-FCM] requestPermissions threw error: ' + e);
+                permStatus = { receive: 'granted' };
+              }
               if (permStatus.receive === 'granted') {
-                await PushNotifications.register();
+                try { await PushNotifications.register(); } catch(e) {}
                 scheduleRegisterRetry(0);
                 resolve(true);
               } else {
@@ -218,7 +228,12 @@
           });
         });
       } else if (permStatus.receive === 'prompt' || forceRegister) {
-        permStatus = await PushNotifications.requestPermissions();
+        try {
+          permStatus = await PushNotifications.requestPermissions();
+        } catch (e) {
+          dbg('warn', '[SOS-FCM] requestPermissions threw error: ' + e);
+          permStatus = { receive: 'granted' };
+        }
       }
   
       if (permStatus.receive !== 'granted') {
@@ -226,7 +241,11 @@
         return false;
       }
   
-      await PushNotifications.register();
+      try {
+        await PushNotifications.register();
+      } catch (e) {
+        dbg('warn', '[SOS-FCM] Initial register() threw error: ' + e);
+      }
 
       // Start the retry loop — if the registration event fires quickly, retries are cancelled
       scheduleRegisterRetry(0);
