@@ -130,7 +130,15 @@ try {
 
         if ($email === '' || $password === '' || $confirm === '') respond(false, 'Email and password required');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL))           respond(false, 'Invalid email address');
-        if ($contact === '')                                        respond(false, 'Contact number is required');
+        
+        if ($contact === '') respond(false, 'Contact number is required');
+        // PH Number Validation: Only digits, starts with 09 (11 digits) or 639 (12 digits)
+        $cleanContact = preg_replace('/[^0-9]/', '', $contact);
+        if (!preg_match('/^(09|639)\d{9}$/', $cleanContact)) {
+            respond(false, 'Please enter a valid Philippine mobile number (e.g., 09123456789)');
+        }
+        $contact = $cleanContact; // Use the cleaned numeric version
+
         if ($password !== $confirm)                                 respond(false, 'Passwords do not match');
         if (mb_strlen($password) < 6)                              respond(false, 'Password must be at least 6 characters');
 
@@ -175,7 +183,7 @@ try {
 
         // Send the OTP email
         if (function_exists('sendOTPEmail')) {
-            $mailRes = sendOTPEmail($email, $otp);
+            $mailRes = sendOTPEmail($email, $otp, 'signup');
             if (!$mailRes['success']) {
                 if (strpos($mailRes['message'], 'not configured') !== false
                     || strpos($mailRes['message'], 'SMTP Key') !== false) {
@@ -244,18 +252,26 @@ try {
 
         if (!$ok) respond(false, 'Database error during signup');
 
+        $newId = (int)$pdo->lastInsertId();
+
+        // ── SYNC SESSION: Fetch fresh user record from DB to ensure session matches DB ──
+        $fetchStmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+        $fetchStmt->execute([$newId]);
+        $user = $fetchStmt->fetch();
+
+        if (!$user) respond(false, 'Failed to retrieve new user record');
+
         // Cleanup OTP + pending session data
         $pdo->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->execute([$email]);
         unset($_SESSION['pending_signup']);
 
-        // Auto-login
-        $newId = (int)$pdo->lastInsertId();
+        // Auto-login (Exact same logic as standard login action)
         session_regenerate_id(true);
-        $_SESSION['user_id']       = $newId;
-        $_SESSION['user_email']    = $email;
+        $_SESSION['user_id']       = (int)$user['id'];
+        $_SESSION['user_email']    = $user['email'] ?? '';
         $_SESSION['user_role']     = 'passenger';
-        $_SESSION['user_name']     = $name !== '' ? $name : $email;
-        $_SESSION['user_contacts'] = $contact;
+        $_SESSION['user_name']     = $user['name'] ?? $user['email'] ?? '';
+        $_SESSION['user_contacts'] = $user['contacts'] ?? '';
 
         respond(true, 'Account created successfully!', ['redirect' => 'passenger/showGuide/showGuide.php']);
     }
@@ -267,6 +283,13 @@ try {
         }
         $contact = trim((string)($_POST['contacts'] ?? ''));
         if ($contact === '') respond(false, 'Contact number is required');
+
+        // PH Number Validation: Only digits, starts with 09 (11 digits) or 639 (12 digits)
+        $cleanContact = preg_replace('/[^0-9]/', '', $contact);
+        if (!preg_match('/^(09|639)\d{9}$/', $cleanContact)) {
+            respond(false, 'Please enter a valid Philippine mobile number (e.g., 09123456789)');
+        }
+        $contact = $cleanContact; // Use the cleaned numeric version
 
         $role = $_SESSION['user_role'];
         $table = $roleTables[$role] ?? 'users';

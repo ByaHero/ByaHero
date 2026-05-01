@@ -212,7 +212,9 @@ if (isset($_SESSION['user_id'])) {
                         </div>
                         
                         <div class="mb-3">
-                            <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number" required inputmode="tel" autocomplete="tel">
+                            <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number (e.g. 09123456789)" required 
+                                inputmode="numeric" autocomplete="tel" maxlength="11" pattern="09[0-9]{9}"
+                                oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                         </div>
                         
                         <div class="mb-3 password-wrapper">
@@ -337,6 +339,12 @@ if (isset($_SESSION['user_id'])) {
 
             if (p1 !== p2) {
                 alertBox.innerHTML = '<div class="alert alert-danger alert-small">Passwords do not match.</div>';
+                return;
+            }
+
+            const contactVal = form.querySelector('[name="contacts"]').value.trim();
+            if (!/^(09|639)\d{9}$/.test(contactVal)) {
+                alertBox.innerHTML = '<div class="alert alert-danger alert-small">Please enter a valid Philippine mobile number (e.g., 09123456789).</div>';
                 return;
             }
 

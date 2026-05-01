@@ -38,8 +38,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_phone'])) {
     }
 }
 
-// Fetch user data from database
-$stmt = $conn->prepare("SELECT name, email, contacts, profile_picture FROM users WHERE id = ?");
+// Fetch user data from database using the correct role table
+$role = $_SESSION['user_role'] ?? 'passenger';
+$table = 'users'; // Default
+if ($role === 'conductor') $table = 'conductors';
+if ($role === 'admin')     $table = 'admins';
+
+$stmt = $conn->prepare("SELECT name, email, contacts, profile_picture FROM {$table} WHERE id = ?");
 $stmt->bind_param("i", $userId);
 $stmt->execute();
 $result = $stmt->get_result();
@@ -47,10 +52,10 @@ $userData = $result->fetch_assoc();
 $stmt->close();
 
 $currentUser = [
-    'name' => $userData['name'] ?? 'User',
-    'phone' => $userData['contacts'] ?? '',
-    'email' => $userData['email'] ?? 'user@email.com',
-    'profile_picture' => $userData['profile_picture'] ?? null
+    'name'            => $userData['name'] ?? $_SESSION['user_name'] ?? 'User',
+    'phone'           => $userData['contacts'] ?? $_SESSION['user_contacts'] ?? '',
+    'email'           => $userData['email'] ?? $_SESSION['user_email'] ?? '',
+    'profile_picture' => $_SESSION['user_profile_picture'] ?? $userData['profile_picture'] ?? null
 ];
 
 // Helper for avatar initial

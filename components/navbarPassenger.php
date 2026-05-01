@@ -4,10 +4,12 @@ if (session_status() === PHP_SESSION_NONE) {
   session_start();
 }
 // SECURITY HEADERS
-header('X-Frame-Options: SAMEORIGIN');
-header('X-Content-Type-Options: nosniff');
-header('X-XSS-Protection: 1; mode=block');
-header('Referrer-Policy: strict-origin-when-cross-origin');
+if (!headers_sent()) {
+  header('X-Frame-Options: SAMEORIGIN');
+  header('X-Content-Type-Options: nosniff');
+  header('X-XSS-Protection: 1; mode=block');
+  header('Referrer-Policy: strict-origin-when-cross-origin');
+}
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';

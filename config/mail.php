@@ -21,9 +21,10 @@ define('SENDER_NAME', get_env_config('SENDER_NAME', 'ByaHero Support'));
  * 
  * @param string $to Recipient email address
  * @param string $otp 6-digit code
+ * @param string $type 'recovery' or 'signup'
  * @return array ['success' => bool, 'message' => string]
  */
-function sendOTPEmail(string $to, string $otp): array {
+function sendOTPEmail(string $to, string $otp, string $type = 'recovery'): array {
     if (BREVO_API_KEY === 'YOUR_BREVO_API_KEY_HERE') {
         return [
             'success' => false, 
@@ -40,6 +41,12 @@ function sendOTPEmail(string $to, string $otp): array {
 
     $url = 'https://api.brevo.com/v3/smtp/email';
     
+    $subject = ($type === 'signup') ? 'Verify Your ByaHero Account' : 'Your ByaHero Recovery Code';
+    $title   = ($type === 'signup') ? 'ByaHero Registration' : 'ByaHero Password Recovery';
+    $intro   = ($type === 'signup') 
+        ? 'Welcome to ByaHero! Please use the following 6-digit code to verify your email and complete your registration:' 
+        : 'You requested a password reset for your ByaHero account. Please use the following 6-digit code to proceed:';
+
     $data = [
         'sender' => [
             'name' => SENDER_NAME,
@@ -48,16 +55,16 @@ function sendOTPEmail(string $to, string $otp): array {
         'to' => [
             ['email' => $to]
         ],
-        'subject' => 'Your ByaHero Recovery Code',
+        'subject' => $subject,
         'htmlContent' => "
             <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e5e7eb; border-radius: 8px;'>
-                <h2 style='color: #2563eb; text-align: center;'>ByaHero Password Recovery</h2>
+                <h2 style='color: #2563eb; text-align: center;'>$title</h2>
                 <p>Hello,</p>
-                <p>You requested a password reset for your ByaHero account. Please use the following 6-digit code to proceed:</p>
+                <p>$intro</p>
                 <div style='background: #f3f4f6; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;'>
                     <span style='font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #1f2937;'>$otp</span>
                 </div>
-                <p>This code will expire in 15 minutes.</p>
+                <p>This code will expire in 10 minutes.</p>
                 <p>If you did not request this, please ignore this email or contact support if you have concerns.</p>
                 <hr style='border: 0; border-top: 1px solid #e5e7eb; margin: 20px 0;'>
                 <p style='font-size: 12px; color: #6b7280; text-align: center;'>&copy; " . date('Y') . " ByaHero Team. All rights reserved.</p>

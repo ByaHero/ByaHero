@@ -169,7 +169,9 @@ $userName = $_SESSION['user_name'] ?? 'User';
                     <label for="contacts">Contact Number</label>
                     <div class="input-wrapper">
                         <span class="material-symbols-rounded">phone</span>
-                        <input type="tel" id="contacts" name="contacts" placeholder="e.g. 09123456789" required minlength="7" maxlength="20">
+                        <input type="tel" id="contacts" name="contacts" placeholder="e.g. 09123456789" required 
+                            inputmode="numeric" maxlength="11" pattern="09[0-9]{9}"
+                            oninput="this.value = this.value.replace(/[^0-9]/g, '');">
                     </div>
                 </div>
 
@@ -191,6 +193,11 @@ $userName = $_SESSION['user_name'] ?? 'User';
             e.preventDefault();
             const contactVal = document.getElementById('contacts').value.trim();
             if(!contactVal) return;
+
+            if (!/^(09|639)\d{9}$/.test(contactVal)) {
+                alertBox.innerHTML = `<div class="alert alert-danger small py-2">Please enter a valid Philippine mobile number (e.g., 09123456789).</div>`;
+                return;
+            }
 
             submitBtn.disabled = true;
             submitBtn.innerHTML = `Saving... <span class="spinner-border spinner-border-sm" role="status"></span>`;
