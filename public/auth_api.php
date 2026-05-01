@@ -434,8 +434,8 @@ try {
             if (!$mailRes['success']) {
                 // If it's a dev placeholder error, we still return success for prototyping, 
                 // but include the dev_otp so the user isn't stuck.
-                if (strpos($mailRes['message'], 'YOUR_BREVO_API_KEY_HERE') !== false) {
-                    respond(true, 'Development Mode: OTP created (Update config/mail.php for real email).', ['dev_otp' => $otp]);
+                if (strpos($mailRes['message'], 'not configured') !== false || strpos($mailRes['message'], 'SMTP Key') !== false) {
+                    respond(true, 'Development Mode: OTP created (' . $mailRes['message'] . ').', ['dev_otp' => $otp]);
                 }
                 respond(false, 'Email service error: ' . $mailRes['message']);
             }
