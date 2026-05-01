@@ -403,19 +403,38 @@ try {
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
         if ($user) {
-            // Link google_id if not linked
+            // Update google_id and profile_picture if not set
             try {
                 $hasGoogleId = tableHasColumn($pdo, 'users', 'google_id');
+                $hasProfilePic = tableHasColumn($pdo, 'users', 'profile_picture');
+                
+                $updateFields = [];
+                $updateParams = [];
+
                 if ($hasGoogleId && empty($user['google_id'])) {
-                    $pdo->prepare("UPDATE users SET google_id = ?, auth_provider = 'google' WHERE id = ?")->execute([$googleId, $user['id']]);
+                    $updateFields[] = "google_id = ?, auth_provider = 'google'";
+                    $updateParams[] = $googleId;
+                }
+
+                if ($hasProfilePic && empty($user['profile_picture']) && !empty($profilePic)) {
+                    $updateFields[] = "profile_picture = ?";
+                    $updateParams[] = $profilePic;
+                    $user['profile_picture'] = $profilePic; // Update local copy for session
+                }
+
+                if (!empty($updateFields)) {
+                    $updateParams[] = $user['id'];
+                    $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
+                    $pdo->prepare($sql)->execute($updateParams);
                 }
             } catch (\Throwable $e) {}
 
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_role'] = 'passenger';
-            $_SESSION['user_name'] = $user['name'] ?? $name;
-            $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? $profilePic;
+            $_SESSION['user_name'] = !empty($user['name']) ? $user['name'] : $name;
+            // Only adopt Google profile pic if the DB one is empty/null
+            $_SESSION['user_profile_picture'] = !empty($user['profile_picture']) ? $user['profile_picture'] : $profilePic;
             $_SESSION['user_contacts'] = $user['contacts'] ?? '';
             
             respond(true, 'Login successful', ['redirect' => $roleRedirects['passenger']]);
