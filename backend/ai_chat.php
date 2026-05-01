@@ -51,7 +51,7 @@ curl_close($ch);
 if ($httpCode === 200 && $response) {
     $result = json_decode($response, true);
     $aiResponse = $result['response'] ?? 'Sorry, I could not generate a response.';
-    
+
     // Clean up response
     $aiResponse = trim($aiResponse);
     
