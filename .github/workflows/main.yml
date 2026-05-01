@@ -13,6 +13,12 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v3
 
+      - name: Create .env file
+        run: |
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> .env
+          echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
+          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> .env
+
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:

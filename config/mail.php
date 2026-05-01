@@ -10,9 +10,38 @@ declare(strict_types=1);
  * 2. Go to SMTP & API -> API Keys
  */
 
-define('BREVO_API_KEY', 'xsmtpsib-36403efd0e84f78a76b5740ee3a269f188f978ca2957e3c3432edf0ab110ac8c-Ta7uXllydybcpaiO'); // <-- REPLACE THIS
-define('SENDER_EMAIL', 'smtp-relay.brevo.com');    // <-- REPLACE THIS (Must be a verified sender in Brevo)
-define('SENDER_NAME', 'ByaHero Support');
+/**
+ * Load .env file manually
+ */
+(function() {
+    $envPath = __DIR__ . '/../.env';
+    if (file_exists($envPath)) {
+        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+        foreach ($lines as $line) {
+            $line = trim($line);
+            if (!$line || strpos($line, '#') === 0) continue;
+            if (strpos($line, '=') !== false) {
+                list($name, $value) = explode('=', $line, 2);
+                $name = trim($name);
+                $value = trim($value);
+                // Remove optional quotes
+                $value = trim($value, '"\'');
+                $_ENV[$name] = $value;
+                putenv("$name=$value");
+            }
+        }
+    }
+})();
+
+// Helper to get env with fallback
+function get_env_config(string $key, string $default): string {
+    $val = getenv($key);
+    return ($val !== false && $val !== '') ? $val : $default;
+}
+
+define('BREVO_API_KEY', get_env_config('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE'));
+define('SENDER_EMAIL', get_env_config('SENDER_EMAIL', 'no-reply@byahero.com'));
+define('SENDER_NAME', get_env_config('SENDER_NAME', 'ByaHero Support'));
 
 /**
  * Sends an OTP email to the user.
@@ -25,7 +54,14 @@ function sendOTPEmail(string $to, string $otp): array {
     if (BREVO_API_KEY === 'YOUR_BREVO_API_KEY_HERE') {
         return [
             'success' => false, 
-            'message' => 'Brevo API Key not configured. Please update config/mail.php'
+            'message' => 'Brevo API Key not configured. Please update your .env file.'
+        ];
+    }
+
+    if (strpos(BREVO_API_KEY, 'xsmtpsib-') === 0) {
+        return [
+            'success' => false,
+            'message' => 'You are using an SMTP Key (xsmtpsib-...). Please use a v3 API Key (starts with xkeysib-) instead.'
         ];
     }
 
@@ -62,6 +98,7 @@ function sendOTPEmail(string $to, string $otp): array {
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_HTTPHEADER, [
         'api-key: ' . BREVO_API_KEY,
+        'x-sib-api-key: ' . BREVO_API_KEY,
         'Content-Type: application/json',
         'Accept: application/json'
     ]);
