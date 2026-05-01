@@ -183,6 +183,9 @@ $backLink  = 'admin.php';
         <!-- Summary Stats -->
         <div class="stat-grid" id="statGrid"></div>
 
+        <!-- Hotspot Activity Summary -->
+        <div id="hotspotSummary"></div>
+
         <!-- Hourly Passenger Flow Chart -->
         <div class="section-card">
             <div class="section-title">
@@ -306,6 +309,9 @@ $backLink  = 'admin.php';
             </div>
         `;
 
+        // Boarding Activity Summary
+        renderHotspotSummary(s, data.boarding_locations || []);
+
         // Hourly chart
         renderHourlyChart(data.hourly_flow || []);
 
@@ -401,6 +407,35 @@ $backLink  = 'admin.php';
                 <td style="color:var(--brand);font-weight:900">${Number(r.passengers).toLocaleString()}</td>
             </tr>`).join('')}</tbody>
         </table>`;
+    }
+
+    function renderHotspotSummary(s, locations) {
+        const el = document.getElementById('hotspotSummary');
+        
+        let locListHtml = '<div class="text-center mt-3 pt-3 border-top"><div class="details-title">Boarding Locations</div><div class="d-flex flex-wrap justify-content-center gap-2 mt-2">';
+        if (locations && locations.length) {
+            locListHtml += locations.map(l => `
+                <span class="badge bg-light text-dark border py-2 px-3" style="border-radius:10px; font-weight:700;">
+                    ${h(l.location_name)} — <span style="color:#166534">${l.total}</span> <span style="font-size:0.65rem; color:var(--muted)">Boarded</span>
+                </span>
+            `).join('');
+        } else {
+            locListHtml += '<span class="text-muted small">No boarding data yet</span>';
+        }
+        locListHtml += '</div></div>';
+
+        el.innerHTML = `
+            <div class="section-card" style="padding: 24px;">
+                <div class="text-center">
+                    <div class="details-title" style="margin-bottom:8px;">Total Boarded Passengers</div>
+                    <div style="font-size: 2.8rem; font-weight: 900; color: #166534; line-height: 1.1;">
+                        ${Number(s.total_passengers || 0).toLocaleString()}
+                    </div>
+                    <div style="font-size: 0.8rem; color: var(--muted); font-weight: 700; margin-top: 6px;">Activity across all tracked terminals & stops</div>
+                </div>
+                ${locListHtml}
+            </div>
+        `;
     }
 
     function renderBusTable(buses) {

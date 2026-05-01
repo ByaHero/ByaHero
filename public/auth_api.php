@@ -27,6 +27,12 @@ if (!$loaded) {
     exit;
 }
 
+// Load mail configuration
+$mailConfigPath = __DIR__ . '/../config/mail.php';
+if (file_exists($mailConfigPath)) {
+    require_once $mailConfigPath;
+}
+
 function respond(bool $ok, string $msg = '', array $extra = []): void {
     echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));
     exit;
@@ -422,8 +428,22 @@ try {
         $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, ?)")
             ->execute([$email, $otp, $expires, $foundTable]);
 
-        // Simulating email send (in production, integrate an actual mail provider)
-        respond(true, 'An OTP has been sent to your email.');
+        // --- ACTUAL EMAIL SENDING ---
+        if (function_exists('sendOTPEmail')) {
+            $mailRes = sendOTPEmail($email, $otp);
+            if (!$mailRes['success']) {
+                // If it's a dev placeholder error, we still return success for prototyping, 
+                // but include the dev_otp so the user isn't stuck.
+                if (strpos($mailRes['message'], 'YOUR_BREVO_API_KEY_HERE') !== false) {
+                    respond(true, 'Development Mode: OTP created (Update config/mail.php for real email).', ['dev_otp' => $otp]);
+                }
+                respond(false, 'Email service error: ' . $mailRes['message']);
+            }
+            respond(true, 'An OTP has been sent to your email.');
+        } else {
+            // Fallback for dev if mail.php is missing
+            respond(true, 'Development Mode: OTP created (mail.php missing).', ['dev_otp' => $otp]);
+        }
     }
 
     if ($action === 'verify_otp') {

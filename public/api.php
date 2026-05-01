@@ -44,6 +44,16 @@ require __DIR__ . '/../config/db.php';
         INDEX idx_operation (operation_id),
         INDEX idx_type_time (event_type, recorded_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $p->exec("CREATE TABLE IF NOT EXISTS password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        otp_code VARCHAR(6) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_email (email),
+        INDEX idx_otp (otp_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 })();
 
 
@@ -591,10 +601,16 @@ function getAnalytics(): array {
         WHERE pe.event_type='board' {$dateFilter}
         GROUP BY HOUR(pe.recorded_at) ORDER BY hr")->fetchAll(PDO::FETCH_ASSOC);
 
-    // Global Departure locations (optional, keeping for summary if needed, but per-bus is priority)
+    // Global Departure locations
     $departures = $pdo->query("SELECT pe.location_name, SUM(pe.count) AS total
         FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
         WHERE pe.event_type='depart' AND pe.location_name IS NOT NULL {$dateFilter}
+        GROUP BY pe.location_name ORDER BY total DESC LIMIT 20")->fetchAll(PDO::FETCH_ASSOC);
+
+    // Global Boarding locations
+    $boardings = $pdo->query("SELECT pe.location_name, SUM(pe.count) AS total
+        FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+        WHERE pe.event_type='board' AND pe.location_name IS NOT NULL {$dateFilter}
         GROUP BY pe.location_name ORDER BY total DESC LIMIT 20")->fetchAll(PDO::FETCH_ASSOC);
 
     // Recent operations
@@ -632,6 +648,7 @@ function getAnalytics(): array {
         'conductors' => $conductors,
         'hourly_flow' => $hourly,
         'departure_locations' => $departures,
+        'boarding_locations' => $boardings,
         'recent_operations' => $recent,
         'location_logs' => $locationLogs
     ];

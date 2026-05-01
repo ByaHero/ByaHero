@@ -235,7 +235,7 @@ $pageTitle = 'Forgot Password';
                 <div id="err-2" class="alert alert-danger alert-small d-none"></div>
                 
                 <!-- DEV ALERT ONLY -->
-                <div class="dev-alert" id="dev-otp-display">
+                <div class="dev-alert" id="dev-otp-display" style="display: none;">
                     <strong>[Dev Mode Intercept]</strong><br>
                     Email transmission bypassed.<br>
                     Your reset code is: <strong style="font-size: 1.2rem; letter-spacing: 2px;" id="dev-otp-code">000000</strong>
@@ -361,7 +361,16 @@ $pageTitle = 'Forgot Password';
                 if (data.success) {
                     userEmail = email;
                     document.getElementById('display-email').textContent = email;
-                    document.getElementById('dev-otp-code').textContent = data.dev_otp; // specific for Prototype
+                    
+                    // Handle Dev Mode display
+                    const devOtpBox = document.getElementById('dev-otp-display');
+                    if (data.dev_otp) {
+                        document.getElementById('dev-otp-code').textContent = data.dev_otp;
+                        devOtpBox.style.display = 'block';
+                    } else {
+                        devOtpBox.style.display = 'none';
+                    }
+                    
                     showStep('step-2');
                     startTimer();
                 } else {
