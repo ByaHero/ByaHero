@@ -3,6 +3,7 @@
   
     const REGISTER_URL = (window.APP_BASE_URL || '') + '/backend/registerFcmToken.php';
     const PENDING_TOKEN_KEY = 'sos_fcm_pending_token';
+    const ACTIVE_TOKEN_KEY  = 'sos_fcm_active_token';   // persists the confirmed token for logout
     let _saved = false;
   
     // Safe console wrapper
@@ -24,6 +25,7 @@
         if (d.success) {
           _saved = true;
           localStorage.removeItem(PENDING_TOKEN_KEY);
+          localStorage.setItem(ACTIVE_TOKEN_KEY, token);  // remember for device-specific logout
           dbg('log', '[SOS-FCM] Token saved for user_id: ' + d.user_id);
         } else {
           dbg('warn', '[SOS-FCM] Not saved (' + d.message + ') — retry later');

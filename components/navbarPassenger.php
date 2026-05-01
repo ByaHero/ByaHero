@@ -526,13 +526,22 @@ else: ?>
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-          href="<?php echo $depth; ?>public/logout.php">
+        <form id="logout-form" action="<?php echo $depth; ?>public/logout.php" method="POST" style="display:none;">
+          <input type="hidden" name="fcm_token" id="logout-fcm-token" value="">
+        </form>
+        <button type="button"
+          class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark w-100"
+          style="background-color: #ececec;"
+          onclick="
+            var token = localStorage.getItem('sos_fcm_active_token') || '';
+            document.getElementById('logout-fcm-token').value = token;
+            document.getElementById('logout-form').submit();
+          ">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
             <img src="<?php echo $depth; ?>assets/images/logout.svg" alt="logout" height="30">
           </div>
           Log out
-        </a>
+        </button>
       <?php else: ?>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
           href="<?php echo $depth; ?>public/login.php">

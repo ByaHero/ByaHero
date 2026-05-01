@@ -1,23 +1,27 @@
 <?php
 session_start();
 
-// 1. Erase the user's push notification connection BEFORE destroying the session
+// 1. Remove ONLY the FCM token for this specific device (not all devices)
 if (isset($_SESSION['user_id'])) {
-    // Make sure to adjust this path if your db connection file is named differently!
-    require_once '../config/db_connection.php'; 
-    
+    require_once '../config/db_connection.php';
+
     try {
-        $userId = (int)$_SESSION['user_id'];
-        
-        // Delete all token associations for this user so they stop receiving pushes
-        $stmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?");
-        if ($stmt) {
-            $stmt->bind_param("i", $userId);
-            $stmt->execute();
-            $stmt->close();
+        $userId   = (int)$_SESSION['user_id'];
+        // The navbar sends the device's active token via POST
+        $fcmToken = trim($_POST['fcm_token'] ?? '');
+
+        if ($fcmToken !== '') {
+            // Device-specific delete: only removes this device's token
+            $stmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ? AND fcm_token = ?");
+            if ($stmt) {
+                $stmt->bind_param("is", $userId, $fcmToken);
+                $stmt->execute();
+                $stmt->close();
+            }
         }
+        // If no token was sent (e.g. a direct GET request or very old client),
+        // we intentionally do NOT delete all tokens — other devices keep their tokens.
     } catch (Exception $e) {
-        // We log the error but don't stop the script, so the user still gets logged out
         error_log("[Logout] Token cleanup failed: " . $e->getMessage());
     }
 }
@@ -31,7 +35,7 @@ if (isset($_COOKIE[session_name()])) {
     setcookie(session_name(), '', time() - 3600, '/');
 }
 
-// 4. Redirect to passenger index (accessibility settings persist in localStorage)
+// 4. Redirect to login page
 header("Location: passenger/index.php");
 exit;
-?>
+?>
