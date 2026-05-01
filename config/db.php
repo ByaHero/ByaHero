@@ -11,16 +11,18 @@ function db(): PDO {
     $is_cli = (php_sapi_name() === 'cli');
     $is_localhost = $is_cli || (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1'));
 
+    require_once __DIR__ . '/bootstrap.php';
+
     if ($is_localhost) {
         $host = '127.0.0.1';
         $user = 'root';
         $pass = '';
         $dbname = 'byahero';
     } else {
-        $host = 'sql311.infinityfree.com'; // Update this to match your hosting panel
-        $user = 'if0_41271108';
-        $pass = 'Bb1ToMvkTf';
-        $dbname = 'if0_41271108_byahero'; 
+        $host = get_env_config('DB_HOST', '');
+        $user = get_env_config('DB_USER', '');
+        $pass = get_env_config('DB_PASS', '');
+        $dbname = get_env_config('DB_NAME', '');
     }
 
     $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";

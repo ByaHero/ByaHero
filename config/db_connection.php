@@ -2,8 +2,8 @@
 // Set global timezone to Philippine Time
 date_default_timezone_set('Asia/Manila');
 
-// Auto-detect if running on localhost or CLI
-$is_localhost = (PHP_SAPI === 'cli' || $_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1');
+require_once __DIR__ . '/bootstrap.php';
+$is_localhost = (PHP_SAPI === 'cli' || (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1')));
 
 if ($is_localhost) {
     // Localhost Settings (XAMPP/WAMP)
@@ -13,10 +13,10 @@ if ($is_localhost) {
     define('DB_NAME', 'byahero');
 } else {
     // InfinityFree Settings
-    define('DB_HOST', 'sql311.infinityfree.com'); // Check your client area for the exact SQL Host
-    define('DB_USER', 'if0_41271108');
-    define('DB_PASS', 'Bb1ToMvkTf');
-    define('DB_NAME', 'if0_41271108_byahero'); // Usually starts with your username
+    define('DB_HOST', get_env_config('DB_HOST', ''));
+    define('DB_USER', get_env_config('DB_USER', ''));
+    define('DB_PASS', get_env_config('DB_PASS', ''));
+    define('DB_NAME', get_env_config('DB_NAME', ''));
 }
 
 // Create connection
