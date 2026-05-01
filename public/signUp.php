@@ -195,81 +195,104 @@ if (isset($_SESSION['user_id'])) {
             </div>
 
             <div class="form-card">
-                <div class="form-heading">CREATE NEW ACCOUNT</div>
-                
-                <div id="signupAlert"></div>
+                <!-- STEP 1: Registration Form -->
+                <div id="step-1" class="signup-step active">
+                    <div class="form-heading">CREATE NEW ACCOUNT</div>
+                    <div id="signupAlert"></div>
 
-                <form id="signupForm" autocomplete="off">
-                    <input type="hidden" name="action" value="signup">
-                    
-                    <div class="mb-3">
-                        <input type="text" name="name" class="form-control input-pill" placeholder="Full Name (optional)">
-                    </div>
-                    
-                    <div class="mb-3">
-                        <input type="email" name="email" class="form-control input-pill" placeholder="Email" required>
-                    </div>
-                    
-                    <div class="mb-3">
-                        <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number" required inputmode="tel" autocomplete="tel">
-                    </div>
-                    
-                    <div class="mb-3 password-wrapper">
-                        <input type="password" name="password" id="passInput" class="form-control input-pill pe-5" placeholder="Password" required minlength="6" autocomplete="new-password">
-                        <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
-                            <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
-                        </button>
-                    </div>
-                    
-                    <div class="mb-2 password-wrapper">
-                        <input type="password" name="confirm_password" id="confirmInput" class="form-control input-pill pe-5" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
-                        <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
-                            <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
-                        </button>
-                    </div>
-
-                    <button type="submit" class="submit-pill">Sign Up</button>
-                </form>
-
-                <div class="mt-4 mb-2">
-                    <div class="d-flex align-items-center mb-3">
-                        <hr class="flex-grow-1">
-                        <span class="mx-2 text-muted small">OR</span>
-                        <hr class="flex-grow-1">
-                    </div>
-
-                    <div id="google-auth-container">
-                        <div id="gsi-web-container">
-                            <div id="g_id_onload"
-                                data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
-                                data-context="signup"
-                                data-ux_mode="popup"
-                                data-callback="handleGoogleLogin"
-                                data-auto_prompt="false">
-                            </div>
-                            <div class="g_id_signin"
-                                data-type="standard"
-                                data-shape="pill"
-                                data-theme="outline"
-                                data-text="signup_with"
-                                data-size="large"
-                                data-logo_alignment="left"
-                                style="display: flex; justify-content: center;">
-                            </div>
+                    <form id="signupForm" autocomplete="off">
+                        <input type="hidden" name="action" value="signup_request_otp">
+                        
+                        <div class="mb-3">
+                            <input type="text" name="name" class="form-control input-pill" placeholder="Full Name (optional)">
                         </div>
-
-                        <div id="gsi-native-container" style="display: none; justify-content: center;">
-                            <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
-                                <svg width="18" height="18" viewBox="0 0 48 48">
-                                    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
-                                    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-                                    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-                                    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-                                </svg>
-                                Continue with Google
+                        
+                        <div class="mb-3">
+                            <input type="email" name="email" id="signupEmail" class="form-control input-pill" placeholder="Email" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number" required inputmode="tel" autocomplete="tel">
+                        </div>
+                        
+                        <div class="mb-3 password-wrapper">
+                            <input type="password" name="password" id="passInput" class="form-control input-pill pe-5" placeholder="Password" required minlength="6" autocomplete="new-password">
+                            <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
+                                <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
                             </button>
                         </div>
+                        
+                        <div class="mb-2 password-wrapper">
+                            <input type="password" name="confirm_password" id="confirmInput" class="form-control input-pill pe-5" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
+                            <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
+                                <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
+                            </button>
+                        </div>
+                        
+                        <button type="submit" class="submit-pill">Sign Up</button>
+                    </form>
+
+                    <div class="mt-4 mb-2">
+                        <div class="d-flex align-items-center mb-3">
+                            <hr class="flex-grow-1">
+                            <span class="mx-2 text-muted small">OR</span>
+                            <hr class="flex-grow-1">
+                        </div>
+
+                        <div id="google-auth-container">
+                            <div id="gsi-web-container">
+                                <div id="g_id_onload"
+                                    data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
+                                    data-context="signup"
+                                    data-ux_mode="popup"
+                                    data-callback="handleGoogleLogin"
+                                    data-auto_prompt="false">
+                                </div>
+                                <div class="g_id_signin"
+                                    data-type="standard"
+                                    data-shape="pill"
+                                    data-theme="outline"
+                                    data-text="signup_with"
+                                    data-size="large"
+                                    data-logo_alignment="left"
+                                    style="display: flex; justify-content: center;">
+                                </div>
+                            </div>
+
+                            <div id="gsi-native-container" style="display: none; justify-content: center;">
+                                <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
+                                    <svg width="18" height="18" viewBox="0 0 48 48">
+                                        <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
+                                        <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                                        <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                                        <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                                    </svg>
+                                    Continue with Google
+                                </button>
+                            </div>
+                        </div>
                     </div>
+                </div>
+
+                <!-- STEP 2: OTP Verification -->
+                <div id="step-2" class="signup-step" style="display: none;">
+                    <div class="form-heading">VERIFY EMAIL</div>
+                    <div class="small-muted mb-3">We sent a 6-digit code to <strong id="otpEmail"></strong></div>
+                    
+                    <div id="otpAlert"></div>
+
+                    <!-- DEV MODE ALERT -->
+                    <div id="devOtpAlert" class="alert alert-info alert-small" style="display: none;">
+                        <strong>Dev Mode:</strong> Your code is <span id="devOtpCode" class="fw-bold"></span>
+                    </div>
+
+                    <form id="otpForm">
+                        <div class="mb-3">
+                            <input type="text" name="otp" id="otpInput" class="form-control input-pill text-center fw-bold fs-4" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required>
+                        </div>
+                        <button type="submit" class="submit-pill">Verify</button>
+                        <button type="button" class="btn btn-link w-100 mt-2 text-decoration-none text-muted small" onclick="showStep(1)">Change email</button>
+                    </form>
                 </div>
 
                 <div class="small-muted">
@@ -283,6 +306,11 @@ if (isset($_SESSION['user_id'])) {
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+        function showStep(num) {
+            document.querySelectorAll('.signup-step').forEach(s => s.style.display = 'none');
+            document.getElementById(`step-${num}`).style.display = 'block';
+        }
+
         function togglePass(inputId, iconId) {
             const input = document.getElementById(inputId);
             const icon = document.getElementById(iconId);
@@ -296,6 +324,7 @@ if (isset($_SESSION['user_id'])) {
             input.focus();
         }
 
+        // STEP 1: Request OTP
         document.getElementById('signupForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const form = e.target;
@@ -311,7 +340,7 @@ if (isset($_SESSION['user_id'])) {
                 return;
             }
 
-            btn.innerHTML = '...';
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
             alertBox.innerHTML = '';
 
@@ -321,13 +350,54 @@ if (isset($_SESSION['user_id'])) {
                 const data = await res.json();
 
                 if (data.success) {
-                    alertBox.innerHTML = '<div class="alert alert-success alert-small">Success! Redirecting...</div>';
-                    setTimeout(() => { window.location.href = 'passenger/showGuide/showGuide.php'; }, 1000);
+                    document.getElementById('otpEmail').textContent = document.getElementById('signupEmail').value;
+                    if (data.dev_otp) {
+                        document.getElementById('devOtpCode').textContent = data.dev_otp;
+                        document.getElementById('devOtpAlert').style.display = 'block';
+                    } else {
+                        document.getElementById('devOtpAlert').style.display = 'none';
+                    }
+                    showStep(2);
                 } else {
                     throw new Error(data.message || 'Signup failed');
                 }
             } catch (err) {
                 alertBox.innerHTML = `<div class="alert alert-danger alert-small">${err.message}</div>`;
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // STEP 2: Verify OTP
+        document.getElementById('otpForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const alertBox = document.getElementById('otpAlert');
+            const originalText = btn.innerHTML;
+
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+            btn.disabled = true;
+            alertBox.innerHTML = '';
+
+            try {
+                const formData = new FormData();
+                formData.append('action', 'signup_verify_otp');
+                formData.append('email', document.getElementById('signupEmail').value);
+                formData.append('otp', document.getElementById('otpInput').value);
+
+                const res = await fetch('auth_api.php', { method: 'POST', body: formData });
+                const data = await res.json();
+
+                if (data.success) {
+                    alertBox.innerHTML = '<div class="alert alert-success alert-small">Success! Redirecting...</div>';
+                    setTimeout(() => { window.location.href = data.redirect || 'passenger/showGuide/showGuide.php'; }, 1000);
+                } else {
+                    throw new Error(data.message || 'Verification failed');
+                }
+            } catch (err) {
+                alertBox.innerHTML = `<div class="alert alert-danger alert-small">${err.message}</div>`;
+            } finally {
                 btn.innerHTML = originalText;
                 btn.disabled = false;
             }
@@ -389,4 +459,4 @@ if (isset($_SESSION['user_id'])) {
         });
     </script>
 </body>
-</html>
+</html>

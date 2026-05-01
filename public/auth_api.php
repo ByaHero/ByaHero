@@ -120,81 +120,169 @@ try {
         respond(false, 'Invalid email/contact or password');
     }
 
-    // SIGNUP (passengers only) -> creates user, sets session (auto-login) and returns redirect
-    if ($action === 'signup') {
-        $name = trim((string)($_POST['name'] ?? ''));
-        $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
-        $contact = trim((string)($_POST['contacts'] ?? '')); // from signUp.php, save into users.contacts
-        $password = (string)($_POST['password'] ?? '');
-        $confirm = (string)($_POST['confirm_password'] ?? '');
+    // ── STEP 1 of 2: Validate signup fields, send OTP, stash data in session ──
+    if ($action === 'signup_request_otp') {
+        $name    = trim((string)($_POST['name']             ?? ''));
+        $email   = mb_strtolower(trim((string)($_POST['email']    ?? '')));
+        $contact = trim((string)($_POST['contacts']         ?? ''));
+        $password = (string)($_POST['password']             ?? '');
+        $confirm  = (string)($_POST['confirm_password']     ?? '');
 
         if ($email === '' || $password === '' || $confirm === '') respond(false, 'Email and password required');
-        if (!filter_var($email, FILTER_VALIDATE_EMAIL)) respond(false, 'Invalid email');
+        if (!filter_var($email, FILTER_VALIDATE_EMAIL))           respond(false, 'Invalid email address');
+        if ($contact === '')                                        respond(false, 'Contact number is required');
+        if ($password !== $confirm)                                 respond(false, 'Passwords do not match');
+        if (mb_strlen($password) < 6)                              respond(false, 'Password must be at least 6 characters');
 
-        // Require contact number (since you said it "should be in contacts")
-        if ($contact === '') respond(false, 'Contact number is required');
-
-        if ($password !== $confirm) respond(false, 'Passwords do not match');
-        if (mb_strlen($password) < 6) respond(false, 'Password must be at least 6 characters');
-
-        // Check email uniqueness across role tables (skip missing tables)
+        // Check email uniqueness across role tables
         foreach ($roleTables as $table) {
             try {
                 $chk = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
                 $chk->execute([$email]);
                 if ($chk->fetch()) respond(false, 'Email is already registered');
-            } catch (\Throwable $e) {
-                // ignore missing table
-            }
+            } catch (\Throwable $e) {}
         }
 
-        // Check contact uniqueness (only where contacts column exists)
+        // Check contact uniqueness
         foreach ($roleTables as $table) {
             try {
                 if (!tableHasColumn($pdo, $table, 'contacts')) continue;
                 $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? LIMIT 1");
                 $chk->execute([$contact]);
                 if ($chk->fetch()) respond(false, 'Contact number is already registered');
-            } catch (\Throwable $e) {
-                // ignore missing table
-            }
+            } catch (\Throwable $e) {}
         }
 
-        $hash = password_hash($password, PASSWORD_DEFAULT);
-        if ($hash === false) respond(false, 'Password hashing failed');
+        // Store pending registration in session (account NOT created yet)
+        $_SESSION['pending_signup'] = [
+            'name'     => $name,
+            'email'    => $email,
+            'contact'  => $contact,
+            'password' => password_hash($password, PASSWORD_DEFAULT),
+        ];
 
-        // Insert into users; include optional columns if they exist
-        $hasName = tableHasColumn($pdo, 'users', 'name');
+        // Generate + store 6-digit OTP in password_resets table (reuse existing infra)
+        $otp     = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $expires = date('Y-m-d H:i:s', time() + 600); // 10 minutes
+
+        // Remove any stale OTP for this email first
+        try {
+            $pdo->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->execute([$email]);
+        } catch (\Throwable $e) {}
+
+        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, 'signup_otp')")
+            ->execute([$email, $otp, $expires]);
+
+        // Send the OTP email
+        if (function_exists('sendOTPEmail')) {
+            $mailRes = sendOTPEmail($email, $otp);
+            if (!$mailRes['success']) {
+                if (strpos($mailRes['message'], 'not configured') !== false
+                    || strpos($mailRes['message'], 'SMTP Key') !== false) {
+                    respond(true, 'Dev mode: OTP created.', ['dev_otp' => $otp]);
+                }
+                respond(false, 'Email service error: ' . $mailRes['message']);
+            }
+            respond(true, 'Verification code sent to your email.');
+        } else {
+            respond(true, 'Dev mode: mail.php missing.', ['dev_otp' => $otp]);
+        }
+    }
+
+    // ── STEP 2 of 2: Verify OTP → create account → auto-login ──
+    if ($action === 'signup_verify_otp') {
+        $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
+        $otp   = trim((string)($_POST['otp'] ?? ''));
+
+        if ($email === '' || $otp === '') respond(false, 'Email and OTP are required');
+
+        // Validate OTP
+        $stmt = $pdo->prepare(
+            "SELECT id FROM password_resets
+             WHERE email = ? AND otp_code = ? AND role = 'signup_otp' AND expires_at > NOW()
+             ORDER BY id DESC LIMIT 1"
+        );
+        $stmt->execute([$email, $otp]);
+        if (!$stmt->fetch()) respond(false, 'Invalid or expired verification code');
+
+        // Retrieve pending data from session
+        $pending = $_SESSION['pending_signup'] ?? null;
+        if (!$pending || $pending['email'] !== $email) {
+            respond(false, 'Session expired. Please start the signup process again.');
+        }
+
+        $name    = $pending['name'];
+        $contact = $pending['contact'];
+        $hash    = $pending['password'];
+
+        // Double-check email is still unique (edge case: two tabs)
+        foreach ($roleTables as $table) {
+            try {
+                $chk = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
+                $chk->execute([$email]);
+                if ($chk->fetch()) respond(false, 'Email is already registered');
+            } catch (\Throwable $e) {}
+        }
+
+        // Create the account
+        $hasName     = tableHasColumn($pdo, 'users', 'name');
         $hasContacts = tableHasColumn($pdo, 'users', 'contacts');
 
         if ($hasName && $hasContacts) {
             $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, name, created_at) VALUES (?, ?, ?, ?, NOW())");
-            $ok = $ins->execute([$email, $contact, $hash, $name !== '' ? $name : null]);
+            $ok  = $ins->execute([$email, $contact, $hash, $name !== '' ? $name : null]);
         } elseif ($hasContacts) {
             $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, created_at) VALUES (?, ?, ?, NOW())");
-            $ok = $ins->execute([$email, $contact, $hash]);
+            $ok  = $ins->execute([$email, $contact, $hash]);
         } elseif ($hasName) {
-            // fallback if contacts column doesn't exist yet
             $ins = $pdo->prepare("INSERT INTO users (email, password, name, created_at) VALUES (?, ?, ?, NOW())");
-            $ok = $ins->execute([$email, $hash, $name !== '' ? $name : null]);
+            $ok  = $ins->execute([$email, $hash, $name !== '' ? $name : null]);
         } else {
             $ins = $pdo->prepare("INSERT INTO users (email, password, created_at) VALUES (?, ?, NOW())");
-            $ok = $ins->execute([$email, $hash]);
+            $ok  = $ins->execute([$email, $hash]);
         }
 
         if (!$ok) respond(false, 'Database error during signup');
 
-        // Auto-login: set session from lastInsertId
+        // Cleanup OTP + pending session data
+        $pdo->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->execute([$email]);
+        unset($_SESSION['pending_signup']);
+
+        // Auto-login
         $newId = (int)$pdo->lastInsertId();
         session_regenerate_id(true);
-        $_SESSION['user_id'] = $newId;
-        $_SESSION['user_email'] = $email;
-        $_SESSION['user_role'] = 'passenger';
-        $_SESSION['user_name'] = $name !== '' ? $name : $email;
+        $_SESSION['user_id']       = $newId;
+        $_SESSION['user_email']    = $email;
+        $_SESSION['user_role']     = 'passenger';
+        $_SESSION['user_name']     = $name !== '' ? $name : $email;
         $_SESSION['user_contacts'] = $contact;
 
-        // Redirect passenger to passenger index
-        respond(true, 'Signup successful', ['redirect' => $roleRedirects['passenger']]);
+        respond(true, 'Account created successfully!', ['redirect' => 'passenger/showGuide/showGuide.php']);
+    }
+
+    // COMPLETE PROFILE (Force Contact Entry)
+    if ($action === 'complete_profile') {
+        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
+            respond(false, 'Not authenticated. Session data: ' . json_encode($_SESSION));
+        }
+        $contact = trim((string)($_POST['contacts'] ?? ''));
+        if ($contact === '') respond(false, 'Contact number is required');
+
+        $role = $_SESSION['user_role'];
+        $table = $roleTables[$role] ?? 'users';
+        $userId = (int)$_SESSION['user_id'];
+
+        if (tableHasColumn($pdo, $table, 'contacts')) {
+            // Check global uniqueness?
+            $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? AND id != ? LIMIT 1");
+            $chk->execute([$contact, $userId]);
+            if ($chk->fetch()) respond(false, 'Contact number is already registered');
+
+            $pdo->prepare("UPDATE {$table} SET contacts = ? WHERE id = ?")->execute([$contact, $userId]);
+            $_SESSION['user_contacts'] = $contact;
+            respond(true, 'Profile completed', ['redirect' => $roleRedirects[$role] ?? 'passenger/index.php']);
+        }
+        respond(false, 'Database error');
     }
 
     // CHANGE PASSWORD
