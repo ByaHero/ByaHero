@@ -1,8 +1,6 @@
 <?php
-session_start();
-
-// Check if user is logged in (optional - for saving to database)
-$isLoggedIn = isset($_SESSION['user_id']);
+require_once __DIR__ . '/../auth_passenger.php';
+$isLoggedIn = true;
 ?>
 <!doctype html>
 <html lang="en">

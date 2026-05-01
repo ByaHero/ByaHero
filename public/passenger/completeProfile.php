@@ -1,11 +1,5 @@
 <?php
-session_start();
-
-// Redirect to login if not logged in
-if (!isset($_SESSION['user_id'])) {
-    header('Location: ../login.php?redirect=passenger/index.php');
-    exit;
-}
+require_once __DIR__ . '/auth_passenger.php';
 
 // If they already have a contact number, redirect to dashboard
 if (!empty($_SESSION['user_contacts'])) {

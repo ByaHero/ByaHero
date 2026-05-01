@@ -1,17 +1,5 @@
 <?php
-session_start();
-
-/**
- * SECURE SYSTEM:
- * Require login before accessing to prevent URL manipulation.
- */
-if (!isset($_SESSION['user_id'])) {
-    $r = $_SERVER['SCRIPT_NAME'] ?? '';
-    $p = rtrim(str_replace('\\', '/', dirname($r)), '/');
-    $b = preg_replace('~/public/.*$~', '', $p) ?: '';
-    header('Location: ' . $b . '/public/login.php', true, 302);
-    exit;
-}
+require_once __DIR__ . '/../auth_passenger.php';
 $pageType = 'settings';        // Configures navbar for About page
 $backLink = 'settings.php';    // Back button navigates to settings.php
 $pageDepth = "../../../";      // Fixes the logo path used for topBarLogo.svg

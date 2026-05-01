@@ -34,7 +34,7 @@ $roleTables = [
     'admins' => ['role' => 'admin', 'redirect' => $baseUrl . '/public/ADMIN/admin.php'],
     'drivers' => ['role' => 'driver', 'redirect' => $baseUrl . '/public/driver/dashboard.php'],
     'conductors' => ['role' => 'conductor', 'redirect' => $baseUrl . '/public/conductor/conductor.php'],
-    'users' => ['role' => 'user', 'redirect' => $baseUrl . '/public/passenger/index.php'],
+    'users' => ['role' => 'passenger', 'redirect' => $baseUrl . '/public/passenger/index.php'],
 ];
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {

@@ -1,11 +1,5 @@
 <?php
-session_start();
-
-// Redirect to login if not logged in
-if (!isset($_SESSION['user_id'])) {
-    header("Location: ../../../public/login.php?redirect=" . urlencode($_SERVER['REQUEST_URI']));
-    exit;
-}
+require_once __DIR__ . '/../auth_passenger.php';
 
 // Get user data from session
 $userId = $_SESSION['user_id'];

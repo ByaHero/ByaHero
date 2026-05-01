@@ -1,17 +1,5 @@
 <?php
-session_start();
-
-/**
- * SECURE SYSTEM:
- * Require login before accessing to prevent URL manipulation.
- */
-if (!isset($_SESSION['user_id'])) {
-    $r = $_SERVER['SCRIPT_NAME'] ?? '';
-    $p = rtrim(str_replace('\\', '/', dirname($r)), '/');
-    $b = preg_replace('~/public/.*$~', '', $p) ?: '';
-    header('Location: ' . $b . '/public/login.php', true, 302);
-    exit;
-}
+require_once __DIR__ . '/../auth_passenger.php';
 
 $pageDepth = '../../../';
 $pageType = 'settings';
@@ -66,17 +54,17 @@ $pageTitle = 'Lost and Found';
             <div class="d-flex justify-content-between mb-4 mt-2">
                 <input type="radio" class="btn-check" name="itemType" id="btn-lost" value="lost" checked onchange="updateLabels()">
                 <label class="btn btn-custom-toggle rounded-pill py-2" for="btn-lost" style="width: 45%;">Lost</label>
-
+ 
                 <input type="radio" class="btn-check" name="itemType" id="btn-found" value="found" onchange="updateLabels()">
                 <label class="btn btn-custom-toggle rounded-pill py-2" for="btn-found" style="width: 45%;">Found</label>
             </div>
-
+ 
             <!-- Description -->
             <div class="mb-3 text-start">
                 <label for="itemDescription" id="descLabel" class="form-label fw-bold text-primary" style="font-size: 0.95rem;">Describe the item you lost?</label>
                 <textarea class="form-control rounded-4 custom-form-border" id="itemDescription" name="description" rows="5" required></textarea>
             </div>
-
+ 
             <!-- Image Upload -->
             <div class="mb-3 text-start">
                 <label class="form-label fw-bold text-primary" style="font-size: 0.95rem;">Upload Item Photo</label>
@@ -92,18 +80,18 @@ $pageTitle = 'Lost and Found';
                 </div>
                 <input type="file" id="imageUpload" name="images[]" accept="image/*" multiple class="d-none" onchange="updateFileCount(this)">
             </div>
-
+ 
             <!-- Bus Number -->
             <div class="mb-5 text-start">
                 <label for="busNumber" id="busLabel" class="form-label fw-bold text-primary" style="font-size: 0.95rem;">Last Bus lost (optional)</label>
                 <input type="text" class="form-control rounded-pill custom-form-border px-3 py-2" id="busNumber" name="bus_number">
             </div>
-
+ 
             <!-- Submit Button -->
             <button type="submit" class="btn btn-primary rounded-pill fw-bold shadow mt-2" style="padding-left: 50px; padding-right: 50px; padding-top: 10px; padding-bottom: 10px;">Save</button>
         </form>
     </div>
-
+ 
     <!-- UI Logic Script -->
     <script>
         function updateLabels() {
@@ -119,9 +107,9 @@ $pageTitle = 'Lost and Found';
                 busLabel.innerText = "Last Bus found (optional)";
             }
         }
-
+ 
         const dt = new DataTransfer();
-
+ 
         function updateFileCount(input) {
             const fileCountText = document.getElementById('fileCountText');
             const clearBtn = document.getElementById('clearPhotosBtn');
@@ -154,7 +142,7 @@ $pageTitle = 'Lost and Found';
                 clearBtn.style.display = 'none';
             }
         }
-
+ 
         function clearPhotos(e) {
             e.preventDefault();
             dt.items.clear();
@@ -163,7 +151,7 @@ $pageTitle = 'Lost and Found';
             updateFileCount(input);
         }
     </script>
-
+ 
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
 </body>

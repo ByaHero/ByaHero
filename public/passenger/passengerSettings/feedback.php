@@ -1,6 +1,6 @@
 <?php
-session_start();
-$isLoggedIn = isset($_SESSION['user_id']);
+require_once __DIR__ . '/../auth_passenger.php';
+$isLoggedIn = true; // auth_passenger.php ensures the user is logged in
 ?>
 <!doctype html>
 <html lang="en">

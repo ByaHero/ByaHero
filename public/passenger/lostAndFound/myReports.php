@@ -1,11 +1,5 @@
 <?php
-session_start();
-
-// Strict session check
-if (empty($_SESSION['user_id'])) {
-    header('Location: ../../login.php');
-    exit;
-}
+require_once __DIR__ . '/../auth_passenger.php';
 
 require_once '../../../config/db.php';
 $pdo = db();
