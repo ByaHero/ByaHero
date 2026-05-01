@@ -89,17 +89,23 @@ try {
     $conn->commit();
 
     // 3. Generate the self-signed JWT for the Frontend Bypass!
-    $clientEmail = '';
-    $privateKey = '';
-    $projectId = '';
+    require_once __DIR__ . '/../config/bootstrap.php';
+
+    // Try Environment Variables first
+    $clientEmail = get_env_config('FIREBASE_CLIENT_EMAIL', '');
+    $privateKey = get_env_config('FIREBASE_PRIVATE_KEY', '');
+    $projectId = get_env_config('FIREBASE_PROJECT_ID', '');
     
-    $serviceAccountPath = __DIR__ . '/serviceAccountKey.json';
-    if (file_exists($serviceAccountPath)) {
-        $sa = json_decode(file_get_contents($serviceAccountPath), true);
-        if ($sa) {
-            $clientEmail = $sa['client_email'] ?? '';
-            $privateKey = $sa['private_key'] ?? '';
-            $projectId = $sa['project_id'] ?? '';
+    // Fallback to serviceAccountKey.json if env vars are missing
+    if (!$clientEmail || !$privateKey || !$projectId) {
+        $serviceAccountPath = __DIR__ . '/serviceAccountKey.json';
+        if (file_exists($serviceAccountPath)) {
+            $sa = json_decode(file_get_contents($serviceAccountPath), true);
+            if ($sa) {
+                $clientEmail = $clientEmail ?: ($sa['client_email'] ?? '');
+                $privateKey = $privateKey ?: ($sa['private_key'] ?? '');
+                $projectId = $projectId ?: ($sa['project_id'] ?? '');
+            }
         }
     }
 

@@ -10,34 +10,7 @@ declare(strict_types=1);
  * 2. Go to SMTP & API -> API Keys
  */
 
-/**
- * Load .env file manually
- */
-(function() {
-    $envPath = __DIR__ . '/../.env';
-    if (file_exists($envPath)) {
-        $lines = file($envPath, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-        foreach ($lines as $line) {
-            $line = trim($line);
-            if (!$line || strpos($line, '#') === 0) continue;
-            if (strpos($line, '=') !== false) {
-                list($name, $value) = explode('=', $line, 2);
-                $name = trim($name);
-                $value = trim($value);
-                // Remove optional quotes
-                $value = trim($value, '"\'');
-                $_ENV[$name] = $value;
-                putenv("$name=$value");
-            }
-        }
-    }
-})();
-
-// Helper to get env with fallback
-function get_env_config(string $key, string $default): string {
-    $val = getenv($key);
-    return ($val !== false && $val !== '') ? $val : $default;
-}
+require_once __DIR__ . '/bootstrap.php';
 
 define('BREVO_API_KEY', get_env_config('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE'));
 define('SENDER_EMAIL', get_env_config('SENDER_EMAIL', 'no-reply@byahero.com'));
