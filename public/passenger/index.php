@@ -122,6 +122,29 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       pointer-events: auto;
     }
 
+    .bus-timeline-track {
+      height: 4px !important;
+      background-color: #475569 !important; /* Much darker gray for high visibility */
+      border-radius: 4px;
+      position: relative;
+      display: block;
+      margin-top: 30px !important; /* Ensure icons don't overlap text */
+      margin-bottom: 10px !important;
+      margin-left: 15px !important;
+      margin-right: 15px !important;
+      z-index: 5;
+    }
+
+    .bus-timeline-progress {
+      background-color: #1e3a8a !important;
+      border-radius: 4px;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 6;
+    }
+
     .user-profile-marker {
       background-color: #ffffff;
       color: var(--bs-primary);
@@ -787,7 +810,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
               </div>
               ${arrivalText ? `<div class="small text-muted mb-1">${arrivalText}</div>` : ''}
               
-              <div class="bus-timeline-track position-relative mb-2 mx-2">
+              <div class="bus-timeline-track position-relative mt-4 mb-2 mx-2">
                 <div class="bus-timeline-progress position-absolute top-0 bottom-0 start-0" style="width:${progress}%"></div>
                 <div class="bus-timeline-bus position-absolute bg-white rounded-circle shadow-sm border border-2 border-primary d-flex align-items-center justify-content-center" style="left:${progress}%; transform: translateX(-50%);">
                   <span class="material-symbols-rounded text-primary" style="font-size: 16px;">directions_bus</span>
