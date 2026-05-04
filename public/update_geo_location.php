@@ -11,6 +11,13 @@ $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
 
+// Debug logging
+$logDir = __DIR__ . '/../data/logs';
+if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
+$logFile = $logDir . '/geo_debug.log';
+$logEntry = date('[Y-m-d H:i:s] ') . ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0') . " - " . ($raw ?: 'EMPTY') . "\n";
+@file_put_contents($logFile, $logEntry, FILE_APPEND);
+
 // Support TransistorSoft format (it nests location)
 if (isset($input['location'])) {
     $loc = $input['location'];
@@ -132,7 +139,14 @@ $fields = [];
 $params = [];
 
 $fields[] = 'current_location = ?';
-$params[] = $locationName !== null ? $locationName : null;
+$params[] = json_encode($geojson, JSON_UNESCAPED_SLASHES);
+
+if (isset($input['lat'], $input['lng'])) {
+    $fields[] = 'lat = ?';
+    $params[] = $input['lat'];
+    $fields[] = 'lng = ?';
+    $params[] = $input['lng'];
+}
 
 if (isset($input['route'])) {
     $fields[] = 'route = ?';

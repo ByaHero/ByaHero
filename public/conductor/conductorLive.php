@@ -594,15 +594,29 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     status: 'available',
                     seats_available: seats
                 },
-                debug: false,
-                logLevel: BG.LOG_LEVEL_OFF,
-                backgroundTitle: "Tracking ByaHero Bus",
-                backgroundText: "Tracking active. Your bus location is being shared.",
+                debug: true,
+                logLevel: BG.LOG_LEVEL_VERBOSE,
+                backgroundTitle: "ByaHero Tracking Active",
+                backgroundText: "Sharing bus location with passengers...",
                 foregroundService: true,
+                notification: {
+                    title: "ByaHero Tracking Active",
+                    text: "Sharing bus location with passengers...",
+                    priority: BG.NOTIFICATION_PRIORITY_MAX,
+                    sticky: true
+                },
                 preventSuspend: true,
                 heartbeatInterval: 60,
-                enableHeadless: true
+                enableHeadless: true,
+                stopOnTerminate: false,
+                startOnBoot: true,
+                disableStopDetection: true, // Force it to stay in "moving" state
+                pausable: false,
+                useTheLibrary: true
             });
+
+            // Force the plugin into "moving" state immediately
+            await BG.changePace(true);
 
             if (!state.enabled) {
                 await BG.start();
