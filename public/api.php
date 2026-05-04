@@ -428,6 +428,13 @@ function stopTracking(): array {
     ");
     $stOp->execute([$endLoc, $busId, $userId]);
 
+    // ── ANALYTICS: Finalize passenger rides ──
+    $pdo->prepare("
+        UPDATE passenger_rides 
+        SET status = 'completed', departed_at = NOW() 
+        WHERE bus_id = ? AND status = 'active'
+    ")->execute([$busId]);
+
     // 1) Clear live tracking fields and release bus only if this conductor holds it
     $stmt = $pdo->prepare("
         UPDATE busses
@@ -694,6 +701,48 @@ function getPublicStats(): array {
     ];
 }
 
+/** Get active ride for current passenger */
+function getActiveRide(): array {
+    session_start();
+    $userId = (int)($_SESSION['user_id'] ?? 0);
+    if ($userId <= 0) return ['success' => false, 'error' => 'Unauthorized'];
+
+    $pdo = db();
+    $ride = $pdo->prepare("
+        SELECT pr.id, pr.bus_id as busId, pr.operation_id as operationId, pr.route, pr.boarded_at as boardedAt, pr.status, b.code as busCode 
+        FROM passenger_rides pr 
+        JOIN busses b ON b.Bus_ID = pr.bus_id
+        WHERE pr.user_id = ? AND pr.status = 'active' 
+        LIMIT 1
+    ");
+    $ride->execute([$userId]);
+    $data = $ride->fetch(PDO::FETCH_ASSOC);
+
+    return ['success' => true, 'ride' => $data];
+}
+
+/** Get passenger ride history */
+function getPassengerRideHistory(): array {
+    session_start();
+    $userId = (int)($_SESSION['user_id'] ?? 0);
+    if ($userId <= 0) return ['success' => false, 'error' => 'Unauthorized'];
+
+    $pdo = db();
+    $rides = $pdo->prepare("
+        SELECT pr.id, pr.bus_id as busId, pr.operation_id as operationId, pr.route, pr.boarded_at as boardedAt, pr.departed_at as departedAt, pr.status, b.code as busCode, bo.start_location as startLocation, bo.end_location as endLocation
+        FROM passenger_rides pr
+        JOIN busses b ON b.Bus_ID = pr.bus_id
+        LEFT JOIN bus_operations bo ON bo.id = pr.operation_id
+        WHERE pr.user_id = ?
+        ORDER BY pr.boarded_at DESC
+        LIMIT 50
+    ");
+    $rides->execute([$userId]);
+    $data = $rides->fetchAll(PDO::FETCH_ASSOC);
+
+    return ['success' => true, 'rides' => $data];
+}
+
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 
@@ -709,6 +758,8 @@ try {
         case 'log_passenger_event':       $response = logPassengerEvent(); break;
         case 'get_analytics':             $response = getAnalytics(); break;
         case 'get_public_stats':          $response = getPublicStats(); break;
+        case 'getActiveRide':           $response = getActiveRide(); break;
+        case 'getRideHistory':          $response = getPassengerRideHistory(); break;
         default:
             http_response_code(400);
             $response = ['success' => false, 'error' => 'Invalid action'];
