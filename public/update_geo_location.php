@@ -10,29 +10,6 @@ $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
-
-// Debug logging
-$logDir = __DIR__ . '/../data/logs';
-if (!is_dir($logDir)) @mkdir($logDir, 0755, true);
-$logFile = $logDir . '/geo_debug.log';
-$logEntry = date('[Y-m-d H:i:s] ') . ($_SERVER['REMOTE_ADDR'] ?? '0.0.0.0') . " - " . ($raw ?: 'EMPTY') . "\n";
-@file_put_contents($logFile, $logEntry, FILE_APPEND);
-
-// Support TransistorSoft format (it nests location)
-if (isset($input['location'])) {
-    $loc = $input['location'];
-    $input['lat'] = $loc['coords']['latitude'] ?? null;
-    $input['lng'] = $loc['coords']['longitude'] ?? null;
-}
-
-// TransistorSoft often puts params at the root, but we check both
-if (empty($input['bus_id']) && !empty($input['params']['bus_id'])) {
-    $input['bus_id'] = $input['params']['bus_id'];
-}
-if (empty($input['user_id']) && !empty($input['params']['user_id'])) {
-    $input['user_id'] = $input['params']['user_id'];
-}
-
 if ($input === null) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid JSON']);
@@ -45,11 +22,6 @@ if (empty($input['bus_id'])) {
 }
 
 $busId = (int)$input['bus_id'];
-
-// If no session, check if user_id was provided in the payload (for background requests)
-if ($currentUserId <= 0 && !empty($input['user_id'])) {
-    $currentUserId = (int)$input['user_id'];
-}
 
 $pdo = db();
 
@@ -71,7 +43,7 @@ $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
 
 if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Access denied.']);
+    echo json_encode(['success' => false, 'error' => 'You are not currently assigned to track this bus.']);
     exit;
 }
 
@@ -139,14 +111,7 @@ $fields = [];
 $params = [];
 
 $fields[] = 'current_location = ?';
-$params[] = json_encode($geojson, JSON_UNESCAPED_SLASHES);
-
-if (isset($input['lat'], $input['lng'])) {
-    $fields[] = 'lat = ?';
-    $params[] = $input['lat'];
-    $fields[] = 'lng = ?';
-    $params[] = $input['lng'];
-}
+$params[] = $locationName !== null ? $locationName : null;
 
 if (isset($input['route'])) {
     $fields[] = 'route = ?';

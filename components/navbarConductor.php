@@ -7,14 +7,7 @@ if (session_status() === PHP_SESSION_NONE) {
 // Ensure base URL resolves correctly depending on environment
 $projectFolder = 'ByaHero-Prototype-V3';
 $uri = $_SERVER['REQUEST_URI'] ?? '/';
-$basePath = (stripos($uri, '/' . $projectFolder . '/') === 0) ? ('/' . $projectFolder) : '';
-
-// Resolve Absolute Base URL for native background services
-$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https" : "http";
-$host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$absoluteBase = $protocol . "://" . $host . $basePath;
-
-$base = $basePath; // Keep $base as relative for internal links
+$base = (stripos($uri, '/' . $projectFolder . '/') === 0) ? ('/' . $projectFolder) : '';
 
 // Resolve Asset Paths
 $logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if missing
@@ -306,6 +299,6 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
 })();
 </script>
 <script>
-  window.APP_BASE_URL = window.APP_BASE_URL || <?= json_encode($absoluteBase, JSON_UNESCAPED_SLASHES) ?>;
+  window.APP_BASE_URL = window.APP_BASE_URL || '<?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>';
 </script>
 <script src="<?= htmlspecialchars($base) ?>/assets/js/capacitor_back_button.js"></script>
