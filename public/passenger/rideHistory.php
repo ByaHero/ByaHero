@@ -341,9 +341,9 @@ $pageTitle = 'Ride History';
         </div>
 
         <div id="filters" class="d-flex gap-2 mb-4" style="display: none !important;">
-            <button class="btn btn-filter active" onclick="setFilter('all')">All</button>
-            <button class="btn btn-filter" onclick="setFilter('active')">Active</button>
-            <button class="btn btn-filter" onclick="setFilter('completed')">Past</button>
+            <button class="btn btn-filter active" data-filter="all" onclick="setFilter('all')">All</button>
+            <button class="btn btn-filter" data-filter="active" onclick="setFilter('active')">Active</button>
+            <button class="btn btn-filter" data-filter="completed" onclick="setFilter('completed')">Past</button>
         </div>
 
         <div id="historyList"></div>
@@ -379,7 +379,8 @@ $pageTitle = 'Ride History';
         function setFilter(filter) {
             currentFilter = filter;
             document.querySelectorAll('.btn-filter').forEach(btn => {
-                btn.classList.toggle('active', btn.textContent.toLowerCase().includes(filter) || (filter === 'all' && btn.textContent === 'All'));
+                const btnFilter = btn.getAttribute('data-filter');
+                btn.classList.toggle('active', btnFilter === filter);
             });
             renderHistory();
         }

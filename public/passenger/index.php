@@ -502,11 +502,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           if (!statusEl) {
             const pill = document.createElement('div');
             pill.id = 'rideStatusPill';
-            pill.className = 'position-fixed top-0 start-50 translate-middle-x mt-5 z-3';
-            pill.style.marginTop = '65px';
+            pill.className = 'position-fixed top-0 start-50 translate-middle-x z-3';
+            pill.style.marginTop = '75px';
+            pill.style.zIndex = '1050'; // Just below navbar but above most things
             pill.innerHTML = `
-              <div class="bg-success text-white px-3 py-1 rounded-pill shadow-sm small fw-bold d-flex align-items-center gap-2">
-                <span class="material-symbols-rounded" style="font-size: 18px;">directions_bus</span>
+              <div class="bg-success text-white px-3 py-2 rounded-pill shadow fw-bold d-flex align-items-center gap-2 border border-white border-2" style="font-size: 0.85rem; backdrop-filter: blur(4px); background-color: rgba(25, 135, 84, 0.9) !important;">
+                <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
                 On Ride: ${this.activeRide.bus_code}
               </div>
             `;
