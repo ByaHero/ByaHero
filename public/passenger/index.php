@@ -294,23 +294,44 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var _lastLocationUploadAt = 0;
     var _lastUiUpdateAt = 0;
     
+    async function safePost(relativeUrl, payload) {
+        const url = new URL(relativeUrl, window.location.href).href;
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+                const res = await window.Capacitor.Plugins.CapacitorHttp.post({
+                    url,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/plain, */*',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: payload
+                });
+                return res.data;
+            } else {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                return await res.json();
+            }
+        } catch(e) {
+            console.error('safePost error:', e);
+            return { success: false, error: e.message };
+        }
+    }
+
     async function uploadMyLocation(lat, lng, accuracy) {
       var now = Date.now();
-      if (now - _lastLocationUploadAt < 5000) return; // Sync with conductor interval (5s)
+      if (now - _lastLocationUploadAt < 5000) return;
       _lastLocationUploadAt = now;
 
-      try {
-        var res = await fetch('../../backend/updateUserLocation.php', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            latitude: lat,
-            longitude: lng,
-            accuracy: accuracy ?? null
-          })
-        });
-        if (!res.ok) console.warn('uploadMyLocation failed:', res.status);
-      } catch (e) { console.warn('uploadMyLocation error:', e); }
+      await safePost('../../backend/updateUserLocation.php', {
+        latitude: lat,
+        longitude: lng,
+        accuracy: accuracy ?? null
+      });
     }
 
     function showLocationDisabledNotice() {
