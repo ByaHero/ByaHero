@@ -18,6 +18,16 @@ $pdo = db();
 $message = '';
 $error   = '';
 
+// Self-healing: Check if bus_number column exists, add it if not
+try {
+    $checkCol = $pdo->query("SHOW COLUMNS FROM `reports` LIKE 'bus_number'")->fetch();
+    if (!$checkCol) {
+        $pdo->exec("ALTER TABLE `reports` ADD COLUMN `bus_number` VARCHAR(50) NULL AFTER `user_id` ");
+    }
+} catch (Throwable $e) {
+    // Silent fail if table doesn't exist yet or other issues
+}
+
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
@@ -226,7 +236,7 @@ $backLink  = 'admin.php';
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-sm-6 col-12 ticket-row">
+                                    <div class="col-sm-4 col-12 ticket-row">
                                         <span class="ticket-label">Reporter</span>
                                         <div class="ticket-value">
                                             <?php 
@@ -237,7 +247,14 @@ $backLink  = 'admin.php';
                                             <div class="small text-muted"><?= h($report['reporter_email'] ?? '') ?></div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-6 col-12 ticket-row">
+                                    <div class="col-sm-4 col-12 ticket-row">
+                                        <span class="ticket-label">Bus Number</span>
+                                        <div class="ticket-value fw-bold" style="color: #1e3a8a;">
+                                            <span class="material-symbols-rounded" style="font-size: 16px; vertical-align: middle;">directions_bus</span>
+                                            <?= h($report['bus_number'] ?: 'N/A') ?>
+                                        </div>
+                                    </div>
+                                    <div class="col-sm-4 col-12 ticket-row">
                                         <span class="ticket-label">Contact Number</span>
                                         <div class="ticket-value">
                                             <?php $cp = $report['contact_number'] ?? ''; ?>
