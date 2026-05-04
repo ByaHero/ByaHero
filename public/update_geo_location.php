@@ -16,10 +16,14 @@ if (isset($input['location'])) {
     $loc = $input['location'];
     $input['lat'] = $loc['coords']['latitude'] ?? null;
     $input['lng'] = $loc['coords']['longitude'] ?? null;
-    // TransistorSoft allows custom params to be merged or sent separately
-    if (isset($input['params'])) {
-        $input = array_merge($input, $input['params']);
-    }
+}
+
+// TransistorSoft often puts params at the root, but we check both
+if (empty($input['bus_id']) && !empty($input['params']['bus_id'])) {
+    $input['bus_id'] = $input['params']['bus_id'];
+}
+if (empty($input['user_id']) && !empty($input['params']['user_id'])) {
+    $input['user_id'] = $input['params']['user_id'];
 }
 
 if ($input === null) {

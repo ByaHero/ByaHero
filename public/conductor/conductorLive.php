@@ -598,7 +598,10 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 logLevel: BG.LOG_LEVEL_OFF,
                 backgroundTitle: "Tracking ByaHero Bus",
                 backgroundText: "Tracking active. Your bus location is being shared.",
-                foregroundService: true
+                foregroundService: true,
+                preventSuspend: true,
+                heartbeatInterval: 60,
+                enableHeadless: true
             });
 
             if (!state.enabled) {
@@ -849,26 +852,50 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     function incrementPassengers() {
+        if (navigator.vibrate) navigator.vibrate(50);
         if (seats > 0) {
             seats = seats - 1;
             updateSeatsUI();
             updateMediaSessionMetadata();
             pendingBoards++;
-            if (window._syncBGParams) window._syncBGParams();
-            scheduleSync();
+            
+            if (window._syncBGParams) {
+                window._syncBGParams();
+                // Force an immediate location sync via TransistorSoft (native thread)
+                window.BackgroundGeolocation.getCurrentPosition({persist: true, samples: 1}).catch(()=>{});
+            }
+            
+            // If backgrounded, don't debounce; sync immediately
+            if (document.visibilityState === 'hidden') {
+                forceSync();
+            } else {
+                scheduleSync();
+            }
         } else {
             showAlert('Bus is full!', 'danger');
         }
     }
 
     function decrementPassengers() {
+        if (navigator.vibrate) navigator.vibrate([30, 30]);
         if (seats < seatsTotal) {
             seats = seats + 1;
             updateSeatsUI();
             updateMediaSessionMetadata();
             pendingDeparts++;
-            if (window._syncBGParams) window._syncBGParams();
-            scheduleSync();
+
+            if (window._syncBGParams) {
+                window._syncBGParams();
+                // Force an immediate location sync via TransistorSoft (native thread)
+                window.BackgroundGeolocation.getCurrentPosition({persist: true, samples: 1}).catch(()=>{});
+            }
+
+            // If backgrounded, don't debounce; sync immediately
+            if (document.visibilityState === 'hidden') {
+                forceSync();
+            } else {
+                scheduleSync();
+            }
         }
     }
 
