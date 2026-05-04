@@ -493,7 +493,7 @@ $pageTitle = 'Ride History';
                         </div>
 
                         <div class="mt-3 pt-3 border-top d-flex justify-content-end">
-                            <button class="report-btn">
+                            <button class="report-btn" onclick="window.location.href='report/report.php'">
                                 <span class="material-symbols-rounded" style="font-size: 18px;">report</span>
                                 Report Issue
                             </button>

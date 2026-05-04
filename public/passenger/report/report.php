@@ -183,6 +183,12 @@ $pageTitle = 'Report a Problem';
         <div class="report-card">
             <form id="reportProblemForm" action="submitReport.php" method="POST">
                 
+                <div class="mb-4">
+                    <label class="others-label" for="busNumberInput">Bus Number:</label>
+                    <input type="text" class="form-control" id="busNumberInput" name="bus_number" placeholder="e.g. 101" style="border-radius: 12px; padding: 12px;" required>
+                    <div class="form-text small" style="margin-top: 4px; color: #64748b;">Please enter the bus number you boarded. You can find this in your <strong>Ride History</strong>.</div>
+                </div>
+                
                 <div class="custom-radio-group">
                     <div class="custom-radio-item">
                         <label class="custom-radio-label" for="reason1">No Air Conditioning / Poor Ventilation in Bus</label>
