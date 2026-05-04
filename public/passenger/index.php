@@ -289,6 +289,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var MAX_DISTANCE_METERS = 5000;
 
     var _lastLocationUploadAt = 0;
+    var _lastUiUpdateAt = 0;
     async function uploadMyLocation(lat, lng, accuracy) {
       var now = Date.now();
       if (now - _lastLocationUploadAt < 15000) return;
@@ -363,7 +364,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       locationPermissionGranted = true;
 
-      navigator.geolocation.watchPosition(function(pos) {
+      window.watchId = navigator.geolocation.watchPosition(function(pos) {
         userLocation = {
           lat: pos.coords.latitude,
           lng: pos.coords.longitude
@@ -379,8 +380,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         }
 
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
-        updateBuses();
-        if (window.allStops) renderStopsList(window.allStops);
+        
+        // Throttled UI updates (Bus stops distance calculation)
+        var now = Date.now();
+        if (now - _lastUiUpdateAt > 5000) {
+            _lastUiUpdateAt = now;
+            if (window.allStops) renderStopsList(window.allStops);
+        }
       }, function(error) {
         console.error('Location error:', error);
         if (error.code === error.PERMISSION_DENIED) {
@@ -389,7 +395,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         }
       }, {
         enableHighAccuracy: true,
-        maximumAge: 5000,
+        maximumAge: 0, // Set to 0 to match conductorLive and ensure smooth real-time movement
         timeout: 10000
       });
     }
@@ -425,8 +431,26 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (document.visibilityState === 'visible') {
             acquireWakeLock();
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+            
+            // Re-verify tracking status
+            const hasBGWatcher = !!(window.bgWatcherId);
+            const hasWebWatcher = !!(window.watchId);
+            if (!hasBGWatcher && !hasWebWatcher) {
+                if (typeof startUserLocationWatch === 'function') startUserLocationWatch();
+                if (PassengerRideTracker && typeof PassengerRideTracker.startTracking === 'function') PassengerRideTracker.startTracking();
+            }
         }
     });
+
+    // Handle Capacitor App State for native foreground/background transitions
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
+        window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) {
+                acquireWakeLock();
+                if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+            }
+        });
+    }
 
     // --------------------- PASSENGER RIDE TRACKER (AUTO-BOARDING) ---------------------
     var PassengerRideTracker = {
@@ -549,8 +573,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       startTracking: async function() {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
           const BG = window.Capacitor.Plugins.BackgroundGeolocation;
+          let lastWatcherTickAt = 0;
           try {
-            await BG.addWatcher(
+            window.bgWatcherId = await BG.addWatcher(
               {
                 backgroundMessage: "ByaHero is tracking your ride for history.",
                 backgroundTitle: "Ride Tracking Active",
@@ -563,7 +588,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 userLocation = { lat: location.latitude, lng: location.longitude };
                 if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
                 uploadMyLocation(location.latitude, location.longitude, location.accuracy);
-                this.tick();
+                
+                // Throttle tracker logic to once every 10 seconds in background
+                const now = Date.now();
+                if (now - lastWatcherTickAt > 10000) {
+                  lastWatcherTickAt = now;
+                  this.tick();
+                }
               }
             );
           } catch (e) { console.warn('BG tracking error:', e); }
