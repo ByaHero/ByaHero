@@ -163,6 +163,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <div class="d-flex flex-column vh-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
+      <div id="trackingStatusIndicator" class="position-absolute top-0 end-0 m-3 p-2 bg-white rounded shadow-sm d-none" style="z-index: 1060; font-size: 11px;"></div>
     </div>
   </div>
 
@@ -299,7 +300,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var SYNC_INTERVAL = 5000;
     var routeFeatures = [];
 
-    async function safePost(relativeUrl, payload) {
+    async function safePost(relativeUrl, payload = {}) {
         const url = new URL(relativeUrl, window.location.href).href;
         try {
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
@@ -308,6 +309,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                     headers: { 
                         'Content-Type': 'application/json',
                         'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent, // Required for InfinityFree bypass
                         'X-Requested-With': 'XMLHttpRequest'
                     },
                     data: payload
@@ -316,7 +318,11 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             } else {
                 const res = await fetch(url, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'User-Agent': navigator.userAgent,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
                     body: JSON.stringify(payload)
                 });
                 return await res.json();
@@ -325,6 +331,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             console.error('safePost error:', e);
             return { success: false, error: e.message };
         }
+    }
+
+    async function triggerManualUpdate() {
+        if (!navigator.geolocation) return;
+        navigator.geolocation.getCurrentPosition(pos => {
+            onLocationUpdate(pos);
+        }, err => {}, { enableHighAccuracy: true, timeout: 5000 });
     }
 
     function pointInRing(x, y, ring) {
@@ -435,6 +448,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 window._lastTrackerTick = now;
                 PassengerRideTracker.tick();
             }
+        }
+
+        // Tracking Status Indicator
+        const statusIndicator = document.getElementById('trackingStatusIndicator');
+        if (statusIndicator) {
+            statusIndicator.innerHTML = '<span class="bg-success rounded-circle d-inline-block" style="width:8px;height:8px;"></span> Live Tracking';
+            statusIndicator.className = 'position-absolute top-0 end-0 m-2 mt-4 p-2 bg-white rounded shadow-sm small text-success fw-bold d-flex align-items-center gap-1 opacity-75';
+            statusIndicator.classList.remove('d-none');
+            statusIndicator.style.marginTop = '70px'; // Avoid navbar overlap
         }
     }
 
@@ -596,8 +618,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (!trackingActive) {
             startUserLocationWatch();
         } else if (lastKnownLocation && (Date.now() - _lastNetworkSync > 8000)) {
-            uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);
-            _lastNetworkSync = Date.now();
+            // Force a manual update if no data has been sent for 8 seconds
+            triggerManualUpdate();
         }
     }, 5000);
 
@@ -610,11 +632,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       init: async function() {
         console.log('Initializing PassengerRideTracker...');
         await this.checkActiveRide();
-        this.startTracking();
+        // Tracking is started globally at the end of the script
         setInterval(() => this.tick(), this.checkInterval);
-        
-        startKeepAliveAudio();
-        acquireWakeLock();
       },
 
       tick: async function() {
@@ -627,8 +646,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       checkActiveRide: async function() {
         try {
-          const res = await fetch('../api.php?action=check_active_ride');
-          const data = await res.json();
+          const data = await safePost('../api.php?action=check_active_ride');
           if (data.success) {
             if (data.on_ride) {
               this.activeRide = data.ride;
@@ -656,12 +674,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       joinRide: async function(bus) {
         try {
-          const res = await fetch('../api.php?action=join_ride', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ operation_id: bus.operation_id })
-          });
-          const data = await res.json();
+          const data = await safePost('../api.php?action=join_ride', { operation_id: bus.operation_id });
           if (data.success) {
             await this.checkActiveRide();
             this.showBoardingNotice(bus);
@@ -717,22 +730,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         `;
         document.body.appendChild(notice);
         setTimeout(() => notice.remove(), 5000);
-      },
-
-      init: async function() {
-        console.log('Initializing PassengerRideTracker...');
-        await this.checkActiveRide();
-        // startUserLocationWatch handles background and foreground now
-        startUserLocationWatch();
-        setInterval(() => this.tick(), this.checkInterval);
-        
-        startKeepAliveAudio();
-        acquireWakeLock();
-        setupMediaSession();
       }
     };
-
-    PassengerRideTracker.init();
 
     window.addEventListener('storage', function(e) {
       if (e.key !== 'byahero_location_services') return;
@@ -1039,6 +1038,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     });
 
     startUserLocationWatch();
+    PassengerRideTracker.init();
     updateBuses();
     setTimeout(function() { if (typeof updateRoutePills === 'function') updateRoutePills(); }, 100);
     setInterval(updateBuses, 4000);
