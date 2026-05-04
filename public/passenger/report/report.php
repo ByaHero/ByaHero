@@ -4,6 +4,7 @@ require_once __DIR__ . '/../auth_passenger.php';
 $pageDepth = '../../../';
 $pageType = 'settings';
 $pageTitle = 'Report a Problem';
+$bus_number = $_GET['bus_number'] ?? '';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -185,7 +186,7 @@ $pageTitle = 'Report a Problem';
                 
                 <div class="mb-4">
                     <label class="others-label" for="busNumberInput">Bus Number:</label>
-                    <input type="text" class="form-control" id="busNumberInput" name="bus_number" placeholder="e.g. 101" style="border-radius: 12px; padding: 12px;" required>
+                    <input type="text" class="form-control" id="busNumberInput" name="bus_number" value="<?= htmlspecialchars($bus_number) ?>" placeholder="e.g. 101" style="border-radius: 12px; padding: 12px;" required>
                     <div class="form-text small" style="margin-top: 4px; color: #64748b;">Please enter the bus number you boarded. You can find this in your <strong>Ride History</strong>.</div>
                 </div>
                 
