@@ -201,7 +201,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <div class="d-flex flex-column vh-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
-      <div id="trackingStatusIndicator" class="position-absolute top-0 end-0 m-3 p-2 bg-white rounded shadow-sm d-none" style="z-index: 1060; font-size: 11px;"></div>
     </div>
   </div>
 
@@ -486,15 +485,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 window._lastTrackerTick = now;
                 PassengerRideTracker.tick();
             }
-        }
-
-        // Tracking Status Indicator
-        const statusIndicator = document.getElementById('trackingStatusIndicator');
-        if (statusIndicator) {
-            statusIndicator.innerHTML = '<span class="bg-success rounded-circle d-inline-block" style="width:8px;height:8px;"></span> Live Tracking';
-            statusIndicator.className = 'position-absolute top-0 end-0 m-2 mt-4 p-2 bg-white rounded shadow-sm small text-success fw-bold d-flex align-items-center gap-1 opacity-75';
-            statusIndicator.classList.remove('d-none');
-            statusIndicator.style.marginTop = '70px'; // Avoid navbar overlap
         }
     }
 
