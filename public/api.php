@@ -54,6 +54,23 @@ require __DIR__ . '/../config/db.php';
         INDEX idx_email (email),
         INDEX idx_otp (otp_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // --- Passenger Ride History Table ---
+    $p->exec("CREATE TABLE IF NOT EXISTS passenger_rides (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        bus_id INT NOT NULL,
+        route VARCHAR(100) NOT NULL,
+        boarded_at DATETIME NOT NULL,
+        departed_at DATETIME DEFAULT NULL,
+        start_location VARCHAR(100) DEFAULT NULL,
+        end_location VARCHAR(100) DEFAULT NULL,
+        status ENUM('ongoing', 'completed') DEFAULT 'ongoing',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id),
+        INDEX idx_bus (bus_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 })();
 
 
@@ -432,6 +449,13 @@ function stopTracking(): array {
           AND current_conductor_id = :uid
     ");
     $stmt->execute([':bus_id' => $busId, ':uid' => $userId]);
+
+    // 2.5) Auto-depart all passengers currently "ongoing" on this bus
+    $pdo->prepare("
+        UPDATE passenger_rides 
+        SET departed_at = NOW(), end_location = ?, status = 'completed' 
+        WHERE bus_id = ? AND status = 'ongoing'
+    ")->execute([$endLoc ?: 'End of Trip', $busId]);
 
     // 2) Clear the conductor's current_bus_id only if it matches this bus
     $stmt2 = $pdo->prepare("
