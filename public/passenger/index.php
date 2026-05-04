@@ -290,116 +290,133 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
 
+    var _lastNetworkSync = 0;
     var _lastLocationUploadAt = 0;
     var _lastUiUpdateAt = 0;
+    
     async function uploadMyLocation(lat, lng, accuracy) {
       var now = Date.now();
-      if (now - _lastLocationUploadAt < 15000) return;
+      if (now - _lastLocationUploadAt < 5000) return; // Sync with conductor interval (5s)
       _lastLocationUploadAt = now;
 
       try {
         var res = await fetch('../../backend/updateUserLocation.php', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             latitude: lat,
             longitude: lng,
             accuracy: accuracy ?? null
           })
         });
-        if (!res.ok) {
-          var txt = await res.text();
-          console.warn('uploadMyLocation failed:', res.status, txt);
-        }
-      } catch (e) {
-        console.warn('uploadMyLocation network error:', e);
-      }
+        if (!res.ok) console.warn('uploadMyLocation failed:', res.status);
+      } catch (e) { console.warn('uploadMyLocation error:', e); }
     }
 
     function showLocationDisabledNotice() {
       if (sessionStorage.getItem('location_notice_shown')) return;
-
       var notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-warning text-dark rounded shadow-lg d-flex align-items-center gap-2';
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
-      notice.innerHTML = `
-        <span class="material-symbols-rounded">location_off</span>
-        <span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span>
-        <button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>
-      `;
+      notice.innerHTML = `<span class="material-symbols-rounded">location_off</span><span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span><button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>`;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
-      setTimeout(function() {
-        if (notice.parentElement) notice.remove();
-      }, 5000);
+      setTimeout(function() { if (notice.parentElement) notice.remove(); }, 5000);
     }
 
     function showLocationPermissionDenied() {
       var notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-danger text-white rounded shadow-lg d-flex align-items-center gap-2';
-      notice.style.zIndex = '9999';
-      notice.style.maxWidth = '90%';
-      notice.innerHTML = `
-        <span class="material-symbols-rounded">error</span>
-        <span class="small">Location permission denied. Please enable it in your browser settings.</span>
-        <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
-      `;
+      notice.style.zIndex = '9999'; notice.style.maxWidth = '90%';
+      notice.innerHTML = `<span class="material-symbols-rounded">error</span><span class="small">Location permission denied. Please enable it in your browser settings.</span><button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>`;
       document.body.appendChild(notice);
     }
 
-    function startUserLocationWatch() {
-      var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+    function onLocationUpdate(pos) {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        const acc = pos.coords.accuracy;
 
-      if (!locationEnabled) {
-        locationPermissionGranted = false;
-        showLocationDisabledNotice();
-        return;
-      }
-
-      if (!navigator.geolocation) {
-        locationPermissionGranted = false;
-        return;
-      }
-
-      locationPermissionGranted = true;
-
-      window.watchId = navigator.geolocation.watchPosition(function(pos) {
-        userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
+        userLocation = { lat, lng };
 
         if (!userMarker) {
-          userMarker = L.marker([userLocation.lat, userLocation.lng], {
-            icon: getUserIcon(),
-            zIndexOffset: 1000
-          }).addTo(map);
+            userMarker = L.marker([lat, lng], {
+                icon: getUserIcon(),
+                zIndexOffset: 1000
+            }).addTo(map);
         } else {
-          userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+            userMarker.setLatLng([lat, lng]);
         }
 
-        uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
-        
-        // Throttled UI updates (Bus stops distance calculation)
-        var now = Date.now();
+        // Throttle UI updates (Stops list) to every 5 seconds
+        const now = Date.now();
         if (now - _lastUiUpdateAt > 5000) {
             _lastUiUpdateAt = now;
             if (window.allStops) renderStopsList(window.allStops);
         }
-      }, function(error) {
-        console.error('Location error:', error);
-        if (error.code === error.PERMISSION_DENIED) {
-          locationPermissionGranted = false;
-          showLocationPermissionDenied();
+
+        // Sync with server
+        uploadMyLocation(lat, lng, acc);
+        
+        // Feed into the Ride Tracker
+        if (PassengerRideTracker && typeof PassengerRideTracker.tick === 'function') {
+            // Throttle tracker logic to once every 10 seconds
+            if (now - (window._lastTrackerTick || 0) > 10000) {
+                window._lastTrackerTick = now;
+                PassengerRideTracker.tick();
+            }
         }
-      }, {
-        enableHighAccuracy: true,
-        maximumAge: 0, // Set to 0 to match conductorLive and ensure smooth real-time movement
-        timeout: 10000
-      });
+    }
+
+    async function startUserLocationWatch() {
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      if (!locationEnabled) { locationPermissionGranted = false; showLocationDisabledNotice(); return; }
+      if (!navigator.geolocation) { locationPermissionGranted = false; return; }
+      locationPermissionGranted = true;
+
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+          const BG = window.Capacitor.Plugins.BackgroundGeolocation;
+          try {
+              const permissions = await BG.requestPermissions();
+              if (permissions.location !== 'granted') {
+                  startWebGeolocation();
+                  return;
+              }
+
+              window.bgWatcherId = await BG.addWatcher(
+                  {
+                      backgroundMessage: "Tracking active. Keep app open in background.",
+                      backgroundTitle: "ByaHero Journey Tracking",
+                      requestPermissions: true,
+                      stale: false,
+                      distanceFilter: 0 
+                  },
+                  function callback(location, error) {
+                      if (error) return;
+                      const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
+                      onLocationUpdate(pos);
+                  }
+              );
+              startKeepAliveAudio();
+              acquireWakeLock();
+              setupMediaSession();
+          } catch (e) { startWebGeolocation(); }
+      } else {
+          startWebGeolocation();
+      }
+    }
+
+    function startWebGeolocation() {
+        if (!navigator.geolocation) return;
+        window.watchId = navigator.geolocation.watchPosition(
+            onLocationUpdate,
+            (err) => console.warn('GPS Error:', err.message),
+            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+        );
+        startKeepAliveAudio();
+        acquireWakeLock();
+        setupMediaSession();
     }
 
     // --------------------- KEEP ALIVE & WAKELOCK ---------------------
@@ -588,35 +605,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         setTimeout(() => notice.remove(), 5000);
       },
 
-      startTracking: async function() {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-          const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-          let lastWatcherTickAt = 0;
-          try {
-            window.bgWatcherId = await BG.addWatcher(
-              {
-                backgroundMessage: "ByaHero is tracking your ride for history.",
-                backgroundTitle: "Ride Tracking Active",
-                requestPermissions: true,
-                stale: false,
-                distanceFilter: 5
-              },
-              (location, error) => {
-                if (error) return;
-                userLocation = { lat: location.latitude, lng: location.longitude };
-                if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
-                uploadMyLocation(location.latitude, location.longitude, location.accuracy);
-                
-                // Throttle tracker logic to once every 10 seconds in background
-                const now = Date.now();
-                if (now - lastWatcherTickAt > 10000) {
-                  lastWatcherTickAt = now;
-                  this.tick();
-                }
-              }
-            );
-          } catch (e) { console.warn('BG tracking error:', e); }
-        }
+      init: async function() {
+        console.log('Initializing PassengerRideTracker...');
+        await this.checkActiveRide();
+        // startUserLocationWatch handles background and foreground now
+        startUserLocationWatch();
+        setInterval(() => this.tick(), this.checkInterval);
+        
+        startKeepAliveAudio();
+        acquireWakeLock();
+        setupMediaSession();
       }
     };
 
