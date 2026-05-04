@@ -586,7 +586,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 startOnBoot: true,
                 batchSync: false,
                 autoSync: true,
-                url: (window.APP_BASE_URL || '') + '/public/update_geo_location.php',
+                url: new URL('../update_geo_location.php', window.location.href).href,
                 params: {
                     bus_id: busId,
                     user_id: <?= json_encode($userId) ?>,
@@ -610,9 +610,20 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 enableHeadless: true,
                 stopOnTerminate: false,
                 startOnBoot: true,
-                disableStopDetection: true, // Force it to stay in "moving" state
+                disableStopDetection: true,
                 pausable: false,
-                useTheLibrary: true
+                useTheLibrary: true,
+                autoSync: true,
+                distanceFilter: 2, // Very aggressive for testing
+                stationaryRadius: 2,
+                fastestLocationUpdateInterval: 1000,
+                interval: 1000
+            });
+
+            // Heartbeat: Force a location sync every minute even if the phone is stationary/off
+            BG.onHeartbeat((event) => {
+                console.log('[BG] Heartbeat event');
+                BG.getCurrentPosition({persist: true, samples: 1}).catch(()=>{});
             });
 
             // Force the plugin into "moving" state immediately
