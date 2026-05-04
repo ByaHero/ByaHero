@@ -200,3 +200,45 @@
 #bottomSheet .sheet-tab.active .tab-icon-idle {
   display: none !important;
 }
+
+/* =============================
+   Bus Arrival Timeline (Passenger Side)
+   ============================= */
+
+.bus-timeline-track {
+  height: 2px;
+  background-image: linear-gradient(to right, #cbd5e1 50%, rgba(255, 255, 255, 0) 0%);
+  background-position: center;
+  background-size: 10px 2px;
+  background-repeat: repeat-x;
+  background-color: transparent;
+  border-radius: 1px;
+}
+
+.bus-timeline-progress {
+  background: linear-gradient(90deg, #1e3a8a, #3b82f6);
+  border-radius: 2px;
+  height: 4px;
+  top: -1px; /* Align thicker progress with thinner dashed track */
+}
+
+.bus-timeline-bus {
+  width: 28px;
+  height: 28px;
+  top: -12px;
+  z-index: 2;
+  transition: left 0.5s ease;
+}
+
+.bus-timeline-destination {
+  width: 22px;
+  height: 22px;
+  top: -9px;
+  z-index: 1;
+}
+
+.bus-timeline-bus .material-symbols-rounded,
+.bus-timeline-destination .material-symbols-rounded {
+  line-height: 1 !important;
+  font-variation-settings: 'FILL' 1, 'wght' 600, 'GRAD' 0, 'opsz' 24;
+}

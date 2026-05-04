@@ -774,7 +774,30 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         var color = statusColors[b.status] || '#ccc';
         var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
-        return `<div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')"><div class="card-body py-3 px-4"><div class="d-flex justify-content-between align-items-center mb-1"><span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span><div style="width:30px;height:12px;border-radius:6px;background:${color}"></div></div><div class="d-flex justify-content-between small text-muted"><span>${b.locName}</span><span>${b.seats} Available</span></div>${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}<div class="timeline-container bg-secondary-subtle position-relative"><div class="timeline-progress bg-primary position-absolute top-0 bottom-0 start-0 rounded-pill" style="width:${progress}%"></div><span class="material-symbols-rounded timeline-icon position-absolute bg-white rounded-circle text-primary border" style="left:${progress}%;font-size:18px">directions_bus</span><span class="material-symbols-rounded timeline-icon stop-point stop-commuter position-absolute bg-white rounded-circle" style="right:6px;transform:translateX(0);">place</span></div></div></div>`;
+        return `
+          <div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')">
+            <div class="card-body py-3 px-4">
+              <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span>
+                <div style="width:30px;height:12px;border-radius:6px;background:${color}"></div>
+              </div>
+              <div class="d-flex justify-content-between small text-muted">
+                <span>${b.locName}</span>
+                <span>${b.seats} Available</span>
+              </div>
+              ${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}
+              
+              <div class="bus-timeline-track position-relative mt-4 mb-2 mx-1">
+                <div class="bus-timeline-progress position-absolute top-0 bottom-0 start-0" style="width:${progress}%"></div>
+                <div class="bus-timeline-bus position-absolute bg-white rounded-circle shadow-sm border border-2 border-primary d-flex align-items-center justify-content-center" style="left:${progress}%; transform: translateX(-50%);">
+                  <span class="material-symbols-rounded text-primary" style="font-size: 16px;">directions_bus</span>
+                </div>
+                <div class="bus-timeline-destination position-absolute bg-white rounded-circle shadow-sm border border-2 border-danger d-flex align-items-center justify-content-center" style="right: 0; transform: translateX(50%);">
+                  <span class="material-symbols-rounded text-danger" style="font-size: 14px;">place</span>
+                </div>
+              </div>
+            </div>
+          </div>`;
       }).join('');
       container.innerHTML = html;
     }
