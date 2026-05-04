@@ -54,6 +54,17 @@ require __DIR__ . '/../config/db.php';
         INDEX idx_email (email),
         INDEX idx_otp (otp_code)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    $p->exec("CREATE TABLE IF NOT EXISTS passenger_rides (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        operation_id INT UNSIGNED NOT NULL,
+        boarded_at DATETIME NOT NULL,
+        departed_at DATETIME DEFAULT NULL,
+        status ENUM('active', 'completed') DEFAULT 'active',
+        INDEX idx_user (user_id),
+        INDEX idx_operation (operation_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 })();
 
 
@@ -97,16 +108,17 @@ function getBuses(): array {
     $pdo = db();
     $stmt = $pdo->query("
         SELECT
-          Bus_ID,
-          code,
-          route,
-          current_location AS current_location_name,
-          total_seats,
-          seat_availability,
-          status,
-          updated
-        FROM busses
-        ORDER BY code
+          b.Bus_ID,
+          b.code,
+          b.route,
+          b.current_location AS current_location_name,
+          b.total_seats,
+          b.seat_availability,
+          b.status,
+          b.updated,
+          (SELECT id FROM bus_operations WHERE bus_id = b.Bus_ID AND status = 'active' ORDER BY id DESC LIMIT 1) AS current_operation_id
+        FROM busses b
+        ORDER BY b.code
     ");
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -670,6 +682,126 @@ function getPublicStats(): array {
     ];
 }
 
+/** Join a ride (passenger boarding) */
+function joinRide(): array {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        return ['success' => false, 'error' => 'Login required'];
+    }
+
+    $data = json_decode(file_get_contents('php://input'), true);
+    $opId = (int)($data['operation_id'] ?? 0);
+    $userId = (int)$_SESSION['user_id'];
+
+    if ($opId <= 0) {
+        http_response_code(400);
+        return ['success' => false, 'error' => 'Missing operation_id'];
+    }
+
+    $pdo = db();
+    
+    // Check if already on an active ride
+    $stCheck = $pdo->prepare("SELECT id FROM passenger_rides WHERE user_id = ? AND status = 'active'");
+    $stCheck->execute([$userId]);
+    if ($stCheck->fetch()) {
+        return ['success' => true, 'message' => 'Already on an active ride'];
+    }
+
+    $st = $pdo->prepare("INSERT INTO passenger_rides (user_id, operation_id, boarded_at, status) VALUES (?, ?, NOW(), 'active')");
+    $st->execute([$userId, $opId]);
+
+    return ['success' => true, 'ride_id' => $pdo->lastInsertId()];
+}
+
+/** Leave a ride (passenger departing) */
+function leaveRide(): array {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        return ['success' => false, 'error' => 'Login required'];
+    }
+
+    $userId = (int)$_SESSION['user_id'];
+    $pdo = db();
+
+    $st = $pdo->prepare("UPDATE passenger_rides SET departed_at = NOW(), status = 'completed' WHERE user_id = ? AND status = 'active'");
+    $st->execute([$userId]);
+
+    return ['success' => true];
+}
+
+/** Get passenger ride history */
+function getRideHistory(): array {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        return ['success' => false, 'error' => 'Login required'];
+    }
+
+    $userId = (int)$_SESSION['user_id'];
+    $pdo = db();
+
+    $st = $pdo->prepare("
+        SELECT 
+            pr.id,
+            pr.boarded_at,
+            pr.departed_at,
+            pr.status,
+            bo.route,
+            b.code AS bus_code
+        FROM passenger_rides pr
+        JOIN bus_operations bo ON pr.operation_id = bo.id
+        JOIN busses b ON bo.bus_id = b.Bus_ID
+        WHERE pr.user_id = ?
+        ORDER BY pr.boarded_at DESC
+    ");
+    $st->execute([$userId]);
+    $history = $st->fetchAll(PDO::FETCH_ASSOC);
+
+    return ['success' => true, 'history' => $history];
+}
+
+/** Check if passenger is currently on a ride and if that ride is still active */
+function checkActiveRide(): array {
+    session_start();
+    if (empty($_SESSION['user_id'])) {
+        http_response_code(401);
+        return ['success' => false, 'error' => 'Login required'];
+    }
+
+    $userId = (int)$_SESSION['user_id'];
+    $pdo = db();
+
+    $st = $pdo->prepare("
+        SELECT 
+            pr.id,
+            pr.operation_id,
+            bo.status AS operation_status,
+            bo.bus_id,
+            b.code AS bus_code
+        FROM passenger_rides pr
+        JOIN bus_operations bo ON pr.operation_id = bo.id
+        JOIN busses b ON bo.bus_id = b.Bus_ID
+        WHERE pr.user_id = ? AND pr.status = 'active'
+        LIMIT 1
+    ");
+    $st->execute([$userId]);
+    $ride = $st->fetch(PDO::FETCH_ASSOC);
+
+    if ($ride) {
+        // If the operation is completed, automatically complete the passenger ride
+        if ($ride['operation_status'] === 'completed') {
+            $pdo->prepare("UPDATE passenger_rides SET departed_at = NOW(), status = 'completed' WHERE id = ?")
+                ->execute([$ride['id']]);
+            return ['success' => true, 'on_ride' => false];
+        }
+        return ['success' => true, 'on_ride' => true, 'ride' => $ride];
+    }
+
+    return ['success' => true, 'on_ride' => false];
+}
+
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 
@@ -685,6 +817,10 @@ try {
         case 'log_passenger_event':       $response = logPassengerEvent(); break;
         case 'get_analytics':             $response = getAnalytics(); break;
         case 'get_public_stats':          $response = getPublicStats(); break;
+        case 'join_ride':                 $response = joinRide(); break;
+        case 'leave_ride':                $response = leaveRide(); break;
+        case 'get_ride_history':          $response = getRideHistory(); break;
+        case 'check_active_ride':         $response = checkActiveRide(); break;
         default:
             http_response_code(400);
             $response = ['success' => false, 'error' => 'Invalid action'];
