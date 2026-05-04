@@ -281,11 +281,20 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         iconAnchor: [18, 18]
       });
     }
+    var locationPermissionGranted = false;
+    var userLocation = null;
     var userMarker = null;
+    var allBuses = [];
     var selectedRoute = '';
-    var locationPermissionGranted = true;
+    var map = null;
 
-    var AVG_SPEED_MPS = (30 * 1000) / 3600;
+    // --- Ride Tracking ---
+    var proximityCount = {}; 
+    var onRideBusId = null;
+    var activeRide = null;
+
+    // --- Constants ---
+    var AVG_SPEED_MPS = 5.5; // ~20km/h
     var MAX_DISTANCE_METERS = 5000;
 
     var _lastLocationUploadAt = 0;
@@ -347,6 +356,33 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       document.body.appendChild(notice);
     }
 
+    // --- BACKGROUND TRACKING SAFEGUARDS ---
+    var wakeLock = null;
+    async function acquireWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (e) {}
+    }
+
+    var keepAliveAudio = null;
+    function startKeepAliveAudio() {
+      if (!keepAliveAudio) {
+        keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        keepAliveAudio.loop = true;
+        keepAliveAudio.volume = 0.001;
+        keepAliveAudio.play().catch(function() {
+          var playOnInteraction = function() {
+            if (keepAliveAudio) keepAliveAudio.play().catch(function(){});
+            document.removeEventListener('touchstart', playOnInteraction);
+            document.removeEventListener('click', playOnInteraction);
+          };
+          document.addEventListener('touchstart', playOnInteraction);
+          document.addEventListener('click', playOnInteraction);
+        });
+      }
+    }
+
     function startUserLocationWatch() {
       var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
 
@@ -362,25 +398,41 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       }
 
       locationPermissionGranted = true;
+      
+      acquireWakeLock();
+      startKeepAliveAudio();
 
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        startBackgroundGeolocation();
+      } else {
+        startWebGeolocation();
+      }
+    }
+
+    async function startBackgroundGeolocation() {
+      const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
+      try {
+        await BackgroundGeolocation.addWatcher(
+          {
+            backgroundMessage: "Tracking your ride for history.",
+            backgroundTitle: "ByaHero Active",
+            requestPermissions: true,
+            stale: false,
+            distanceFilter: 0 
+          },
+          function(location, error) {
+            if (error) return;
+            handleNewLocation(location.latitude, location.longitude, 10);
+          }
+        );
+      } catch (e) {
+        startWebGeolocation();
+      }
+    }
+
+    function startWebGeolocation() {
       navigator.geolocation.watchPosition(function(pos) {
-        userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-
-        if (!userMarker) {
-          userMarker = L.marker([userLocation.lat, userLocation.lng], {
-            icon: getUserIcon(),
-            zIndexOffset: 1000
-          }).addTo(map);
-        } else {
-          userMarker.setLatLng([userLocation.lat, userLocation.lng]);
-        }
-
-        uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
-        updateBuses();
-        if (window.allStops) renderStopsList(window.allStops);
+        handleNewLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
       }, function(error) {
         console.error('Location error:', error);
         if (error.code === error.PERMISSION_DENIED) {
@@ -392,6 +444,23 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         maximumAge: 5000,
         timeout: 10000
       });
+    }
+
+    function handleNewLocation(lat, lng, accuracy) {
+      userLocation = { lat: lat, lng: lng };
+
+      if (!userMarker) {
+        userMarker = L.marker([userLocation.lat, userLocation.lng], {
+          icon: getUserIcon(),
+          zIndexOffset: 1000
+        }).addTo(map);
+      } else {
+        userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+      }
+
+      uploadMyLocation(userLocation.lat, userLocation.lng, accuracy);
+      updateBuses();
+      if (window.allStops) renderStopsList(window.allStops);
     }
 
     window.addEventListener('storage', function(e) {
@@ -424,6 +493,17 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             buses.forEach(function(b) {
               if (b.coords) {
                 var dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
+                
+                // Auto-boarding logic (30m for ~15s if update interval is 5s)
+                if (dist < 30 && b.status !== 'unavailable') {
+                  proximityCount[b.id] = (proximityCount[b.id] || 0) + 1;
+                  if (proximityCount[b.id] >= 3 && onRideBusId !== b.id) {
+                    boardBus(b.id, b.code);
+                  }
+                } else {
+                  proximityCount[b.id] = 0;
+                }
+
                 b.eta = formatArrivalBySeconds(dist / AVG_SPEED_MPS);
                 b.progress = Math.round(Math.max(0, Math.min(100, 100 - (dist / MAX_DISTANCE_METERS) * 100)));
               }
@@ -840,6 +920,66 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
 
+    function escapeHtml(str) {
+      return String(str || '').replace(/[&<>"']/g, function(s) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[s];
+      });
+    }
+
+    async function boardBus(busId, busCode) {
+      if (onRideBusId === busId) return;
+
+      try {
+        const res = await fetch('../../backend/boardBus.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ busId: busId })
+        });
+        const data = await res.json();
+        if (data.success) {
+          onRideBusId = busId;
+          activeRide = data;
+          showRideStatusBanner(busCode || 'Bus');
+        }
+      } catch (e) {
+        console.error('Boarding error:', e);
+      }
+    }
+
+    function showRideStatusBanner(busCode) {
+      var existing = document.getElementById('ride-status-banner');
+      if (existing) existing.remove();
+
+      var banner = document.createElement('div');
+      banner.id = 'ride-status-banner';
+      banner.className = 'position-fixed top-0 start-50 translate-middle-x mt-4 p-3 bg-primary text-white rounded-pill shadow-lg d-flex align-items-center gap-3';
+      banner.style.zIndex = '2000';
+      banner.style.minWidth = '220px';
+      banner.innerHTML = `
+        <span class="material-symbols-rounded">directions_bus</span>
+        <div class="flex-grow-1 text-center small fw-bold">ON RIDE: ${escapeHtml(busCode)}</div>
+        <div class="spinner-grow spinner-grow-sm text-light" role="status" style="width: 10px; height: 10px;"></div>
+      `;
+      document.body.appendChild(banner);
+    }
+
+    async function checkActiveRide() {
+      try {
+        const res = await fetch('../api.php?action=getActiveRide');
+        const data = await res.json();
+        if (data.success && data.ride) {
+          onRideBusId = data.ride.busId;
+          activeRide = data.ride;
+          showRideStatusBanner(data.ride.busCode || 'Bus');
+        } else {
+          onRideBusId = null;
+          activeRide = null;
+          var banner = document.getElementById('ride-status-banner');
+          if (banner) banner.remove();
+        }
+      } catch (e) {}
+    }
+
     // --------------------- MAP OFFSET HELPER ---------------------
     function flyToMyLocationKeepingMarkerVisible(lat, lng) {
       var zoom = Math.max(map.getZoom(), 16);
@@ -938,6 +1078,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         })
         .catch(err => console.error('Deep link join error:', err));
       }
+
+      checkActiveRide();
     });
 
     startUserLocationWatch();
