@@ -3,14 +3,26 @@ session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 
-if (!isset($_SESSION['user_id'])) {
+$input = json_decode(file_get_contents('php://input'), true);
+
+// Support TransistorSoft format
+if (isset($input['location'])) {
+    $loc = $input['location'];
+    $input['latitude'] = $loc['coords']['latitude'] ?? null;
+    $input['longitude'] = $loc['coords']['longitude'] ?? null;
+    $input['accuracy'] = $loc['coords']['accuracy'] ?? null;
+    if (isset($input['params'])) {
+        $input = array_merge($input, $input['params']);
+    }
+}
+
+$userId = $_SESSION['user_id'] ?? $input['user_id'] ?? null;
+
+if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
 
-$userId = $_SESSION['user_id'];
-
-$input = json_decode(file_get_contents('php://input'), true);
 $lat = $input['latitude'] ?? null;
 $lng = $input['longitude'] ?? null;
 $accuracy = $input['accuracy'] ?? null;

@@ -10,6 +10,18 @@ $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 $raw = file_get_contents('php://input');
 $input = json_decode($raw, true);
+
+// Support TransistorSoft format (it nests location)
+if (isset($input['location'])) {
+    $loc = $input['location'];
+    $input['lat'] = $loc['coords']['latitude'] ?? null;
+    $input['lng'] = $loc['coords']['longitude'] ?? null;
+    // TransistorSoft allows custom params to be merged or sent separately
+    if (isset($input['params'])) {
+        $input = array_merge($input, $input['params']);
+    }
+}
+
 if ($input === null) {
     http_response_code(400);
     echo json_encode(['success' => false, 'error' => 'Invalid JSON']);
@@ -22,6 +34,11 @@ if (empty($input['bus_id'])) {
 }
 
 $busId = (int)$input['bus_id'];
+
+// If no session, check if user_id was provided in the payload (for background requests)
+if ($currentUserId <= 0 && !empty($input['user_id'])) {
+    $currentUserId = (int)$input['user_id'];
+}
 
 $pdo = db();
 
@@ -43,7 +60,7 @@ $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
 
 if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'You are not currently assigned to track this bus.']);
+    echo json_encode(['success' => false, 'error' => 'Access denied.']);
     exit;
 }
 

@@ -495,7 +495,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         const statusSelect = el('statusSelect');
         const status = autoComputeStatus(lat, lng) || (statusSelect?.value || 'available');
         if (statusSelect) statusSelect.value = status;
-        lastComputedStatus = status;
+        
+        if (status !== lastComputedStatus) {
+            lastComputedStatus = status;
+            if (window._syncBGParams) window._syncBGParams();
+        }
 
         const payload = {
             bus_id: busId,
@@ -561,36 +565,62 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     async function startGeolocation() {
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-            const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
-            try {
-                const permissions = await BackgroundGeolocation.requestPermissions();
-                if (permissions.location !== 'granted') {
-                    return showAlert('Background location permission denied.', 'danger');
-                }
+        if (window.BackgroundGeolocation) {
+            const BG = window.BackgroundGeolocation;
 
-                bgWatcherId = await BackgroundGeolocation.addWatcher(
-                    {
-                        backgroundMessage: "Tracking active. Keep app open in background.",
-                        backgroundTitle: "Tracking ByaHero Bus",
-                        requestPermissions: true,
-                        stale: false,
-                        distanceFilter: 0 
-                    },
-                    function callback(location, error) {
-                        if (error) { return; }
-                        const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
-                        onLocationUpdate(pos);
-                    }
-                );
+            // Listen to location events for UI updates
+            BG.onLocation((location) => {
+                const pos = { coords: { latitude: location.coords.latitude, longitude: location.coords.longitude } };
+                onLocationUpdate(pos);
+            });
 
-                startKeepAliveAudio();
-                acquireWakeLock();
-                showAlert('Background Tracking Started', 'primary');
-            } catch (e) {
-                showAlert('Plugin Error', 'danger');
-                startWebGeolocation();
+            // Listen to provider change (GPS toggle)
+            BG.onProviderChange((event) => {
+                if (!event.enabled) showAlert('Please enable GPS', 'danger');
+            });
+
+            const state = await BG.ready({
+                desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
+                distanceFilter: 5,
+                stopOnTerminate: false,
+                startOnBoot: true,
+                batchSync: false,
+                autoSync: true,
+                url: (window.APP_BASE_URL || '') + '/public/update_geo_location.php',
+                params: {
+                    bus_id: busId,
+                    user_id: <?= json_encode($userId) ?>,
+                    route: busRoute,
+                    status: 'available',
+                    seats_available: seats
+                },
+                debug: false,
+                logLevel: BG.LOG_LEVEL_OFF,
+                backgroundTitle: "Tracking ByaHero Bus",
+                backgroundText: "Tracking active. Your bus location is being shared.",
+                foregroundService: true
+            });
+
+            if (!state.enabled) {
+                await BG.start();
             }
+
+            // Sync dynamic params (seats/status) whenever they change
+            window._syncBGParams = () => {
+                BG.setConfig({
+                    params: {
+                        bus_id: busId,
+                        user_id: <?= json_encode($userId) ?>,
+                        route: busRoute,
+                        status: lastComputedStatus,
+                        seats_available: seats
+                    }
+                });
+            };
+
+            startKeepAliveAudio();
+            acquireWakeLock();
+            showAlert('Transistor Tracking Started', 'primary');
         } else {
             startWebGeolocation();
         }
@@ -824,6 +854,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             updateSeatsUI();
             updateMediaSessionMetadata();
             pendingBoards++;
+            if (window._syncBGParams) window._syncBGParams();
             scheduleSync();
         } else {
             showAlert('Bus is full!', 'danger');
@@ -836,6 +867,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             updateSeatsUI();
             updateMediaSessionMetadata();
             pendingDeparts++;
+            if (window._syncBGParams) window._syncBGParams();
             scheduleSync();
         }
     }

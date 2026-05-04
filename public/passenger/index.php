@@ -288,28 +288,50 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
 
-    var _lastLocationUploadAt = 0;
+    /**
+     * Standardized POST helper. 
+     * Uses CapacitorHttp (Native side) if available to bypass WebView background throttling.
+     */
+    async function safePost(relativeUrl, payload) {
+        const url = new URL(relativeUrl, window.location.href).href;
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
+                const res = await window.Capacitor.Plugins.CapacitorHttp.post({
+                    url,
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    data: payload
+                });
+                return res.data;
+            } else {
+                const res = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                return await res.json();
+            }
+        } catch(e) {
+            console.error('safePost error:', e);
+            return { success: false, error: e.message };
+        }
+    }
+
     async function uploadMyLocation(lat, lng, accuracy) {
       var now = Date.now();
       if (now - _lastLocationUploadAt < 15000) return;
       _lastLocationUploadAt = now;
 
       try {
-        var res = await fetch('../../backend/updateUserLocation.php', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
+        await safePost('../../backend/updateUserLocation.php', {
             latitude: lat,
             longitude: lng,
             accuracy: accuracy ?? null
-          })
         });
-        if (!res.ok) {
-          var txt = await res.text();
-          console.warn('uploadMyLocation failed:', res.status, txt);
-        }
       } catch (e) {
         console.warn('uploadMyLocation network error:', e);
       }
@@ -349,35 +371,23 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     function startUserLocationWatch() {
       var locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
-
       if (!locationEnabled) {
         locationPermissionGranted = false;
         showLocationDisabledNotice();
         return;
       }
-
       if (!navigator.geolocation) {
         locationPermissionGranted = false;
         return;
       }
-
       locationPermissionGranted = true;
-
       navigator.geolocation.watchPosition(function(pos) {
-        userLocation = {
-          lat: pos.coords.latitude,
-          lng: pos.coords.longitude
-        };
-
+        userLocation = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         if (!userMarker) {
-          userMarker = L.marker([userLocation.lat, userLocation.lng], {
-            icon: getUserIcon(),
-            zIndexOffset: 1000
-          }).addTo(map);
+          userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: getUserIcon(), zIndexOffset: 1000 }).addTo(map);
         } else {
           userMarker.setLatLng([userLocation.lat, userLocation.lng]);
         }
-
         uploadMyLocation(userLocation.lat, userLocation.lng, pos.coords.accuracy);
         updateBuses();
         if (window.allStops) renderStopsList(window.allStops);
@@ -387,11 +397,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           locationPermissionGranted = false;
           showLocationPermissionDenied();
         }
-      }, {
-        enableHighAccuracy: true,
-        maximumAge: 5000,
-        timeout: 10000
-      });
+      }, { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 });
     }
 
     // --------------------- KEEP ALIVE & WAKELOCK ---------------------
@@ -420,28 +426,42 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             wakeLock = await navigator.wakeLock.request('screen');
         } catch (e) { }
     }
-
-    document.addEventListener('visibilitychange', async () => {
-        if (document.visibilityState === 'visible') {
-            acquireWakeLock();
-            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
-        }
-    });
-
-    // --------------------- PASSENGER RIDE TRACKER (AUTO-BOARDING) ---------------------
     var PassengerRideTracker = {
       activeRide: null,
       proximityThreshold: 30, // meters
       checkInterval: 10000, // 10 seconds
+      bgWatcherId: null,
 
       init: async function() {
         console.log('Initializing PassengerRideTracker...');
         await this.checkActiveRide();
-        this.startTracking();
+        await this.startTracking();
         setInterval(() => this.tick(), this.checkInterval);
         
         startKeepAliveAudio();
         acquireWakeLock();
+
+        // Re-start tracking if app becomes visible or active
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            this.ensureTracking();
+            acquireWakeLock();
+            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+          }
+        });
+
+        if (window.Capacitor && window.Capacitor.Plugins.App) {
+          window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+            if (isActive) this.ensureTracking();
+          });
+        }
+      },
+
+      ensureTracking: function() {
+        if (!this.bgWatcherId) {
+          console.log('Tracking watcher lost, restarting...');
+          this.startTracking();
+        }
       },
 
       tick: async function() {
@@ -483,12 +503,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       joinRide: async function(bus) {
         try {
-          const res = await fetch('../api.php?action=join_ride', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ operation_id: bus.operation_id })
-          });
-          const data = await res.json();
+          const data = await safePost('../api.php?action=join_ride', { operation_id: bus.operation_id });
           if (data.success) {
             await this.checkActiveRide();
             this.showBoardingNotice(bus);
@@ -547,26 +562,35 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       },
 
       startTracking: async function() {
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-          const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-          try {
-            await BG.addWatcher(
-              {
-                backgroundMessage: "ByaHero is tracking your ride for history.",
-                backgroundTitle: "Ride Tracking Active",
-                requestPermissions: true,
-                stale: false,
-                distanceFilter: 5
-              },
-              (location, error) => {
-                if (error) return;
-                userLocation = { lat: location.latitude, lng: location.longitude };
-                if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
-                uploadMyLocation(location.latitude, location.longitude, location.accuracy);
-                this.tick();
-              }
-            );
-          } catch (e) { console.warn('BG tracking error:', e); }
+        if (window.BackgroundGeolocation) {
+          const BG = window.BackgroundGeolocation;
+
+          BG.onLocation((location) => {
+            userLocation = { lat: location.coords.latitude, lng: location.coords.longitude };
+            if (userMarker) userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+            this.tick();
+          });
+
+          const state = await BG.ready({
+            desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
+            distanceFilter: 10,
+            stopOnTerminate: false,
+            startOnBoot: true,
+            autoSync: true,
+            url: (window.APP_BASE_URL || '') + '/backend/updateUserLocation.php',
+            params: {
+              user_id: <?= json_encode($currentUser['id'] ?? null) ?>
+            },
+            backgroundTitle: "Ride Tracking Active",
+            backgroundText: "ByaHero is tracking your ride for history.",
+            debug: false,
+            logLevel: BG.LOG_LEVEL_OFF
+          });
+
+          if (!state.enabled) {
+            await BG.start();
+          }
+          this.bgWatcherId = 'transistor';
         }
       }
     };
