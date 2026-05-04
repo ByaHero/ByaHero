@@ -163,6 +163,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <div class="d-flex flex-column vh-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
+      
+      <!-- Active Ride Banner -->
+      <div id="activeRideBanner" class="position-absolute start-50 translate-middle-x p-2 bg-primary text-white rounded-pill shadow-lg d-none align-items-center gap-2 px-3" style="top: 70px; z-index: 1000; width: max-content;">
+        <span class="material-symbols-rounded">directions_bus</span>
+        <span class="small fw-bold">Active Ride: <span id="activeBusCode">...</span></span>
+        <a href="rideHistory.php" class="btn btn-sm btn-light rounded-pill py-0 px-2 ms-2" style="font-size: 10px;">VIEW</a>
+      </div>
     </div>
   </div>
 
@@ -285,6 +292,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var selectedRoute = '';
     var locationPermissionGranted = true;
 
+    // --- AUTO-BOARDING & BACKGROUND TRACKING ---
+    var currentRide = null;
+    var proximityWatchId = null;
+    var bgWatcherId = null;
+    var keepAliveAudio = null;
+    var wakeLock = null;
+    var BOARDING_THRESHOLD_METERS = 30; // Distance to auto-board
+    var DEPARTURE_CHECK_INTERVAL = 30000; // Check every 30s if still on bus
+
     var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
 
@@ -345,6 +361,131 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
       `;
       document.body.appendChild(notice);
+    }
+
+    // --- BACKGROUND & AUTO-BOARDING FUNCTIONS ---
+    async function checkRideStatus() {
+      try {
+        var res = await fetch('../../backend/getRideStatus.php');
+        var json = await res.json();
+        var banner = document.getElementById('activeRideBanner');
+        var codeSpan = document.getElementById('activeBusCode');
+        
+        if (json.success && json.on_ride) {
+          currentRide = json.ride;
+          if (banner) {
+            banner.classList.remove('d-none');
+            banner.classList.add('d-flex');
+          }
+          if (codeSpan) codeSpan.textContent = currentRide.bus_code || 'BUS';
+        } else {
+          currentRide = null;
+          if (banner) {
+            banner.classList.add('d-none');
+            banner.classList.remove('d-flex');
+          }
+        }
+      } catch (e) {
+        console.warn('checkRideStatus error:', e);
+      }
+    }
+
+    async function autoBoard(bus) {
+      if (currentRide) return;
+      try {
+        var res = await fetch('../../backend/boardBus.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bus_id: bus.id,
+            route: bus.route,
+            location_name: bus.locName
+          })
+        });
+        var json = await res.json();
+        if (json.success) {
+          currentRide = { bus_id: bus.id, route: bus.route };
+          alert('Welcome! You have automatically boarded ' + bus.code);
+          // Start background tracking if not already
+          startBackgroundLocation();
+        }
+      } catch (e) {
+        console.warn('autoBoard error:', e);
+      }
+    }
+
+    async function checkProximityToBuses(buses) {
+      if (currentRide || !userLocation) return;
+      
+      for (var i = 0; i < buses.length; i++) {
+        var b = buses[i];
+        if (b.coords) {
+          var dist = distanceMeters(b.coords[0], b.coords[1], userLocation.lat, userLocation.lng);
+          if (dist <= BOARDING_THRESHOLD_METERS) {
+            console.log('Proximity detected with bus:', b.code, dist + 'm');
+            await autoBoard(b);
+            break; 
+          }
+        }
+      }
+    }
+
+    // Audio Keep-Alive to prevent background throttling
+    function startKeepAliveAudio() {
+      if (!keepAliveAudio) {
+        keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        keepAliveAudio.loop = true;
+        keepAliveAudio.volume = 0.001;
+        keepAliveAudio.play().catch(function(e) {
+          var playOnInteraction = function() {
+            if (keepAliveAudio) keepAliveAudio.play().catch(function(){});
+            document.removeEventListener('touchstart', playOnInteraction);
+            document.removeEventListener('click', playOnInteraction);
+          };
+          document.addEventListener('touchstart', playOnInteraction);
+          document.addEventListener('click', playOnInteraction);
+        });
+      }
+    }
+
+    async function acquireWakeLock() {
+      if (!('wakeLock' in navigator)) return;
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (e) {}
+    }
+
+    async function startBackgroundLocation() {
+      if (bgWatcherId !== null) return;
+      
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        var BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
+        try {
+          var permissions = await BackgroundGeolocation.requestPermissions();
+          if (permissions.location === 'granted') {
+            bgWatcherId = await BackgroundGeolocation.addWatcher({
+              backgroundMessage: "Tracking ride history in background.",
+              backgroundTitle: "ByaHero - Ride Active",
+              requestPermissions: true,
+              stale: false,
+              distanceFilter: 0 
+            }, function(location, error) {
+              if (error) return;
+              if (location) {
+                userLocation = { lat: location.latitude, lng: location.longitude };
+                uploadMyLocation(location.latitude, location.longitude);
+                // When in background, we still want to update buses to check if we should auto-depart
+                // or if the conductor stopped tracking (which handled via server-side)
+                updateBuses();
+              }
+            });
+            startKeepAliveAudio();
+            acquireWakeLock();
+          }
+        } catch (e) {
+          console.warn('BackgroundGeolocation error:', e);
+        }
+      }
     }
 
     function startUserLocationWatch() {
@@ -437,6 +578,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           updateMap(buses);
           renderBusList(buses);
           updateFilters(buses);
+
+          // AUTO-BOARDING CHECK
+          checkProximityToBuses(buses);
+          
+          // REFRESH RIDE STATUS
+          checkRideStatus();
         }
       } catch (e) {
         console.error('Bus fetch error:', e);
@@ -909,6 +1056,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     document.addEventListener('DOMContentLoaded', function() {
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) locationPermissionGranted = false;
+
+      // Check if user is already on a ride and start background tracking if so
+      checkRideStatus().then(function() {
+        if (currentRide) {
+          startBackgroundLocation();
+        }
+      });
 
       // Deep Link Joining Logic
       const urlParams = new URLSearchParams(window.location.search);

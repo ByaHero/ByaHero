@@ -480,6 +480,14 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/rideHistory.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/icons/busActive.svg" alt="ride history" height="30">
+        </div>
+        Ride History
+      </a>
+
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/privacy.svg" alt="privacy" height="30">
