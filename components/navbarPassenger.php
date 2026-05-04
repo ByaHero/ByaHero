@@ -461,14 +461,6 @@ else: ?>
         Profile
       </a>
 
-      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/rideHistory.php">
-        <div class="d-flex align-items-center justify-content-center" style="margin-left: 20px; margin-right: 10px; width: 30px;">
-          <span class="material-symbols-rounded" style="font-size: 30px;">history</span>
-        </div>
-        Ride History
-      </a>
-
       <!--
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
