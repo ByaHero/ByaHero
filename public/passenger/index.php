@@ -290,10 +290,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
 
+    // --- CONSOLIDATED TRACKING LOGIC (LITERAL COPY FROM conductorLive.php) ---
     var _lastNetworkSync = 0;
-    var _lastLocationUploadAt = 0;
     var _lastUiUpdateAt = 0;
-    
+    var lastKnownLocation = null;
+    var bgWatcherId = null;
+    var watchId = null;
+    var SYNC_INTERVAL = 5000;
+    var routeFeatures = [];
+
     async function safePost(relativeUrl, payload) {
         const url = new URL(relativeUrl, window.location.href).href;
         try {
@@ -322,16 +327,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         }
     }
 
-    async function uploadMyLocation(lat, lng, accuracy) {
-      var now = Date.now();
-      if (now - _lastLocationUploadAt < 5000) return;
-      _lastLocationUploadAt = now;
-
-      await safePost('../../backend/updateUserLocation.php', {
-        latitude: lat,
-        longitude: lng,
-        accuracy: accuracy ?? null
-      });
+    function pointInRing(x, y, ring) {
+        let inside = false;
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            const xi = ring[i][0], yi = ring[i][1];
+            const xj = ring[j][0], yj = ring[j][1];
+            const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
+            if (intersect) inside = !inside;
+        }
+        return inside;
     }
 
     function showLocationDisabledNotice() {
@@ -354,12 +358,53 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       document.body.appendChild(notice);
     }
 
+    function resolveLocationName(lat, lng) {
+        if (!routeFeatures || routeFeatures.length === 0) return null;
+        for (const f of routeFeatures) {
+            if (!f.geometry) continue;
+            if (f.geometry.type === 'Polygon' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates[0]) {
+                if (pointInRing(lng, lat, f.geometry.coordinates[0])) {
+                    return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
+                }
+            }
+            if (f.geometry.type === 'MultiPolygon' && Array.isArray(f.geometry.coordinates)) {
+                for (const poly of f.geometry.coordinates) {
+                    if (poly && poly[0] && pointInRing(lng, lat, poly[0])) {
+                        return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    async function loadRouteFeatures() {
+        try {
+            const res = await fetch('../map_data.php', { cache: 'no-store' });
+            const json = await res.json();
+            if (json && Array.isArray(json.features)) {
+                routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
+            }
+        } catch (e) { }
+    }
+
+    async function uploadMyLocation(lat, lng, accuracy) {
+        await safePost('../../backend/updateUserLocation.php', {
+            latitude: lat,
+            longitude: lng,
+            accuracy: accuracy ?? null
+        });
+    }
+
     function onLocationUpdate(pos) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
+        const resolved = resolveLocationName(lat, lng);
+        const locName = resolved || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
 
         userLocation = { lat, lng };
+        lastKnownLocation = { lat, lng, locName };
 
         if (!userMarker) {
             userMarker = L.marker([lat, lng], {
@@ -370,19 +415,22 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             userMarker.setLatLng([lat, lng]);
         }
 
-        // Throttle UI updates (Stops list) to every 5 seconds
         const now = Date.now();
+        
+        // Throttled UI updates (Stops list) to every 5 seconds
         if (now - _lastUiUpdateAt > 5000) {
             _lastUiUpdateAt = now;
             if (window.allStops) renderStopsList(window.allStops);
         }
 
-        // Sync with server
-        uploadMyLocation(lat, lng, acc);
-        
+        // Sync with server every 5 seconds
+        if (now - _lastNetworkSync > SYNC_INTERVAL) {
+            uploadMyLocation(lat, lng, acc);
+            _lastNetworkSync = now;
+        }
+
         // Feed into the Ride Tracker
         if (PassengerRideTracker && typeof PassengerRideTracker.tick === 'function') {
-            // Throttle tracker logic to once every 10 seconds
             if (now - (window._lastTrackerTick || 0) > 10000) {
                 window._lastTrackerTick = now;
                 PassengerRideTracker.tick();
@@ -392,9 +440,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     async function startUserLocationWatch() {
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
-      if (!locationEnabled) { locationPermissionGranted = false; showLocationDisabledNotice(); return; }
-      if (!navigator.geolocation) { locationPermissionGranted = false; return; }
-      locationPermissionGranted = true;
+      if (!locationEnabled) { showLocationDisabledNotice(); return; }
+      if (!navigator.geolocation) return;
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
           const BG = window.Capacitor.Plugins.BackgroundGeolocation;
@@ -440,8 +487,23 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         setupMediaSession();
     }
 
-    // --------------------- KEEP ALIVE & WAKELOCK ---------------------
-    var keepAliveAudio = null;
+    // --- SCREEN WAKE LOCK ---
+    let wakeLock = null;
+    async function acquireWakeLock() {
+        if (!('wakeLock' in navigator)) return;
+        try {
+            wakeLock = await navigator.wakeLock.request('screen');
+            wakeLock.addEventListener('release', () => {
+                if (document.visibilityState === 'visible') acquireWakeLock();
+            });
+        } catch (e) { }
+    }
+    async function releaseWakeLock() {
+        if (wakeLock) { try { await wakeLock.release(); } catch(e){} wakeLock = null; }
+    }
+
+    // --- AUDIO KEEP-ALIVE ---
+    let keepAliveAudio = null;
     function startKeepAliveAudio() {
         if (!keepAliveAudio) {
             keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
@@ -458,55 +520,86 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             });
         }
     }
-
-    let wakeLock = null;
-    async function acquireWakeLock() {
-        if (!('wakeLock' in navigator)) return;
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-        } catch (e) { }
+    function stopKeepAliveAudio() {
+        if (keepAliveAudio) { keepAliveAudio.pause(); keepAliveAudio = null; }
     }
 
+    // --- MEDIA SESSION ---
+    async function updateMediaSessionMetadata() {
+        const metadata = {
+            title: 'ByaHero Journey Tracking',
+            artist: 'Your ride is being tracked for history',
+            album: 'ByaHero',
+            artwork: [{ src: '../../assets/images/ByaHero.png', sizes: '512x512', type: 'image/png' }]
+        };
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
+            try {
+                const MS = window.Capacitor.Plugins.MediaSession;
+                await MS.setMetadata(metadata);
+                await MS.setPlaybackState({ playbackState: 'playing' });
+            } catch(e) { }
+        } else if ('mediaSession' in navigator) {
+            navigator.mediaSession.metadata = new MediaMetadata(metadata);
+            navigator.mediaSession.playbackState = "playing";
+        }
+    }
+
+    async function setupMediaSession() {
+        const dummy = () => { console.log('Keep-alive ping'); };
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
+            try {
+                const MS = window.Capacitor.Plugins.MediaSession;
+                await MS.setActionHandler({ action: 'nexttrack' }, dummy);
+                await MS.setActionHandler({ action: 'previoustrack' }, dummy);
+                await updateMediaSessionMetadata();
+            } catch(e) { }
+        } else if ('mediaSession' in navigator) {
+            navigator.mediaSession.setActionHandler('nexttrack', dummy);
+            navigator.mediaSession.setActionHandler('previoustrack', dummy);
+            updateMediaSessionMetadata();
+        }
+    }
+
+    // --- PERSISTENCE LISTENERS ---
     document.addEventListener('visibilitychange', async () => {
         if (document.visibilityState === 'visible') {
             acquireWakeLock();
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
-            
-            // Re-verify tracking status
-            const hasBGWatcher = !!(window.bgWatcherId);
-            const hasWebWatcher = !!(window.watchId);
-            if (!hasBGWatcher && !hasWebWatcher) {
-                if (typeof startUserLocationWatch === 'function') startUserLocationWatch();
-                if (PassengerRideTracker && typeof PassengerRideTracker.startTracking === 'function') PassengerRideTracker.startTracking();
+            const trackingActive = (bgWatcherId !== null || watchId !== null);
+            if (!trackingActive) startUserLocationWatch();
+            else if (lastKnownLocation) {
+                uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);
+                _lastNetworkSync = Date.now();
             }
         }
     });
 
-    // Handle Capacitor App State for native foreground/background transitions
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
         window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
                 acquireWakeLock();
                 if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+                if (lastKnownLocation) {
+                    uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);
+                    _lastNetworkSync = Date.now();
+                }
             }
         });
     }
 
-
-    // Heartbeat Monitor: Restarts tracking if it dies and forces sync
+    // Heartbeat Monitor
     setInterval(async () => {
         if (document.visibilityState !== 'visible') {
-            // If phone is locked/minimized, ensure audio is still playing
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
         }
-
-        const trackingActive = (window.bgWatcherId !== null || window.watchId !== null);
+        const trackingActive = (bgWatcherId !== null || watchId !== null);
         if (!trackingActive) {
-            console.log('Heartbeat: Tracking inactive, restarting...');
-            if (typeof startUserLocationWatch === 'function') startUserLocationWatch();
-            if (PassengerRideTracker && typeof PassengerRideTracker.startTracking === 'function') PassengerRideTracker.startTracking();
+            startUserLocationWatch();
+        } else if (lastKnownLocation && (Date.now() - _lastNetworkSync > 8000)) {
+            uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);
+            _lastNetworkSync = Date.now();
         }
-    }, 10000);
+    }, 5000);
 
     // --------------------- PASSENGER RIDE TRACKER (AUTO-BOARDING) ---------------------
     var PassengerRideTracker = {
@@ -930,6 +1023,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     document.addEventListener('DOMContentLoaded', function() {
       const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
       if (!locationEnabled) locationPermissionGranted = false;
+      
+      loadRouteFeatures().catch(()=>{});
+
       const urlParams = new URLSearchParams(window.location.search);
       const joinCode = urlParams.get('join_circle');
       if (joinCode) {
