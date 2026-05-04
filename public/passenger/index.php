@@ -282,6 +282,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
     }
     var userMarker = null;
+    window.watchId = null;
+    window.bgWatcherId = null;
     var selectedRoute = '';
     var locationPermissionGranted = true;
 
@@ -451,6 +453,22 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             }
         });
     }
+
+
+    // Heartbeat Monitor: Restarts tracking if it dies and forces sync
+    setInterval(async () => {
+        if (document.visibilityState !== 'visible') {
+            // If phone is locked/minimized, ensure audio is still playing
+            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+        }
+
+        const trackingActive = (window.bgWatcherId !== null || window.watchId !== null);
+        if (!trackingActive) {
+            console.log('Heartbeat: Tracking inactive, restarting...');
+            if (typeof startUserLocationWatch === 'function') startUserLocationWatch();
+            if (PassengerRideTracker && typeof PassengerRideTracker.startTracking === 'function') PassengerRideTracker.startTracking();
+        }
+    }, 10000);
 
     // --------------------- PASSENGER RIDE TRACKER (AUTO-BOARDING) ---------------------
     var PassengerRideTracker = {
