@@ -103,7 +103,11 @@ if (!isset($baseUrl)) {
       </div>
       
       <div id="busListMobile">
-        <div class="text-center text-muted mt-4 small">Loading buses...</div>
+        <div class="text-center mt-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -148,7 +152,11 @@ if (!isset($baseUrl)) {
       </div>
 
       <div id="busStopsListMobile" class="bus-stops-list">
-        <div class="text-center text-muted mt-4 small">Loading bus stops...</div>
+        <div class="text-center mt-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
       </div>
     </div>
   </div>
