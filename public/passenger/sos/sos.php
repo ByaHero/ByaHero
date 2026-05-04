@@ -281,7 +281,11 @@ $pageDepth = "../../../";
 
                     <section class="text-center mt-3">
                         <div id="friends-avatars" class="avatar-stack mb-1"></div>
-                        <p id="friends-status" class="small text-muted mb-0">Loading…</p>
+                        <div id="friends-status" class="small text-muted mb-0">
+                            <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
                     </section>
                 </div>
 
@@ -331,7 +335,11 @@ $pageDepth = "../../../";
                         </button>
                     </div>
                     <div id="friends-list" class="list-group small">
-                        <div class="list-group-item">Loading…</div>
+                        <div class="list-group-item text-center py-3">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="alert alert-info mt-3 mb-0 small">
                         This will send an <strong>in-app SOS alert</strong> to the selected friends.

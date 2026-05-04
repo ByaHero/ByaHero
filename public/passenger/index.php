@@ -805,7 +805,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     async function loadStops() {
       var listEl = document.getElementById('busStopsListMobile');
       if (listEl) {
-        listEl.innerHTML = '<div class="text-center text-muted mt-4 small">Loading bus stops...</div>';
+        listEl.innerHTML = '<div class="text-center mt-4"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
       }
 
       var res = await fetch('../api.php?action=get_bus_stops_terminal', {

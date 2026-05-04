@@ -71,7 +71,7 @@ $pageDepth = "../../../";      // Fixes the logo path if needed
 
 <body>
   <?php include "../../../components/navbarPassenger.php"; ?>
-
+  
   <!-- Main Content -->
   <div class="container share-container">
     <div class="share-heading">Share ByaHero</div>

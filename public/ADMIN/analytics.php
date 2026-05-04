@@ -174,7 +174,9 @@ $backLink  = 'admin.php';
 
     <!-- Loading state -->
     <div id="loadingState" class="loading-spinner">
-        <div class="spinner-ring"></div>
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
     </div>
 
     <!-- Content (hidden until loaded) -->
