@@ -207,19 +207,14 @@
 
 .bus-timeline-track {
   height: 2px;
-  background-image: linear-gradient(to right, #cbd5e1 50%, rgba(255, 255, 255, 0) 0%);
-  background-position: center;
-  background-size: 10px 2px;
-  background-repeat: repeat-x;
-  background-color: transparent;
+  background-color: #e2e8f0; /* Solid, visible light gray line */
   border-radius: 1px;
 }
 
 .bus-timeline-progress {
-  background: linear-gradient(90deg, #1e3a8a, #3b82f6);
-  border-radius: 2px;
-  height: 4px;
-  top: -1px; /* Align thicker progress with thinner dashed track */
+  background-color: #1e3a8a; /* Solid blue for traveled part */
+  border-radius: 1px;
+  height: 100%;
 }
 
 .bus-timeline-bus {

@@ -785,9 +785,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 <span>${b.locName}</span>
                 <span>${b.seats} Available</span>
               </div>
-              ${arrivalText ? `<div class="small text-muted mb-2">${arrivalText}</div>` : ''}
+              ${arrivalText ? `<div class="small text-muted mb-1">${arrivalText}</div>` : ''}
               
-              <div class="bus-timeline-track position-relative mt-4 mb-2 mx-1">
+              <div class="bus-timeline-track position-relative mb-2 mx-2">
                 <div class="bus-timeline-progress position-absolute top-0 bottom-0 start-0" style="width:${progress}%"></div>
                 <div class="bus-timeline-bus position-absolute bg-white rounded-circle shadow-sm border border-2 border-primary d-flex align-items-center justify-content-center" style="left:${progress}%; transform: translateX(-50%);">
                   <span class="material-symbols-rounded text-primary" style="font-size: 16px;">directions_bus</span>
