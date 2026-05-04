@@ -490,7 +490,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
               );
               startKeepAliveAudio();
               acquireWakeLock();
-              setupMediaSession();
           } catch (e) { startWebGeolocation(); }
       } else {
           startWebGeolocation();
@@ -506,7 +505,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         );
         startKeepAliveAudio();
         acquireWakeLock();
-        setupMediaSession();
     }
 
     // --- SCREEN WAKE LOCK ---
@@ -544,42 +542,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
     function stopKeepAliveAudio() {
         if (keepAliveAudio) { keepAliveAudio.pause(); keepAliveAudio = null; }
-    }
-
-    // --- MEDIA SESSION ---
-    async function updateMediaSessionMetadata() {
-        const metadata = {
-            title: 'ByaHero Journey Tracking',
-            artist: 'Your ride is being tracked for history',
-            album: 'ByaHero',
-            artwork: [{ src: '../../assets/images/ByaHero.png', sizes: '512x512', type: 'image/png' }]
-        };
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
-            try {
-                const MS = window.Capacitor.Plugins.MediaSession;
-                await MS.setMetadata(metadata);
-                await MS.setPlaybackState({ playbackState: 'playing' });
-            } catch(e) { }
-        } else if ('mediaSession' in navigator) {
-            navigator.mediaSession.metadata = new MediaMetadata(metadata);
-            navigator.mediaSession.playbackState = "playing";
-        }
-    }
-
-    async function setupMediaSession() {
-        const dummy = () => { console.log('Keep-alive ping'); };
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.MediaSession) {
-            try {
-                const MS = window.Capacitor.Plugins.MediaSession;
-                await MS.setActionHandler({ action: 'nexttrack' }, dummy);
-                await MS.setActionHandler({ action: 'previoustrack' }, dummy);
-                await updateMediaSessionMetadata();
-            } catch(e) { }
-        } else if ('mediaSession' in navigator) {
-            navigator.mediaSession.setActionHandler('nexttrack', dummy);
-            navigator.mediaSession.setActionHandler('previoustrack', dummy);
-            updateMediaSessionMetadata();
-        }
     }
 
     // --- PERSISTENCE LISTENERS ---
