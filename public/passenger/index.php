@@ -123,26 +123,41 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     .bus-timeline-track {
-      height: 4px !important;
-      background-color: #475569 !important; /* Much darker gray for high visibility */
-      border-radius: 4px;
+      height: 3px !important;
+      background-image: linear-gradient(to right, #cbd5e1 50%, rgba(255, 255, 255, 0) 0%);
+      background-position: center;
+      background-size: 8px 3px;
+      background-repeat: repeat-x;
+      background-color: transparent;
       position: relative;
       display: block;
-      margin-top: 30px !important; /* Ensure icons don't overlap text */
-      margin-bottom: 10px !important;
-      margin-left: 15px !important;
-      margin-right: 15px !important;
+      margin-top: 15px !important;
+      margin-bottom: 12px !important;
+      margin-left: 18px !important;
+      margin-right: 18px !important;
       z-index: 5;
     }
 
     .bus-timeline-progress {
-      background-color: #1e3a8a !important;
+      background: linear-gradient(90deg, #3b82f6, #1e3a8a) !important; /* Lighter at the bus, darker at destination */
       border-radius: 4px;
-      height: 100%;
+      height: 3px;
       position: absolute;
       top: 0;
-      left: 0;
       z-index: 6;
+      box-shadow: 0 0 8px rgba(30, 58, 138, 0.2);
+      transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .bus-timeline-bus {
+      transition: left 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      z-index: 10;
+    }
+
+    .bus-timeline-destination {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+      z-index: 9;
     }
 
     .user-profile-marker {
@@ -811,7 +826,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
               ${arrivalText ? `<div class="small text-muted mb-1">${arrivalText}</div>` : ''}
               
               <div class="bus-timeline-track position-relative mt-4 mb-2 mx-2">
-                <div class="bus-timeline-progress position-absolute top-0 bottom-0 start-0" style="width:${progress}%"></div>
+                <div class="bus-timeline-progress position-absolute top-0 bottom-0" style="left:${progress}%; width:${100 - progress}%"></div>
                 <div class="bus-timeline-bus position-absolute bg-white rounded-circle shadow-sm border border-2 border-primary d-flex align-items-center justify-content-center" style="left:${progress}%; transform: translateX(-50%);">
                   <span class="material-symbols-rounded text-primary" style="font-size: 16px;">directions_bus</span>
                 </div>

@@ -206,7 +206,6 @@
    ============================= */
 
 .bus-timeline-track {
-  height: 2px;
   background-color: #e2e8f0; /* Solid, visible light gray line */
   border-radius: 1px;
 }
