@@ -319,6 +319,7 @@ function notification_icon(string $type): array
   <script>
     // --- SOS polling (Option 3: "push-like" while app is open) ---
 
+    let _pollSosIntervalId = null;
     let lastSosId = (function () {
       <?php
       $maxId = 0;
@@ -414,7 +415,13 @@ function notification_icon(string $type): array
       }
     }
 
-    setInterval(pollSosAlerts, 10000);
+    _pollSosIntervalId = setInterval(pollSosAlerts, 10000);
+
+    function _cleanup() {
+        if (_pollSosIntervalId) { clearInterval(_pollSosIntervalId); _pollSosIntervalId = null; }
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
   </script>
 </body>
 

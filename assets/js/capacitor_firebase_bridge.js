@@ -45,13 +45,62 @@
       isSaved: () => _saved,
       requestPushPermission: async () => {
         return await initializePushNotifications(true);
-      }
+      },
+      cleanup: _cleanup
     };
+
+    function _cleanup() {
+        if (_registrationListener) {
+            const listener = _registrationListener;
+            _registrationListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        if (_registrationErrorListener) {
+            const listener = _registrationErrorListener;
+            _registrationErrorListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        if (_pushReceivedListener) {
+            const listener = _pushReceivedListener;
+            _pushReceivedListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        if (_pushActionListener) {
+            const listener = _pushActionListener;
+            _pushActionListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        _listenersSetup = false;
+        _tokenReceived = false;
+    }
+
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
   
     // Listen for incoming pushes when app is in foreground
     let _listenersSetup = false;
     let _tokenReceived = false;
     let _retryTimer = null;
+    let _registrationListener = null;
+    let _registrationErrorListener = null;
+    let _pushReceivedListener = null;
+    let _pushActionListener = null;
     const RETRY_DELAYS_MS = [500, 1000, 2000, 3000, 4000, 5000];
 
     function cancelRetries() {
@@ -68,14 +117,14 @@
       
       const PushNotifications = window.Capacitor.Plugins.PushNotifications;
   
-      PushNotifications.addListener('registration', (obj) => {
+      _registrationListener = PushNotifications.addListener('registration', (obj) => {
         dbg('log', '[SOS-FCM] Registration successful, token: ' + obj.value);
         _tokenReceived = true;
         cancelRetries();
         saveToken(obj.value);
       });
-  
-      PushNotifications.addListener('registrationError', (error) => {
+
+      _registrationErrorListener = PushNotifications.addListener('registrationError', (error) => {
         dbg('warn', '[SOS-FCM] Registration error: ' + JSON.stringify(error));
         // Don't wait for the normal retry timer — kick off an immediate retry
         if (!_tokenReceived) {
@@ -83,16 +132,16 @@
           scheduleRegisterRetry(0);
         }
       });
-  
-      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+
+      _pushReceivedListener = PushNotifications.addListener('pushNotificationReceived', (notification) => {
         dbg('log', '[SOS-FCM] Foreground push received: ' + JSON.stringify(notification));
         const type = (notification.data && notification.data.type) || '';
         if (type === 'sos_alert') {
           showSosBanner(notification);
         }
       });
-  
-      PushNotifications.addListener('pushNotificationActionPerformed', (notificationAction) => {
+
+      _pushActionListener = PushNotifications.addListener('pushNotificationActionPerformed', (notificationAction) => {
         dbg('log', '[SOS-FCM] Push action performed: ' + JSON.stringify(notificationAction));
         const type = (notificationAction.notification.data && notificationAction.notification.data.type) || '';
         if (type === 'sos_alert') {

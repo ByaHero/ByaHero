@@ -349,6 +349,7 @@ $pageType = 'dashboard';
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            let _updateBusMapIntervalId = null;
             const map = L.map('map').setView([14.0905, 121.0550], 12);
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
@@ -426,7 +427,13 @@ $pageType = 'dashboard';
             }
 
             updateBusMap();
-            setInterval(updateBusMap, 3000);
+            _updateBusMapIntervalId = setInterval(updateBusMap, 3000);
+
+            function _cleanup() {
+                if (_updateBusMapIntervalId) { clearInterval(_updateBusMapIntervalId); _updateBusMapIntervalId = null; }
+            }
+            window.addEventListener('beforeunload', _cleanup);
+            window.addEventListener('pagehide', _cleanup);
         });
     </script>
 </body>

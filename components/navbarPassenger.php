@@ -619,6 +619,7 @@ else: ?>
     // Poll unread notifications + active SOS alerts
     // Keep interval conservative for InfinityFree
     const POLL_MS = 30000; // 30 seconds
+    let _pollIntervalId = null;
 
     function setNotifIcon(hasUnread) {
       const img = document.getElementById('topbar-notification-icon');
@@ -654,8 +655,15 @@ else: ?>
     }
 
     document.addEventListener('visibilitychange', tick);
-    setInterval(tick, POLL_MS);
+    _pollIntervalId = setInterval(tick, POLL_MS);
     tick(); // run once on load
+
+    function _cleanup() {
+        if (_pollIntervalId) { clearInterval(_pollIntervalId); _pollIntervalId = null; }
+        document.removeEventListener('visibilitychange', tick);
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
   })();
 </script>
 

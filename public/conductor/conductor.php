@@ -373,6 +373,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
         // --- MAP INITIALIZATION ---
         let map = null;
+        let _fetchLiveBusesIntervalId = null;
         function initMap() {
             // Centers map correctly over the Batangas area
             map = L.map('mainMap', { zoomControl: false, attributionControl: false }).setView([14.0905, 121.0550], 12);
@@ -630,10 +631,16 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             
             // Fetch active buses immediately and set 4-second update interval
             fetchLiveBuses();
-            setInterval(fetchLiveBuses, 4000);
+            _fetchLiveBusesIntervalId = setInterval(fetchLiveBuses, 4000);
 
             el('startBtn').addEventListener('click', startTracking);
         });
+
+        function _cleanup() {
+            if (_fetchLiveBusesIntervalId) { clearInterval(_fetchLiveBusesIntervalId); _fetchLiveBusesIntervalId = null; }
+        }
+        window.addEventListener('beforeunload', _cleanup);
+        window.addEventListener('pagehide', _cleanup);
     </script>
 </body>
 </html>

@@ -607,8 +607,9 @@ $pageDepth = "../../../";
             timerElement.textContent = "✕";
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
             document.querySelector('#sos-countdown-layer p').textContent = "Your SOS has been cancelled. Returning to home...";
-            setTimeout(() => { 
-                countdownLayer.classList.add('d-none'); 
+            _cleanupDragListeners();
+            setTimeout(() => {
+                countdownLayer.classList.add('d-none');
             }, 1200);
         }
 
@@ -689,6 +690,7 @@ $pageDepth = "../../../";
                 if (statusEl) statusEl.textContent = "Failed to send SOS";
             } finally {
                 isSOSActive = false;
+                _cleanupDragListeners();
                 countdownLayer.classList.add('d-none');
             }
         }
@@ -736,6 +738,17 @@ $pageDepth = "../../../";
         document.addEventListener('touchmove', drag, { passive: false });
         document.addEventListener('mouseup', endDrag);
         document.addEventListener('touchend', endDrag);
+
+        function _cleanupDragListeners() {
+            sliderHandle.removeEventListener('mousedown', startDrag);
+            sliderHandle.removeEventListener('touchstart', startDrag);
+            document.removeEventListener('mousemove', drag);
+            document.removeEventListener('touchmove', drag);
+            document.removeEventListener('mouseup', endDrag);
+            document.removeEventListener('touchend', endDrag);
+        }
+        window.addEventListener('beforeunload', _cleanupDragListeners);
+        window.addEventListener('pagehide', _cleanupDragListeners);
     </script>
     
 </body>

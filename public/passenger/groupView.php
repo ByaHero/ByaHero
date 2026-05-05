@@ -666,4 +666,10 @@
         joinMessageEl = document.getElementById('join-message');
         openGroupView();
     });
+
+    function _cleanup() {
+        if (locationTimer) { clearInterval(locationTimer); locationTimer = null; }
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
 </script>

@@ -350,6 +350,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     const alertBox = el('alertBox');
     const netStatus = el('netStatus');
     let bgWatcherId = null;
+    let _appStateListener = null;
 
     let lastMoveCheck = { time: 0, lat: null, lng: null };
     let lastComputedStatus = 'available';
@@ -651,7 +652,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     // --- VISIBILITY CHANGE: restart tracking if Android killed the watcher while screen was off ---
-    document.addEventListener('visibilitychange', async () => {
+    const _onVisibilityChange = async () => {
         if (document.visibilityState === 'visible') {
             // Re-acquire wake lock (it auto-releases when screen turns off)
             acquireWakeLock();
@@ -667,11 +668,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 lastNetworkSync = Date.now();
             }
         }
-    });
+    };
+    document.addEventListener('visibilitychange', _onVisibilityChange);
 
     // --- CAPACITOR APP STATE: handle native foreground/background transitions ---
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+        const _appStateResult = window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
                 // App came back to foreground
                 acquireWakeLock();
@@ -682,6 +684,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 }
             }
         });
+        if (_appStateResult && typeof _appStateResult.then === 'function') {
+            _appStateResult.then(handle => { _appStateListener = handle; });
+        } else {
+            _appStateListener = _appStateResult;
+        }
     }
 
     // --- ANALYTICS: Start operation on first load ---
@@ -892,6 +899,33 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         el('stopBtn').addEventListener('click', stopTracking);
     });
+
+    // --- CLEANUP: prevent memory leaks on page unload ---
+    function _cleanup() {
+        if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+        if (_onVisibilityChange) document.removeEventListener('visibilitychange', _onVisibilityChange);
+        if (_appStateListener) {
+            const listener = _appStateListener;
+            _appStateListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch(e){}
+            watchId = null;
+        }
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
+            bgWatcherId = null;
+        }
+        releaseWakeLock();
+        stopKeepAliveAudio();
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
     </script>
 </body>
 </html>

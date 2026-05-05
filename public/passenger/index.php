@@ -335,6 +335,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var bgWatcherId = null;
     var watchId = null;
     var SYNC_INTERVAL = 5000;
+    var _heartbeatIntervalId = null;
+    var _rideTrackerIntervalId = null;
+    var _updateBusesIntervalId = null;
+    var _appStateListener = null;
     var routeFeatures = [];
 
     async function safePost(relativeUrl, payload = {}) {
@@ -573,7 +577,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     // --- PERSISTENCE LISTENERS ---
-    document.addEventListener('visibilitychange', async () => {
+    const _onVisibilityChange = async () => {
         if (document.visibilityState === 'visible') {
             acquireWakeLock();
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
@@ -584,10 +588,11 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 _lastNetworkSync = Date.now();
             }
         }
-    });
+    };
+    document.addEventListener('visibilitychange', _onVisibilityChange);
 
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
-        window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
+        const _appStateResult = window.Capacitor.Plugins.App.addListener('appStateChange', ({ isActive }) => {
             if (isActive) {
                 acquireWakeLock();
                 if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
@@ -597,10 +602,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 }
             }
         });
+        if (_appStateResult && typeof _appStateResult.then === 'function') {
+            _appStateResult.then(handle => { _appStateListener = handle; });
+        } else {
+            _appStateListener = _appStateResult;
+        }
     }
 
     // Heartbeat Monitor
-    setInterval(async () => {
+    _heartbeatIntervalId = setInterval(async () => {
         if (document.visibilityState !== 'visible') {
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
         }
@@ -623,7 +633,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         console.log('Initializing PassengerRideTracker...');
         await this.checkActiveRide();
         // Tracking is started globally at the end of the script
-        setInterval(() => this.tick(), this.checkInterval);
+        _rideTrackerIntervalId = setInterval(() => this.tick(), this.checkInterval);
       },
 
       tick: async function() {
@@ -1054,7 +1064,33 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     PassengerRideTracker.init();
     updateBuses();
     setTimeout(function() { if (typeof updateRoutePills === 'function') updateRoutePills(); }, 100);
-    setInterval(updateBuses, 4000);
+    _updateBusesIntervalId = setInterval(updateBuses, 4000);
+
+    // --- CLEANUP: prevent memory leaks on page unload ---
+    function _cleanup() {
+        if (_heartbeatIntervalId) { clearInterval(_heartbeatIntervalId); _heartbeatIntervalId = null; }
+        if (_rideTrackerIntervalId) { clearInterval(_rideTrackerIntervalId); _rideTrackerIntervalId = null; }
+        if (_updateBusesIntervalId) { clearInterval(_updateBusesIntervalId); _updateBusesIntervalId = null; }
+        if (_onVisibilityChange) document.removeEventListener('visibilitychange', _onVisibilityChange);
+        if (_appStateListener) {
+            const listener = _appStateListener;
+            _appStateListener = null;
+            if (typeof listener.then === 'function') {
+                listener.then(h => { if (h && h.remove) h.remove(); });
+            } else if (listener.remove) {
+                listener.remove();
+            }
+        }
+        if (window.watchId) { try { navigator.geolocation.clearWatch(window.watchId); } catch(e){} window.watchId = null; }
+        if (window.bgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: window.bgWatcherId }); } catch(e){}
+            window.bgWatcherId = null;
+        }
+        releaseWakeLock();
+        stopKeepAliveAudio();
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
   </script>
 </body>
 </html>
