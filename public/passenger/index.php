@@ -301,6 +301,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var userLocation = null;
     var userProfilePic = <?= json_encode($currentUser['profile_picture'] ?? null) ?>;
     var rawUserName = <?= json_encode($currentUser['name'] ?? $currentUser['email'] ?? 'Guest') ?>;
+    var userId = <?= json_encode($currentUser['id'] ?? 0) ?>;
     var userInitial = (typeof rawUserName === 'string' && rawUserName.length > 0) ? rawUserName.charAt(0).toUpperCase() : '?';
 
     function getUserIcon() {
@@ -520,6 +521,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                       onLocationUpdate(pos);
                   }
               );
+
+              if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ByaHeroNative) {
+                  const syncUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
+                  window.Capacitor.Plugins.ByaHeroNative.startNativeTracking({
+                      syncUrl: syncUrl,
+                      busId: "0",
+                      userId: String(userId)
+                  }).catch(e => console.warn('Native tracking error:', e));
+              }
+
               startKeepAliveAudio();
               acquireWakeLock();
           } catch (e) { startWebGeolocation(); }
