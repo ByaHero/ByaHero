@@ -52,6 +52,10 @@ $lostFoundCount = 0;
 $reportsCount = 0;
 /* === END ADDED === */
 
+/* === ADDED: feedbacks count === */
+$feedbacksCount = 0;
+/* === END ADDED === */
+
 /* === ADDED: analytics count === */
 $analyticsCount = 0;
 /* === END ADDED === */
@@ -83,6 +87,10 @@ try {
 
     /* === ADDED: reports count query === */
     $reportsCount = (int)$pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetchColumn();
+    /* === END ADDED === */
+
+    /* === ADDED: feedbacks count query === */
+    $feedbacksCount = (int)$pdo->query("SELECT COUNT(*) FROM feedbacks")->fetchColumn();
     /* === END ADDED === */
 
     /* === ADDED: analytics count query === */
@@ -314,6 +322,15 @@ $pageType = 'dashboard';
                     <div class="stat-card-title">Reports</div>
                     <a class="btn-manage-pill" href="manageReports.php">Manage</a>
                     <div class="stat-card-number"><?= $reportsCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Feedbacks -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Feedbacks</div>
+                    <a class="btn-manage-pill" href="manageFeedbacks.php">Manage</a>
+                    <div class="stat-card-number"><?= $feedbacksCount ?></div>
                 </div>
             </div>
 
