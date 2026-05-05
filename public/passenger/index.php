@@ -522,8 +522,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   }
               );
 
-              if (window.Capacitor && window.Capacitor.Plugins) {
-                  const Native = window.Capacitor.Plugins.ByaHeroNative;
+              if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
+                  const Native = window.Capacitor.registerPlugin('ByaHeroNative');
                   if (Native) {
                       const syncUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
                       console.log('Starting native passenger tracking at:', syncUrl);

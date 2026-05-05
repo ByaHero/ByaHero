@@ -586,8 +586,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     }
                 );
 
-                if (window.Capacitor && window.Capacitor.Plugins) {
-                    const Native = window.Capacitor.Plugins.ByaHeroNative;
+                if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
+                    const Native = window.Capacitor.registerPlugin('ByaHeroNative');
                     if (Native) {
                         const syncUrl = new URL('../update_geo_location.php', window.location.href).href;
                         console.log('Starting native tracking at:', syncUrl);
@@ -801,8 +801,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             bgWatcherId = null;
         }
 
-        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ByaHeroNative) {
-            try { await window.Capacitor.Plugins.ByaHeroNative.stopNativeTracking(); } catch(e){}
+        if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
+            try { 
+                const Native = window.Capacitor.registerPlugin('ByaHeroNative');
+                if (Native) await Native.stopNativeTracking(); 
+            } catch(e){}
         }
 
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
