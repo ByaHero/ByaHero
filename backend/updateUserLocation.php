@@ -5,6 +5,8 @@ require_once '../config/db_connection.php';
 
 $userId = $_SESSION['user_id'] ?? null;
 $input = json_decode(file_get_contents('php://input'), true);
+// DEBUG LOGGING
+@file_put_contents(__DIR__ . '/../data/logs/passenger_sync.log', "[" . date('Y-m-d H:i:s') . "] RAW: " . json_encode($input) . "\n", FILE_APPEND);
 
 // AUTHENTICATION: Support session-based or secret-key based (for background sync)
 if (!$userId && !empty($input['api_secret']) && !empty($input['auth_user_id'])) {

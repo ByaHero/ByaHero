@@ -332,6 +332,15 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+    (function() {
+      var PROJECT_FOLDER = 'Byahero-Prototype-v3';
+      var path = window.location.pathname || '/';
+      var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
+        '/' + PROJECT_FOLDER :
+        '';
+      window.PROJECT_BASE = base;
+    })();
+
     // --- Variables & helpers ---
     const busId = <?= json_encode($busId) ?>;
     const busCode = <?= json_encode($busCode) ?>;
@@ -619,10 +628,15 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     },
 
                     // HTTP Config (Native Sync)
-                    url: 'https://byahero.free.nf/public/update_geo_location.php',
+                    url: window.location.origin + window.PROJECT_BASE + '/public/update_geo_location.php',
                     method: 'POST',
                     autoSync: true,
                     maxBatchSize: 1,
+                    headers: {
+                        "Cookie": document.cookie,
+                        "User-Agent": navigator.userAgent,
+                        "X-Requested-With": "XMLHttpRequest"
+                    },
                     
                     // Template to match update_geo_location.php perfectly
                     locationTemplate: '{"bus_id":<%= extras.bus_id %>,"lat":<%= latitude %>,"lng":<%= longitude %>,"status":"<%= extras.status %>","seats_available":<%= extras.seats_available %>,"route":"<%= extras.route %>","api_secret":"<%= extras.api_secret %>","auth_user_id":<%= extras.auth_user_id %>}',
@@ -639,6 +653,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 if (!state.enabled) {
                     await BackgroundGeolocation.start();
                 }
+                // Force the plugin into "Moving" state so it starts recording immediately
+                await BackgroundGeolocation.changePace(true);
 
                 startKeepAliveAudio();
                 acquireWakeLock();

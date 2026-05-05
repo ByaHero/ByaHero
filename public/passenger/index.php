@@ -523,9 +523,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   },
 
                   // Native Sync
-                  url: 'https://byahero.free.nf/backend/updateUserLocation.php',
+                  url: window.location.origin + window.APP_BASE_URL + '/backend/updateUserLocation.php',
                   method: 'POST',
                   autoSync: true,
+                  headers: {
+                      "Cookie": document.cookie,
+                      "User-Agent": navigator.userAgent,
+                      "X-Requested-With": "XMLHttpRequest"
+                  },
                   
                   // Template
                   locationTemplate: '{"latitude":<%=latitude%>,"longitude":<%=longitude%>,"accuracy":<%=accuracy%>,"auth_user_id":<%= extras.auth_user_id %>,"api_secret":"<%= extras.api_secret %>"}',
@@ -538,6 +543,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
               if (!state.enabled) {
                   await BG.start();
               }
+              await BG.changePace(true);
               startKeepAliveAudio();
               acquireWakeLock();
           } catch (e) { startWebGeolocation(); }
