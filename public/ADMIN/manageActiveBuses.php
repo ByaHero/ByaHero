@@ -177,64 +177,82 @@ $backLink  = 'admin.php';
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <div class="fw-bold" style="color:#0f172a;">Active Buses</div>
-            <!-- <div class="small text-muted">
-                Showing buses currently in use by conductors (Available, On Stop, Full).
-                Status updates automatically from live tracking.
-            </div> -->
+            <div class="small text-primary d-flex align-items-center gap-1 mt-1" style="font-weight: 600;">
+                <span class="spinner-grow spinner-grow-sm" role="status" style="width:0.6rem;height:0.6rem"></span> Live Updates
+            </div>
         </div>
-        <a class="btn btn-outline-primary btn-sm rounded-pill" href="manageActiveBuses.php">Refresh</a>
     </div>
 
-    <?php if (empty($activeBuses)): ?>
-        <div class="text-center text-muted py-4">
-            No active buses right now.
-        </div>
-    <?php else: ?>
-        <div class="bus-grid d-flex flex-column gap-3">
-            <?php foreach ($activeBuses as $bus):
-                $s = (string)($bus['status'] ?? '');
-                $pillClass = 'pill-available';
-                $pillText  = 'Available';
+    <div id="bus-list-container">
+        <?php if (empty($activeBuses)): ?>
+            <div class="text-center text-muted py-4">
+                No active buses right now.
+            </div>
+        <?php else: ?>
+            <div class="bus-grid d-flex flex-column gap-3">
+                <?php foreach ($activeBuses as $bus):
+                    $s = (string)($bus['status'] ?? '');
+                    $pillClass = 'pill-available';
+                    $pillText  = 'Available';
 
-                if ($s === 'on_stop') {
-                    $pillClass = 'pill-on_stop';
-                    $pillText  = 'On Stop';
-                } elseif ($s === 'full') {
-                    $pillClass = 'pill-full';
-                    $pillText  = 'Full';
-                }
+                    if ($s === 'on_stop') {
+                        $pillClass = 'pill-on_stop';
+                        $pillText  = 'On Stop';
+                    } elseif ($s === 'full') {
+                        $pillClass = 'pill-full';
+                        $pillText  = 'Full';
+                    }
 
-                $busId = $bus['Bus_ID'] ?? $bus['id'] ?? null;
-            ?>
-                <div class="bus-card">
-                    <div class="bus-icon" aria-hidden="true">
-                        <!-- you can swap this icon based on status if you want -->
-                        <img src="../../assets/images/icons/activeBus.png" alt="Bus">
-                    </div>
+                    $busId = $bus['Bus_ID'] ?? $bus['id'] ?? null;
+                ?>
+                    <div class="bus-card">
+                        <div class="bus-icon" aria-hidden="true">
+                            <!-- you can swap this icon based on status if you want -->
+                            <img src="../../assets/images/icons/activeBus.png" alt="Bus">
+                        </div>
 
-                    <div class="flex-grow-1">
-                        <div class="d-flex justify-content-between align-items-start gap-2">
-                            <div>
-                                <p class="bus-title"><?= h($bus['code'] ?? 'BUS') ?></p>
-                                <p class="bus-sub">
-                                    Route:
-                                    <?= !empty($bus['route']) ? h($bus['route']) : '<em class="text-muted">None</em>' ?>
-                                </p>
-                                <p class="bus-sub">
-                                    Available Seats:
-                                    <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?>
-                                </p>
+                        <div class="flex-grow-1">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <p class="bus-title"><?= h($bus['code'] ?? 'BUS') ?></p>
+                                    <p class="bus-sub">
+                                        Route:
+                                        <?= !empty($bus['route']) ? h($bus['route']) : '<em class="text-muted">None</em>' ?>
+                                    </p>
+                                    <p class="bus-sub">
+                                        Available Seats:
+                                        <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?>
+                                    </p>
+                                </div>
+                                <span class="status-pill <?= $pillClass ?>"><?= h($pillText) ?></span>
                             </div>
-                            <span class="status-pill <?= $pillClass ?>"><?= h($pillText) ?></span>
                         </div>
                     </div>
-                </div>
-            <?php endforeach; ?>
-        </div>
-    <?php endif; ?>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
+    </div>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Auto-refresh the bus list every 5 seconds without full page reload
+    setInterval(async () => {
+        try {
+            const res = await fetch(window.location.href);
+            const html = await res.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const newList = doc.getElementById('bus-list-container');
+            const currentList = document.getElementById('bus-list-container');
+            if (newList && currentList) {
+                currentList.innerHTML = newList.innerHTML;
+            }
+        } catch (e) {
+            console.error('Failed to auto-refresh active buses', e);
+        }
+    }, 5000);
+</script>
 </body>
 </html>
