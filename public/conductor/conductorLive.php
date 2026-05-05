@@ -607,27 +607,34 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             });
 
             try {
-                // 3. Configure and Start
+                // 1. Explicitly request background permissions
+                await BackgroundGeolocation.requestPermission();
+
+                // 2. Configure and Start
                 const state = await BackgroundGeolocation.ready({
-                    // GPS Aggression (Fixes "Sends Late")
+                    // DEBUG: You will hear a sound when tracking/syncing
+                    debug: true, 
+                    logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
+
+                    // GPS Aggression
                     desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
-                    distanceFilter: 0,              // Track every single meter change
-                    locationUpdateInterval: 3000,    // 3 seconds
-                    fastestLocationUpdateInterval: 1000, 
-                    disableElasticity: true,        // Don't slow down to save battery
+                    distanceFilter: 0,
+                    locationUpdateInterval: 5000,
+                    fastestLocationUpdateInterval: 2000,
+                    disableElasticity: true,
                     
-                    // Persistence (Fixes "Stops after swipe")
+                    // Persistence
                     stopOnTerminate: false,
                     startOnBoot: true,
+                    enableHeadless: true,
                     foregroundService: true,
                     notification: {
-                        title: "ByaHero Tracking Active",
-                        text: "Broadcasting bus location to passengers.",
-                        color: "#0f3878",
-                        smallIcon: "res://ic_stat_name" // Use a generic icon if custom not found
+                        title: "ByaHero Live Tracking",
+                        text: "Bus location is being broadcasted.",
+                        color: "#0f3878"
                     },
 
-                    // HTTP Config (Native Sync)
+                    // HTTP Config (Bypassing InfinityFree Security)
                     url: window.location.origin + window.PROJECT_BASE + '/public/update_geo_location.php',
                     method: 'POST',
                     autoSync: true,
@@ -638,7 +645,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                         "X-Requested-With": "XMLHttpRequest"
                     },
                     
-                    // Template to match update_geo_location.php perfectly
+                    // Simplified Template
                     locationTemplate: '{"bus_id":<%= extras.bus_id %>,"lat":<%= latitude %>,"lng":<%= longitude %>,"status":"<%= extras.status %>","seats_available":<%= extras.seats_available %>,"route":"<%= extras.route %>","api_secret":"<%= extras.api_secret %>","auth_user_id":<%= extras.auth_user_id %>}',
                     extras: {
                         bus_id: busId,
@@ -650,11 +657,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     }
                 });
 
-                if (!state.enabled) {
-                    await BackgroundGeolocation.start();
-                }
-                // Force the plugin into "Moving" state so it starts recording immediately
-                await BackgroundGeolocation.changePace(true);
+                await BackgroundGeolocation.start();
+                await BackgroundGeolocation.changePace(true); // Force tracking to start immediately
 
                 startKeepAliveAudio();
                 acquireWakeLock();

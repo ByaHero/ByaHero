@@ -504,7 +504,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           });
 
           try {
+              await BG.requestPermission();
+              
               const state = await BG.ready({
+                  debug: true,
                   // Speed & Accuracy
                   desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
                   distanceFilter: 0,
@@ -515,6 +518,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   // Persistence
                   stopOnTerminate: false,
                   startOnBoot: true,
+                  enableHeadless: true,
                   foregroundService: true,
                   notification: {
                       title: "ByaHero Tracking",
@@ -540,9 +544,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   }
               });
 
-              if (!state.enabled) {
-                  await BG.start();
-              }
+              await BG.start();
               await BG.changePace(true);
               startKeepAliveAudio();
               acquireWakeLock();
