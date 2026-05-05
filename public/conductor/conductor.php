@@ -446,19 +446,33 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             fetchLiveBuses(); 
         }
 
+        var _fetchLiveBusesInProgress = false;
+        var _fetchLiveBusesTimer = null;
+
         async function fetchLiveBuses() {
+            if (_fetchLiveBusesInProgress) return;
+            _fetchLiveBusesInProgress = true;
             try {
                 // Pointing to the public/api.php
                 const res = await fetch('../api.php?action=get_buses');
                 const json = await res.json();
-                
-                if (json.success && json.buses) { 
+
+                if (json.success && json.buses) {
                     const buses = json.buses.map(normalizeBus);
                     updateMap(buses);
                 }
             } catch (e) {
                 console.error("Bus fetch error:", e);
+            } finally {
+                _fetchLiveBusesInProgress = false;
             }
+        }
+
+        function scheduleNextLiveBusesUpdate() {
+            _fetchLiveBusesTimer = setTimeout(async () => {
+                await fetchLiveBuses();
+                scheduleNextLiveBusesUpdate();
+            }, 4000);
         }
 
         function updateMap(buses) {
@@ -628,16 +642,17 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         document.addEventListener('DOMContentLoaded', () => {
             initMap();
             loadBusesDropdown();
-            
+
             // Fetch active buses immediately and set 4-second update interval
             fetchLiveBuses();
-            _fetchLiveBusesIntervalId = setInterval(fetchLiveBuses, 4000);
+            scheduleNextLiveBusesUpdate();
 
             el('startBtn').addEventListener('click', startTracking);
         });
 
         function _cleanup() {
-            if (_fetchLiveBusesIntervalId) { clearInterval(_fetchLiveBusesIntervalId); _fetchLiveBusesIntervalId = null; }
+            if (_fetchLiveBusesTimer) { clearTimeout(_fetchLiveBusesTimer); _fetchLiveBusesTimer = null; }
+            _fetchLiveBusesInProgress = false;
         }
         window.addEventListener('beforeunload', _cleanup);
         window.addEventListener('pagehide', _cleanup);

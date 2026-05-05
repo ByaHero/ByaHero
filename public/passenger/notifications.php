@@ -415,10 +415,18 @@ function notification_icon(string $type): array
       }
     }
 
-    _pollSosIntervalId = setInterval(pollSosAlerts, 10000);
+    function scheduleNextSosPoll() {
+        _pollSosIntervalId = setTimeout(async () => {
+            await pollSosAlerts();
+            scheduleNextSosPoll();
+        }, 10000);
+    }
+
+    scheduleNextSosPoll();
 
     function _cleanup() {
-        if (_pollSosIntervalId) { clearInterval(_pollSosIntervalId); _pollSosIntervalId = null; }
+        if (_pollSosIntervalId) { clearTimeout(_pollSosIntervalId); _pollSosIntervalId = null; }
+            _pollSosInProgress = false;
     }
     window.addEventListener('beforeunload', _cleanup);
     window.addEventListener('pagehide', _cleanup);

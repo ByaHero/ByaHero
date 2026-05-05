@@ -648,8 +648,14 @@
 
     function startLocationUpdates() {
         sendCurrentLocation();
-        if (locationTimer) clearInterval(locationTimer);
-        locationTimer = setInterval(sendCurrentLocation, LOCATION_UPDATE_INTERVAL_MS);
+        if (locationTimer) clearTimeout(locationTimer);
+        function scheduleNextLocationUpdate() {
+            locationTimer = setTimeout(async () => {
+                await sendCurrentLocation();
+                scheduleNextLocationUpdate();
+            }, LOCATION_UPDATE_INTERVAL_MS);
+        }
+        scheduleNextLocationUpdate();
     }
 
     function openGroupView() {
@@ -668,7 +674,8 @@
     });
 
     function _cleanup() {
-        if (locationTimer) { clearInterval(locationTimer); locationTimer = null; }
+        if (locationTimer) { clearTimeout(locationTimer); locationTimer = null; }
+        _sendLocationInProgress = false;
     }
     window.addEventListener('beforeunload', _cleanup);
     window.addEventListener('pagehide', _cleanup);

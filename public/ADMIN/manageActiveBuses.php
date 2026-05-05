@@ -238,7 +238,8 @@ $backLink  = 'admin.php';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     // Auto-refresh the bus list every 5 seconds without full page reload
-    setInterval(async () => {
+    function _autoRefreshTick() {
+        (async () => {
         try {
             const res = await fetch(window.location.href);
             const html = await res.text();
@@ -252,7 +253,12 @@ $backLink  = 'admin.php';
         } catch (e) {
             console.error('Failed to auto-refresh active buses', e);
         }
-    }, 5000);
+    }).finally(() => {
+            setTimeout(_autoRefreshTick, 5000);
+        });
+    }
+
+    _autoRefreshTick();
 </script>
 </body>
 </html>

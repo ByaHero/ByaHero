@@ -363,9 +363,14 @@ $pageType = 'dashboard';
                 popupAnchor: [0, -30]
             });
 
+            let _updateBusMapTimer = null;
+            let _updateBusMapInProgress = false;
+
             let busMarkers = {};
 
             async function updateBusMap() {
+                if (_updateBusMapInProgress) return;
+                _updateBusMapInProgress = true;
                 try {
                     const res = await fetch('../api.php?action=get_buses');
                     const data = await res.json();
@@ -423,14 +428,24 @@ $pageType = 'dashboard';
                     }
                 } catch (e) {
                     console.error("Map Update Error:", e);
+                } finally {
+                    _updateBusMapInProgress = false;
                 }
             }
 
+            function scheduleNextBusMapUpdate() {
+                _updateBusMapTimer = setTimeout(async () => {
+                    await updateBusMap();
+                    scheduleNextBusMapUpdate();
+                }, 3000);
+            }
+
             updateBusMap();
-            _updateBusMapIntervalId = setInterval(updateBusMap, 3000);
+            scheduleNextBusMapUpdate();
 
             function _cleanup() {
-                if (_updateBusMapIntervalId) { clearInterval(_updateBusMapIntervalId); _updateBusMapIntervalId = null; }
+                if (_updateBusMapTimer) { clearTimeout(_updateBusMapTimer); _updateBusMapTimer = null; }
+                _updateBusMapInProgress = false;
             }
             window.addEventListener('beforeunload', _cleanup);
             window.addEventListener('pagehide', _cleanup);

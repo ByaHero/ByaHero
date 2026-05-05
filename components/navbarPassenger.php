@@ -632,7 +632,11 @@ else: ?>
       img.src = hasUnread ? alert : normal;
     }
 
+    var _pollInProgress = false;
+
     async function pollUnread() {
+        if (_pollInProgress) return;
+        _pollInProgress = true;
       try {
         const res = await fetch((window.APP_BASE_URL || '') + '/backend/getUnreadStatus.php?ts=' + Date.now(), {
           credentials: 'include',
@@ -645,6 +649,8 @@ else: ?>
         setNotifIcon(!!data.has_unread);
       } catch (e) {
         // fail silently
+      } finally {
+        _pollInProgress = false;
       }
     }
 
@@ -654,12 +660,20 @@ else: ?>
       pollUnread();
     }
 
+    function scheduleNextPoll() {
+        _pollIntervalId = setTimeout(() => {
+            tick();
+            scheduleNextPoll();
+        }, POLL_MS);
+    }
+
     document.addEventListener('visibilitychange', tick);
-    _pollIntervalId = setInterval(tick, POLL_MS);
+    scheduleNextPoll();
     tick(); // run once on load
 
     function _cleanup() {
-        if (_pollIntervalId) { clearInterval(_pollIntervalId); _pollIntervalId = null; }
+        if (_pollIntervalId) { clearTimeout(_pollIntervalId); _pollIntervalId = null; }
+        _pollInProgress = false;
         document.removeEventListener('visibilitychange', tick);
     }
     window.addEventListener('beforeunload', _cleanup);

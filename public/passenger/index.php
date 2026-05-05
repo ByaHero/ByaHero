@@ -609,36 +609,61 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         }
     }
 
-    // Heartbeat Monitor
-    _heartbeatIntervalId = setInterval(async () => {
-        if (document.visibilityState !== 'visible') {
-            if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
-        }
-        const trackingActive = (bgWatcherId !== null || watchId !== null);
-        if (!trackingActive) {
-            startUserLocationWatch();
-        } else if (lastKnownLocation && (Date.now() - _lastNetworkSync > 8000)) {
-            // Force a manual update if no data has been sent for 8 seconds
-            triggerManualUpdate();
-        }
-    }, 5000);
+    // Heartbeat Monitor - using recursive setTimeout to prevent overlapping async calls
+    var _heartbeatRunning = false;
+    function _heartbeatTick() {
+        if (_heartbeatRunning) return;
+        _heartbeatRunning = true;
+        (async () => {
+            try {
+                if (document.visibilityState !== 'visible') {
+                    if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
+                }
+                const trackingActive = (bgWatcherId !== null || watchId !== null);
+                if (!trackingActive) {
+                    startUserLocationWatch();
+                } else if (lastKnownLocation && (Date.now() - _lastNetworkSync > 8000)) {
+                    triggerManualUpdate();
+                }
+            } finally {
+                _heartbeatRunning = false;
+                _heartbeatIntervalId = setTimeout(_heartbeatTick, 5000);
+            }
+        })();
+    }
+    _heartbeatIntervalId = setTimeout(_heartbeatTick, 5000);
 
     // --------------------- PASSENGER RIDE TRACKER (AUTO-BOARDING) ---------------------
     var PassengerRideTracker = {
       activeRide: null,
       proximityThreshold: 30, // meters
+      departureThreshold: 150, // meters
       checkInterval: 10000, // 10 seconds
+      busUpdateTracker: {},
 
       init: async function() {
         console.log('Initializing PassengerRideTracker...');
         await this.checkActiveRide();
         // Tracking is started globally at the end of the script
-        _rideTrackerIntervalId = setInterval(() => this.tick(), this.checkInterval);
+        this._tickRecursive();
+      },
+
+      _tickRecursive: function() {
+        if (this._tickRunning) return;
+        this._tickRunning = true;
+        this.tick().then(() => {
+          this._tickRunning = false;
+          _rideTrackerIntervalId = setTimeout(() => this._tickRecursive(), this.checkInterval);
+        }).catch(() => {
+          this._tickRunning = false;
+          _rideTrackerIntervalId = setTimeout(() => this._tickRecursive(), this.checkInterval);
+        });
       },
 
       tick: async function() {
         if (this.activeRide) {
           await this.checkActiveRide();
+          await this.checkDistanceForDeparture();
         } else {
           await this.checkProximityToBuses();
         }
@@ -692,12 +717,27 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             pill.style.marginTop = '75px';
             pill.style.zIndex = '1050'; // Just below navbar but above most things
             pill.innerHTML = `
-              <div class="bg-success text-white px-3 py-2 rounded-pill shadow fw-bold d-flex align-items-center gap-2 border border-white border-2" style="font-size: 0.85rem; backdrop-filter: blur(4px); background-color: rgba(25, 135, 84, 0.9) !important;">
-                <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
-                On Ride: ${this.activeRide.bus_code}
+              <div id="rideStatusPillContainer" class="bg-success text-white px-3 py-2 rounded-pill shadow fw-bold d-flex align-items-center gap-2 border border-white border-2" style="font-size: 0.85rem; backdrop-filter: blur(4px); background-color: rgba(25, 135, 84, 0.9) !important;">
+                <span id="rideStatusPillText" class="d-flex align-items-center gap-2">
+                  <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
+                  On Ride: ${this.activeRide.bus_code}
+                </span>
               </div>
             `;
             document.body.appendChild(pill);
+          } else {
+            const textEl = document.getElementById('rideStatusPillText');
+            if (textEl) {
+              textEl.innerHTML = `
+                <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
+                On Ride: ${this.activeRide.bus_code}
+              `;
+            }
+            const containerEl = document.getElementById('rideStatusPillContainer');
+            if (containerEl) {
+              containerEl.classList.replace('bg-warning', 'bg-success');
+              containerEl.classList.replace('text-dark', 'text-white');
+            }
           }
         } else if (statusEl) {
           statusEl.remove();
@@ -718,18 +758,71 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         setTimeout(() => notice.remove(), 5000);
       },
 
-      showDepartureNotice: function() {
+      showDepartureNotice: function(msg) {
+        msg = msg || "Ride completed. Automatically departed.";
         const notice = document.createElement('div');
         notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-info text-white rounded shadow-lg d-flex align-items-center gap-2';
         notice.style.zIndex = '9999';
         notice.style.marginBottom = '80px';
         notice.innerHTML = `
           <span class="material-symbols-rounded">info</span>
-          <span class="small">Ride completed. Automatically departed.</span>
+          <span class="small">${msg}</span>
           <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
         `;
         document.body.appendChild(notice);
         setTimeout(() => notice.remove(), 5000);
+      },
+
+      checkDistanceForDeparture: async function() {
+        if (!this.activeRide || !userLocation || !allBuses || allBuses.length === 0) return;
+        
+        const busId = this.activeRide.bus_id;
+        const bus = allBuses.find(b => String(b.id) === String(busId));
+        
+        if (!bus || !bus.coords) return;
+        
+        const now = Date.now();
+        if (!this.busUpdateTracker[busId]) {
+            this.busUpdateTracker[busId] = { updatedStr: bus.updated || null, lastSeenChange: now };
+        } else if (bus.updated && this.busUpdateTracker[busId].updatedStr !== bus.updated) {
+            this.busUpdateTracker[busId].updatedStr = bus.updated;
+            this.busUpdateTracker[busId].lastSeenChange = now;
+        }
+        
+        const secondsSinceChange = (now - this.busUpdateTracker[busId].lastSeenChange) / 1000;
+        const isStale = secondsSinceChange > 60;
+        
+        const statusEl = document.getElementById('rideStatusPillText');
+        const containerEl = document.getElementById('rideStatusPillContainer');
+        if (statusEl && containerEl) {
+            if (isStale) {
+                statusEl.innerHTML = `<span class="material-symbols-rounded" style="font-size: 20px;">warning</span> On Ride: ${this.activeRide.bus_code} <small>(Bus Signal Lost)</small>`;
+                containerEl.classList.replace('bg-success', 'bg-warning');
+                containerEl.classList.replace('text-white', 'text-dark');
+            } else {
+                statusEl.innerHTML = `<span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span> On Ride: ${this.activeRide.bus_code}`;
+                containerEl.classList.replace('bg-warning', 'bg-success');
+                containerEl.classList.replace('text-dark', 'text-white');
+            }
+        }
+        
+        if (isStale) return;
+        
+        const dist = distanceMeters(userLocation.lat, userLocation.lng, bus.coords[0], bus.coords[1]);
+        if (dist > this.departureThreshold) {
+            this.leaveRide();
+        }
+      },
+      
+      leaveRide: async function() {
+        try {
+            const data = await safePost('../api.php?action=leave_ride');
+            if (data.success) {
+                this.activeRide = null;
+                this.updateUI();
+                this.showDepartureNotice("You moved away from the bus. Automatically departed.");
+            }
+        } catch (e) { console.warn('leaveRide error:', e); }
       }
     };
 
@@ -746,7 +839,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     });
 
     // --------------------- BUSES ---------------------
+    var _updateBusesInProgress = false;
+    var _updateBusesTimer = null;
+
     async function updateBuses() {
+      if (_updateBusesInProgress) return; // Skip if previous request still in progress
+      _updateBusesInProgress = true;
       try {
         var res = await fetch('../api.php?action=get_buses');
         var json = await res.json();
@@ -768,6 +866,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           updateFilters(buses);
         }
       } catch (e) { console.error('Bus fetch error:', e); }
+      finally {
+        _updateBusesInProgress = false;
+      }
+    }
+
+    function scheduleNextBusUpdate() {
+        _updateBusesTimer = setTimeout(async () => {
+            await updateBuses();
+            scheduleNextBusUpdate();
+        }, 4000);
     }
 
     function updateMap(buses) {
@@ -859,6 +967,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         seats: (bus.seat_availability || 0) + '/' + (bus.total_seats || 0),
         eta: null,
         progress: 0,
+        updated: bus.updated || null,
         operation_id: bus.current_operation_id || null
       };
     }
@@ -1064,13 +1173,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     PassengerRideTracker.init();
     updateBuses();
     setTimeout(function() { if (typeof updateRoutePills === 'function') updateRoutePills(); }, 100);
-    _updateBusesIntervalId = setInterval(updateBuses, 4000);
+    scheduleNextBusUpdate();
 
     // --- CLEANUP: prevent memory leaks on page unload ---
     function _cleanup() {
-        if (_heartbeatIntervalId) { clearInterval(_heartbeatIntervalId); _heartbeatIntervalId = null; }
-        if (_rideTrackerIntervalId) { clearInterval(_rideTrackerIntervalId); _rideTrackerIntervalId = null; }
-        if (_updateBusesIntervalId) { clearInterval(_updateBusesIntervalId); _updateBusesIntervalId = null; }
+        if (_heartbeatIntervalId) { clearTimeout(_heartbeatIntervalId); _heartbeatIntervalId = null; }
+        if (_rideTrackerIntervalId) { clearTimeout(_rideTrackerIntervalId); _rideTrackerIntervalId = null; }
+        if (_updateBusesTimer) { clearTimeout(_updateBusesTimer); _updateBusesTimer = null; }
+        _updateBusesInProgress = false;
         if (_onVisibilityChange) document.removeEventListener('visibilitychange', _onVisibilityChange);
         if (_appStateListener) {
             const listener = _appStateListener;

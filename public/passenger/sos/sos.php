@@ -560,7 +560,7 @@ $pageDepth = "../../../";
                     }
                 }
                 
-                if (statusEl) statusEl.textContent = `SOS sent successfully to ${selected.length} people`;
+                if (statusEl) statusEl.textContent = `SOS successfully received by ${selected.length} friends!`;
                 if (sosFriendsModal) sosFriendsModal.hide();
             } catch (e) {
                 if (statusEl) statusEl.textContent = "Failed to send";
@@ -678,7 +678,7 @@ $pageDepth = "../../../";
                                 })
                             });
                         }));
-                        if (statusEl) statusEl.textContent = `SOS successfully forwarded to ${data.fcm_tokens.length} devices!`;
+                        if (statusEl) statusEl.textContent = `SOS successfully received by ${recipients.length} friends!`;
                     } catch (pushErr) {
                         if (statusEl) statusEl.textContent = `SOS saved, but push warning: ${pushErr.message}`;
                     }

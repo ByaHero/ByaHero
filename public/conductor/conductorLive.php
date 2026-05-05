@@ -785,7 +785,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
         lastKnownLocation = null;
         if (heartbeatInterval) {
-            clearInterval(heartbeatInterval);
+            clearTimeout(heartbeatInterval);
             heartbeatInterval = null;
         }
 
@@ -879,26 +879,35 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         setTimeout(initOperation, 2000);
 
         // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
-        heartbeatInterval = setInterval(async () => {
+        function _heartbeatTick() {
             const trackingActive = (bgWatcherId !== null || watchId !== null) && lastKnownLocation !== null;
             if (!trackingActive) {
                 // If we explicitly stopped, lastKnownLocation is null, so we don't restart
-                if ((bgWatcherId === null && watchId === null) && lastKnownLocation === null) return;
-                
-                await startGeolocation();
+                if ((bgWatcherId === null && watchId === null) && lastKnownLocation === null) {
+                    heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+                    return;
+                }
+
+                startGeolocation().then(() => {
+                    heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+                }).catch(() => {
+                    heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+                });
                 return;
             }
             if (lastKnownLocation && (Date.now() - lastNetworkSync > 8000)) {
                 triggerManualUpdate();
             }
-        }, 5000);
+            heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+        }
+        heartbeatInterval = setTimeout(_heartbeatTick, 5000);
 
         el('stopBtn').addEventListener('click', stopTracking);
     });
 
     // --- CLEANUP: prevent memory leaks on page unload ---
     function _cleanup() {
-        if (heartbeatInterval) { clearInterval(heartbeatInterval); heartbeatInterval = null; }
+        if (heartbeatInterval) { clearTimeout(heartbeatInterval); heartbeatInterval = null; }
         if (_onVisibilityChange) document.removeEventListener('visibilitychange', _onVisibilityChange);
         if (_appStateListener) {
             const listener = _appStateListener;
