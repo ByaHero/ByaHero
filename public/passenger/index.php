@@ -505,20 +505,34 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
           try {
               const state = await BG.ready({
+                  // Speed & Accuracy
                   desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
-                  distanceFilter: 10,
-                  stopTimeout: 5,
-                  debug: false,
+                  distanceFilter: 0,
+                  locationUpdateInterval: 5000,
+                  fastestLocationUpdateInterval: 2000,
+                  disableElasticity: true,
+
+                  // Persistence
                   stopOnTerminate: false,
                   startOnBoot: true,
-                  url: '../../backend/updateUserLocation.php',
+                  foregroundService: true,
+                  notification: {
+                      title: "ByaHero Tracking",
+                      text: "Keeping you connected to your ride.",
+                      color: "#1e3a8a"
+                  },
+
+                  // Native Sync
+                  url: 'https://byahero.free.nf/backend/updateUserLocation.php',
                   method: 'POST',
                   autoSync: true,
-                  params: {
+                  
+                  // Template
+                  locationTemplate: '{"latitude":<%=latitude%>,"longitude":<%=longitude%>,"accuracy":<%=accuracy%>,"auth_user_id":<%= extras.auth_user_id %>,"api_secret":"<%= extras.api_secret %>"}',
+                  extras: {
                       auth_user_id: <?= (int)$currentUser['id'] ?>,
                       api_secret: "ByaHero_Bg_2026_Sec"
-                  },
-                  locationTemplate: '{"latitude":<%=latitude%>,"longitude":<%=longitude%>,"accuracy":<%=accuracy%>,"auth_user_id":<%=auth_user_id%>,"api_secret":"<%=api_secret%>"}'
+                  }
               });
 
               if (!state.enabled) {

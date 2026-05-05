@@ -9,6 +9,9 @@ session_start();
 $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 $raw = file_get_contents('php://input');
+// DEBUG LOGGING (helpful for verifying background sync survival)
+@file_put_contents(__DIR__ . '/../data/logs/geo_sync.log', "[" . date('Y-m-d H:i:s') . "] RAW: " . $raw . "\n", FILE_APPEND);
+
 $input = json_decode($raw, true);
 if ($input === null) {
     http_response_code(400);

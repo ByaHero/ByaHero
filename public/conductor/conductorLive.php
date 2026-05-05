@@ -500,7 +500,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         // Sync Transistorsoft params with latest status/seats
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
             window.Capacitor.Plugins.BackgroundGeolocation.setConfig({
-                params: {
+                extras: {
                     bus_id: busId,
                     auth_user_id: <?= (int)$userId ?>,
                     api_secret: "ByaHero_Bg_2026_Sec",
@@ -600,27 +600,38 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             try {
                 // 3. Configure and Start
                 const state = await BackgroundGeolocation.ready({
-                    // Geolocation Config
+                    // GPS Aggression (Fixes "Sends Late")
                     desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
-                    distanceFilter: 10,
-                    // Activity Recognition
-                    stopTimeout: 5,
-                    // Application Config
-                    debug: false, 
-                    logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
-                    stopOnTerminate: false,   // ALLOW tracking after swipe-to-kill
-                    startOnBoot: true,        // Restart tracking on device reboot
+                    distanceFilter: 0,              // Track every single meter change
+                    locationUpdateInterval: 3000,    // 3 seconds
+                    fastestLocationUpdateInterval: 1000, 
+                    disableElasticity: true,        // Don't slow down to save battery
+                    
+                    // Persistence (Fixes "Stops after swipe")
+                    stopOnTerminate: false,
+                    startOnBoot: true,
+                    foregroundService: true,
+                    notification: {
+                        title: "ByaHero Tracking Active",
+                        text: "Broadcasting bus location to passengers.",
+                        color: "#0f3878",
+                        smallIcon: "res://ic_stat_name" // Use a generic icon if custom not found
+                    },
+
                     // HTTP Config (Native Sync)
-                    url: '../update_geo_location.php',
+                    url: 'https://byahero.free.nf/public/update_geo_location.php',
                     method: 'POST',
                     autoSync: true,
                     maxBatchSize: 1,
-                    params: {
+                    
+                    // Template to match update_geo_location.php perfectly
+                    locationTemplate: '{"bus_id":<%= extras.bus_id %>,"lat":<%= latitude %>,"lng":<%= longitude %>,"status":"<%= extras.status %>","seats_available":<%= extras.seats_available %>,"route":"<%= extras.route %>","api_secret":"<%= extras.api_secret %>","auth_user_id":<%= extras.auth_user_id %>}',
+                    extras: {
                         bus_id: busId,
                         auth_user_id: <?= (int)$userId ?>,
                         api_secret: "ByaHero_Bg_2026_Sec",
                         route: busRoute,
-                        status: lastComputedStatus,
+                        status: lastComputedStatus || 'available',
                         seats_available: seats
                     }
                 });
