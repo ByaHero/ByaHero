@@ -30,8 +30,8 @@ $backLink  = 'admin.php';
             --brand: #0f3878;
             --brand-light: #1d4ed8;
             --surface: #ffffff;
-            --bg: #f1f5f9;
-            --text: #0f172a;
+            --bg: #f8fafc;
+            --text: #1e293b;
             --muted: #64748b;
             --radius: 18px;
         }
@@ -40,7 +40,7 @@ $backLink  = 'admin.php';
             color: var(--text);
             font-family: "Segoe UI", system-ui, sans-serif;
         }
-        .page-wrap { padding: 14px 14px 30px; max-width: 900px; margin: 0 auto; }
+        /* .page-wrap removed to use bootstrap .container */
 
         /* Period filter pills */
         .period-bar { display: flex; gap: 8px; margin-bottom: 18px; flex-wrap: wrap; }
@@ -163,7 +163,10 @@ $backLink  = 'admin.php';
 
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="page-wrap">
+<div class="container mb-5">
+    <div class="mb-4 mt-4">
+        <h2 class="fw-bold mb-0">Analytics Dashboard</h2>
+    </div>
 
     <!-- Period filter -->
     <div class="period-bar">

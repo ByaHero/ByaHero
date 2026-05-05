@@ -81,7 +81,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
 <style>
   :root{
     --admin-blue: #0f3878;
-    --admin-top-h: 70px;      /* same as navbarConductor */
+    --admin-top-h: 54px;      /* same as navbarPassenger */
     --admin-bottom-h: 35px;   /* default bottom strip */
   }
 
