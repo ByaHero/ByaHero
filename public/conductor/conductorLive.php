@@ -591,7 +591,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     window.Capacitor.Plugins.ByaHeroNative.startNativeTracking({
                         syncUrl: syncUrl,
                         busId: String(busId),
-                        userId: String(userId)
+                        userId: String(userId),
+                        route: busRoute,
+                        seatsAvailable: String(seats)
                     }).catch(e => console.warn('Native tracking error:', e));
                 }
 
