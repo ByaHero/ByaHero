@@ -3,14 +3,21 @@ session_start();
 header('Content-Type: application/json');
 require_once '../config/db_connection.php';
 
-if (!isset($_SESSION['user_id'])) {
+$userId = $_SESSION['user_id'] ?? null;
+$input = json_decode(file_get_contents('php://input'), true);
+
+// AUTHENTICATION: Support session-based or secret-key based (for background sync)
+if (!$userId && !empty($input['api_secret']) && !empty($input['auth_user_id'])) {
+    $validSecret = "ByaHero_Bg_2026_Sec";
+    if ($input['api_secret'] === $validSecret) {
+        $userId = (int)$input['auth_user_id'];
+    }
+}
+
+if (!$userId) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
 }
-
-$userId = $_SESSION['user_id'];
-
-$input = json_decode(file_get_contents('php://input'), true);
 $lat = $input['latitude'] ?? null;
 $lng = $input['longitude'] ?? null;
 $accuracy = $input['accuracy'] ?? null;

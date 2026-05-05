@@ -442,7 +442,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         await safePost('../../backend/updateUserLocation.php', {
             latitude: lat,
             longitude: lng,
-            accuracy: accuracy ?? null
+            accuracy: accuracy ?? null,
+            auth_user_id: <?= (int)$currentUser['id'] ?>,
+            api_secret: "ByaHero_Bg_2026_Sec"
         });
     }
 
@@ -495,27 +497,33 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
           const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-          try {
-              const permissions = await BG.requestPermissions();
-              if (permissions.location !== 'granted') {
-                  startWebGeolocation();
-                  return;
-              }
+          
+          BG.onLocation(location => {
+              const pos = { coords: { latitude: location.coords.latitude, longitude: location.coords.longitude, accuracy: location.coords.accuracy } };
+              onLocationUpdate(pos);
+          });
 
-              window.bgWatcherId = await BG.addWatcher(
-                  {
-                      backgroundMessage: "Tracking active. Keep app open in background.",
-                      backgroundTitle: "ByaHero Journey Tracking",
-                      requestPermissions: true,
-                      stale: false,
-                      distanceFilter: 0 
+          try {
+              const state = await BG.ready({
+                  desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
+                  distanceFilter: 10,
+                  stopTimeout: 5,
+                  debug: false,
+                  stopOnTerminate: false,
+                  startOnBoot: true,
+                  url: '../../backend/updateUserLocation.php',
+                  method: 'POST',
+                  autoSync: true,
+                  params: {
+                      auth_user_id: <?= (int)$currentUser['id'] ?>,
+                      api_secret: "ByaHero_Bg_2026_Sec"
                   },
-                  function callback(location, error) {
-                      if (error) return;
-                      const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
-                      onLocationUpdate(pos);
-                  }
-              );
+                  locationTemplate: '{"latitude":<%=latitude%>,"longitude":<%=longitude%>,"accuracy":<%=accuracy%>,"auth_user_id":<%=auth_user_id%>,"api_secret":"<%=api_secret%>"}'
+              });
+
+              if (!state.enabled) {
+                  await BG.start();
+              }
               startKeepAliveAudio();
               acquireWakeLock();
           } catch (e) { startWebGeolocation(); }
@@ -577,7 +585,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (document.visibilityState === 'visible') {
             acquireWakeLock();
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
-            const trackingActive = (bgWatcherId !== null || watchId !== null);
+            const trackingActive = (window.Capacitor?.Plugins?.BackgroundGeolocation || watchId !== null);
             if (!trackingActive) startUserLocationWatch();
             else if (lastKnownLocation) {
                 uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);

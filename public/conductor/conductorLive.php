@@ -349,7 +349,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     const el = id => document.getElementById(id);
     const alertBox = el('alertBox');
     const netStatus = el('netStatus');
-    let bgWatcherId = null;
+    let bgWatcherId = null; // Legacy, kept for compatibility
 
     let lastMoveCheck = { time: 0, lat: null, lng: null };
     let lastComputedStatus = 'available';
@@ -497,6 +497,20 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         if (statusSelect) statusSelect.value = status;
         lastComputedStatus = status;
 
+        // Sync Transistorsoft params with latest status/seats
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            window.Capacitor.Plugins.BackgroundGeolocation.setConfig({
+                params: {
+                    bus_id: busId,
+                    auth_user_id: <?= (int)$userId ?>,
+                    api_secret: "ByaHero_Bg_2026_Sec",
+                    route: busRoute,
+                    status: status,
+                    seats_available: seats
+                }
+            });
+        }
+
         const payload = {
             bus_id: busId,
             geojson: {
@@ -515,7 +529,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             route: busRoute,
             seats_available: seats,
             status: status,
-            current_location_name: locName || `${lat.toFixed(5)},${lng.toFixed(5)}`
+            current_location_name: locName || `${lat.toFixed(5)},${lng.toFixed(5)}`,
+            api_secret: "ByaHero_Bg_2026_Sec",
+            auth_user_id: <?= (int)$userId ?>
         };
 
         try {
@@ -563,32 +579,61 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
             const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
-            try {
-                const permissions = await BackgroundGeolocation.requestPermissions();
-                if (permissions.location !== 'granted') {
-                    return showAlert('Background location permission denied.', 'danger');
-                }
 
-                bgWatcherId = await BackgroundGeolocation.addWatcher(
-                    {
-                        backgroundMessage: "Tracking active. Keep app open in background.",
-                        backgroundTitle: "Tracking ByaHero Bus",
-                        requestPermissions: true,
-                        stale: false,
-                        distanceFilter: 0 
-                    },
-                    function callback(location, error) {
-                        if (error) { return; }
-                        const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
-                        onLocationUpdate(pos);
+            // 1. Listen to location events for UI updates (Map, etc)
+            BackgroundGeolocation.onLocation(location => {
+                const pos = { coords: { latitude: location.coords.latitude, longitude: location.coords.longitude } };
+                onLocationUpdate(pos);
+            }, error => {
+                console.warn('[location] error', error);
+            });
+
+            // 2. Listen to HTTP responses from native sync
+            BackgroundGeolocation.onHttp(response => {
+                if (response.success) {
+                    if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
+                } else {
+                    if(netStatus) { netStatus.textContent = 'Sync Error'; netStatus.className = 'badge bg-warning text-dark'; }
+                }
+            });
+
+            try {
+                // 3. Configure and Start
+                const state = await BackgroundGeolocation.ready({
+                    // Geolocation Config
+                    desiredAccuracy: BackgroundGeolocation.DESIRED_ACCURACY_HIGH,
+                    distanceFilter: 10,
+                    // Activity Recognition
+                    stopTimeout: 5,
+                    // Application Config
+                    debug: false, 
+                    logLevel: BackgroundGeolocation.LOG_LEVEL_VERBOSE,
+                    stopOnTerminate: false,   // ALLOW tracking after swipe-to-kill
+                    startOnBoot: true,        // Restart tracking on device reboot
+                    // HTTP Config (Native Sync)
+                    url: '../update_geo_location.php',
+                    method: 'POST',
+                    autoSync: true,
+                    maxBatchSize: 1,
+                    params: {
+                        bus_id: busId,
+                        auth_user_id: <?= (int)$userId ?>,
+                        api_secret: "ByaHero_Bg_2026_Sec",
+                        route: busRoute,
+                        status: lastComputedStatus,
+                        seats_available: seats
                     }
-                );
+                });
+
+                if (!state.enabled) {
+                    await BackgroundGeolocation.start();
+                }
 
                 startKeepAliveAudio();
                 acquireWakeLock();
-                showAlert('Background Tracking Started', 'primary');
+                showAlert('Robust Tracking Active', 'primary');
             } catch (e) {
-                showAlert('Plugin Error', 'danger');
+                console.error('Transistorsoft init error:', e);
                 startWebGeolocation();
             }
         } else {
@@ -658,7 +703,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             // Re-start audio session if it got paused
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
             // If the background watcher was silently dropped (Android killed it), restart it
-            const trackingActive = bgWatcherId !== null || watchId !== null;
+            const trackingActive = window.Capacitor?.Plugins?.BackgroundGeolocation || watchId !== null;
             if (!trackingActive) {
                 await startGeolocation();
             } else if (lastKnownLocation) {
@@ -770,9 +815,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
         }
-        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
-            try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
-            bgWatcherId = null;
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { 
+                await window.Capacitor.Plugins.BackgroundGeolocation.stop();
+                // Remove listeners if needed, though stop() usually enough
+            } catch(e){}
         }
 
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
