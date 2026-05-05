@@ -564,16 +564,19 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
             // Start custom native headless tracker
-            if (window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
-                const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
-                window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({
-                    busId: String(busId),
-                    busCode: String(busCode),
-                    busRoute: String(busRoute),
-                    seatsAvailable: Number(seats),
-                    apiUrl: apiUrl
-                }).catch(e => console.error("Native Tracker Error:", e));
-            }
+            try {
+                const ByaHeroTrackerPlugin = window.Capacitor.registerPlugin('ByaHeroTrackerPlugin');
+                if (ByaHeroTrackerPlugin) {
+                    const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+                    ByaHeroTrackerPlugin.startTracker({
+                        busId: String(busId),
+                        busCode: String(busCode),
+                        busRoute: String(busRoute),
+                        seatsAvailable: Number(seats),
+                        apiUrl: apiUrl
+                    }).catch(e => console.error("Native Tracker Error:", e));
+                }
+            } catch (e) { console.error("Failed to init native tracker", e); }
 
             const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
             try {
@@ -794,8 +797,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             bgWatcherId = null;
         }
 
-        if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
-            try { await window.Capacitor.Plugins.ByaHeroTrackerPlugin.stopTracker(); } catch(e){}
+        if (window.Capacitor) {
+            try {
+                const ByaHeroTrackerPlugin = window.Capacitor.registerPlugin('ByaHeroTrackerPlugin');
+                await ByaHeroTrackerPlugin.stopTracker(); 
+            } catch(e){}
         }
 
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
@@ -847,9 +853,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         updateMediaSessionMetadata();
         pendingBoards++;
         
-        if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
-            const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
-            window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+        if (window.Capacitor) {
+            try {
+                const ByaHeroTrackerPlugin = window.Capacitor.registerPlugin('ByaHeroTrackerPlugin');
+                const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+                ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+            } catch(e){}
         }
         
         scheduleSync();
@@ -862,9 +871,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             updateMediaSessionMetadata();
             pendingDeparts++;
             
-            if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
-                const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
-                window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+            if (window.Capacitor) {
+                try {
+                    const ByaHeroTrackerPlugin = window.Capacitor.registerPlugin('ByaHeroTrackerPlugin');
+                    const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+                    ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+                } catch(e){}
             }
             
             scheduleSync();
