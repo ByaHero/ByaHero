@@ -522,13 +522,22 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   }
               );
 
-              if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.ByaHeroNative) {
-                  const syncUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
-                  window.Capacitor.Plugins.ByaHeroNative.startNativeTracking({
-                      syncUrl: syncUrl,
-                      busId: "0",
-                      userId: String(userId)
-                  }).catch(e => console.warn('Native tracking error:', e));
+              if (window.Capacitor && window.Capacitor.Plugins) {
+                  const Native = window.Capacitor.Plugins.ByaHeroNative;
+                  if (Native) {
+                      const syncUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
+                      console.log('Starting native passenger tracking at:', syncUrl);
+                      Native.startNativeTracking({
+                          syncUrl: syncUrl,
+                          busId: "0",
+                          userId: String(userId),
+                          route: "passenger",
+                          seatsAvailable: "0"
+                      }).then(() => console.log('Native tracking started successfully'))
+                        .catch(e => console.error('Native tracking failed to start:', e));
+                  } else {
+                      console.warn('ByaHeroNative plugin not found in Capacitor.Plugins');
+                  }
               }
 
               startKeepAliveAudio();
