@@ -138,6 +138,10 @@ function getBuses(): array {
             // keep DB current_location_name as-is
         }
 
+        if (isset($r['seat_availability']) && (int)$r['seat_availability'] < 0) {
+            $r['seat_availability'] = 0;
+        }
+
         $out[] = $r;
     }
 
@@ -257,6 +261,10 @@ function getFilteredBuses(): array {
             }
         } else {
             $r['current_location'] = null;
+        }
+
+        if (isset($r['seat_availability']) && (int)$r['seat_availability'] < 0) {
+            $r['seat_availability'] = 0;
         }
 
         $out[] = $r;

@@ -60,6 +60,11 @@ function fetchBuses(): array {
         } else {
             $r['current_location'] = null;
         }
+
+        if (isset($r['seat_availability']) && (int)$r['seat_availability'] < 0) {
+            $r['seat_availability'] = 0;
+        }
+
         $out[] = $r;
     }
     return $out;

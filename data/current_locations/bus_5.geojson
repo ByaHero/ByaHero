@@ -3,18 +3,18 @@
     "geometry": {
         "type": "Point",
         "coordinates": [
-            121.023491,
-            14.09312
+            121.13756986994888,
+            14.171687011383895
         ]
     },
     "properties": {
         "bus_id": 5,
         "code": "T-00001",
         "route": "LAUREL - TANAUAN",
-        "seats_available": 25,
+        "seats_available": 6,
         "status": "on_stop",
-        "timestamp": "2026-05-05T02:11:59.563Z",
-        "current_location_name": "Talisay",
-        "Current Location": "Talisay"
+        "timestamp": "2026-05-05T06:15:57.944Z",
+        "current_location_name": "14.17169, 121.13757",
+        "Current Location": "14.17169, 121.13757"
     }
 }

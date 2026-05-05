@@ -852,15 +852,11 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     function incrementPassengers() {
-        if (seats > 0) {
-            seats = seats - 1;
-            updateSeatsUI();
-            updateMediaSessionMetadata();
-            pendingBoards++;
-            scheduleSync();
-        } else {
-            showAlert('Bus is full!', 'danger');
-        }
+        seats = seats - 1;
+        updateSeatsUI();
+        updateMediaSessionMetadata();
+        pendingBoards++;
+        scheduleSync();
     }
 
     function decrementPassengers() {
