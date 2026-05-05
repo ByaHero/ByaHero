@@ -563,6 +563,18 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            // Start custom native headless tracker
+            if (window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
+                const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+                window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({
+                    busId: String(busId),
+                    busCode: String(busCode),
+                    busRoute: String(busRoute),
+                    seatsAvailable: Number(seats),
+                    apiUrl: apiUrl
+                }).catch(e => console.error("Native Tracker Error:", e));
+            }
+
             const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
             try {
                 const permissions = await BackgroundGeolocation.requestPermissions();
@@ -782,6 +794,10 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             bgWatcherId = null;
         }
 
+        if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
+            try { await window.Capacitor.Plugins.ByaHeroTrackerPlugin.stopTracker(); } catch(e){}
+        }
+
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
         lastKnownLocation = null;
         if (heartbeatInterval) {
@@ -830,6 +846,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         updateSeatsUI();
         updateMediaSessionMetadata();
         pendingBoards++;
+        
+        if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
+            const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+            window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+        }
+        
         scheduleSync();
     }
 
@@ -839,6 +861,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             updateSeatsUI();
             updateMediaSessionMetadata();
             pendingDeparts++;
+            
+            if (window.Capacitor && window.Capacitor.Plugins.ByaHeroTrackerPlugin) {
+                const apiUrl = new URL('../update_geo_location.php', window.location.href).href;
+                window.Capacitor.Plugins.ByaHeroTrackerPlugin.startTracker({ busId: String(busId), busCode: String(busCode), busRoute: String(busRoute), seatsAvailable: Number(seats), apiUrl: apiUrl }).catch(()=>{});
+            }
+            
             scheduleSync();
         }
     }
