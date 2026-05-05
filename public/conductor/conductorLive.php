@@ -380,7 +380,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     url,
                     headers: { 
                         'Content-Type': 'application/json',
-                        'Accept': 'application/json, text/plain, */*'
+                        'Accept': 'application/json, text/plain, */*',
+                        'User-Agent': navigator.userAgent,
+                        'X-Requested-With': 'XMLHttpRequest'
                     },
                     data: payload
                 });
