@@ -461,14 +461,6 @@ else: ?>
         Profile
       </a>
 
-      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/rideHistory.php">
-        <div class="" style="margin-left: 20px; margin-right: 10px;">
-          <span class="material-symbols-rounded" style="font-size: 30px; color: #475569;">history</span>
-        </div>
-        Ride History
-      </a>
-
       <!--
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
         href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
@@ -533,6 +525,14 @@ else: ?>
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
         Share ByaHero
+      </a>
+
+      <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
+        href="<?php echo $depth; ?>public/passenger/rideHistory.php">
+        <div class="" style="margin-left: 20px; margin-right: 10px;">
+          <img src="<?php echo $depth; ?>assets/images/HISTORY.svg" alt="ride history" height="30">
+        </div>
+        Ride History
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>

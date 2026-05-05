@@ -37,7 +37,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         align-items: center;
         border-bottom-left-radius: 20px;
         border-bottom-right-radius: 20px;
-        height: 70px;
+        height: 54px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
 
         position: sticky;
@@ -194,7 +194,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         gap: 12px;
         border-bottom-left-radius: 20px;
         border-bottom-right-radius: 20px;
-        height: 70px;
+        height: 54px;
         box-shadow: 0 4px 10px rgba(0,0,0,0.15);
         position: sticky;
         top: 0;
@@ -253,7 +253,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         </div>
     </div>
 
-    <div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel">
+    <div class="offcanvas offcanvas-end" tabindex="-1" id="conductorMenu" aria-labelledby="conductorMenuLabel" style="width: 85vw;">
         <div class="conductor-menu-header">
             <button type="button" class="conductor-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
                 <span class="material-symbols-rounded">close</span>

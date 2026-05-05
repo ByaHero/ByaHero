@@ -52,6 +52,10 @@ $lostFoundCount = 0;
 $reportsCount = 0;
 /* === END ADDED === */
 
+/* === ADDED: analytics count === */
+$analyticsCount = 0;
+/* === END ADDED === */
+
 try {
     $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
     $activeBusesCount = (int)$pdo->query("
@@ -79,6 +83,10 @@ try {
 
     /* === ADDED: reports count query === */
     $reportsCount = (int)$pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetchColumn();
+    /* === END ADDED === */
+
+    /* === ADDED: analytics count query === */
+    $analyticsCount = (int)$pdo->query("SELECT COALESCE(SUM(total_boarded), 0) FROM bus_operations WHERE status = 'completed'")->fetchColumn();
     /* === END ADDED === */
 } catch (Exception $e) {
     // keep zeros if something fails
@@ -311,10 +319,10 @@ $pageType = 'dashboard';
 
             <!-- ADDED: Analytics Dashboard -->
             <div class="col-6 col-lg-4">
-                <div class="stat-card" style="background: linear-gradient(135deg, #1d4ed8, #7c3aed);">
+                <div class="stat-card card-total">
                     <div class="stat-card-title">Analytics</div>
                     <a class="btn-manage-pill" href="analytics.php">View</a>
-                    <div class="stat-card-number" style="font-size:2rem;">📊</div>
+                    <div class="stat-card-number"><?= $analyticsCount ?></div>
                 </div>
             </div>
 
@@ -323,8 +331,8 @@ $pageType = 'dashboard';
         <div class="card card-standard">
             <div class="card-header-std d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-2">
-                    <span class="material-icons-round text-primary">map</span>
-                    <span>Live Fleet Map</span>
+                    <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/byaheroLogo.png" alt="ByaHero Logo" style="width: 24px; height: 24px; object-fit: contain;">
+                    <span>BUS TRACKER</span>
                 </div>
                 <small class="text-muted d-flex align-items-center gap-1">
                     <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width:0.7rem;height:0.7rem"></span>
