@@ -442,9 +442,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         await safePost('../../backend/updateUserLocation.php', {
             latitude: lat,
             longitude: lng,
-            accuracy: accuracy ?? null,
-            auth_user_id: <?= (int)$currentUser['id'] ?>,
-            api_secret: "ByaHero_Bg_2026_Sec"
+            accuracy: accuracy ?? null
         });
     }
 
@@ -497,55 +495,27 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
       if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
           const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-          
-          BG.onLocation(location => {
-              const pos = { coords: { latitude: location.coords.latitude, longitude: location.coords.longitude, accuracy: location.coords.accuracy } };
-              onLocationUpdate(pos);
-          });
-
           try {
-              await BG.requestPermission();
-              
-              const state = await BG.ready({
-                  debug: true,
-                  // Speed & Accuracy
-                  desiredAccuracy: BG.DESIRED_ACCURACY_HIGH,
-                  distanceFilter: 0,
-                  locationUpdateInterval: 5000,
-                  fastestLocationUpdateInterval: 2000,
-                  disableElasticity: true,
+              const permissions = await BG.requestPermissions();
+              if (permissions.location !== 'granted') {
+                  startWebGeolocation();
+                  return;
+              }
 
-                  // Persistence
-                  stopOnTerminate: false,
-                  startOnBoot: true,
-                  enableHeadless: true,
-                  foregroundService: true,
-                  notification: {
-                      title: "ByaHero Tracking",
-                      text: "Keeping you connected to your ride.",
-                      color: "#1e3a8a"
+              window.bgWatcherId = await BG.addWatcher(
+                  {
+                      backgroundMessage: "Tracking active. Keep app open in background.",
+                      backgroundTitle: "ByaHero Journey Tracking",
+                      requestPermissions: true,
+                      stale: false,
+                      distanceFilter: 0 
                   },
-
-                  // Native Sync
-                  url: window.location.origin + window.APP_BASE_URL + '/backend/updateUserLocation.php',
-                  method: 'POST',
-                  autoSync: true,
-                  headers: {
-                      "Cookie": document.cookie,
-                      "User-Agent": navigator.userAgent,
-                      "X-Requested-With": "XMLHttpRequest"
-                  },
-                  
-                  // Template
-                  locationTemplate: '{"latitude":<%=latitude%>,"longitude":<%=longitude%>,"accuracy":<%=accuracy%>,"auth_user_id":<%= extras.auth_user_id %>,"api_secret":"<%= extras.api_secret %>"}',
-                  extras: {
-                      auth_user_id: <?= (int)$currentUser['id'] ?>,
-                      api_secret: "ByaHero_Bg_2026_Sec"
+                  function callback(location, error) {
+                      if (error) return;
+                      const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
+                      onLocationUpdate(pos);
                   }
-              });
-
-              await BG.start();
-              await BG.changePace(true);
+              );
               startKeepAliveAudio();
               acquireWakeLock();
           } catch (e) { startWebGeolocation(); }
@@ -607,7 +577,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (document.visibilityState === 'visible') {
             acquireWakeLock();
             if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(()=>{});
-            const trackingActive = (window.Capacitor?.Plugins?.BackgroundGeolocation || watchId !== null);
+            const trackingActive = (bgWatcherId !== null || watchId !== null);
             if (!trackingActive) startUserLocationWatch();
             else if (lastKnownLocation) {
                 uploadMyLocation(lastKnownLocation.lat, lastKnownLocation.lng, 0);

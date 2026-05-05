@@ -9,9 +9,6 @@ session_start();
 $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 $raw = file_get_contents('php://input');
-// DEBUG LOGGING (helpful for verifying background sync survival)
-@file_put_contents(__DIR__ . '/../data/logs/geo_sync.log', "[" . date('Y-m-d H:i:s') . "] RAW: " . $raw . "\n", FILE_APPEND);
-
 $input = json_decode($raw, true);
 if ($input === null) {
     http_response_code(400);
@@ -28,37 +25,25 @@ $busId = (int)$input['bus_id'];
 
 $pdo = db();
 
-// AUTHENTICATION: Support session-based or secret-key based (for background sync)
-$isAuthorized = false;
-
-// 1. Session check (standard)
-if ($currentUserId > 0) {
-    $stCheck = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = ? LIMIT 1");
-    $stCheck->execute([$busId]);
-    $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
-    if ($rowCheck && (int)$rowCheck['current_conductor_id'] === $currentUserId) {
-        $isAuthorized = true;
-    }
+// MANDATORY: Enforce that the user is logged in and is the conductor assigned to this bus
+if ($currentUserId <= 0) {
+    http_response_code(401);
+    echo json_encode(['success' => false, 'error' => 'Login required']);
+    exit;
 }
 
-// 2. Secret check (for Transistorsoft background uploader)
-if (!$isAuthorized && !empty($input['api_secret']) && !empty($input['auth_user_id'])) {
-    // Simple prototype secret check. In production, use a rotating token.
-    $validSecret = "ByaHero_Bg_2026_Sec"; 
-    if ($input['api_secret'] === $validSecret) {
-        $authUserId = (int)$input['auth_user_id'];
-        $stCheck = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = ? LIMIT 1");
-        $stCheck->execute([$busId]);
-        $rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
-        if ($rowCheck && (int)$rowCheck['current_conductor_id'] === $authUserId) {
-            $isAuthorized = true;
-        }
-    }
-}
+$stCheck = $pdo->prepare("
+    SELECT current_conductor_id
+    FROM busses
+    WHERE Bus_ID = ?
+    LIMIT 1
+");
+$stCheck->execute([$busId]);
+$rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
 
-if (!$isAuthorized) {
+if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
     http_response_code(403);
-    echo json_encode(['success' => false, 'error' => 'Unauthorized. Please log in or provide valid credentials.']);
+    echo json_encode(['success' => false, 'error' => 'You are not currently assigned to track this bus.']);
     exit;
 }
 
@@ -148,9 +133,9 @@ if (isset($input['status'])) {
 }
 
 $fields[] = 'updated = CURRENT_TIMESTAMP';
-$sql = "UPDATE busses SET " . implode(', ', $fields) . " WHERE Bus_ID = ?";
 $params[] = $busId;
 
+$sql = "UPDATE busses SET " . implode(', ', $fields) . " WHERE Bus_ID = ?";
 $st = $pdo->prepare($sql);
 $st->execute($params);
 
