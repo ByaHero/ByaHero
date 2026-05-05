@@ -301,7 +301,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var userLocation = null;
     var userProfilePic = <?= json_encode($currentUser['profile_picture'] ?? null) ?>;
     var rawUserName = <?= json_encode($currentUser['name'] ?? $currentUser['email'] ?? 'Guest') ?>;
-    var userId = <?= json_encode($currentUser['id'] ?? 0) ?>;
     var userInitial = (typeof rawUserName === 'string' && rawUserName.length > 0) ? rawUserName.charAt(0).toUpperCase() : '?';
 
     function getUserIcon() {
@@ -521,25 +520,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                       onLocationUpdate(pos);
                   }
               );
-
-              if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
-                  const Native = window.Capacitor.registerPlugin('ByaHeroNative');
-                  if (Native) {
-                      const syncUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
-                      console.log('Starting native passenger tracking at:', syncUrl);
-                      Native.startNativeTracking({
-                          syncUrl: syncUrl,
-                          busId: "0",
-                          userId: String(userId),
-                          route: "passenger",
-                          seatsAvailable: "0"
-                      }).then(() => console.log('Native tracking started successfully'))
-                        .catch(e => console.error('Native tracking failed to start:', e));
-                  } else {
-                      console.warn('ByaHeroNative plugin not found in Capacitor.Plugins');
-                  }
-              }
-
               startKeepAliveAudio();
               acquireWakeLock();
           } catch (e) { startWebGeolocation(); }

@@ -334,7 +334,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <script>
     // --- Variables & helpers ---
     const busId = <?= json_encode($busId) ?>;
-    const userId = <?= json_encode($userId) ?>;
     const busCode = <?= json_encode($busCode) ?>;
     const busRoute = <?= json_encode($busRoute) ?>;
     const seatsTotal = <?= intval($seatsTotal) ?>;
@@ -586,24 +585,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                     }
                 );
 
-                if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
-                    const Native = window.Capacitor.registerPlugin('ByaHeroNative');
-                    if (Native) {
-                        const syncUrl = new URL('../update_geo_location.php', window.location.href).href;
-                        console.log('Starting native tracking at:', syncUrl);
-                        Native.startNativeTracking({
-                            syncUrl: syncUrl,
-                            busId: String(busId),
-                            userId: String(userId),
-                            route: busRoute,
-                            seatsAvailable: String(seats)
-                        }).then(() => console.log('Native tracking started successfully'))
-                          .catch(e => console.error('Native tracking failed to start:', e));
-                    } else {
-                        console.warn('ByaHeroNative plugin not found in Capacitor.Plugins');
-                    }
-                }
-
                 startKeepAliveAudio();
                 acquireWakeLock();
                 showAlert('Background Tracking Started', 'primary');
@@ -799,13 +780,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
             try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
             bgWatcherId = null;
-        }
-
-        if (window.Capacitor && typeof window.Capacitor.registerPlugin === 'function') {
-            try { 
-                const Native = window.Capacitor.registerPlugin('ByaHeroNative');
-                if (Native) await Native.stopNativeTracking(); 
-            } catch(e){}
         }
 
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
