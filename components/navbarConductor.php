@@ -224,7 +224,7 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
     }
 </style>
 
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
 
 <?php if ($isConductorProfile): ?>
 
