@@ -35,7 +35,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="manifest" href="../manifest.webmanifest">
   <meta name="theme-color" content="#1e3a8a">
 
@@ -227,10 +227,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <?php include __DIR__ . "/../../components/navbarPassenger.php"; ?>
 
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
   <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
 
   <script>

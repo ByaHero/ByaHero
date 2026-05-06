@@ -1,15 +1,17 @@
-const CACHE_NAME = "byahero-v2";
+const CACHE_NAME = "byahero-v3";
+
+// Core app shell — cached on install for instant repeat loads
 const APP_SHELL = [
-  "/passenger/index.php",
-  "/conductor/conductor.php",
-  "/ADMIN/admin.php",
   "/manifest.webmanifest",
   "/icons/icon-192x192.png",
   "/icons/icon-512x512.png",
-  "https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded",
-  "https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css",
-  "https://unpkg.com/leaflet@1.9.4/dist/leaflet.css",
-  // Add more static dependencies as needed
+];
+
+// CDN assets to cache on first fetch (stale-while-revalidate)
+const CDN_ORIGINS = [
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
+  "cdn.jsdelivr.net",
 ];
 
 self.addEventListener("install", event => {
@@ -28,20 +30,51 @@ self.addEventListener("activate", event => {
   self.clients.claim();
 });
 
-// Cache-first for app shell; network-first for others
 self.addEventListener("fetch", event => {
   const req = event.request;
   const url = new URL(req.url);
 
-  if (APP_SHELL.some(path => url.pathname.endsWith(path))) {
-    // Cache-first for known assets
+  // Only handle GET requests
+  if (req.method !== "GET") return;
+
+  // CDN assets (Bootstrap CSS/JS, Google Fonts, Leaflet) — cache-first
+  if (CDN_ORIGINS.some(origin => url.hostname.includes(origin))) {
     event.respondWith(
-      caches.match(req).then(res => res || fetch(req))
+      caches.match(req).then(cached => {
+        // Return cached immediately, but also update cache in background
+        const fetchPromise = fetch(req).then(networkRes => {
+          if (networkRes.ok) {
+            const clone = networkRes.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+          return networkRes;
+        }).catch(() => cached); // If offline, stick with cached
+
+        return cached || fetchPromise;
+      })
     );
-  } else {
-    // Network-first for everything else (API, dynamic)
-    event.respondWith(
-      fetch(req).catch(() => caches.match(req))
-    );
+    return;
   }
+
+  // Local static assets (images, CSS, JS files) — cache-first
+  if (/\.(css|js|png|jpg|jpeg|gif|svg|webp|ico|woff2?|ttf|eot)(\?.*)?$/i.test(url.pathname)) {
+    event.respondWith(
+      caches.match(req).then(cached => {
+        if (cached) return cached;
+        return fetch(req).then(networkRes => {
+          if (networkRes.ok) {
+            const clone = networkRes.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, clone));
+          }
+          return networkRes;
+        });
+      })
+    );
+    return;
+  }
+
+  // PHP pages and API calls — network-first (always fresh)
+  event.respondWith(
+    fetch(req).catch(() => caches.match(req))
+  );
 });
