@@ -102,10 +102,8 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
     }
     .btn-custom {
       border-radius: 50rem;
-      padding: 14px 28px;
       font-weight: 600;
       transition: all 0.2s ease;
-      letter-spacing: 0.3px;
     }
     .btn-primary-custom {
       background-color: #1e3a8a;
@@ -189,8 +187,8 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
         </div>
 
         <div class="mt-4 pt-2 d-flex justify-content-center gap-3">
-          <button class="btn btn-secondary-custom btn-custom w-50" onclick="window.location.href='../index.php';">Cancel</button>
-          <button class="btn btn-primary-custom btn-custom w-50" id="submitBtn" onclick="submitFeedback()" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>>Submit Feedback</button>
+          <button class="btn btn-secondary-custom btn-custom" onclick="window.location.href='../index.php';">Cancel</button>
+          <button class="btn btn-primary-custom btn-custom" id="submitBtn" onclick="submitFeedback()" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>>Submit Feedback</button>
         </div>
       </div>
 
