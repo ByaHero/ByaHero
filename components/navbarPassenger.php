@@ -99,6 +99,17 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     background-color: rgba(255, 255, 255, 0.1);
   }
 
+  /* --- ICON SHARPNESS FIXES FOR iOS --- */
+  img {
+    image-rendering: -webkit-optimize-contrast;
+  }
+
+  .material-symbols-rounded {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     padding-bottom: 100px !important;
   }
