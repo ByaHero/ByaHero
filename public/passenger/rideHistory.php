@@ -40,7 +40,7 @@ $pageTitle = 'Ride History';
 
         /* Stats Header */
         .stats-header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+            background-color: #1e3a8a;
             border-radius: 24px;
             padding: 24px;
             color: white;
