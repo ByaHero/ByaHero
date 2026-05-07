@@ -56,9 +56,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       --bs-bg-light: #f3f4f6;
     }
 
+    html, body {
+      height: 100%;
+      width: 100%;
+      overflow: hidden;
+      position: fixed; /* Prevents scroll bounce on iOS */
+    }
+
     body {
       font-family: "Segoe UI", sans-serif;
-      overflow: hidden;
+      padding-bottom: 0 !important; /* Override navbarPassenger padding for this fixed-height page */
     }
 
     #map {
@@ -201,7 +208,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
 <body class="bg-light">
 
-  <div class="d-flex flex-column vh-100 w-100">
+  <div class="d-flex flex-column h-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
     </div>
@@ -1094,7 +1101,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       stops.forEach(function(s) {
         var id = String(s.id), lat = parseFloat(s.lat), lng = parseFloat(s.lng);
         if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-        var popup = '<b>' + escapeHtml(s.name) + '</b><br>' + escapeHtml(s.location_name || '') + (s.location_landmark ? '<br><small>' + escapeHtml(s.location_landmark) + '</small>' : '') + '<br><small>' + escapeHtml(String(s.type || '')) + '</small>';
+        var typeLabel = String(s.type || '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+        var popup = '<b>' + escapeHtml(s.name) + '</b><br>' + escapeHtml(s.location_name || '') + (s.location_landmark ? '<br><small>' + escapeHtml(s.location_landmark) + '</small>' : '') + '<br><small>' + escapeHtml(typeLabel) + '</small>';
         if (stopMarkers[id]) { stopMarkers[id].setLatLng([lat, lng]).setIcon(stopIcon(s.type)).setPopupContent(popup); }
         else { stopMarkers[id] = L.marker([lat, lng], { icon: stopIcon(s.type), stopType: String(s.type || 'bus_stop').toLowerCase() }).addTo(map).bindPopup(popup); }
       });
@@ -1116,7 +1124,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       else {
         listEl.innerHTML = stops.map(function(s) {
           var subtitle = [s.location_name, s.location_landmark].filter(Boolean).join(' • ');
-          var typeLabel = String(s.type || '').replaceAll('_', ' ').toUpperCase();
+          var typeLabel = String(s.type || '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
           var distHtml = '';
           if (s.distance !== undefined && s.distance < 9999999) {
             var dText = s.distance < 1000 ? Math.round(s.distance) + ' m away' : (s.distance / 1000).toFixed(1) + ' km away';

@@ -1,3 +1,31 @@
+<style>
+    .btn-remove-circle {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fff1f2;
+        color: #e11d48;
+        border: none;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        padding: 0;
+    }
+    .btn-remove-circle:hover {
+        background-color: #ffe4e6;
+        color: #be123c;
+        transform: scale(1.05);
+        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.15);
+    }
+    .btn-remove-circle:active {
+        transform: scale(0.95);
+    }
+    .btn-remove-circle .material-symbols-rounded {
+        font-size: 20px;
+    }
+</style>
+
 <div id="view-groups" class="d-none mt-2">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
@@ -291,8 +319,8 @@
                   <small class="text-muted d-block text-truncate" style="font-size: 0.75rem;">${statusText}</small>
               </div>
           </div>
-          <button class="btn btn-sm btn-outline-danger rounded-pill px-3 ms-2 remove-friend-btn" style="font-size: 0.8rem;">
-              Remove
+          <button class="btn-remove-circle ms-2 remove-friend-btn" title="Remove from Circle">
+              <span class="material-symbols-rounded">delete</span>
           </button>
         `;
 

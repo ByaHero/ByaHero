@@ -56,11 +56,16 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       margin-bottom: 2rem;
     }
     .star {
-      width: 55px;
-      height: 55px;
+      width: clamp(40px, 12vw, 55px);
+      height: clamp(40px, 12vw, 55px);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
+    }
+    @media (max-width: 480px) {
+      .star-wrapper {
+        padding: 1rem 0.5rem !important;
+      }
     }
     .star:hover {
       transform: scale(1.2) translateY(-5px);
@@ -170,7 +175,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       <?php endif; ?>
 
       <div id="feedbackFormContent">
-        <div class="star-wrapper d-flex justify-content-center gap-4">
+        <div class="star-wrapper d-flex justify-content-center gap-2 gap-sm-4">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="1" alt="1 star">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="2" alt="2 stars">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="3" alt="3 stars">
