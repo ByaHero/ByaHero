@@ -345,9 +345,12 @@ elseif (isset($pageType) && $pageType === 'settings'):
     'share.php' => 'Share ByaHero',
     'shareLocation.php' => 'Share My Location',
     'smartNotification.php' => 'Smart Notification',
-    'termsOfService.php' => 'Terms of Service'
+    'termsOfService.php' => 'Terms of Service',
+    'report.php' => 'Report a Problem',
+    'lostAndFound.php' => 'Lost and Found',
+    'myReports.php' => 'My Reports'
   ];
-  $displayTitle = $settingsTitles[$currentFile] ?? 'Settings';
+  $displayTitle = $pageTitle ?? ($settingsTitles[$currentFile] ?? 'Settings');
   ?>
   <div
     class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
