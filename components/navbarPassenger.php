@@ -99,8 +99,23 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
     background-color: rgba(255, 255, 255, 0.1);
   }
 
+  /* --- Aggressive Icon Sharpening for iOS --- */
+  .nav-item-btn img,
+  .sos-dome img,
+  [data-bs-toggle="offcanvas"] img,
+  .topbar-wordmark {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    -webkit-transform: perspective(1px) translateZ(0);
+    transform: perspective(1px) translateZ(0);
+    image-rendering: -webkit-optimize-contrast;
+    image-rendering: crisp-edges;
+  }
+
   .material-symbols-rounded {
     font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
   }
 
   body {
