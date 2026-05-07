@@ -68,16 +68,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       padding-bottom: 0 !important; /* Override navbarPassenger padding for this fixed-height page */
     }
 
-    /* --- ICON SHARPNESS FIXES FOR iOS --- */
-    img {
-      image-rendering: -webkit-optimize-contrast;
-    }
 
-    .material-symbols-rounded {
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: optimizeLegibility;
-    }
 
     #map {
       height: 100%;

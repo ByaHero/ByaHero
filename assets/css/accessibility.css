@@ -1,3 +1,22 @@
+/* --- GLOBAL ICON SHARPNESS FIXES FOR iOS --- */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Specific fix for blurred SVGs on iOS */
+img[src$=".svg"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+}
+
+.material-symbols-rounded {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
 /* ✅ ADJUSTED: Global text size classes - ALL SIZES REDUCED to prevent overlaps */
 
 body.text-small {
