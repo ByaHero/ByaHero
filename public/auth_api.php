@@ -308,13 +308,18 @@ try {
             "DELETE FROM notifications WHERE user_id = ?",
             "DELETE FROM feedbacks WHERE user_id = ?",
             "DELETE FROM reports WHERE user_id = ?",
-            "DELETE FROM passenger_rides WHERE passenger_user_id = ?",
+            "DELETE FROM passenger_rides WHERE user_id = ?",
+            "DELETE FROM sos_alerts WHERE sender_user_id = ? OR recipient_user_id = ?",
             "DELETE FROM {$table} WHERE id = ?"
         ];
 
         foreach ($queries as $q) {
             $st = $conn->prepare($q);
-            $st->bind_param("i", $userId);
+            if (strpos($q, 'OR') !== false) {
+                $st->bind_param("ii", $userId, $userId);
+            } else {
+                $st->bind_param("i", $userId);
+            }
             $st->execute();
             $st->close();
         }
