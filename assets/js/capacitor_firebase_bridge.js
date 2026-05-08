@@ -7,7 +7,9 @@
     let _saved = false;
   
     // Safe console wrapper
+    // Safe console wrapper
     function dbg(level, msg) {
+      console[level] ? console[level](msg) : console.log(msg);
     }
   
     function saveToken(token) {
