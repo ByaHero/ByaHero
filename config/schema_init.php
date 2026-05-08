@@ -158,21 +158,7 @@ function sync_schema(mysqli $conn) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 8. Emergency Contacts
-    $conn->query("CREATE TABLE IF NOT EXISTS emergency_contacts (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        user_id INT UNSIGNED NOT NULL,
-        first_name VARCHAR(100) NOT NULL,
-        last_name VARCHAR(100) NULL,
-        phone VARCHAR(30) NOT NULL,
-        relative_type VARCHAR(30) NOT NULL,
-        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_user_phone (user_id, phone),
-        INDEX idx_user_id (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
-
-    // 9. Lost and Found
+    // 8. Lost and Found
     $conn->query("CREATE TABLE IF NOT EXISTS lost_and_found (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         user_id INT UNSIGNED NOT NULL,
@@ -187,18 +173,18 @@ function sync_schema(mysqli $conn) {
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 10. FCM Tokens
+    // 9. FCM Tokens
     $conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         user_id INT UNSIGNED NOT NULL,
-        fcm_token TEXT NOT NULL,
+        fcm_token VARCHAR(512) NOT NULL,
         platform VARCHAR(50) NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        UNIQUE KEY uniq_user_token (user_id, fcm_token(255)),
+        UNIQUE KEY uniq_user_token (user_id, fcm_token),
         INDEX idx_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 11. Feedbacks
+    // 10. Feedbacks
     $conn->query("CREATE TABLE IF NOT EXISTS feedbacks (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         user_id INT UNSIGNED NOT NULL,
@@ -208,7 +194,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 12. User Locations
+    // 11. User Locations
     $conn->query("CREATE TABLE IF NOT EXISTS user_locations (
         user_id INT UNSIGNED PRIMARY KEY,
         latitude DECIMAL(10,8) NOT NULL,
@@ -218,7 +204,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_updated (updated_at)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 13. SOS Alerts
+    // 12. SOS Alerts
     $conn->query("CREATE TABLE IF NOT EXISTS sos_alerts (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         sender_user_id INT UNSIGNED NOT NULL,
@@ -231,7 +217,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 14. Circles (Safety Circles)
+    // 13. Circles (Safety Circles)
     $conn->query("CREATE TABLE IF NOT EXISTS circles (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         owner_user_id INT UNSIGNED NOT NULL,
@@ -241,7 +227,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_owner (owner_user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 15. Circle Members
+    // 14. Circle Members
     $conn->query("CREATE TABLE IF NOT EXISTS circle_members (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         circle_id INT UNSIGNED NOT NULL,
@@ -252,7 +238,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 16. Reports (Issue Reporting)
+    // 15. Reports (Issue Reporting)
     $conn->query("CREATE TABLE IF NOT EXISTS reports (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         user_id INT UNSIGNED NOT NULL,
@@ -266,7 +252,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 17. Bus Stops (Specific stop locations)
+    // 16. Bus Stops (Specific stop locations)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_stops (
         stop_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         location_name VARCHAR(255) NOT NULL,
@@ -277,7 +263,7 @@ function sync_schema(mysqli $conn) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 18. Bus Fares (Fare matrix)
+    // 17. Bus Fares (Fare matrix)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fares (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         route_name VARCHAR(100) NULL,
@@ -289,7 +275,7 @@ function sync_schema(mysqli $conn) {
         UNIQUE KEY uniq_route_path (origin_stop_id, destination_stop_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 19. Bus Fare Snapshots (History of fare changes)
+    // 18. Bus Fare Snapshots (History of fare changes)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshots (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         effective_date DATETIME NOT NULL,
@@ -297,7 +283,7 @@ function sync_schema(mysqli $conn) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 20. Bus Fare Snapshot Rows (Specific items in a snapshot)
+    // 19. Bus Fare Snapshot Rows (Specific items in a snapshot)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshot_rows (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         snapshot_id INT UNSIGNED NOT NULL,
@@ -307,7 +293,7 @@ function sync_schema(mysqli $conn) {
         INDEX idx_snapshot (snapshot_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 21. Bus Schedule (Fixed timings)
+    // 20. Bus Schedule (Fixed timings)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_schedule (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         terminal_name VARCHAR(255) NOT NULL,
@@ -319,7 +305,7 @@ function sync_schema(mysqli $conn) {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // 22. Seed data if tables are empty
+    // 21. Seed data if tables are empty
     seed_tables($conn);
 }
 

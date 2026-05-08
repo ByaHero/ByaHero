@@ -46,17 +46,22 @@ $conn = db();
 
 // Auto-migration: ensure the table exists
 // UNIQUE on fcm_token (not user_id) so one user can have multiple devices
-@$conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  user_id INT NOT NULL,
-  fcm_token VARCHAR(512) NOT NULL,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  UNIQUE KEY unique_token (fcm_token),
-  INDEX idx_user (user_id)
-)");
+// @$conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
+//   id INT AUTO_INCREMENT PRIMARY KEY,
+//   user_id INT NOT NULL,
+//   fcm_token VARCHAR(512) NOT NULL,
+//   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+//   UNIQUE KEY unique_token (fcm_token),
+//   INDEX idx_user (user_id)
+// )");
 
 // Fix legacy schema: ensure fcm_token is wide enough and has the unique key
-$conn->query("ALTER TABLE user_fcm_tokens MODIFY COLUMN fcm_token VARCHAR(512) NOT NULL");
+$legacyCheck = @$conn->query("SHOW INDEX FROM user_fcm_tokens WHERE Key_name = 'user_id'");
+if ($legacyCheck && $legacyCheck->num_rows > 0) {
+    @$conn->query("ALTER TABLE user_fcm_tokens DROP INDEX user_id");
+    @$conn->query("ALTER TABLE user_fcm_tokens ADD UNIQUE KEY unique_token (fcm_token)");
+    @$conn->query("ALTER TABLE user_fcm_tokens MODIFY COLUMN fcm_token VARCHAR(512) NOT NULL");
+}
 
 $userId   = (int)$_SESSION['user_id'];
 // Check standard POST first to bypass InfinityFree JSON filtering
