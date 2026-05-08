@@ -444,7 +444,8 @@ function startOperation(): array {
         INSERT INTO bus_operations (bus_id, conductor_id, route, pre_departure_count, started_at, start_location, total_boarded, total_departed, status)
         VALUES (?, ?, ?, ?, NOW(), ?, ?, 0, 'active')
     ");
-    $st->bind_param("iisisii", $busId, $userId, $route, $preDep, $startLoc, $preDep);
+    // Parameters: bus_id(i), conductor_id(i), route(s), pre_departure_count(i), start_location(s), total_boarded(i)
+    $st->bind_param("iisisi", $busId, $userId, $route, $preDep, $startLoc, $preDep);
     $st->execute();
     $opId = (int)$conn->insert_id;
 
@@ -496,7 +497,7 @@ function logPassengerEvent(): array {
         INSERT INTO passenger_events (operation_id, event_type, count, location_name, lat, lng, recorded_at)
         VALUES (?, ?, ?, ?, ?, ?, NOW())
     ");
-    $st->bind_param("isssdd", $opId, $eventType, $count, $locName, $lat, $lng);
+    $st->bind_param("isisdd", $opId, $eventType, $count, $locName, $lat, $lng);
     $st->execute();
 
     $col = ($eventType === 'board') ? 'total_boarded' : 'total_departed';
