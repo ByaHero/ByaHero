@@ -554,8 +554,40 @@ $pageDepth = "../../../";
                                 body: JSON.stringify({
                                     message: {
                                         token: token,
-                                        notification: { title: '🚨 SOS Alert', body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '') },
-                                        data: { type: 'sos_alert', sender_name: data.sender_name, location_text: data.location_text || '' }
+                                        notification: { 
+                                            title: '🚨 SOS Alert', 
+                                            body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '') 
+                                        },
+                                        data: { 
+                                            type: 'sos_alert', 
+                                            sender_name: data.sender_name, 
+                                            location_text: data.location_text || '' 
+                                        },
+                                        // [FIX] Ensure banner appears at the top (Heads-up notification)
+                                        android: {
+                                            priority: 'high',
+                                            notification: {
+                                                channel_id: 'sos_alerts',
+                                                sound: 'default',
+                                                priority: 'high',
+                                                visibility: 'public'
+                                            }
+                                        },
+                                        apns: {
+                                            payload: {
+                                                aps: {
+                                                    alert: {
+                                                        title: '🚨 SOS Alert',
+                                                        body: `${data.sender_name} needs help!`
+                                                    },
+                                                    sound: 'default',
+                                                    'mutable-content': 1
+                                                }
+                                            },
+                                            headers: {
+                                                'apns-priority': '10'
+                                            }
+                                        }
                                     }
                                 })
                             });
@@ -676,6 +708,31 @@ $pageDepth = "../../../";
                                             type: 'sos_alert',
                                             sender_name: data.sender_name,
                                             location_text: data.location_text || ''
+                                        },
+                                        // [FIX] Ensure banner appears at the top (Heads-up notification)
+                                        android: {
+                                            priority: 'high',
+                                            notification: {
+                                                channel_id: 'sos_alerts',
+                                                sound: 'default',
+                                                priority: 'high',
+                                                visibility: 'public'
+                                            }
+                                        },
+                                        apns: {
+                                            payload: {
+                                                aps: {
+                                                    alert: {
+                                                        title: '🚨 SOS Alert',
+                                                        body: `${data.sender_name} needs help!`
+                                                    },
+                                                    sound: 'default',
+                                                    'mutable-content': 1
+                                                }
+                                            },
+                                            headers: {
+                                                'apns-priority': '10'
+                                            }
                                         }
                                     }
                                 })
