@@ -296,9 +296,34 @@ try {
         $userId = (int)$_SESSION['user_id'];
         $table = $roleTables[$role] ?? 'users';
 
-        $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?")->bind_param("i", $userId);
-        $conn->prepare("DELETE FROM emergency_contacts WHERE user_id = ?")->bind_param("i", $userId);
-        $conn->prepare("DELETE FROM {$table} WHERE id = ?")->bind_param("i", $userId);
+        // [FIX] Execute the deletion statements (they were missing execute() calls)
+        // Also cleanup all related user data for a "real" deletion
+        
+        $queries = [
+            "DELETE FROM user_fcm_tokens WHERE user_id = ?",
+            "DELETE FROM emergency_contacts WHERE user_id = ?",
+            "DELETE FROM user_settings WHERE user_id = ?",
+            "DELETE FROM user_locations WHERE user_id = ?",
+            "DELETE FROM circle_members WHERE member_user_id = ?",
+            "DELETE FROM notifications WHERE user_id = ?",
+            "DELETE FROM feedbacks WHERE user_id = ?",
+            "DELETE FROM reports WHERE user_id = ?",
+            "DELETE FROM passenger_rides WHERE passenger_user_id = ?",
+            "DELETE FROM {$table} WHERE id = ?"
+        ];
+
+        foreach ($queries as $q) {
+            $st = $conn->prepare($q);
+            $st->bind_param("i", $userId);
+            $st->execute();
+            $st->close();
+        }
+
+        // Also delete circles owned by this user
+        $stCircle = $conn->prepare("DELETE FROM circles WHERE owner_user_id = ?");
+        $stCircle->bind_param("i", $userId);
+        $stCircle->execute();
+        $stCircle->close();
 
         session_unset();
         session_destroy();
