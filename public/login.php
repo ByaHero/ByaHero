@@ -45,18 +45,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $err = 'Email and password are required.';
     } else {
         try {
-            $pdo = db();
+            $conn = db();
             $authenticated = false;
             $userRecord = null;
             $userRole = null;
             $targetRedirect = $redirectAfter;
 
             foreach ($roleTables as $table => $info) {
-                $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
-                $stmt->execute([$email]);
-                $row = $stmt->fetch(PDO::FETCH_ASSOC);
-                if (!$row)
-                    continue;
+                $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $row = $stmt->get_result()->fetch_assoc();
+                
+                if (!$row) continue;
 
                 $hash = $row['password'] ?? '';
 
@@ -66,10 +67,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $authenticated = true;
                     $newHash = password_hash($password, PASSWORD_DEFAULT);
                     try {
-                        $up = $pdo->prepare("UPDATE {$table} SET password = ? WHERE id = ? LIMIT 1");
-                        $up->execute([$newHash, $row['id']]);
-                    } catch (Exception $ignore) {
-                    }
+                        $up = $conn->prepare("UPDATE {$table} SET password = ? WHERE id = ? LIMIT 1");
+                        $up->bind_param("si", $newHash, $row['id']);
+                        $up->execute();
+                    } catch (Exception $ignore) {}
                 }
 
                 if ($authenticated) {

@@ -23,7 +23,7 @@ if (empty($input['bus_id'])) {
 
 $busId = (int)$input['bus_id'];
 
-$pdo = db();
+$conn = db();
 
 // MANDATORY: Enforce that the user is logged in and is the conductor assigned to this bus
 if ($currentUserId <= 0) {
@@ -32,14 +32,15 @@ if ($currentUserId <= 0) {
     exit;
 }
 
-$stCheck = $pdo->prepare("
+$stCheck = $conn->prepare("
     SELECT current_conductor_id
     FROM busses
     WHERE Bus_ID = ?
     LIMIT 1
 ");
-$stCheck->execute([$busId]);
-$rowCheck = $stCheck->fetch(PDO::FETCH_ASSOC);
+$stCheck->bind_param("i", $busId);
+$stCheck->execute();
+$rowCheck = $stCheck->get_result()->fetch_assoc();
 
 if (!$rowCheck || (int)$rowCheck['current_conductor_id'] !== $currentUserId) {
     http_response_code(403);
@@ -109,19 +110,23 @@ $tmp = $file . '.tmp';
 // Update DB: store friendly name into current_location column (no DB schema change)
 $fields = [];
 $params = [];
+$types  = "";
 
 $fields[] = 'current_location = ?';
 $params[] = $locationName !== null ? $locationName : null;
+$types .= "s";
 
 if (isset($input['route'])) {
     $fields[] = 'route = ?';
     $params[] = $input['route'];
+    $types .= "s";
 }
 if (isset($input['seats_available'])) {
     $sa = filter_var($input['seats_available'], FILTER_VALIDATE_INT);
     if ($sa !== false) {
         $fields[] = 'seat_availability = ?';
         $params[] = $sa;
+        $types .= "i";
     }
 }
 if (isset($input['status'])) {
@@ -129,15 +134,20 @@ if (isset($input['status'])) {
     if (in_array($input['status'], $allowed, true)) {
         $fields[] = 'status = ?';
         $params[] = $input['status'];
+        $types .= "s";
     }
 }
 
 $fields[] = 'updated = CURRENT_TIMESTAMP';
 $params[] = $busId;
+$types .= "i";
 
 $sql = "UPDATE busses SET " . implode(', ', $fields) . " WHERE Bus_ID = ?";
-$st = $pdo->prepare($sql);
-$st->execute($params);
+$st = $conn->prepare($sql);
+if ($st) {
+    $st->bind_param($types, ...$params);
+    $st->execute();
+}
 
 echo json_encode([
     'success' => true,

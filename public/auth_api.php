@@ -38,20 +38,28 @@ function respond(bool $ok, string $msg = '', array $extra = []): void {
     exit;
 }
 
-function tableHasColumn(PDO $pdo, string $table, string $column): bool {
-    $stmt = $pdo->prepare(
+function tableHasColumn(mysqli $conn, string $table, string $column): bool {
+    $stmt = $conn->prepare(
         "SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1"
     );
-    $stmt->execute([$table, $column]);
-    return (bool)$stmt->fetchColumn();
+    $stmt->bind_param("ss", $table, $column);
+    $stmt->execute();
+    return (bool)$stmt->get_result()->fetch_row();
 }
 
+// Standardized role tables mapping: role_key => table_name
 $roleTables = [
     'admin'     => 'admins',
     'driver'    => 'drivers',
     'conductor' => 'conductors',
     'passenger' => 'users',
 ];
+
+// Helper to get role from table name (reverse lookup)
+function getRoleFromTable(string $table): string {
+    global $roleTables;
+    return array_search($table, $roleTables) ?: 'passenger';
+}
 
 $roleRedirects = [
     'admin'     => 'admin/admin.php',
@@ -65,12 +73,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') respond(false, 'Invalid request metho
 $action = (string)($_POST['action'] ?? '');
 
 try {
-    $pdo = db();
+    $conn = db();
 
     // LOGIN (allow email OR contact number in the same field)
     if ($action === 'login') {
-        // Keep using the existing "email" field from your login form,
-        // but interpret it as an identifier: email OR contact number.
         $identifierRaw = trim((string)($_POST['email'] ?? ''));
         $identifierLower = mb_strtolower($identifierRaw);
         $password = (string)($_POST['password'] ?? '');
@@ -79,34 +85,37 @@ try {
 
         foreach ($roleTables as $role => $table) {
             try {
-                $hasContacts = tableHasColumn($pdo, $table, 'contacts');
+                $hasContacts = tableHasColumn($conn, $table, 'contacts');
 
                 if ($hasContacts) {
-                    $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? OR contacts = ? LIMIT 1");
-                    $stmt->execute([$identifierLower, $identifierRaw]);
+                    $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? OR contacts = ? LIMIT 1");
+                    $stmt->bind_param("ss", $identifierLower, $identifierRaw);
                 } else {
-                    $stmt = $pdo->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
-                    $stmt->execute([$identifierLower]);
+                    $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+                    $stmt->bind_param("s", $identifierLower);
                 }
+                $stmt->execute();
+                $user = $stmt->get_result()->fetch_assoc();
             } catch (\Throwable $e) {
-                continue; // table may not exist
+                continue; 
             }
 
-            $user = $stmt->fetch(PDO::FETCH_ASSOC);
             if (!$user) continue;
 
             $hash = $user['password'] ?? '';
             if ($hash && password_verify($password, $hash)) {
                 // ok
             } elseif ($hash === $password) {
-                // legacy plaintext fallback: rehash (best-effort)
                 $newHash = password_hash($password, PASSWORD_DEFAULT);
-                try { $pdo->prepare("UPDATE {$table} SET password = ? WHERE id = ?")->execute([$newHash, $user['id']]); } catch (\Throwable $ignore) {}
+                try { 
+                    $up = $conn->prepare("UPDATE {$table} SET password = ? WHERE id = ?");
+                    $up->bind_param("si", $newHash, $user['id']);
+                    $up->execute();
+                } catch (\Throwable $ignore) {}
             } else {
                 continue;
             }
 
-            // set session and regenerate ID to prevent fixation
             session_regenerate_id(true);
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['user_email'] = $user['email'] ?? '';
@@ -120,7 +129,7 @@ try {
         respond(false, 'Invalid email/contact or password');
     }
 
-    // ── STEP 1 of 2: Validate signup fields, send OTP, stash data in session ──
+    // ── STEP 1 of 2: Validate signup fields, send OTP ──
     if ($action === 'signup_request_otp') {
         $name    = trim((string)($_POST['name']             ?? ''));
         $email   = mb_strtolower(trim((string)($_POST['email']    ?? '')));
@@ -131,37 +140,22 @@ try {
         if ($email === '' || $password === '' || $confirm === '') respond(false, 'Email and password required');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL))           respond(false, 'Invalid email address');
         
-        if ($contact === '') respond(false, 'Contact number is required');
-        // PH Number Validation: Only digits, starts with 09 (11 digits) or 639 (12 digits)
         $cleanContact = preg_replace('/[^0-9]/', '', $contact);
         if (!preg_match('/^(09|639)\d{9}$/', $cleanContact)) {
             respond(false, 'Please enter a valid Philippine mobile number (e.g., 09123456789)');
         }
-        $contact = $cleanContact; // Use the cleaned numeric version
+        $contact = $cleanContact;
 
-        if ($password !== $confirm)                                 respond(false, 'Passwords do not match');
-        if (mb_strlen($password) < 6)                              respond(false, 'Password must be at least 6 characters');
+        if ($password !== $confirm) respond(false, 'Passwords do not match');
+        if (mb_strlen($password) < 6) respond(false, 'Password must be at least 6 characters');
 
-        // Check email uniqueness across role tables
         foreach ($roleTables as $table) {
-            try {
-                $chk = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
-                $chk->execute([$email]);
-                if ($chk->fetch()) respond(false, 'Email is already registered');
-            } catch (\Throwable $e) {}
+            $chk = $conn->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
+            $chk->bind_param("s", $email);
+            $chk->execute();
+            if ($chk->get_result()->fetch_assoc()) respond(false, 'Email is already registered');
         }
 
-        // Check contact uniqueness
-        foreach ($roleTables as $table) {
-            try {
-                if (!tableHasColumn($pdo, $table, 'contacts')) continue;
-                $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? LIMIT 1");
-                $chk->execute([$contact]);
-                if ($chk->fetch()) respond(false, 'Contact number is already registered');
-            } catch (\Throwable $e) {}
-        }
-
-        // Store pending registration in session (account NOT created yet)
         $_SESSION['pending_signup'] = [
             'name'     => $name,
             'email'    => $email,
@@ -169,24 +163,18 @@ try {
             'password' => password_hash($password, PASSWORD_DEFAULT),
         ];
 
-        // Generate + store 6-digit OTP in password_resets table (reuse existing infra)
         $otp     = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expires = date('Y-m-d H:i:s', time() + 600); // 10 minutes
+        $expires = date('Y-m-d H:i:s', time() + 600); 
 
-        // Remove any stale OTP for this email first
-        try {
-            $pdo->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->execute([$email]);
-        } catch (\Throwable $e) {}
+        $conn->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->bind_param("s", $email);
+        $ins = $conn->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, 'signup_otp')");
+        $ins->bind_param("sss", $email, $otp, $expires);
+        $ins->execute();
 
-        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, 'signup_otp')")
-            ->execute([$email, $otp, $expires]);
-
-        // Send the OTP email
         if (function_exists('sendOTPEmail')) {
             $mailRes = sendOTPEmail($email, $otp, 'signup');
             if (!$mailRes['success']) {
-                if (strpos($mailRes['message'], 'not configured') !== false
-                    || strpos($mailRes['message'], 'SMTP Key') !== false) {
+                if (strpos($mailRes['message'], 'not configured') !== false || strpos($mailRes['message'], 'SMTP Key') !== false) {
                     respond(true, 'Dev mode: OTP created.', ['dev_otp' => $otp]);
                 }
                 respond(false, 'Email service error: ' . $mailRes['message']);
@@ -197,23 +185,22 @@ try {
         }
     }
 
-    // ── STEP 2 of 2: Verify OTP → create account → auto-login ──
+    // ── STEP 2 of 2: Verify OTP → create account ──
     if ($action === 'signup_verify_otp') {
         $email = mb_strtolower(trim((string)($_POST['email'] ?? '')));
         $otp   = trim((string)($_POST['otp'] ?? ''));
 
         if ($email === '' || $otp === '') respond(false, 'Email and OTP are required');
 
-        // Validate OTP
-        $stmt = $pdo->prepare(
+        $stmt = $conn->prepare(
             "SELECT id FROM password_resets
              WHERE email = ? AND otp_code = ? AND role = 'signup_otp' AND expires_at > NOW()
              ORDER BY id DESC LIMIT 1"
         );
-        $stmt->execute([$email, $otp]);
-        if (!$stmt->fetch()) respond(false, 'Invalid or expired verification code');
+        $stmt->bind_param("ss", $email, $otp);
+        $stmt->execute();
+        if (!$stmt->get_result()->fetch_assoc()) respond(false, 'Invalid or expired verification code');
 
-        // Retrieve pending data from session
         $pending = $_SESSION['pending_signup'] ?? null;
         if (!$pending || $pending['email'] !== $email) {
             respond(false, 'Session expired. Please start the signup process again.');
@@ -223,89 +210,53 @@ try {
         $contact = $pending['contact'];
         $hash    = $pending['password'];
 
-        // Double-check email is still unique (edge case: two tabs)
-        foreach ($roleTables as $table) {
-            try {
-                $chk = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
-                $chk->execute([$email]);
-                if ($chk->fetch()) respond(false, 'Email is already registered');
-            } catch (\Throwable $e) {}
-        }
+        $ins = $conn->prepare("INSERT INTO users (email, contacts, password, name, created_at) VALUES (?, ?, ?, ?, NOW())");
+        $ins->bind_param("ssss", $email, $contact, $hash, $name);
+        if (!$ins->execute()) respond(false, 'Database error during signup');
 
-        // Create the account
-        $hasName     = tableHasColumn($pdo, 'users', 'name');
-        $hasContacts = tableHasColumn($pdo, 'users', 'contacts');
-
-        if ($hasName && $hasContacts) {
-            $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, name, created_at) VALUES (?, ?, ?, ?, NOW())");
-            $ok  = $ins->execute([$email, $contact, $hash, $name !== '' ? $name : null]);
-        } elseif ($hasContacts) {
-            $ins = $pdo->prepare("INSERT INTO users (email, contacts, password, created_at) VALUES (?, ?, ?, NOW())");
-            $ok  = $ins->execute([$email, $contact, $hash]);
-        } elseif ($hasName) {
-            $ins = $pdo->prepare("INSERT INTO users (email, password, name, created_at) VALUES (?, ?, ?, NOW())");
-            $ok  = $ins->execute([$email, $hash, $name !== '' ? $name : null]);
-        } else {
-            $ins = $pdo->prepare("INSERT INTO users (email, password, created_at) VALUES (?, ?, NOW())");
-            $ok  = $ins->execute([$email, $hash]);
-        }
-
-        if (!$ok) respond(false, 'Database error during signup');
-
-        $newId = (int)$pdo->lastInsertId();
-
-        // ── SYNC SESSION: Fetch fresh user record from DB to ensure session matches DB ──
-        $fetchStmt = $pdo->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
-        $fetchStmt->execute([$newId]);
-        $user = $fetchStmt->fetch();
-
-        if (!$user) respond(false, 'Failed to retrieve new user record');
-
-        // Cleanup OTP + pending session data
-        $pdo->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->execute([$email]);
+        $newId = (int)$conn->insert_id;
+        $conn->prepare("DELETE FROM password_resets WHERE email = ? AND role = 'signup_otp'")->bind_param("s", $email);
         unset($_SESSION['pending_signup']);
 
-        // Auto-login (Exact same logic as standard login action)
         session_regenerate_id(true);
-        $_SESSION['user_id']       = (int)$user['id'];
-        $_SESSION['user_email']    = $user['email'] ?? '';
+        $_SESSION['user_id']       = $newId;
+        $_SESSION['user_email']    = $email;
         $_SESSION['user_role']     = 'passenger';
-        $_SESSION['user_name']     = $user['name'] ?? $user['email'] ?? '';
-        $_SESSION['user_contacts'] = $user['contacts'] ?? '';
+        $_SESSION['user_name']     = $name !== '' ? $name : $email;
+        $_SESSION['user_contacts'] = $contact;
 
         respond(true, 'Account created successfully!', ['redirect' => 'passenger/showGuide/showGuide.php']);
     }
 
-    // COMPLETE PROFILE (Force Contact Entry)
+    // COMPLETE PROFILE
     if ($action === 'complete_profile') {
-        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
-            respond(false, 'Not authenticated. Session data: ' . json_encode($_SESSION));
-        }
+        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) respond(false, 'Not authenticated');
+        
         $contact = trim((string)($_POST['contacts'] ?? ''));
         if ($contact === '') respond(false, 'Contact number is required');
 
-        // PH Number Validation: Only digits, starts with 09 (11 digits) or 639 (12 digits)
         $cleanContact = preg_replace('/[^0-9]/', '', $contact);
         if (!preg_match('/^(09|639)\d{9}$/', $cleanContact)) {
             respond(false, 'Please enter a valid Philippine mobile number (e.g., 09123456789)');
         }
-        $contact = $cleanContact; // Use the cleaned numeric version
+        $contact = $cleanContact;
 
         $role = $_SESSION['user_role'];
         $table = $roleTables[$role] ?? 'users';
         $userId = (int)$_SESSION['user_id'];
 
-        if (tableHasColumn($pdo, $table, 'contacts')) {
-            // Check global uniqueness?
-            $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? AND id != ? LIMIT 1");
-            $chk->execute([$contact, $userId]);
-            if ($chk->fetch()) respond(false, 'Contact number is already registered');
+        // Check uniqueness
+        $chk = $conn->prepare("SELECT id FROM {$table} WHERE contacts = ? AND id != ? LIMIT 1");
+        $chk->bind_param("si", $contact, $userId);
+        $chk->execute();
+        if ($chk->get_result()->fetch_assoc()) respond(false, 'Contact number is already registered');
 
-            $pdo->prepare("UPDATE {$table} SET contacts = ? WHERE id = ?")->execute([$contact, $userId]);
-            $_SESSION['user_contacts'] = $contact;
-            respond(true, 'Profile completed', ['redirect' => $roleRedirects[$role] ?? 'passenger/index.php']);
-        }
-        respond(false, 'Database error');
+        $up = $conn->prepare("UPDATE {$table} SET contacts = ? WHERE id = ?");
+        $up->bind_param("si", $contact, $userId);
+        $up->execute();
+        
+        $_SESSION['user_contacts'] = $contact;
+        respond(true, 'Profile completed', ['redirect' => $roleRedirects[$role] ?? 'passenger/index.php']);
     }
 
     // CHANGE PASSWORD
@@ -319,23 +270,25 @@ try {
 
         $role = $_SESSION['user_role'];
         $table = $roleTables[$role] ?? 'users';
-        $stmt = $pdo->prepare("SELECT password FROM {$table} WHERE id = ? LIMIT 1");
-        $stmt->execute([$_SESSION['user_id']]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-        if (!$row) respond(false, 'Account not found');
-        if (!password_verify($current, $row['password'])) respond(false, 'Incorrect current password');
+        $stmt = $conn->prepare("SELECT password FROM {$table} WHERE id = ? LIMIT 1");
+        $stmt->bind_param("i", $_SESSION['user_id']);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
+        
+        if (!$user) respond(false, 'Account not found');
+        if (!password_verify($current, $user['password'])) respond(false, 'Incorrect current password');
 
         $newHash = password_hash($new, PASSWORD_DEFAULT);
-        $pdo->prepare("UPDATE {$table} SET password = ? WHERE id = ?")->execute([$newHash, $_SESSION['user_id']]);
+        $up = $conn->prepare("UPDATE {$table} SET password = ? WHERE id = ?");
+        $up->bind_param("si", $newHash, $_SESSION['user_id']);
+        $up->execute();
         respond(true, 'Password changed');
     }
 
     // DELETE ACCOUNT
     if ($action === 'delete_account') {
         if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) respond(false, 'Not authenticated');
-        $confirmText = strtolower(trim((string)($_POST['confirmText'] ?? '')));
-        
-        if ($confirmText !== 'delete my account') {
+        if (strtolower(trim((string)($_POST['confirmText'] ?? ''))) !== 'delete my account') {
             respond(false, "Please type 'delete my account' exactly to confirm.");
         }
 
@@ -343,16 +296,9 @@ try {
         $userId = (int)$_SESSION['user_id'];
         $table = $roleTables[$role] ?? 'users';
 
-        // Delete related data (best effort)
-        try {
-            $pdo->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?")->execute([$userId]);
-        } catch (\Throwable $e) {}
-        try {
-            $pdo->prepare("DELETE FROM emergency_contacts WHERE user_id = ?")->execute([$userId]);
-        } catch (\Throwable $e) {}
-        
-        // Delete the main user record
-        $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$userId]);
+        $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ?")->bind_param("i", $userId);
+        $conn->prepare("DELETE FROM emergency_contacts WHERE user_id = ?")->bind_param("i", $userId);
+        $conn->prepare("DELETE FROM {$table} WHERE id = ?")->bind_param("i", $userId);
 
         session_unset();
         session_destroy();
@@ -364,229 +310,99 @@ try {
         $credential = $_POST['credential'] ?? '';
         if (empty($credential)) respond(false, 'Google credential missing');
 
-        // Decode JWT payload (Header.Payload.Signature)
         $parts = explode('.', $credential);
-        if (count($parts) !== 3) respond(false, 'Invalid Google credential format');
-
-        // Simple base64 decoding (for production, always verify the signature!)
+        if (count($parts) !== 3) respond(false, 'Invalid format');
         $payload = json_decode(base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1])), true);
         
-        if (!$payload || !isset($payload['email'])) {
-            respond(false, 'Failed to extract information from Google token');
-        }
-
-        // Must verify issuer and audience
-        if (!in_array($payload['aud'], [
-            '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
-            '299495970056-moul8j6nolsl5lvjd37atjknqvogbtcj.apps.googleusercontent.com'
-        ])) {
-            respond(false, 'Invalid Google Client ID audience (Received: ' . $payload['aud'] . ')');
-        }
-        
-        if (!in_array($payload['iss'], ['accounts.google.com', 'https://accounts.google.com'])) {
-            respond(false, 'Invalid token issuer');
-        }
-
-        // Verify token expiration
-        if (isset($payload['exp']) && $payload['exp'] < time()) {
-            respond(false, 'Google token has expired');
-        }
+        if (!$payload || !isset($payload['email'])) respond(false, 'Invalid token payload');
+        if (isset($payload['exp']) && $payload['exp'] < time()) respond(false, 'Token expired');
 
         $email = mb_strtolower(trim($payload['email']));
         $googleId = $payload['sub'] ?? '';
         $name = $payload['name'] ?? '';
         $profilePic = $payload['picture'] ?? null;
         
-        // 1. Check if user exists by email in the `users` table since this is mainly for passengers
-        $stmt = $pdo->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
-        $stmt->execute([$email]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt = $conn->prepare("SELECT * FROM users WHERE email = ? LIMIT 1");
+        $stmt->bind_param("s", $email);
+        $stmt->execute();
+        $user = $stmt->get_result()->fetch_assoc();
 
         if ($user) {
-            // Update google_id and profile_picture if not set
-            try {
-                $hasGoogleId = tableHasColumn($pdo, 'users', 'google_id');
-                $hasProfilePic = tableHasColumn($pdo, 'users', 'profile_picture');
-                
-                $updateFields = [];
-                $updateParams = [];
-
-                if ($hasGoogleId && empty($user['google_id'])) {
-                    $updateFields[] = "google_id = ?, auth_provider = 'google'";
-                    $updateParams[] = $googleId;
-                }
-
-                if ($hasProfilePic && empty($user['profile_picture']) && !empty($profilePic)) {
-                    $updateFields[] = "profile_picture = ?";
-                    $updateParams[] = $profilePic;
-                    $user['profile_picture'] = $profilePic; // Update local copy for session
-                }
-
-                if (!empty($updateFields)) {
-                    $updateParams[] = $user['id'];
-                    $sql = "UPDATE users SET " . implode(', ', $updateFields) . " WHERE id = ?";
-                    $pdo->prepare($sql)->execute($updateParams);
-                }
-            } catch (\Throwable $e) {}
+            $up = $conn->prepare("UPDATE users SET google_id = ?, auth_provider = 'google', profile_picture = COALESCE(profile_picture, ?) WHERE id = ?");
+            $up->bind_param("ssi", $googleId, $profilePic, $user['id']);
+            $up->execute();
 
             $_SESSION['user_id'] = (int)$user['id'];
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['user_role'] = 'passenger';
             $_SESSION['user_name'] = !empty($user['name']) ? $user['name'] : $name;
-            // Only adopt Google profile pic if the DB one is empty/null
             $_SESSION['user_profile_picture'] = !empty($user['profile_picture']) ? $user['profile_picture'] : $profilePic;
             $_SESSION['user_contacts'] = $user['contacts'] ?? '';
             
             respond(true, 'Login successful', ['redirect' => $roleRedirects['passenger']]);
         } else {
-            // Create user
-            $hasName = tableHasColumn($pdo, 'users', 'name');
-            $hasContacts = tableHasColumn($pdo, 'users', 'contacts');
-            $hasGoogleId = tableHasColumn($pdo, 'users', 'google_id');
-            $hasProfilePic = tableHasColumn($pdo, 'users', 'profile_picture');
+            $ins = $conn->prepare("INSERT INTO users (email, google_id, auth_provider, name, profile_picture, created_at) VALUES (?, ?, 'google', ?, ?, NOW())");
+            $ins->bind_param("ssss", $email, $googleId, $name, $profilePic);
+            $ins->execute();
 
-            // Building dynamic insert based on schema available
-            $columns = ['email', 'created_at'];
-            $placeholders = ['?', 'NOW()'];
-            $values = [$email];
-            
-            if ($hasGoogleId) {
-                $columns[] = 'google_id';
-                $columns[] = 'auth_provider';
-                $placeholders[] = '?';
-                $placeholders[] = "'google'";
-                $values[] = $googleId;
-            }
-            if ($hasName) {
-                $columns[] = 'name';
-                $placeholders[] = '?';
-                $values[] = $name;
-            }
-            if ($hasProfilePic && $profilePic) {
-                $columns[] = 'profile_picture';
-                $placeholders[] = '?';
-                $values[] = $profilePic;
-            }
-            // Add a blank contact to satisfy the previous schema if it exists
-            if ($hasContacts) {
-                $columns[] = 'contacts';
-                $placeholders[] = '?';
-                $values[] = '';
-            }
-
-            // Since password is now nullable, we omit it
-            $colStr = implode(', ', $columns);
-            $valStr = implode(', ', $placeholders);
-            
-            $ins = $pdo->prepare("INSERT INTO users ({$colStr}) VALUES ({$valStr})");
-            $ok = $ins->execute($values);
-
-            if (!$ok) respond(false, 'Database error during Google signup');
-
-            $newId = (int)$pdo->lastInsertId();
+            $newId = (int)$conn->insert_id;
             $_SESSION['user_id'] = $newId;
             $_SESSION['user_email'] = $email;
             $_SESSION['user_role'] = 'passenger';
             $_SESSION['user_name'] = $name;
             $_SESSION['user_contacts'] = '';
-            if ($hasProfilePic) {
-                $_SESSION['user_profile_picture'] = $profilePic;
-            }
+            $_SESSION['user_profile_picture'] = $profilePic;
 
             respond(true, 'Signup successful', ['redirect' => 'passenger/showGuide/showGuide.php']);
         }
     }
 
-    // COMPLETE PROFILE (Force Contact Entry)
-    if ($action === 'complete_profile') {
-        if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
-            respond(false, 'Not authenticated. Session data: ' . json_encode($_SESSION));
-        }
-        $contact = trim((string)($_POST['contacts'] ?? ''));
-        if ($contact === '') respond(false, 'Contact number is required');
-
-        $role = $_SESSION['user_role'];
-        $table = $roleTables[$role] ?? 'users';
-        $userId = (int)$_SESSION['user_id'];
-
-        if (tableHasColumn($pdo, $table, 'contacts')) {
-            // Check global uniqueness?
-            $chk = $pdo->prepare("SELECT id FROM {$table} WHERE contacts = ? AND id != ? LIMIT 1");
-            $chk->execute([$contact, $userId]);
-            if ($chk->fetch()) respond(false, 'Contact number is already registered');
-
-            $pdo->prepare("UPDATE {$table} SET contacts = ? WHERE id = ?")->execute([$contact, $userId]);
-            $_SESSION['user_contacts'] = $contact;
-            respond(true, 'Profile completed', ['redirect' => $roleRedirects[$role] ?? 'passenger/index.php']);
-        }
-        respond(false, 'Database error');
-    }
-
-    // FORGOT PASSWORD FLOW
-    $roleTables = [
-        'admins' => 'admin',
-        'drivers' => 'driver',
-        'conductors' => 'conductor',
-        'users' => 'user'
-    ];
-
+    // FORGOT PASSWORD
     if ($action === 'request_otp') {
         $email = trim((string)($_POST['email'] ?? ''));
         if ($email === '') respond(false, 'Email is required');
 
-        // Check all tables for the user
         $foundTable = null;
-        foreach ($roleTables as $table => $role) {
-            $stmt = $pdo->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
-            $stmt->execute([$email]);
-            if ($stmt->fetch()) {
+        foreach ($roleTables as $table) {
+            $stmt = $conn->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
+            $stmt->bind_param("s", $email);
+            $stmt->execute();
+            if ($stmt->get_result()->fetch_assoc()) {
                 $foundTable = $table;
                 break;
             }
         }
 
         if (!$foundTable) {
-            // Delay slightly to prevent timing attacks
             usleep(200000); 
             respond(false, 'Email not found');
         }
 
-        // Generate 6 digit code
         $otp = str_pad((string)random_int(0, 999999), 6, '0', STR_PAD_LEFT);
-        $expires = date('Y-m-d H:i:s', time() + 900); // 15 mins
+        $expires = date('Y-m-d H:i:s', time() + 900); 
 
-        $pdo->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, ?)")
-            ->execute([$email, $otp, $expires, $foundTable]);
+        $ins = $conn->prepare("INSERT INTO password_resets (email, otp_code, expires_at, role) VALUES (?, ?, ?, ?)");
+        $ins->bind_param("ssss", $email, $otp, $expires, $foundTable);
+        $ins->execute();
 
-        // --- ACTUAL EMAIL SENDING ---
         if (function_exists('sendOTPEmail')) {
             $mailRes = sendOTPEmail($email, $otp);
-            if (!$mailRes['success']) {
-                // If it's a dev placeholder error, we still return success for prototyping, 
-                // but include the dev_otp so the user isn't stuck.
-                if (strpos($mailRes['message'], 'not configured') !== false || strpos($mailRes['message'], 'SMTP Key') !== false) {
-                    respond(true, 'Development Mode: OTP created (' . $mailRes['message'] . ').', ['dev_otp' => $otp]);
-                }
-                respond(false, 'Email service error: ' . $mailRes['message']);
+            if (!$mailRes['success'] && (strpos($mailRes['message'], 'configured') !== false)) {
+                respond(true, 'Dev Mode: OTP created.', ['dev_otp' => $otp]);
             }
-            respond(true, 'An OTP has been sent to your email.');
+            respond($mailRes['success'], $mailRes['message']);
         } else {
-            // Fallback for dev if mail.php is missing
-            respond(true, 'Development Mode: OTP created (mail.php missing).', ['dev_otp' => $otp]);
+            respond(true, 'Dev Mode: OTP created.', ['dev_otp' => $otp]);
         }
     }
 
     if ($action === 'verify_otp') {
         $email = trim((string)($_POST['email'] ?? ''));
         $otp = trim((string)($_POST['otp'] ?? ''));
-        if ($email === '' || $otp === '') respond(false, 'Email and OTP are required');
-
-        $stmt = $pdo->prepare("SELECT id FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$email, $otp]);
-        if (!$stmt->fetch()) {
-            respond(false, 'Invalid or expired OTP code');
-        }
-
+        $stmt = $conn->prepare("SELECT id FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $stmt->bind_param("ss", $email, $otp);
+        $stmt->execute();
+        if (!$stmt->get_result()->fetch_assoc()) respond(false, 'Invalid or expired OTP');
         respond(true, 'OTP verified');
     }
 
@@ -595,35 +411,25 @@ try {
         $otp = trim((string)($_POST['otp'] ?? ''));
         $newPass = trim((string)($_POST['new_password'] ?? ''));
         
-        if ($email === '' || $otp === '' || $newPass === '') respond(false, 'All fields are required');
+        $stmt = $conn->prepare("SELECT role FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
+        $stmt->bind_param("ss", $email, $otp);
+        $stmt->execute();
+        $reset = $stmt->get_result()->fetch_assoc();
+        if (!$reset) respond(false, 'Invalid or expired OTP');
 
-        $stmt = $pdo->prepare("SELECT role FROM password_resets WHERE email = ? AND otp_code = ? AND expires_at > NOW() ORDER BY id DESC LIMIT 1");
-        $stmt->execute([$email, $otp]);
-        $resetRec = $stmt->fetch();
-        if (!$resetRec) {
-            respond(false, 'Invalid or expired OTP code');
-        }
-
-        $targetTable = $resetRec['role'] ?: 'users';
+        $table = $reset['role'] ?: 'users';
         $hash = password_hash($newPass, PASSWORD_DEFAULT);
-        
-        // Safety check to ensure targetTable is valid
-        if (!array_key_exists($targetTable, $roleTables)) {
-            $targetTable = 'users';
-        }
+        $up = $conn->prepare("UPDATE {$table} SET password = ? WHERE email = ?");
+        $up->bind_param("ss", $hash, $email);
+        $up->execute();
 
-        $pdo->prepare("UPDATE {$targetTable} SET password = ? WHERE email = ?")->execute([$hash, $email]);
-
-        // Cleanup
-        $pdo->prepare("DELETE FROM password_resets WHERE email = ?")->execute([$email]);
-
+        $conn->prepare("DELETE FROM password_resets WHERE email = ?")->bind_param("s", $email);
         respond(true, 'Password successfully reset');
     }
 
     respond(false, 'Unsupported action');
 
 } catch (\Throwable $e) {
-    // Log error internally and show generic message to user
     error_log('Auth API Error: ' . $e->getMessage());
     respond(false, 'An internal server error occurred.');
 }

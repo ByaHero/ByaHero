@@ -14,7 +14,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error   = '';
 
@@ -40,8 +40,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid update request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("UPDATE lost_and_found SET status = ? WHERE id = ?");
-                $stmt->execute([$status, $id]);
+                $stmt = $conn->prepare("UPDATE lost_and_found SET status = ? WHERE id = ?");
+                $stmt->bind_param("si", $status, $id);
+                $stmt->execute();
                 $message = 'Ticket updated successfully.';
             }
         } elseif ($action === 'delete_ticket') {
@@ -50,10 +51,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid delete request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("DELETE FROM lost_and_found WHERE id = ?");
-                $stmt->execute([$id]);
+                $stmt = $conn->prepare("DELETE FROM lost_and_found WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
 
-                if ($stmt->rowCount() === 0) {
+                if ($stmt->affected_rows === 0) {
                     $error = 'No ticket deleted. Check that ID ' . h($id) . ' exists.';
                 } else {
                     $message = 'Ticket deleted forever.';
@@ -68,12 +70,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Fetch All Entries ---
 $tickets = [];
 try {
-    $tickets = $pdo->query("
+    $resTickets = $conn->query("
         SELECT lf.*, u.name as reporter_name, u.contacts as reporter_contact 
         FROM lost_and_found lf 
         LEFT JOIN users u ON lf.user_id = u.id 
         ORDER BY lf.created_at DESC
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ");
+    $tickets = $resTickets ? $resTickets->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $tickets = [];
 }

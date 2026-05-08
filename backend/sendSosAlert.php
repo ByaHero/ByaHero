@@ -1,7 +1,8 @@
 <?php
 session_start();
 header('Content-Type: application/json');
-require_once '../config/db_connection.php';
+require_once '../config/db.php';
+$conn = db();
 
 // Auto-migration for Infinity Free: ensure the table exists in case no one registered a token yet
 // UNIQUE on fcm_token (not user_id) so one user can have multiple devices

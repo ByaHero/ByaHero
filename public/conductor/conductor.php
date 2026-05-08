@@ -12,7 +12,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
 }
 
 require_once __DIR__ . '/../../config/db.php';
-$pdo = db();
+$conn = db();
 
 $userId   = (int)($_SESSION['user_id'] ?? 0);
 $userName = $_SESSION['user_name'] ?? 'User';
@@ -25,21 +25,23 @@ $busError = $_GET['error'] ?? null;
  * conductorLive.php so they continue managing the same bus.
  */
 if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
-    $stmt = $pdo->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
-    $stmt->execute([$userId]);
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $row = $stmt->get_result()->fetch_assoc();
 
     $currentBusId = isset($row['current_bus_id']) ? (int)$row['current_bus_id'] : 0;
 
     if ($currentBusId > 0) {
-        $stmtBus = $pdo->prepare("
+        $stmtBus = $conn->prepare("
             SELECT Bus_ID
             FROM busses
             WHERE Bus_ID = ? AND current_conductor_id = ?
             LIMIT 1
         ");
-        $stmtBus->execute([$currentBusId, $userId]);
-        $busRow = $stmtBus->fetch(PDO::FETCH_ASSOC);
+        $stmtBus->bind_param("ii", $currentBusId, $userId);
+        $stmtBus->execute();
+        $busRow = $stmtBus->get_result()->fetch_assoc();
 
         if ($busRow) {
             header("Location: conductorLive.php");

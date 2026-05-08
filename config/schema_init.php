@@ -1,0 +1,368 @@
+<?php
+/**
+ * ByaHero Schema Initializer / Auto-Migration
+ * Ensures database tables and columns are up-to-date.
+ */
+
+function sync_schema(mysqli $conn) {
+    // 1. Core Role Tables
+    $roleTables = ['admins', 'drivers', 'conductors', 'users'];
+    foreach ($roleTables as $table) {
+        $conn->query("CREATE TABLE IF NOT EXISTS `$table` (
+            id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+            email VARCHAR(255) NOT NULL UNIQUE,
+            password VARCHAR(255) NOT NULL,
+            name VARCHAR(255) NULL,
+            contacts VARCHAR(20) NULL,
+            profile_picture VARCHAR(255) NULL,
+            google_id VARCHAR(255) NULL,
+            auth_provider VARCHAR(50) NULL,
+            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+        // Ensure missing columns exist (for migration)
+        $cols = [
+            'name' => "VARCHAR(255) NULL AFTER password",
+            'contacts' => "VARCHAR(20) NULL AFTER name",
+            'profile_picture' => "VARCHAR(255) NULL AFTER contacts",
+            'google_id' => "VARCHAR(255) NULL AFTER profile_picture",
+            'auth_provider' => "VARCHAR(50) NULL AFTER google_id"
+        ];
+        foreach ($cols as $col => $def) {
+            $check = $conn->query("SHOW COLUMNS FROM `$table` LIKE '$col'");
+            if ($check->num_rows === 0) {
+                $conn->query("ALTER TABLE `$table` ADD COLUMN `$col` $def");
+            }
+        }
+    }
+
+    // 2. Busses Table
+    $conn->query("CREATE TABLE IF NOT EXISTS busses (
+        Bus_ID INT AUTO_INCREMENT PRIMARY KEY,
+        code VARCHAR(20) NOT NULL UNIQUE,
+        route VARCHAR(100) DEFAULT NULL,
+        total_seats INT NOT NULL DEFAULT 25,
+        status ENUM('available','on_stop','full','unavailable') NOT NULL DEFAULT 'unavailable',
+        seat_availability INT DEFAULT NULL,
+        current_location VARCHAR(255) DEFAULT NULL,
+        current_conductor_id INT UNSIGNED DEFAULT NULL,
+        updated DATETIME DEFAULT NULL,
+        INDEX idx_conductor (current_conductor_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Add current_conductor_id if missing
+    $check = $conn->query("SHOW COLUMNS FROM busses LIKE 'current_conductor_id'");
+    if ($check->num_rows === 0) {
+        $conn->query("ALTER TABLE busses ADD COLUMN current_conductor_id INT UNSIGNED DEFAULT NULL AFTER current_location");
+    }
+
+    // 3. Notifications Table
+    $conn->query("CREATE TABLE IF NOT EXISTS notifications (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        type VARCHAR(50) NOT NULL,
+        title VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        meta JSON NULL,
+        read_at DATETIME NULL,
+        dedupe_key VARCHAR(100) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id),
+        INDEX idx_dedupe (dedupe_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 4. User Settings
+    $conn->query("CREATE TABLE IF NOT EXISTS user_settings (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL UNIQUE,
+        notify_bus_schedule TINYINT(1) DEFAULT 1,
+        notify_bus_arrival TINYINT(1) DEFAULT 1,
+        notify_seat_availability TINYINT(1) DEFAULT 1,
+        text_size VARCHAR(20) DEFAULT 'medium',
+        high_contrast_mode TINYINT(1) DEFAULT 0,
+        screen_reader_support TINYINT(1) DEFAULT 0,
+        share_location TINYINT(1) DEFAULT 0,
+        privacy_mode VARCHAR(20) DEFAULT 'public',
+        location_services TINYINT(1) DEFAULT 1,
+        tracking_enabled TINYINT(1) DEFAULT 0,
+        stolen_device_protection TINYINT(1) DEFAULT 0,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 5. Password Resets / OTPs
+    $conn->query("CREATE TABLE IF NOT EXISTS password_resets (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        email VARCHAR(255) NOT NULL,
+        otp_code VARCHAR(6) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        role VARCHAR(50) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_email (email),
+        INDEX idx_otp (otp_code)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 6. Analytics & Operations
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_operations (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        bus_id INT NOT NULL,
+        conductor_id INT UNSIGNED NOT NULL,
+        route VARCHAR(100) NOT NULL,
+        pre_departure_count INT UNSIGNED NOT NULL DEFAULT 0,
+        started_at DATETIME NOT NULL,
+        ended_at DATETIME DEFAULT NULL,
+        start_location VARCHAR(100) DEFAULT NULL,
+        end_location VARCHAR(100) DEFAULT NULL,
+        total_boarded INT UNSIGNED NOT NULL DEFAULT 0,
+        total_departed INT UNSIGNED NOT NULL DEFAULT 0,
+        status ENUM('active','completed') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_bus_date (bus_id, started_at),
+        INDEX idx_conductor (conductor_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS passenger_events (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        operation_id INT UNSIGNED NOT NULL,
+        event_type ENUM('board','depart') NOT NULL,
+        count INT UNSIGNED NOT NULL DEFAULT 1,
+        location_name VARCHAR(100) DEFAULT NULL,
+        lat DECIMAL(10,7) DEFAULT NULL,
+        lng DECIMAL(10,7) DEFAULT NULL,
+        recorded_at DATETIME NOT NULL,
+        INDEX idx_operation (operation_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    $conn->query("CREATE TABLE IF NOT EXISTS passenger_rides (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        operation_id INT UNSIGNED NOT NULL,
+        boarded_at DATETIME NOT NULL,
+        departed_at DATETIME DEFAULT NULL,
+        status ENUM('active', 'completed') DEFAULT 'active',
+        INDEX idx_user (user_id),
+        INDEX idx_operation (operation_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 7. Bus Stops & Terminals
+    $conn->query("CREATE TABLE IF NOT EXISTS busstopsterminal (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        type ENUM('pickup_point','bus_stop','terminal') NOT NULL DEFAULT 'bus_stop',
+        route VARCHAR(100) DEFAULT 'LAUREL - TANAUAN',
+        location_name VARCHAR(255) NOT NULL,
+        location_landmark VARCHAR(255) NULL,
+        lat DECIMAL(10,7) NOT NULL,
+        lng DECIMAL(10,7) NOT NULL,
+        sort_order INT(11) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 8. Emergency Contacts
+    $conn->query("CREATE TABLE IF NOT EXISTS emergency_contacts (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        first_name VARCHAR(100) NOT NULL,
+        last_name VARCHAR(100) NULL,
+        phone VARCHAR(30) NOT NULL,
+        relative_type VARCHAR(30) NOT NULL,
+        created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP NULL DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_phone (user_id, phone),
+        INDEX idx_user_id (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 9. Lost and Found
+    $conn->query("CREATE TABLE IF NOT EXISTS lost_and_found (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        type ENUM('lost','found') NOT NULL,
+        status ENUM('open','resolved','closed') DEFAULT 'open',
+        item_description TEXT NOT NULL,
+        bus_number VARCHAR(50) NULL,
+        image1_path VARCHAR(255) NULL,
+        image2_path VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 10. FCM Tokens
+    $conn->query("CREATE TABLE IF NOT EXISTS user_fcm_tokens (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        fcm_token TEXT NOT NULL,
+        platform VARCHAR(50) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_user_token (user_id, fcm_token(255)),
+        INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 11. Feedbacks
+    $conn->query("CREATE TABLE IF NOT EXISTS feedbacks (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        rating INT NOT NULL,
+        feedback_text TEXT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 12. User Locations
+    $conn->query("CREATE TABLE IF NOT EXISTS user_locations (
+        user_id INT UNSIGNED PRIMARY KEY,
+        latitude DECIMAL(10,8) NOT NULL,
+        longitude DECIMAL(11,8) NOT NULL,
+        accuracy FLOAT NULL,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_updated (updated_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 13. SOS Alerts
+    $conn->query("CREATE TABLE IF NOT EXISTS sos_alerts (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        sender_user_id INT UNSIGNED NOT NULL,
+        recipient_user_id INT UNSIGNED NOT NULL,
+        location_text TEXT NULL,
+        status ENUM('active','resolved') DEFAULT 'active',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_sender (sender_user_id),
+        INDEX idx_recipient (recipient_user_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 14. Circles (Safety Circles)
+    $conn->query("CREATE TABLE IF NOT EXISTS circles (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        owner_user_id INT UNSIGNED NOT NULL,
+        name VARCHAR(100) DEFAULT 'My Circle',
+        invite_code VARCHAR(10) UNIQUE NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_owner (owner_user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 15. Circle Members
+    $conn->query("CREATE TABLE IF NOT EXISTS circle_members (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        circle_id INT UNSIGNED NOT NULL,
+        user_id INT UNSIGNED NOT NULL,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_circle_user (circle_id, user_id),
+        INDEX idx_circle (circle_id),
+        INDEX idx_user (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 16. Reports (Issue Reporting)
+    $conn->query("CREATE TABLE IF NOT EXISTS reports (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        user_id INT UNSIGNED NOT NULL,
+        bus_number VARCHAR(50) NULL,
+        report_reason VARCHAR(255) NOT NULL,
+        others_details TEXT NULL,
+        contact_number VARCHAR(20) NULL,
+        status ENUM('pending','reviewed','resolved') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_user (user_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 17. Bus Stops (Specific stop locations)
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_stops (
+        stop_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        location_name VARCHAR(255) NOT NULL,
+        latitude DECIMAL(10,8) NULL,
+        longitude DECIMAL(11,8) NULL,
+        km_marker DECIMAL(10,2) DEFAULT 0,
+        is_active TINYINT(1) DEFAULT 1,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 18. Bus Fares (Fare matrix)
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_fares (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        route_name VARCHAR(100) NULL,
+        origin_stop_id INT UNSIGNED NOT NULL,
+        destination_stop_id INT UNSIGNED NOT NULL,
+        regular_fare DECIMAL(10,2) NOT NULL,
+        discounted_fare DECIMAL(10,2) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_route_path (origin_stop_id, destination_stop_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 19. Bus Fare Snapshots (History of fare changes)
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshots (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        effective_date DATETIME NOT NULL,
+        description VARCHAR(255) NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 20. Bus Fare Snapshot Rows (Specific items in a snapshot)
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshot_rows (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        snapshot_id INT UNSIGNED NOT NULL,
+        origin_stop_name VARCHAR(255) NOT NULL,
+        destination_stop_name VARCHAR(255) NOT NULL,
+        fare_amount DECIMAL(10,2) NOT NULL,
+        INDEX idx_snapshot (snapshot_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 21. Bus Schedule (Fixed timings)
+    $conn->query("CREATE TABLE IF NOT EXISTS bus_schedule (
+        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        terminal_name VARCHAR(255) NOT NULL,
+        time_open TIME NULL,
+        time_close TIME NULL,
+        is_suspended TINYINT(1) DEFAULT 0,
+        suspend_message TEXT NULL,
+        day_of_week SET('Mon','Tue','Wed','Thu','Fri','Sat','Sun') DEFAULT 'Mon,Tue,Wed,Thu,Fri',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // 22. Seed data if tables are empty
+    seed_tables($conn);
+}
+
+/**
+ * Automatically seeds the database from SQL files in the /db directory if tables are empty.
+ */
+function seed_tables(mysqli $conn) {
+    $db_dir = __DIR__ . '/../db';
+    if (!is_dir($db_dir)) return;
+
+    $seeds = [
+        'bus_stops' => 'bus_stops.sql',
+        'bus_schedule' => 'bus_schedule.sql',
+        'bus_fares' => 'bus_fares.sql'
+    ];
+
+    foreach ($seeds as $table => $file) {
+        $check = $conn->query("SELECT 1 FROM `$table` LIMIT 1");
+        if ($check && $check->num_rows === 0) {
+            $path = $db_dir . '/' . $file;
+            if (is_file($path)) {
+                $sql_content = file_get_contents($path);
+                // Remove comments and empty lines
+                $lines = explode("\n", $sql_content);
+                $clean_sql = "";
+                foreach ($lines as $line) {
+                    $trimmed = trim($line);
+                    if ($trimmed === "" || strpos($trimmed, "--") === 0 || strpos($trimmed, "/*") === 0) continue;
+                    $clean_sql .= $line . "\n";
+                }
+
+                // Execute queries one by one
+                $queries = explode(";", $clean_sql);
+                foreach ($queries as $query) {
+                    $query = trim($query);
+                    if ($query) {
+                        // We skip CREATE TABLE because we already handled it, but we keep INSERT
+                        if (stripos($query, 'INSERT INTO') === 0) {
+                            $conn->query($query);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

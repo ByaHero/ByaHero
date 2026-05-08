@@ -5,7 +5,7 @@ $pageDepth = '../../../';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     require_once '../../../config/db.php';
     try {
-        $pdo = db();
+        $conn = db();
         
         $user_id = $_SESSION['user_id'] ?? 0;
         $type = $_POST['itemType'] ?? 'lost';
@@ -44,20 +44,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         // Insert into database
-        $stmt = $pdo->prepare("
+        $stmt = $conn->prepare("
             INSERT INTO `lost_and_found` 
             (`user_id`, `type`, `item_description`, `image1_path`, `image2_path`, `bus_number`) 
-            VALUES (:user_id, :type, :item_description, :image1_path, :image2_path, :bus_number)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         
-        $stmt->execute([
-            ':user_id' => $user_id,
-            ':type' => $type,
-            ':item_description' => $item_description,
-            ':image1_path' => $image1_path,
-            ':image2_path' => $image2_path,
-            ':bus_number' => $bus_number
-        ]);
+        $stmt->bind_param("isssss", 
+            $user_id,
+            $type,
+            $item_description,
+            $image1_path,
+            $image2_path,
+            $bus_number
+        );
+        
+        $stmt->execute();
         
     } catch (Exception $e) {
         // Silently log error for prototype purposes

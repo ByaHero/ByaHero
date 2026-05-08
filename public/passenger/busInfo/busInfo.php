@@ -5,11 +5,10 @@ require_once __DIR__ . '/../auth_passenger.php';
 require_once __DIR__ . '/../../../config/db.php';
 
 try {
-    // IMPORTANT: get PDO instance from db()
-    $pdo = db();
+    $conn = db();
 
-    $stmt = $pdo->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC");
-    $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $result = $conn->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC");
+    $stops = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $stops = [];
     error_log("Database error: " . $e->getMessage());
@@ -95,12 +94,12 @@ $backLink = 'javascript:history.back()';
         <?php
         // NEW: Read schedule from DB (bus_schedule)
         try {
-            $stmt = $pdo->query("
+            $resSched = $conn->query("
                 SELECT terminal_name, time_open, time_close, is_suspended, suspend_message
                 FROM bus_schedule
                 ORDER BY terminal_name ASC
             ");
-            $schedules = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $schedules = $resSched ? $resSched->fetch_all(MYSQLI_ASSOC) : [];
         } catch (Throwable $e) {
             $schedules = [];
             error_log("Schedule load error: " . $e->getMessage());

@@ -41,7 +41,8 @@ if (!isset($_SESSION['user_id'])) {
     exit;
 }
 
-require_once '../config/db_connection.php';
+require_once '../config/db.php';
+$conn = db();
 
 // Auto-migration: ensure the table exists
 // UNIQUE on fcm_token (not user_id) so one user can have multiple devices

@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $userId = $_SESSION['user_id'];
-$pdo = db();
+$conn = db();
 
 $action = $_GET['action'] ?? '';
 
@@ -22,8 +22,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'save') {
     $lat = $_POST['lat'];
     $lng = $_POST['lng'];
 
-    $stmt = $pdo->prepare("INSERT INTO saved_pins (user_id, title, address, lat, lng) VALUES (?, ?, ?, ?, ?)");
-    if ($stmt->execute([$userId, $title, $address, $lat, $lng])) {
+    $stmt = $conn->prepare("INSERT INTO saved_pins (user_id, title, address, lat, lng) VALUES (?, ?, ?, ?, ?)");
+    $stmt->bind_param("issss", $userId, $title, $address, $lat, $lng);
+    if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => 'DB Error']);
@@ -41,8 +42,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete') {
     }
 
     // Security: Only delete if the pin belongs to the logged-in user
-    $stmt = $pdo->prepare("DELETE FROM saved_pins WHERE id = ? AND user_id = ?");
-    if ($stmt->execute([$pinId, $userId])) {
+    $stmt = $conn->prepare("DELETE FROM saved_pins WHERE id = ? AND user_id = ?");
+    $stmt->bind_param("ii", $pinId, $userId);
+    if ($stmt->execute()) {
         echo json_encode(['success' => true]);
     } else {
         echo json_encode(['success' => false, 'message' => 'Failed to delete']);
@@ -52,9 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'delete') {
 
 // 4. GET SAVED PINS (GET)
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && $action === 'list') {
-    $stmt = $pdo->prepare("SELECT * FROM saved_pins WHERE user_id = ? ORDER BY id DESC");
-    $stmt->execute([$userId]);
-    $pins = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT * FROM saved_pins WHERE user_id = ? ORDER BY id DESC");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $res = $stmt->get_result();
+    $pins = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
     echo json_encode(['success' => true, 'pins' => $pins]);
     exit;
 }

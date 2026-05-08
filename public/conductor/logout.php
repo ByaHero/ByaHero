@@ -3,13 +3,13 @@ declare(strict_types=1);
 session_start();
 
 require_once __DIR__ . '/../../config/db.php';
-$pdo = db();
+$conn = db();
 
 $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 if ($userId > 0) {
     // Free any buses currently assigned to this conductor
-    $stmt = $pdo->prepare("
+    $stmt = $conn->prepare("
         UPDATE busses
         SET 
             current_location = NULL,
@@ -20,15 +20,17 @@ if ($userId > 0) {
             current_conductor_id = NULL
         WHERE current_conductor_id = ?
     ");
-    $stmt->execute([$userId]);
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
 
     // Clear conductor's current_bus_id
-    $stmt2 = $pdo->prepare("
+    $stmt2 = $conn->prepare("
         UPDATE conductors
         SET current_bus_id = NULL
         WHERE id = ?
     ");
-    $stmt2->execute([$userId]);
+    $stmt2->bind_param("i", $userId);
+    $stmt2->execute();
 }
 
 // Now do your existing logout cleanup

@@ -14,7 +14,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error   = '';
 
@@ -45,11 +45,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($code === '') {
                 $error = 'Bus Code is required.';
             } else {
-                $stmt = $pdo->prepare(
+                $stmt = $conn->prepare(
                     "INSERT INTO busses (code, route, total_seats, seat_availability, status)
                      VALUES (?, NULL, ?, ?, ?)"
                 );
-                $stmt->execute([$code, $totalSeats, $totalSeats, $status]);
+                $stmt->bind_param("siis", $code, $totalSeats, $totalSeats, $status);
+                $stmt->execute();
                 $message = "Bus <strong>" . h($code) . "</strong> added as available.";
             }
         }
@@ -66,12 +67,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid update request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("
+                $stmt = $conn->prepare("
                     UPDATE busses
                     SET status = ?
                     WHERE Bus_ID = ?
                 ");
-                $stmt->execute([$status, $id]);
+                $stmt->bind_param("si", $status, $id);
+                $stmt->execute();
                 $message = 'Bus updated.';
             }
         }
@@ -83,10 +85,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid delete request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("DELETE FROM busses WHERE Bus_ID = ?");
-                $stmt->execute([$id]);
+                $stmt = $conn->prepare("DELETE FROM busses WHERE Bus_ID = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
 
-                if ($stmt->rowCount() === 0) {
+                if ($stmt->affected_rows === 0) {
                     $error = 'No bus deleted. Check that Bus_ID ' . h($id) . ' exists.';
                 } else {
                     $message = 'Bus deleted.';
@@ -101,9 +104,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Fetch All Buses (simple list) ---
 $buses = [];
 try {
-    $buses = $pdo
-        ->query("SELECT * FROM busses ORDER BY code ASC")
-        ->fetchAll(PDO::FETCH_ASSOC);
+    $resBuses = $conn->query("SELECT * FROM busses ORDER BY code ASC");
+    $buses = $resBuses ? $resBuses->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $buses = [];
 }

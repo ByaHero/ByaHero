@@ -14,7 +14,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error   = '';
 
@@ -33,10 +33,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid delete request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("DELETE FROM feedbacks WHERE id = ?");
-                $stmt->execute([$id]);
+                $stmt = $conn->prepare("DELETE FROM feedbacks WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
 
-                if ($stmt->rowCount() === 0) {
+                if ($stmt->affected_rows === 0) {
                     $error = 'No feedback deleted. Check that ID ' . h($id) . ' exists.';
                 } else {
                     $message = 'Feedback deleted permanently.';
@@ -51,12 +52,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Fetch All Entries ---
 $feedbacks = [];
 try {
-    $feedbacks = $pdo->query("
+    $resFeedbacks = $conn->query("
         SELECT f.*, u.name as passenger_name, u.email as passenger_email 
         FROM feedbacks f 
         LEFT JOIN users u ON f.user_id = u.id 
         ORDER BY f.created_at DESC
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ");
+    $feedbacks = $resFeedbacks ? $resFeedbacks->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $feedbacks = [];
 }

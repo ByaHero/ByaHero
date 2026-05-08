@@ -24,7 +24,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 
 // --- Helper ---
 function h($s): string
@@ -61,42 +61,42 @@ $analyticsCount = 0;
 /* === END ADDED === */
 
 try {
-    $totalBusesCount = (int)$pdo->query("SELECT COUNT(*) FROM busses")->fetchColumn();
-    $activeBusesCount = (int)$pdo->query("
+    $totalBusesCount = (int)$conn->query("SELECT COUNT(*) FROM busses")->fetch_row()[0];
+    $activeBusesCount = (int)$conn->query("
     SELECT COUNT(*)
     FROM busses
     WHERE current_conductor_id IS NOT NULL
       AND status IN ('available','on_stop','full')
-")->fetchColumn();
-    $driversCount = (int)$pdo->query("SELECT COUNT(*) FROM drivers")->fetchColumn();
-    $conductorsCount = (int)$pdo->query("SELECT COUNT(*) FROM conductors")->fetchColumn();
+")->fetch_row()[0];
+    $driversCount = (int)$conn->query("SELECT COUNT(*) FROM drivers")->fetch_row()[0];
+    $conductorsCount = (int)$conn->query("SELECT COUNT(*) FROM conductors")->fetch_row()[0];
 
     // IMPORTANT: InfinityFree table is lowercase (case-sensitive on Linux)
-    $stopsCount = (int)$pdo->query("SELECT COUNT(*) FROM busstopsterminal")->fetchColumn();
+    $stopsCount = (int)$conn->query("SELECT COUNT(*) FROM busstopsterminal")->fetch_row()[0];
 
     // NEW: bus fares count
-    $faresCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_fares")->fetchColumn();
+    $faresCount = (int)$conn->query("SELECT COUNT(*) FROM bus_fares")->fetch_row()[0];
 
     /* === ADDED: operation schedule count query === */
-    $scheduleCount = (int)$pdo->query("SELECT COUNT(*) FROM bus_schedule")->fetchColumn();
+    $scheduleCount = (int)$conn->query("SELECT COUNT(*) FROM bus_schedule")->fetch_row()[0];
     /* === END ADDED === */
 
     /* === ADDED: lost and found count query === */
-    $lostFoundCount = (int)$pdo->query("SELECT COUNT(*) FROM lost_and_found")->fetchColumn();
+    $lostFoundCount = (int)$conn->query("SELECT COUNT(*) FROM lost_and_found")->fetch_row()[0];
     /* === END ADDED === */
 
     /* === ADDED: reports count query === */
-    $reportsCount = (int)$pdo->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetchColumn();
+    $reportsCount = (int)$conn->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetch_row()[0];
     /* === END ADDED === */
 
     /* === ADDED: feedbacks count query === */
-    $feedbacksCount = (int)$pdo->query("SELECT COUNT(*) FROM feedbacks")->fetchColumn();
+    $feedbacksCount = (int)$conn->query("SELECT COUNT(*) FROM feedbacks")->fetch_row()[0];
     /* === END ADDED === */
 
     /* === ADDED: analytics count query === */
-    $analyticsCount = (int)$pdo->query("SELECT COALESCE(SUM(total_boarded), 0) FROM bus_operations WHERE status = 'completed'")->fetchColumn();
+    $analyticsCount = (int)$conn->query("SELECT COALESCE(SUM(total_boarded), 0) FROM bus_operations WHERE status = 'completed'")->fetch_row()[0];
     /* === END ADDED === */
-} catch (Exception $e) {
+} catch (Throwable $e) {
     // keep zeros if something fails
 }
 

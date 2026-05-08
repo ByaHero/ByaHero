@@ -14,7 +14,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error  = '';
 
@@ -32,7 +32,7 @@ $activeStatuses = ['available', 'on_stop', 'full'];
 // --- Fetch ONLY active buses (used in conductorLive) ---
 $activeBuses = [];
 try {
-    $stmt = $pdo->prepare("
+    $stmt = $conn->prepare("
         SELECT *
         FROM busses
         WHERE current_conductor_id IS NOT NULL
@@ -40,7 +40,7 @@ try {
         ORDER BY code ASC
     ");
     $stmt->execute();
-    $activeBuses = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $activeBuses = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $e) {
     $error = 'Database error: ' . $e->getMessage();
 }

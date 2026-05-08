@@ -14,7 +14,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error = '';
 
@@ -42,9 +42,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $tablesToCheck = ['admins', 'drivers', 'conductors'];
                 $exists = false;
                 foreach ($tablesToCheck as $t) {
-                    $chk = $pdo->prepare("SELECT id FROM {$t} WHERE email = ? LIMIT 1");
-                    $chk->execute([$email]);
-                    if ($chk->fetch()) { $exists = true; break; }
+                    // Manual whitelist check since table name is interpolated
+                    if (!in_array($t, ['admins', 'drivers', 'conductors'])) continue;
+                    
+                    $chk = $conn->prepare("SELECT id FROM {$t} WHERE email = ? LIMIT 1");
+                    $chk->bind_param("s", $email);
+                    $chk->execute();
+                    if ($chk->get_result()->fetch_assoc()) { $exists = true; break; }
                 }
 
                 if ($exists) {
@@ -52,12 +56,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 } else {
                     $hash = password_hash($password, PASSWORD_DEFAULT);
                     if ($role === 'driver') {
-                        $stmt = $pdo->prepare("INSERT INTO drivers (email, password, created_at) VALUES (?, ?, NOW())");
-                        $stmt->execute([$email, $hash]);
+                        $stmt = $conn->prepare("INSERT INTO drivers (email, password, created_at) VALUES (?, ?, NOW())");
+                        $stmt->bind_param("ss", $email, $hash);
+                        $stmt->execute();
                         $message = "New driver <strong>" . h($email) . "</strong> added!";
                     } else {
-                        $stmt = $pdo->prepare("INSERT INTO conductors (email, password, created_at) VALUES (?, ?, NOW())");
-                        $stmt->execute([$email, $hash]);
+                        $stmt = $conn->prepare("INSERT INTO conductors (email, password, created_at) VALUES (?, ?, NOW())");
+                        $stmt->bind_param("ss", $email, $hash);
+                        $stmt->execute();
                         $message = "New conductor <strong>" . h($email) . "</strong> added!";
                     }
                 }
@@ -69,7 +75,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $role = $_POST['role'] ?? '';
             if ($id && in_array($role, ['driver', 'conductor'], true)) {
                 $table = $role === 'driver' ? 'drivers' : 'conductors';
-                $pdo->prepare("DELETE FROM {$table} WHERE id = ?")->execute([$id]);
+                $stDel = $conn->prepare("DELETE FROM {$table} WHERE id = ?");
+                $stDel->bind_param("i", $id);
+                $stDel->execute();
                 $message = ucfirst($role) . " deleted.";
             } else {
                 $error = "Invalid delete request.";
@@ -83,10 +91,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Fetch Staff Data ---
 $staff = [];
 try {
-    $drivers = $pdo->query("SELECT id, email, created_at, 'driver' AS role FROM drivers ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
-    $conductors = $pdo->query("SELECT id, email, created_at, 'conductor' AS role FROM conductors ORDER BY email ASC")->fetchAll(PDO::FETCH_ASSOC);
+    $resDrivers = $conn->query("SELECT id, email, created_at, 'driver' AS role FROM drivers ORDER BY email ASC");
+    $drivers = $resDrivers ? $resDrivers->fetch_all(MYSQLI_ASSOC) : [];
+
+    $resConductors = $conn->query("SELECT id, email, created_at, 'conductor' AS role FROM conductors ORDER BY email ASC");
+    $conductors = $resConductors ? $resConductors->fetch_all(MYSQLI_ASSOC) : [];
+    
     $staff = array_merge($conductors, $drivers);
-} catch (Exception $e) {
+} catch (Throwable $e) {
     $staff = [];
 }
 

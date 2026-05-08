@@ -39,7 +39,7 @@ header('Cache-Control: post-check=0, pre-check=0', false);
 header('Pragma: no-cache');
 header('Expires: 0');
 
-$pdo = db();
+$conn = db();
 
 $id = (int)$_SESSION['user_id'];
 
@@ -47,9 +47,10 @@ $id = (int)$_SESSION['user_id'];
  * admins table columns (assumed similar to others):
  * id, email, password, created_at
  */
-$stmt = $pdo->prepare("SELECT id, email, password, created_at FROM admins WHERE id = ? LIMIT 1");
-$stmt->execute([$id]);
-$admin = $stmt->fetch(PDO::FETCH_ASSOC);
+$stmt = $conn->prepare("SELECT id, email, password, created_at FROM admins WHERE id = ? LIMIT 1");
+$stmt->bind_param("i", $id);
+$stmt->execute();
+$admin = $stmt->get_result()->fetch_assoc();
 
 if (!$admin) {
     // session says admin but record missing -> force logout
@@ -89,8 +90,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
             $message = "Invalid email format.";
         } else {
-            $up = $pdo->prepare("UPDATE admins SET email = ? WHERE id = ? LIMIT 1");
-            $up->execute([$newEmail, $id]);
+            $up = $conn->prepare("UPDATE admins SET email = ? WHERE id = ? LIMIT 1");
+            $up->bind_param("si", $newEmail, $id);
+            $up->execute();
 
             // sync session too
             $_SESSION['user_email'] = $newEmail;
@@ -117,9 +119,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $message = "New passwords do not match!";
         } else {
             // load current password from DB (source of truth)
-            $stmtPwd = $pdo->prepare("SELECT password FROM admins WHERE id = ? LIMIT 1");
-            $stmtPwd->execute([$id]);
-            $rowPwd = $stmtPwd->fetch(PDO::FETCH_ASSOC);
+            $stmtPwd = $conn->prepare("SELECT password FROM admins WHERE id = ? LIMIT 1");
+            $stmtPwd->bind_param("i", $id);
+            $stmtPwd->execute();
+            $rowPwd = $stmtPwd->get_result()->fetch_assoc();
             $dbHash = (string)($rowPwd['password'] ?? '');
 
             if ($dbHash === '') {
@@ -138,8 +141,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $message = "Current password is incorrect!";
                 } else {
                     $newHash = password_hash($new, PASSWORD_DEFAULT);
-                    $up = $pdo->prepare("UPDATE admins SET password = ? WHERE id = ? LIMIT 1");
-                    $up->execute([$newHash, $id]);
+                    $up = $conn->prepare("UPDATE admins SET password = ? WHERE id = ? LIMIT 1");
+                    $up->bind_param("si", $newHash, $id);
+                    $up->execute();
 
                     $message = "Password successfully updated!";
                 }

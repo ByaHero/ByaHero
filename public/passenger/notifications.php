@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/auth_passenger.php';
-require __DIR__ . '/../../config/db_connection.php';
+require __DIR__ . '/../../config/db.php';
+$conn = db();
 
 // Check if user is logged in
 $user_id = $_SESSION['user_id'] ?? null;

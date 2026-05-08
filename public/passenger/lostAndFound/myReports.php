@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../auth_passenger.php';
 
 require_once '../../../config/db.php';
-$pdo = db();
+$conn = db();
 $userId = $_SESSION['user_id'];
 $message = '';
 $error = '';
@@ -14,9 +14,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $ticketId = $_POST['ticket_id'] ?? null;
     if ($ticketId) {
         // Enforce strong ownership via WHERE user_id
-        $stmt = $pdo->prepare("UPDATE lost_and_found SET status = 'resolved' WHERE id = ? AND user_id = ? AND status = 'open'");
-        if ($stmt->execute([$ticketId, $userId])) {
-            if ($stmt->rowCount() > 0) {
+        $stmt = $conn->prepare("UPDATE lost_and_found SET status = 'resolved' WHERE id = ? AND user_id = ? AND status = 'open'");
+        $stmt->bind_param("ii", $ticketId, $userId);
+        if ($stmt->execute()) {
+            if ($stmt->affected_rows > 0) {
                 $message = "Report successfully marked as resolved!";
             } else {
                 $error = "Action failed. Either the report was already resolved or you lack permission.";
@@ -28,9 +29,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
 }
 
 // Extract ticket history specifically for the securely logged in passenger
-$stmt = $pdo->prepare("SELECT * FROM lost_and_found WHERE user_id = ? ORDER BY created_at DESC");
-$stmt->execute([$userId]);
-$reports = $stmt->fetchAll(PDO::FETCH_ASSOC);
+$stmt = $conn->prepare("SELECT * FROM lost_and_found WHERE user_id = ? ORDER BY created_at DESC");
+$stmt->bind_param("i", $userId);
+$stmt->execute();
+$res = $stmt->get_result();
+$reports = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
 $pageDepth = '../../../';
 $pageType = 'settings';

@@ -8,7 +8,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
 }
 
 require_once __DIR__ . '/../../config/db.php';
-$pdo = db();
+$conn = db();
 $userId = (int)($_SESSION['user_id'] ?? 0);
 
 // 1) If POST with bus info (coming from conductor.php), try to claim/attach the bus as before
@@ -21,9 +21,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
     $pre_departure_count = isset($_POST['pre_departure_count']) ? (int)$_POST['pre_departure_count'] : 0;
 
     // Check who owns the bus to prevent rowCount() === 0 false positives when no row is modified
-    $checkStmt = $pdo->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = :bus_id");
-    $checkStmt->execute([':bus_id' => $busId]);
-    $busOwner = $checkStmt->fetchColumn();
+    $checkStmt = $conn->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = ?");
+    $checkStmt->bind_param("i", $busId);
+    $checkStmt->execute();
+    $resCheck = $checkStmt->get_result();
+    $busOwner = ($resCheck && $resCheck->num_rows > 0) ? $resCheck->fetch_row()[0] : false;
 
     if ($busOwner !== false && $busOwner !== null && $busOwner != $userId) {
         // Someone else already has this bus
@@ -32,13 +34,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
         exit;
     } else {
         // Claim the bus / update it
-        $stmt = $pdo->prepare("UPDATE busses SET current_conductor_id = :uid WHERE Bus_ID = :bus_id");
-        $stmt->execute([':uid' => $userId, ':bus_id' => $busId]);
+        $stmt = $conn->prepare("UPDATE busses SET current_conductor_id = ? WHERE Bus_ID = ?");
+        $stmt->bind_param("ii", $userId, $busId);
+        $stmt->execute();
     }
 
     // Also store on the conductor
-    $stmt2 = $pdo->prepare("UPDATE conductors SET current_bus_id = :bus_id WHERE id = :uid");
-    $stmt2->execute([':bus_id' => $busId, ':uid' => $userId]);
+    $stmt2 = $conn->prepare("UPDATE conductors SET current_bus_id = ? WHERE id = ?");
+    $stmt2->bind_param("ii", $busId, $userId);
+    $stmt2->execute();
 
     // store into session to allow reloads
     $_SESSION['current_bus'] = [
@@ -55,22 +59,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
 // 2) If there is NO POST and session has no current bus, try to RESTORE from DB
 if (empty($_SESSION['current_bus'])) {
     // Look up current_bus_id on the conductor record
-    $stmt = $pdo->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
-    $stmt->execute([$userId]);
-    $conductorRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT current_bus_id FROM conductors WHERE id = ? LIMIT 1");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $conductorRow = $stmt->get_result()->fetch_assoc();
 
     $currentBusId = isset($conductorRow['current_bus_id']) ? (int)$conductorRow['current_bus_id'] : 0;
 
     if ($currentBusId > 0) {
         // Double-check the bus is still assigned to this conductor
-        $stmtBus = $pdo->prepare("
+        $stmtBus = $conn->prepare("
             SELECT Bus_ID, code, route, total_seats, seat_availability
             FROM busses
             WHERE Bus_ID = ? AND current_conductor_id = ?
             LIMIT 1
         ");
-        $stmtBus->execute([$currentBusId, $userId]);
-        $busRow = $stmtBus->fetch(PDO::FETCH_ASSOC);
+        $stmtBus->bind_param("ii", $currentBusId, $userId);
+        $stmtBus->execute();
+        $busRow = $stmtBus->get_result()->fetch_assoc();
 
         if ($busRow) {
             // Rebuild session state
@@ -81,14 +87,6 @@ if (empty($_SESSION['current_bus'])) {
                 'seats_total' => (int)($busRow['total_seats'] ?? 25),
                 'seats_available' => (int)($busRow['seat_availability'] ?? $busRow['total_seats'] ?? 25)
             ];
-
-            // Recover active operation_id for analytics
-            $stmtOp = $pdo->prepare("SELECT id FROM bus_operations WHERE bus_id = ? AND conductor_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
-            $stmtOp->execute([(int)$busRow['Bus_ID'], $userId]);
-            $opRow = $stmtOp->fetch(PDO::FETCH_ASSOC);
-            if ($opRow) {
-                $_SESSION['current_bus']['operation_id'] = (int)$opRow['id'];
-            }
         }
     }
 }
@@ -102,11 +100,23 @@ if (empty($_SESSION['current_bus'])) {
 $currentBus  = $_SESSION['current_bus'];
 $busId       = (int)$currentBus['id'];
 
+// [ANALYTICS] Always sync active operation_id from DB to ensure continuity on refresh
+$stmtOp = $conn->prepare("SELECT id FROM bus_operations WHERE bus_id = ? AND conductor_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1");
+$stmtOp->bind_param("ii", $busId, $userId);
+$stmtOp->execute();
+$opRow = $stmtOp->get_result()->fetch_assoc();
+if ($opRow) {
+    $_SESSION['current_bus']['operation_id'] = (int)$opRow['id'];
+    // If we found an existing operation, it's not a "new" session anymore
+    $_SESSION['current_bus']['is_new_session'] = false;
+}
+
 // Fetch latest seat availability from DB, as it might have been updated by
 // background tasks (e.g. MediaSession adjustments from push notifications).
-$stmtRefresh = $pdo->prepare("SELECT seat_availability FROM busses WHERE Bus_ID = ? LIMIT 1");
-$stmtRefresh->execute([$busId]);
-$refreshRow = $stmtRefresh->fetch(PDO::FETCH_ASSOC);
+$stmtRefresh = $conn->prepare("SELECT seat_availability FROM busses WHERE Bus_ID = ? LIMIT 1");
+$stmtRefresh->bind_param("i", $busId);
+$stmtRefresh->execute();
+$refreshRow = $stmtRefresh->get_result()->fetch_assoc();
 if ($refreshRow && isset($refreshRow['seat_availability'])) {
     $currentBus['seats_available'] = (int)$refreshRow['seat_availability'];
     $_SESSION['current_bus']['seats_available'] = $currentBus['seats_available'];
@@ -307,7 +317,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         <div class="info-card">
             <div class="info-item">
                 <div class="info-label">Bus Number</div>
-                <!-- ONLY FIX: show the bus number/code, not the internal ID -->
                 <div class="info-value"><?= htmlspecialchars((string)$busCode) ?></div>
             </div>
             <div class="info-item">
@@ -356,8 +365,10 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let _appStateListener = null;
 
     let lastMoveCheck = { time: 0, lat: null, lng: null };
+    let lastResolvedLocation = { lat: null, lng: null, name: null };
     let lastComputedStatus = 'available';
     const MOVE_THRESHOLD_METERS = 3;
+    const RESOLVE_THRESHOLD_METERS = 10; // Save CPU: only resolve name if moved > 10m
     const STOP_TIME_MS = 5000;
 
     // --- ANALYTICS: Operation tracking ---
@@ -526,9 +537,6 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             const json = await safePost('../update_geo_location.php', payload);
             if(netStatus) { netStatus.textContent = 'Live'; netStatus.className = 'badge bg-success'; }
             
-            // Fallback: Flush if no timer is active, OR if the timer appears to be stuck.
-            // A stuck timer happens when the phone is locked and the OS pauses JS execution.
-            // We force a flush if the last action was more than 5 seconds ago.
             const timeSinceAction = Date.now() - lastActionTime;
             if (!syncTimer || timeSinceAction > (SYNC_DEBOUNCE_MS + 2000)) {
                 flushPendingEvents();
@@ -541,8 +549,20 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     function onLocationUpdate(pos) {
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
-        const resolved = resolveLocationName(lat, lng);
-        const locName = resolved || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        
+        let locName = lastKnownLocation?.locName || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+        
+        // Throttled name resolution: Only run heavy logic if moved significantly
+        const distSinceResolve = lastResolvedLocation.lat ? distanceMeters(lastResolvedLocation.lat, lastResolvedLocation.lng, lat, lng) : 999;
+        if (distSinceResolve > RESOLVE_THRESHOLD_METERS || !lastResolvedLocation.name) {
+            const resolved = resolveLocationName(lat, lng);
+            if (resolved) {
+                locName = resolved;
+                lastResolvedLocation = { lat, lng, name: resolved };
+            }
+        } else {
+            locName = lastResolvedLocation.name;
+        }
 
         lastKnownLocation = { lat, lng, locName };
         updateMarker(lat, lng);
@@ -563,6 +583,16 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     }
 
     async function startGeolocation() {
+        // [CLEANUP] Clear existing watchers to prevent RAM/Resource leaks
+        if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch(e){}
+            watchId = null;
+        }
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
+            bgWatcherId = null;
+        }
+
         setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 250);
 
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
@@ -579,7 +609,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                         backgroundTitle: "Tracking ByaHero Bus",
                         requestPermissions: true,
                         stale: false,
-                        distanceFilter: 0 
+                        distanceFilter: 5 // Reduced frequency to save battery and CPU
                     },
                     function callback(location, error) {
                         if (error) { return; }
@@ -883,21 +913,23 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         // Heartbeat: force a sync if no update in 8s, and restart watcher if it went dead
         function _heartbeatTick() {
-            const trackingActive = (bgWatcherId !== null || watchId !== null) && lastKnownLocation !== null;
-            if (!trackingActive) {
-                // If we explicitly stopped, lastKnownLocation is null, so we don't restart
-                if ((bgWatcherId === null && watchId === null) && lastKnownLocation === null) {
+            const hasWatcher = (bgWatcherId !== null || watchId !== null);
+            const isStale = lastKnownLocation && (Date.now() - lastNetworkSync > 20000); // 20s without network sync
+
+            // Only restart if we have NO watcher, or it's clearly stale.
+            if (!hasWatcher || isStale) {
+                if (!hasWatcher && lastKnownLocation === null) {
                     heartbeatInterval = setTimeout(_heartbeatTick, 5000);
                     return;
                 }
 
-                startGeolocation().then(() => {
-                    heartbeatInterval = setTimeout(_heartbeatTick, 5000);
-                }).catch(() => {
+                console.log("Heartbeat: Restarting geolocation...");
+                startGeolocation().finally(() => {
                     heartbeatInterval = setTimeout(_heartbeatTick, 5000);
                 });
                 return;
             }
+
             if (lastKnownLocation && (Date.now() - lastNetworkSync > 8000)) {
                 triggerManualUpdate();
             }

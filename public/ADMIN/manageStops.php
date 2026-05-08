@@ -23,15 +23,26 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 
 try {
     // Silent auto-migration for the InfinityFree database 
-    $pdo->exec("ALTER TABLE busstopsterminal ADD COLUMN route varchar(100) DEFAULT 'LAUREL - TANAUAN' AFTER type");
-    $pdo->exec("ALTER TABLE busstopsterminal ADD COLUMN sort_order int(11) DEFAULT 0 AFTER lng");
-} catch (Exception $e) {
-    // Ignore error if columns already exist
+    $res = $conn->query("SHOW COLUMNS FROM busstopsterminal LIKE 'id'");
+    $col = $res->fetch_assoc();
+    if ($col && (empty($col['Key']) || strpos($col['Extra'], 'auto_increment') === false)) {
+        // Fix 0 or duplicate IDs if they exist before applying PK
+        $conn->query("SET @count = 0;");
+        $conn->query("UPDATE busstopsterminal SET id = (@count := @count + 1) WHERE id = 0 OR id IS NULL;");
+        // Apply primary key and auto_increment
+        $conn->query("ALTER TABLE busstopsterminal MODIFY COLUMN id INT AUTO_INCREMENT PRIMARY KEY");
+    }
+
+    $conn->query("ALTER TABLE busstopsterminal ADD COLUMN route varchar(100) DEFAULT 'LAUREL - TANAUAN' AFTER type");
+    $conn->query("ALTER TABLE busstopsterminal ADD COLUMN sort_order int(11) DEFAULT 0 AFTER lng");
+} catch (Throwable $e) {
+    // Ignore error if columns already exist or PK already applied
 }
+
 
 $message = '';
 $error   = '';
@@ -70,32 +81,38 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $error = "Please click on the map to pick a location.";
             } else {
                 // New stops get sort_order at the end of this route
-                $stmtMax = $pdo->prepare("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM busstopsterminal WHERE route = ?");
-                $stmtMax->execute([$route]);
-                $maxSort = (int)($stmtMax->fetchColumn() ?? 0);
+                $stmtMax = $conn->prepare("SELECT COALESCE(MAX(sort_order), 0) AS max_sort FROM busstopsterminal WHERE route = ?");
+                $stmtMax->bind_param("s", $route);
+                $stmtMax->execute();
+                $resMax = $stmtMax->get_result()->fetch_row();
+                $maxSort = (int)($resMax[0] ?? 0);
                 $newSort = $maxSort + 1;
 
-                $stmt = $pdo->prepare("
+                $stmt = $conn->prepare("
                     INSERT INTO busstopsterminal (name, type, route, location_name, location_landmark, lat, lng, sort_order)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([
+                $landmarkVal = ($landmark !== '' ? $landmark : null);
+                $stmt->bind_param("sssssddi", 
                     $name,
                     $type,
                     $route,
                     $locationName,
-                    ($landmark !== '' ? $landmark : null),
+                    $landmarkVal,
                     $lat,
                     $lng,
                     $newSort
-                ]);
+                );
+                $stmt->execute();
                 $message = "Stop saved successfully.";
             }
 
         } elseif ($action === 'delete_stop') {
             $id = (int)($_POST['id'] ?? 0);
             if ($id > 0) {
-                $pdo->prepare("DELETE FROM busstopsterminal WHERE id = ?")->execute([$id]);
+                $stDel = $conn->prepare("DELETE FROM busstopsterminal WHERE id = ?");
+                $stDel->bind_param("i", $id);
+                $stDel->execute();
                 $message = "Stop deleted.";
             } else {
                 $error = "Invalid delete request.";
@@ -112,10 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 if (!empty($ids)) {
                     // Reset sort_order for this route
-                    $pdo->prepare("UPDATE busstopsterminal SET sort_order = 0 WHERE route = ?")
-                        ->execute([$routeName]);
+                    $stReset = $conn->prepare("UPDATE busstopsterminal SET sort_order = 0 WHERE route = ?");
+                    $stReset->bind_param("s", $routeName);
+                    $stReset->execute();
 
-                    $upd = $pdo->prepare("
+                    $upd = $conn->prepare("
                         UPDATE busstopsterminal
                         SET sort_order = ?
                         WHERE id = ? AND route = ?
@@ -123,7 +141,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                     foreach ($ids as $idx => $stopId) {
                         $sort = $idx + 1; // 1-based
-                        $upd->execute([$sort, $stopId, $routeName]);
+                        $upd->bind_param("iis", $sort, $stopId, $routeName);
+                        $upd->execute();
                     }
 
                     $message = "Order saved for {$routeName}.";
@@ -141,8 +160,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Fetch all stops (for table + map)
 $stops = [];
 try {
-    $stops = $pdo->query("SELECT * FROM busstopsterminal ORDER BY id DESC")->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
+    $resStops = $conn->query("SELECT * FROM busstopsterminal ORDER BY id DESC");
+    $stops = $resStops ? $resStops->fetch_all(MYSQLI_ASSOC) : [];
+} catch (Throwable $e) {
     $stops = [];
 }
 
@@ -151,13 +171,18 @@ $stopsForward = [];
 $stopsReverse = [];
 
 try {
-    $stmt = $pdo->prepare("SELECT * FROM busstopsterminal WHERE route = ? ORDER BY sort_order ASC, id ASC");
-    $stmt->execute([ROUTE_FORWARD]);
-    $stopsForward = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare("SELECT * FROM busstopsterminal WHERE route = ? ORDER BY sort_order ASC, id ASC");
+    
+    $stmt->bind_param("s", $fwd);
+    $fwd = ROUTE_FORWARD;
+    $stmt->execute();
+    $stopsForward = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
-    $stmt->execute([ROUTE_REVERSE]);
-    $stopsReverse = $stmt->fetchAll(PDO::FETCH_ASSOC);
-} catch (Exception $e) {
+    $stmt->bind_param("s", $rev);
+    $rev = ROUTE_REVERSE;
+    $stmt->execute();
+    $stopsReverse = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+} catch (Throwable $e) {
     $stopsForward = [];
     $stopsReverse = [];
 }

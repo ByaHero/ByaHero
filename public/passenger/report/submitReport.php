@@ -1,7 +1,8 @@
 <?php
 require_once __DIR__ . '/../auth_passenger.php';
 
-require_once '../../../config/db_connection.php';
+require_once '../../../config/db.php';
+$conn = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $user_id = $_SESSION['user_id'];

@@ -9,7 +9,7 @@ if (session_status() === PHP_SESSION_NONE) {
 require_once __DIR__ . '/../../../config/db.php';
 
 try {
-    $pdo = db(); // IMPORTANT: get PDO instance from db()
+    $conn = db();
 } catch (Throwable $e) {
     echo json_encode([
         'success' => false,
@@ -46,17 +46,14 @@ try {
     // 1) Try to find direct route from bus_fares
     $sql = "SELECT regular_fare, discounted_fare
             FROM bus_fares
-            WHERE origin_stop_id = :origin
-              AND destination_stop_id = :destination
+            WHERE origin_stop_id = ?
+              AND destination_stop_id = ?
             LIMIT 1";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        ':origin' => $origin,
-        ':destination' => $destination,
-    ]);
-
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $origin, $destination);
+    $stmt->execute();
+    $result = $stmt->get_result()->fetch_assoc();
 
     if ($result) {
         $fare = ($fareType === 'discounted') ? (float) $result['discounted_fare'] : (float) $result['regular_fare'];
@@ -72,14 +69,14 @@ try {
     }
 
     // 2) If no direct route, compute by km distance from bus_stops
-    // IMPORTANT: Use positional placeholders for IN (?, ?) to avoid binding issues
     $sql = "SELECT stop_id, km_marker, location_name
             FROM bus_stops
-            WHERE stop_id IN (?, ?)";
+            WHERE stop_id = ? OR stop_id = ?";
 
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$origin, $destination]);
-    $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("ii", $origin, $destination);
+    $stmt->execute();
+    $stops = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
     if (count($stops) !== 2) {
         echo json_encode([
@@ -146,7 +143,7 @@ try {
         'distance_km' => $distance,
         'calculated' => true
     ]);
-} catch (PDOException $e) {
+} catch (Exception $e) {
     echo json_encode([
         'success' => false,
         'message' => 'Database error: ' . $e->getMessage()

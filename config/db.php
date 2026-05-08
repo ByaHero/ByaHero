@@ -4,14 +4,15 @@ declare(strict_types=1);
 // Set global timezone to Philippine Time
 date_default_timezone_set('Asia/Manila');
 
-function db(): PDO {
-    static $pdo = null;
-    if ($pdo instanceof PDO) return $pdo;
-
-    $is_cli = (php_sapi_name() === 'cli');
-    $is_localhost = $is_cli || (isset($_SERVER['REMOTE_ADDR']) && ($_SERVER['REMOTE_ADDR'] === '127.0.0.1' || $_SERVER['REMOTE_ADDR'] === '::1'));
+function db(): mysqli {
+    static $conn = null;
+    if ($conn instanceof mysqli) return $conn;
 
     require_once __DIR__ . '/bootstrap.php';
+
+    $is_cli = (php_sapi_name() === 'cli');
+    $host_addr = $_SERVER['REMOTE_ADDR'] ?? '';
+    $is_localhost = $is_cli || ($host_addr === '127.0.0.1' || $host_addr === '::1');
 
     if ($is_localhost) {
         $host = '127.0.0.1';
@@ -25,14 +26,23 @@ function db(): PDO {
         $dbname = get_env_config('DB_NAME', '');
     }
 
-    $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8mb4";
-    $pdo = new PDO($dsn, $user, $pass, [
-        PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-    ]);
+    $conn = new mysqli($host, $user, $pass, $dbname);
+
+    if ($conn->connect_error) {
+        die(json_encode([
+            'success' => false,
+            'message' => 'Database connection failed: ' . $conn->connect_error
+        ]));
+    }
+
+    $conn->set_charset("utf8mb4");
+
+    // Automatic Schema Update (Sync local structure with InfinityFree)
+    require_once __DIR__ . '/schema_init.php';
+    sync_schema($conn);
 
     // Ensure MySQL session is also in GMT+8
-    $pdo->exec("SET time_zone = '+08:00'");
+    $conn->query("SET time_zone = '+08:00'");
 
-    return $pdo;
+    return $conn;
 }

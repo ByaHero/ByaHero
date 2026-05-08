@@ -48,9 +48,10 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
  */
 if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   try {
-    // db_connection.php lives at project-root/config/db_connection.php
+    // db.php lives at project-root/config/db.php
     // navbarPassenger.php lives at project-root/components/navbarPassenger.php
-    require_once __DIR__ . '/../config/db_connection.php';
+    require_once __DIR__ . '/../config/db.php';
+    $conn = db();
 
     if (isset($conn) && $conn instanceof mysqli) {
       $uid = (int) $_SESSION['user_id'];

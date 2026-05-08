@@ -14,15 +14,16 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 $message = '';
 $error   = '';
 
 // Self-healing: Check if bus_number column exists, add it if not
 try {
-    $checkCol = $pdo->query("SHOW COLUMNS FROM `reports` LIKE 'bus_number'")->fetch();
+    $resCol = $conn->query("SHOW COLUMNS FROM `reports` LIKE 'bus_number'");
+    $checkCol = $resCol ? $resCol->fetch_assoc() : null;
     if (!$checkCol) {
-        $pdo->exec("ALTER TABLE `reports` ADD COLUMN `bus_number` VARCHAR(50) NULL AFTER `user_id` ");
+        $conn->query("ALTER TABLE `reports` ADD COLUMN `bus_number` VARCHAR(50) NULL AFTER `user_id` ");
     }
 } catch (Throwable $e) {
     // Silent fail if table doesn't exist yet or other issues
@@ -50,8 +51,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid update request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("UPDATE reports SET status = ? WHERE id = ?");
-                $stmt->execute([$status, $id]);
+                $stmt = $conn->prepare("UPDATE reports SET status = ? WHERE id = ?");
+                $stmt->bind_param("si", $status, $id);
+                $stmt->execute();
                 $message = 'Report status updated successfully.';
             }
         } elseif ($action === 'delete_report') {
@@ -60,10 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (!$id) {
                 $error = 'Invalid delete request (empty ID).';
             } else {
-                $stmt = $pdo->prepare("DELETE FROM reports WHERE id = ?");
-                $stmt->execute([$id]);
+                $stmt = $conn->prepare("DELETE FROM reports WHERE id = ?");
+                $stmt->bind_param("i", $id);
+                $stmt->execute();
 
-                if ($stmt->rowCount() === 0) {
+                if ($stmt->affected_rows === 0) {
                     $error = 'No report deleted. Check that ID ' . h($id) . ' exists.';
                 } else {
                     $message = 'Report deleted permanently.';
@@ -78,12 +81,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // --- Fetch All Entries ---
 $reports = [];
 try {
-    $reports = $pdo->query("
+    $resReports = $conn->query("
         SELECT r.*, u.name as reporter_name, u.email as reporter_email 
         FROM reports r 
         LEFT JOIN users u ON r.user_id = u.id 
         ORDER BY r.created_at DESC
-    ")->fetchAll(PDO::FETCH_ASSOC);
+    ");
+    $reports = $resReports ? $resReports->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $reports = [];
 }

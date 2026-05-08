@@ -16,7 +16,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 
 /* ---------------- Helpers ---------------- */
 function h($s): string {
@@ -37,10 +37,10 @@ function parseFloat(string $s): ?float {
     return (float)$s;
 }
 
-function snapshotsAvailable(PDO $pdo): bool {
+function snapshotsAvailable(mysqli $conn): bool {
     try {
-        $pdo->query("SELECT 1 FROM bus_fare_snapshots LIMIT 1");
-        $pdo->query("SELECT 1 FROM bus_fare_snapshot_rows LIMIT 1");
+        $conn->query("SELECT 1 FROM bus_fare_snapshots LIMIT 1");
+        $conn->query("SELECT 1 FROM bus_fare_snapshot_rows LIMIT 1");
         return true;
     } catch (Throwable $e) {
         return false;
@@ -80,7 +80,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($discounted > $regular) {
                 $error = "Discounted fare cannot be higher than regular fare.";
             } else {
-                $upd = $pdo->prepare("
+                $upd = $conn->prepare("
                     UPDATE bus_fares
                     SET regular_fare = ?,
                         discounted_fare = ?,
@@ -88,8 +88,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     WHERE fare_id = ?
                     LIMIT 1
                 ");
-                $upd->execute([$regular, $discounted, $fareId]);
-                $message = ($upd->rowCount() > 0) ? "Fare updated successfully." : "No fare was updated.";
+                $upd->bind_param("ddi", $regular, $discounted, $fareId);
+                $upd->execute();
+                $message = ($upd->affected_rows > 0) ? "Fare updated successfully." : "No fare was updated.";
             }
         }
 
@@ -108,7 +109,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } else {
                 // We use base_* columns just as a safety net (non-stacking is irrelevant since we overwrite absolutely based on distance_km)
                 // But let's keep base_* populated if null
-                $pdo->exec("
+                $conn->query("
                     UPDATE bus_fares
                     SET base_regular_fare = regular_fare,
                         base_discounted_fare = discounted_fare
@@ -117,32 +118,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ");
 
                 // Execute exact LTFRB matrix formula
-                $stmt = $pdo->prepare("
+                $stmt = $conn->prepare("
                     UPDATE bus_fares 
                     SET 
                         regular_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
                         discounted_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
                         updated_at = CURRENT_TIMESTAMP
                 ");
-                $stmt->execute([
+                $stmt->bind_param("dddddd", 
                     $regBase, $baseKm, $regRate,
                     $discBase, $baseKm, $discRate
-                ]);
+                );
+                $stmt->execute();
 
                 // Ensure discounted is never somehow magically higher than regular
-                $pdo->exec("
+                $conn->query("
                     UPDATE bus_fares
                     SET discounted_fare = LEAST(discounted_fare, regular_fare)
                     WHERE discounted_fare > regular_fare
                 ");
 
-                $message = "LTFRB Matrix applied to all routes based on distance. Rows updated: " . $stmt->rowCount();
+                $message = "LTFRB Matrix applied to all routes based on distance. Rows updated: " . $stmt->affected_rows;
             }
         }
 
         /* Revoke computed rule: Reset fares to base (safe undo) */
         elseif ($action === 'reset_to_base') {
-            $stmt = $pdo->prepare("
+            $stmt = $conn->prepare("
                 UPDATE bus_fares
                 SET
                     regular_fare = base_regular_fare,
@@ -150,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     updated_at = CURRENT_TIMESTAMP
             ");
             $stmt->execute();
-            $message = "Reverted to base fares. Rows updated: " . $stmt->rowCount();
+            $message = "Reverted to base fares. Rows updated: " . $stmt->affected_rows;
         }
 
         /* Snapshots: Create checkpoint */
@@ -158,13 +160,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $label = trim((string)($_POST['snapshot_label'] ?? ''));
             if ($label === '') $label = 'Snapshot ' . date('Y-m-d H:i:s');
 
-            $pdo->beginTransaction();
+            $conn->begin_transaction();
 
-            $ins = $pdo->prepare("INSERT INTO bus_fare_snapshots (label) VALUES (?)");
-            $ins->execute([$label]);
-            $snapshotId = (int)$pdo->lastInsertId();
+            $ins = $conn->prepare("INSERT INTO bus_fare_snapshots (label) VALUES (?)");
+            $ins->bind_param("s", $label);
+            $ins->execute();
+            $snapshotId = (int)$conn->insert_id;
 
-            $pdo->exec("
+            $conn->query("
                 INSERT INTO bus_fare_snapshot_rows
                   (snapshot_id, fare_id, regular_fare, discounted_fare, base_regular_fare, base_discounted_fare, distance_km, origin_stop_id, destination_stop_id)
                 SELECT
@@ -172,7 +175,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 FROM bus_fares
             ");
 
-            $pdo->commit();
+            $conn->commit();
             $message = "Snapshot created: " . h($label);
         }
 
@@ -182,9 +185,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($snapshotId <= 0) {
                 $error = "Invalid snapshot selected.";
             } else {
-                $pdo->beginTransaction();
+                $conn->begin_transaction();
 
-                $stmt = $pdo->prepare("
+                $stmt = $conn->prepare("
                     UPDATE bus_fares bf
                     JOIN bus_fare_snapshot_rows r
                       ON r.fare_id = bf.fare_id
@@ -196,10 +199,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                       bf.base_discounted_fare = r.base_discounted_fare,
                       bf.updated_at = CURRENT_TIMESTAMP
                 ");
-                $stmt->execute([$snapshotId]);
+                $stmt->bind_param("i", $snapshotId);
+                $stmt->execute();
 
-                $pdo->commit();
-                $message = "Snapshot restored. Rows updated: " . $stmt->rowCount();
+                $conn->commit();
+                $message = "Snapshot restored. Rows updated: " . $stmt->affected_rows;
             }
         }
 
@@ -229,7 +233,7 @@ $searchWhereSql = $searchWhere ? ("WHERE " . implode(" AND ", $searchWhere)) : "
 
 $fares = [];
 try {
-    $stmt = $pdo->prepare("
+    $stmt = $conn->prepare("
         SELECT bf.*, o.location_name AS origin_name, d.location_name AS dest_name
         FROM bus_fares bf
         JOIN bus_stops o ON o.stop_id = bf.origin_stop_id
@@ -237,26 +241,30 @@ try {
         $searchWhereSql
         ORDER BY bf.origin_stop_id ASC, bf.destination_stop_id ASC
     ");
-    $stmt->execute($searchParams);
-    $fares = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($searchParams) {
+        $types = str_repeat("s", count($searchParams));
+        $stmt->bind_param($types, ...$searchParams);
+    }
+    $stmt->execute();
+    $fares = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $e) {
     $fares = [];
 }
 
 /* Snapshots list */
 $snapshots = [];
-if (snapshotsAvailable($pdo)) {
     try {
-        $snapshots = $pdo->query("
+        $resSnaps = $conn->query("
             SELECT snapshot_id, label, created_at
             FROM bus_fare_snapshots
             ORDER BY snapshot_id DESC
             LIMIT 30
-        ")->fetchAll(PDO::FETCH_ASSOC);
+        ");
+        $snapshots = $resSnaps ? $resSnaps->fetch_all(MYSQLI_ASSOC) : [];
     } catch (Throwable $e) {
         $snapshots = [];
     }
-}
+
 
 /* navbar component */
 $pageDepth = '../../';

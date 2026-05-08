@@ -3,3 +3,4 @@ android/
 .env
 backend/serviceAccountKey.json
 .claude/
+scratch/

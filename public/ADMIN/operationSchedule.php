@@ -22,7 +22,7 @@ if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     exit;
 }
 
-$pdo = db();
+$conn = db();
 
 function h($s): string {
     return htmlspecialchars((string)$s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
@@ -86,25 +86,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         suspend_message = VALUES(suspend_message),
                         updated_at = CURRENT_TIMESTAMP
                 ";
-                $stmt = $pdo->prepare($sql);
+                $stmt = $conn->prepare($sql);
 
                 // Route 1: LAUREL - TANAUAN
-                $stmt->execute([
+                $msgVal1 = ($msg1 !== '' ? $msg1 : null);
+                $stmt->bind_param("sssis", 
                     $routes['laurel_tanauan'],
                     $open1,
                     $close1,
                     $susp1,
-                    $msg1 !== '' ? $msg1 : null
-                ]);
+                    $msgVal1
+                );
+                $stmt->execute();
 
                 // Route 2: TANAUAN - LAUREL
-                $stmt->execute([
+                $msgVal2 = ($msg2 !== '' ? $msg2 : null);
+                $stmt->bind_param("sssis", 
                     $routes['tanauan_laurel'],
                     $open2,
                     $close2,
                     $susp2,
-                    $msg2 !== '' ? $msg2 : null
-                ]);
+                    $msgVal2
+                );
+                $stmt->execute();
 
                 $message = 'Schedules updated.';
             }
@@ -117,11 +121,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // Load schedules for both routes
 $schedules = [];
 try {
-    $stmt = $pdo->prepare("SELECT * FROM bus_schedule WHERE terminal_name = ? LIMIT 1");
+    $stmt = $conn->prepare("SELECT * FROM bus_schedule WHERE terminal_name = ? LIMIT 1");
 
     foreach ($routes as $key => $name) {
-        $stmt->execute([$name]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $stmt->bind_param("s", $name);
+        $stmt->execute();
+        $row = $stmt->get_result()->fetch_assoc();
         if (!$row) {
             // If not existing yet, show empty values
             $row = [
