@@ -21,16 +21,19 @@ if ($lat === null || $lng === null) {
     exit;
 }
 
-// Optional: enforce share_location flag
-$settingStmt = $conn->prepare("SELECT share_location FROM user_settings WHERE user_id = ?");
+// [FIX] Allow location updates if either 'location_services' OR 'share_location' is enabled.
+// This ensures SOS and internal tracking work even if social sharing is off.
+$settingStmt = $conn->prepare("SELECT share_location, location_services FROM user_settings WHERE user_id = ?");
 $settingStmt->bind_param("i", $userId);
 $settingStmt->execute();
 $settingResult = $settingStmt->get_result();
 $setting = $settingResult->fetch_assoc();
 $settingStmt->close();
 
-if ($setting && (int)$setting['share_location'] !== 1) {
-    echo json_encode(['success' => false, 'message' => 'Location sharing disabled']);
+$isLocationEnabled = ($setting && ((int)$setting['location_services'] === 1 || (int)$setting['share_location'] === 1));
+
+if (!$isLocationEnabled) {
+    echo json_encode(['success' => false, 'message' => 'Location services disabled']);
     exit;
 }
 

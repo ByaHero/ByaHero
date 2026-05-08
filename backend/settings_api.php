@@ -80,12 +80,13 @@ try {
             break;
 
         case 'get_privacy':
-            $stmt = $conn->prepare("SELECT location_services, tracking_enabled, stolen_device_protection FROM user_settings WHERE user_id = ?");
+            $stmt = $conn->prepare("SELECT location_services, share_location, tracking_enabled, stolen_device_protection FROM user_settings WHERE user_id = ?");
             $stmt->bind_param("i", $userId);
             $stmt->execute();
             $res = $stmt->get_result()->fetch_assoc();
             respond(true, '', ['settings' => $res ?: [
                 'location_services' => 1,
+                'share_location' => 0,
                 'tracking_enabled' => 0,
                 'stolen_device_protection' => 0
             ]]);
