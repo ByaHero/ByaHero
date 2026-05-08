@@ -30,7 +30,10 @@ $settingResult = $settingStmt->get_result();
 $setting = $settingResult->fetch_assoc();
 $settingStmt->close();
 
-$isLocationEnabled = ($setting && ((int)$setting['location_services'] === 1 || (int)$setting['share_location'] === 1));
+$isLocationEnabled = true; // Default for new users if row doesn't exist yet
+if ($setting) {
+    $isLocationEnabled = ((int)$setting['location_services'] === 1 || (int)$setting['share_location'] === 1);
+}
 
 if (!$isLocationEnabled) {
     echo json_encode(['success' => false, 'message' => 'Location services disabled']);
