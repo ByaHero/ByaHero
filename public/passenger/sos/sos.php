@@ -569,7 +569,7 @@ $pageDepth = "../../../";
                                             notification: {
                                                 channel_id: 'sos_alerts',
                                                 sound: 'default',
-                                                priority: 'high',
+                                                notification_priority: 'PRIORITY_HIGH',
                                                 visibility: 'public'
                                             }
                                         },
@@ -715,7 +715,7 @@ $pageDepth = "../../../";
                                             notification: {
                                                 channel_id: 'sos_alerts',
                                                 sound: 'default',
-                                                priority: 'high',
+                                                notification_priority: 'PRIORITY_HIGH',
                                                 visibility: 'public'
                                             }
                                         },
