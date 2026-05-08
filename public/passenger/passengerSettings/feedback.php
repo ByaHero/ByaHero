@@ -118,6 +118,14 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       box-shadow: 0 6px 16px rgba(30, 58, 138, 0.3);
       color: white;
     }
+    .btn-primary-custom:disabled {
+      background-color: #cbd5e1;
+      border-color: #cbd5e1;
+      color: #64748b;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
     .btn-secondary-custom {
       background-color: #f1f5f9;
       border-color: #f1f5f9;
@@ -188,7 +196,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
 
         <div class="mt-4 pt-2 d-flex justify-content-center gap-3">
           <button class="btn btn-secondary-custom btn-custom" onclick="window.location.href='../index.php';">Cancel</button>
-          <button class="btn btn-primary-custom btn-custom" id="submitBtn" onclick="submitFeedback()" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>>Submit Feedback</button>
+          <button class="btn btn-primary-custom btn-custom" id="submitBtn" onclick="submitFeedback()" disabled>Submit Feedback</button>
         </div>
       </div>
 
@@ -230,6 +238,12 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
         }
         selectedRating = this.getAttribute('data-value');
         updateStars(parseInt(selectedRating), false);
+        
+        // Enable submit button
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn && isLoggedIn) {
+          submitBtn.disabled = false;
+        }
       });
     });
 
@@ -256,8 +270,8 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
 
       const feedbackText = document.getElementById("feedbackTextarea").value;
 
-      if (!selectedRating) {
-        alert("Please select a rating before submitting.");
+      if (!selectedRating || parseInt(selectedRating) < 1) {
+        alert("Please select at least 1 star before submitting.");
         return;
       }
 

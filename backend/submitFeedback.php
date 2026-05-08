@@ -14,8 +14,8 @@ $rating = $_POST['rating'] ?? '';
 $feedback_text = $_POST['feedback'] ?? '';
 
 // Validate rating
-if (empty($rating)) {
-    echo json_encode(['success' => false, 'message' => 'Please select a rating']);
+if (empty($rating) || intval($rating) < 1) {
+    echo json_encode(['success' => false, 'message' => 'Please select at least 1 star rating']);
     exit;
 }
 
