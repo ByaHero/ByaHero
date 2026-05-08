@@ -38,16 +38,12 @@
                 <h6 class="mb-0 fw-bold text-dark">Your Invite Code</h6>
                 <small class="text-muted">Invite friends to your circle</small>
             </div>
-            <button class="btn btn-sm btn-outline-secondary rounded-pill" onclick="generateInviteCode(true)" title="Reset Code">
-                <span class="material-symbols-rounded" style="font-size: 16px;">refresh</span>
-            </button>
+            <img src="<?php echo isset($depth) ? $depth : '../../'; ?>assets/images/REFRESH.svg" onclick="generateInviteCode(true)" title="Reset Code" alt="Refresh Code" style="width: 28px; height: 28px; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='rotate(90deg)'" onmouseout="this.style.transform='rotate(0deg)'">
         </div>
         
         <div class="d-flex align-items-center gap-2 mb-3">
             <div id="invite-code" class="fw-bold fs-4 text-primary bg-white border rounded-3 px-3 py-2 flex-grow-1 text-center" style="letter-spacing: 2px;">------</div>
-            <button class="btn btn-primary rounded-3 px-3 py-2" onclick="copyInviteCode()" style="height: 48px;">
-                <span class="material-symbols-rounded">content_copy</span>
-            </button>
+            <img src="<?php echo isset($depth) ? $depth : '../../'; ?>assets/images/COPY.svg" onclick="copyInviteCode()" title="Copy Code" alt="Copy Code" style="height: 48px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
         </div>
 
         <div class="row g-2">
@@ -319,9 +315,7 @@
                   <small class="text-muted d-block text-truncate" style="font-size: 0.75rem;">${statusText}</small>
               </div>
           </div>
-          <button class="btn-remove-circle ms-2 remove-friend-btn" title="Remove from Circle">
-              <span class="material-symbols-rounded">delete</span>
-          </button>
+          <img src="${window.APP_BASE_URL || '<?php echo isset($depth) ? $depth : '../../'; ?>'}assets/images/unfriend.svg" class="ms-2 remove-friend-btn" title="Remove from Circle" alt="Unfriend" style="width: 32px; height: 32px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
         `;
 
                 card.querySelector('.card-fly-content').addEventListener('click', () => {
