@@ -248,6 +248,24 @@
       
       // CRITICAL START: Set up listeners immediately so we don't miss the token while the prompt is open 
       setupPushListeners();
+
+      // Create SOS channel for Android (High Importance for Banner)
+      if (window.Capacitor.getPlatform() === 'android') {
+        try {
+          await PushNotifications.createChannel({
+            id: 'sos_alerts',
+            name: 'Emergency SOS Alerts',
+            description: 'Critical emergency notifications from friends',
+            importance: 5, // High Importance (Heads-up banner)
+            visibility: 1, // Public
+            vibration: true,
+            sound: 'default'
+          });
+          dbg('log', '[SOS-FCM] Android SOS channel created/verified.');
+        } catch (e) {
+          dbg('warn', '[SOS-FCM] Error creating channel: ' + e);
+        }
+      }
       
       let permStatus = { receive: 'granted' }; // Default to granted for older Androids
       try {
