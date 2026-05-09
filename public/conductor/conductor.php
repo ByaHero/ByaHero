@@ -569,6 +569,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                 if (json.success && json.buses) {
                     json.buses.forEach(b => {
                         if (b.current_conductor_id !== null && b.current_conductor_id !== undefined) return;
+                        if (b.status === 'unavailable') return;
 
                         const id = b.id || b.Bus_ID || b.bus_id;
                         const code = b.code || `BUS-${id}`;
@@ -580,7 +581,6 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                         
                         div.innerHTML = `
                             <span>${code}</span>
-                            <span class="text-muted small" style="font-weight: 500;">${b.seat_availability || 0}/${meta.seats_total}</span>
                         `;
                         
                         div.addEventListener('click', () => setBus(String(id), code, meta));
