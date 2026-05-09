@@ -95,6 +95,34 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         /* Matrix Generator (LTFRB Exact Formula) */
+        elseif ($action === 'update_multiple_fares') {
+            $regFares = $_POST['regular_fare'] ?? [];
+            $discFares = $_POST['discounted_fare'] ?? [];
+
+            $upd = $conn->prepare("
+                UPDATE bus_fares
+                SET regular_fare = ?,
+                    discounted_fare = ?,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE fare_id = ?
+            ");
+
+            $affected = 0;
+            foreach ($regFares as $id => $reg) {
+                $id = (int)$id;
+                $reg = parseMoney((string)$reg);
+                $disc = parseMoney((string)($discFares[$id] ?? ''));
+
+                if ($reg !== null && $disc !== null && $reg >= 0 && $disc >= 0 && $disc <= $reg) {
+                    $upd->bind_param("ddi", $reg, $disc, $id);
+                    $upd->execute();
+                    if ($upd->affected_rows > 0) $affected++;
+                }
+            }
+            $message = "Saved successfully. Fares updated: " . $affected;
+        }
+
+        /* Matrix Generator (LTFRB Exact Formula) */
         elseif ($action === 'generate_matrix') {
             $baseKm = parseFloat((string)($_POST['base_km'] ?? '4'));
             $regBase = parseFloat((string)($_POST['reg_base'] ?? '14.00'));
@@ -218,18 +246,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 /* ---------------- Search / Listing ---------------- */
-$filterOrigin = (int)($_GET['origin'] ?? 0);
-$filterDestination = (int)($_GET['destination'] ?? 0);
+$originsList = [];
+try {
+    $resOrig = $conn->query("
+        SELECT DISTINCT o.stop_id, o.location_name 
+        FROM bus_fares bf 
+        JOIN bus_stops o ON o.stop_id = bf.origin_stop_id 
+        ORDER BY o.location_name
+    ");
+    $originsList = $resOrig ? $resOrig->fetch_all(MYSQLI_ASSOC) : [];
+} catch (Throwable $e) {}
+
+$filterOrigin = (int)($_GET['origin'] ?? ($originsList[0]['stop_id'] ?? 0));
 $q = trim((string)($_GET['q'] ?? ''));
 
-$searchWhere = [];
-$searchParams = [];
+$searchWhere = ["bf.origin_stop_id = ?"];
+$searchParams = [$filterOrigin];
 
-if ($filterOrigin > 0) { $searchWhere[] = "bf.origin_stop_id = ?"; $searchParams[] = $filterOrigin; }
-if ($filterDestination > 0) { $searchWhere[] = "bf.destination_stop_id = ?"; $searchParams[] = $filterDestination; }
-if ($q !== '') { $searchWhere[] = "(o.location_name LIKE ? OR d.location_name LIKE ?)"; $searchParams[] = "%$q%"; $searchParams[] = "%$q%"; }
+if ($q !== '') { 
+    $searchWhere[] = "d.location_name LIKE ?"; 
+    $searchParams[] = "%$q%"; 
+}
 
-$searchWhereSql = $searchWhere ? ("WHERE " . implode(" AND ", $searchWhere)) : "";
+$searchWhereSql = "WHERE " . implode(" AND ", $searchWhere);
 
 $fares = [];
 try {
@@ -239,7 +278,7 @@ try {
         JOIN bus_stops o ON o.stop_id = bf.origin_stop_id
         JOIN bus_stops d ON d.stop_id = bf.destination_stop_id
         $searchWhereSql
-        ORDER BY bf.origin_stop_id ASC, bf.destination_stop_id ASC
+        ORDER BY bf.distance_km ASC, bf.destination_stop_id ASC
     ");
     if ($searchParams) {
         $types = str_repeat("s", count($searchParams));
@@ -249,6 +288,21 @@ try {
     $fares = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 } catch (Throwable $e) {
     $fares = [];
+}
+
+$originName = 'UNKNOWN ORIGIN';
+$farthestDestName = 'DESTINATION';
+if (!empty($fares)) {
+    $originName = $fares[0]['origin_name'];
+    $farthestDestName = end($fares)['dest_name'];
+    reset($fares);
+} else {
+    foreach($originsList as $o) {
+        if ($o['stop_id'] == $filterOrigin) {
+            $originName = $o['location_name'];
+            break;
+        }
+    }
 }
 
 /* Snapshots list */
@@ -445,54 +499,66 @@ $backLink = 'admin.php';
             <div>
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                     <h6 class="fw-bold m-0" style="color: #1d4ed8;">
-                        Current Fares
+                        Route Fare Matrix
                     </h6>
                     <form class="d-flex gap-2" method="GET">
-                        <input class="form-control form-control-sm" name="q" value="<?= h($q) ?>" placeholder="Search origin/destination...">
+                        <select class="form-select form-select-sm w-auto fw-bold" name="origin" onchange="this.form.submit()">
+                            <?php foreach ($originsList as $o): ?>
+                                <option value="<?= $o['stop_id'] ?>" <?= $o['stop_id'] == $filterOrigin ? 'selected' : '' ?>>
+                                    From: <?= h($o['location_name']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <input class="form-control form-control-sm" name="q" value="<?= h($q) ?>" placeholder="Search destination...">
                         <button class="btn btn-sm btn-primary pill-btn px-3">Filter</button>
                     </form>
                 </div>
 
-                <div class="table-responsive" style="border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; overflow: hidden;">
-                    <table class="table table-hover mb-0">
-                        <thead class="table-light text-muted small">
-                            <tr>
-                                <th>Route</th>
-                                <th class="text-end">Regular</th>
-                                <th class="text-end">Discounted</th>
-                                <th class="text-end">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php if (empty($fares)): ?>
-                                <tr><td colspan="4" class="text-center text-muted py-4">No fares found.</td></tr>
-                            <?php else: foreach ($fares as $f): ?>
-                            <tr>
-                                <td style="min-width:260px">
-                                    <div class="fw-bold"><?= h($f['origin_name']) ?> → <?= h($f['dest_name']) ?></div>
-                                    <div class="small text-muted"><?= number_format((float)$f['distance_km'], 2) ?> km</div>
-                                </td>
+                    <div class="table-responsive" style="border: 2px solid #000; border-radius: 4px; background: #fff; overflow: hidden;">
+                        <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="4" class="text-center bg-white fs-5 py-2 fw-bold" style="border-bottom: 2px solid #000;">
+                                        <?= h(strtoupper($originName)) ?> - <?= h(strtoupper($farthestDestName)) ?>
+                                    </th>
+                                </tr>
+                                <tr class="text-center bg-white">
+                                    <th rowspan="2" class="align-middle border-dark" style="width: 60px;">KM</th>
+                                    <th rowspan="2" class="align-middle border-dark text-start px-3">PARTICULARS</th>
+                                    <th colspan="2" class="border-dark">FARE</th>
+                                </tr>
+                                <tr class="text-center bg-white">
+                                    <th class="border-dark" style="width: 110px;">REGULAR</th>
+                                    <th class="border-dark" style="width: 110px;">S / E / D</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Origin Row (0 KM) -->
+                                <tr>
+                                    <td class="text-center border-dark fw-bold">0</td>
+                                    <td class="fw-bold border-dark px-3"><?= h(strtoupper($originName)) ?></td>
+                                    <td class="border-dark text-center"></td>
+                                    <td class="border-dark text-center"></td>
+                                </tr>
 
-                                <td class="text-end">
-                                    <form method="POST" class="d-inline-flex gap-1 align-items-center">
-                                        <input type="hidden" name="action" value="update_fare">
-                                        <input type="hidden" name="fare_id" value="<?= (int)$f['fare_id'] ?>">
-                                        <input class="form-control form-control-sm text-end mono" style="width:92px" name="regular_fare" value="<?= number_format((float)$f['regular_fare'], 2, '.', '') ?>" required>
-                                </td>
+                                <?php if (empty($fares)): ?>
+                                    <tr><td colspan="4" class="text-center text-muted py-4 border-dark">No fares found for this origin.</td></tr>
+                                <?php else: foreach ($fares as $f): ?>
+                                <tr>
+                                    <td class="text-center border-dark"><?= round((float)$f['distance_km']) ?></td>
+                                    <td class="border-dark px-3"><?= h($f['dest_name']) ?></td>
+                                    <td class="text-end border-dark px-3 py-2 mono">
+                                        <?= number_format((float)$f['regular_fare'], 2, '.', '') ?>
+                                    </td>
+                                    <td class="text-end border-dark px-3 py-2 mono">
+                                        <?= number_format((float)$f['discounted_fare'], 2, '.', '') ?>
+                                    </td>
+                                </tr>
+                                <?php endforeach; endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
 
-                                <td class="text-end">
-                                        <input class="form-control form-control-sm text-end mono" style="width:92px" name="discounted_fare" value="<?= number_format((float)$f['discounted_fare'], 2, '.', '') ?>" required>
-                                </td>
-
-                                <td class="text-end">
-                                        <button class="btn btn-sm btn-primary pill-btn">Save</button>
-                                    </form>
-                                </td>
-                            </tr>
-                            <?php endforeach; endif; ?>
-                        </tbody>
-                    </table>
-                </div>
 
             </div>
         </div>
@@ -501,5 +567,62 @@ $backLink = 'admin.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Matrix Generator Auto-Calculation
+    const regBase = document.querySelector('input[name="reg_base"]');
+    const discBase = document.querySelector('input[name="disc_base"]');
+    const regRate = document.querySelector('input[name="reg_rate"]');
+    const discRate = document.querySelector('input[name="disc_rate"]');
+
+    function extractNumber(val) {
+        // Remove anything that isn't a digit or a period
+        let clean = val.replace(/[^0-9.]/g, '');
+        return parseFloat(clean);
+    }
+
+    if (regBase && discBase) {
+        regBase.addEventListener('input', function() {
+            let val = extractNumber(this.value);
+            if (!isNaN(val)) {
+                discBase.value = (val * 0.8).toFixed(2);
+            } else {
+                discBase.value = '';
+            }
+        });
+    }
+
+    if (regRate && discRate) {
+        regRate.addEventListener('input', function() {
+            let val = extractNumber(this.value);
+            if (!isNaN(val)) {
+                discRate.value = (val * 0.8).toFixed(2);
+            } else {
+                discRate.value = '';
+            }
+        });
+    }
+
+});
+    // Automatically calculate discounted fare when regular fare is changed in the table
+    const tableRegInputs = document.querySelectorAll('input[name^="regular_fare["]');
+    tableRegInputs.forEach(function(input) {
+        input.addEventListener('input', function() {
+            let val = extractNumber(this.value);
+            // Find the corresponding discounted_fare input in the same row
+            const row = this.closest('tr');
+            const discInput = row.querySelector('input[name^="discounted_fare["]');
+            
+            if (discInput) {
+                if (!isNaN(val)) {
+                    discInput.value = (val * 0.8).toFixed(2);
+                } else {
+                    discInput.value = '';
+                }
+            }
+        });
+    });
+});
+</script>
 </body>
 </html>

@@ -480,6 +480,8 @@ $backLink  = 'admin.php';
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <!-- SortableJS for drag & drop -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+<!-- TurfJS for geometry calculations -->
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6.5.0/turf.min.js"></script>
 <script>
     const map = L.map('stopMap').setView([14.0905, 121.0550], 12);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -574,6 +576,12 @@ $backLink  = 'admin.php';
     }
     typeSelect.addEventListener('change', refreshPickedMarkerIcon);
 
+    let routeGeoJSON = null;
+    fetch(BASE_URL + '/public/routes/laurel-talisay-tanauan.geojson')
+        .then(res => res.json())
+        .then(data => { routeGeoJSON = data; })
+        .catch(err => console.error("Could not load route GeoJSON", err));
+
     map.on('click', (e) => {
         const { lat, lng } = e.latlng;
 
@@ -587,6 +595,22 @@ $backLink  = 'admin.php';
         latField.value = lat.toFixed(7);
         lngField.value = lng.toFixed(7);
         coordsEl.textContent = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+
+        // Auto-fill location name if point is inside a route polygon
+        if (routeGeoJSON && typeof turf !== 'undefined') {
+            const pt = turf.point([lng, lat]);
+            for (const feature of routeGeoJSON.features) {
+                if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                    if (turf.booleanPointInPolygon(pt, feature)) {
+                        const locName = feature.properties['Current Location'];
+                        if (locName) {
+                            document.querySelector('input[name="location_name"]').value = locName;
+                            break;
+                        }
+                    }
+                }
+            }
+        }
     });
 
     const slider = document.getElementById('iconSizeSlider');
