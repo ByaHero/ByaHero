@@ -33,11 +33,12 @@ $activeStatuses = ['available', 'on_stop', 'full'];
 $activeBuses = [];
 try {
     $stmt = $conn->prepare("
-        SELECT *
-        FROM busses
-        WHERE current_conductor_id IS NOT NULL
-          AND status IN ('available', 'on_stop', 'full')
-        ORDER BY code ASC
+        SELECT b.*, c.email AS conductor_email
+        FROM busses b
+        LEFT JOIN conductors c ON b.current_conductor_id = c.id
+        WHERE b.current_conductor_id IS NOT NULL
+          AND b.status IN ('available', 'on_stop', 'full')
+        ORDER BY b.code ASC
     ");
     $stmt->execute();
     $activeBuses = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -225,6 +226,10 @@ $backLink  = 'admin.php';
                                     <p class="bus-sub">
                                         Available Seats:
                                         <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?>
+                                    </p>
+                                    <p class="bus-sub mt-1 text-primary">
+                                        <span class="material-icons-round align-middle" style="font-size: 14px;">person</span>
+                                        Conductor: <span class="fw-bold"><?= !empty($bus['conductor_email']) ? h($bus['conductor_email']) : 'Unknown' ?></span>
                                     </p>
                                 </div>
                                 <span class="status-pill <?= $pillClass ?>"><?= h($pillText) ?></span>
