@@ -266,20 +266,24 @@ $backLink  = 'admin.php';
     <?php endif; ?>
 
     <div class="row g-4 mt-1">
-        <div class="col-lg-7">
+        <div class="col-lg-8">
             <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div class="card-header-std d-flex justify-content-between align-items-center">
                     <div class="fw-bold">Stops Map</div>
-                    <div class="d-flex align-items-center gap-2">
-                        <select id="mapRouteFilter" class="form-select form-select-sm" onchange="filterMapStops()" style="width: auto; border-radius: 8px;">
-                            <option value="ALL">All Routes</option>
-                            <option value="<?= h(ROUTE_FORWARD) ?>">Laurel - Tanauan</option>
-                            <option value="<?= h(ROUTE_REVERSE) ?>">Tanauan - Laurel</option>
-                        </select>
-                        <div class="hint text-nowrap">Click map to pick</div>
-                    </div>
+                    <div class="hint text-nowrap">Click map to pick</div>
                 </div>
                 <div class="card-body">
+                    <div class="rounded-4 text-center py-3 mb-3" style="background-color: #e5e7eb;">
+                        <div class="fw-bold text-black mb-2" style="font-size: 0.95rem; letter-spacing: 0.03em;">
+                            FILTER BUS PICK UP AND TERMINAL
+                        </div>
+                        <select id="mapRouteFilter" class="form-select form-select-sm mx-auto fw-bold text-uppercase" onchange="filterMapStops()" style="width: auto; border-radius: 20px; font-size: 0.8rem; letter-spacing: 0.02em; padding-left: 1rem; padding-right: 2rem;">
+                            <option value="ALL">ALL PICK UP & TERMINAL</option>
+                            <option value="<?= h(ROUTE_FORWARD) ?>">LAUREL - TANAUAN</option>
+                            <option value="<?= h(ROUTE_REVERSE) ?>">TANAUAN - LAUREL</option>
+                        </select>
+                    </div>
+
                     <div id="stopMap"></div>
 
                     <div class="icon-size-card mt-3">
@@ -313,7 +317,7 @@ $backLink  = 'admin.php';
             </div>
         </div>
 
-        <div class="col-lg-5">
+        <div class="col-lg-4">
             <div class="card card-standard">
                 <div class="card-header-std text-primary d-flex align-items-center gap-2">
                     <span class="material-icons-round">add_location_alt</span>
@@ -361,51 +365,6 @@ $backLink  = 'admin.php';
                             <button class="btn btn-primary pill-btn">Save</button>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            <div class="card card-standard mt-4">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
-                    <div class="fw-bold">Existing Stops (All Routes)</div>
-                    <div class="small text-muted">Rows: <?= count($stops) ?></div>
-                </div>
-                <div class="card-body p-0">
-                    <div class="table-responsive">
-                        <table class="table table-sm table-hover mb-0">
-                            <thead class="table-light">
-                                <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Route</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php if (empty($stops)): ?>
-                                <tr><td colspan="4" class="text-center text-muted py-3">No stops yet.</td></tr>
-                            <?php else: foreach ($stops as $s): ?>
-                                <tr>
-                                    <td class="fw-bold">
-                                        <?= h($s['name']) ?>
-                                        <div class="small text-muted"><?= h($s['location_name']) ?></div>
-                                        <?php if (!empty($s['location_landmark'])): ?>
-                                            <div class="small text-muted">Landmark: <?= h($s['location_landmark']) ?></div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-uppercase small"><?= h($s['type']) ?></td>
-                                    <td class="small"><?= h($s['route'] ?? '') ?></td>
-                                    <td class="text-end">
-                                        <form method="POST" onsubmit="return confirm('Delete this stop?');">
-                                            <input type="hidden" name="action" value="delete_stop">
-                                            <input type="hidden" name="id" value="<?= h($s['id']) ?>">
-                                            <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            <?php endforeach; endif; ?>
-                            </tbody>
-                        </table>
-                    </div>
                 </div>
             </div>
 
@@ -476,6 +435,56 @@ $backLink  = 'admin.php';
                             </button>
                         </form>
                     <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Existing Stops (Full Width) -->
+    <div class="row g-4 my-4">
+        <div class="col-12">
+            <div class="card card-standard">
+                <div class="card-header-std d-flex justify-content-between align-items-center">
+                    <div class="fw-bold">Existing Stops (All Routes)</div>
+                    <div class="small text-muted">Rows: <?= count($stops) ?></div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-sm table-hover mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Route</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php if (empty($stops)): ?>
+                                <tr><td colspan="4" class="text-center text-muted py-3">No stops yet.</td></tr>
+                            <?php else: foreach ($stops as $s): ?>
+                                <tr>
+                                    <td class="fw-bold">
+                                        <?= h($s['name']) ?>
+                                        <div class="small text-muted"><?= h($s['location_name']) ?></div>
+                                        <?php if (!empty($s['location_landmark'])): ?>
+                                            <div class="small text-muted">Landmark: <?= h($s['location_landmark']) ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-uppercase small"><?= h($s['type']) ?></td>
+                                    <td class="small"><?= h($s['route'] ?? '') ?></td>
+                                    <td class="text-end">
+                                        <form method="POST" onsubmit="return confirm('Delete this stop?');" class="m-0 p-0">
+                                            <input type="hidden" name="action" value="delete_stop">
+                                            <input type="hidden" name="id" value="<?= h($s['id']) ?>">
+                                            <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            <?php endforeach; endif; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
