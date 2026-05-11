@@ -148,7 +148,7 @@ function getBusesConductor(): array {
 function getBusStopsTerminal(): array {
     $conn = db();
     $result = $conn->query("
-        SELECT id, name, type, location_name, location_landmark, lat, lng
+        SELECT id, name, type, route, location_name, location_landmark, lat, lng
         FROM busstopsterminal
         ORDER BY name ASC
     ");
