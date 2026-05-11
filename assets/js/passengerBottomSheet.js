@@ -207,6 +207,12 @@ window.switchSheetTab = function switchSheetTab(tabName) {
   if (typeof window.updateRoutePills === 'function') {
     window.updateRoutePills();
   }
+
+  // ── Reset Scroll Position ──
+  var sheetBody = document.querySelector('.bottom-sheet-body');
+  if (sheetBody) {
+    sheetBody.scrollTop = 0;
+  }
 };
 
 
