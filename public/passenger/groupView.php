@@ -26,7 +26,7 @@
     }
 </style>
 
-<div id="view-groups" class="d-none mt-2">
+<div id="view-groups" class="mt-3 d-none">
     <div class="d-flex align-items-center justify-content-between mb-3">
         <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
             CIRCLES

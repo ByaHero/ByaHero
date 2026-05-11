@@ -146,9 +146,10 @@ if (!isset($baseUrl)) {
         <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">
           BUS PICK UP POINTS 
         </div>
-        <div class="small text-muted" style="font-size: 0.7rem; letter-spacing: 0.06em; text-transform: uppercase;">
-          Stops &amp; Terminals
-        </div>
+        <button id="stopsRouteToggle" class="btn rounded-pill d-flex align-items-center gap-1 px-3 py-1 border-0" onclick="toggleStopsRoute()" style="background-color: #f3f4f6; color: #000000; font-size: 0.7rem; font-weight: bold; letter-spacing: 0.02em;">
+          <span id="stopsRouteText">LAUREL - TANAUAN</span>
+          <img src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/swap.svg" id="stopsRouteIcon" style="width: 16px; height: 16px; transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);" alt="swap">
+        </button>
       </div>
 
       <div id="busStopsListMobile" class="bus-stops-list">

@@ -268,9 +268,16 @@ $backLink  = 'admin.php';
     <div class="row g-4 mt-1">
         <div class="col-lg-7">
             <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
+                <div class="card-header-std d-flex justify-content-between align-items-center flex-wrap gap-2">
                     <div class="fw-bold">Stops Map</div>
-                    <div class="hint">Click map to choose coordinates</div>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="mapRouteFilter" class="form-select form-select-sm" onchange="filterMapStops()" style="width: auto; border-radius: 8px;">
+                            <option value="ALL">All Routes</option>
+                            <option value="<?= h(ROUTE_FORWARD) ?>">Laurel - Tanauan</option>
+                            <option value="<?= h(ROUTE_REVERSE) ?>">Tanauan - Laurel</option>
+                        </select>
+                        <div class="hint text-nowrap">Click map to pick</div>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div id="stopMap"></div>
@@ -557,8 +564,21 @@ $backLink  = 'admin.php';
             const m = L.marker([parseFloat(s.lat), parseFloat(s.lng)], { icon: iconForType(s.type) })
               .addTo(map)
               .bindPopup(popup);
-
+              
+            m.stopData = s;
             stopMarkers.push(m);
+        });
+    }
+
+    function filterMapStops() {
+        const selectedRoute = document.getElementById('mapRouteFilter').value;
+        stopMarkers.forEach(m => {
+            const route = m.stopData.route || '';
+            if (selectedRoute === 'ALL' || route === selectedRoute) {
+                if (!map.hasLayer(m)) map.addLayer(m);
+            } else {
+                if (map.hasLayer(m)) map.removeLayer(m);
+            }
         });
     }
 

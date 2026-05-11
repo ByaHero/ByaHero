@@ -1112,9 +1112,53 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       resizeStopMarkersForZoom(map.getZoom());
     }
 
+    window.currentStopsRoute = 'LAUREL - TANAUAN';
+
+    window.toggleStopsRoute = function() {
+      var icon = document.getElementById('stopsRouteIcon');
+      if (icon) {
+        var currentRot = parseInt(icon.getAttribute('data-rot') || '0');
+        currentRot += 180;
+        icon.style.transform = 'rotate(' + currentRot + 'deg)';
+        icon.setAttribute('data-rot', currentRot);
+      }
+      
+      window.currentStopsRoute = (window.currentStopsRoute === 'LAUREL - TANAUAN') ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN';
+      
+      var textEl = document.getElementById('stopsRouteText');
+      if (textEl) textEl.textContent = window.currentStopsRoute;
+      
+      if (window.allStops) {
+        renderStopsList(window.allStops);
+      }
+    };
+
     function renderStopsList(stops) {
       var listEl = document.getElementById('busStopsListMobile');
       if (!listEl || !stops) return;
+      
+      var filteredStops = stops.filter(function(s) {
+        return !s.route || s.route.toUpperCase() === window.currentStopsRoute;
+      });
+      stops = filteredStops;
+
+      if (typeof stopMarkers !== 'undefined' && map) {
+        var ids = new Set(stops.map(function(s) { return String(s.id); }));
+        Object.keys(stopMarkers).forEach(function(id) {
+          if (!ids.has(id)) {
+            map.removeLayer(stopMarkers[id]);
+          } else {
+            if (!map.hasLayer(stopMarkers[id])) {
+              // Ensure we respect bottom sheet visibility state
+              var viewBusstops = document.getElementById('view-busstops');
+              if (viewBusstops && !viewBusstops.classList.contains('d-none')) {
+                map.addLayer(stopMarkers[id]);
+              }
+            }
+          }
+        });
+      }
+
       if (locationPermissionGranted && userLocation) {
         stops.forEach(function(s) {
           var lat = parseFloat(s.lat), lng = parseFloat(s.lng);
@@ -1132,7 +1176,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             var dText = s.distance < 1000 ? Math.round(s.distance) + ' m away' : (s.distance / 1000).toFixed(1) + ' km away';
             distHtml = '<div class="small fw-bold text-primary mt-1 d-flex align-items-center gap-1"><span class="material-symbols-rounded" style="font-size: 14px;">directions_walk</span> ' + dText + '</div>';
           }
-          return `<button type="button" class="bus-stop-card" onclick="focusStop('${String(s.id)}')"><div class="d-flex justify-content-between align-items-start"><div class="me-2"><div class="bus-stop-title">${escapeHtml(s.name)}</div><div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div>${distHtml}</div><span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span></div></button>`;
+          return `<button type="button" class="bus-stop-card" onclick="focusStop('${String(s.id)}')"><div class="d-flex justify-content-between align-items-start"><div class="me-2"><div class="bus-stop-title">${escapeHtml(s.name)}</div><div class="bus-stop-subtitle">${escapeHtml(subtitle || '')}</div></div><div class="d-flex flex-column align-items-center"><span class="bus-stop-type-pill">${escapeHtml(typeLabel || 'Pick Up Point')}</span>${distHtml}</div></div></button>`;
         }).join('');
       }
     }
