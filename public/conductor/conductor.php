@@ -562,18 +562,17 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
         async function loadBusesDropdown() {
             try {
-                const r = await fetch('../api.php?action=get_buses', { cache: 'no-store' });
+                const r = await fetch('../api.php?action=get_buses_conductor', { cache: 'no-store' });
                 const json = await r.json();
                 const list = el('busOptionsList');
 
                 if (json.success && json.buses) {
                     json.buses.forEach(b => {
                         if (b.current_conductor_id !== null && b.current_conductor_id !== undefined) return;
-                        if (b.status === 'unavailable') return;
 
                         const id = b.id || b.Bus_ID || b.bus_id;
                         const code = b.code || `BUS-${id}`;
-                        const meta = { bus_id: String(id), code: code, seats_total: b.seats_total || 25 };
+                        const meta = { bus_id: String(id), code: code, seats_total: b.total_seats || b.seats_total || 25 };
 
                         const div = document.createElement('div');
                         div.className = 'custom-option';
