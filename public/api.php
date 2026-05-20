@@ -675,6 +675,13 @@ function joinRide(): array {
     $st = $conn->prepare("INSERT INTO passenger_rides (user_id, operation_id, boarded_at, status) VALUES (?, ?, NOW(), 'active')");
     $st->bind_param("ii", $userId, $opId);
     $st->execute();
+    $st->close();
+
+    // Auto-clear waiting status when passenger boards
+    $stWait = $conn->prepare("UPDATE waiting_passengers SET status='boarded', updated_at=NOW() WHERE user_id=? AND status='waiting'");
+    $stWait->bind_param("i", $userId);
+    $stWait->execute();
+    $stWait->close();
 
     return ['success' => true, 'ride_id' => $conn->insert_id];
 }

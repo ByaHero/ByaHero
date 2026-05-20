@@ -46,6 +46,7 @@ function adminTitleForType(?string $t): string {
     'manageLostAndFound' => 'Lost & Found',
     'manageReports' => 'Passenger Reports',
     'manageFeedbacks' => 'Passenger Feedbacks',
+    'manageWaitingPassengers' => 'Waiting Passengers',
     'analytics' => 'Analytics Dashboard',
   ];
   return $map[$t] ?? 'Admin';

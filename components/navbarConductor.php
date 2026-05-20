@@ -275,6 +275,14 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
                     Profile
                 </a>
 
+                <button type="button" class="conductor-menu-btn w-100 text-start border-0" 
+                        data-bs-dismiss="offcanvas" onclick="openWaitCountModal()">
+                    <div class="icon-wrap">
+                        <span class="material-symbols-rounded" style="font-size:28px;color:#0f3878">group</span>
+                    </div>
+                    Wait Count
+                </button>
+
                 <a href="<?= htmlspecialchars($logoutUrl) ?>" class="conductor-menu-btn">
                     <div class="icon-wrap">
                         <img src="<?= htmlspecialchars($logoutImg) ?>" alt="Logout">
@@ -284,6 +292,106 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
             </div>
         </div>
     </div>
+
+    <!-- Wait Count Modal -->
+    <div class="modal fade" id="waitCountModal" tabindex="-1" aria-labelledby="waitCountModalLabel" aria-hidden="true" style="z-index: 2050;">
+      <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="overflow: hidden;">
+          <div class="modal-header" style="background:#0f3878; color:#fff; border-radius: 0; padding: 1.2rem 1.5rem;">
+            <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="waitCountModalLabel">
+              <span class="material-symbols-rounded">directions_bus</span> 🚏 Waiting Passengers
+            </h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0" style="background: #f8fafc;">
+            <div class="text-center py-4 border-bottom bg-white shadow-sm mb-2">
+              <span class="text-muted small fw-bold d-block mb-1" style="letter-spacing: 0.5px;">TOTAL PASSENGERS WAITING</span>
+              <span class="badge rounded-pill fs-5 px-4 py-2 animate-bounce" style="background: #0f3878;">
+                <span id="waitCountTotal">0</span> passengers
+              </span>
+            </div>
+            
+            <div id="waitCountList" class="list-group list-group-flush px-3 py-2">
+              <!-- Dynamically populated wait list per stop -->
+            </div>
+            
+            <div class="text-center py-3 border-top mt-2 bg-white">
+              <small class="text-muted d-flex align-items-center justify-content-center gap-1">
+                <span class="material-symbols-rounded" style="font-size: 14px; animation: spin 4s linear infinite;">sync</span>
+                Auto-refreshes every 15 seconds
+              </small>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+      }
+    </style>
+
+    <script>
+      function openWaitCountModal() {
+          loadWaitCount();
+          const modalEl = document.getElementById('waitCountModal');
+          if (modalEl) {
+              const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+              modal.show();
+          }
+      }
+
+      async function loadWaitCount() {
+          try {
+              const base = window.APP_BASE_URL || '';
+              const res = await fetch(base + '/backend/waiting_api.php?action=get_wait_count', { credentials: 'have' });
+              const data = await res.json();
+              if (!data || !data.success) return;
+              
+              document.getElementById('waitCountTotal').textContent = data.total;
+              const list = document.getElementById('waitCountList');
+              
+              if (!data.locations || data.locations.length === 0) {
+                  list.innerHTML = `
+                      <div class="text-center text-muted py-5 px-3 bg-white rounded-3 shadow-sm border border-light">
+                          <span class="material-symbols-rounded text-muted mb-2" style="font-size: 48px;">no_accounts</span>
+                          <p class="mb-0 fw-semibold">No passengers waiting right now.</p>
+                          <small class="text-muted">Waiting lists update in real-time.</small>
+                      </div>
+                  `;
+                  return;
+              }
+              
+              list.innerHTML = data.locations.map(loc => `
+                  <div class="list-group-item d-flex justify-content-between align-items-center rounded-3 bg-white border border-light shadow-sm mb-2 px-3 py-2.5">
+                      <div class="d-flex align-items-center gap-2">
+                          <span class="material-symbols-rounded text-primary" style="font-size: 20px;">place</span>
+                          <span class="fw-bold text-dark">${loc.location_name}</span>
+                      </div>
+                      <span class="badge rounded-pill px-3 py-1.5 fs-7 fw-bold" style="background:#0f3878; color:white;">
+                          ${loc.count} waiting
+                      </span>
+                  </div>
+              `).join('');
+          } catch(e) { console.error('Wait count error', e); }
+      }
+
+      let _waitInterval = null;
+      document.addEventListener('DOMContentLoaded', () => {
+          const modal = document.getElementById('waitCountModal');
+          if (!modal) return;
+          modal.addEventListener('show.bs.modal', () => { 
+              loadWaitCount();
+              _waitInterval = setInterval(loadWaitCount, 15000); 
+          });
+          modal.addEventListener('hide.bs.modal', () => { 
+              clearInterval(_waitInterval); 
+              _waitInterval = null; 
+          });
+      });
+    </script>
 
 <?php endif; ?>
 

@@ -60,6 +60,10 @@ $feedbacksCount = 0;
 $analyticsCount = 0;
 /* === END ADDED === */
 
+/* === ADDED: waiting passengers count === */
+$waitingPassengersCount = 0;
+/* === END ADDED === */
+
 try {
     $totalBusesCount = (int)$conn->query("SELECT COUNT(*) FROM busses")->fetch_row()[0];
     $activeBusesCount = (int)$conn->query("
@@ -95,6 +99,10 @@ try {
 
     /* === ADDED: analytics count query === */
     $analyticsCount = (int)$conn->query("SELECT COALESCE(SUM(total_boarded), 0) FROM bus_operations WHERE status = 'completed'")->fetch_row()[0];
+    /* === END ADDED === */
+    
+    /* === ADDED: waiting passengers count query === */
+    $waitingPassengersCount = (int)$conn->query("SELECT COUNT(*) FROM waiting_passengers WHERE status='waiting'")->fetch_row()[0];
     /* === END ADDED === */
 } catch (Throwable $e) {
     // keep zeros if something fails
@@ -343,6 +351,15 @@ $pageType = 'dashboard';
                     <div class="stat-card-title">Analytics</div>
                     <a class="btn-manage-pill" href="analytics.php">View</a>
                     <div class="stat-card-number"><?= $analyticsCount ?></div>
+                </div>
+            </div>
+
+            <!-- ADDED: Waiting Passengers -->
+            <div class="col-6 col-lg-4">
+                <div class="stat-card card-total">
+                    <div class="stat-card-title">Waiting Passengers</div>
+                    <a class="btn-manage-pill" href="manageWaitingPassengers.php">Manage</a>
+                    <div class="stat-card-number"><?= $waitingPassengersCount ?></div>
                 </div>
             </div>
 

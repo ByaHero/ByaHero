@@ -185,6 +185,23 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       overflow: hidden;
     }
 
+    .user-profile-marker.is-waiting {
+      box-shadow: 0 0 0 3px #10b981, 0 0 0 10px rgba(16, 185, 129, 0.4), 0 4px 6px rgba(0,0,0,0.3);
+      animation: waitingPulse 2.5s infinite;
+    }
+
+    @keyframes waitingPulse {
+      0% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.5), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      70% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 12px rgba(16, 185, 129, 0), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      100% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0), 0 4px 6px rgba(0,0,0,0.3);
+      }
+    }
+
     .location-notice {
       animation: slideUp 0.3s ease-out;
     }
@@ -332,6 +349,85 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
     }
     var userMarker = null;
+
+    // --- WAITING FEATURE SUPPORT ---
+    var isPassengerWaiting = false;
+    var passengerWaitingLocation = null;
+
+    function bindUserMarker(marker) {
+        if (!marker) return;
+        marker.off('click');
+        marker.on('click', function() {
+            openWaitingModal();
+        });
+        updateUserMarkerWaitingStyle();
+    }
+
+    async function checkWaitingStatus() {
+        try {
+            const url = new URL('../../backend/waiting_api.php?action=get_my_status', window.location.href).href;
+            const res = await fetch(url, { credentials: 'have' });
+            const data = await res.json();
+            if (data && data.success) {
+                isPassengerWaiting = !!data.is_waiting;
+                passengerWaitingLocation = data.location_name;
+                updateUserMarkerWaitingStyle();
+            }
+        } catch(e) { console.error("Error checking waiting status:", e); }
+    }
+
+    function updateUserMarkerWaitingStyle() {
+        if (!userMarker) return;
+        const element = userMarker._icon || userMarker._path;
+        if (!element) return;
+        if (isPassengerWaiting) {
+            element.classList.add('is-waiting');
+        } else {
+            element.classList.remove('is-waiting');
+        }
+    }
+
+    async function openWaitingModal() {
+        const resolvedLoc = (lastKnownLocation && lastKnownLocation.locName) ? resolveLocationName(lastKnownLocation.lat, lastKnownLocation.lng) : null;
+        
+        const displaySpan = document.getElementById('waitingLocationNameDisplay');
+        const btnSet = document.getElementById('btnSetWaiting');
+        const btnCancel = document.getElementById('btnCancelWaiting');
+        const statusMsg = document.getElementById('waitingStatusMsg');
+
+        await checkWaitingStatus();
+
+        if (isPassengerWaiting) {
+            displaySpan.textContent = passengerWaitingLocation || "Your current stop";
+            btnSet.classList.add('d-none');
+            btnCancel.classList.remove('d-none');
+            statusMsg.classList.remove('d-none');
+            statusMsg.className = "alert alert-success py-2 px-3 mb-3 small rounded-3";
+            statusMsg.innerHTML = `<strong>Status:</strong> Waiting for bus at <strong>${passengerWaitingLocation}</strong>.`;
+        } else {
+            if (resolvedLoc) {
+                displaySpan.textContent = resolvedLoc;
+                btnSet.classList.remove('d-none');
+                btnSet.removeAttribute('disabled');
+                btnCancel.classList.add('d-none');
+                statusMsg.classList.add('d-none');
+            } else {
+                displaySpan.textContent = "Unrecognized Stop";
+                btnSet.classList.remove('d-none');
+                btnSet.setAttribute('disabled', 'true');
+                btnCancel.classList.add('d-none');
+                statusMsg.classList.remove('d-none');
+                statusMsg.className = "alert alert-danger py-2 px-3 mb-3 small rounded-3";
+                statusMsg.innerHTML = `<span class="material-symbols-rounded align-middle me-1" style="font-size:16px;">warning</span> You are not at any recognized stop. Waiting can only be activated at designated locations.`;
+            }
+        }
+
+        const modalEl = document.getElementById('waitingModal');
+        if (modalEl) {
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        }
+    }
     window.watchId = null;
     window.bgWatcherId = null;
     var selectedRoute = '';
@@ -477,8 +573,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 icon: getUserIcon(),
                 zIndexOffset: 1000
             }).addTo(map);
+            bindUserMarker(userMarker);
         } else {
             userMarker.setLatLng([lat, lng]);
+            bindUserMarker(userMarker);
         }
 
         const now = Date.now();
@@ -901,7 +999,11 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
           userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: getUserIcon(), zIndexOffset: 1000 }).addTo(map);
-        } else { userMarker.setLatLng([userLocation.lat, userLocation.lng]); }
+          bindUserMarker(userMarker);
+        } else { 
+          userMarker.setLatLng([userLocation.lat, userLocation.lng]); 
+          bindUserMarker(userMarker);
+        }
       } else if (userMarker && !locationPermissionGranted) {
         map.removeLayer(userMarker); userMarker = null;
       }
@@ -1197,8 +1299,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       navigator.geolocation.getCurrentPosition(function(pos) {
         var lat = pos.coords.latitude, lng = pos.coords.longitude;
         userLocation = { lat: lat, lng: lng };
-        if (!userMarker) { userMarker = L.circleMarker([lat, lng], { radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9 }).addTo(map); }
-        else { userMarker.setLatLng([lat, lng]); }
+        if (!userMarker) { 
+          userMarker = L.circleMarker([lat, lng], { radius: 8, color: '#2563eb', fillColor: '#60a5fa', fillOpacity: 0.9 }).addTo(map); 
+          bindUserMarker(userMarker);
+        }
+        else { 
+          userMarker.setLatLng([lat, lng]); 
+          bindUserMarker(userMarker);
+        }
         flyToMyLocationKeepingMarkerVisible(lat, lng);
         uploadMyLocation(lat, lng, pos.coords.accuracy);
       }, function(error) {
@@ -1224,6 +1332,77 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           else { console.warn('Auto-join failed:', data.message); if (data.message !== 'Already in circle') { alert('Join failed: ' + data.message); } }
         }).catch(err => console.error('Deep link join error:', err));
       }
+
+      // Wire up Waiting Modal Actions
+      const btnSet = document.getElementById('btnSetWaiting');
+      if (btnSet) {
+          btnSet.addEventListener('click', async function() {
+              const resolvedLoc = (lastKnownLocation && lastKnownLocation.locName) ? resolveLocationName(lastKnownLocation.lat, lastKnownLocation.lng) : null;
+              if (!resolvedLoc) {
+                  alert("Unable to set waiting status. You must be at a recognized stop.");
+                  return;
+              }
+              
+              btnSet.setAttribute('disabled', 'true');
+              btnSet.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...`;
+              
+              try {
+                  const res = await safePost('../../backend/waiting_api.php', {
+                      action: 'set_waiting',
+                      location_name: resolvedLoc
+                  });
+                  if (res && res.success) {
+                      isPassengerWaiting = true;
+                      passengerWaitingLocation = resolvedLoc;
+                      updateUserMarkerWaitingStyle();
+                      
+                      bootstrap.Modal.getInstance(document.getElementById('waitingModal')).hide();
+                      alert(`🚌 You are now marked as waiting at ${resolvedLoc}!`);
+                  } else {
+                      alert(res.message || "Failed to update waiting status");
+                  }
+              } catch(e) {
+                  console.error("Error setting waiting:", e);
+                  alert("An error occurred. Please try again.");
+              } finally {
+                  btnSet.removeAttribute('disabled');
+                  btnSet.innerHTML = `<span class="material-symbols-rounded">check_circle</span> Yes, I'm Waiting`;
+              }
+          });
+      }
+
+      const btnCancel = document.getElementById('btnCancelWaiting');
+      if (btnCancel) {
+          btnCancel.addEventListener('click', async function() {
+              btnCancel.setAttribute('disabled', 'true');
+              btnCancel.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...`;
+              
+              try {
+                  const res = await safePost('../../backend/waiting_api.php', {
+                      action: 'cancel_waiting'
+                  });
+                  if (res && res.success) {
+                      isPassengerWaiting = false;
+                      passengerWaitingLocation = null;
+                      updateUserMarkerWaitingStyle();
+                      
+                      bootstrap.Modal.getInstance(document.getElementById('waitingModal')).hide();
+                      alert("Waiting status cancelled successfully.");
+                  } else {
+                      alert(res.message || "Failed to cancel waiting status");
+                  }
+              } catch(e) {
+                  console.error("Error cancelling waiting:", e);
+                  alert("An error occurred. Please try again.");
+              } finally {
+                  btnCancel.removeAttribute('disabled');
+                  btnCancel.innerHTML = `<span class="material-symbols-rounded">cancel</span> Cancel Waiting`;
+              }
+          });
+      }
+
+      // Trigger initial check for waiting status
+      setTimeout(checkWaitingStatus, 2000);
     });
 
     startUserLocationWatch();
@@ -1259,5 +1438,48 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     window.addEventListener('beforeunload', _cleanup);
     window.addEventListener('pagehide', _cleanup);
   </script>
+
+  <!-- Waiting Modal -->
+  <div class="modal fade" id="waitingModal" tabindex="-1" aria-labelledby="waitingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow-lg" style="overflow: hidden;">
+        <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 1.5rem;">
+          <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="waitingModalLabel">
+            <span class="material-symbols-rounded">directions_bus</span> Waiting for a Bus?
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center p-4">
+          <div class="waiting-icon-container mb-3" style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #eff6ff; color: #1e3a8a;">
+            <span class="material-symbols-rounded" style="font-size: 36px;">person_pin_circle</span>
+          </div>
+          
+          <div id="waitingLocationStatusDiv" class="mb-4">
+            <h6 class="text-muted fw-bold mb-1 small uppercase text-tracking" style="letter-spacing: 1px;">YOUR CURRENT STOP</h6>
+            <div class="d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-3 bg-light border border-2 border-primary-subtle" style="display: inline-flex !important;">
+              <span class="material-symbols-rounded text-primary">my_location</span>
+              <span id="waitingLocationNameDisplay" class="fw-bold text-dark">Resolving...</span>
+            </div>
+          </div>
+
+          <p class="text-muted small px-2">
+            By clicking <strong>Yes, I'm Waiting</strong>, you signal conductors on the route that a passenger is currently waiting at this location.
+          </p>
+
+          <div id="waitingStatusMsg" class="alert alert-info py-2 px-3 mb-3 small d-none rounded-3">
+          </div>
+
+          <div class="d-grid gap-2 mt-4">
+            <button id="btnSetWaiting" type="button" class="btn btn-primary rounded-pill py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background:#1e3a8a; border-color:#1e3a8a;">
+              <span class="material-symbols-rounded">check_circle</span> Yes, I'm Waiting
+            </button>
+            <button id="btnCancelWaiting" type="button" class="btn btn-outline-danger rounded-pill py-2.5 fw-bold d-none d-flex align-items-center justify-content-center gap-2">
+              <span class="material-symbols-rounded">cancel</span> Cancel Waiting
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
