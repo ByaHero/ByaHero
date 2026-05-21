@@ -254,24 +254,16 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       transform: scale(1.1) !important;
     }
 
-    .waiting-modal-icon-circle {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+    .waiting-modal-icon-image {
       width: 110px !important;
       height: 110px !important;
-      border-radius: 50% !important;
-      background-color: #2b72c4 !important;
-      color: #ffffff !important;
+      display: block !important;
       margin: 0 auto 2rem auto !important;
-      box-shadow: 0 8px 16px rgba(43, 114, 196, 0.2) !important;
+      transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
     }
 
-    .waiting-modal-icon-circle span {
-      font-size: 4.5rem !important;
-      font-weight: 600 !important;
-      line-height: 1 !important;
-      font-family: inherit !important;
+    .waiting-modal-icon-image:hover {
+      transform: scale(1.08) rotate(5deg) !important;
     }
 
     .waiting-modal-title {
@@ -1650,9 +1642,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         
         <div class="text-center">
           <!-- Question Mark Circle Icon -->
-          <div class="waiting-modal-icon-circle">
-            <span>?</span>
-          </div>
+          <img src="../../assets/images/waitingMark.svg" alt="Waiting Mark" class="waiting-modal-icon-image" />
 
           <!-- Modal Title -->
           <h2 class="waiting-modal-title">Are you waiting for a bus?</h2>
