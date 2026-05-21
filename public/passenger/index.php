@@ -222,6 +222,183 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         opacity: 1;
       }
     }
+
+    /* --- SLEEK PREMIUM WAITING MODAL STYLES --- */
+    .waiting-modal-content {
+      border-radius: 40px !important;
+      padding: 3rem 2rem 2.5rem 2rem !important;
+      border: none !important;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
+      background: #ffffff !important;
+      position: relative !important;
+    }
+
+    .waiting-modal-close {
+      position: absolute !important;
+      top: 24px !important;
+      right: 24px !important;
+      background: none !important;
+      border: none !important;
+      font-size: 1.75rem !important;
+      line-height: 1 !important;
+      color: #000000 !important;
+      opacity: 0.8 !important;
+      cursor: pointer !important;
+      padding: 0 !important;
+      transition: opacity 0.2s, transform 0.2s !important;
+      z-index: 10 !important;
+    }
+
+    .waiting-modal-close:hover {
+      opacity: 1 !important;
+      transform: scale(1.1) !important;
+    }
+
+    .waiting-modal-icon-circle {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 110px !important;
+      height: 110px !important;
+      border-radius: 50% !important;
+      background-color: #2b72c4 !important;
+      color: #ffffff !important;
+      margin: 0 auto 2rem auto !important;
+      box-shadow: 0 8px 16px rgba(43, 114, 196, 0.2) !important;
+    }
+
+    .waiting-modal-icon-circle span {
+      font-size: 4.5rem !important;
+      font-weight: 600 !important;
+      line-height: 1 !important;
+      font-family: inherit !important;
+    }
+
+    .waiting-modal-title {
+      font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
+      font-size: 1.85rem !important;
+      font-weight: 700 !important;
+      color: #000000 !important;
+      margin-bottom: 0.75rem !important;
+      letter-spacing: -0.5px !important;
+    }
+
+    .waiting-modal-subtitle {
+      font-size: 1.05rem !important;
+      font-weight: 400 !important;
+      color: #374151 !important;
+      line-height: 1.45 !important;
+      margin-bottom: 1.75rem !important;
+      max-width: 90% !important;
+      margin-left: auto !important;
+      margin-right: auto !important;
+    }
+
+    .waiting-modal-location-container {
+      margin-bottom: 1.75rem !important;
+    }
+
+    .waiting-modal-location-badge {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      padding: 0.5rem 1.25rem !important;
+      background-color: #f1f5f9 !important;
+      border: 1px solid #e2e8f0 !important;
+      border-radius: 50px !important;
+    }
+
+    .waiting-modal-location-badge span.loc-icon {
+      font-size: 18px !important;
+      color: #2b72c4 !important;
+    }
+
+    .waiting-modal-location-badge span.loc-text {
+      font-size: 0.9rem !important;
+      font-weight: 600 !important;
+      color: #475569 !important;
+    }
+
+    #btnSetWaiting {
+      transition: transform 0.2s ease-in-out !important;
+      cursor: pointer !important;
+    }
+
+    #btnSetWaiting:hover:not(:disabled) {
+      transform: scale(1.025) !important;
+    }
+
+    #btnSetWaiting:active:not(:disabled) {
+      transform: scale(0.975) !important;
+    }
+
+    #btnSetWaiting:disabled {
+      opacity: 0.55 !important;
+      cursor: not-allowed !important;
+    }
+
+    #btnSetWaiting:disabled img {
+      filter: grayscale(0.85) contrast(0.8) !important;
+      cursor: not-allowed !important;
+      pointer-events: none !important;
+    }
+
+    .waiting-modal-btn-cancel {
+      background-color: #f1f5f9 !important;
+      border: 1px solid #cbd5e1 !important;
+      border-radius: 20px !important;
+      padding: 1.1rem 2rem !important;
+      font-size: 1.2rem !important;
+      font-weight: 700 !important;
+      color: #475569 !important;
+      display: flex;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 12px !important;
+      width: 100% !important;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+      transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s !important;
+    }
+
+    .waiting-modal-btn-cancel:hover:not(:disabled) {
+      background-color: #e2e8f0 !important;
+      color: #334155 !important;
+      transform: translateY(-1px) !important;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
+    }
+
+    .waiting-modal-btn-cancel:active:not(:disabled) {
+      transform: translateY(1px) !important;
+    }
+
+    .waiting-modal-btn-cancel:disabled {
+      opacity: 0.6 !important;
+      background-color: #9ca3af !important;
+      cursor: not-allowed !important;
+      box-shadow: none !important;
+    }
+
+    .waiting-modal-btn-circle-icon {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 28px !important;
+      height: 28px !important;
+      border-radius: 50% !important;
+      background-color: #ffffff !important;
+    }
+
+    .waiting-modal-btn-circle-icon.text-primary span {
+      color: #174288 !important;
+    }
+
+    .waiting-modal-btn-circle-icon.text-secondary {
+      background-color: #475569 !important;
+    }
+
+    .waiting-modal-btn-circle-icon.text-secondary span {
+      color: #ffffff !important;
+    }
   </style>
 </head>
 
@@ -1344,7 +1521,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
               }
               
               btnSet.setAttribute('disabled', 'true');
-              btnSet.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating...`;
+              btnSet.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2 py-2 text-primary fw-bold"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Updating status...</div>`;
               
               try {
                   const res = await safePost('../../backend/waiting_api.php', {
@@ -1356,6 +1533,18 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                       passengerWaitingLocation = resolvedLoc;
                       updateUserMarkerWaitingStyle();
                       
+                      // Transition button visibility immediately in real-time inside the modal
+                      btnSet.classList.add('d-none');
+                      const btnCancel = document.getElementById('btnCancelWaiting');
+                      if (btnCancel) btnCancel.classList.remove('d-none');
+                      
+                      const statusMsg = document.getElementById('waitingStatusMsg');
+                      if (statusMsg) {
+                          statusMsg.classList.remove('d-none');
+                          statusMsg.className = "alert alert-success py-2 px-3 mb-3 small rounded-3";
+                          statusMsg.innerHTML = `<strong>Status:</strong> Waiting for bus at <strong>${resolvedLoc}</strong>.`;
+                      }
+                      
                       bootstrap.Modal.getInstance(document.getElementById('waitingModal')).hide();
                       alert(`🚌 You are now marked as waiting at ${resolvedLoc}!`);
                   } else {
@@ -1366,7 +1555,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   alert("An error occurred. Please try again.");
               } finally {
                   btnSet.removeAttribute('disabled');
-                  btnSet.innerHTML = `<span class="material-symbols-rounded">check_circle</span> Yes, I'm Waiting`;
+                  btnSet.innerHTML = `<img src="../../assets/images/waitingButton.svg" alt="I am waiting" style="width: 100%; height: auto; max-width: 320px; display: block; margin: 0 auto;" />`;
               }
           });
       }
@@ -1375,7 +1564,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       if (btnCancel) {
           btnCancel.addEventListener('click', async function() {
               btnCancel.setAttribute('disabled', 'true');
-              btnCancel.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...`;
+              btnCancel.innerHTML = `<div class="d-flex align-items-center justify-content-center gap-2"><span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Cancelling...</div>`;
               
               try {
                   const res = await safePost('../../backend/waiting_api.php', {
@@ -1385,6 +1574,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                       isPassengerWaiting = false;
                       passengerWaitingLocation = null;
                       updateUserMarkerWaitingStyle();
+                      
+                      // Transition button visibility immediately in real-time inside the modal
+                      btnCancel.classList.add('d-none');
+                      if (btnSet) btnSet.classList.remove('d-none');
+                      
+                      const statusMsg = document.getElementById('waitingStatusMsg');
+                      if (statusMsg) {
+                          statusMsg.classList.add('d-none');
+                      }
                       
                       bootstrap.Modal.getInstance(document.getElementById('waitingModal')).hide();
                       alert("Waiting status cancelled successfully.");
@@ -1396,7 +1594,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   alert("An error occurred. Please try again.");
               } finally {
                   btnCancel.removeAttribute('disabled');
-                  btnCancel.innerHTML = `<span class="material-symbols-rounded">cancel</span> Cancel Waiting`;
+                  btnCancel.innerHTML = `
+                      <span class="waiting-modal-btn-circle-icon text-secondary">
+                          <span class="material-symbols-rounded" style="font-size: 18px; font-weight: bold;">close</span>
+                      </span>
+                      <span>Cancel Waiting</span>
+                  `;
               }
           });
       }
@@ -1441,40 +1644,48 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
   <!-- Waiting Modal -->
   <div class="modal fade" id="waitingModal" tabindex="-1" aria-labelledby="waitingModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content rounded-4 border-0 shadow-lg" style="overflow: hidden;">
-        <div class="modal-header border-0 pb-0" style="background: linear-gradient(135deg, #1e3a8a, #2563eb); color: white; padding: 1.5rem;">
-          <h5 class="modal-title fw-bold d-flex align-items-center gap-2" id="waitingModalLabel">
-            <span class="material-symbols-rounded">directions_bus</span> Waiting for a Bus?
-          </h5>
-          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center p-4">
-          <div class="waiting-icon-container mb-3" style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #eff6ff; color: #1e3a8a;">
-            <span class="material-symbols-rounded" style="font-size: 36px;">person_pin_circle</span>
-          </div>
-          
-          <div id="waitingLocationStatusDiv" class="mb-4">
-            <h6 class="text-muted fw-bold mb-1 small uppercase text-tracking" style="letter-spacing: 1px;">YOUR CURRENT STOP</h6>
-            <div class="d-flex align-items-center justify-content-center gap-2 py-2 px-3 rounded-3 bg-light border border-2 border-primary-subtle" style="display: inline-flex !important;">
-              <span class="material-symbols-rounded text-primary">my_location</span>
-              <span id="waitingLocationNameDisplay" class="fw-bold text-dark">Resolving...</span>
-            </div>
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+      <div class="modal-content waiting-modal-content">
+        <button type="button" class="waiting-modal-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        
+        <div class="text-center">
+          <!-- Question Mark Circle Icon -->
+          <div class="waiting-modal-icon-circle">
+            <span>?</span>
           </div>
 
-          <p class="text-muted small px-2">
-            By clicking <strong>Yes, I'm Waiting</strong>, you signal conductors on the route that a passenger is currently waiting at this location.
+          <!-- Modal Title -->
+          <h2 class="waiting-modal-title">Are you waiting for a bus?</h2>
+
+          <!-- Modal Subtitle -->
+          <p class="waiting-modal-subtitle">
+            Help us improve transit accuracy by confirming your status at this location
           </p>
+
+          <!-- Current Location (Retained as requested) -->
+          <div id="waitingLocationStatusDiv" class="waiting-modal-location-container text-center">
+            <div class="waiting-modal-location-badge">
+              <span class="material-symbols-rounded loc-icon">my_location</span>
+              <span id="waitingLocationNameDisplay" class="loc-text">Resolving...</span>
+            </div>
+          </div>
 
           <div id="waitingStatusMsg" class="alert alert-info py-2 px-3 mb-3 small d-none rounded-3">
           </div>
 
-          <div class="d-grid gap-2 mt-4">
-            <button id="btnSetWaiting" type="button" class="btn btn-primary rounded-pill py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2" style="background:#1e3a8a; border-color:#1e3a8a;">
-              <span class="material-symbols-rounded">check_circle</span> Yes, I'm Waiting
+          <!-- Buttons Container -->
+          <div class="mt-4">
+            <!-- Yes, I'm Waiting Button -->
+            <button id="btnSetWaiting" type="button" class="btn p-0 border-0 bg-transparent w-100" style="box-shadow: none;">
+              <img src="../../assets/images/waitingButton.svg" alt="I am waiting" style="width: 100%; height: auto; max-width: 320px; display: block; margin: 0 auto;" />
             </button>
-            <button id="btnCancelWaiting" type="button" class="btn btn-outline-danger rounded-pill py-2.5 fw-bold d-none d-flex align-items-center justify-content-center gap-2">
-              <span class="material-symbols-rounded">cancel</span> Cancel Waiting
+
+            <!-- Cancel Waiting Button -->
+            <button id="btnCancelWaiting" type="button" class="btn waiting-modal-btn-cancel d-none">
+              <span class="waiting-modal-btn-circle-icon text-secondary">
+                <span class="material-symbols-rounded" style="font-size: 18px; font-weight: bold;">close</span>
+              </span>
+              <span>Cancel Waiting</span>
             </button>
           </div>
         </div>
