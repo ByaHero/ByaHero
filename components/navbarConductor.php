@@ -25,6 +25,20 @@ $logoutImg    = $base . '/assets/images/logout.svg';
 /* NEW: detect if current page is conductor profile.php so we can render a special top bar */
 $path = $_SERVER['REQUEST_URI'] ?? '';
 $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !== false);
+
+// Display name in hamburger header
+$displayName = $_SESSION['user_name'] ?? null;
+$displayEmail = $_SESSION['user_email'] ?? null;
+$displayHeaderName = $displayName ?: ($displayEmail ?: 'Conductor');
+
+// If it's an email address, extract the name part and capitalize it
+if (str_contains($displayHeaderName, '@')) {
+    $displayHeaderName = ucfirst(explode('@', $displayHeaderName)[0]);
+}
+
+// Extract first letter for the profile avatar fallback
+$userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
+$userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 ?>
 
 <style>
@@ -222,6 +236,23 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
         font-size: 1rem;
         margin: 0;
     }
+
+    /* NEW: Styling for the dynamic initial avatar */
+    .profile-initial-circle {
+        width: 80px;
+        height: 80px;
+        background-color: #ffffff;
+        color: #0f3878;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        font-size: 36px;
+        font-weight: bold;
+        flex-shrink: 0;
+        margin-left: 10px;
+        overflow: hidden;
+    }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
@@ -259,9 +290,34 @@ $isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !=
                 <span class="material-symbols-rounded">close</span>
             </button>
 
-            <h5 class="conductor-menu-title" id="conductorMenuLabel">
-                <?= htmlspecialchars($_SESSION['user_name'] ?? 'Menu') ?>
-            </h5>
+            <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">
+                <div class="profile-initial-circle">
+                    <?php if ($userProfilePic): ?>
+                        <?php 
+                            $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+                            $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $base . '/' . ltrim(htmlspecialchars($userProfilePic), '/');
+                        ?>
+                        <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                    <?php else: ?>
+                        <?php echo htmlspecialchars($userInitial); ?>
+                    <?php endif; ?>
+                </div>
+
+                <?php
+                    $nameLen = strlen($displayHeaderName);
+                    if ($nameLen > 25) {
+                        $titleSize = '20px';
+                    } elseif ($nameLen > 15) {
+                        $titleSize = '24px';
+                    } else {
+                        $titleSize = '32px';
+                    }
+                ?>
+                <div class="fw-bold text-break text-white"
+                     style="font-size: <?= $titleSize ?> !important; line-height: 1.1 !important; flex: 1; padding-right: 15px;">
+                    <?php echo htmlspecialchars($displayHeaderName); ?>
+                </div>
+            </div>
 
             <div class="conductor-menu-divider"></div>
         </div>

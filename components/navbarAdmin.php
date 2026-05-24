@@ -28,6 +28,15 @@ $displayName = $_SESSION['user_name'] ?? null;
 $displayEmail = $_SESSION['user_email'] ?? null;
 $displayHeaderName = $displayName ?: ($displayEmail ?: 'Admin');
 
+// If it's an email address, extract the name part and capitalize it
+if (str_contains($displayHeaderName, '@')) {
+  $displayHeaderName = ucfirst(explode('@', $displayHeaderName)[0]);
+}
+
+// Extract the first letter for the profile avatar
+$userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
+$userProfilePic = $_SESSION['user_profile_picture'] ?? null;
+
 // Page routing hints
 $adminPageType = $pageType ?? null;
 $pageTitle = $pageTitle ?? null;
@@ -275,6 +284,23 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     font-size: 1rem;
     margin: 0;
   }
+
+  /* NEW: Styling for the dynamic initial avatar */
+  .profile-initial-circle {
+    width: 80px;
+    height: 80px;
+    background-color: #ffffff;
+    color: #0f3878;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    font-size: 36px;
+    font-weight: bold;
+    flex-shrink: 0;
+    margin-left: 10px;
+    overflow: hidden;
+  }
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
@@ -351,19 +377,34 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
         <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
       </button>
 
-      <?php
-        $nameLen = strlen($displayHeaderName);
-        if ($nameLen > 25) {
-          $titleSize = '18px';
-        } elseif ($nameLen > 15) {
-          $titleSize = '22px';
-        } else {
-          $titleSize = '28px';
-        }
-      ?>
-      <h5 class="admin-menu-title" id="adminMenuLabel" style="font-size: <?= $titleSize ?>;">
-        <?= htmlspecialchars($displayHeaderName) ?>
-      </h5>
+      <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">
+        <div class="profile-initial-circle">
+          <?php if ($userProfilePic): ?>
+            <?php 
+              $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+              $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $baseUrl . '/' . ltrim(htmlspecialchars($userProfilePic), '/');
+            ?>
+            <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+          <?php else: ?>
+            <?php echo htmlspecialchars($userInitial); ?>
+          <?php endif; ?>
+        </div>
+
+        <?php
+          $nameLen = strlen($displayHeaderName);
+          if ($nameLen > 25) {
+            $titleSize = '20px';
+          } elseif ($nameLen > 15) {
+            $titleSize = '24px';
+          } else {
+            $titleSize = '32px';
+          }
+        ?>
+        <div class="fw-bold text-break text-white"
+          style="font-size: <?= $titleSize ?> !important; line-height: 1.1 !important; flex: 1; padding-right: 15px;">
+          <?php echo htmlspecialchars($displayHeaderName); ?>
+        </div>
+      </div>
 
       <div class="admin-menu-divider"></div>
     </div>

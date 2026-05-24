@@ -337,7 +337,7 @@ $backLink = 'admin.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <style>
-        :root { --brand: #2563eb; }
+        :root { --brand: #1c5ab5; }
         body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
 
         .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
@@ -353,7 +353,13 @@ $backLink = 'admin.php';
             padding: 10px 12px;
         }
 
-        .form-label { color: #1d4ed8 !important; }
+        .form-label { color: #1c5ab5 !important; }
+
+        .btn-primary {
+            background-color: #1c5ab5 !important;
+            border-color: #1c5ab5 !important;
+            color: #fff !important;
+        }
 
         /* ONLY CHANGE 2: all outline buttons become solid like Save */
         .btn-outline-primary {
@@ -456,7 +462,7 @@ $backLink = 'admin.php';
 
             <!-- Snapshots -->
             <div>
-                <h6 class="fw-bold mb-3 mt-2" style="color: #1d4ed8;">
+                <h6 class="fw-bold mb-3 mt-2" style="color: #1c5ab5;">
                     Snapshots (Rollback)
                 </h6>
                 <div class="mb-4" style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; background: #fff;">
@@ -498,7 +504,7 @@ $backLink = 'admin.php';
         <div class="col-lg-8">
             <div>
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h6 class="fw-bold m-0" style="color: #1d4ed8;">
+                    <h6 class="fw-bold m-0" style="color: #1c5ab5;">
                         Route Fare Matrix
                     </h6>
                     <form class="d-flex gap-2" method="GET">

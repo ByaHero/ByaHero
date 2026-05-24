@@ -35,6 +35,11 @@ $displayName = $_SESSION['user_name'] ?? null;
 $displayEmail = $_SESSION['user_email'] ?? null;
 $displayHeaderName = $displayName ?: ($displayEmail ?: 'Guest');
 
+// If it's an email address, extract the name part and capitalize it
+if (str_contains($displayHeaderName, '@')) {
+  $displayHeaderName = ucfirst(explode('@', $displayHeaderName)[0]);
+}
+
 // Extract the first letter for the profile avatar
 $userInitial = strtoupper(substr(trim($displayHeaderName), 0, 1));
 $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
