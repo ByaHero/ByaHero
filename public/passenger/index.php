@@ -421,6 +421,25 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <div class="d-flex flex-column h-100 w-100">
     <div class="flex-grow-1 position-relative" style="min-height: 0;">
       <div id="map"></div>
+      
+      <!-- Premium Floating Map Legend -->
+      <div class="position-absolute top-0 end-0 m-3 p-3 bg-white rounded-4 shadow border" style="z-index: 1000; min-width: 120px; backdrop-filter: blur(8px); background-color: rgba(255, 255, 255, 0.95) !important;">
+        <h6 class="fw-bold mb-2 text-dark small text-uppercase tracking-wider" style="letter-spacing: 0.5px; font-size: 0.7rem; opacity: 0.85;">Bus Status</h6>
+        <div class="d-flex flex-column gap-2">
+          <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #10b981; box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);"></span>
+            <span class="small fw-semibold" style="font-size: 0.75rem; color: black;">Available</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #f59e0b; box-shadow: 0 0 4px rgba(245, 158, 11, 0.4);"></span>
+            <span class="small fw-semibold" style="font-size: 0.75rem; color: black;">On Stop</span>
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="d-inline-block rounded-circle" style="width: 10px; height: 10px; background-color: #ef4444; box-shadow: 0 0 4px rgba(239, 68, 68, 0.4);"></span>
+            <span class="small fw-semibold" style="font-size: 0.75rem; color: black;">Full</span>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -529,18 +548,18 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     function getUserIcon() {
       var currentZoom = (typeof map !== 'undefined' && map) ? map.getZoom() : 12;
-      var baseZoom = 15;
+      var baseZoom = 12; // Starting zoom level where icon is default size
       
-      // Calculate dynamic scaling factor based on zoom level
-      var scale = Math.pow(1.18, currentZoom - baseZoom);
-      scale = Math.max(0.65, Math.min(2.5, scale));
+      // Calculate dynamic scaling factor based on zoom level (10% increase per level)
+      var scale = Math.pow(1.10, currentZoom - baseZoom);
+      scale = Math.max(0.85, Math.min(2.5, scale));
       
       var markerSize = Math.round(36 * scale);
       var bubbleWidth = Math.round(46 * scale);
       var bubbleHeight = Math.round(20 * scale);
       var bubbleBottom = Math.round(markerSize + 6);
       
-      // Shift bubble dynamically by base scaling offset AND add an additional 10px shift right
+      // Shift bubble dynamically by base scaling offset AND add the additional 20px shift right
       var bubbleOffset = Math.round(8 * scale) + 20;
 
       var htmlContent = '';
