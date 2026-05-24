@@ -172,7 +172,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       z-index: 9;
     }
 
-    .user-profile-marker {
+    .user-marker-container {
+      position: relative;
+    }
+
+    .user-avatar-circle {
+      width: 100%;
+      height: 100%;
       background-color: #ffffff;
       color: var(--bs-primary);
       display: flex;
@@ -183,11 +189,27 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       font-weight: bold;
       box-shadow: 0 0 0 3px #3b82f6, 0 4px 6px rgba(0,0,0,0.3);
       overflow: hidden;
+      transition: box-shadow 0.3s ease;
     }
 
-    .user-profile-marker.is-waiting {
+    .user-marker-container.is-waiting .user-avatar-circle {
       box-shadow: 0 0 0 3px #10b981, 0 0 0 10px rgba(16, 185, 129, 0.4), 0 4px 6px rgba(0,0,0,0.3);
       animation: waitingPulse 2.5s infinite;
+    }
+
+    .user-waiting-bubble {
+      position: absolute;
+      transform: translateX(-50%) scale(0.6);
+      transform-origin: bottom center;
+      z-index: 1001;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .user-marker-container.is-waiting .user-waiting-bubble {
+      opacity: 1;
+      transform: translateX(-50%) scale(1);
     }
 
     @keyframes waitingPulse {
@@ -452,9 +474,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     // Expose map to passengerBottomSheet.js (used by setBusStopsVisibility / focusStop)
     window._map = map;
 
-    // Resize bus-stop markers when zoom changes
+    // Resize bus-stop and user markers when zoom changes
     map.on('zoomend', function() {
       resizeStopMarkersForZoom(map.getZoom());
+      if (userMarker) {
+        userMarker.setIcon(getUserIcon());
+        updateUserMarkerWaitingStyle(); // Sync waiting class state immediately
+      }
     });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -502,19 +528,48 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var userInitial = (typeof rawUserName === 'string' && rawUserName.length > 0) ? rawUserName.charAt(0).toUpperCase() : '?';
 
     function getUserIcon() {
+      var currentZoom = (typeof map !== 'undefined' && map) ? map.getZoom() : 12;
+      var baseZoom = 15;
+      
+      // Calculate dynamic scaling factor based on zoom level
+      var scale = Math.pow(1.18, currentZoom - baseZoom);
+      scale = Math.max(0.65, Math.min(2.5, scale));
+      
+      var markerSize = Math.round(36 * scale);
+      var bubbleWidth = Math.round(46 * scale);
+      var bubbleHeight = Math.round(20 * scale);
+      var bubbleBottom = Math.round(markerSize + 6);
+      
+      // Shift bubble dynamically by base scaling offset AND add an additional 10px shift right
+      var bubbleOffset = Math.round(8 * scale) + 20;
+
       var htmlContent = '';
+      
+      // Avatar circle container
+      htmlContent += '<div class="user-avatar-circle" style="width: ' + markerSize + 'px; height: ' + markerSize + 'px;">';
       if (userProfilePic) {
          var isAbsolute = /^https?:\/\//i.test(userProfilePic);
          var safePic = isAbsolute ? userProfilePic : window.PROJECT_BASE + '/' + userProfilePic.replace(/^\/+/, '');
-         htmlContent = '<img src="' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
+         htmlContent += '<img src="' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
       } else {
-         htmlContent = userInitial;
+         htmlContent += userInitial;
       }
+      htmlContent += '</div>';
+
+      // Waiting message bubble
+      var bubbleUrl = window.PROJECT_BASE + '/assets/images/waitingMEG.svg';
+      htmlContent += '<div class="user-waiting-bubble" style="bottom: ' + bubbleBottom + 'px; left: calc(50% + ' + bubbleOffset + 'px); width: ' + bubbleWidth + 'px; height: ' + bubbleHeight + 'px;">';
+      htmlContent += '<img src="' + bubbleUrl + '" style="width:100%;height:100%;display:block;" />';
+      htmlContent += '</div>';
+
+      // Determine initial class state directly during icon creation to avoid flashing or resetting
+      var isWaitingClass = (isPassengerWaiting && !(PassengerRideTracker && PassengerRideTracker.activeRide)) ? ' is-waiting' : '';
+
       return L.divIcon({
-        className: 'user-profile-marker',
+        className: 'user-marker-container' + isWaitingClass,
         html: htmlContent,
-        iconSize: [36, 36],
-        iconAnchor: [18, 18]
+        iconSize: [markerSize, markerSize],
+        iconAnchor: [markerSize / 2, markerSize / 2]
       });
     }
     var userMarker = null;
@@ -549,7 +604,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (!userMarker) return;
         const element = userMarker._icon || userMarker._path;
         if (!element) return;
-        if (isPassengerWaiting) {
+        
+        var shouldShowWaiting = isPassengerWaiting && !(PassengerRideTracker && PassengerRideTracker.activeRide);
+        
+        if (shouldShowWaiting) {
             element.classList.add('is-waiting');
         } else {
             element.classList.remove('is-waiting');
@@ -955,10 +1013,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             if (data.on_ride) {
               this.activeRide = data.ride;
               this.updateUI();
+              updateUserMarkerWaitingStyle();
             } else if (this.activeRide) {
               this.activeRide = null;
               this.updateUI();
               this.showDepartureNotice();
+              updateUserMarkerWaitingStyle();
             }
           }
         } catch (e) { console.warn('checkActiveRide error:', e); }
@@ -1100,6 +1160,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                 this.activeRide = null;
                 this.updateUI();
                 this.showDepartureNotice("You moved away from the bus. Automatically departed.");
+                updateUserMarkerWaitingStyle();
             }
         } catch (e) { console.warn('leaveRide error:', e); }
       }
