@@ -122,6 +122,7 @@ try {
             $_SESSION['user_role'] = $role;
             $_SESSION['user_name'] = $user['name'] ?? $user['email'] ?? '';
             $_SESSION['user_contacts'] = $user['contacts'] ?? '';
+            $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? null;
 
             respond(true, 'Login successful', ['redirect' => ($roleRedirects[$role] ?? null)]);
         }

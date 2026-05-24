@@ -233,7 +233,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
         /* CHANGED: Start tracking button -> pill shape (still blue) */
         .btn-circle-start {
-            width: 100%;
+            width: 80%;
+            max-width: 280px;
             height: auto;
             border-radius: 999px;
             background-color: var(--btn-blue);
