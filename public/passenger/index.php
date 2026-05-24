@@ -1264,12 +1264,21 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         var color = statusColors[b.status] || '#ccc';
         var progress = b.progress || 0;
         var arrivalText = b.eta ? 'Arriving by ' + b.eta : '';
+        
+        var statusLabel = '';
+        if (b.status === 'available') statusLabel = 'Available';
+        else if (b.status === 'on_stop') statusLabel = 'On Stop';
+        else if (b.status === 'full') statusLabel = 'Full';
+        else statusLabel = String(b.status || '').replace('_', ' ').toUpperCase();
+
         return `
           <div class="card border-0 border-bottom rounded-0 cursor-pointer" onclick="focusBus('${b.id}')">
             <div class="card-body py-3 px-4">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="badge bg-primary rounded-2 text-uppercase fw-bold">${b.code}</span>
-                <div style="width:30px;height:12px;border-radius:6px;background:${color}"></div>
+                <div style="padding: 2px 8px; border-radius: 12px; background: ${color}; color: black; font-size: 11px; font-weight: bold; text-transform: uppercase;">
+                  ${statusLabel}
+                </div>
               </div>
               <div class="d-flex justify-content-between small text-muted">
                 <span>${b.locName}</span>
