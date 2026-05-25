@@ -666,6 +666,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     // --- CONSOLIDATED TRACKING LOGIC (LITERAL COPY FROM conductorLive.php) ---
     var _lastNetworkSync = 0;
     var _lastUiUpdateAt = 0;
+    var _lastLocationUpdateAt = 0;
     var lastKnownLocation = null;
     var bgWatcherId = null;
     var watchId = null;
@@ -786,6 +787,11 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     }
 
     function onLocationUpdate(pos) {
+        const now = Date.now();
+        // Throttle location updates to at most once every 1500ms to save CPU/battery
+        if (now - _lastLocationUpdateAt < 1500) return;
+        _lastLocationUpdateAt = now;
+
         const lat = pos.coords.latitude;
         const lng = pos.coords.longitude;
         const acc = pos.coords.accuracy;
@@ -806,8 +812,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             updateUserMarkerWaitingStyle();
         }
 
-        const now = Date.now();
-        
         // Throttled UI updates (Stops list) to every 5 seconds
         if (now - _lastUiUpdateAt > 5000) {
             _lastUiUpdateAt = now;
@@ -894,8 +898,13 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     // --- AUDIO KEEP-ALIVE ---
     let keepAliveAudio = null;
     function startKeepAliveAudio() {
+        // Only run on mobile/Capacitor, not desktop web browsers
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (!isMobile) return;
+
         if (!keepAliveAudio) {
-            keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+            // A valid 2-second silent WAV to avoid infinite loop CPU thrashing on 0-duration headers
+            keepAliveAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAgAAAA');
             keepAliveAudio.loop = true;
             keepAliveAudio.volume = 0.001;
             keepAliveAudio.play().catch(e => {
