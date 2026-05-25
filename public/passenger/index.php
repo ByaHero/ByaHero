@@ -106,42 +106,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       z-index: 1000;
     }
 
-    /* --- FILTER ROUTES pill dropdown styling --- */
-    .route-pill {
-      cursor: pointer;
-      font-size: 0.85rem;
-      letter-spacing: 0.5px;
-    }
 
-    .route-pill.dropdown-toggle::after {
-      display: none;
-    }
-
-    .route-menu {
-      border: 0;
-      border-radius: 16px;
-      padding: 8px;
-      min-width: 220px;
-      max-height: 280px;
-      overflow-y: auto;
-    }
-
-    .route-menu .dropdown-item {
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-weight: 600;
-    }
-
-    .route-menu .dropdown-item.active,
-    .route-menu .dropdown-item:active {
-      background: #1e3a8a;
-    }
-
-    .route-menu-centered {
-      left: 50% !important;
-      right: auto !important;
-      transform: translateX(-50%) !important;
-    }
 
     @media (min-width: 992px) {
       /* Removed .map-and-sidebar to allow full screen map on desktop */
@@ -686,8 +651,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     var _lastUiUpdateAt = 0;
     var _lastLocationUpdateAt = 0;
     var lastKnownLocation = null;
-    var bgWatcherId = null;
-    var watchId = null;
     var SYNC_INTERVAL = 5000;
     var _heartbeatIntervalId = null;
     var _rideTrackerIntervalId = null;

@@ -1,29 +1,4 @@
 <style>
-    .btn-remove-circle {
-        width: 38px;
-        height: 38px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #fff1f2;
-        color: #e11d48;
-        border: none;
-        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-        padding: 0;
-    }
-    .btn-remove-circle:hover {
-        background-color: #ffe4e6;
-        color: #be123c;
-        transform: scale(1.05);
-        box-shadow: 0 4px 12px rgba(225, 29, 72, 0.15);
-    }
-    .btn-remove-circle:active {
-        transform: scale(0.95);
-    }
-    .btn-remove-circle .material-symbols-rounded {
-        font-size: 20px;
-    }
 
     /* --- PREMIUM LIVE STATUS STYLES --- */
     .friend-avatar-circle {
@@ -919,7 +894,7 @@
 
     function _cleanup() {
         if (locationTimer) { clearTimeout(locationTimer); locationTimer = null; }
-        _sendLocationInProgress = false;
+        isSendingLocation = false;
     }
     window.addEventListener('beforeunload', _cleanup);
     window.addEventListener('pagehide', _cleanup);

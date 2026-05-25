@@ -104,21 +104,7 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 
-// ---------------------------------------------------------------------------
-// 2. ROUTE FILTER – search input
-// ---------------------------------------------------------------------------
-window.filterRouteOptions = function () {
-  var input = document.getElementById('routeFilterInput');
-  if (!input) return;
 
-  var query = input.value.trim().toLowerCase();
-  var options = document.querySelectorAll('.route-filter-option');
-
-  options.forEach(function (btn) {
-    var text = btn.textContent.trim().toLowerCase();
-    btn.style.display = text.includes(query) ? '' : 'none';
-  });
-};
 
 
 // ---------------------------------------------------------------------------
