@@ -135,7 +135,24 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-    <title>ByaHero - Conductor Live</title>
+    <title>Conductor Live Tracking | ByaHero Operation Tracker</title>
+    <meta name="description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
+    <meta name="keywords" content="byahero, conductor tracking, bus operator, live transit feed, passenger count updater" />
+    <link rel="canonical" href="https://byahero.ph/public/conductor/conductorLive.php" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://byahero.ph/public/conductor/conductorLive.php" />
+    <meta property="og:title" content="Conductor Live Tracking | ByaHero Operation Tracker" />
+    <meta property="og:description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
+    <meta property="og:image" content="../../assets/images/byaheroLogo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://byahero.ph/public/conductor/conductorLive.php" />
+    <meta property="twitter:title" content="Conductor Live Tracking | ByaHero Operation Tracker" />
+    <meta property="twitter:description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
+    <meta property="twitter:image" content="../../assets/images/byaheroLogo.png" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
@@ -285,7 +302,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
-    <div class="main-content-wrapper">
+    <main class="main-content-wrapper">
+        <h1 class="visually-hidden">ByaHero Conductor Tracker Dashboard</h1>
 
         <div class="status-row">
             <div class="status-pill" id="netStatus">Active</div>
@@ -336,7 +354,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         </div>
 
         <button id="stopBtn" class="btn-stop" type="button">Stop Tracking</button>
-    </div>
+    </main>
 
     <div class="footer-bar"></div>
 

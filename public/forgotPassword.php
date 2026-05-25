@@ -13,7 +13,24 @@ $pageTitle = 'Forgot Password';
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Forgot Password - ByaHero</title>
+    <title>Reset Password | ByaHero Recovery Portal</title>
+    <meta name="description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
+    <meta name="keywords" content="byahero, reset password, recover account, password recovery, transit portal" />
+    <link rel="canonical" href="https://byahero.ph/public/forgotPassword.php" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://byahero.ph/public/forgotPassword.php" />
+    <meta property="og:title" content="Reset Password | ByaHero Recovery Portal" />
+    <meta property="og:description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
+    <meta property="og:image" content="../assets/images/byaheroLogo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://byahero.ph/public/forgotPassword.php" />
+    <meta property="twitter:title" content="Reset Password | ByaHero Recovery Portal" />
+    <meta property="twitter:description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
+    <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -207,12 +224,12 @@ $pageTitle = 'Forgot Password';
 <body>
     <div class="login-outer">
         <div class="login-card">
-            <div class="brand-wrap">
+            <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <div class="brand-title">BYAHERO</div>
-            </div>
+                <h1 class="brand-title">BYAHERO</h1>
+            </header>
 
-            <div class="form-card">
+            <main class="form-card">
 
             <!-- STEP 1: Enter Email -->
             <div id="step-1" class="step active">
@@ -284,7 +301,7 @@ $pageTitle = 'Forgot Password';
                 <button type="button" class="submit-pill" onclick="window.location.href='login.php'">Go to Login</button>
             </div>
 
-            </div>
+            </main>
 
         </div>
     </div>

@@ -160,8 +160,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
-    <title>ByaHero — Login</title>
+    <title>Login | ByaHero - Real-Time Public Transport Tracking Portal</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
+    <meta name="keywords" content="byahero, bus tracker, public transport tracking, commuter map, passenger count, live bus location, transit portal" />
+    <link rel="canonical" href="https://byahero.ph/public/login.php" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://byahero.ph/public/login.php" />
+    <meta property="og:title" content="Login | ByaHero - Real-Time Public Transport Tracking Portal" />
+    <meta property="og:description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
+    <meta property="og:image" content="../assets/images/byaheroLogo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://byahero.ph/public/login.php" />
+    <meta property="twitter:title" content="Login | ByaHero - Real-Time Public Transport Tracking Portal" />
+    <meta property="twitter:description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
+    <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
@@ -353,13 +371,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <body>
     <div class="login-outer">
         <div class="login-card">
-            <div class="brand-wrap">
+            <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <div class="brand-title">BYAHERO</div>
-            </div>
+                <h1 class="brand-title">BYAHERO</h1>
+            </header>
 
-            <div class="form-card">
-                <div class="form-heading">LOG IN TO YOUR ACCOUNT</div>
+            <main class="form-card">
+                <h2 class="form-heading">LOG IN TO YOUR ACCOUNT</h2>
 
                 <?php if ($err): ?>
                     <div class="alert alert-danger alert-small"><?= htmlspecialchars($err) ?></div>
@@ -436,7 +454,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     Don't have an account?
                     <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
                 </div>
-            </div>
+            </main>
         </div>
     </div>
 

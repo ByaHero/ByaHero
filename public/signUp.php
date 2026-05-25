@@ -39,7 +39,24 @@ if (isset($_SESSION['user_id'])) {
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-    <title>ByaHero — Sign Up</title>
+    <title>Sign Up | ByaHero - Join Real-Time Transport Tracker</title>
+    <meta name="description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
+    <meta name="keywords" content="byahero, register, sign up, passenger account, transit portal, bus location map" />
+    <link rel="canonical" href="https://byahero.ph/public/signUp.php" />
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://byahero.ph/public/signUp.php" />
+    <meta property="og:title" content="Sign Up | ByaHero - Join Real-Time Transport Tracker" />
+    <meta property="og:description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
+    <meta property="og:image" content="../assets/images/byaheroLogo.png" />
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://byahero.ph/public/signUp.php" />
+    <meta property="twitter:title" content="Sign Up | ByaHero - Join Real-Time Transport Tracker" />
+    <meta property="twitter:description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
+    <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
@@ -192,15 +209,15 @@ if (isset($_SESSION['user_id'])) {
 
     <div class="login-outer">
         <div class="login-card">
-            <div class="brand-wrap">
+            <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <div class="brand-title">BYAHERO</div>
-            </div>
+                <h1 class="brand-title">BYAHERO</h1>
+            </header>
 
-            <div class="form-card">
+            <main class="form-card">
                 <!-- STEP 1: Registration Form -->
                 <div id="step-1" class="signup-step active">
-                    <div class="form-heading">CREATE NEW ACCOUNT</div>
+                    <h2 class="form-heading">CREATE NEW ACCOUNT</h2>
                     <div id="signupAlert"></div>
 
                     <form id="signupForm" autocomplete="off">
@@ -281,7 +298,7 @@ if (isset($_SESSION['user_id'])) {
 
                 <!-- STEP 2: OTP Verification -->
                 <div id="step-2" class="signup-step" style="display: none;">
-                    <div class="form-heading">VERIFY EMAIL</div>
+                    <h2 class="form-heading">VERIFY EMAIL</h2>
                     <div class="small-muted mb-3">We sent a 6-digit code to <strong id="otpEmail"></strong></div>
                     
                     <div id="otpAlert"></div>
@@ -304,7 +321,7 @@ if (isset($_SESSION['user_id'])) {
                     Already have an account?
                     <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a>
                 </div>
-            </div>
+            </main>
         </div>
     </div>
 
