@@ -138,18 +138,18 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <title>Conductor Live Tracking | ByaHero Operation Tracker</title>
     <meta name="description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
     <meta name="keywords" content="byahero, conductor tracking, bus operator, live transit feed, passenger count updater" />
-    <link rel="canonical" href="https://byahero.ph/public/conductor/conductorLive.php" />
+    <link rel="canonical" href="https://byahero.free.nf/public/conductor/conductorLive.php" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://byahero.ph/public/conductor/conductorLive.php" />
+    <meta property="og:url" content="https://byahero.free.nf/public/conductor/conductorLive.php" />
     <meta property="og:title" content="Conductor Live Tracking | ByaHero Operation Tracker" />
     <meta property="og:description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
     <meta property="og:image" content="../../assets/images/byaheroLogo.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://byahero.ph/public/conductor/conductorLive.php" />
+    <meta property="twitter:url" content="https://byahero.free.nf/public/conductor/conductorLive.php" />
     <meta property="twitter:title" content="Conductor Live Tracking | ByaHero Operation Tracker" />
     <meta property="twitter:description" content="ByaHero Conductor live dashboard. Securely update real-time passenger counts, current route operations, and GPS coordinate tracking for passengers." />
     <meta property="twitter:image" content="../../assets/images/byaheroLogo.png" />

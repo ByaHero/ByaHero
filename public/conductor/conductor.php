@@ -62,18 +62,18 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
     <title>Conductor Dashboard | ByaHero Transit Tracker</title>
     <meta name="description" content="Manage bus assignments, configure initial seats, select operation routes, and access live commuter dispatching tools on ByaHero Conductor portal." />
     <meta name="keywords" content="byahero, conductor portal, bus routing, seat configuration, public transit operator" />
-    <link rel="canonical" href="https://byahero.ph/public/conductor/conductor.php" />
+    <link rel="canonical" href="https://byahero.free.nf/public/conductor/conductor.php" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://byahero.ph/public/conductor/conductor.php" />
+    <meta property="og:url" content="https://byahero.free.nf/public/conductor/conductor.php" />
     <meta property="og:title" content="Conductor Dashboard | ByaHero Transit Tracker" />
     <meta property="og:description" content="Manage bus assignments, configure initial seats, select operation routes, and access live commuter dispatching tools on ByaHero Conductor portal." />
     <meta property="og:image" content="../../assets/images/byaheroLogo.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://byahero.ph/public/conductor/conductor.php" />
+    <meta property="twitter:url" content="https://byahero.free.nf/public/conductor/conductor.php" />
     <meta property="twitter:title" content="Conductor Dashboard | ByaHero Transit Tracker" />
     <meta property="twitter:description" content="Manage bus assignments, configure initial seats, select operation routes, and access live commuter dispatching tools on ByaHero Conductor portal." />
     <meta property="twitter:image" content="../../assets/images/byaheroLogo.png" />
