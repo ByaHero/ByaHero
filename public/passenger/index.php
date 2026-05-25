@@ -803,7 +803,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             bindUserMarker(userMarker);
         } else {
             userMarker.setLatLng([lat, lng]);
-            bindUserMarker(userMarker);
+            updateUserMarkerWaitingStyle();
         }
 
         const now = Date.now();
@@ -1232,7 +1232,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
           bindUserMarker(userMarker);
         } else { 
           userMarker.setLatLng([userLocation.lat, userLocation.lng]); 
-          bindUserMarker(userMarker);
+          updateUserMarkerWaitingStyle();
         }
       } else if (userMarker && !locationPermissionGranted) {
         map.removeLayer(userMarker); userMarker = null;
@@ -1241,7 +1241,12 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         var iconForBus = createBusIcon(b.status);
         var popup = '<b>' + b.code + '</b><br>' + b.locName + (b.eta ? '<br><small>ETA: ' + b.eta + '</small>' : '');
         if (busMarkers[b.id]) {
-          busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus).bindPopup(popup);
+          busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
+          if (busMarkers[b.id].getPopup()) {
+            busMarkers[b.id].setPopupContent(popup);
+          } else {
+            busMarkers[b.id].bindPopup(popup);
+          }
         } else {
           var m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
           m.bindPopup(popup);
