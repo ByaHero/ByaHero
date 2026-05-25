@@ -51,7 +51,6 @@ $pageType = 'settings';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap"  media="print" onload="this.media='all'"/>
-    <link rel="stylesheet" href="../../../assets/css/style.css">
     <style>
         body { 
             font-family: 'Inter', sans-serif; 

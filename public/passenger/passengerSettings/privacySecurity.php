@@ -17,7 +17,7 @@ $isLoggedIn = true;
 
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
-  <link rel="stylesheet" href="../../../assets/images/css/accessibility.css">
+  <link rel="stylesheet" href="../../../assets/css/accessibility.css">
 
   <style>
     body {
@@ -236,7 +236,7 @@ $isLoggedIn = true;
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../../assets/images/js/accessibility.js"></script>
+  <script src="../../../assets/js/accessibility.js"></script>
   <script>
     const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
 

@@ -26,6 +26,26 @@ if (!$circle) {
 
 $circleId = $circle['id'];
 
+// Check column names in passenger_rides to support both production and local dev schemas
+$hasOperationId = false;
+$columnsResult = $conn->query("SHOW COLUMNS FROM passenger_rides LIKE 'operation_id'");
+if ($columnsResult && $columnsResult->num_rows > 0) {
+    $hasOperationId = true;
+}
+
+if ($hasOperationId) {
+    $joinSql = "
+        LEFT JOIN passenger_rides pr ON pr.user_id = u.id AND pr.status = 'active'
+        LEFT JOIN bus_operations bo ON bo.id = pr.operation_id
+        LEFT JOIN busses b ON b.Bus_ID = bo.bus_id
+    ";
+} else {
+    $joinSql = "
+        LEFT JOIN passenger_rides pr ON pr.user_id = u.id AND pr.status = 'ongoing'
+        LEFT JOIN busses b ON b.Bus_ID = pr.bus_id
+    ";
+}
+
 // Fetch members + latest location + waiting & boarded status
 $sql = "
     SELECT 
@@ -45,9 +65,7 @@ $sql = "
     JOIN users u ON u.id = cm.member_user_id
     LEFT JOIN user_locations ul ON ul.user_id = u.id
     LEFT JOIN waiting_passengers wp ON wp.user_id = u.id AND wp.status = 'waiting'
-    LEFT JOIN passenger_rides pr ON pr.user_id = u.id AND pr.status = 'active'
-    LEFT JOIN bus_operations bo ON bo.id = pr.operation_id
-    LEFT JOIN busses b ON b.Bus_ID = bo.bus_id
+    $joinSql
     WHERE cm.circle_id = ? AND cm.status = 'active'
     ORDER BY u.name ASC
 ";
@@ -59,6 +77,12 @@ $result = $stmt->get_result();
 
 $friends = [];
 while ($row = $result->fetch_assoc()) {
+    // Normalize ride status 'ongoing' to 'active' for frontend compatibility
+    $rideStatus = $row['ride_status'];
+    if ($rideStatus === 'ongoing') {
+        $rideStatus = 'active';
+    }
+
     $friends[] = [
         'id' => (int)$row['id'],
         'name' => $row['name'],
@@ -70,7 +94,7 @@ while ($row = $result->fetch_assoc()) {
         'updated_at' => $row['updated_at'],
         'waiting_location' => $row['waiting_location'] ?? null,
         'waiting_status' => $row['waiting_status'] ?? null,
-        'ride_status' => $row['ride_status'] ?? null,
+        'ride_status' => $rideStatus,
         'boarded_bus_code' => $row['boarded_bus_code'] ?? null
     ];
 }
