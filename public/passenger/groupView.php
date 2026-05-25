@@ -24,6 +24,130 @@
     .btn-remove-circle .material-symbols-rounded {
         font-size: 20px;
     }
+
+    /* --- PREMIUM LIVE STATUS STYLES --- */
+    .friend-avatar-circle {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .friend-marker-container.is-waiting .friend-avatar-circle {
+      box-shadow: 0 0 0 3px #10b981, 0 0 0 8px rgba(16, 185, 129, 0.4), 0 2px 6px rgba(0,0,0,0.3) !important;
+      animation: friendWaitingPulse 2.5s infinite;
+    }
+
+    .friend-marker-container.is-boarded .friend-avatar-circle {
+      box-shadow: 0 0 0 3px #3b82f6, 0 0 0 8px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0,0,0,0.3) !important;
+      animation: friendBoardedPulse 2.5s infinite;
+    }
+
+    @keyframes friendWaitingPulse {
+      0% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.5), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      70% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 10px rgba(16, 185, 129, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      100% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+    }
+
+    @keyframes friendBoardedPulse {
+      0% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0.5), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      70% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 10px rgba(59, 130, 246, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      100% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+    }
+
+    /* List Card Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-badge.online {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+    
+    .status-badge.offline {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .status-badge.waiting {
+      background-color: #fef3c7;
+      color: #b45309;
+    }
+
+    .status-badge.boarded {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    /* Friend list avatar wrapper with status dot */
+    .friend-avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .friend-online-dot {
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      z-index: 5;
+    }
+    
+    .friend-online-dot.online {
+      background-color: #10b981;
+    }
+
+    .friend-online-dot.offline {
+      background-color: #9ca3af;
+    }
+
+    /* Overlay Badge on avatar */
+    .friend-avatar-badge {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 6;
+      padding: 2px;
+    }
+
+    .friend-avatar-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
 </style>
 
 <div id="view-groups" class="mt-3 d-none">
@@ -215,11 +339,44 @@
             const initials = initialsFromFriend(friend);
             const bgColor = colorFromString(friend.email || friend.name || initials);
 
-            const marker = createPersonMarker(lat, lng, friendName, initials, bgColor, friend.profile_picture);
+            const isWaiting = friend.waiting_status === 'waiting';
+            const isBoarded = friend.ride_status === 'active';
+            const busCode = friend.boarded_bus_code || '';
+
+            const marker = createPersonMarker(lat, lng, friendName, initials, bgColor, friend.profile_picture, isWaiting, isBoarded, busCode);
             
-            if (!isLocationFresh(friend.updated_at)) {
+            const isFresh = isLocationFresh(friend.updated_at);
+            
+            let popupHtml = `<div><strong style="font-size: 0.95rem;">${friendName}</strong>`;
+            
+            if (isFresh) {
+                popupHtml += ` <span class="badge bg-success" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; vertical-align: middle;">Online</span>`;
+            } else {
+                popupHtml += ` <span class="badge bg-secondary" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; vertical-align: middle;">Offline</span>`;
+            }
+            
+            popupHtml += `</div>`;
+
+            if (isWaiting) {
+                popupHtml += `<div class="mt-1 small text-success d-flex align-items-center gap-1">`;
+                popupHtml += `<span class="material-symbols-rounded" style="font-size: 14px;">hourglass_empty</span>`;
+                popupHtml += `<span>Waiting at <b>${friend.waiting_location}</b></span>`;
+                popupHtml += `</div>`;
+            } else if (isBoarded) {
+                popupHtml += `<div class="mt-1 small text-primary d-flex align-items-center gap-1">`;
+                popupHtml += `<span class="material-symbols-rounded" style="font-size: 14px;">directions_bus</span>`;
+                popupHtml += `<span>Onboard Bus <b>${busCode}</b></span>`;
+                popupHtml += `</div>`;
+            }
+            
+            if (friend.updated_at) {
+                popupHtml += `<div class="text-muted mt-1" style="font-size: 0.7rem;">${getLastSeenLabel(friend.updated_at)}</div>`;
+            }
+
+            marker.bindPopup(popupHtml);
+
+            if (!isFresh) {
                 marker.setOpacity(0.6);
-                marker.bindPopup(`<b>${friendName}</b><br><small class="text-muted">${getLastSeenLabel(friend.updated_at)}</small>`);
             }
             
             marker.addTo(window.map);
@@ -227,7 +384,7 @@
         });
     }
 
-    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a', profilePicture = null) {
+    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a', profilePicture = null, isWaiting = false, isBoarded = false, busCode = '') {
         let innerHtml = initials;
         if (profilePicture) {
             const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
@@ -235,12 +392,40 @@
             const safePath = isAbsolute ? profilePicture : basePath + (profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture);
             innerHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         }
+
+        let bubbleHtml = '';
+        if (isWaiting) {
+            const bubbleUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/waitingMEG.svg';
+            bubbleHtml = `
+                <div class="friend-waiting-bubble" style="position: absolute; bottom: 38px; left: calc(50% + 20px); width: 46px; height: 20px; z-index: 1001; pointer-events: none;">
+                    <img src="${bubbleUrl}" style="width: 100%; height: 100%; display: block;" />
+                </div>
+            `;
+        }
+
+        let busBadgeHtml = '';
+        if (isBoarded) {
+            const busIconUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/busonallbuses.svg';
+            busBadgeHtml = `
+                <div class="friend-boarded-badge" style="position: absolute; bottom: -4px; right: -4px; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); z-index: 1002;">
+                    <img src="${busIconUrl}" style="width: 11px; height: 11px; filter: brightness(0) invert(1);" />
+                </div>
+            `;
+        }
+
+        const waitingClass = isWaiting ? ' is-waiting' : '';
+        const boardedClass = isBoarded ? ' is-boarded' : '';
+
         return L.marker([lat, lng], {
             icon: L.divIcon({
                 html: `
-          <div style="background:${bgColor}; color:white; border-radius:50%; width:36px; height:36px;
-              display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px; overflow: hidden;">
-              ${innerHtml}
+          <div class="friend-marker-container${waitingClass}${boardedClass}" style="position: relative; width: 36px; height: 36px;">
+              <div class="friend-avatar-circle" style="background:${bgColor}; color:white; border-radius:50%; width:36px; height:36px;
+                  display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px; overflow: hidden;">
+                  ${innerHtml}
+              </div>
+              ${bubbleHtml}
+              ${busBadgeHtml}
           </div>`,
                 className: 'person-marker',
                 iconSize: [36, 36],
@@ -286,9 +471,19 @@
                 const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
                 const hasLocationNow = hasCoords && fresh;
 
+                const isWaiting = friend.waiting_status === 'waiting';
+                const isBoarded = friend.ride_status === 'active';
+
                 let statusText = 'Location unavailable';
-                if (hasLocationNow) statusText = 'Live location available';
-                else if (friend.updated_at) statusText = getLastSeenLabel(friend.updated_at);
+                if (isWaiting) {
+                    statusText = `at ${friend.waiting_location}`;
+                } else if (isBoarded) {
+                    statusText = `Bus ${friend.boarded_bus_code}`;
+                } else if (hasLocationNow) {
+                    statusText = 'Live location available';
+                } else if (friend.updated_at) {
+                    statusText = getLastSeenLabel(friend.updated_at);
+                }
 
                 const friendName = friend.name || friend.email || "?";
                 const initials = initialsFromFriend(friend);
@@ -305,14 +500,41 @@
                     avatarHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                 }
 
+                let avatarBadgeHtml = '';
+                if (isWaiting) {
+                    const markUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/waitingMark.svg';
+                    avatarBadgeHtml = `<div class="friend-avatar-badge" title="Waiting at ${friend.waiting_location}"><img src="${markUrl}" alt="Waiting"></div>`;
+                } else if (isBoarded) {
+                    const busUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/busonallbuses.svg';
+                    avatarBadgeHtml = `<div class="friend-avatar-badge" style="background: #3b82f6; border-color: #3b82f6;" title="Onboard Bus ${friend.boarded_bus_code}"><img src="${busUrl}" alt="Boarded" style="filter: brightness(0) invert(1);"></div>`;
+                }
+
+                let statusBadgeHtml = '';
+                if (isWaiting) {
+                    statusBadgeHtml = `<span class="status-badge waiting me-1">Waiting</span>`;
+                } else if (isBoarded) {
+                    statusBadgeHtml = `<span class="status-badge boarded me-1">Boarded</span>`;
+                } else if (fresh) {
+                    statusBadgeHtml = `<span class="status-badge online me-1">Online</span>`;
+                } else {
+                    statusBadgeHtml = `<span class="status-badge offline me-1">Offline</span>`;
+                }
+
                 card.innerHTML = `
           <div class="d-flex align-items-center flex-grow-1 card-fly-content" style="min-width:0;">
-              <div class="rounded-circle d-flex align-items-center justify-content-center me-3 fw-bold text-white shadow-sm flex-shrink-0" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
-                  ${avatarHtml}
+              <div class="friend-avatar-wrapper me-3">
+                  <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm flex-shrink-0" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
+                      ${avatarHtml}
+                  </div>
+                  ${avatarBadgeHtml}
+                  <div class="friend-online-dot ${fresh ? 'online' : 'offline'}"></div>
               </div>
               <div class="text-truncate">
-                  <h6 class="mb-0 fw-bold text-dark text-truncate">${friendName}</h6>
-                  <small class="text-muted d-block text-truncate" style="font-size: 0.75rem;">${statusText}</small>
+                  <h6 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 0.95rem;">${friendName}</h6>
+                  <div class="d-flex align-items-center text-truncate">
+                      ${statusBadgeHtml}
+                      <small class="text-muted text-truncate" style="font-size: 0.75rem;">${statusText}</small>
+                  </div>
               </div>
           </div>
           <img src="${window.APP_BASE_URL || '<?php echo isset($depth) ? $depth : '../../'; ?>'}assets/images/unfriend.svg" class="ms-2 remove-friend-btn" title="Remove from Circle" alt="Unfriend" style="width: 32px; height: 32px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">

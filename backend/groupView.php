@@ -26,7 +26,7 @@ if (!$circle) {
 
 $circleId = $circle['id'];
 
-// Fetch members + latest location
+// Fetch members + latest location + waiting & boarded status
 $sql = "
     SELECT 
         u.id,
@@ -36,10 +36,18 @@ $sql = "
         ul.latitude,
         ul.longitude,
         ul.accuracy,
-        ul.updated_at
+        ul.updated_at,
+        wp.location_name AS waiting_location,
+        wp.status AS waiting_status,
+        pr.status AS ride_status,
+        b.code AS boarded_bus_code
     FROM circle_members cm
     JOIN users u ON u.id = cm.member_user_id
     LEFT JOIN user_locations ul ON ul.user_id = u.id
+    LEFT JOIN waiting_passengers wp ON wp.user_id = u.id AND wp.status = 'waiting'
+    LEFT JOIN passenger_rides pr ON pr.user_id = u.id AND pr.status = 'active'
+    LEFT JOIN bus_operations bo ON bo.id = pr.operation_id
+    LEFT JOIN busses b ON b.Bus_ID = bo.bus_id
     WHERE cm.circle_id = ? AND cm.status = 'active'
     ORDER BY u.name ASC
 ";
@@ -59,7 +67,11 @@ while ($row = $result->fetch_assoc()) {
         'latitude' => $row['latitude'],
         'longitude' => $row['longitude'],
         'accuracy' => $row['accuracy'],
-        'updated_at' => $row['updated_at']
+        'updated_at' => $row['updated_at'],
+        'waiting_location' => $row['waiting_location'] ?? null,
+        'waiting_status' => $row['waiting_status'] ?? null,
+        'ride_status' => $row['ride_status'] ?? null,
+        'boarded_bus_code' => $row['boarded_bus_code'] ?? null
     ];
 }
 
