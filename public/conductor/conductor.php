@@ -501,13 +501,18 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             // Update existing or create new bus markers
             filtered.forEach(b => {
                 const iconForBus = createBusIcon(b.status);
+                const popupContent = `<b>${b.code}</b><br>${b.locName}`;
                 
                 if (busMarkers[b.id]) {
                     busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
-                    busMarkers[b.id].bindPopup(`<b>${b.code}</b><br>${b.locName}`);
+                    if (busMarkers[b.id].getPopup()) {
+                        busMarkers[b.id].setPopupContent(popupContent);
+                    } else {
+                        busMarkers[b.id].bindPopup(popupContent);
+                    }
                 } else {
                     const m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
-                    m.bindPopup(`<b>${b.code}</b><br>${b.locName}`);
+                    m.bindPopup(popupContent);
                     busMarkers[b.id] = m;
                 }
             });
