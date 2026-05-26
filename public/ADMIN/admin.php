@@ -396,8 +396,8 @@ $pageType = 'dashboard';
             const activeBusIcon = L.icon({
                 iconUrl: '../../assets/images/icons/marker.svg',
                 iconSize: [34, 34],
-                iconAnchor: [17, 34],
-                popupAnchor: [0, -30]
+                iconAnchor: [17, 17],
+                popupAnchor: [0, -17]
             });
 
             let _updateBusMapTimer = null;

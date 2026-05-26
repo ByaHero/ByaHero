@@ -484,14 +484,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       available: L.icon({
         iconUrl: ICON_BASE + '/marker.svg',
         iconSize: [40, 40],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
       }),
       full: L.icon({
         iconUrl: ICON_BASE + '/marker.svg',
         iconSize: [40, 40],
-        iconAnchor: [18, 36],
-        popupAnchor: [0, -36]
+        iconAnchor: [20, 20],
+        popupAnchor: [0, -20]
       })
     };
 
@@ -785,7 +785,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         if (!userMarker) {
             userMarker = L.marker([lat, lng], {
                 icon: getUserIcon(),
-                zIndexOffset: 1000
+                zIndexOffset: 100
             }).addTo(map);
             bindUserMarker(userMarker);
         } else {
@@ -1218,7 +1218,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       });
       if (userLocation && locationPermissionGranted) {
         if (!userMarker) {
-          userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: getUserIcon(), zIndexOffset: 1000 }).addTo(map);
+          userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: getUserIcon(), zIndexOffset: 100 }).addTo(map);
           bindUserMarker(userMarker);
         } else { 
           userMarker.setLatLng([userLocation.lat, userLocation.lng]); 
@@ -1231,14 +1231,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         var iconForBus = createBusIcon(b.status);
         var popup = '<b>' + b.code + '</b><br>' + b.locName + (b.eta ? '<br><small>ETA: ' + b.eta + '</small>' : '');
         if (busMarkers[b.id]) {
-          busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus);
+          busMarkers[b.id].setLatLng(b.coords).setIcon(iconForBus).setZIndexOffset(1500);
           if (busMarkers[b.id].getPopup()) {
             busMarkers[b.id].setPopupContent(popup);
           } else {
             busMarkers[b.id].bindPopup(popup);
           }
         } else {
-          var m = L.marker(b.coords, { icon: iconForBus }).addTo(map);
+          var m = L.marker(b.coords, { icon: iconForBus, zIndexOffset: 1500 }).addTo(map);
           m.bindPopup(popup);
           busMarkers[b.id] = m;
         }
@@ -1391,7 +1391,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     window._stopMarkers = stopMarkers;
     var STOP_ICONS = {
       pickup_point: L.icon({ iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg', iconSize: [50, 50], iconAnchor: [25, 50], popupAnchor: [0, -44] }),
-      bus_stop: L.icon({ iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal2.svg', iconSize: [50, 50], iconAnchor: [25, 50], popupAnchor: [0, -44] }),
+      bus_stop: L.icon({ iconUrl: PROJECT_BASE + '/assets/images/icons/busStopMarkerFinal1.svg', iconSize: [50, 50], iconAnchor: [25, 50], popupAnchor: [0, -44] }),
       terminal: L.icon({ iconUrl: PROJECT_BASE + '/assets/images/icons/BUSSTOP.png', iconSize: [50, 50], iconAnchor: [25, 50], popupAnchor: [0, -44] })
     };
     function stopIcon(type) { var t = String(type || '').toLowerCase(); return STOP_ICONS[t] || STOP_ICONS.bus_stop; }

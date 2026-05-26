@@ -220,7 +220,7 @@ try {
 
     // Use the SAME marker SVGs as in manageStops.php
     const PICKUP_URL = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
-    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal2.svg';
+    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
 
     // Default size — if you want the slider UI here too, you can copy it from manageStops.php
     let MARKER_SIZE = 42;
