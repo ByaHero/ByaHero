@@ -508,7 +508,7 @@ $backLink  = 'admin.php';
     const BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 
     const PICKUP_URL = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
-    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal2.svg';
+    const STOP_URL   = BASE_URL + '/assets/images/icons/busStopMarkerFinal1.svg';
 
     // These spans exist in your original version – if you removed them, also remove these two lines.
     // document.getElementById('pickupUrlText').textContent = PICKUP_URL;

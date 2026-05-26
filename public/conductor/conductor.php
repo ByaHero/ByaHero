@@ -418,14 +418,14 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             available: L.icon({
                 iconUrl: '../../assets/images/icons/marker.svg',
                 iconSize: [40, 40],
-                iconAnchor: [18, 36],
-                popupAnchor: [0, -36]
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -20]
             }),
             full: L.icon({
                 iconUrl: '../../assets/images/icons/marker.svg',
                 iconSize: [40, 40],
-                iconAnchor: [18, 36],
-                popupAnchor: [0, -36]
+                iconAnchor: [20, 20],
+                popupAnchor: [0, -20]
             })
         };
 
