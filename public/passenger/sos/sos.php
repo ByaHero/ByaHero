@@ -146,20 +146,39 @@ $pageDepth = "../../../";
             color: #b02a37;
         }
 
-        .countdown-wrapper {
-            width: 160px;
-            height: 160px;
-            margin: 2rem auto;
+        /* Circular progress countdown */
+        .countdown-container {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem auto;
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear;
+            stroke-dasharray: 439.82; /* 2 * PI * r (r=70) */
+            stroke-dashoffset: 0;
         }
 
         .countdown-inner {
-            width: 130px;
-            height: 130px;
-            font-size: 4rem;
+            width: 120px;
+            height: 120px;
+            font-size: 3.8rem;
             display: flex;
             align-items: center;
             justify-content: center;
             line-height: 1;
+            z-index: 10;
         }
 
         .slider-track {
@@ -299,15 +318,18 @@ $pageDepth = "../../../";
     <div id="sos-countdown-layer" class="d-none">
         <main class="flex-grow-1 d-flex flex-column align-items-center pt-5 text-center w-100">
             <h1 class="text-dark-red fw-bold display-6 mb-2">Slide to cancel</h1>
-            <p class="text-muted w-75 mb-5 small">
-                After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.
+            <p class="text-muted w-75 mb-4 small">
+                After 5 seconds, your SOS and location will be sent to your Circle and emergency contacts.
             </p>
 
-            <div class="countdown-wrapper position-relative d-flex justify-content-center align-items-center mb-auto">
-                <div class="position-absolute w-100 h-100 rounded-circle border border-2 border-danger opacity-25">
-                </div>
+            <!-- Circular progress count down -->
+            <div class="countdown-container">
+                <svg class="progress-ring" width="170" height="170">
+                    <circle class="progress-ring__circle-bg" stroke="#f1f5f9" stroke-width="8" fill="transparent" r="70" cx="85" cy="85" />
+                    <circle class="progress-ring__circle" stroke="#dc3545" stroke-width="8" stroke-linecap="round" fill="transparent" r="70" cx="85" cy="85" />
+                </svg>
                 <div class="countdown-inner bg-danger text-white rounded-circle d-flex justify-content-center align-items-center fw-bold shadow-lg z-2"
-                    id="timer">10</div>
+                    id="timer">5</div>
             </div>
 
             <div class="slider-track shadow-sm position-relative" id="sliderContainer">
@@ -563,7 +585,6 @@ $pageDepth = "../../../";
                                             sender_name: data.sender_name, 
                                             location_text: data.location_text || '' 
                                         },
-                                        // [FIX] Ensure banner appears at the top (Heads-up notification)
                                         android: {
                                             priority: 'high',
                                             notification: {
@@ -609,46 +630,69 @@ $pageDepth = "../../../";
     <script>
         const countdownLayer = document.getElementById('sos-countdown-layer');
         const timerElement = document.getElementById('timer');
+        const progressCircle = document.querySelector('.progress-ring__circle');
+        const progressCircumference = 2 * Math.PI * 70; // 439.82
+
+        // Initial setup for the SVG progress stroke
+        progressCircle.style.strokeDasharray = `${progressCircumference} ${progressCircumference}`;
+        progressCircle.style.strokeDashoffset = `${progressCircumference}`;
+
         let countdownInterval;
-        let timeLeft = 10;
+        let timeLeft = 5;
         let isSOSActive = false;
+
+        function setProgress(percent) {
+            const offset = progressCircumference - (percent / 100) * progressCircumference;
+            progressCircle.style.strokeDashoffset = offset;
+        }
 
         function startCountdown() {
             if (navigator.vibrate) navigator.vibrate([200]);
             countdownLayer.classList.remove('d-none');
-            timerElement.classList.remove('bg-secondary');
-            timerElement.classList.add('bg-danger');
             
             document.querySelector('#sos-countdown-layer h1').textContent = "Slide to cancel";
-            document.querySelector('#sos-countdown-layer p').textContent = "After 10 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
+            document.querySelector('#sos-countdown-layer p').textContent = "After 5 seconds, your SOS and location will be sent to your Circle and emergency contacts.";
             
-            timeLeft = 10;
+            timeLeft = 5;
             timerElement.textContent = timeLeft;
+            setProgress(100);
             sliderHandle.style.transform = `translateX(0px)`;
             isSOSActive = true;
+            
+            if (countdownInterval) clearInterval(countdownInterval);
+
             countdownInterval = setInterval(() => {
                 if (!isSOSActive) return;
                 timeLeft--;
                 timerElement.textContent = timeLeft;
-                if (timeLeft <= 0) { clearInterval(countdownInterval); sendSOS(); }
+                setProgress((timeLeft / 5) * 100);
+                if (timeLeft <= 0) { 
+                    clearInterval(countdownInterval); 
+                    sendSOS(); 
+                }
             }, 1000);
         }
 
         function cancelSOS() {
             isSOSActive = false;
             clearInterval(countdownInterval);
-            timerElement.classList.remove('bg-danger');
-            timerElement.classList.add('bg-secondary');
             timerElement.textContent = "✕";
+            setProgress(0);
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
             document.querySelector('#sos-countdown-layer p').textContent = "Your SOS has been cancelled. Returning to home...";
             _cleanupDragListeners();
             setTimeout(() => {
                 countdownLayer.classList.add('d-none');
+                sliderHandle.addEventListener('mousedown', startDrag);
+                sliderHandle.addEventListener('touchstart', startDrag, { passive: false });
             }, 1200);
         }
 
         async function sendSOS() {
+            isSOSActive = false;
+            clearInterval(countdownInterval);
+            setProgress(0);
+
             const statusEl = document.getElementById("friends-status");
             const locText = await getResolvedLocationText();
             const recipients = Array.isArray(friendsCache)
@@ -709,7 +753,6 @@ $pageDepth = "../../../";
                                             sender_name: data.sender_name,
                                             location_text: data.location_text || ''
                                         },
-                                        // [FIX] Ensure banner appears at the top (Heads-up notification)
                                         android: {
                                             priority: 'high',
                                             notification: {
