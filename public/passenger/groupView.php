@@ -167,7 +167,9 @@
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0 pb-0">
                     <span class="fw-bold small text-muted" id="qrCodeModalLabel">SCAN TO JOIN</span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    <button type="button" class="btn border-0 bg-transparent p-0" style="box-shadow: none;" data-bs-dismiss="modal" aria-label="Close">
+                        <img src="../../assets/images/EKS.svg" alt="Close" style="width: 20px; height: 20px; display: block;" />
+                    </button>
                 </div>
                 <div class="modal-body text-center pt-2 pb-4">
                     <div id="qr-code-img-container" class="mb-3 d-flex justify-content-center"></div>
@@ -192,7 +194,9 @@
             <div class="modal-content rounded-4 border-0 shadow">
                 <div class="modal-header border-0 pb-0">
                     <span class="fw-bold small text-muted" id="qrScannerModalLabel">SCAN QR CODE</span>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()"></button>
+                    <button type="button" class="btn border-0 bg-transparent p-0" style="box-shadow: none;" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()">
+                        <img src="../../assets/images/EKS.svg" alt="Close" style="width: 20px; height: 20px; display: block;" />
+                    </button>
                 </div>
                 <div class="modal-body text-center pt-2 pb-4">
                     <div id="qr-reader" style="width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden;" class="mx-auto border"></div>

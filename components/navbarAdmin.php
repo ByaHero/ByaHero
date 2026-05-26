@@ -373,8 +373,8 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
   <!-- Offcanvas Menu (dashboard only) -->
   <div class="offcanvas offcanvas-end" tabindex="-1" id="adminMenu" aria-labelledby="adminMenuLabel" style="width: 85vw;">
     <div class="admin-menu-header">
-      <button type="button" class="admin-menu-close" data-bs-dismiss="offcanvas" aria-label="Close">
-        <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
+      <button type="button" class="admin-menu-close border-0 bg-transparent p-0" data-bs-dismiss="offcanvas" aria-label="Close">
+        <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/EKS.svg" alt="Close" style="width: 24px; height: 24px; display: block; filter: brightness(0) invert(1);" />
       </button>
 
       <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">

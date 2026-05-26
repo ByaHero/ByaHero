@@ -715,7 +715,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-warning text-dark rounded shadow-lg d-flex align-items-center gap-2';
       notice.style.zIndex = '9999';
       notice.style.maxWidth = '90%';
-      notice.innerHTML = `<span class="material-symbols-rounded">location_off</span><span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span><button class="btn-close btn-close-sm ms-2" onclick="this.parentElement.remove()"></button>`;
+      notice.innerHTML = `<span class="material-symbols-rounded">location_off</span><span class="small">Location services disabled. <a href="./passengerSettings/privacySecurity.php" class="text-primary fw-bold text-decoration-underline">Enable</a></span><button class="btn border-0 bg-transparent p-0 ms-2" style="box-shadow: none;" onclick="this.parentElement.remove()"><img src="../../assets/images/EKS.svg" alt="Close" style="width: 14px; height: 14px; display: block;" /></button>`;
       document.body.appendChild(notice);
       sessionStorage.setItem('location_notice_shown', '1');
       setTimeout(function() { if (notice.parentElement) notice.remove(); }, 5000);
@@ -725,7 +725,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       var notice = document.createElement('div');
       notice.className = 'location-notice position-fixed bottom-0 start-50 translate-middle-x mb-5 p-3 bg-danger text-white rounded shadow-lg d-flex align-items-center gap-2';
       notice.style.zIndex = '9999'; notice.style.maxWidth = '90%';
-      notice.innerHTML = `<span class="material-symbols-rounded">error</span><span class="small">Location permission denied. Please enable it in your browser settings.</span><button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>`;
+      notice.innerHTML = `<span class="material-symbols-rounded">error</span><span class="small">Location permission denied. Please enable it in your browser settings.</span><button class="btn border-0 bg-transparent p-0 ms-2" style="box-shadow: none;" onclick="this.parentElement.remove()"><img src="../../assets/images/EKS.svg" alt="Close" style="width: 14px; height: 14px; display: block; filter: brightness(0) invert(1);" /></button>`;
       document.body.appendChild(notice);
     }
 
@@ -1081,7 +1081,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         notice.innerHTML = `
           <span class="material-symbols-rounded">check_circle</span>
           <span class="small">Automatically boarded <b>Bus ${bus.code}</b></span>
-          <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
+          <button class="btn border-0 bg-transparent p-0 ms-2" style="box-shadow: none;" onclick="this.parentElement.remove()"><img src="../../assets/images/EKS.svg" alt="Close" style="width: 14px; height: 14px; display: block; filter: brightness(0) invert(1);" /></button>
         `;
         document.body.appendChild(notice);
         setTimeout(() => notice.remove(), 5000);
@@ -1096,7 +1096,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         notice.innerHTML = `
           <span class="material-symbols-rounded">info</span>
           <span class="small">${msg}</span>
-          <button class="btn-close btn-close-white ms-2" onclick="this.parentElement.remove()"></button>
+          <button class="btn border-0 bg-transparent p-0 ms-2" style="box-shadow: none;" onclick="this.parentElement.remove()"><img src="../../assets/images/EKS.svg" alt="Close" style="width: 14px; height: 14px; display: block; filter: brightness(0) invert(1);" /></button>
         `;
         document.body.appendChild(notice);
         setTimeout(() => notice.remove(), 5000);
@@ -1653,7 +1653,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
                   btnCancel.removeAttribute('disabled');
                   btnCancel.innerHTML = `
                       <span class="waiting-modal-btn-circle-icon text-secondary">
-                          <span class="material-symbols-rounded" style="font-size: 18px; font-weight: bold;">close</span>
+                          <img src="../../assets/images/EKS.svg" alt="Close" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;" />
                       </span>
                       <span>Cancel Waiting</span>
                   `;
@@ -1703,7 +1703,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <div class="modal fade" id="waitingModal" tabindex="-1" aria-labelledby="waitingModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
       <div class="modal-content waiting-modal-content">
-        <button type="button" class="waiting-modal-close" data-bs-dismiss="modal" aria-label="Close">&times;</button>
+        <button type="button" class="waiting-modal-close border-0 bg-transparent p-0" data-bs-dismiss="modal" aria-label="Close">
+          <img src="../../assets/images/EKS.svg" alt="Close" style="width: 24px; height: 24px; display: block;" />
+        </button>
         
         <div class="text-center">
           <!-- Question Mark Circle Icon -->
@@ -1738,7 +1740,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
             <!-- Cancel Waiting Button -->
             <button id="btnCancelWaiting" type="button" class="btn waiting-modal-btn-cancel d-none">
               <span class="waiting-modal-btn-circle-icon text-secondary">
-                <span class="material-symbols-rounded" style="font-size: 18px; font-weight: bold;">close</span>
+                <img src="../../assets/images/EKS.svg" alt="Close" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle;" />
               </span>
               <span>Cancel Waiting</span>
             </button>
