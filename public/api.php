@@ -2,27 +2,11 @@
 declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
-
-// Allow local mobile app dev origins with credentials for Axios/PHP Session compatibility
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowedOrigins = [
-    'http://localhost:8100',
-    'http://localhost:5173',
-    'http://localhost',
-    'capacitor://localhost'
-];
-if (in_array($origin, $allowedOrigins, true)) {
-    header("Access-Control-Allow-Origin: $origin");
-    header('Access-Control-Allow-Credentials: true');
-} else {
-    header('Access-Control-Allow-Origin: *');
-}
+header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+header('Access-Control-Allow-Headers: Content-Type');
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    exit(0);
-}
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') exit;
 
 require __DIR__ . '/../config/db.php';
 
