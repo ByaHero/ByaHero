@@ -13,6 +13,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
 <html lang="en">
 <head>
     <meta charset="utf-8">
+    <link rel="icon" href="../../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
