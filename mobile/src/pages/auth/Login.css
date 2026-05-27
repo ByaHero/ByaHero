@@ -1,0 +1,178 @@
+:root {
+  --brand: #2563eb;
+  --bg: #ffffff;
+  --muted: #6b7280;
+}
+
+.login-outer {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 100%);
+  font-family: "Segoe UI", system-ui, -apple-system, Arial;
+  color: #0f172a;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: transparent;
+}
+
+.brand-wrap {
+  text-align: center;
+  margin-bottom: 1.25rem;
+}
+
+.brand-logo {
+  width: 132px;
+  height: auto;
+  display: block;
+  margin: 0 auto 0.75rem;
+}
+
+.brand-title {
+  font-size: 0.85rem;
+  letter-spacing: 1px;
+  color: #111827;
+  font-weight: bold;
+}
+
+.form-card {
+  background: var(--bg);
+  padding: 2rem;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.06);
+}
+
+.form-heading {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--brand);
+  margin-bottom: 1rem;
+  letter-spacing: .6px;
+}
+
+.input-pill {
+  border-radius: 999px !important;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(2, 6, 23, 0.06);
+  border: none;
+  padding: 0.6rem 1rem;
+  padding-right: 3rem;
+  height: 48px;
+}
+
+.input-group-pill {
+  position: relative;
+}
+
+.input-pill:focus {
+  outline: none;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.12), 0 0 0 3px rgba(37, 99, 235, 0.06);
+}
+
+.input-addon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: transparent;
+  color: #374151;
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  padding: 4px;
+  cursor: pointer;
+  height: 28px;
+  width: 28px;
+  justify-content: center;
+  border-radius: 6px;
+  z-index: 5;
+}
+
+.input-addon:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.input-addon:active {
+  transform: translateY(-50%) scale(.98);
+}
+
+.forgot {
+  display: inline-block;
+  margin-top: .5rem;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: .875rem;
+}
+
+.submit-pill {
+  width: 88px;
+  height: 40px;
+  border-radius: 999px;
+  background: var(--brand);
+  border: none;
+  margin: 1.6rem auto 0;
+  box-shadow: 0 8px 22px rgba(37, 99, 235, 0.18);
+  color: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .6px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.submit-pill:active {
+  transform: translateY(1px);
+}
+
+.submit-pill:disabled {
+  opacity: 0.7;
+}
+
+.small-muted {
+  font-size: .85rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: .75rem;
+}
+
+.alert-small {
+  font-size: .9rem;
+  padding: .45rem .75rem;
+  border-radius: 8px;
+}
+
+@media (max-width:420px) {
+  .brand-logo {
+      width: 110px;
+  }
+
+  .form-card {
+      padding: 1.25rem;
+      border-radius: 12px;
+  }
+
+  .submit-pill {
+      width: 72px;
+      height: 36px;
+      font-size: 0.85rem;
+  }
+
+  .input-addon {
+      right: 10px;
+      width: 26px;
+      height: 26px;
+  }
+
+  .input-pill {
+      padding-right: 2.5rem;
+  }
+}
