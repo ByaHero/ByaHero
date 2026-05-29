@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../auth_passenger.php';
 
-// Use PDO-only connection helper
+// Load database connection helper
 require_once __DIR__ . '/../../../config/db.php';
 
 try {

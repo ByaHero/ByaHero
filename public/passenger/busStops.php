@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../config/db.php'; // adjust relative path if needed
 
-$pdo = db();
+$conn = db();
 
 /**
  * Compute base URL prefix so icons work on:
@@ -25,12 +25,12 @@ function h($s): string {
 $stops = [];
 $error = '';
 try {
-    $stmt = $pdo->query("
+    $result = $conn->query("
         SELECT id, name, type, location_name, location_landmark, lat, lng
         FROM busStopsTerminal
         ORDER BY FIELD(type,'terminal','bus_stop','pickup_point'), name ASC
     ");
-    $stops = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $stops = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Exception $e) {
     $error = $e->getMessage();
     $stops = [];
