@@ -230,12 +230,14 @@ if (isset($_SESSION['user_id'])) {
                         
                         <div class="mb-3">
                             <input type="email" name="email" id="signupEmail" class="form-control input-pill" placeholder="Email" required>
+                            <div class="invalid-feedback ps-3">Please enter a valid email address.</div>
                         </div>
                         
                         <div class="mb-3">
-                            <input type="tel" name="contacts" class="form-control input-pill" placeholder="Contact Number (e.g. 09123456789)" required 
+                            <input type="tel" name="contacts" id="contactsInput" class="form-control input-pill" placeholder="Contact Number (e.g. 09123456789)" required 
                                 inputmode="numeric" autocomplete="tel" maxlength="11" pattern="09[0-9]{9}"
                                 oninput="this.value = this.value.replace(/[^0-9]/g, '');">
+                            <div class="invalid-feedback ps-3">Please enter a valid Philippine mobile number (e.g., 09123456789).</div>
                         </div>
                         
                         <div class="mb-3 password-wrapper">
@@ -243,6 +245,7 @@ if (isset($_SESSION['user_id'])) {
                             <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
                                 <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
                             </button>
+                            <div class="invalid-feedback ps-3">Password must be at least 6 characters.</div>
                         </div>
                         
                         <div class="mb-2 password-wrapper">
@@ -250,6 +253,7 @@ if (isset($_SESSION['user_id'])) {
                             <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
                                 <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
                             </button>
+                            <div class="invalid-feedback ps-3">Passwords do not match.</div>
                         </div>
                         
                         <button type="submit" class="submit-pill">Sign Up</button>
@@ -355,19 +359,44 @@ if (isset($_SESSION['user_id'])) {
             const alertBox = document.getElementById('signupAlert');
             const originalText = btn.innerHTML;
 
-            const p1 = document.getElementById('passInput').value;
-            const p2 = document.getElementById('confirmInput').value;
+            // Clear previous validation states
+            form.querySelectorAll('.form-control').forEach(el => {
+                el.classList.remove('is-invalid');
+            });
+            alertBox.innerHTML = '';
 
-            if (p1 !== p2) {
-                alertBox.innerHTML = '<div class="alert alert-danger alert-small">Passwords do not match.</div>';
-                return;
+            let hasError = false;
+
+            // Validate Email
+            const emailInput = document.getElementById('signupEmail');
+            if (!emailInput.value.trim() || !emailInput.checkValidity()) {
+                emailInput.classList.add('is-invalid');
+                hasError = true;
             }
 
-            const contactVal = form.querySelector('[name="contacts"]').value.trim();
+            // Validate Contact Number
+            const contactInput = document.getElementById('contactsInput');
+            const contactVal = contactInput.value.trim();
             if (!/^(09|639)\d{9}$/.test(contactVal)) {
-                alertBox.innerHTML = '<div class="alert alert-danger alert-small">Please enter a valid Philippine mobile number (e.g., 09123456789).</div>';
-                return;
+                contactInput.classList.add('is-invalid');
+                hasError = true;
             }
+
+            // Validate Password Length
+            const passInput = document.getElementById('passInput');
+            if (passInput.value.length < 6) {
+                passInput.classList.add('is-invalid');
+                hasError = true;
+            }
+
+            // Validate Password Matching
+            const confirmInput = document.getElementById('confirmInput');
+            if (passInput.value !== confirmInput.value) {
+                confirmInput.classList.add('is-invalid');
+                hasError = true;
+            }
+
+            if (hasError) return;
 
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
