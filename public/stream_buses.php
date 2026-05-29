@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Server-Sent Events endpoint that streams bus list whenever it changes.
 // Uses short polling on the server-side to detect DB/file changes and push them to connected clients.
 
-require __DIR__ . '/../../config/db.php';
+require __DIR__ . '/../config/db.php';
 
 header('Content-Type: text/event-stream');
 header('Cache-Control: no-cache');
@@ -46,9 +46,9 @@ function extractFriendlyNameFromGeojson(array $geojson): ?string {
 }
 
 function fetchBuses(): array {
-    $pdo = db();
-    $stmt = $pdo->query("SELECT Bus_ID, code, route, current_location AS current_location_name, total_seats, seat_availability, status, updated FROM busses ORDER BY code");
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $conn = db();
+    $result = $conn->query("SELECT Bus_ID, code, route, current_location AS current_location_name, total_seats, seat_availability, status, updated FROM busses ORDER BY code");
+    $rows = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
     $out = [];
     foreach ($rows as $r) {
         $busId = isset($r['Bus_ID']) ? (int)$r['Bus_ID'] : (int)($r['id'] ?? 0);

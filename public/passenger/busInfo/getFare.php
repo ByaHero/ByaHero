@@ -5,7 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Use PDO-only connection helper
+// Load database connection helper
 require_once __DIR__ . '/../../../config/db.php';
 
 try {
