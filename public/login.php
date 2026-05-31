@@ -31,7 +31,7 @@ if ($redirectAfter !== '' && $redirectAfter[0] !== '/' && !preg_match('~^https?:
 }
 
 $roleTables = [
-    'admins' => ['role' => 'admin', 'redirect' => $baseUrl . '/public/ADMIN/admin.php'],
+    'admins' => ['role' => 'admin', 'redirect' => $baseUrl . '/public/admin/admin.php'],
     'drivers' => ['role' => 'driver', 'redirect' => $baseUrl . '/public/driver/dashboard.php'],
     'conductors' => ['role' => 'conductor', 'redirect' => $baseUrl . '/public/conductor/conductor.php'],
     'users' => ['role' => 'passenger', 'redirect' => $baseUrl . '/public/passenger/index.php'],
