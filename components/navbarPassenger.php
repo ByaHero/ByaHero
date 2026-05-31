@@ -401,6 +401,7 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
 </style>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($depth); ?>assets/css/accessibility.css">
 <script src="<?php echo htmlspecialchars($depth); ?>assets/js/accessibility.js"></script>
+<script src="<?php echo htmlspecialchars($depth); ?>assets/js/customAlerts.js?v=1"></script>
 
 <?php
 // --- TOP BAR RENDERING (PHP) ---

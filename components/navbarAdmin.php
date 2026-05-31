@@ -304,6 +304,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<script src="<?= htmlspecialchars($baseUrl) ?>/assets/js/customAlerts.js?v=1"></script>
 
 <div class="position-fixed top-0 start-0 w-100 admin-topbar-wrap">
 

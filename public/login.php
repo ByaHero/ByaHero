@@ -187,6 +187,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="../assets/js/customAlerts.js?v=1"></script>
     <style>
         /* ... Your existing CSS remains exactly the same ... */
         :root {

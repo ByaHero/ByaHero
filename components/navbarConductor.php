@@ -256,6 +256,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 </style>
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+<script src="<?= htmlspecialchars($base) ?>/assets/js/customAlerts.js?v=1"></script>
 
 <?php if ($isConductorProfile): ?>
 
