@@ -65,6 +65,7 @@ if (isset($_SESSION['user_id'])) {
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script src="../assets/js/customAlerts.js?v=1"></script>
 
     <style>
         :root {
