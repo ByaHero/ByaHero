@@ -188,19 +188,73 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       animation: waitingPulse 2.5s infinite;
     }
 
-    .user-waiting-bubble {
+    .user-waiting-chat-bubble {
       position: absolute;
-      transform: translateX(-50%) scale(0.6);
-      transform-origin: bottom center;
-      z-index: 1001;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    }
-
-    .user-marker-container.is-waiting .user-waiting-bubble {
+      background-color: white; /* Clean simple background */
+      color: #3b82f6; /* Inactive text color matching blue theme */
+      border: 1.5px solid #3b82f6; /* Simple border */
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 700;
+      white-space: nowrap;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+      pointer-events: auto;
+      cursor: pointer;
       opacity: 1;
       transform: translateX(-50%) scale(1);
+      transform-origin: bottom center;
+      transition: all 0.25s ease-in-out;
+      z-index: 1002;
+      animation: floatBubble 3s ease-in-out infinite; /* Float animation */
+    }
+
+    @keyframes floatBubble {
+      0% {
+        transform: translate(-50%, 0) scale(1);
+      }
+      50% {
+        transform: translate(-50%, -5px) scale(1.02); /* floating up slightly */
+      }
+      100% {
+        transform: translate(-50%, 0) scale(1);
+      }
+    }
+
+    .user-waiting-chat-bubble::after {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 5px;
+      border-style: solid;
+      border-color: white transparent transparent transparent;
+      transition: border-color 0.2s ease;
+    }
+
+    .user-waiting-chat-bubble::before {
+      content: '';
+      position: absolute;
+      top: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      border-width: 6.5px;
+      border-style: solid;
+      border-color: #3b82f6 transparent transparent transparent;
+      transition: border-color 0.2s ease;
+      z-index: -1;
+    }
+
+    /* Active waiting state matches the green badge theme */
+    .user-marker-container.is-waiting .user-waiting-chat-bubble {
+      color: #10b981;
+      border-color: #10b981;
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(0, 0, 0, 0.05);
+    }
+
+    .user-marker-container.is-waiting .user-waiting-chat-bubble::before {
+      border-color: #10b981 transparent transparent transparent;
     }
 
     @keyframes clickablePulse {
@@ -491,6 +545,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <script src="../../assets/js/byaheroTracking.js?v=3"></script>
   <script src="../../assets/js/passenger/passengerMap.js?v=3"></script>
   <script src="../../assets/js/passenger/passengerRideTracker.js?v=3"></script>
+  <script src="../../assets/js/passenger/byaheroTour.js?v=1"></script>
 
   <script>
     // Initialize map
@@ -521,6 +576,8 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     updateBuses();
     setTimeout(function() { if (typeof updateRoutePills === 'function') updateRoutePills(); }, 100);
     scheduleNextBusUpdate();
+
+
   </script>
 
   <!-- Waiting Modal -->
