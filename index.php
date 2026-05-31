@@ -12,7 +12,7 @@ if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
 
 switch ($_SESSION['user_role']) {
     case 'admin':
-        header('Location: public/ADMIN/admin.php', true, 302);
+        header('Location: public/admin/admin.php', true, 302);
         break;
 
     case 'driver':
