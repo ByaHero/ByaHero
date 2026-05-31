@@ -160,14 +160,20 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 
     <style>
-        :root { --bg: #f5f7fa; --blue:#0f3878; }
+        :root { 
+            --bg: #f5f7fa; 
+            --blue: #0f3878; 
+            --btn-blue: #1c5ab5;
+            --btn-red: #ef4444;
+        }
 
         body{
             background: #fff;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
             margin: 0;
             padding-bottom: 80px;
             overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
         }
 
         .main-content-wrapper{
@@ -198,7 +204,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             overflow: hidden;
             background: #fff;
             height: 300px;
-            box-shadow: 0 10px 28px rgba(15,23,42,0.10);
+            box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+            border: 1px solid #e2e8f0;
         }
         #mainMap{ width:100%; height:100%; z-index:1; }
 
@@ -213,67 +220,93 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         .btn-seat{
             width: 52px;
             height: 46px;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 0;
             background: #eef2f6;
-            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
+            box-shadow: 0 4px 10px rgba(15,23,42,0.06);
             font-size: 24px;
             font-weight: 900;
             line-height: 1;
             color: #0f172a;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .btn-seat:hover {
+            background: #e2e8f0;
+            transform: scale(1.06);
+        }
+        .btn-seat:active {
+            transform: scale(0.95);
         }
         .seats-num{
             width: 64px;
             height: 46px;
-            border-radius: 10px;
+            border-radius: 12px;
             background: #ffffff;
-            box-shadow: 0 10px 22px rgba(15,23,42,0.10);
+            box-shadow: 0 4px 12px rgba(15,23,42,0.08);
             display:flex;
             align-items:center;
             justify-content:center;
             font-size: 20px;
             font-weight: 900;
             color: #0f172a;
+            border: 1px solid #e2e8f0;
         }
 
         /* Info table card like screenshot */
         .info-card{
             margin-top: 14px;
-            background: #eef2f6;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
             border-radius: 18px;
-            padding: 14px 14px;
+            padding: 16px;
         }
         .info-item{
             display:flex;
             justify-content:space-between;
-            padding: 10px 6px;
-            border-bottom: 1px solid rgba(148,163,184,0.45);
-            font-size: 0.85rem;
+            padding: 12px 6px;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.88rem;
         }
         .info-item:last-child{ border-bottom:0; }
-        .info-label{ color:#0f172a; font-weight: 800; }
-        .info-value{ color:#0f172a; font-weight: 800; }
+        .info-label{ color: #64748b; font-weight: 600; }
+        .info-value{ color: #0f172a; font-weight: 700; }
 
         .location-link{
-            color: #0f172a;
-            font-weight: 900;
+            color: var(--btn-blue);
+            font-weight: 700;
             text-decoration: none;
         }
         .location-link:hover{ text-decoration: underline; }
 
-        /* Stop button: blue pill like screenshot */
+        /* Stop button: red/blue pill like screenshot */
         .btn-stop{
-            margin-top: 14px;
+            margin-top: 18px;
             width: 100%;
             border: 0;
             border-radius: 999px;
-            padding: 12px 16px;
+            padding: 14px 16px;
             font-weight: 900;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
             background: var(--blue);
             color: #fff;
-            box-shadow: 0 12px 26px rgba(15, 56, 120, 0.28);
+            box-shadow: 0 8px 20px rgba(15, 56, 120, 0.2);
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
         }
-        .btn-stop:hover{ background: #0b2f66; color:#fff; }
+        .btn-stop:hover{ 
+            background: #0b2f66; 
+            color:#fff; 
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(15, 56, 120, 0.3);
+        }
+        .btn-stop:active{
+            transform: translateY(0) scale(0.98);
+        }
 
         /* Remove big bottom bar; keep thin strip */
         .footer-bar{
@@ -297,64 +330,107 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         /* Hide the status select visually but keep it in DOM so JS can use it if needed */
         #statusSelect{ display:none; }
+
+        @media (min-width: 992px) {
+            .map-card-wrapper {
+                height: 480px;
+                margin-bottom: 0;
+            }
+            .main-content-wrapper {
+                padding: 24px 20px 84px;
+            }
+            .btn-stop {
+                margin-top: 0;
+            }
+        }
     </style>
 </head>
 <body>
 
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
-    <main class="main-content-wrapper">
+    <main class="main-content-wrapper container py-4">
         <h1 class="visually-hidden">ByaHero Conductor Tracker Dashboard</h1>
 
-        <div class="status-row">
-            <div class="status-pill" id="netStatus">Active</div>
-        </div>
+        <div class="row g-4 align-items-stretch">
+            <!-- Left Column: Map & Status -->
+            <div class="col-lg-7 d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; letter-spacing: 0.2px;">Live Route Navigation</h5>
+                    <div class="status-row m-0">
+                        <div class="status-pill" id="netStatus">Active</div>
+                    </div>
+                </div>
 
-        <div class="map-card-wrapper">
-            <div class="alert-area" id="alertBox"></div>
-            <div id="mainMap"></div>
-        </div>
-
-        <div class="text-center fw-bold mt-3 mb-1" style="color: #64748b; font-size: 0.85rem; letter-spacing: 0.5px; text-transform: uppercase;">Passenger Count</div>
-        <div class="seats-control" style="margin-top: 0;">
-            <button id="seatMinus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
-                <img src="../../assets/images/decrease.svg" alt="Leaving" style="width: 28px; height: 28px;">
-            </button>
-            <div id="seatsCount" class="seats-num"><?= intval($seatsTotal - $seatsAvailable) ?></div>
-            <button id="seatPlus" class="btn-seat" style="display: flex; justify-content: center; align-items: center;" type="button">
-                <img src="../../assets/images/increase.svg" alt="Boarding" style="width: 28px; height: 28px;">
-            </button>
-        </div>
-
-        <!-- statusSelect is kept but hidden; JS will update it automatically -->
-        <select id="statusSelect">
-            <option value="available">available</option>
-            <option value="on_stop">on_stop</option>
-            <option value="full">full</option>
-        </select>
-
-        <div class="info-card">
-            <div class="info-item">
-                <div class="info-label">Bus Number</div>
-                <div class="info-value"><?= htmlspecialchars((string)$busCode) ?></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Route</div>
-                <div class="info-value"><?= htmlspecialchars($busRoute ?: '-') ?></div>
-            </div>
-            <div class="info-item">
-                <div class="info-label">Location</div>
-                <div class="info-value">
-                    <a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a>
+                <div class="map-card-wrapper flex-grow-1">
+                    <div class="alert-area" id="alertBox"></div>
+                    <div id="mainMap"></div>
                 </div>
             </div>
-            <div class="info-item">
-                <div class="info-label">Last Update</div>
-                <div class="info-value" id="lastUpdate">00:00</div>
+
+            <!-- Right Column: Controls & Info Card -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 h-100" style="border-radius: 20px; background: #ffffff; border: 1px solid #e2e8f0 !important;">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <!-- Header -->
+                            <div class="text-center text-lg-start mb-4">
+                                <h4 class="fw-bold text-dark mb-1" style="font-size: 1.35rem;">Live Operation Tracker</h4>
+                                <p class="text-muted small mb-0">Manage current passenger capacity and view real-time location telemetry.</p>
+                            </div>
+
+                            <!-- Seats Controller -->
+                            <div class="mb-4 text-center">
+                                <div class="fw-bold mb-2 text-uppercase text-muted" style="font-size: 0.72rem; letter-spacing: 0.5px;">Passenger Count</div>
+                                <div class="seats-control justify-content-center">
+                                    <button id="seatMinus" class="btn-seat" type="button">
+                                        <img src="../../assets/images/decrease.svg" alt="Leaving" style="width: 28px; height: 28px;">
+                                    </button>
+                                    <div id="seatsCount" class="seats-num"><?= intval($seatsTotal - $seatsAvailable) ?></div>
+                                    <button id="seatPlus" class="btn-seat" type="button">
+                                        <img src="../../assets/images/increase.svg" alt="Boarding" style="width: 28px; height: 28px;">
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Hidden standard status select -->
+                            <select id="statusSelect">
+                                <option value="available">available</option>
+                                <option value="on_stop">on_stop</option>
+                                <option value="full">full</option>
+                            </select>
+
+                            <!-- Operational Information -->
+                            <div class="info-card mb-4">
+                                <div class="info-item">
+                                    <div class="info-label">Bus Number</div>
+                                    <div class="info-value"><?= htmlspecialchars((string)$busCode) ?></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Route</div>
+                                    <div class="info-value"><?= htmlspecialchars($busRoute ?: '-') ?></div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Location</div>
+                                    <div class="info-value text-end" style="max-width: 60%; word-break: break-word;">
+                                        <a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a>
+                                    </div>
+                                </div>
+                                <div class="info-item">
+                                    <div class="info-label">Last Update</div>
+                                    <div class="info-value" id="lastUpdate">00:00</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stop Button -->
+                        <div class="text-center w-100 mt-auto">
+                            <button id="stopBtn" class="btn-stop" type="button">Stop Tracking</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <button id="stopBtn" class="btn-stop" type="button">Stop Tracking</button>
     </main>
 
     <div class="footer-bar"></div>

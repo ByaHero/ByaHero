@@ -130,118 +130,202 @@ $pageType = 'dashboard';
     <style>
         :root {
             --brand: #2563eb;
+            --card-blue: #4e85c5;
+            --brand-dark: #0f3878;
         }
 
         body {
             background: #f8fafc;
             color: #1e293b;
-            font-family: "Segoe UI", system-ui, sans-serif;
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            -webkit-font-smoothing: antialiased;
         }
 
+        /* Control Center Header */
+        .control-header-border {
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .status-badge {
+            font-size: 0.82rem;
+            font-weight: 600;
+            background: #ffffff;
+            color: #475569;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+            transition: all 0.2s ease;
+        }
+
+        .status-pulse {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #10b981;
+            border-radius: 50%;
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+            }
+            70% {
+                transform: scale(1.1);
+                box-shadow: 0 0 0 6px rgba(16, 185, 129, 0);
+            }
+            100% {
+                transform: scale(0.9);
+                box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+            }
+        }
+
+        /* Section Categorization Headers */
+        .dashboard-section-header {
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: var(--brand-dark);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 1.25rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dashboard-section-header::before {
+            content: '';
+            display: inline-block;
+            width: 4px;
+            height: 16px;
+            background: var(--card-blue);
+            border-radius: 2px;
+        }
+
+        /* Cards Layout styling */
         .stat-card {
-            border-radius: 20px;
-            border: none;
+            background: var(--card-blue);
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.12);
             color: white;
             padding: 1.25rem;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
-            height: 160px;
+            box-shadow: 0 4px 12px rgba(15, 56, 120, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+            height: 140px;
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             overflow: hidden;
-            transition: transform 0.2s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
         .stat-card:hover {
-            transform: translateY(-3px);
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(15, 56, 120, 0.14), inset 0 1px 0 rgba(255, 255, 255, 0.35);
         }
 
         .card-total {
-            background: #4e85c5;
+            background: var(--card-blue);
         }
 
         .stat-card-title {
-            font-size: 1.1rem;
-            font-weight: 500;
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.92);
+            letter-spacing: 0.1px;
+            margin: 0;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            padding-right: 8px;
             z-index: 2;
         }
 
         .stat-card-number {
-            font-size: 3.5rem;
+            font-size: 2.8rem;
             font-weight: 700;
-            text-align: center;
+            text-align: left;
             margin-top: auto;
-            margin-bottom: 10px;
+            margin-bottom: 0px;
             z-index: 2;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            line-height: 1.1;
         }
 
         .btn-manage-pill {
             position: absolute;
-            bottom: 15px;
-            right: 15px;
-            background: white;
-            color: #333;
+            bottom: 1.25rem;
+            right: 1.25rem;
+            background: rgba(255, 255, 255, 0.14);
+            color: #ffffff;
             border-radius: 20px;
             padding: 4px 12px;
-            font-size: 0.75rem;
+            font-size: 0.72rem;
             font-weight: 700;
             text-decoration: none;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            white-space: nowrap;
             cursor: pointer;
             z-index: 3;
-            border: none;
-            transition: background 0.2s;
         }
 
         .btn-manage-pill:hover {
-            background: #f1f5f9;
-            color: var(--brand);
+            background: #ffffff;
+            color: var(--brand-dark);
+            border-color: #ffffff;
+            transform: scale(1.05);
         }
 
+        /* Bus Tracker Map Container styling */
         .card-standard {
-            border: none;
-            border-radius: 10px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-            margin-bottom: 1.5rem;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.02);
+            margin-bottom: 2rem;
             background: #fff;
+            overflow: hidden;
         }
 
         .card-header-std {
-            background: #fff;
+            background: #ffffff;
             border-bottom: 1px solid #e2e8f0;
-            font-weight: 600;
-            padding: 1rem 1.25rem;
-            border-radius: 10px 10px 0 0 !important;
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--brand-dark);
+            letter-spacing: 0.5px;
+            padding: 1.2rem 1.5rem;
         }
 
         .map-wrapper {
             height: 500px;
-            border-radius: 8px;
+            border-radius: 0;
             overflow: hidden;
-            border: 1px solid #e2e8f0;
+            border: none;
         }
 
         @media (max-width: 767px) {
             .stat-card {
-                height: 140px;
+                height: 125px;
                 padding: 1rem;
             }
 
             .stat-card-number {
-                font-size: 2.5rem;
+                font-size: 2.2rem;
             }
 
             .stat-card-title {
-                font-size: 0.95rem;
+                font-size: 0.85rem;
             }
 
             .btn-manage-pill {
+                bottom: 1rem;
+                right: 1rem;
                 padding: 3px 10px;
-                font-size: 0.7rem;
-                bottom: 12px;
-                right: 12px;
+                font-size: 0.68rem;
             }
         }
     </style>
@@ -252,118 +336,149 @@ $pageType = 'dashboard';
     <!-- Use the new navbar component -->
     <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-    <div class="container">
-        <div class="mb-4 mt-4">
-            <h2 class="fw-bold mb-0">Dashboard</h2>
+    <div class="container pb-4">
+        <!-- Control Center Header -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 mt-4 pb-3 control-header-border">
+            <div>
+                <h2 class="fw-bold mb-1 text-dark">Control Center</h2>
+                <p class="text-muted mb-0 small">Monitor and manage real-time transport fleet, personnel, and passenger analytics.</p>
+            </div>
+            <div class="mt-3 mt-md-0 d-flex align-items-center gap-2 px-3 py-2 rounded-pill status-badge">
+                <span class="status-pulse"></span>
+                <span>Live System: <strong class="text-success">Operational</strong></span>
+            </div>
         </div>
 
-        <div class="row g-3 g-lg-4 mb-4">
+        <!-- Section 1: Fleet & Operations -->
+        <div class="mb-4">
+            <h5 class="dashboard-section-header">Fleet & Operations</h5>
+            <div class="row g-3 g-lg-4">
+                <!-- Total Buses -->
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Total Buses</span>
+                        <div class="stat-card-number"><?= $totalBusesCount ?></div>
+                        <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
+                    </div>
+                </div>
 
-            <!-- Top Row: Total Buses + Active Buses + Bus Fares -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Total Buses</div>
-                    <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
-                    <div class="stat-card-number"><?= $totalBusesCount ?></div>
+                <!-- Active Buses -->
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Active Buses</span>
+                        <div class="stat-card-number"><?= $activeBusesCount ?></div>
+                        <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Operation Schedule -->
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Schedules</span>
+                        <div class="stat-card-number"><?= $scheduleCount ?></div>
+                        <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Waiting Passengers -->
+                <div class="col-6 col-md-3">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Waiting Pax</span>
+                        <div class="stat-card-number"><?= $waitingPassengersCount ?></div>
+                        <a class="btn-manage-pill" href="manageWaitingPassengers.php">Manage</a>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Active Buses</div>
-                    <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
-                    <div class="stat-card-number"><?= $activeBusesCount ?></div>
+        <!-- Section 2: Transit Personnel & Infrastructure -->
+        <div class="mb-4">
+            <h5 class="dashboard-section-header">Personnel & Infrastructure</h5>
+            <div class="row g-3 g-lg-4">
+                <!-- Drivers -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Drivers</span>
+                        <div class="stat-card-number"><?= $driversCount ?></div>
+                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Conductors -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Conductors</span>
+                        <div class="stat-card-number"><?= $conductorsCount ?></div>
+                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Bus Stops -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Bus Stops</span>
+                        <div class="stat-card-number"><?= $stopsCount ?></div>
+                        <a class="btn-manage-pill" href="manageStops.php">Manage</a>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- Bus Fares -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Bus Fares</div>
-                    <a class="btn-manage-pill" href="busFare.php">Manage</a>
-                    <div class="stat-card-number"><?= $faresCount ?></div>
+        <!-- Section 3: Passenger Experience & Support -->
+        <div class="mb-4">
+            <h5 class="dashboard-section-header">Passenger Experience</h5>
+            <div class="row g-3 g-lg-4">
+                <!-- Lost & Found -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Lost & Found</span>
+                        <div class="stat-card-number"><?= $lostFoundCount ?></div>
+                        <a class="btn-manage-pill" href="manageLostAndFound.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Reports -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Reports</span>
+                        <div class="stat-card-number"><?= $reportsCount ?></div>
+                        <a class="btn-manage-pill" href="manageReports.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Feedbacks -->
+                <div class="col-6 col-md-4">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Feedbacks</span>
+                        <div class="stat-card-number"><?= $feedbacksCount ?></div>
+                        <a class="btn-manage-pill" href="manageFeedbacks.php">Manage</a>
+                    </div>
                 </div>
             </div>
+        </div>
 
-            <!-- ADDED: Operation Schedule -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Operation Schedule</div>
-                    <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
-                    <div class="stat-card-number"><?= $scheduleCount ?></div>
+        <!-- Section 4: Revenue & Insights -->
+        <div class="mb-5">
+            <h5 class="dashboard-section-header">Revenue & Insights</h5>
+            <div class="row g-3 g-lg-4">
+                <!-- Bus Fares -->
+                <div class="col-6 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Bus Fares</span>
+                        <div class="stat-card-number"><?= $faresCount ?></div>
+                        <a class="btn-manage-pill" href="busFare.php">Manage</a>
+                    </div>
+                </div>
+
+                <!-- Analytics -->
+                <div class="col-6 col-md-6">
+                    <div class="stat-card">
+                        <span class="stat-card-title">Analytics (Boarded)</span>
+                        <div class="stat-card-number"><?= $analyticsCount ?></div>
+                        <a class="btn-manage-pill" href="analytics.php">View</a>
+                    </div>
                 </div>
             </div>
-
-            <!-- Bottom Row: Drivers + Bus Stops + Conductors -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Drivers</div>
-                    <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                    <div class="stat-card-number"><?= $driversCount ?></div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Bus Stops</div>
-                    <a class="btn-manage-pill" href="manageStops.php">Manage</a>
-                    <div class="stat-card-number"><?= $stopsCount ?></div>
-                </div>
-            </div>
-
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Conductors</div>
-                    <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
-                    <div class="stat-card-number"><?= $conductorsCount ?></div>
-                </div>
-            </div>
-
-            <!-- ADDED: Lost and Found -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Lost & Found</div>
-                    <a class="btn-manage-pill" href="manageLostAndFound.php">Manage</a>
-                    <div class="stat-card-number"><?= $lostFoundCount ?></div>
-                </div>
-            </div>
-
-            <!-- ADDED: Reports -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Reports</div>
-                    <a class="btn-manage-pill" href="manageReports.php">Manage</a>
-                    <div class="stat-card-number"><?= $reportsCount ?></div>
-                </div>
-            </div>
-
-            <!-- ADDED: Feedbacks -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Feedbacks</div>
-                    <a class="btn-manage-pill" href="manageFeedbacks.php">Manage</a>
-                    <div class="stat-card-number"><?= $feedbacksCount ?></div>
-                </div>
-            </div>
-
-            <!-- ADDED: Analytics Dashboard -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Analytics</div>
-                    <a class="btn-manage-pill" href="analytics.php">View</a>
-                    <div class="stat-card-number"><?= $analyticsCount ?></div>
-                </div>
-            </div>
-
-            <!-- ADDED: Waiting Passengers -->
-            <div class="col-6 col-lg-4">
-                <div class="stat-card card-total">
-                    <div class="stat-card-title">Waiting Passengers</div>
-                    <a class="btn-manage-pill" href="manageWaitingPassengers.php">Manage</a>
-                    <div class="stat-card-number"><?= $waitingPassengersCount ?></div>
-                </div>
-            </div>
-
         </div>
 
         <div class="card card-standard">

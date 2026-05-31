@@ -258,19 +258,25 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
             background-color: var(--btn-blue);
             color: white;
             border: none;
-            box-shadow: 0 8px 20px rgba(28, 90, 181, 0.3);
+            box-shadow: 0 8px 20px rgba(28, 90, 181, 0.25);
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
             font-weight: 900;
-            font-size: 0.85rem;
-            line-height: 1.2;
-            margin: 20px auto;
-            padding: 18px 16px;
-            transition: transform 0.1s;
+            font-size: 0.9rem;
+            letter-spacing: 0.5px;
+            margin: 15px auto;
+            padding: 16px 20px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
-        .btn-circle-start:active { transform: scale(0.95); }
+        .btn-circle-start:hover {
+            background-color: #144994;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 24px rgba(28, 90, 181, 0.35);
+        }
+        .btn-circle-start:active {
+            transform: translateY(0) scale(0.98);
+        }
 
         .footer-bar {
             position: fixed;
@@ -294,6 +300,22 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         .leaflet-marker-icon {
             pointer-events: auto;
         }
+
+        @media (min-width: 992px) {
+            .map-card-wrapper {
+                height: 480px;
+                margin-bottom: 0;
+            }
+            .action-row {
+                padding: 0;
+                margin-top: 0;
+            }
+            .btn-circle-start {
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 
@@ -301,62 +323,85 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
     <?php include __DIR__ . '/../../components/navbarConductor.php'; ?>
 
-    <main class="container px-3" style="padding-top: 5px;">
+    <main class="container py-4">
         <h1 class="visually-hidden">ByaHero Conductor Main Dashboard</h1>
         <?php if ($busError === 'bus_taken'): ?>
-            <div class="alert alert-danger mt-2 mb-2 text-center fw-bold" style="border-radius: 12px;">
+            <div class="alert alert-danger mb-3 text-center fw-bold shadow-sm" style="border-radius: 12px;">
                 That bus is already in use by another conductor.
             </div>
         <?php endif; ?>
 
-        <div class="action-row">
-            <div style="width: 32px;"></div>
+        <div class="row g-4 align-items-stretch">
+            <!-- Left Column: Map & Filter -->
+            <div class="col-lg-7 d-flex flex-column">
+                <div class="action-row justify-content-between align-items-center mb-3">
+                    <h5 class="fw-bold mb-0 text-dark d-none d-lg-block" style="font-size: 1.15rem; letter-spacing: 0.2px;">Commuter Dispatch Map</h5>
+                    <div class="dropdown ms-auto">
+                        <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><button class="dropdown-item" type="button" onclick="setMapFilter('', 'ALL ROUTES')">ALL ROUTES</button></li>
+                            <li><button class="dropdown-item" type="button" onclick="setMapFilter('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</button></li>
+                            <li><button class="dropdown-item" type="button" onclick="setMapFilter('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</button></li>
+                        </ul>
+                    </div>
+                </div>
 
-            <div class="dropdown">
-                <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                    FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('', 'ALL ROUTES')">ALL ROUTES</button></li>
-                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</button></li>
-                    <li><button class="dropdown-item" type="button" onclick="setMapFilter('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</button></li>
-                </ul>
+                <div class="map-card-wrapper flex-grow-1">
+                    <div class="alert-area" id="alertBox"></div>
+                    <div id="mainMap"></div>
+                </div>
             </div>
 
-            <div style="width: 32px;"></div> 
-        </div>
+            <!-- Right Column: Setup Panel Card -->
+            <div class="col-lg-5">
+                <div class="card shadow-sm border-0 h-100" style="border-radius: 20px; background: #ffffff;">
+                    <div class="card-body p-4 d-flex flex-column justify-content-between">
+                        <div>
+                            <div class="text-center text-lg-start mb-4">
+                                <h4 class="fw-bold text-dark mb-1" style="font-size: 1.35rem;">Route Dispatch Setup</h4>
+                                <p class="text-muted small mb-0">Select your bus and route below to initialize live passenger tracking and GPS coordinates.</p>
+                            </div>
 
-        <div class="map-card-wrapper">
-            <div class="alert-area" id="alertBox"></div>
-            <div id="mainMap"></div>
-        </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">Active Fleet Unit</label>
+                                <div class="custom-select-container" id="busSelectContainer">
+                                    <div class="custom-select-header" onclick="toggleDropdown('busSelectContainer')">
+                                        <span id="busDropdownValue" class="value-text">Select Bus</span>
+                                        <span class="chevron">v</span>
+                                    </div>
+                                    <div class="custom-select-options" id="busOptionsList"></div>
+                                    <input type="hidden" id="busSelect" value="">
+                                </div>
+                            </div>
 
-        <div class="custom-select-container" id="busSelectContainer">
-            <div class="custom-select-header" onclick="toggleDropdown('busSelectContainer')">
-                <span id="busDropdownValue" class="value-text">Select Bus</span>
-                <span class="chevron">v</span>
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-uppercase text-muted" style="letter-spacing: 0.5px; font-size: 0.72rem;">Scheduled Transit Route</label>
+                                <div class="custom-select-container" id="routeSelectContainer">
+                                    <div class="custom-select-header" onclick="toggleDropdown('routeSelectContainer')">
+                                        <span id="routeDropdownValue" class="value-text">Select Route</span>
+                                        <span class="chevron">v</span>
+                                    </div>
+                                    <div class="custom-select-options">
+                                        <!-- FIX UI: the dropdown label should show the FULL selected route text -->
+                                        <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</div>
+                                        <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</div>
+                                    </div>
+                                    <input type="hidden" id="routeSelect" value="">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center w-100 mt-auto">
+                            <button id="startBtn" class="btn-circle-start w-100">
+                                START TRACKING
+                            </button>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="custom-select-options" id="busOptionsList"></div>
-            <input type="hidden" id="busSelect" value="">
         </div>
-
-        <div class="custom-select-container" id="routeSelectContainer">
-            <div class="custom-select-header" onclick="toggleDropdown('routeSelectContainer')">
-                <span id="routeDropdownValue" class="value-text">Select Route</span>
-                <span class="chevron">v</span>
-            </div>
-            <div class="custom-select-options">
-                <!-- FIX UI: the dropdown label should show the FULL selected route text -->
-                <div class="custom-option" data-value="LAUREL - TANAUAN" onclick="selectRoute('LAUREL - TANAUAN', 'LAUREL - TANAUAN')">LAUREL - TANAUAN</div>
-                <div class="custom-option" data-value="TANAUAN - LAUREL" onclick="selectRoute('TANAUAN - LAUREL', 'TANAUAN - LAUREL')">TANAUAN - LAUREL</div>
-            </div>
-            <input type="hidden" id="routeSelect" value="">
-        </div>
-
-        <button id="startBtn" class="btn-circle-start">
-            START<br>TRACKING
-        </button>
-
     </main>
 
     <div class="footer-bar"></div>

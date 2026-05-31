@@ -16,8 +16,8 @@ if (!isset($baseUrl)) {
   class="bottom-sheet bg-white rounded-top-4 shadow-lg d-flex flex-column position-absolute start-0 w-100 sheet-transition"
   style="bottom: 60px; height: 35%; z-index: 1050;">
 
-  <div class="position-absolute w-100" style="top: -60px; z-index: 1060;">
-    <div class="position-absolute end-0 me-3">
+  <div id="my-location-btn-container" class="position-absolute w-100" style="top: -60px; z-index: 1060;">
+    <div class="my-location-btn-wrap position-absolute end-0 me-3">
       <button type="button" onclick="centerToMyLocation()"
         class="btn bg-white rounded-circle shadow border-0 d-flex align-items-center justify-content-center"
         style="width: 48px; height: 48px;" aria-label="Center to my location" title="Center to my location">
