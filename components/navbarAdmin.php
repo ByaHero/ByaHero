@@ -13,7 +13,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
-$defaultBack = $depth . 'public/ADMIN/admin.php';
+$defaultBack = $depth . 'public/admin/admin.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
 // 2) Base URL (for assets, works on localhost subfolder + InfinityFree)
@@ -70,7 +70,7 @@ $isDashboard = (($adminPageType ?: 'dashboard') === 'dashboard');
 $req = $_SERVER['REQUEST_URI'] ?? '';
 $isAdminProfile =
   (($adminPageType ?? '') === 'adminProfile') ||
-  (strpos($req, '/public/ADMIN/adminProfile.php') !== false) ||
+  (strpos($req, '/public/admin/adminProfile.php') !== false) ||
   (strpos($req, 'adminProfile.php') !== false);
 
 // On other admin pages: show X button (close)
@@ -81,7 +81,7 @@ $logoUrl = $baseUrl . '/assets/images/topBarLogo.svg';
 $hamburgerImg = $baseUrl . '/assets/images/hamburger.png';
 
 // Menu links
-$profileUrl = $baseUrl . '/public/ADMIN/adminProfile.php';
+$profileUrl = $baseUrl . '/public/admin/adminProfile.php';
 $logoutUrl  = $baseUrl . '/public/logout.php';
 
 // Menu icons (same as conductor menu)

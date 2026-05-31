@@ -21,7 +21,7 @@ if ($_SESSION['user_role'] !== 'conductor') {
     $role = (string)$_SESSION['user_role'];
 
     if ($role === 'admin') {
-        header('Location: ../../ADMIN/admin.php');
+        header('Location: ../../admin/admin.php');
         exit;
     }
     if ($role === 'driver') {

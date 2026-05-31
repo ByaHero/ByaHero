@@ -30,7 +30,7 @@ if (($_SESSION['user_role'] ?? '') !== 'passenger') {
     $redirectPath = $baseUrl . '/public/login.php'; // Default
 
     if ($role === 'admin') {
-        $redirectPath = $baseUrl . '/public/ADMIN/admin.php';
+        $redirectPath = $baseUrl . '/public/admin/admin.php';
     } elseif ($role === 'conductor') {
         $redirectPath = $baseUrl . '/public/conductor/conductor.php';
     } elseif ($role === 'driver') {
