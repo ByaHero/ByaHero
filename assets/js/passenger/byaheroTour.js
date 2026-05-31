@@ -301,7 +301,12 @@ class ByaheroTour {
         const isLast = this.currentStep === this.steps.length - 1;
         const content = document.getElementById('tour-popover-content') || this.popover;
         content.innerHTML = `
-            <h5>${step.title}</h5>
+            <h5>
+                <span>${step.title}</span>
+                <span style="font-size: 0.75rem; font-weight: 700; color: #475569; margin-left: auto; background: #f1f5f9; padding: 2px 8px; border-radius: 6px; border: 1px solid #e2e8f0; font-family: system-ui, -apple-system, sans-serif;">
+                    ${this.currentStep + 1}/${this.steps.length}
+                </span>
+            </h5>
             <p>${step.description}</p>
             <div class="tour-buttons">
                 <button class="btn btn-sm btn-link text-secondary p-0 text-decoration-none fw-bold" onclick="window._byaheroTourInstance.stop()">Skip</button>
@@ -366,6 +371,44 @@ document.addEventListener('DOMContentLoaded', () => {
     if (urlParams.get('start_tour') === 'true') {
         const stepIndex = parseInt(urlParams.get('step') || '0', 10);
         
+        // Mock Location for the Tour if we are on the index page and no location is currently available
+        if (window.location.pathname.toLowerCase().includes('/public/passenger/index.php')) {
+            const hasLocation = window.userLocation && window.locationPermissionGranted;
+            
+            if (!hasLocation) {
+                window.locationPermissionGranted = true;
+                window.userLocation = { lat: 14.0905, lng: 121.0550 };
+            }
+            
+            const checkMapInterval = setInterval(() => {
+                if (window._map) {
+                    clearInterval(checkMapInterval);
+                    
+                    if (window.userLocation) {
+                        const targetLat = window.userLocation.lat;
+                        const targetLng = window.userLocation.lng;
+                        
+                        if (!window.userMarker) {
+                            window.userMarker = L.marker([targetLat, targetLng], { 
+                                icon: window.getUserIcon ? window.getUserIcon() : L.divIcon({className: 'user-marker-container'}), 
+                                zIndexOffset: 100 
+                            }).addTo(window._map);
+                            if (window.bindUserMarker) window.bindUserMarker(window.userMarker);
+                        } else {
+                            window.userMarker.setLatLng([targetLat, targetLng]);
+                        }
+                        
+                        // Auto recenter map to the location
+                        window._map.setView([targetLat, targetLng], 15);
+                    }
+                    
+                    if (window.updateUserMarkerWaitingStyle) window.updateUserMarkerWaitingStyle();
+                }
+            }, 100);
+            
+            setTimeout(() => clearInterval(checkMapInterval), 5000);
+        }
+        
         const steps = [
             {
                 title: 'Welcome to ByaHero!',
@@ -418,12 +461,76 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             {
+                element: '.user-marker-container',
+                title: '📍 Commuter Location',
+                description: 'Focuses on your avatar marker on the map (loading simulated mockup coordinates if your live location is currently unavailable).',
+                pagePath: '/public/passenger/index.php',
+                onBefore: function() {
+                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    if (window._map && window.userLocation) {
+                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                    }
+                }
+            },
+            {
+                element: '.user-waiting-chat-bubble',
+                title: '🚌 Commuter Waiting Status',
+                description: 'Tap on your blue avatar marker or the floating "Waiting" bubble on the map to open the pickup status dialog.',
+                pagePath: '/public/passenger/index.php',
+                onBefore: function() {
+                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    if (window._map && window.userLocation) {
+                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                    }
+                    const modalEl = document.getElementById('waitingModal');
+                    if (modalEl) {
+                        const instance = bootstrap.Modal.getInstance(modalEl);
+                        if (instance) instance.hide();
+                    }
+                }
+            },
+            {
+                element: '#waitingModal .modal-content',
+                title: '🚌 Set Waiting Status',
+                description: 'Declare that you are actively waiting at your current location so incoming bus drivers can see your coordinates and prepare for pickup.',
+                pagePath: '/public/passenger/index.php',
+                onBefore: function() {
+                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    if (window._map && window.userLocation) {
+                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                    }
+                    if (typeof window.openWaitingModal === 'function') {
+                        window.openWaitingModal();
+                    }
+                }
+            },
+            {
+                element: '#btnSetWaiting',
+                title: '🚌 Broadcast Status',
+                description: 'Tap this primary button to broadcast your active waiting coordinates instantly to all oncoming bus drivers.',
+                pagePath: '/public/passenger/index.php',
+                onBefore: function() {
+                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    if (window._map && window.userLocation) {
+                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                    }
+                    if (typeof window.openWaitingModal === 'function') {
+                        window.openWaitingModal();
+                    }
+                }
+            },
+            {
                 element: '.sos-dome',
                 title: '🚨 Emergency SOS Indicator',
                 description: 'This is the Emergency SOS button. Tap it in case of danger. Let\'s open the Emergency Center to see how it works.',
                 pagePath: '/public/passenger/index.php',
                 onBefore: function() {
                     if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    const modalEl = document.getElementById('waitingModal');
+                    if (modalEl) {
+                        const instance = bootstrap.Modal.getInstance(modalEl);
+                        if (instance) instance.hide();
+                    }
                 }
             },
             {
