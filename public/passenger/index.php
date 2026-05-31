@@ -441,8 +441,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     (function() {
       var PROJECT_FOLDER = 'Byahero-Prototype-v3';
       var path = window.location.pathname || '/';
-      var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/') ?
-        '/' + PROJECT_FOLDER :
+      var match = path.match(new RegExp('^/([^/]+)/', 'i'));
+      var base = (match && match[1].toLowerCase() === PROJECT_FOLDER.toLowerCase()) ?
+        '/' + match[1] :
         '';
       window.PROJECT_BASE = base;
       window.APP_BASE_URL = base;
@@ -507,6 +508,27 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     // --------------------- USER LOCATION ---------------------
     var userLocation = null;
+    var lastKnownLocation = null;
+
+    // Restore last known location from localStorage for instant map marker display
+    (function() {
+      try {
+        var savedLat = localStorage.getItem('byahero_last_lat');
+        var savedLng = localStorage.getItem('byahero_last_lng');
+        var savedLocName = localStorage.getItem('byahero_last_locName');
+        if (savedLat && savedLng) {
+          var lat = parseFloat(savedLat);
+          var lng = parseFloat(savedLng);
+          if (!isNaN(lat) && !isNaN(lng)) {
+            userLocation = { lat: lat, lng: lng };
+            lastKnownLocation = { lat: lat, lng: lng, locName: savedLocName || '' };
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to restore last known location:', e);
+      }
+    })();
+
     var userProfilePic = <?= json_encode($currentUser['profile_picture'] ?? null) ?>;
     var rawUserName = <?= json_encode($currentUser['name'] ?? $currentUser['email'] ?? 'Guest') ?>;
     var userInitial = (typeof rawUserName === 'string' && rawUserName.length > 0) ? rawUserName.charAt(0).toUpperCase() : '?';
@@ -643,6 +665,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     window.bgWatcherId = null;
     var selectedRoute = '';
     var locationPermissionGranted = true;
+
+    // Place user marker immediately on load if location was restored from localStorage
+    if (userLocation && locationPermissionGranted) {
+        userMarker = L.marker([userLocation.lat, userLocation.lng], {
+            icon: getUserIcon(),
+            zIndexOffset: 100
+        }).addTo(map);
+        bindUserMarker(userMarker);
+    }
 
     var AVG_SPEED_MPS = (30 * 1000) / 3600;
     var MAX_DISTANCE_METERS = 5000;
@@ -782,6 +813,15 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
         userLocation = { lat, lng };
         lastKnownLocation = { lat, lng, locName };
+
+        // Save to localStorage for instant restore on reload/back
+        try {
+            localStorage.setItem('byahero_last_lat', lat);
+            localStorage.setItem('byahero_last_lng', lng);
+            localStorage.setItem('byahero_last_locName', locName);
+        } catch (e) {
+            console.warn('Failed to save last known location:', e);
+        }
 
         if (!userMarker) {
             userMarker = L.marker([lat, lng], {

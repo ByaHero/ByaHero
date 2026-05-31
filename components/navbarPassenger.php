@@ -47,6 +47,20 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 // Optional: if a page provides this variable, it can force-hide dot without breaking anything
 $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNotifications : false;
 
+$desktopNavLinksHtml = '
+  <div class="d-none d-lg-flex align-items-center gap-3 ms-auto me-3" id="desktop-nav-links">
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/index.php" class="desktop-nav-link ' . (basename($_SERVER['PHP_SELF']) === 'index.php' ? 'active' : '') . '">
+      <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">map</span>Live Map
+    </a>
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/sos/sos.php" class="desktop-nav-link ' . (basename($_SERVER['PHP_SELF']) === 'sos.php' ? 'active' : '') . '">
+      <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">emergency</span>SOS
+    </a>
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/busInfo/busInfo.php" class="desktop-nav-link ' . (basename($_SERVER['PHP_SELF']) === 'busInfo.php' ? 'active' : '') . '">
+      <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">directions_bus</span>Bus Info
+    </a>
+  </div>
+';
+
 /**
  * If caller didn't set $hasUnreadNotifications, compute it here (global navbar behavior).
  * This makes the alert icon work on ALL pages that include this navbar.
@@ -303,6 +317,87 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   .nav-item-btn:not(.active-nav) img {
     opacity: 0.6;
   }
+
+  /* --- Premium Responsive Desktop Design --- */
+  @media (min-width: 992px) {
+    /* Topbar adjustments */
+    .passenger-topbar-sticky {
+      height: 60px !important;
+      padding: 0 24px !important;
+    }
+    
+    /* Navigation links in topbar */
+    .desktop-nav-link {
+      color: rgba(255, 255, 255, 0.75) !important;
+      text-decoration: none !important;
+      font-size: 0.9rem !important;
+      font-weight: 700 !important;
+      padding: 8px 16px !important;
+      border-radius: 20px !important;
+      transition: all 0.2s ease !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      border: 1px solid transparent !important;
+    }
+    .desktop-nav-link:hover {
+      color: #ffffff !important;
+      background-color: rgba(255, 255, 255, 0.1) !important;
+    }
+    .desktop-nav-link.active {
+      color: #ffffff !important;
+      background-color: rgba(255, 255, 255, 0.2) !important;
+      border-color: rgba(255, 255, 255, 0.25) !important;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+    }
+    
+    /* Hide bottom navigation completely on desktop */
+    .bottom-nav {
+      display: none !important;
+    }
+    body {
+      padding-bottom: 0 !important;
+    }
+    
+    /* Float bottom sheet as a sidebar */
+    #bottomSheet {
+      left: 24px !important;
+      top: 84px !important;
+      bottom: 24px !important;
+      width: 400px !important;
+      height: calc(100vh - 108px) !important;
+      border-radius: 20px !important;
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+      transform: none !important;
+      transition: none !important;
+      z-index: 1050 !important;
+    }
+    
+    /* Hide the mobile drag handle */
+    .sheet-drag-handle {
+      display: none !important;
+    }
+    
+    /* Reposition "Center to my location" button to bottom-right of screen */
+    #my-location-btn-container {
+      position: fixed !important;
+      bottom: 24px !important;
+      right: 24px !important;
+      top: auto !important;
+      left: auto !important;
+      width: auto !important;
+      z-index: 1060 !important;
+    }
+    .my-location-btn-wrap {
+      position: relative !important;
+      right: auto !important;
+      margin: 0 !important;
+    }
+    
+    /* Constrain the offcanvas menu width on desktop */
+    .offcanvas-end {
+      width: 400px !important;
+    }
+  }
 </style>
 <link rel="stylesheet" href="<?php echo htmlspecialchars($depth); ?>assets/css/accessibility.css">
 <script src="<?php echo htmlspecialchars($depth); ?>assets/js/accessibility.js"></script>
@@ -313,26 +408,32 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
 // CASE A: NOTIFICATIONS (Custom Design)
 if (isset($pageType) && $pageType === 'Notifications'): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 56px;">
-    <a href="<?php echo $defaultBack; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-      <span class="material-symbols-rounded text-white">close</span>
-    </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
+    <div class="d-flex align-items-center">
+      <a href="<?php echo $defaultBack; ?>"
+        class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+        <span class="material-symbols-rounded text-white">close</span>
+      </a>
+      <h6 class="h5 mb-0 text-white fw-normal ms-2">Notifications</h6>
+    </div>
+    <?php echo $desktopNavLinksHtml; ?>
   </div>
 
   <?php
   // CASE B: SOS
 elseif (isset($pageType) && $pageType === 'sos'): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
-    <a href="<?php echo $backTarget; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-      <span class="material-symbols-rounded text-white">arrow_back</span>
-    </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
+    <div class="d-flex align-items-center">
+      <a href="<?php echo $backTarget; ?>"
+        class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+        <span class="material-symbols-rounded text-white">arrow_back</span>
+      </a>
+      <h6 class="h5 mb-0 text-white fw-normal ms-2">Emergency Center</h6>
+    </div>
+    <?php echo $desktopNavLinksHtml; ?>
   </div>
 
   <?php
@@ -359,13 +460,16 @@ elseif (isset($pageType) && $pageType === 'settings'):
   $displayTitle = $pageTitle ?? ($settingsTitles[$currentFile] ?? 'Settings');
   ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
-    <a href="<?php echo $defaultBack; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-      <span class="material-symbols-rounded text-white">arrow_back</span>
-    </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
+    <div class="d-flex align-items-center">
+      <a href="<?php echo $defaultBack; ?>"
+        class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+        <span class="material-symbols-rounded text-white">arrow_back</span>
+      </a>
+      <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
+    </div>
+    <?php echo $desktopNavLinksHtml; ?>
   </div>
 
   <?php
@@ -383,26 +487,32 @@ elseif (isset($pageType) && $pageType === 'profile'):
   $displayTitle = $profileTitles[$currentFile] ?? 'Profile';
   ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
-    <a href="<?php echo $backTarget; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-      <span class="material-symbols-rounded text-white">arrow_back</span>
-    </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
+    <div class="d-flex align-items-center">
+      <a href="<?php echo $backTarget; ?>"
+        class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+        <span class="material-symbols-rounded text-white">arrow_back</span>
+      </a>
+      <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($displayTitle); ?></h6>
+    </div>
+    <?php echo $desktopNavLinksHtml; ?>
   </div>
 
   <?php
   // CASE E: GENERIC PAGE
 elseif (isset($pageTitle)): ?>
   <div
-    class="bg-primary d-flex align-items-center rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
+    class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
-    <a href="<?php echo $backTarget; ?>"
-      class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-      <span class="material-symbols-rounded text-white">arrow_back</span>
-    </a>
-    <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
+    <div class="d-flex align-items-center">
+      <a href="<?php echo $backTarget; ?>"
+        class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+        <span class="material-symbols-rounded text-white">arrow_back</span>
+      </a>
+      <h6 class="h5 mb-0 text-white fw-normal ms-2"><?php echo htmlspecialchars($pageTitle); ?></h6>
+    </div>
+    <?php echo $desktopNavLinksHtml; ?>
   </div>
 
   <?php
@@ -419,6 +529,8 @@ else: ?>
     <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="30" class="topbar-wordmark">
 
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
+      <?php echo $desktopNavLinksHtml; ?>
+
       <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;">
@@ -821,13 +933,17 @@ else: ?>
       document.querySelector('[data-sos]');
 
     menu.addEventListener('show.bs.offcanvas', () => {
-      if (bottomSheet) bottomSheet.classList.add('d-none');
-      if (sosBtn) sosBtn.classList.add('d-none');
+      if (window.innerWidth < 992) {
+        if (bottomSheet) bottomSheet.classList.add('d-none');
+        if (sosBtn) sosBtn.classList.add('d-none');
+      }
     });
 
     menu.addEventListener('hidden.bs.offcanvas', () => {
-      if (bottomSheet) bottomSheet.classList.remove('d-none');
-      if (sosBtn) sosBtn.classList.remove('d-none');
+      if (window.innerWidth < 992) {
+        if (bottomSheet) bottomSheet.classList.remove('d-none');
+        if (sosBtn) sosBtn.classList.remove('d-none');
+      }
     });
   });
 </script>

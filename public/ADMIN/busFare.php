@@ -508,20 +508,24 @@ $backLink = 'admin.php';
                     <h6 class="fw-bold m-0" style="color: #1c5ab5;">
                         Route Fare Matrix
                     </h6>
-                    <form class="d-flex gap-2" method="GET">
-                        <select class="form-select form-select-sm w-auto fw-bold" name="origin" onchange="this.form.submit()">
-                            <?php foreach ($originsList as $o): ?>
-                                <option value="<?= $o['stop_id'] ?>" <?= $o['stop_id'] == $filterOrigin ? 'selected' : '' ?>>
-                                    From: <?= h($o['location_name']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <input class="form-control form-control-sm" name="q" value="<?= h($q) ?>" placeholder="Search destination...">
-                        <button class="btn btn-sm btn-primary pill-btn px-3">Filter</button>
+                    <form class="d-flex flex-wrap gap-2 w-100" method="GET">
+                        <div class="flex-grow-1" style="min-width: 160px;">
+                            <select class="form-select form-select-sm w-100 fw-bold" name="origin" onchange="this.form.submit()">
+                                <?php foreach ($originsList as $o): ?>
+                                    <option value="<?= $o['stop_id'] ?>" <?= $o['stop_id'] == $filterOrigin ? 'selected' : '' ?>>
+                                        From: <?= h($o['location_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="d-flex gap-2 flex-grow-1" style="min-width: 200px;">
+                            <input class="form-control form-control-sm flex-grow-1" name="q" value="<?= h($q) ?>" placeholder="Search destination...">
+                            <button class="btn btn-sm btn-primary pill-btn px-3">Filter</button>
+                        </div>
                     </form>
                 </div>
 
-                    <div class="table-responsive" style="border: 2px solid #000; border-radius: 4px; background: #fff; overflow: hidden;">
+                    <div class="table-responsive" style="border: 2px solid #000; border-radius: 4px; background: #fff; overflow-x: auto; -webkit-overflow-scrolling: touch;">
                         <table class="table table-sm table-bordered mb-0 align-middle">
                             <thead>
                                 <tr>

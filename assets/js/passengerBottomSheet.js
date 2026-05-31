@@ -24,8 +24,9 @@
 
   var PROJECT_FOLDER = 'Byahero-Prototype-v3';
   var path = window.location.pathname || '/';
-  var base = path.toLowerCase().startsWith('/' + PROJECT_FOLDER.toLowerCase() + '/')
-    ? '/' + PROJECT_FOLDER
+  var match = path.match(new RegExp('^/([^/]+)/', 'i'));
+  var base = (match && match[1].toLowerCase() === PROJECT_FOLDER.toLowerCase())
+    ? '/' + match[1]
     : '';
 
   window.PROJECT_BASE = base;
