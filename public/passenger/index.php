@@ -157,6 +157,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     .user-marker-container {
       position: relative;
+      cursor: pointer !important;
     }
 
     .user-avatar-circle {
@@ -170,13 +171,20 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       border-radius: 50%;
       font-size: 18px;
       font-weight: bold;
-      box-shadow: 0 0 0 3px #3b82f6, 0 4px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0.45), 0 4px 6px rgba(0,0,0,0.3);
       overflow: hidden;
-      transition: box-shadow 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      cursor: pointer !important;
+      animation: clickablePulse 2.5s infinite;
+    }
+
+    .user-avatar-circle:hover {
+      transform: scale(1.08);
+      box-shadow: 0 0 0 3px #3b82f6, 0 0 0 12px rgba(59, 130, 246, 0.25), 0 6px 12px rgba(0,0,0,0.35);
     }
 
     .user-marker-container.is-waiting .user-avatar-circle {
-      box-shadow: 0 0 0 3px #10b981, 0 0 0 10px rgba(16, 185, 129, 0.4), 0 4px 6px rgba(0,0,0,0.3);
+      box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.45), 0 4px 6px rgba(0,0,0,0.3);
       animation: waitingPulse 2.5s infinite;
     }
 
@@ -195,14 +203,40 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       transform: translateX(-50%) scale(1);
     }
 
-    @keyframes waitingPulse {
+    @keyframes clickablePulse {
       0% {
-        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.5), 0 4px 6px rgba(0,0,0,0.3);
+        transform: scale(1);
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0.45), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      50% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 12px rgba(59, 130, 246, 0.25), 0 4px 6px rgba(0,0,0,0.3);
       }
       70% {
-        box-shadow: 0 0 0 3px #10b981, 0 0 0 12px rgba(16, 185, 129, 0), 0 4px 6px rgba(0,0,0,0.3);
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 24px rgba(59, 130, 246, 0), 0 4px 6px rgba(0,0,0,0.3);
       }
       100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0), 0 4px 6px rgba(0,0,0,0.3);
+      }
+    }
+
+    @keyframes waitingPulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.5), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      50% {
+        transform: scale(1.06);
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 12px rgba(16, 185, 129, 0.3), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      70% {
+        transform: scale(1.02);
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 24px rgba(16, 185, 129, 0), 0 4px 6px rgba(0,0,0,0.3);
+      }
+      100% {
+        transform: scale(1);
         box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0), 0 4px 6px rgba(0,0,0,0.3);
       }
     }
