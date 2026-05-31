@@ -754,6 +754,7 @@ else: ?>
 </script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_firebase_bridge.js?v=<?= time() ?>"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_back_button.js?v=<?= time() ?>"></script>
+<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/passenger/byaheroTour.js?v=<?= time() ?>"></script>
 
 <script>
   (function () {
