@@ -157,7 +157,19 @@ class ByaheroTour {
             if (!this.popover) return;
             
             const isNoTarget = !step.element;
-            const target = isNoTarget ? null : document.querySelector(step.element);
+            let target = null;
+            if (!isNoTarget) {
+                const els = document.querySelectorAll(step.element);
+                for (let el of els) {
+                    if (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0) {
+                        target = el;
+                        break;
+                    }
+                }
+                if (!target && els.length > 0) {
+                    target = els[0];
+                }
+            }
 
             // Handle Welcome/Success steps without a screen target
             if (isNoTarget || !target) {
@@ -520,7 +532,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             },
             {
-                element: '.sos-dome',
+                element: '.sos-dome, #desktop-nav-links a[href*="sos.php"]',
                 title: '🚨 Emergency SOS Indicator',
                 description: 'This is the Emergency SOS button. Tap it in case of danger. Let\'s open the Emergency Center to see how it works.',
                 pagePath: '/public/passenger/index.php',
@@ -552,7 +564,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 pagePath: '/public/passenger/notifications.php'
             },
             {
-                element: '#nav-info',
+                element: '#nav-info, #desktop-nav-links a[href*="busInfo.php"]',
                 title: 'ℹ️ Bus Information Tab',
                 description: 'This is the Bus Info tab. It lists scheduled fares, operator numbers, and timetables. Let\'s take a look.',
                 pagePath: '/public/passenger/index.php'
