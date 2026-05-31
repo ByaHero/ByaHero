@@ -7,7 +7,7 @@ error_reporting(E_ALL);
 require __DIR__ . '/../../config/db.php';
 session_start();
 
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/ADMIN/busFare.php';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/busFare.php';
 $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 

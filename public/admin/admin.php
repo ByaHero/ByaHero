@@ -14,8 +14,8 @@ session_start();
  * - Localhost: /Byahero-prototype-v3
  * - InfinityFree: ""  (htdocs is web root)
  */
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/ADMIN/admin.php';
-$publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/'); // e.g. /Byahero-prototype-v3/public/ADMIN
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/admin.php';
+$publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/'); // e.g. /Byahero-prototype-v3/public/admin
 $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';      // e.g. /Byahero-prototype-v3 OR ""
 
 // --- AUTH ---

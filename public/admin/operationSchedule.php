@@ -12,7 +12,7 @@ session_start();
  * - Localhost: /Byahero-prototype-v3
  * - InfinityFree: ""  (htdocs is web root)
  */
-$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/ADMIN/operationSchedule.php';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/operationSchedule.php';
 $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 

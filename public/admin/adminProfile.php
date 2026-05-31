@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../config/db.php';
  * - $_SESSION['user_role']  (admin|driver|conductor|user)
  */
 if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
-    header('Location: ../login.php?redirect=ADMIN/adminProfile.php');
+    header('Location: ../login.php?redirect=admin/adminProfile.php');
     exit;
 }
 
