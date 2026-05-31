@@ -437,6 +437,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../assets/js/byaheroTracking.js?v=3"></script>
 
     <script>
     // --- Variables & helpers ---
@@ -451,7 +452,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     
     let map = null, marker = null, watchId = null, lastNetworkSync = 0, lastLocationUpdateAt = 0, lastKnownLocation = null;
     let heartbeatInterval = null;
-    let routeFeatures = [];
+    // routeFeatures is imported globally from byaheroTracking.js
     const SYNC_INTERVAL = 1000;
     const el = id => document.getElementById(id);
     const alertBox = el('alertBox');
@@ -478,38 +479,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     let lastActionTime = 0;
     const SYNC_DEBOUNCE_MS = 3000; // Increased to 3s for InfinityFree stability
 
-    /**
-     * Standardized POST helper. 
-     * Uses CapacitorHttp (Native side) if available to bypass WebView background throttling.
-     */
-    async function safePost(relativeUrl, payload) {
-        const url = new URL(relativeUrl, window.location.href).href;
-        try {
-            if (window.Capacitor && window.Capacitor.Plugins.CapacitorHttp) {
-                const res = await window.Capacitor.Plugins.CapacitorHttp.post({
-                    url,
-                    headers: { 
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json, text/plain, */*',
-                        'User-Agent': navigator.userAgent,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    data: payload
-                });
-                return res.data;
-            } else {
-                const res = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                return await res.json();
-            }
-        } catch(e) {
-            console.error('safePost error:', e);
-            return { success: false, error: e.message };
-        }
-    }
+    // safePost is imported globally from byaheroTracking.js
 
     function showAlert(message, type = 'info') {
         const bsType = (type === 'danger') ? 'danger' : 'primary';
@@ -529,56 +499,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         try { map.panTo(latlng); } catch(e){}
     }
 
-    async function loadRouteFeatures() {
-        try {
-            const res = await fetch('../map_data.php', { cache: 'no-store' });
-            const json = await res.json();
-            if (json && Array.isArray(json.features)) {
-                routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));
-            }
-        } catch (e) { }
-    }
-
-    function pointInRing(x, y, ring) {
-      let inside = false;
-      for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-        const xi = ring[i][0], yi = ring[i][1];
-        const xj = ring[j][0], yj = ring[j][1];
-        const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
-        if (intersect) inside = !inside;
-      }
-      return inside;
-    }
-
-    function resolveLocationName(lat, lng) {
-      if (!routeFeatures || routeFeatures.length === 0) return null;
-      for (const f of routeFeatures) {
-        if (!f.geometry) continue;
-        if (f.geometry.type === 'Polygon' && Array.isArray(f.geometry.coordinates) && f.geometry.coordinates[0]) {
-          if (pointInRing(lng, lat, f.geometry.coordinates[0])) {
-            return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
-          }
-        }
-        if (f.geometry.type === 'MultiPolygon' && Array.isArray(f.geometry.coordinates)) {
-          for (const poly of f.geometry.coordinates) {
-            if (poly && poly[0] && pointInRing(lng, lat, poly[0])) {
-              return (f.properties && (f.properties['Current Location'] || f.properties.name)) || null;
-            }
-          }
-        }
-      }
-      return null;
-    }
-
-    function distanceMeters(lat1, lon1, lat2, lon2) {
-      const R = 6371000;
-      const dLat = (lat2 - lat1) * Math.PI / 180;
-      const dLon = (lon2 - lon1) * Math.PI / 180;
-      const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-        Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-        Math.sin(dLon / 2) * Math.sin(dLon / 2);
-      return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    }
+    // Geofencing & math utils are imported globally from byaheroTracking.js
 
     function autoComputeStatus(currentLat, currentLng) {
         const now = Date.now();
@@ -741,52 +662,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         showAlert('Web Tracking Started', 'primary');
     }
 
-    // --- SCREEN WAKE LOCK (prevents Doze from pausing the WebView JS thread) ---
-    let wakeLock = null;
-    async function acquireWakeLock() {
-        if (!('wakeLock' in navigator)) return;
-        try {
-            wakeLock = await navigator.wakeLock.request('screen');
-            wakeLock.addEventListener('release', () => {
-                // Re-acquire when screen wakes up (e.g. user picks up phone)
-                if (document.visibilityState === 'visible') acquireWakeLock();
-            });
-        } catch (e) { }
-    }
-    async function releaseWakeLock() {
-        if (wakeLock) { try { await wakeLock.release(); } catch(e){} wakeLock = null; }
-    }
+    // wakeLock variables and acquire/release functions are imported globally from byaheroTracking.js
 
-    // --- THE AUTOPLAY BYPASS ---
-    let keepAliveAudio = null;
-    function startKeepAliveAudio() {
-        // Only run on mobile/Capacitor, not desktop web browsers
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        if (!isMobile) return;
-
-        if (!keepAliveAudio) {
-            // A valid 2-second silent WAV to avoid infinite loop CPU thrashing on 0-duration headers
-            keepAliveAudio = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAgAAAA');
-            keepAliveAudio.loop = true;
-            keepAliveAudio.volume = 0.001; // Near-silent but non-zero keeps audio session alive
-            keepAliveAudio.play().catch(e => {
-                const playOnInteraction = () => {
-                    if (keepAliveAudio) keepAliveAudio.play().catch(()=>{});
-                    document.removeEventListener('touchstart', playOnInteraction);
-                    document.removeEventListener('click', playOnInteraction);
-                };
-                document.addEventListener('touchstart', playOnInteraction);
-                document.addEventListener('click', playOnInteraction);
-            });
-        }
-    }
-
-    function stopKeepAliveAudio() {
-        if (keepAliveAudio) {
-            keepAliveAudio.pause();
-            keepAliveAudio = null;
-        }
-    }
+    // keepAliveAudio variables and start/stop functions are imported globally from byaheroTracking.js
 
     // --- VISIBILITY CHANGE: restart tracking if Android killed the watcher while screen was off ---
     const _onVisibilityChange = async () => {
