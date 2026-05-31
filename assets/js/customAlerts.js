@@ -92,6 +92,28 @@
     body.appendChild(iconContainer);
     body.appendChild(title);
     body.appendChild(msgElement);
+
+    if (alertContext.theme === 'transit') {
+      const ratingBanner = document.createElement('div');
+      ratingBanner.className = 'byahero-alert-rating-banner';
+      ratingBanner.innerHTML = `
+        <div class="byahero-alert-rating-stars">
+          <span class="byahero-alert-star">★</span>
+          <span class="byahero-alert-star">★</span>
+          <span class="byahero-alert-star">★</span>
+          <span class="byahero-alert-star">★</span>
+          <span class="byahero-alert-star">★</span>
+        </div>
+        <div class="byahero-alert-rating-text">Help us improve ByaHero. Please rate our system!</div>
+      `;
+      body.appendChild(ratingBanner);
+
+      ratingBanner.addEventListener('click', function() {
+        const base = window.APP_BASE_URL || '';
+        window.location.href = base + '/public/passenger/passengerSettings/feedback.php';
+      });
+    }
+
     body.appendChild(btnOk);
 
     card.appendChild(closeBtnX);
@@ -427,6 +449,53 @@
       .byahero-alert-btn-ok:active {
         transform: translateY(1px) !important;
         box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08) !important;
+      }
+      
+      /* --- Dynamic Rating Reminder Banner --- */
+      .byahero-alert-rating-banner {
+        background: #f8fafc !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 20px !important;
+        padding: 0.9rem 1.2rem !important;
+        margin-bottom: 1.8rem !important;
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        cursor: pointer !important;
+        transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      }
+      
+      .byahero-alert-rating-banner:hover {
+        border-color: #bfdbfe !important;
+        background: #f0f7ff !important;
+        transform: translateY(-2px) !important;
+        box-shadow: 0 4px 12px rgba(59, 130, 246, 0.08) !important;
+      }
+      
+      .byahero-alert-rating-stars {
+        display: flex !important;
+        gap: 6px !important;
+        margin-bottom: 4px !important;
+      }
+      
+      .byahero-alert-star {
+        font-size: 24px !important;
+        color: #fbbf24 !important;
+        line-height: 1 !important;
+        transition: transform 0.2s !important;
+      }
+      
+      .byahero-alert-rating-banner:hover .byahero-alert-star {
+        transform: scale(1.12) !important;
+      }
+      
+      .byahero-alert-rating-text {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+        font-size: 0.85rem !important;
+        font-weight: 700 !important;
+        color: #4b5563 !important;
+        text-align: center !important;
       }
     `;
     
