@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../config/db.php';
 
-session_start();
+@session_start();
 
 /**
  * Compute base URL prefix so assets work on:

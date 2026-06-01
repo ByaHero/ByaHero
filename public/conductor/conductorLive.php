@@ -1,5 +1,5 @@
 <?php
-session_start();
+@session_start();
 
 // Enforce Access Control
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {

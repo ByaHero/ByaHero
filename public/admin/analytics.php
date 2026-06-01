@@ -4,7 +4,7 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require __DIR__ . '/../../config/db.php';
-session_start();
+@session_start();
 
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header('Location: ../login.php');

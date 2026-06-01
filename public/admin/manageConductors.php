@@ -6,7 +6,7 @@ error_reporting(E_ALL);
 
 require __DIR__ . '/../../config/db.php';
 
-session_start();
+@session_start();
 
 // --- AUTH: rely on public/login.php session values ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {

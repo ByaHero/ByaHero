@@ -1,5 +1,5 @@
 <?php
-session_start();
+@session_start();
 
 // 1. Remove ONLY the FCM token for this specific device (not all devices)
 if (isset($_SESSION['user_id'])) {

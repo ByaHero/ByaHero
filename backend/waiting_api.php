@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-session_start();
+@session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
