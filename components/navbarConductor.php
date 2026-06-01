@@ -1,7 +1,7 @@
 <?php
 // components/navbarConductor.php
 if (session_status() === PHP_SESSION_NONE) {
-    session_start();
+    @session_start();
 }
 
 // Ensure base URL resolves correctly depending on environment

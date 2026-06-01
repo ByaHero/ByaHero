@@ -5,7 +5,7 @@ ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
 require __DIR__ . '/../../config/db.php';
-session_start();
+@session_start();
 
 /**
  * Base URL that works for:

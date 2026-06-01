@@ -1,5 +1,5 @@
 <?php
-session_start();
+@session_start();
 
 if (isset($_GET['stopped']) && $_GET['stopped'] == '1') {
     // Explicitly stopped tracking: clear any current bus session

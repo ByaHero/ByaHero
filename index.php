@@ -1,7 +1,10 @@
 <?php
 declare(strict_types=1);
 
-session_start();
+// Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
+ini_set('session.gc_probability', '0');
+
+@session_start();
 
 // If not logged in OR missing role, go to login.
 // Let login decide where to send them afterwards.

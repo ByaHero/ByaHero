@@ -1,7 +1,7 @@
 <?php
 // --- SESSION CHECK ---
 if (session_status() === PHP_SESSION_NONE) {
-  session_start();
+  @session_start();
 }
 // SECURITY HEADERS
 if (!headers_sent()) {

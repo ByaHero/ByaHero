@@ -5,7 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 
 require __DIR__ . '/../config/db.php';
 
-session_start();
+@session_start();
 $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;
 
 $raw = file_get_contents('php://input');

@@ -7,7 +7,7 @@
  * before any output or headers.
  */
 
-session_start();
+@session_start();
 header('Content-Type: application/json');
 
 // CORS support - Allow app origins (including Capacitor mobile)
