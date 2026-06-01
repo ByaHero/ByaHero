@@ -10,14 +10,36 @@ window.PassengerRideTracker = {
   activeRide: null,
   proximityThreshold: 30, // meters
   departureThreshold: 150, // meters
-  checkInterval: 10000, // 10 seconds
+  checkInterval: 10000, // 10 seconds base (dynamic)
   busUpdateTracker: {},
+  proximityTicks: {},
   _tickRunning: false,
 
   init: async function() {
     console.log('Initializing PassengerRideTracker...');
     await this.checkActiveRide();
+    this.updateInterval();
+
+    // Dynamic visibility listener to adjust polling interval
+    document.addEventListener('visibilitychange', () => {
+      this.updateInterval();
+      if (!document.hidden && !this._tickRunning) {
+        clearTimeout(window._rideTrackerIntervalId);
+        this._tickRecursive();
+      }
+    });
+
     this._tickRecursive();
+  },
+
+  updateInterval: function() {
+    if (document.hidden) {
+      this.checkInterval = 40000; // 40s when backgrounded
+    } else if (this.activeRide) {
+      this.checkInterval = 30000; // 30s when on ride (battery save)
+    } else {
+      this.checkInterval = 10000; // 10s base when waiting
+    }
   },
 
   _tickRecursive: function() {
@@ -33,6 +55,7 @@ window.PassengerRideTracker = {
   },
 
   tick: async function() {
+    this.updateInterval();
     if (this.activeRide) {
       await this.checkActiveRide();
       await this.checkDistanceForDeparture();
@@ -61,12 +84,32 @@ window.PassengerRideTracker = {
 
   checkProximityToBuses: async function() {
     if (!window.userLocation || !window.allBuses || window.allBuses.length === 0) return;
+    
+    const nearbyBusIds = new Set();
+    
     for (const bus of window.allBuses) {
       if (!bus.coords || !bus.operation_id) continue;
       const dist = window.distanceMeters(window.userLocation.lat, window.userLocation.lng, bus.coords[0], bus.coords[1]);
+      
       if (dist <= this.proximityThreshold) {
-        this.joinRide(bus);
-        break; 
+        nearbyBusIds.add(bus.id);
+        this.proximityTicks[bus.id] = (this.proximityTicks[bus.id] || 0) + 1;
+        
+        // Debounce: require 2 consecutive ticks (~20 seconds) within proximity to confirm boarding
+        if (this.proximityTicks[bus.id] >= 2) {
+          this.proximityTicks = {}; // Reset ticks
+          this.joinRide(bus);
+          break; 
+        }
+      } else {
+        delete this.proximityTicks[bus.id];
+      }
+    }
+    
+    // Clean up no longer nearby/active buses
+    for (const busId in this.proximityTicks) {
+      if (!nearbyBusIds.has(Number(busId))) {
+        delete this.proximityTicks[busId];
       }
     }
   },
@@ -96,6 +139,7 @@ window.PassengerRideTracker = {
               <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
               On Ride: ${this.activeRide.bus_code}
             </span>
+            <button class="btn btn-sm btn-danger rounded-pill px-2 py-0 border-0 ms-2 text-white fw-bold" style="font-size: 0.7rem; line-height: 1.5; background-color: #dc3545; transition: transform 0.2s;" onclick="window.PassengerRideTracker.leaveRideManual()">Leave</button>
           </div>
         `;
         document.body.appendChild(pill);
@@ -180,23 +224,36 @@ window.PassengerRideTracker = {
         }
     }
     
-    if (isStale) return;
-    
     const dist = window.distanceMeters(window.userLocation.lat, window.userLocation.lng, bus.coords[0], bus.coords[1]);
+    
+    if (isStale) {
+        // If the bus signal is lost but the passenger has moved far away, trigger auto-departure
+        if (dist > this.departureThreshold) {
+            this.leaveRide("Bus signal lost and you moved away. Automatically departed.");
+        }
+        return;
+    }
+    
     if (dist > this.departureThreshold) {
         this.leaveRide();
     }
   },
   
-  leaveRide: async function() {
+  leaveRide: async function(msg) {
     try {
         const data = await window.safePost('../api.php?action=leave_ride');
         if (data.success) {
             this.activeRide = null;
             this.updateUI();
-            this.showDepartureNotice("You moved away from the bus. Automatically departed.");
+            this.showDepartureNotice(msg || "You moved away from the bus. Automatically departed.");
             window.updateUserMarkerWaitingStyle();
         }
     } catch (e) { console.warn('leaveRide error:', e); }
+  },
+  
+  leaveRideManual: async function() {
+    if (confirm("Are you sure you want to end your ride tracking?")) {
+        await this.leaveRide("Ride tracking ended manually.");
+    }
   }
 };

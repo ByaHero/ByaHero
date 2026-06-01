@@ -367,6 +367,18 @@ function stopTracking(): array {
 
     $conn = db();
 
+    // 1) Cascade complete active passenger rides for this active operation before completing it
+    $stPass = $conn->prepare("
+        UPDATE passenger_rides pr
+        JOIN bus_operations bo ON pr.operation_id = bo.id
+        SET pr.departed_at = NOW(), pr.status = 'completed'
+        WHERE bo.bus_id = ? AND bo.conductor_id = ? AND bo.status = 'active' AND pr.status = 'active'
+    ");
+    $stPass->bind_param("ii", $busId, $userId);
+    $stPass->execute();
+    $stPass->close();
+
+    // 2) Complete the bus operation
     $endLoc = isset($data['end_location']) ? trim($data['end_location']) : null;
     $stOp = $conn->prepare("
         UPDATE bus_operations
