@@ -384,7 +384,7 @@ try {
             $_SESSION['user_contacts'] = '';
             $_SESSION['user_profile_picture'] = $profilePic;
 
-            respond(true, 'Signup successful', ['redirect' => 'passenger/showGuide/showGuide.php']);
+            respond(true, 'Signup successful', ['redirect' => 'passenger/completeProfile.php']);
         }
     }
 
