@@ -214,7 +214,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = 'index.php';
+                    window.location.href = 'showGuide/showGuide.php';
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger small py-2">${data.message}</div>`;
                     submitBtn.disabled = false;
