@@ -218,12 +218,20 @@ function sync_schema(mysqli $conn) {
         sender_user_id INT UNSIGNED NOT NULL,
         recipient_user_id INT UNSIGNED NOT NULL,
         location_text TEXT NULL,
-        status ENUM('active','resolved') DEFAULT 'active',
+        status ENUM('active','resolved','seen') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_sender (sender_user_id),
         INDEX idx_recipient (recipient_user_id),
         INDEX idx_status (status)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Ensure status ENUM includes 'seen' (fixes HTTP 500 / Data Truncation errors on strict-mode databases)
+    $checkSosStatus = $conn->query("SHOW COLUMNS FROM sos_alerts LIKE 'status'");
+    if ($checkSosStatus && $row = $checkSosStatus->fetch_assoc()) {
+        if (strpos($row['Type'], "'seen'") === false) {
+            $conn->query("ALTER TABLE sos_alerts MODIFY COLUMN status ENUM('active','resolved','seen') DEFAULT 'active'");
+        }
+    }
 
     // 13. Circles (Safety Circles)
     $conn->query("CREATE TABLE IF NOT EXISTS circles (

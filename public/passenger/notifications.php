@@ -239,7 +239,7 @@ function notification_icon(string $type): array
             <div class="flex-grow-1">
               <div class="d-flex justify-content-between align-items-center mb-1">
                 <span class="fw-bold text-dark" style="font-size: 0.95rem;">
-                  SOS from <?= htmlspecialchars(($a['sender_name'] ?: $a['sender_email']) ?? 'Unknown') ?>
+                  SOS from <?= htmlspecialchars((string)(($a['sender_name'] ?: $a['sender_email']) ?? 'Unknown')) ?>
                 </span>
                 <small class="text-muted" style="font-size: 0.75rem;">
                   <?= date('M j, g:i A', strtotime($a['created_at'])) ?>
@@ -247,7 +247,7 @@ function notification_icon(string $type): array
               </div>
 
               <p class="text-muted small mb-0" style="line-height: 1.4;">
-                <?= htmlspecialchars(($a['location_text'] ?: 'Location not provided') ?? '') ?>
+                <?= htmlspecialchars((string)(($a['location_text'] ?: 'Location not provided') ?? '')) ?>
               </p>
 
               <hr class="mt-3 mb-0 text-secondary opacity-25">
