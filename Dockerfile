@@ -12,8 +12,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install gd mysqli pdo pdo_mysql
 
 # Enable Apache modules required for .htaccess, ensuring only the prefork MPM is enabled
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf
 RUN a2dismod mpm_event mpm_worker || true
 RUN a2enmod mpm_prefork rewrite headers expires deflate
+
 
 
 # Set the recommended PHP configuration (Production mode)
