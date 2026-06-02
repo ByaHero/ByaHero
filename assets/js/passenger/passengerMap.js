@@ -162,8 +162,13 @@ window.updateUserMarkerWaitingStyle = function updateUserMarkerWaitingStyle() {
       chatBubble.style.color = '#fff';
     } else {
       chatBubble.textContent = shouldShowWaiting ? 'Waiting' : 'Waiting?';
-      chatBubble.style.backgroundColor = '#10b981'; // Back to green
-      chatBubble.style.color = '#fff';
+      chatBubble.style.backgroundColor = shouldShowWaiting ? '#ffffff' : '#10b981';
+      chatBubble.style.color = shouldShowWaiting ? '#10b981' : '#ffffff';
+      if (shouldShowWaiting) {
+        chatBubble.style.border = '2px solid #10b981';
+      } else {
+        chatBubble.style.border = 'none';
+      }
     }
   }
 };
