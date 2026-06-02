@@ -100,7 +100,7 @@ window.getUserIcon = function getUserIcon() {
   htmlContent += '</div>';
 
   var isWaiting = (window.isPassengerWaiting && !(window.PassengerRideTracker && window.PassengerRideTracker.activeRide));
-  var bubbleText = isWaiting ? '🚌 Waiting' : '🚌 Waiting?';
+  var bubbleText = isWaiting ? 'Waiting' : 'Waiting?';
 
   htmlContent += '<div class="user-waiting-chat-bubble" style="bottom: ' + bubbleBottom + 'px; left: 50%;">';
   htmlContent += bubbleText;
@@ -155,7 +155,7 @@ window.updateUserMarkerWaitingStyle = function updateUserMarkerWaitingStyle() {
   // Dynamic text content update for the bubble to avoid marker redrawing
   const chatBubble = element.querySelector('.user-waiting-chat-bubble');
   if (chatBubble) {
-    chatBubble.textContent = shouldShowWaiting ? '🚌 Waiting' : '🚌 Waiting?';
+    chatBubble.textContent = shouldShowWaiting ? 'Waiting' : 'Waiting?';
   }
 };
 

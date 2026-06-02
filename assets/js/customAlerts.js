@@ -69,7 +69,12 @@
     // Circular Animated Icon container
     const iconContainer = document.createElement('div');
     iconContainer.className = `byahero-alert-icon-container byahero-alert-${alertContext.theme}`;
-    iconContainer.innerHTML = `<span class="byahero-alert-emoji">${alertContext.emoji}</span>`;
+    
+    if (alertContext.theme === 'transit') {
+      iconContainer.innerHTML = `<img src="../../assets/images/WAITING.svg" alt="Waiting" style="width: 65px; height: 65px; object-fit: contain;" />`;
+    } else {
+      iconContainer.innerHTML = `<span class="byahero-alert-emoji">${alertContext.emoji}</span>`;
+    }
 
     // Title Block
     const title = document.createElement('h5');
@@ -109,7 +114,7 @@
       body.appendChild(ratingBanner);
 
       ratingBanner.addEventListener('click', function() {
-        const base = window.APP_BASE_URL || '';
+        const base = window.APP_BASE_URL || '/ByaHero';
         window.location.href = base + '/public/passenger/passengerSettings/feedback.php';
       });
     }
