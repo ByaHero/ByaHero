@@ -40,9 +40,20 @@ declare(strict_types=1);
 
 function get_env_config(string $key, string $default): string {
     global $_ENV;
+    $val = '';
     if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
-        return $_ENV[$key];
+        $val = $_ENV[$key];
+    } else {
+        $getVal = getenv($key);
+        if ($getVal !== false && $getVal !== '') {
+            $val = $getVal;
+        }
     }
-    $val = getenv($key);
-    return ($val !== false && $val !== '') ? $val : $default;
+    
+    if ($val === '') {
+        return $default;
+    }
+    
+    // Always unescape literal \n to real newlines (crucial for private keys on Railway/Heroku/etc.)
+    return str_replace('\n', "\n", $val);
 }
