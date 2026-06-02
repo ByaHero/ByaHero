@@ -40,6 +40,29 @@ function extractFriendlyNameFromGeojson(array $geojson): ?string {
     return null;
 }
 
+function tableColumnExists(mysqli $conn, string $table, string $column): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    return $result && $result->num_rows > 0;
+}
+
+function enumColumnHasValue(mysqli $conn, string $table, string $column, string $value): bool {
+    $safeTable = $conn->real_escape_string($table);
+    $safeColumn = $conn->real_escape_string($column);
+    $result = $conn->query("SHOW COLUMNS FROM `{$safeTable}` LIKE '{$safeColumn}'");
+    if (!$result || !($row = $result->fetch_assoc())) return false;
+    return strpos((string)$row['Type'], "'" . $value . "'") !== false;
+}
+
+function activeRideStatuses(mysqli $conn): array {
+    $statuses = ["'active'"];
+    if (enumColumnHasValue($conn, 'passenger_rides', 'status', 'ongoing')) {
+        $statuses[] = "'ongoing'";
+    }
+    return $statuses;
+}
+
 /**
  * Passenger / public view:
  * - Shows ALL buses (no conductor filter).
@@ -688,7 +711,9 @@ function joinRide(): array {
 
     $conn = db();
     
-    $stCheck = $conn->prepare("SELECT id FROM passenger_rides WHERE user_id = ? AND status = 'active'");
+    $activeStatuses = activeRideStatuses($conn);
+    $activeStatusSql = implode(',', $activeStatuses);
+    $stCheck = $conn->prepare("SELECT id FROM passenger_rides WHERE user_id = ? AND status IN ({$activeStatusSql})");
     if (!$stCheck) {
         return ['success' => false, 'error' => 'Prepare check failed: ' . $conn->error];
     }
@@ -699,8 +724,7 @@ function joinRide(): array {
     }
     $stCheck->close();
 
-    // Fetch bus_id and route from the active operation since they are NOT NULL in passenger_rides
-    $stOp = $conn->prepare("SELECT bus_id, route FROM bus_operations WHERE id = ? LIMIT 1");
+    $stOp = $conn->prepare("SELECT id, bus_id, route, status FROM bus_operations WHERE id = ? AND status = 'active' LIMIT 1");
     if (!$stOp) {
         return ['success' => false, 'error' => 'Prepare select operation failed: ' . $conn->error];
     }
@@ -716,15 +740,52 @@ function joinRide(): array {
     $busId = (int)$opData['bus_id'];
     $route = $opData['route'];
 
-    // Insert new passenger ride record
-    $st = $conn->prepare("INSERT INTO passenger_rides (user_id, operation_id, boarded_at, status) VALUES (?, ?, NOW(), 'active')");
+    $hasOperationId = tableColumnExists($conn, 'passenger_rides', 'operation_id');
+    $hasBusId = tableColumnExists($conn, 'passenger_rides', 'bus_id');
+    $hasRoute = tableColumnExists($conn, 'passenger_rides', 'route');
+    $rideStatus = enumColumnHasValue($conn, 'passenger_rides', 'status', 'active') ? 'active' : 'ongoing';
+
+    $columns = ['user_id'];
+    $placeholders = ['?'];
+    $types = 'i';
+    $params = [$userId];
+
+    if ($hasOperationId) {
+        $columns[] = 'operation_id';
+        $placeholders[] = '?';
+        $types .= 'i';
+        $params[] = $opId;
+    }
+    if ($hasBusId) {
+        $columns[] = 'bus_id';
+        $placeholders[] = '?';
+        $types .= 'i';
+        $params[] = $busId;
+    }
+    if ($hasRoute) {
+        $columns[] = 'route';
+        $placeholders[] = '?';
+        $types .= 's';
+        $params[] = $route;
+    }
+
+    $columns[] = 'boarded_at';
+    $placeholders[] = 'NOW()';
+    $columns[] = 'status';
+    $placeholders[] = '?';
+    $types .= 's';
+    $params[] = $rideStatus;
+
+    $sql = "INSERT INTO passenger_rides (" . implode(', ', $columns) . ") VALUES (" . implode(', ', $placeholders) . ")";
+    $st = $conn->prepare($sql);
     if (!$st) {
         return ['success' => false, 'error' => 'Prepare insert failed: ' . $conn->error];
     }
-    $st->bind_param("ii", $userId, $opId);
+    $st->bind_param($types, ...$params);
     if (!$st->execute()) {
         return ['success' => false, 'error' => 'Execute insert failed: ' . $st->error];
     }
+    $rideId = (int)$conn->insert_id;
     $st->close();
 
     // Auto-clear waiting status when passenger boards
@@ -735,7 +796,7 @@ function joinRide(): array {
         $stWait->close();
     }
 
-    return ['success' => true, 'ride_id' => $conn->insert_id];
+    return ['success' => true, 'ride_id' => $rideId];
 }
 
 /** Leave a ride (passenger departing) */
@@ -749,7 +810,9 @@ function leaveRide(): array {
     $userId = (int)$_SESSION['user_id'];
     $conn = db();
 
-    $st = $conn->prepare("UPDATE passenger_rides SET departed_at = NOW(), status = 'completed' WHERE user_id = ? AND status = 'active'");
+    $activeStatuses = activeRideStatuses($conn);
+    $activeStatusSql = implode(',', $activeStatuses);
+    $st = $conn->prepare("UPDATE passenger_rides SET departed_at = NOW(), status = 'completed' WHERE user_id = ? AND status IN ({$activeStatusSql})");
     $st->bind_param("i", $userId);
     $st->execute();
 
@@ -767,20 +830,37 @@ function getRideHistory(): array {
     $userId = (int)$_SESSION['user_id'];
     $conn = db();
 
-    $st = $conn->prepare("
-        SELECT 
-            pr.id,
-            pr.boarded_at,
-            pr.departed_at,
-            pr.status,
-            bo.route,
-            b.code AS bus_code
-        FROM passenger_rides pr
-        JOIN bus_operations bo ON pr.operation_id = bo.id
-        JOIN busses b ON bo.bus_id = b.Bus_ID
-        WHERE pr.user_id = ?
-        ORDER BY pr.boarded_at DESC
-    ");
+    if (tableColumnExists($conn, 'passenger_rides', 'operation_id')) {
+        $historySql = "
+            SELECT
+                pr.id,
+                pr.boarded_at,
+                pr.departed_at,
+                pr.status,
+                bo.route,
+                b.code AS bus_code
+            FROM passenger_rides pr
+            JOIN bus_operations bo ON pr.operation_id = bo.id
+            JOIN busses b ON bo.bus_id = b.Bus_ID
+            WHERE pr.user_id = ?
+            ORDER BY pr.boarded_at DESC
+        ";
+    } else {
+        $historySql = "
+            SELECT
+                pr.id,
+                pr.boarded_at,
+                pr.departed_at,
+                pr.status,
+                pr.route,
+                b.code AS bus_code
+            FROM passenger_rides pr
+            JOIN busses b ON pr.bus_id = b.Bus_ID
+            WHERE pr.user_id = ?
+            ORDER BY pr.boarded_at DESC
+        ";
+    }
+    $st = $conn->prepare($historySql);
     $st->bind_param("i", $userId);
     $st->execute();
     $history = $st->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -799,19 +879,37 @@ function checkActiveRide(): array {
     $userId = (int)$_SESSION['user_id'];
     $conn = db();
 
-    $st = $conn->prepare("
-        SELECT 
-            pr.id,
-            pr.operation_id,
-            bo.status AS operation_status,
-            bo.bus_id,
-            b.code AS bus_code
-        FROM passenger_rides pr
-        JOIN bus_operations bo ON pr.operation_id = bo.id
-        JOIN busses b ON bo.bus_id = b.Bus_ID
-        WHERE pr.user_id = ? AND pr.status = 'active'
-        LIMIT 1
-    ");
+    $activeStatuses = activeRideStatuses($conn);
+    $activeStatusSql = implode(',', $activeStatuses);
+    if (tableColumnExists($conn, 'passenger_rides', 'operation_id')) {
+        $rideSql = "
+            SELECT
+                pr.id,
+                pr.operation_id,
+                bo.status AS operation_status,
+                bo.bus_id,
+                b.code AS bus_code
+            FROM passenger_rides pr
+            JOIN bus_operations bo ON pr.operation_id = bo.id
+            JOIN busses b ON bo.bus_id = b.Bus_ID
+            WHERE pr.user_id = ? AND pr.status IN ({$activeStatusSql})
+            LIMIT 1
+        ";
+    } else {
+        $rideSql = "
+            SELECT
+                pr.id,
+                NULL AS operation_id,
+                'active' AS operation_status,
+                pr.bus_id,
+                b.code AS bus_code
+            FROM passenger_rides pr
+            JOIN busses b ON pr.bus_id = b.Bus_ID
+            WHERE pr.user_id = ? AND pr.status IN ({$activeStatusSql})
+            LIMIT 1
+        ";
+    }
+    $st = $conn->prepare($rideSql);
     $st->bind_param("i", $userId);
     $st->execute();
     $ride = $st->get_result()->fetch_assoc();

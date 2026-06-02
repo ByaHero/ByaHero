@@ -168,12 +168,17 @@ function sync_schema(mysqli $conn) {
         INDEX idx_operation (operation_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-    // Ensure passenger_rides has operation_id column and correct status enum values (for older database compatibility)
+    // Ensure passenger_rides supports both operation-based tracking and older ride rows.
     $checkPR = $conn->query("SHOW COLUMNS FROM passenger_rides LIKE 'operation_id'");
     if ($checkPR && $checkPR->num_rows === 0) {
         $conn->query("ALTER TABLE passenger_rides ADD COLUMN operation_id INT UNSIGNED NOT NULL DEFAULT 0 AFTER user_id");
-        $conn->query("ALTER TABLE passenger_rides MODIFY COLUMN status ENUM('active', 'completed', 'ongoing') DEFAULT 'active'");
         $conn->query("ALTER TABLE passenger_rides ADD INDEX idx_operation (operation_id)");
+    }
+    $checkPRStatus = $conn->query("SHOW COLUMNS FROM passenger_rides LIKE 'status'");
+    if ($checkPRStatus && $row = $checkPRStatus->fetch_assoc()) {
+        if (strpos($row['Type'], "'active'") === false || strpos($row['Type'], "'ongoing'") === false) {
+            $conn->query("ALTER TABLE passenger_rides MODIFY COLUMN status ENUM('active', 'completed', 'ongoing') DEFAULT 'active'");
+        }
     }
 
     // 7. Bus Stops & Terminals
