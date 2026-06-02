@@ -660,6 +660,8 @@ $pageDepth = "../../../";
             sliderHandle.style.transform = `translateX(0px)`;
             isSOSActive = true;
             
+            _attachDragListeners();
+            
             if (countdownInterval) clearInterval(countdownInterval);
 
             countdownInterval = setInterval(() => {
@@ -684,8 +686,7 @@ $pageDepth = "../../../";
             _cleanupDragListeners();
             setTimeout(() => {
                 countdownLayer.classList.add('d-none');
-                sliderHandle.addEventListener('mousedown', startDrag);
-                sliderHandle.addEventListener('touchstart', startDrag, { passive: false });
+                _attachDragListeners();
             }, 1200);
         }
 
@@ -836,12 +837,16 @@ $pageDepth = "../../../";
             setTimeout(() => { sliderHandle.style.transition = ""; }, 300);
         };
 
-        sliderHandle.addEventListener('mousedown', startDrag);
-        sliderHandle.addEventListener('touchstart', startDrag, { passive: false });
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('touchmove', drag, { passive: false });
-        document.addEventListener('mouseup', endDrag);
-        document.addEventListener('touchend', endDrag);
+        function _attachDragListeners() {
+            sliderHandle.addEventListener('mousedown', startDrag);
+            sliderHandle.addEventListener('touchstart', startDrag, { passive: false });
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mouseup', endDrag);
+            document.addEventListener('touchend', endDrag);
+        }
+
+        _attachDragListeners();
 
         function _cleanupDragListeners() {
             sliderHandle.removeEventListener('mousedown', startDrag);
