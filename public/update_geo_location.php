@@ -116,6 +116,16 @@ $fields[] = 'current_location = ?';
 $params[] = $locationName !== null ? $locationName : null;
 $types .= "s";
 
+if ($geojson !== null && isset($geojson['geometry']['coordinates'])) {
+    $fields[] = 'lat = ?';
+    $params[] = $geojson['geometry']['coordinates'][1];
+    $types .= "d";
+
+    $fields[] = 'lng = ?';
+    $params[] = $geojson['geometry']['coordinates'][0];
+    $types .= "d";
+}
+
 if (isset($input['route'])) {
     $fields[] = 'route = ?';
     $params[] = $input['route'];

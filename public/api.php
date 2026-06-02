@@ -57,6 +57,8 @@ function getBuses(): array {
           b.seat_availability,
           b.status,
           b.updated,
+          b.lat,
+          b.lng,
           (SELECT id FROM bus_operations WHERE bus_id = b.Bus_ID AND status = 'active' ORDER BY id DESC LIMIT 1) AS current_operation_id
         FROM busses b
         ORDER BY b.code
@@ -108,6 +110,8 @@ function getBusesConductor(): array {
           seat_availability,
           status,
           updated,
+          lat,
+          lng,
           current_conductor_id
         FROM busses
         WHERE current_conductor_id IS NULL
@@ -180,7 +184,9 @@ function getFilteredBuses(): array {
           total_seats,
           seat_availability,
           status,
-          updated
+          updated,
+          lat,
+          lng
         FROM busses
         WHERE route = ?
         ORDER BY code
@@ -291,6 +297,16 @@ function updateLocation(): array {
     $fields[] = 'current_location = ?';
     $params[] = $locationName;
     $types .= "s";
+
+    if ($geojson !== null && isset($geojson['geometry']['coordinates'])) {
+        $fields[] = 'lat = ?';
+        $params[] = $geojson['geometry']['coordinates'][1];
+        $types .= "d";
+
+        $fields[] = 'lng = ?';
+        $params[] = $geojson['geometry']['coordinates'][0];
+        $types .= "d";
+    }
 
     if (isset($data['route'])) {
         $fields[] = 'route = ?';

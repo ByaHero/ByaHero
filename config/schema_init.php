@@ -64,6 +64,16 @@ function sync_schema(mysqli $conn) {
         $conn->query("ALTER TABLE busses ADD COLUMN current_conductor_id INT UNSIGNED DEFAULT NULL AFTER current_location");
     }
 
+    // Add lat and lng if missing for Railway persistent location tracking
+    $checkLat = $conn->query("SHOW COLUMNS FROM busses LIKE 'lat'");
+    if ($checkLat->num_rows === 0) {
+        $conn->query("ALTER TABLE busses ADD COLUMN lat DECIMAL(10,7) DEFAULT NULL AFTER seat_availability");
+    }
+    $checkLng = $conn->query("SHOW COLUMNS FROM busses LIKE 'lng'");
+    if ($checkLng->num_rows === 0) {
+        $conn->query("ALTER TABLE busses ADD COLUMN lng DECIMAL(10,7) DEFAULT NULL AFTER lat");
+    }
+
     // 3. Notifications Table
     $conn->query("CREATE TABLE IF NOT EXISTS notifications (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
