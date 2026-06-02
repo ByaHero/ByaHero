@@ -35,9 +35,6 @@ declare(strict_types=1);
                 $loadedCount++;
             }
         }
-        error_log("ByaHero: Successfully loaded $loadedCount variables from .env");
-    } else {
-        error_log("ByaHero: .env file NOT FOUND at $envPath");
     }
 })();
 
