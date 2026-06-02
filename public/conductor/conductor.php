@@ -317,9 +317,9 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         <div class="row g-4 align-items-stretch">
             <!-- Left Column: Map & Filter -->
             <div class="col-lg-7 d-flex flex-column">
-                <div class="action-row justify-content-between align-items-center mb-3">
-                    <h5 class="fw-bold mb-0 text-dark d-none d-lg-block" style="font-size: 1.15rem; letter-spacing: 0.2px;">Commuter Dispatch Map</h5>
-                    <div class="dropdown ms-auto">
+                <div class="action-row position-relative d-flex align-items-center mb-3 justify-content-center">
+                    <h5 class="fw-bold mb-0 text-dark d-none d-lg-block position-absolute start-0" style="font-size: 1.15rem; letter-spacing: 0.2px;">Commuter Dispatch Map</h5>
+                    <div class="dropdown mx-auto">
                         <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
                         </button>

@@ -115,7 +115,7 @@
       body.appendChild(ratingBanner);
 
       ratingBanner.addEventListener('click', function() {
-        const base = window.APP_BASE_URL || '/ByaHero';
+        const base = typeof window.APP_BASE_URL !== 'undefined' ? window.APP_BASE_URL : '/ByaHero';
         window.location.href = base + '/public/passenger/passengerSettings/feedback.php';
       });
     }
