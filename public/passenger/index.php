@@ -33,23 +33,6 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
   <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
   <title>Passenger Live Map | ByaHero Real-Time Bus Tracker</title>
-  <meta name="description" content="View the live passenger commute dashboard. Track real-time bus locations, seat availability, routes, stops, and boarding status instantly on ByaHero." />
-  <meta name="keywords" content="byahero, bus tracker, passenger dashboard, live map, estimated arrival, seat availability" />
-  <link rel="canonical" href="https://byahero.up.railway.app/public/passenger/index.php" />
-  
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://byahero.up.railway.app/public/passenger/index.php" />
-  <meta property="og:title" content="Passenger Live Map | ByaHero Real-Time Bus Tracker" />
-  <meta property="og:description" content="View the live passenger commute dashboard. Track real-time bus locations, seat availability, routes, stops, and boarding status instantly on ByaHero." />
-  <meta property="og:image" content="../assets/images/byaheroLogo.png" />
-
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content="https://byahero.up.railway.app/public/passenger/index.php" />
-  <meta property="twitter:title" content="Passenger Live Map | ByaHero Real-Time Bus Tracker" />
-  <meta property="twitter:description" content="View the live passenger commute dashboard. Track real-time bus locations, seat availability, routes, stops, and boarding status instantly on ByaHero." />
-  <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
 
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">

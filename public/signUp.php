@@ -41,23 +41,6 @@ if (isset($_SESSION['user_id'])) {
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     <title>Sign Up | ByaHero - Join Real-Time Transport Tracker</title>
-    <meta name="description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
-    <meta name="keywords" content="byahero, register, sign up, passenger account, transit portal, bus location map" />
-    <link rel="canonical" href="https://byahero.up.railway.app/public/signUp.php" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://byahero.up.railway.app/public/signUp.php" />
-    <meta property="og:title" content="Sign Up | ByaHero - Join Real-Time Transport Tracker" />
-    <meta property="og:description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
-    <meta property="og:image" content="../assets/images/byaheroLogo.png" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://byahero.up.railway.app/public/signUp.php" />
-    <meta property="twitter:title" content="Sign Up | ByaHero - Join Real-Time Transport Tracker" />
-    <meta property="twitter:description" content="Create a ByaHero passenger account to track buses, view route maps, bookmark bus stops, and access real-time commute updates on the go." />
-    <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">

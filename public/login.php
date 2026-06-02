@@ -151,23 +151,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <title>Login | ByaHero - Real-Time Public Transport Tracking Portal</title>
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <meta name="description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
-    <meta name="keywords" content="byahero, bus tracker, public transport tracking, commuter map, passenger count, live bus location, transit portal" />
-    <link rel="canonical" href="https://byahero.up.railway.app/public/login.php" />
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://byahero.up.railway.app/public/login.php" />
-    <meta property="og:title" content="Login | ByaHero - Real-Time Public Transport Tracking Portal" />
-    <meta property="og:description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
-    <meta property="og:image" content="../assets/images/byaheroLogo.png" />
-
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://byahero.up.railway.app/public/login.php" />
-    <meta property="twitter:title" content="Login | ByaHero - Real-Time Public Transport Tracking Portal" />
-    <meta property="twitter:description" content="ByaHero - Log in to access real-time public transit tracking, check bus locations, estimated arrival times, and passenger capacities in your area." />
-    <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
