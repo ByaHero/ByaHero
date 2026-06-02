@@ -1,0 +1,20 @@
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "Point",
+        "coordinates": [
+            121.17073033333334,
+            14.075052000000001
+        ]
+    },
+    "properties": {
+        "bus_id": 5,
+        "code": "T-00001",
+        "route": "LAUREL - TANAUAN",
+        "seats_available": 21,
+        "status": "on_stop",
+        "timestamp": "2026-06-02T15:14:51.698Z",
+        "current_location_name": "San Isidro",
+        "Current Location": "San Isidro"
+    }
+}
