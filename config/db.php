@@ -5,7 +5,10 @@ declare(strict_types=1);
 date_default_timezone_set('Asia/Manila');
 
 // Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
-ini_set('session.gc_probability', '0');
+if (session_status() === PHP_SESSION_NONE) {
+    ini_set('session.gc_probability', '0');
+}
+
 
 function db(): mysqli {
     static $conn = null;
