@@ -154,7 +154,6 @@ window.PassengerRideTracker = {
               <span class="material-symbols-rounded" style="font-size: 20px;">directions_bus</span>
               On Ride: ${this.activeRide.bus_code}
             </span>
-            <button class="btn btn-sm btn-danger rounded-pill px-2 py-0 border-0 ms-2 text-white fw-bold" style="font-size: 0.7rem; line-height: 1.5; background-color: #dc3545; transition: transform 0.2s;" onclick="window.PassengerRideTracker.leaveRideManual()">Leave</button>
           </div>
         `;
         document.body.appendChild(pill);
