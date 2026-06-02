@@ -193,16 +193,16 @@
     }
     
     // 2) Circle / User updates
-    if (text.includes('joined') || text.includes('circle') || text.includes('left') || text.includes('status')) {
+    if (text.includes('joined') || text.includes('circle') || text.includes('left') || text.includes('status') || text.includes('location')) {
       return {
         theme: 'circle',
         icon: '../../assets/images/icons/profileBlack.svg',
-        title: 'Circle Status'
+        title: 'User Status'
       };
     }
 
     // 3) Success indicators
-    if (text.includes('success') || text.includes('welcome') || text.includes('successfully') || text.includes('copied') || text.includes('enabled') || text.includes('on')) {
+    if (text.includes('success') || text.includes('welcome') || text.includes('successfully') || text.includes('copied') || text.includes('enabled')) {
       return {
         theme: 'success',
         icon: '../../assets/images/icons/verified_user.svg',
@@ -318,7 +318,7 @@
         right: 26px !important;
         background: none !important;
         border: none !important;
-        font-size: 1.95rem !important;
+        font-size: 2.8rem !important;
         line-height: 1 !important;
         color: #9ca3af !important;
         opacity: 0.6 !important;
@@ -473,6 +473,10 @@
       
       .byahero-alert-btn-ok.byahero-alert-btn-info {
         background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
+      }
+      
+      .byahero-alert-btn-ok.byahero-alert-btn-circle {
+        background: linear-gradient(135deg, #1e3a8a, #0f3878) !important;
       }
       
       .byahero-alert-btn-ok:hover {
