@@ -73,6 +73,13 @@ function db(): mysqli {
     } else {
         // Fall back to standard DB_* and any loaded .env / custom variables
         $env_host = get_env_config('DB_HOST', '');
+        
+        // If DB_HOST contains a Railway service reference placeholder, treat it as empty
+        // so that the local XAMPP fallback (127.0.0.1) triggers automatically.
+        if (str_contains($env_host, '${{')) {
+            $env_host = '';
+        }
+        
         $env_user = get_env_config('DB_USER', '');
         $env_pass = get_env_config('DB_PASS', '');
         $env_name = get_env_config('DB_NAME', '');
