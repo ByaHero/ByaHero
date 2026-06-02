@@ -1,4 +1,4 @@
-# ByaHero-Prototype-V3
+# ByaHero
 Capstone project
 
 ## DEVELOPERS
