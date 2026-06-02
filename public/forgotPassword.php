@@ -17,18 +17,18 @@ $pageTitle = 'Forgot Password';
     <title>Reset Password | ByaHero Recovery Portal</title>
     <meta name="description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
     <meta name="keywords" content="byahero, reset password, recover account, password recovery, transit portal" />
-    <link rel="canonical" href="https://byahero.free.nf/public/forgotPassword.php" />
+    <link rel="canonical" href="https://byahero.up.railway.app/public/forgotPassword.php" />
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://byahero.free.nf/public/forgotPassword.php" />
+    <meta property="og:url" content="https://byahero.up.railway.app/public/forgotPassword.php" />
     <meta property="og:title" content="Reset Password | ByaHero Recovery Portal" />
     <meta property="og:description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
     <meta property="og:image" content="../assets/images/byaheroLogo.png" />
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
-    <meta property="twitter:url" content="https://byahero.free.nf/public/forgotPassword.php" />
+    <meta property="twitter:url" content="https://byahero.up.railway.app/public/forgotPassword.php" />
     <meta property="twitter:title" content="Reset Password | ByaHero Recovery Portal" />
     <meta property="twitter:description" content="Recover your ByaHero account password. Securely reset your credentials and resume real-time transit tracking." />
     <meta property="twitter:image" content="../assets/images/byaheroLogo.png" />
