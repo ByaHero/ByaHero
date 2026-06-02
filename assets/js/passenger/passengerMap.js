@@ -91,7 +91,7 @@ window.getUserIcon = function getUserIcon() {
   var userInitial = window.userInitial || (rawUserName.length > 0 ? rawUserName.charAt(0).toUpperCase() : '?');
 
   if (userProfilePic) {
-    var isAbsolute = /^https?:\/\//i.test(userProfilePic);
+    var isAbsolute = /^https?:\/\/|^data:/i.test(userProfilePic);
     var safePic = isAbsolute ? userProfilePic : window.PROJECT_BASE + '/' + userProfilePic.replace(/^\/+/, '');
     htmlContent += '<img src="' + safePic + '" style="width:100%;height:100%;object-fit:cover;" />';
   } else {
@@ -169,7 +169,7 @@ window.updateUserWaitingCardUI = function updateUserWaitingCardUI() {
   // Populate avatar once
   if (!avatarDiv.hasChildNodes()) {
     if (window.userProfilePic) {
-      var isAbsolute = /^https?:\/\//i.test(window.userProfilePic);
+      var isAbsolute = /^https?:\/\/|^data:/i.test(window.userProfilePic);
       var safePic = isAbsolute ? window.userProfilePic : window.PROJECT_BASE + '/' + window.userProfilePic.replace(/^\/+/, '');
       avatarDiv.innerHTML = '<img src="' + safePic + '" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" />';
     } else {

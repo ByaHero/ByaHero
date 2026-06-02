@@ -542,10 +542,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     })();
   </script>
 
-  <script src="../../assets/js/byaheroTracking.js?v=3"></script>
-  <script src="../../assets/js/passenger/passengerMap.js?v=3"></script>
-  <script src="../../assets/js/passenger/passengerRideTracker.js?v=3"></script>
-  <script src="../../assets/js/passenger/byaheroTour.js?v=1"></script>
+  <script src="../../assets/js/byaheroTracking.js?v=<?= time() ?>"></script>
+  <script src="../../assets/js/passenger/passengerMap.js?v=<?= time() ?>"></script>
+  <script src="../../assets/js/passenger/passengerRideTracker.js?v=<?= time() ?>"></script>
+  <script src="../../assets/js/passenger/byaheroTour.js?v=<?= time() ?>"></script>
 
   <script>
     // Initialize map

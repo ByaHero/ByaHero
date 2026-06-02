@@ -9,7 +9,7 @@
  * ──────────────────────────────────────────────────────────────────────────
  */
 
-class ByaheroTour {
+var ByaheroTour = window.ByaheroTour || class ByaheroTour {
     constructor(steps) {
         this.steps = steps;
         this.currentStep = 0;
