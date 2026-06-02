@@ -144,9 +144,10 @@ window.updateUserMarkerWaitingStyle = function updateUserMarkerWaitingStyle() {
   const element = window.userMarker._icon || window.userMarker._path;
   if (!element) return;
 
-  var shouldShowWaiting = window.isPassengerWaiting && !(window.PassengerRideTracker && window.PassengerRideTracker.activeRide);
+  var isBoarded = window.PassengerRideTracker && window.PassengerRideTracker.activeRide;
+  var shouldShowWaiting = window.isPassengerWaiting && !isBoarded;
 
-  if (shouldShowWaiting) {
+  if (shouldShowWaiting || isBoarded) {
     element.classList.add('is-waiting');
   } else {
     element.classList.remove('is-waiting');
@@ -155,7 +156,15 @@ window.updateUserMarkerWaitingStyle = function updateUserMarkerWaitingStyle() {
   // Dynamic text content update for the bubble to avoid marker redrawing
   const chatBubble = element.querySelector('.user-waiting-chat-bubble');
   if (chatBubble) {
-    chatBubble.textContent = shouldShowWaiting ? 'Waiting' : 'Waiting?';
+    if (isBoarded) {
+      chatBubble.textContent = 'Boarded';
+      chatBubble.style.backgroundColor = '#0dcaf0'; // Cyan
+      chatBubble.style.color = '#fff';
+    } else {
+      chatBubble.textContent = shouldShowWaiting ? 'Waiting' : 'Waiting?';
+      chatBubble.style.backgroundColor = '#10b981'; // Back to green
+      chatBubble.style.color = '#fff';
+    }
   }
 };
 
@@ -177,22 +186,38 @@ window.updateUserWaitingCardUI = function updateUserWaitingCardUI() {
     }
   }
 
-  var isWaiting = window.isPassengerWaiting && !(window.PassengerRideTracker && window.PassengerRideTracker.activeRide);
+  var isBoarded = window.PassengerRideTracker && window.PassengerRideTracker.activeRide;
+  var isWaiting = window.isPassengerWaiting && !isBoarded;
+  var showBubble = isWaiting || isBoarded;
 
   // Bubble visibility
   if (bubbleDiv) {
-    bubbleDiv.style.opacity = isWaiting ? '1' : '0';
-    bubbleDiv.style.transform = isWaiting ? 'translateX(-50%) scale(1)' : 'translateX(-50%) scale(0.6)';
+    bubbleDiv.style.opacity = showBubble ? '1' : '0';
+    bubbleDiv.style.transform = showBubble ? 'translateX(-50%) scale(1)' : 'translateX(-50%) scale(0.6)';
+    if (showBubble) {
+      bubbleDiv.textContent = isBoarded ? 'Boarded' : 'Waiting';
+      bubbleDiv.style.backgroundColor = isBoarded ? '#0dcaf0' : '#10b981';
+      bubbleDiv.style.color = '#fff';
+    }
   }
 
   // Badge visibility
-  if (badgeDiv) badgeDiv.style.display = isWaiting ? 'flex' : 'none';
+  if (badgeDiv) {
+    badgeDiv.style.display = showBubble ? 'flex' : 'none';
+    badgeDiv.style.backgroundColor = isBoarded ? '#0dcaf0' : '#dc3545'; // Use cyan for boarded, red for waiting notification
+  }
 
-  // Avatar ring colour — green when waiting, blue otherwise
-  avatarDiv.style.borderColor = isWaiting ? '#10b981' : '#3b82f6';
-  avatarDiv.style.boxShadow = isWaiting
-    ? '0 0 0 3px rgba(16,185,129,0.3), 0 2px 6px rgba(0,0,0,0.15)'
-    : '0 2px 6px rgba(0,0,0,0.15)';
+  // Avatar ring colour
+  if (isBoarded) {
+    avatarDiv.style.borderColor = '#0dcaf0';
+    avatarDiv.style.boxShadow = '0 0 0 3px rgba(13,202,240,0.3), 0 2px 6px rgba(0,0,0,0.15)';
+  } else if (isWaiting) {
+    avatarDiv.style.borderColor = '#10b981';
+    avatarDiv.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.3), 0 2px 6px rgba(0,0,0,0.15)';
+  } else {
+    avatarDiv.style.borderColor = '#3b82f6';
+    avatarDiv.style.boxShadow = '0 2px 6px rgba(0,0,0,0.15)';
+  }
 };
 
 window.openWaitingModal = async function openWaitingModal() {
@@ -204,8 +229,17 @@ window.openWaitingModal = async function openWaitingModal() {
   const statusMsg = document.getElementById('waitingStatusMsg');
 
   await window.checkWaitingStatus();
+  
+  var isBoarded = window.PassengerRideTracker && window.PassengerRideTracker.activeRide;
 
-  if (window.isPassengerWaiting) {
+  if (isBoarded) {
+    displaySpan.textContent = "On Bus " + window.PassengerRideTracker.activeRide.bus_code;
+    btnSet.classList.add('d-none');
+    btnCancel.classList.add('d-none');
+    statusMsg.classList.remove('d-none');
+    statusMsg.className = "alert alert-info py-2 px-3 mb-3 small rounded-3";
+    statusMsg.innerHTML = `<span class="material-symbols-rounded align-middle me-1" style="font-size:16px;">directions_bus</span> You are currently boarded. Enjoy your ride!`;
+  } else if (window.isPassengerWaiting) {
     displaySpan.textContent = window.passengerWaitingLocation || "Your current stop";
     btnSet.classList.add('d-none');
     btnCancel.classList.remove('d-none');
