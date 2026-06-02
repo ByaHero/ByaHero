@@ -41,13 +41,13 @@ declare(strict_types=1);
 function get_env_config(string $key, string $default): string {
     global $_ENV;
     $val = '';
-    if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+    
+    // Check real OS environment variables first to let Railway dashboard values override stale committed .env keys
+    $getVal = getenv($key);
+    if ($getVal !== false && $getVal !== '') {
+        $val = $getVal;
+    } elseif (isset($_ENV[$key]) && $_ENV[$key] !== '') {
         $val = $_ENV[$key];
-    } else {
-        $getVal = getenv($key);
-        if ($getVal !== false && $getVal !== '') {
-            $val = $getVal;
-        }
     }
     
     if ($val === '') {
