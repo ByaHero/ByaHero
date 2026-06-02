@@ -1,8 +1,7 @@
 <?php
 declare(strict_types=1);
 
-// Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
-ini_set('session.gc_probability', '0');
+require_once __DIR__ . '/config/db.php';
 
 @session_start();
 

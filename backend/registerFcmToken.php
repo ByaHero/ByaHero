@@ -2,34 +2,12 @@
 /**
  * registerFcmToken.php
  * Saves FCM device token for the logged-in user.
- *
- * CRITICAL: session_start() MUST be the very first line
- * before any output or headers.
  */
+
+require_once '../config/db.php';
 
 @session_start();
 header('Content-Type: application/json');
-
-// CORS support - Allow app origins (including Capacitor mobile)
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$server_origin = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '');
-$allowed_origins = ['http://localhost', 'capacitor://localhost', $server_origin];
-
-if (in_array($origin, $allowed_origins)) {
-    header('Access-Control-Allow-Origin: ' . $origin);
-} else {
-    // Fallback to server origin if no match (standard security)
-    header('Access-Control-Allow-Origin: ' . $server_origin);
-}
-
-header('Access-Control-Allow-Credentials: true');
-header('Access-Control-Allow-Headers: Content-Type');
-header('Access-Control-Allow-Methods: POST, OPTIONS');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(204);
-    exit;
-}
 
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
@@ -40,8 +18,6 @@ if (!isset($_SESSION['user_id'])) {
     ]);
     exit;
 }
-
-require_once '../config/db.php';
 $conn = db();
 
 // Auto-migration: ensure the table exists

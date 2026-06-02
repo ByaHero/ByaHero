@@ -1,12 +1,5 @@
 <?php
 declare(strict_types=1);
-header('Content-Type: application/json; charset=utf-8');
-@session_start();
-header('X-Frame-Options: DENY');
-header('X-Content-Type-Options: nosniff');
-header('X-XSS-Protection: 1; mode=block');
-header('Referrer-Policy: same-origin');
-
 $configPaths = [
     __DIR__ . '/config/db.php',
     __DIR__ . '/../config/db.php',
@@ -23,9 +16,17 @@ foreach ($configPaths as $p) {
 }
 
 if (!$loaded) {
+    header('Content-Type: application/json; charset=utf-8');
     echo json_encode(['success' => false, 'message' => 'Configuration error: db.php not found']);
     exit;
 }
+
+@session_start();
+header('Content-Type: application/json; charset=utf-8');
+header('X-Frame-Options: DENY');
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+header('Referrer-Policy: same-origin');
 
 // Load mail configuration
 $mailConfigPath = __DIR__ . '/../config/mail.php';

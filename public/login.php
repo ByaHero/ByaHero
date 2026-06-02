@@ -1,16 +1,8 @@
 <?php
 
-declare(strict_types=1);
-@session_start();
-
-/**
- * public/login.php
- *
- * Login page that authenticates against the role tables:
- * - admins, drivers, conductors, users
- */
-
 require __DIR__ . '/../config/db.php';
+
+@session_start();
 
 $err = '';
 $redirectAfter = $_GET['redirect'] ?? ($_POST['redirect'] ?? 'passenger/index.php');

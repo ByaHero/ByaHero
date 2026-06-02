@@ -1,11 +1,10 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/../config/db.php';
 @session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Frame-Options: DENY');
 header('X-Content-Type-Options: nosniff');
-
-require_once __DIR__ . '/../config/db.php';
 
 // Load database connection
 try {

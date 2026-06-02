@@ -1,6 +1,4 @@
 <?php
-@session_start();
-
 $configPaths = [
     __DIR__ . '/config/db.php',
     __DIR__ . '/../config/db.php',
@@ -21,6 +19,8 @@ if (!$loaded) {
     echo "Configuration error: db.php not found.";
     exit;
 }
+
+@session_start();
 
 if (isset($_SESSION['user_id'])) {
     if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
