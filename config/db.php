@@ -62,12 +62,22 @@ function db(): mysqli {
 
     require_once __DIR__ . '/bootstrap.php';
 
-    // Support both standard DB_* and Railway native MYSQL* injected environment variables
-    $env_host = get_env_config('DB_HOST', get_env_config('MYSQLHOST', ''));
-    $env_user = get_env_config('DB_USER', get_env_config('MYSQLUSER', ''));
-    $env_pass = get_env_config('DB_PASS', get_env_config('MYSQLPASSWORD', ''));
-    $env_name = get_env_config('DB_NAME', get_env_config('MYSQLDATABASE', ''));
-    $env_port = (int)get_env_config('MYSQLPORT', '3306');
+    // Prioritize Railway native MYSQL* injected environment variables if they are present in the OS environment
+    $railway_host = getenv('MYSQLHOST');
+    if ($railway_host !== false && $railway_host !== '') {
+        $env_host = $railway_host;
+        $env_user = getenv('MYSQLUSER') ?: '';
+        $env_pass = getenv('MYSQLPASSWORD') ?: '';
+        $env_name = getenv('MYSQLDATABASE') ?: '';
+        $env_port = (int)(getenv('MYSQLPORT') ?: '3306');
+    } else {
+        // Fall back to standard DB_* and any loaded .env / custom variables
+        $env_host = get_env_config('DB_HOST', '');
+        $env_user = get_env_config('DB_USER', '');
+        $env_pass = get_env_config('DB_PASS', '');
+        $env_name = get_env_config('DB_NAME', '');
+        $env_port = (int)get_env_config('DB_PORT', '3306');
+    }
 
     $is_cli = (php_sapi_name() === 'cli');
     $host_addr = $_SERVER['REMOTE_ADDR'] ?? '';
