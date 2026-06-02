@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">ByaHero</string>
+    <string name="title_activity_main">ByaHero</string>
+    <string name="package_name">com.byahero.app</string>
+    <string name="custom_url_scheme">com.byahero.app</string>
+    <string name="server_client_id">299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com</string>
+</resources>
