@@ -35,5 +35,6 @@ RUN chown -R www-data:www-data /var/www/html
 ENV PORT=8080
 EXPOSE 8080
 
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Apache, ensuring conflicting MPM files are physically deleted at runtime
+CMD ["sh", "-c", "rm -f /etc/apache2/mods-enabled/mpm_event.load /etc/apache2/mods-enabled/mpm_event.conf /etc/apache2/mods-enabled/mpm_worker.load /etc/apache2/mods-enabled/mpm_worker.conf && apache2-foreground"]
+
