@@ -7,14 +7,9 @@ require __DIR__ . '/../config/db.php';
 $err = '';
 $redirectAfter = $_GET['redirect'] ?? ($_POST['redirect'] ?? 'passenger/index.php');
 
-$host = $_SERVER['HTTP_HOST'] ?? '';
-$isLocal =
-    $host === 'localhost' ||
-    str_starts_with($host, 'localhost:') ||
-    $host === '127.0.0.1' ||
-    str_starts_with($host, '127.0.0.1:');
-
-$baseUrl = $isLocal ? '/Byahero-prototype-v3' : '';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 
 if ($redirectAfter !== '' && $redirectAfter[0] !== '/' && !preg_match('~^https?://~i', $redirectAfter)) {
     $redirectAfter = $baseUrl . '/public/' . ltrim($redirectAfter, '/');

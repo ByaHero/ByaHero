@@ -689,22 +689,51 @@ function joinRide(): array {
     $conn = db();
     
     $stCheck = $conn->prepare("SELECT id FROM passenger_rides WHERE user_id = ? AND status = 'active'");
+    if (!$stCheck) {
+        return ['success' => false, 'error' => 'Prepare check failed: ' . $conn->error];
+    }
     $stCheck->bind_param("i", $userId);
     $stCheck->execute();
     if ($stCheck->get_result()->fetch_assoc()) {
         return ['success' => true, 'message' => 'Already on an active ride'];
     }
+    $stCheck->close();
 
+    // Fetch bus_id and route from the active operation since they are NOT NULL in passenger_rides
+    $stOp = $conn->prepare("SELECT bus_id, route FROM bus_operations WHERE id = ? LIMIT 1");
+    if (!$stOp) {
+        return ['success' => false, 'error' => 'Prepare select operation failed: ' . $conn->error];
+    }
+    $stOp->bind_param("i", $opId);
+    $stOp->execute();
+    $opData = $stOp->get_result()->fetch_assoc();
+    $stOp->close();
+
+    if (!$opData) {
+        return ['success' => false, 'error' => 'Active bus operation not found for id: ' . $opId];
+    }
+
+    $busId = (int)$opData['bus_id'];
+    $route = $opData['route'];
+
+    // Insert new passenger ride record
     $st = $conn->prepare("INSERT INTO passenger_rides (user_id, operation_id, boarded_at, status) VALUES (?, ?, NOW(), 'active')");
+    if (!$st) {
+        return ['success' => false, 'error' => 'Prepare insert failed: ' . $conn->error];
+    }
     $st->bind_param("ii", $userId, $opId);
-    $st->execute();
+    if (!$st->execute()) {
+        return ['success' => false, 'error' => 'Execute insert failed: ' . $st->error];
+    }
     $st->close();
 
     // Auto-clear waiting status when passenger boards
     $stWait = $conn->prepare("UPDATE waiting_passengers SET status='boarded', updated_at=NOW() WHERE user_id=? AND status='waiting'");
-    $stWait->bind_param("i", $userId);
-    $stWait->execute();
-    $stWait->close();
+    if ($stWait) {
+        $stWait->bind_param("i", $userId);
+        $stWait->execute();
+        $stWait->close();
+    }
 
     return ['success' => true, 'ride_id' => $conn->insert_id];
 }

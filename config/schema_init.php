@@ -44,6 +44,12 @@ function sync_schema(mysqli $conn) {
         }
     }
 
+    // Add current_bus_id to conductors table if missing
+    $checkConductorBus = $conn->query("SHOW COLUMNS FROM conductors LIKE 'current_bus_id'");
+    if ($checkConductorBus && $checkConductorBus->num_rows === 0) {
+        $conn->query("ALTER TABLE conductors ADD COLUMN current_bus_id INT UNSIGNED DEFAULT NULL AFTER profile_picture");
+    }
+
     // 2. Busses Table
     $conn->query("CREATE TABLE IF NOT EXISTS busses (
         Bus_ID INT AUTO_INCREMENT PRIMARY KEY,

@@ -530,12 +530,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
 
     // Base URL detection for passengerMap and other components
     (function() {
-      var PROJECT_FOLDER = 'Byahero-Prototype-v3';
       var path = window.location.pathname || '/';
-      var match = path.match(new RegExp('^/([^/]+)/', 'i'));
-      var base = (match && match[1].toLowerCase() === PROJECT_FOLDER.toLowerCase()) ?
-        '/' + match[1] :
-        '';
+      var pubIndex = path.toLowerCase().indexOf('/public/');
+      var base = (pubIndex !== -1) ? path.substring(0, pubIndex) : '';
       window.PROJECT_BASE = base;
       window.APP_BASE_URL = base;
       window.ICON_BASE = base + '/assets/images/icons';

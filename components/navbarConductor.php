@@ -5,9 +5,9 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Ensure base URL resolves correctly depending on environment
-$projectFolder = 'ByaHero-Prototype-V3';
-$uri = $_SERVER['REQUEST_URI'] ?? '/';
-$base = (stripos($uri, '/' . $projectFolder . '/') === 0) ? ('/' . $projectFolder) : '';
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$base = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 
 // Resolve Asset Paths
 $logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if missing

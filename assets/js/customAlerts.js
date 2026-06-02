@@ -288,9 +288,14 @@
         width: 90% !important;
         max-width: 410px !important;
         position: relative !important;
-        opacity: 0;
-        transform: scale(0.9) translateY(20px);
+        opacity: 0 !important;
+        transform: scale(0.9) translateY(20px) !important;
         transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s !important;
+      }
+      
+      .byahero-alert-overlay:not(.byahero-alert-hidden) .byahero-alert-card {
+        opacity: 1 !important;
+        transform: scale(1) translateY(0) !important;
       }
       
       /* --- Top-Right Close "X" Button --- */

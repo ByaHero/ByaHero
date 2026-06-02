@@ -22,16 +22,16 @@ date_default_timezone_set('Asia/Manila');
     header('Access-Control-Allow-Methods: GET, POST, OPTIONS, PUT, DELETE');
 
     // Handle preflight OPTIONS requests immediately
-    if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
+    if (isset($_SERVER['REQUEST_METHOD']) && $_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
         http_response_code(200);
         exit;
     }
 
-    // 2. Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
-    ini_set('session.gc_probability', '0');
-
-    // 3. Secure & Cross-Origin Session Cookie Setup (essential for HTTPS / Railway proxying)
+    // 2. Secure & Cross-Origin Session Cookie Setup (essential for HTTPS / Railway proxying)
     if (session_status() === PHP_SESSION_NONE) {
+        // Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
+        ini_set('session.gc_probability', '0');
+
         $is_https = (isset($_SERVER['HTTPS']) && ($_SERVER['HTTPS'] === 'on' || $_SERVER['HTTPS'] === 1))
             || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https')
             || (isset($_SERVER['HTTP_FRONT_END_HTTPS']) && $_SERVER['HTTP_FRONT_END_HTTPS'] === 'on')
