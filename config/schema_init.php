@@ -152,6 +152,14 @@ function sync_schema(mysqli $conn) {
         INDEX idx_operation (operation_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+    // Ensure passenger_rides has operation_id column and correct status enum values (for older database compatibility)
+    $checkPR = $conn->query("SHOW COLUMNS FROM passenger_rides LIKE 'operation_id'");
+    if ($checkPR && $checkPR->num_rows === 0) {
+        $conn->query("ALTER TABLE passenger_rides ADD COLUMN operation_id INT UNSIGNED NOT NULL DEFAULT 0 AFTER user_id");
+        $conn->query("ALTER TABLE passenger_rides MODIFY COLUMN status ENUM('active', 'completed', 'ongoing') DEFAULT 'active'");
+        $conn->query("ALTER TABLE passenger_rides ADD INDEX idx_operation (operation_id)");
+    }
+
     // 7. Bus Stops & Terminals
     $conn->query("CREATE TABLE IF NOT EXISTS busstopsterminal (
         id INT AUTO_INCREMENT PRIMARY KEY,

@@ -1,0 +1,20 @@
+{
+    "type": "Feature",
+    "geometry": {
+        "type": "Point",
+        "coordinates": [
+            121.17204808221834,
+            14.23034381721085
+        ]
+    },
+    "properties": {
+        "bus_id": 6,
+        "code": "T-00002",
+        "route": "LAUREL - TANAUAN",
+        "seats_available": 25,
+        "status": "on_stop",
+        "timestamp": "2026-06-02T10:40:49.357Z",
+        "current_location_name": "Looc, Calamba",
+        "Current Location": "Looc, Calamba"
+    }
+}
