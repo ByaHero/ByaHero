@@ -109,6 +109,8 @@ if ($opRow) {
     $_SESSION['current_bus']['operation_id'] = (int)$opRow['id'];
     // If we found an existing operation, it's not a "new" session anymore
     $_SESSION['current_bus']['is_new_session'] = false;
+    $currentBus['operation_id'] = (int)$opRow['id'];
+    $currentBus['is_new_session'] = false;
 }
 
 // Fetch latest seat availability from DB, as it might have been updated by
@@ -775,11 +777,12 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             try { navigator.geolocation.clearWatch(watchId); } catch(e){}
             watchId = null;
         }
-        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins.BackgroundGeolocation) {
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
             try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch(e){}
             bgWatcherId = null;
         }
 
+        const endLocName = lastKnownLocation ? lastKnownLocation.locName : null;
         // IMPORTANT: Prevent heartbeat from re-opening the bus if a sync fires during redirect
         lastKnownLocation = null;
         if (heartbeatInterval) {
@@ -789,7 +792,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
         const payload = {
             bus_id: busId,
-            end_location: lastKnownLocation?.locName || null
+            end_location: endLocName
         };
         await safePost('../api.php?action=stop_tracking', payload);
 

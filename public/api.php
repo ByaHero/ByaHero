@@ -406,7 +406,7 @@ function stopTracking(): array {
         UPDATE passenger_rides pr
         JOIN bus_operations bo ON pr.operation_id = bo.id
         SET pr.departed_at = NOW(), pr.status = 'completed'
-        WHERE bo.bus_id = ? AND bo.conductor_id = ? AND bo.status = 'active' AND pr.status = 'active'
+        WHERE bo.bus_id = ? AND bo.conductor_id = ? AND bo.status = 'active' AND pr.status IN ('active', 'ongoing')
     ");
     $stPass->bind_param("ii", $busId, $userId);
     $stPass->execute();

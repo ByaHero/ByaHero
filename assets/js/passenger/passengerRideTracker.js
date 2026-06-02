@@ -211,7 +211,12 @@ window.PassengerRideTracker = {
     const busId = this.activeRide.bus_id;
     const bus = window.allBuses.find(b => String(b.id) === String(busId));
     
-    if (!bus || !bus.coords) return;
+    if (!bus) {
+        this.leaveRide("Bus is no longer active. Automatically departed.");
+        return;
+    }
+    
+    if (!bus.coords) return;
     
     const now = Date.now();
     if (!this.busUpdateTracker[busId]) {
