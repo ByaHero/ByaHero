@@ -367,7 +367,7 @@
         let innerHtml = initials;
         if (profilePicture) {
             const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
-            const isAbsolute = /^https?:\/\//i.test(profilePicture);
+            const isAbsolute = /^https?:\/\/|^data:/i.test(profilePicture);
             const safePath = isAbsolute ? profilePicture : basePath + (profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture);
             innerHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         }
@@ -474,7 +474,7 @@
                 let avatarHtml = initials;
                 if (friend.profile_picture) {
                     const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
-                    const isAbsolute = /^https?:\/\//i.test(friend.profile_picture);
+                    const isAbsolute = /^https?:\/\/|^data:/i.test(friend.profile_picture);
                     const safePath = isAbsolute ? friend.profile_picture : basePath + (friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture);
                     avatarHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
                 }

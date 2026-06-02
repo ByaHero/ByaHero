@@ -382,7 +382,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
         <div class="profile-initial-circle">
           <?php if ($userProfilePic): ?>
             <?php 
-              $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+              $isAbsolute = preg_match('~^(https?:|data:)~i', $userProfilePic);
               $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $baseUrl . '/' . ltrim(htmlspecialchars($userProfilePic), '/');
             ?>
             <img src="<?php echo htmlspecialchars($imgSrc); ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">

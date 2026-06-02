@@ -63,51 +63,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 elseif (isset($_POST['profile_image_data']) && !empty($_POST['profile_image_data'])) {
                     $imgData = $_POST['profile_image_data'];
                     
-                    // Remove header from data URL
-                    if (preg_match('/^data:image\/(\w+);base64,/', $imgData, $type)) {
-                        $imgData = substr($imgData, strpos($imgData, ',') + 1);
-                        $type = strtolower($type[1]); // jpg, png, etc
+                    // Directly save the base64 data URI in the database (handles Railway ephemeral filesystem seamlessly)
+                    if (strpos($imgData, 'data:image/') === 0) {
+                        $updateImgStmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
+                        $updateImgStmt->bind_param("si", $imgData, $userId);
+                        $updateImgStmt->execute();
+                        $updateImgStmt->close();
 
-                        if (!in_array($type, ['jpg', 'jpeg', 'png'])) {
-                            throw new Exception("Invalid image type.");
-                        }
-
-                        $imgData = base64_decode($imgData);
-
-                        if ($imgData === false) {
-                            throw new Exception("Base64 decode failed.");
-                        }
-
-                        $fileName = 'user_' . $userId . '_' . time() . '.' . $type;
-                        $uploadPath = 'public/uploads/profile_pictures/' . $fileName;
-                        $fullPath = __DIR__ . '/../../../' . $uploadPath;
-                        $dirPath = dirname($fullPath);
-
-                        // Ensure directory exists
-                        if (!is_dir($dirPath)) {
-                            if (!mkdir($dirPath, 0777, true)) {
-                                throw new Exception("Failed to create upload directory. Please create 'public/uploads/profile_pictures/' manually via FTP.");
+                        // Delete old file if it was a legacy local file path
+                        if (!empty($userData['profile_picture']) && strpos($userData['profile_picture'], 'data:') !== 0) {
+                            $oldPath = __DIR__ . '/../../../' . $userData['profile_picture'];
+                            if (file_exists($oldPath)) {
+                                @unlink($oldPath);
                             }
                         }
-
-                        if (file_put_contents($fullPath, $imgData)) {
-                            // Update database with relative path from root
-                            $updateImgStmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
-                            $updateImgStmt->bind_param("si", $uploadPath, $userId);
-                            $updateImgStmt->execute();
-                            $updateImgStmt->close();
-
-                            // Delete old picture if exists
-                            if (!empty($userData['profile_picture'])) {
-                                $oldPath = __DIR__ . '/../../../' . $userData['profile_picture'];
-                                if (file_exists($oldPath)) {
-                                    @unlink($oldPath);
-                                }
-                            }
-                            $userData['profile_picture'] = $uploadPath;
-                        } else {
-                            throw new Exception("Failed to save image file.");
-                        }
+                        $userData['profile_picture'] = $imgData;
+                    } else {
+                        throw new Exception("Invalid image data format.");
                     }
                 }
 
@@ -236,7 +208,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <div class="profile-avatar" onclick="document.getElementById('imageInput').click()">
         <?php if (!empty($userData['profile_picture'])): ?>
             <?php 
-                $isAbsolute = preg_match('~^https?://~i', $userData['profile_picture']);
+                $isAbsolute = preg_match('~^(https?:|data:)~i', $userData['profile_picture']);
                 $imgSrc = $isAbsolute ? htmlspecialchars($userData['profile_picture']) : $pageDepth . ltrim(htmlspecialchars($userData['profile_picture']), '/');
             ?>
             <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar">

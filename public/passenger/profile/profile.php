@@ -144,7 +144,7 @@ if (!empty($currentUser['phone'])) {
         <div class="shadow-sm overflow-hidden" style="width: 80px; height: 80px; background-color: #ffffff; color: var(--bs-primary); display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; font-size: 36px; font-weight: bold; border: 2px solid #1e3a8a; margin: 0 auto;">
             <?php if ($currentUser['profile_picture']): ?>
                 <?php 
-                    $isAbsolute = preg_match('~^https?://~i', $currentUser['profile_picture']);
+                    $isAbsolute = preg_match('~^(https?:|data:)~i', $currentUser['profile_picture']);
                     $imgSrc = $isAbsolute ? htmlspecialchars($currentUser['profile_picture']) : $pageDepth . ltrim(htmlspecialchars($currentUser['profile_picture']), '/');
                 ?>
                 <img src="<?= $imgSrc ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">

@@ -14,17 +14,25 @@ function sync_schema(mysqli $conn) {
             password VARCHAR(255) NOT NULL,
             name VARCHAR(255) NULL,
             contacts VARCHAR(20) NULL,
-            profile_picture VARCHAR(255) NULL,
+            profile_picture MEDIUMTEXT NULL,
             google_id VARCHAR(255) NULL,
             auth_provider VARCHAR(50) NULL,
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
+        // Ensure profile_picture is MEDIUMTEXT to store base64 images directly (supports Railway ephemeral filesystem)
+        $checkType = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'profile_picture'");
+        if ($checkType && $row = $checkType->fetch_assoc()) {
+            if (stripos($row['Type'], 'varchar') !== false) {
+                $conn->query("ALTER TABLE `$table` MODIFY COLUMN `profile_picture` MEDIUMTEXT NULL");
+            }
+        }
+
         // Ensure missing columns exist (for migration)
         $cols = [
             'name' => "VARCHAR(255) NULL AFTER password",
             'contacts' => "VARCHAR(20) NULL AFTER name",
-            'profile_picture' => "VARCHAR(255) NULL AFTER contacts",
+            'profile_picture' => "MEDIUMTEXT NULL AFTER contacts",
             'google_id' => "VARCHAR(255) NULL AFTER profile_picture",
             'auth_provider' => "VARCHAR(50) NULL AFTER google_id"
         ];
