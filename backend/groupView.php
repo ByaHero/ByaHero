@@ -46,6 +46,21 @@ if ($hasOperationId) {
     ";
 }
 
+// Check column names in circle_members to support both standard production and local dev schemas
+$memberColumn = 'user_id';
+$columnsCM = $conn->query("SHOW COLUMNS FROM circle_members LIKE 'member_user_id'");
+if ($columnsCM && $columnsCM->num_rows > 0) {
+    $memberColumn = 'member_user_id';
+}
+
+$hasStatusCM = false;
+$statusCM = $conn->query("SHOW COLUMNS FROM circle_members LIKE 'status'");
+if ($statusCM && $statusCM->num_rows > 0) {
+    $hasStatusCM = true;
+}
+
+$statusSql = $hasStatusCM ? "AND cm.status = 'active'" : "";
+
 // Fetch members + latest location + waiting & boarded status
 $sql = "
     SELECT 
@@ -62,13 +77,14 @@ $sql = "
         pr.status AS ride_status,
         b.code AS boarded_bus_code
     FROM circle_members cm
-    JOIN users u ON u.id = cm.member_user_id
+    JOIN users u ON u.id = cm.{$memberColumn}
     LEFT JOIN user_locations ul ON ul.user_id = u.id
     LEFT JOIN waiting_passengers wp ON wp.user_id = u.id AND wp.status = 'waiting'
     $joinSql
-    WHERE cm.circle_id = ? AND cm.status = 'active'
+    WHERE cm.circle_id = ? $statusSql
     ORDER BY u.name ASC
 ";
+
 
 $stmt = $conn->prepare($sql);
 $stmt->bind_param("i", $circleId);

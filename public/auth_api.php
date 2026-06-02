@@ -372,9 +372,11 @@ try {
             
             respond(true, 'Login successful', ['redirect' => $roleRedirects['passenger']]);
         } else {
-            $ins = $conn->prepare("INSERT INTO users (email, google_id, auth_provider, name, profile_picture, created_at) VALUES (?, ?, 'google', ?, ?, NOW())");
-            $ins->bind_param("ssss", $email, $googleId, $name, $profilePic);
+            $dummyPassword = "";
+            $ins = $conn->prepare("INSERT INTO users (email, password, google_id, auth_provider, name, profile_picture, created_at) VALUES (?, ?, ?, 'google', ?, ?, NOW())");
+            $ins->bind_param("sssss", $email, $dummyPassword, $googleId, $name, $profilePic);
             $ins->execute();
+
 
             $newId = (int)$conn->insert_id;
             $_SESSION['user_id'] = $newId;
