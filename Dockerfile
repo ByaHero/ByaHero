@@ -11,8 +11,10 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install gd mysqli pdo pdo_mysql
 
-# Enable Apache modules required for .htaccess
-RUN a2enmod rewrite headers expires deflate
+# Enable Apache modules required for .htaccess, ensuring only the prefork MPM is enabled
+RUN a2dismod mpm_event mpm_worker || true
+RUN a2enmod mpm_prefork rewrite headers expires deflate
+
 
 # Set the recommended PHP configuration (Production mode)
 RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
