@@ -128,7 +128,7 @@ window.bindUserMarker = function bindUserMarker(marker) {
 window.checkWaitingStatus = async function checkWaitingStatus() {
   try {
     const url = new URL('../../backend/waiting_api.php?action=get_my_status', window.location.href).href;
-    const res = await fetch(url, { credentials: 'have' });
+    const res = await fetch(url, { credentials: 'include' });
     const data = await res.json();
     if (data && data.success) {
       window.isPassengerWaiting = !!data.is_waiting;

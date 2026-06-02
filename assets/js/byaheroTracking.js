@@ -34,6 +34,7 @@ window.safePost = async function safePost(relativeUrl, payload = {}) {
         } else {
             const res = await fetch(url, {
                 method: 'POST',
+                credentials: 'include', // CRITICAL: Ensures session cookies are sent for autoboarding & tracking requests
                 headers: { 
                     'Content-Type': 'application/json',
                     'Accept': 'application/json, text/plain, */*',
