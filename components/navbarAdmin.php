@@ -344,7 +344,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
       <!-- Centered Logo -->
       <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
         <img
-          src="<?= htmlspecialchars($baseUrl . '/assets/images/ByaHero.png') ?>"
+          src="<?= htmlspecialchars($baseUrl . '/assets/images/ByaHero.svg') ?>"
           alt="ByaHero"
           style="height: 35px; object-fit: contain;"
         >

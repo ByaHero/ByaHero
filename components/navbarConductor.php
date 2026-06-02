@@ -11,7 +11,7 @@ $base = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 
 // Resolve Asset Paths
 $logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if missing
-$wordmarkUrl = $base . '/assets/images/ByaHero.png';    // Added ByaHero wordmark
+$wordmarkUrl = $base . '/assets/images/ByaHero.svg';    // Added ByaHero wordmark
 
 // Conductor links
 $profileUrl = $base . '/public/conductor/profile/profile.php';
