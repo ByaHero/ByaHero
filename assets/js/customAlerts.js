@@ -12,12 +12,12 @@
   const nativeAlert = window.alert;
 
   // Intercept early console overrides
-  window.alert = function(message) {
+  window.alert = function(message, customIconUrl = null) {
     // Log to console as well for debugging purposes
     console.log("[Alert Intercepted]:", message);
 
     return new Promise((resolve) => {
-      alertQueue.push({ message: String(message), resolve });
+      alertQueue.push({ message: String(message), customIconUrl, resolve });
       processQueue();
     });
   };
@@ -35,13 +35,13 @@
       if (currentAlert.resolve) currentAlert.resolve();
       // Introduce a slight buffer delay between successive popups
       setTimeout(processQueue, 150);
-    });
+    }, currentAlert.customIconUrl);
   }
 
   /**
    * Dynamically build, inject, and present the Custom Alert
    */
-  function showAlertOverlay(message, onCloseCallback) {
+  function showAlertOverlay(message, onCloseCallback, customIconUrl = null) {
     ensureStylesheetInjected();
 
     // Context analysis to select appropriate icons, titles, and color palettes
@@ -70,10 +70,11 @@
     const iconContainer = document.createElement('div');
     iconContainer.className = `byahero-alert-icon-container byahero-alert-${alertContext.theme}`;
     
-    if (alertContext.theme === 'transit') {
-      iconContainer.innerHTML = `<img src="../../assets/images/WAITING.svg" alt="Waiting" style="width: 65px; height: 65px; object-fit: contain;" />`;
+    if (customIconUrl) {
+      iconContainer.innerHTML = `<img src="${customIconUrl}" alt="User Icon" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover;" />`;
     } else {
-      iconContainer.innerHTML = `<span class="byahero-alert-emoji">${alertContext.emoji}</span>`;
+      let iconWidth = alertContext.theme === 'transit' ? '65px' : '45px';
+      iconContainer.innerHTML = `<img src="${alertContext.icon}" alt="Alert Icon" style="width: ${iconWidth}; height: ${iconWidth}; object-fit: contain;" />`;
     }
 
     // Title Block
@@ -82,7 +83,7 @@
     title.textContent = alertContext.title;
 
     // Cleaned Message block (stripping leading emojis that we display at top)
-    const cleanMsg = cleanAlertMessage(message, alertContext.emoji);
+    const cleanMsg = cleanAlertMessage(message);
     const msgElement = document.createElement('p');
     msgElement.className = 'byahero-alert-message';
     msgElement.textContent = cleanMsg;
@@ -186,16 +187,25 @@
     if (text.includes('waiting') || text.includes('marked as waiting') || text.includes('🚌') || text.includes('🚏') || text.includes('bus') || text.includes('stop')) {
       return {
         theme: 'transit',
-        emoji: '🚌',
+        icon: '../../assets/images/WAITING.svg',
         title: 'Status Update'
       };
     }
     
-    // 2) Success indicators
-    if (text.includes('success') || text.includes('welcome') || text.includes('successfully') || text.includes('joined') || text.includes('copied') || text.includes('enabled') || text.includes('on')) {
+    // 2) Circle / User updates
+    if (text.includes('joined') || text.includes('circle') || text.includes('left') || text.includes('status')) {
+      return {
+        theme: 'circle',
+        icon: '../../assets/images/icons/profileBlack.svg',
+        title: 'Circle Status'
+      };
+    }
+
+    // 3) Success indicators
+    if (text.includes('success') || text.includes('welcome') || text.includes('successfully') || text.includes('copied') || text.includes('enabled') || text.includes('on')) {
       return {
         theme: 'success',
-        emoji: '🎉',
+        icon: '../../assets/images/icons/verified_user.svg',
         title: 'Success!'
       };
     }
@@ -204,7 +214,7 @@
     if (text.includes('error') || text.includes('failed') || text.includes('unable') || text.includes('invalid') || text.includes('cannot') || text.includes('disabled') || text.includes('permission')) {
       return {
         theme: 'error',
-        emoji: '⚠️',
+        icon: '../../assets/images/icons/safetyBlack.svg',
         title: 'Notice'
       };
     }
@@ -212,7 +222,7 @@
     // 4) Default fallback
     return {
       theme: 'info',
-      emoji: '🔔',
+      icon: '../../assets/images/icons/locationBlack.svg',
       title: 'ByaHero Alert'
     };
   }
@@ -220,7 +230,7 @@
   /**
    * Clean leading emoji characters from message string to prevent double emojis on display
    */
-  function cleanAlertMessage(message, themeEmoji) {
+  function cleanAlertMessage(message) {
     let clean = String(message).trim();
     
     // Strips emoji characters at the very start if matching our theme icon (like 🚌)
@@ -234,6 +244,9 @@
       clean = clean.substring(2).trim();
     }
     if (clean.startsWith('🔔')) {
+      clean = clean.substring(2).trim();
+    }
+    if (clean.startsWith('👤')) {
       clean = clean.substring(2).trim();
     }
     
@@ -377,6 +390,12 @@
         background-color: #f5f3ff !important;
         border: 2px solid #ede9fe !important;
       }
+
+      .byahero-alert-icon-container.byahero-alert-circle {
+        background-color: #f8fafc !important;
+        border: 2px solid #e2e8f0 !important;
+        animation: alertCirclePulse 2.5s infinite !important;
+      }
       
       /* --- Pulse Keyframe Animations --- */
       @keyframes alertTransitPulse {
@@ -393,6 +412,11 @@
         0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
         70% { box-shadow: 0 0 0 18px rgba(239, 68, 68, 0); }
         100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+      }
+      @keyframes alertCirclePulse {
+        0% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0.3); }
+        70% { box-shadow: 0 0 0 18px rgba(100, 116, 139, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(100, 116, 139, 0); }
       }
       
       /* --- Typography --- */
