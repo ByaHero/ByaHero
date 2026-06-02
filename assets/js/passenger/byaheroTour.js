@@ -141,7 +141,7 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
         `;
         document.body.appendChild(overlay);
         this.overlay = overlay;
-        this.popover = document.getElementById('tour-popover');
+        this.popover = overlay.querySelector('.tour-popover');
     }
 
     async showStep() {
@@ -378,7 +378,9 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
 window.ByaheroTour = ByaheroTour;
 
 // --- GLOBAL MULTI-PAGE TOUR CONFIG & INITIALIZATION ---
-document.addEventListener('DOMContentLoaded', () => {
+if (!window._byaheroTourInitialized) {
+    window._byaheroTourInitialized = true;
+    document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('start_tour') === 'true') {
         const stepIndex = parseInt(urlParams.get('step') || '0', 10);
@@ -668,4 +670,5 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 1200);
     }
 });
+}
 
