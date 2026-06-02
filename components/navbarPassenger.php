@@ -156,8 +156,9 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   /* Centered Byahero wordmark in top bar */
   .topbar-wordmark {
     position: absolute;
+    top: 50%;
     left: 50%;
-    transform: translateX(-50%);
+    transform: translate(-50%, -50%);
   }
 
   /* UPDATED: Allows long names to wrap nicely without overflowing */
@@ -527,7 +528,9 @@ else: ?>
       <img src="<?php echo $depth; ?>assets/images/topBarLogo.svg" alt="ByaHero" height="32">
     </div>
 
-    <img src="<?php echo $depth; ?>assets/images/ByaHero.png" alt="ByaHero" height="30" class="topbar-wordmark">
+    <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
+      <img src="<?php echo $depth; ?>assets/images/ByaHero.svg" alt="ByaHero" height="30" style="object-fit: contain;">
+    </div>
 
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
       <?php echo $desktopNavLinksHtml; ?>
@@ -725,7 +728,7 @@ else: ?>
           data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
           <div class="sos-dome">
             <div class="sos-icon-wrap">
-              <img id="nav-sos-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.png"
+              <img id="nav-sos-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.svg"
                 alt="SOS"
                 style="width: 32px; height: 32px; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));" />
             </div>
