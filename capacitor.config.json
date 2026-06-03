@@ -4,7 +4,7 @@
   "webDir": "www",
   "bundledWebRuntime": false,
   "server": {
-    "url": "https://byahero.app",
+    "url": "https://byahero.up.railway.app",
     "cleartext": true,
     "errorPath": "error.html"
   },
@@ -29,7 +29,7 @@
     }
   },
   "allowNavigation": [
-    "byahero.app",
-    "*.byahero.app"
+    "byahero.up.railway.app",
+    "*.byahero.up.railway.app"
   ]
 }

@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <link rel="icon" href="../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>No Internet Connection</title>
     <!-- Use Google Fonts if available, fallback to system fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
@@ -54,8 +56,15 @@
         }
 
         @keyframes pulse-glow {
-            0% { transform: translate(-50%, -50%) scale(0.8); opacity: 0.6; }
-            100% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+            0% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0.6;
+            }
+
+            100% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 1;
+            }
         }
 
         .container {
@@ -74,8 +83,15 @@
         }
 
         @keyframes slide-up {
-            0% { opacity: 0; transform: translateY(40px); }
-            100% { opacity: 1; transform: translateY(0); }
+            0% {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
 
         .icon-wrapper {
@@ -97,9 +113,17 @@
         }
 
         @keyframes float {
-            0% { transform: translateY(0px) rotate(0deg); }
-            50% { transform: translateY(-8px) rotate(-5deg); }
-            100% { transform: translateY(0px) rotate(0deg); }
+            0% {
+                transform: translateY(0px) rotate(0deg);
+            }
+
+            50% {
+                transform: translateY(-8px) rotate(-5deg);
+            }
+
+            100% {
+                transform: translateY(0px) rotate(0deg);
+            }
         }
 
         h1 {
@@ -148,7 +172,7 @@
             stroke-linecap: round;
             stroke-linejoin: round;
         }
-        
+
         .status-dot {
             position: absolute;
             top: 2px;
@@ -161,18 +185,19 @@
         }
     </style>
 </head>
+
 <body>
     <div class="ambient-glow"></div>
-    
+
     <div class="container">
         <div class="icon-wrapper">
             <div class="icon">📡</div>
             <div class="status-dot"></div>
         </div>
-        
+
         <h1>No Connection</h1>
         <p>Byahero couldn't connect to the server. Please check your internet connection and try again.</p>
-        
+
         <button class="retry-btn" id="retryButton">
             <svg viewBox="0 0 24 24">
                 <path d="M21 2v6h-6"></path>
@@ -192,10 +217,10 @@
                 </svg>
                 Connecting...
             `;
-            
+
             // Retry loading the actual app URL
             setTimeout(() => {
-                window.location.href = "https://byahero.app";
+                window.location.href = "https://byahero.up.railway.app";
             }, 600);
         });
 
@@ -205,11 +230,12 @@
             @keyframes spin { 100% { transform: rotate(360deg); } }
         `;
         document.head.appendChild(style);
-        
+
         // Auto-reload when online event fires
         window.addEventListener('online', () => {
-            window.location.href = "https://byahero.app";
+            window.location.href = "https://byahero.up.railway.app";
         });
     </script>
 </body>
+
 </html>
