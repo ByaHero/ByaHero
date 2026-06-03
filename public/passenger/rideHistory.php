@@ -401,7 +401,7 @@ $pageTitle = 'Ride History';
                     document.getElementById('historyList').innerHTML = `
                         <div class="empty-state">
                             <div class="empty-illustration">
-                                <span class="material-symbols-rounded">history</span>
+                                <img src="../../assets/images/WAITING.svg" alt="Waiting" style="width: 90px; height: 90px;" />
                             </div>
                             <h4 class="fw-bold">No Rides Yet</h4>
                             <p class="text-muted">Your journey starts here! Take your first ride and see your history grow.</p>

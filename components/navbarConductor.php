@@ -18,7 +18,7 @@ $profileUrl = $base . '/public/conductor/profile/profile.php';
 $logoutUrl  = $base . '/public/logout.php';
 
 // Use SAME images as navbarPassenger (icons)
-$hamburgerImg = $base . '/assets/images/hamburger.png';
+$hamburgerImg = $base . '/assets/images/HAMBURGER.svg';
 $personImg    = $base . '/assets/images/person.svg';
 $logoutImg    = $base . '/assets/images/logout.svg';
 
