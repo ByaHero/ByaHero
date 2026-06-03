@@ -547,7 +547,7 @@ else: ?>
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
-        <img src="<?php echo $depth; ?>assets/images/hamburger.png" alt="ByaHero" height="18">
+        <img src="<?php echo $depth; ?>assets/images/HAMBURGER.svg" alt="ByaHero" height="18">
       </button>
     </div>
   </div>
