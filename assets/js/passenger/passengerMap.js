@@ -160,14 +160,21 @@ window.updateUserMarkerWaitingStyle = function updateUserMarkerWaitingStyle() {
       chatBubble.textContent = 'Boarded';
       chatBubble.style.backgroundColor = '#0dcaf0'; // Cyan
       chatBubble.style.color = '#fff';
+      chatBubble.style.border = 'none';
+      chatBubble.style.setProperty('--bubble-bg', '#0dcaf0');
+      chatBubble.style.setProperty('--bubble-border', 'transparent');
     } else {
       chatBubble.textContent = shouldShowWaiting ? 'Waiting' : 'Waiting?';
-      chatBubble.style.backgroundColor = shouldShowWaiting ? '#ffffff' : '#10b981';
-      chatBubble.style.color = shouldShowWaiting ? '#10b981' : '#ffffff';
+      chatBubble.style.backgroundColor = shouldShowWaiting ? '#10b981' : '#ffffff';
+      chatBubble.style.color = shouldShowWaiting ? '#ffffff' : '#10b981';
       if (shouldShowWaiting) {
-        chatBubble.style.border = '2px solid #10b981';
-      } else {
         chatBubble.style.border = 'none';
+        chatBubble.style.setProperty('--bubble-bg', '#10b981');
+        chatBubble.style.setProperty('--bubble-border', 'transparent');
+      } else {
+        chatBubble.style.border = '2px solid #10b981';
+        chatBubble.style.setProperty('--bubble-bg', '#ffffff');
+        chatBubble.style.setProperty('--bubble-border', '#10b981');
       }
     }
   }

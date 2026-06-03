@@ -78,7 +78,7 @@ $showClose = (!$isDashboard && !$isAdminProfile);
 
 // Assets
 $logoUrl = $baseUrl . '/assets/images/topBarLogo.svg';
-$hamburgerImg = $baseUrl . '/assets/images/hamburger.png';
+$hamburgerImg = $baseUrl . '/assets/images/HAMBURGER.svg';
 
 // Menu links
 $profileUrl = $baseUrl . '/public/admin/adminProfile.php';

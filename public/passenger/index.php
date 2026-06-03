@@ -212,7 +212,7 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       transform: translateX(-50%);
       border-width: 5px;
       border-style: solid;
-      border-color: white transparent transparent transparent;
+      border-color: var(--bubble-bg, white) transparent transparent transparent;
       transition: border-color 0.2s ease;
     }
 
@@ -224,20 +224,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
       transform: translateX(-50%);
       border-width: 6.5px;
       border-style: solid;
-      border-color: #3b82f6 transparent transparent transparent;
+      border-color: var(--bubble-border, #3b82f6) transparent transparent transparent;
       transition: border-color 0.2s ease;
       z-index: -1;
     }
 
     /* Active waiting state matches the green badge theme */
     .user-marker-container.is-waiting .user-waiting-chat-bubble {
-      color: #10b981;
-      border-color: #10b981;
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2), 0 2px 4px rgba(0, 0, 0, 0.05);
-    }
-
-    .user-marker-container.is-waiting .user-waiting-chat-bubble::before {
-      border-color: #10b981 transparent transparent transparent;
     }
 
     @keyframes clickablePulse {
