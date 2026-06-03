@@ -253,7 +253,7 @@
       if (window.Capacitor.getPlatform() === 'android') {
         try {
           await PushNotifications.createChannel({
-            id: 'sos_alerts',
+            id: 'sos_alerts_v2',
             name: 'Emergency SOS Alerts',
             description: 'Critical emergency notifications from friends',
             importance: 5, // High Importance (Heads-up banner)
@@ -261,7 +261,7 @@
             vibration: true,
             sound: 'default'
           });
-          dbg('log', '[SOS-FCM] Android SOS channel created/verified.');
+          dbg('log', '[SOS-FCM] Android SOS channel v2 created/verified.');
         } catch (e) {
           dbg('warn', '[SOS-FCM] Error creating channel: ' + e);
         }
