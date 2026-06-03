@@ -44,6 +44,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
                 $stmt->close();
             }
+        } elseif ($action === 'cancel_location') {
+            $location = $_POST['location'] ?? null;
+
+            if (!$location) {
+                $error = 'Invalid cancellation request.';
+            } else {
+                $stmt = $conn->prepare("UPDATE waiting_passengers SET status = 'cancelled', updated_at = NOW() WHERE location_name = ? AND status = 'waiting'");
+                $stmt->bind_param("s", $location);
+                $stmt->execute();
+
+                if ($stmt->affected_rows === 0) {
+                    $error = 'Failed to cancel signals for ' . h($location) . '.';
+                } else {
+                    $message = 'All waiting signals for ' . h($location) . ' cancelled successfully.';
+                }
+                $stmt->close();
+            }
         }
     } catch (Throwable $e) {
         $error = 'Database error: ' . $e->getMessage();
@@ -329,15 +346,7 @@ $backLink  = 'admin.php';
                     <!-- Client-Side Filter Inputs -->
                     <div class="search-filter-bar mb-4">
                         <div class="row g-2">
-                            <div class="col-sm-6">
-                                <div class="input-group">
-                                    <span class="input-group-text bg-white border-end-0 text-muted">
-                                        <span class="material-symbols-rounded fs-5">search</span>
-                                    </span>
-                                    <input type="text" id="searchPassenger" class="form-control border-start-0 ps-0" placeholder="Search by name...">
-                                </div>
-                            </div>
-                            <div class="col-sm-6">
+                            <div class="col-sm-12">
                                 <select id="filterLocation" class="form-select">
                                     <option value="">All Stop Locations</option>
                                     <?php foreach ($location_whitelist as $whitelistLoc): ?>
@@ -361,70 +370,38 @@ $backLink  = 'admin.php';
                         
                         <!-- List Container -->
                         <div id="passengers-container">
-                            <?php foreach ($waitingList as $wp):
-                                $id = $wp['id'];
-                                $rawName = !empty($wp['registered_name']) ? $wp['registered_name'] : (!empty($wp['user_name']) ? $wp['user_name'] : 'Unknown User');
-                                $email = !empty($wp['registered_email']) ? $wp['registered_email'] : 'No Email';
-                                
-                                // Time-ago calculation
-                                $wait_time = strtotime($wp['created_at']);
-                                $diff_sec = time() - $wait_time;
-                                $time_ago_str = 'Just now';
-                                if ($diff_sec > 0) {
-                                    if ($diff_sec < 60) {
-                                        $time_ago_str = $diff_sec . 's ago';
-                                    } elseif ($diff_sec < 3600) {
-                                        $time_ago_str = floor($diff_sec / 60) . 'm ago';
-                                    } else {
-                                        $time_ago_str = floor($diff_sec / 3600) . 'h ' . floor(($diff_sec % 3600) / 60) . 'm ago';
-                                    }
-                                }
-                            ?>
-                                <div class="route-card passenger-card" data-name="<?= h($rawName) ?>" data-location="<?= h($wp['location_name']) ?>">
+                            <?php foreach ($locationCounts as $locName => $count): ?>
+                                <div class="route-card passenger-card" data-location="<?= h($locName) ?>">
                                     <div class="ticket-header">
                                         <span class="ticket-type">
                                             <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
-                                                person
+                                                location_on
                                             </span>
-                                            PASSENGER ID #<?= h((string)$wp['user_id']) ?>
+                                            <?= h($locName) ?>
                                         </span>
                                         <span class="ticket-date d-flex align-items-center gap-1">
                                             <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
-                                            Waiting (<?= h($time_ago_str) ?>)
+                                            Active
                                         </span>
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-sm-6 col-12 ticket-row">
-                                            <span class="ticket-label">Full Name</span>
-                                            <div class="ticket-value fw-bold">
-                                                <?= h($rawName) ?>
-                                                <div class="small text-muted fw-normal mt-1"><?= h($email) ?></div>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6 col-12 ticket-row">
-                                            <span class="ticket-label">Stop Location</span>
-                                            <div class="ticket-value text-primary d-flex align-items-center gap-1 fw-bold">
-                                                <span class="material-symbols-rounded text-danger fs-5">location_on</span>
-                                                <?= h($wp['location_name']) ?>
+                                        <div class="col-sm-12 ticket-row">
+                                            <span class="ticket-label">Passengers Waiting</span>
+                                            <div class="ticket-value fw-bold fs-5 text-primary">
+                                                <?= $count ?> passenger<?= $count > 1 ? 's' : '' ?>
                                             </div>
                                         </div>
                                     </div>
 
                                     <div class="row mt-2">
-                                        <div class="col-sm-6 col-12 ticket-row">
-                                            <span class="ticket-label">Signalled At</span>
-                                            <div class="ticket-value text-muted small">
-                                                <?= date('M d, Y h:i A', $wait_time) ?>
-                                            </div>
-                                        </div>
-                                        <div class="col-sm-6 col-12 d-flex justify-content-end align-items-center">
-                                            <form method="POST" class="m-0 mt-3 mt-sm-0" onsubmit="return confirm('Dismiss waiting signal for <?= h($rawName) ?>?');">
-                                                <input type="hidden" name="action" value="cancel_waiting">
-                                                <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                                        <div class="col-sm-12 d-flex justify-content-end align-items-center">
+                                            <form method="POST" class="m-0 mt-3 mt-sm-0" onsubmit="return confirm('Dismiss all waiting signals for <?= h($locName) ?>?');">
+                                                <input type="hidden" name="action" value="cancel_location">
+                                                <input type="hidden" name="location" value="<?= h($locName) ?>">
                                                 <button type="submit" class="btn btn-danger-custom btn-pill shadow-sm" style="padding: 6px 14px; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
                                                     <span class="material-symbols-rounded fs-6">cancel</span>
-                                                    <span>Dismiss Signal</span>
+                                                    <span>Dismiss All Signals Here</span>
                                                 </button>
                                             </form>
                                         </div>
@@ -459,20 +436,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const noResultsDiv = document.getElementById('noResultsMessage');
 
     function filterPassengers() {
-        if (!searchInput || !locationSelect) return;
-        const searchText = searchInput.value.toLowerCase().trim();
+        if (!locationSelect) return;
         const selectedLocation = locationSelect.value;
 
         let visibleCount = 0;
 
         passengerCards.forEach(card => {
-            const name = card.getAttribute('data-name').toLowerCase();
             const location = card.getAttribute('data-location');
-
-            const matchesSearch = name.includes(searchText);
             const matchesLocation = !selectedLocation || location === selectedLocation;
 
-            if (matchesSearch && matchesLocation) {
+            if (matchesLocation) {
                 card.classList.remove('d-none');
                 visibleCount++;
             } else {
@@ -489,7 +462,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (searchInput) searchInput.addEventListener('input', filterPassengers);
     if (locationSelect) locationSelect.addEventListener('change', filterPassengers);
 
     // 2. Real-time auto-refresh countdown
