@@ -590,7 +590,7 @@ $pageDepth = "../../../";
                                         android: {
                                             priority: 'high',
                                             notification: {
-                                                channel_id: 'sos_alerts',
+                                                channel_id: 'sos_alerts_v2',
                                                 sound: 'default',
                                                 notification_priority: 'PRIORITY_HIGH',
                                                 visibility: 'public'
@@ -790,7 +790,7 @@ $pageDepth = "../../../";
                                         android: {
                                             priority: 'high',
                                             notification: {
-                                                channel_id: 'sos_alerts',
+                                                channel_id: 'sos_alerts_v2',
                                                 sound: 'default',
                                                 notification_priority: 'PRIORITY_HIGH',
                                                 visibility: 'public'
