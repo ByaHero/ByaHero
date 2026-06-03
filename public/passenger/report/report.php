@@ -140,6 +140,23 @@ if (empty($bus_number)) {
             outline: none;
             box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
         }
+
+        /* Custom Select */
+        .custom-form-select {
+            border-radius: 12px;
+            border: 1px solid #dee2e6;
+            padding-top: 12px;
+            padding-bottom: 12px;
+            padding-left: 12px;
+            background-color: #ffffff;
+            font-size: 0.9rem;
+            color: #212529;
+        }
+        .custom-form-select:focus {
+            outline: none;
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.2);
+        }
         
         /* Submit Button */
         .btn-submit {
@@ -204,7 +221,7 @@ if (empty($bus_number)) {
                         <input type="text" class="form-control" id="busNumberInput" name="bus_number" value="<?= htmlspecialchars($bus_number) ?>" readonly style="border-radius: 12px; padding: 12px; background-color: #e2e8f0; cursor: not-allowed;">
                         <div class="form-text small" style="margin-top: 4px; color: #64748b;">Selected from your <strong>Ride History</strong>.</div>
                     <?php else: ?>
-                        <select class="form-select" id="busNumberInput" name="bus_number" style="border-radius: 12px; padding: 12px;" required>
+                        <select class="form-select custom-form-select" id="busNumberInput" name="bus_number" required>
                             <option value="" disabled selected>Select a bus</option>
                             <?php foreach ($busOptions as $busCode): ?>
                                 <option value="<?= htmlspecialchars($busCode) ?>"><?= htmlspecialchars($busCode) ?></option>
