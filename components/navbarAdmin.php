@@ -96,7 +96,6 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
     --admin-bottom-h: 35px;   /* default bottom strip */
   }
 
-  /* Reserve space for fixed topbar + fixed bottom bar */
   body{
     padding-top: var(--admin-top-h) !important;
     padding-bottom: var(--admin-bottom-h) !important;
