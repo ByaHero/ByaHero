@@ -395,6 +395,32 @@
       });
       
       if (navigator.vibrate) navigator.vibrate([300, 100, 300]);
+      
+      // Play a fast beep beep sound for the incoming SOS
+      try {
+        const ac = new (window.AudioContext || window.webkitAudioContext)();
+        if (ac.state === 'suspended') ac.resume();
+        const osc = ac.createOscillator();
+        const gn = ac.createGain();
+        osc.type = 'square';
+        osc.frequency.value = 800; // 800 Hz
+
+        // Beep 1
+        gn.gain.setValueAtTime(0, ac.currentTime);
+        gn.gain.linearRampToValueAtTime(0.1, ac.currentTime + 0.02);
+        gn.gain.linearRampToValueAtTime(0, ac.currentTime + 0.15);
+        // Beep 2
+        gn.gain.setValueAtTime(0, ac.currentTime + 0.25);
+        gn.gain.linearRampToValueAtTime(0.1, ac.currentTime + 0.27);
+        gn.gain.linearRampToValueAtTime(0, ac.currentTime + 0.4);
+
+        osc.connect(gn);
+        gn.connect(ac.destination);
+        osc.start(ac.currentTime);
+        osc.stop(ac.currentTime + 0.5);
+      } catch (e) {
+          // ignore if Web Audio API is unsupported
+      }
   
       function dismiss() {
         const b = document.getElementById('sos-push-banner');

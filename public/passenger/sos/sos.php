@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../../../config/db.php';
 @session_start();
 
 if (!isset($_SESSION['user_id'])) {
@@ -642,6 +643,35 @@ $pageDepth = "../../../";
         let timeLeft = 5;
         let isSOSActive = false;
 
+        function startAlarmSound() {
+            try {
+                const ac = new (window.AudioContext || window.webkitAudioContext)();
+                if (ac.state === 'suspended') ac.resume();
+
+                const osc = ac.createOscillator();
+                const gn = ac.createGain();
+
+                osc.type = 'square';
+                osc.frequency.value = 800;
+
+                // One fast beep
+                gn.gain.setValueAtTime(0, ac.currentTime);
+                gn.gain.linearRampToValueAtTime(0.1, ac.currentTime + 0.02);
+                gn.gain.linearRampToValueAtTime(0, ac.currentTime + 0.2);
+
+                osc.connect(gn);
+                gn.connect(ac.destination);
+                osc.start(ac.currentTime);
+                osc.stop(ac.currentTime + 0.25);
+            } catch (e) {
+                console.warn("Web Audio API not supported", e);
+            }
+        }
+
+        function stopAlarmSound() {
+            // No longer needed as the new beep automatically stops after 0.25s
+        }
+
         function setProgress(percent) {
             const offset = progressCircumference - (percent / 100) * progressCircumference;
             progressCircle.style.strokeDashoffset = offset;
@@ -649,6 +679,7 @@ $pageDepth = "../../../";
 
         function startCountdown() {
             if (navigator.vibrate) navigator.vibrate([200]);
+            
             countdownLayer.classList.remove('d-none');
             
             document.querySelector('#sos-countdown-layer h1').textContent = "Slide to cancel";
@@ -679,6 +710,7 @@ $pageDepth = "../../../";
         function cancelSOS() {
             isSOSActive = false;
             clearInterval(countdownInterval);
+            
             timerElement.textContent = "✕";
             setProgress(0);
             document.querySelector('#sos-countdown-layer h1').textContent = "Cancelled";
@@ -784,6 +816,10 @@ $pageDepth = "../../../";
                             });
                         }));
                         if (statusEl) statusEl.textContent = `SOS successfully received by ${recipients.length} friends!`;
+                        
+                        // Vibrate and sound alarm to indicate the SOS was successfully sent
+                        if (navigator.vibrate) navigator.vibrate([500, 200, 500, 200, 800]); 
+                        startAlarmSound();
                     } catch (pushErr) {
                         if (statusEl) statusEl.textContent = `SOS saved, but push warning: ${pushErr.message}`;
                     }
