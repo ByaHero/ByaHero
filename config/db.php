@@ -4,7 +4,7 @@ declare(strict_types=1);
 // Set global timezone to Philippine Time
 date_default_timezone_set('Asia/Manila');
 
-// CORS Support & Session Cookie Security Configuration for Railway / HTTPS Environments
+// CORS Support & Session Cookie Security Configuration for HTTPS Environments
 (function() {
     // 1. Dynamic CORS Headers for Credentials support (essential for cross-origin Capacitor/WebView app)
     $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
@@ -27,7 +27,7 @@ date_default_timezone_set('Asia/Manila');
         exit;
     }
 
-    // 2. Secure & Cross-Origin Session Cookie Setup (essential for HTTPS / Railway proxying)
+    // 2. Secure & Cross-Origin Session Cookie Setup (essential for HTTPS proxying)
     if (session_status() === PHP_SESSION_NONE) {
         // Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
         ini_set('session.gc_probability', '0');
@@ -38,7 +38,7 @@ date_default_timezone_set('Asia/Manila');
             || (isset($_SERVER['SERVER_PORT']) && $_SERVER['SERVER_PORT'] == 443);
 
         if ($is_https) {
-            // Over HTTPS/Railway, session cookies must be Secure and SameSite=None so they work cross-origin in Capacitor/WebView
+            // Over HTTPS, session cookies must be Secure and SameSite=None so they work cross-origin in Capacitor/WebView
             if (PHP_VERSION_ID >= 70300) {
                 session_set_cookie_params([
                     'lifetime' => 0,
@@ -62,38 +62,18 @@ function db(): mysqli {
 
     require_once __DIR__ . '/bootstrap.php';
 
-    // Prioritize Railway native MYSQL* injected environment variables if they are present in the OS environment
-    $railway_host = getenv('MYSQLHOST');
-    if ($railway_host !== false && $railway_host !== '') {
-        $env_host = $railway_host;
-        $env_user = getenv('MYSQLUSER') ?: '';
-        $env_pass = getenv('MYSQLPASSWORD') ?: '';
-        $env_name = getenv('MYSQLDATABASE') ?: '';
-        $env_port = (int)(getenv('MYSQLPORT') ?: '3306');
-    } else {
-        // Fall back to standard DB_* and any loaded .env / custom variables
-        $env_host = get_env_config('DB_HOST', '');
-        
-        // If DB_HOST contains a Railway service reference placeholder, treat it as empty
-        // so that the local XAMPP fallback (127.0.0.1) triggers automatically.
-        if (str_contains($env_host, '${{')) {
-            $env_host = '';
-        }
-        
-        $env_user = get_env_config('DB_USER', '');
-        $env_pass = get_env_config('DB_PASS', '');
-        $env_name = get_env_config('DB_NAME', '');
-        $env_port = (int)get_env_config('DB_PORT', '3306');
-    }
+    // Fall back to standard DB_* and any loaded .env / custom variables
+    $env_host = get_env_config('DB_HOST', '');
+    $env_user = get_env_config('DB_USER', '');
+    $env_pass = get_env_config('DB_PASS', '');
+    $env_name = get_env_config('DB_NAME', '');
+    $env_port = (int)get_env_config('DB_PORT', '3306');
 
     $is_cli = (php_sapi_name() === 'cli');
     $host_addr = $_SERVER['REMOTE_ADDR'] ?? '';
     
-    // Check if we are running in the Railway environment
-    $is_railway = getenv('RAILWAY_ENVIRONMENT') !== false || getenv('RAILWAY_STATIC_URL') !== false;
-
-    // Use localhost fallback ONLY if not on Railway, running locally, and database host is not defined in environments
-    $is_localhost = !$is_railway && ($is_cli || $host_addr === '127.0.0.1' || $host_addr === '::1');
+    // Use localhost fallback ONLY if running locally, and database host is not defined in environments
+    $is_localhost = ($is_cli || $host_addr === '127.0.0.1' || $host_addr === '::1');
 
     if ($is_localhost && empty($env_host)) {
         $host = '127.0.0.1';
