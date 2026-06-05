@@ -35,25 +35,17 @@ declare(strict_types=1);
                 $loadedCount++;
             }
         }
+        error_log("ByaHero: Successfully loaded $loadedCount variables from .env");
+    } else {
+        error_log("ByaHero: .env file NOT FOUND at $envPath");
     }
 })();
 
 function get_env_config(string $key, string $default): string {
     global $_ENV;
-    $val = '';
-    
-    // Check real OS environment variables first to let Railway dashboard values override stale committed .env keys
-    $getVal = getenv($key);
-    if ($getVal !== false && $getVal !== '') {
-        $val = $getVal;
-    } elseif (isset($_ENV[$key]) && $_ENV[$key] !== '') {
-        $val = $_ENV[$key];
+    if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
+        return $_ENV[$key];
     }
-    
-    if ($val === '') {
-        return $default;
-    }
-    
-    // Always unescape literal \n to real newlines (crucial for private keys on Railway/Heroku/etc.)
-    return str_replace('\n', "\n", $val);
+    $val = getenv($key);
+    return ($val !== false && $val !== '') ? $val : $default;
 }
