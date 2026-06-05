@@ -20,7 +20,7 @@ function sync_schema(mysqli $conn) {
             created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
-        // Ensure profile_picture is MEDIUMTEXT to store base64 images directly (supports Railway ephemeral filesystem)
+        // Ensure profile_picture is MEDIUMTEXT to store base64 images directly
         $checkType = $conn->query("SHOW COLUMNS FROM `$table` LIKE 'profile_picture'");
         if ($checkType && $row = $checkType->fetch_assoc()) {
             if (stripos($row['Type'], 'varchar') !== false) {
@@ -70,7 +70,7 @@ function sync_schema(mysqli $conn) {
         $conn->query("ALTER TABLE busses ADD COLUMN current_conductor_id INT UNSIGNED DEFAULT NULL AFTER current_location");
     }
 
-    // Add lat and lng if missing for Railway persistent location tracking
+    // Add lat and lng if missing for persistent location tracking
     $checkLat = $conn->query("SHOW COLUMNS FROM busses LIKE 'lat'");
     if ($checkLat->num_rows === 0) {
         $conn->query("ALTER TABLE busses ADD COLUMN lat DECIMAL(10,7) DEFAULT NULL AFTER seat_availability");

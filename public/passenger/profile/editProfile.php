@@ -63,7 +63,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 elseif (isset($_POST['profile_image_data']) && !empty($_POST['profile_image_data'])) {
                     $imgData = $_POST['profile_image_data'];
                     
-                    // Directly save the base64 data URI in the database (handles Railway ephemeral filesystem seamlessly)
+                    // Directly save the base64 data URI in the database
                     if (strpos($imgData, 'data:image/') === 0) {
                         $updateImgStmt = $conn->prepare("UPDATE users SET profile_picture = ? WHERE id = ?");
                         $updateImgStmt->bind_param("si", $imgData, $userId);
