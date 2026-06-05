@@ -3,7 +3,7 @@ require_once __DIR__ . '/auth_passenger.php';
 
 // If they already have a contact number, redirect to dashboard
 if (!empty($_SESSION['user_contacts'])) {
-    header('Location: index.php');
+    header("Location: index");
     exit;
 }
 
@@ -214,7 +214,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.href = 'showGuide/showGuide.php';
+                    location.href = "showGuide/showGuide";
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger small py-2">${data.message}</div>`;
                     submitBtn.disabled = false;

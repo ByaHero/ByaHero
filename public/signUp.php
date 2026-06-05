@@ -24,9 +24,9 @@ if (!$loaded) {
 
 if (isset($_SESSION['user_id'])) {
     if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
-        header("Location: conductor/conductor.php");
+        header("Location: conductor/conductor");
     } else {
-        header("Location: passenger/index.php");
+        header("Location: passenger/index");
     }
     exit;
 }
@@ -169,7 +169,7 @@ if (isset($_SESSION['user_id'])) {
 
                 <div class="small-muted">
                     Already have an account?
-                    <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a>
+                    <a href="login" class="fw-bold text-primary text-decoration-none">Login</a>
                 </div>
             </main>
         </div>

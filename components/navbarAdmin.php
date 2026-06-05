@@ -7,13 +7,13 @@ if (session_status() === PHP_SESSION_NONE) {
 /**
  * Behavior:
  * - Dashboard: show logo + hamburger (offcanvas with Profile + Logout)
- * - Admin Profile (adminProfile.php): special bar (X + "Profile"), no hamburger, thinner bottom strip
+ * - Admin Profile (adminProfile): special bar (X + "Profile"), no hamburger, thinner bottom strip
  * - Other admin pages: show X (close) + page title (NO hamburger)
  */
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
-$defaultBack = $depth . 'public/admin/admin.php';
+$defaultBack = $depth . 'public/admin/admin';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
 // 2) Base URL (for assets, works on localhost subfolder + InfinityFree)
@@ -70,8 +70,8 @@ $isDashboard = (($adminPageType ?: 'dashboard') === 'dashboard');
 $req = $_SERVER['REQUEST_URI'] ?? '';
 $isAdminProfile =
   (($adminPageType ?? '') === 'adminProfile') ||
-  (strpos($req, '/public/admin/adminProfile.php') !== false) ||
-  (strpos($req, 'adminProfile.php') !== false);
+  (strpos($req, '/public/admin/adminProfile') !== false) ||
+  (strpos($req, 'adminProfile') !== false);
 
 // On other admin pages: show X button (close)
 $showClose = (!$isDashboard && !$isAdminProfile);
@@ -81,8 +81,8 @@ $logoUrl = $baseUrl . '/assets/images/topBarLogo.svg';
 $hamburgerImg = $baseUrl . '/assets/images/HAMBURGER.svg';
 
 // Menu links
-$profileUrl = $baseUrl . '/public/admin/adminProfile.php';
-$logoutUrl  = $baseUrl . '/public/logout.php';
+$profileUrl = $baseUrl . '/public/admin/adminProfile';
+$logoutUrl  = $baseUrl . '/public/logout';
 
 // Menu icons (same as conductor menu)
 $personImg = $baseUrl . '/assets/images/person.svg';
@@ -309,7 +309,7 @@ $logoutImg = $baseUrl . '/assets/images/logout.svg';
 
   <?php if ($isAdminProfile): ?>
 
-    <!-- SPECIAL NAVBAR FOR adminProfile.php -->
+    <!-- SPECIAL NAVBAR FOR adminProfile -->
     <div class="container-fluid admin-profilebar position-relative">
       <div class="d-flex align-items-center gap-2" style="z-index: 1;">
         <a class="admin-close-btn" href="<?= htmlspecialchars($backTarget) ?>" title="Back" aria-label="Back">

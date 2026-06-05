@@ -224,7 +224,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">shield</span>
             Update Password
           </button>
-          <button type="button" class="btn btn-outline-secondary rounded-pill py-3" onclick="window.location.href='accountSettings.php'" style="font-weight: 600;">
+          <button type="button" class="btn btn-outline-secondary rounded-pill py-3" onclick="location.href = "accountSettings"" style="font-weight: 600;">
             Cancel
           </button>
         </div>

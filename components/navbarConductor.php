@@ -14,8 +14,8 @@ $logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if
 $wordmarkUrl = $base . '/assets/images/ByaHero.svg';    // Added ByaHero wordmark
 
 // Conductor links
-$profileUrl = $base . '/public/conductor/profile/profile.php';
-$logoutUrl  = $base . '/public/logout.php';
+$profileUrl = $base . '/public/conductor/profile/profile';
+$logoutUrl  = $base . '/public/logout';
 
 // Use SAME images as navbarPassenger (icons)
 $hamburgerImg = $base . '/assets/images/HAMBURGER.svg';
@@ -23,7 +23,7 @@ $personImg    = $base . '/assets/images/person.svg';
 $logoutImg    = $base . '/assets/images/logout.svg';
 
 /* NEW: detect if current page is conductor profile.php so we can render a special top bar */
-$isConductorProfile = (basename($scriptName) === 'profile.php');
+$isConductorProfile = (in_array(basename($scriptName), ['profile.php', 'profile']));
 
 // Display name in hamburger header
 $displayName = $_SESSION['user_name'] ?? null;
@@ -260,7 +260,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 <?php if ($isConductorProfile): ?>
 
     <div class="nav-conductor-profilebar">
-        <a href="<?= htmlspecialchars($base . '/public/conductor/conductor.php') ?>" aria-label="Close">
+        <a href="<?= htmlspecialchars($base . '/public/conductor/conductor') ?>" aria-label="Close">
             <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
         </a>
         <div class="title">Profile</div>
@@ -456,7 +456,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 (function () {
     try {
         var path = (window.location && window.location.pathname) ? window.location.pathname : '';
-        if (path.endsWith('/conductorLive.php') || path.endsWith('conductorLive.php')) {
+        if (path.endsWith('/conductorLive.php') || path.endsWith('conductorLive.php') || path.endsWith('/conductorLive') || path.endsWith('conductorLive')) {
             document.body.setAttribute('data-page', 'conductorLive');
         }
     } catch (e) {}

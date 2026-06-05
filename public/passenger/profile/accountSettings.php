@@ -269,7 +269,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
     <div class="mb-4">
       <h6 class="fw-bold text-primary mb-2 small text-uppercase tracking-wider">Security</h6>
       <div class="list-group shadow-sm border border-light-subtle rounded-3 overflow-hidden">
-        <a href="changePassword.php" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
+        <a href="changePassword" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
           <div class="d-flex align-items-center gap-3">
             <span class="material-symbols-rounded text-primary fs-4">lock</span>
             <div>
@@ -279,7 +279,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
           </div>
           <span class="material-symbols-rounded text-secondary fs-5">chevron_right</span>
         </a>
-        <a href="loginActivity.php" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
+        <a href="loginActivity" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
           <div class="d-flex align-items-center gap-3">
             <span class="material-symbols-rounded text-primary fs-4">history</span>
             <div>
@@ -296,7 +296,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
     <div class="mb-4">
       <h6 class="fw-bold text-danger mb-2 small text-uppercase tracking-wider">Danger Zone</h6>
       <div class="list-group shadow-sm border border-danger-subtle rounded-3 overflow-hidden">
-        <a href="deleteAccount.php" class="list-group-item list-group-item-action list-group-item-danger d-flex align-items-center justify-content-between p-3 border-danger-subtle">
+        <a href="deleteAccount" class="list-group-item list-group-item-action list-group-item-danger d-flex align-items-center justify-content-between p-3 border-danger-subtle">
           <div class="d-flex align-items-center gap-3">
             <span class="material-symbols-rounded text-danger fs-4">delete_forever</span>
             <div>
