@@ -23,8 +23,7 @@ $personImg    = $base . '/assets/images/person.svg';
 $logoutImg    = $base . '/assets/images/logout.svg';
 
 /* NEW: detect if current page is conductor profile.php so we can render a special top bar */
-$path = $_SERVER['REQUEST_URI'] ?? '';
-$isConductorProfile = (strpos($path, '/public/conductor/profile/profile.php') !== false);
+$isConductorProfile = (basename($scriptName) === 'profile.php');
 
 // Display name in hamburger header
 $displayName = $_SESSION['user_name'] ?? null;

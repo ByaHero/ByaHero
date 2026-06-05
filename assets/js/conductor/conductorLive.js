@@ -145,7 +145,7 @@ async function sendDataToServer(lat, lng, locName) {
         await safePost('../update_geo_location.php', payload);
         if (netStatus) {
             netStatus.textContent = 'Live';
-            netStatus.className = 'badge bg-success';
+            netStatus.className = 'badge bg-success text-white';
         }
         
         const timeSinceAction = Date.now() - lastActionTime;
@@ -155,7 +155,7 @@ async function sendDataToServer(lat, lng, locName) {
     } catch (e) {
         if (netStatus) {
             netStatus.textContent = 'Offline';
-            netStatus.className = 'badge bg-danger';
+            netStatus.className = 'badge bg-danger text-white';
         }
     }
 }

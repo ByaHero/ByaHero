@@ -157,7 +157,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; letter-spacing: 0.2px;">Live Route Navigation</h5>
                     <div class="d-flex justify-content-center m-0">
-                        <span class="badge rounded-pill px-3 py-2 fw-bold" id="netStatus" style="background-color: #d8f5da; color: #1a8d3d; font-size: 0.8rem;">Active</span>
+                        <span class="badge rounded-pill px-3 py-2 fw-bold bg-success text-white" id="netStatus" style="font-size: 0.8rem;">Active</span>
                     </div>
                 </div>
 
