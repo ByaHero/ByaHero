@@ -482,7 +482,6 @@ elseif (isset($pageType) && $pageType === 'profile'):
   $profileTitles = [
     'profile.php' => 'My Profile',
     'accountSettings.php' => 'Account Settings',
-    'editProfile.php' => 'Edit Profile',
     'changePassword.php' => 'Change Password',
     'loginActivity.php' => 'Login Activity'
   ];
