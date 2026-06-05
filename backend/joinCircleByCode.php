@@ -39,7 +39,7 @@ if ((int)$circle['owner_user_id'] === (int)$userId) {
 }
 
 // Check duplicate
-$checkStmt = $conn->prepare("SELECT id FROM circle_members WHERE circle_id = ? AND member_user_id = ? LIMIT 1");
+$checkStmt = $conn->prepare("SELECT id FROM circle_members WHERE circle_id = ? AND user_id = ? LIMIT 1");
 $checkStmt->bind_param("ii", $circleId, $userId);
 $checkStmt->execute();
 $checkRes = $checkStmt->get_result();
@@ -52,7 +52,7 @@ if ($already) {
 }
 
 // Insert member (the user scanning the code into the owner's circle)
-$insertStmt = $conn->prepare("INSERT INTO circle_members (circle_id, member_user_id, status) VALUES (?, ?, 'active')");
+$insertStmt = $conn->prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)");
 $insertStmt->bind_param("ii", $circleId, $userId);
 
 if ($insertStmt->execute()) {
@@ -79,14 +79,14 @@ if ($insertStmt->execute()) {
     $ownerId = $circle['owner_user_id'];
 
     // Insert owner into scanning user's circle
-    $checkMyStmt = $conn->prepare("SELECT id FROM circle_members WHERE circle_id = ? AND member_user_id = ? LIMIT 1");
+    $checkMyStmt = $conn->prepare("SELECT id FROM circle_members WHERE circle_id = ? AND user_id = ? LIMIT 1");
     $checkMyStmt->bind_param("ii", $myCircleId, $ownerId);
     $checkMyStmt->execute();
     $myAlready = $checkMyStmt->get_result()->fetch_assoc();
     $checkMyStmt->close();
 
     if (!$myAlready) {
-        $insertMyStmt = $conn->prepare("INSERT INTO circle_members (circle_id, member_user_id, status) VALUES (?, ?, 'active')");
+        $insertMyStmt = $conn->prepare("INSERT INTO circle_members (circle_id, user_id) VALUES (?, ?)");
         $insertMyStmt->bind_param("ii", $myCircleId, $ownerId);
         $insertMyStmt->execute();
         $insertMyStmt->close();

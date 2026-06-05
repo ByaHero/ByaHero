@@ -63,101 +63,7 @@ $backLink  = 'admin.php';
     <title>ByaHero — Active Buses</title>
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            background: #f8fafc;
-            color: #1e293b;
-            font-family: "Segoe UI", system-ui, sans-serif;
-        }
-
-        .page-wrap {
-            padding: 16px;
-        }
-
-        .alert {
-            border-radius: 14px;
-        }
-
-        .bus-card {
-            background: #ffffff;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
-            border: 1px solid rgba(148, 163, 184, 0.35);
-            padding: 14px 14px;
-            display: flex;
-            gap: 12px;
-            align-items: center;
-        }
-
-        .bus-icon {
-            width: 56px;
-            height: 56px;
-            border-radius: 16px;
-            background: #f1f5f9;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex: 0 0 auto;
-            overflow: hidden;
-        }
-
-        .bus-icon img {
-            width: 40px;
-            height: 40px;
-            object-fit: contain;
-            display: block;
-        }
-
-        .bus-title {
-            font-weight: 900;
-            font-size: 1.05rem;
-            margin: 0;
-        }
-
-        .bus-sub {
-            margin: 0;
-            font-size: .85rem;
-            color: #64748b;
-        }
-
-        .status-pill {
-            border-radius: 999px;
-            padding: 6px 12px;
-            font-weight: 900;
-            font-size: .75rem;
-            letter-spacing: .3px;
-            text-transform: uppercase;
-            flex: 0 0 auto;
-        }
-
-        /* Status colors (match your map/conductor logic) */
-        .pill-available {
-            background: #dcfce7;
-            color: #166534;
-        }
-        .pill-on_stop {
-            background: #fef3c7;
-            color: #92400e;
-        }
-        .pill-full {
-            background: #fee2e2;
-            color: #b91c1c;
-        }
-
-        /* Desktop grid */
-        @media (min-width: 992px) {
-            .page-wrap {
-                padding: 24px;
-                max-width: 1100px;
-                margin: 0 auto;
-            }
-            .bus-grid {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 16px;
-            }
-        }
-    </style>
+    <link href="../../assets/css/admin/manageActiveBuses.css" rel="stylesheet">
 </head>
 <body>
 
@@ -245,29 +151,6 @@ $backLink  = 'admin.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    // Auto-refresh the bus list every 5 seconds without full page reload
-    function _autoRefreshTick() {
-        (async () => {
-        try {
-            const res = await fetch(window.location.href);
-            const html = await res.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const newList = doc.getElementById('bus-list-container');
-            const currentList = document.getElementById('bus-list-container');
-            if (newList && currentList) {
-                currentList.innerHTML = newList.innerHTML;
-            }
-        } catch (e) {
-            console.error('Failed to auto-refresh active buses', e);
-        }
-    }).finally(() => {
-            setTimeout(_autoRefreshTick, 5000);
-        });
-    }
-
-    _autoRefreshTick();
-</script>
+<script src="../../assets/js/admin/manageActiveBuses.js"></script>
 </body>
 </html>

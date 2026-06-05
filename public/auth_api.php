@@ -306,7 +306,7 @@ try {
             "DELETE FROM emergency_contacts WHERE user_id = ?",
             "DELETE FROM user_settings WHERE user_id = ?",
             "DELETE FROM user_locations WHERE user_id = ?",
-            "DELETE FROM circle_members WHERE member_user_id = ?",
+            "DELETE FROM circle_members WHERE user_id = ?",
             "DELETE FROM notifications WHERE user_id = ?",
             "DELETE FROM feedbacks WHERE user_id = ?",
             "DELETE FROM reports WHERE user_id = ?",

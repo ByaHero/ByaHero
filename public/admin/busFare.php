@@ -337,56 +337,7 @@ $backLink = 'admin.php';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <style>
-        :root { --brand: #1c5ab5; }
-        body { background: #f8fafc; color: #1e293b; font-family: "Segoe UI", system-ui, sans-serif; }
-
-        .card-standard { border: none; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); background: #fff; }
-        .card-header-std { background: #fff; border-bottom: 1px solid #e2e8f0; font-weight: 900; padding: 1rem 1.25rem; border-radius: 14px 14px 0 0 !important; }
-
-        .mono { font-variant-numeric: tabular-nums; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-        .pill-btn { border-radius: 999px; font-weight: 900; }
-
-        .help-box {
-            border: 1px dashed rgba(148,163,184,0.6);
-            background: rgba(248,250,252,0.75);
-            border-radius: 12px;
-            padding: 10px 12px;
-        }
-
-        .form-label { color: #1c5ab5 !important; }
-
-        .btn-primary {
-            background-color: #1c5ab5 !important;
-            border-color: #1c5ab5 !important;
-            color: #fff !important;
-        }
-
-        /* ONLY CHANGE 2: all outline buttons become solid like Save */
-        .btn-outline-primary {
-            background-color: var(--brand) !important;
-            border-color: var(--brand) !important;
-            color: #fff !important;
-        }
-        .btn-outline-secondary {
-            background-color: #64748b !important;   /* solid gray */
-            border-color: #64748b !important;
-            color: #fff !important;
-        }
-        .btn-outline-primary:hover,
-        .btn-outline-primary:focus {
-            filter: brightness(0.95);
-        }
-        .btn-outline-secondary:hover,
-        .btn-outline-secondary:focus {
-            filter: brightness(0.95);
-        }
-
-        @media (max-width: 991.98px) {
-            .table-responsive { border-radius: 14px; }
-            .table td, .table th { white-space: nowrap; }
-        }
-    </style>
+    <link href="../../assets/css/admin/busFare.css" rel="stylesheet">
 </head>
 <body>
 
@@ -578,62 +529,6 @@ $backLink = 'admin.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // 1. Matrix Generator Auto-Calculation
-    const regBase = document.querySelector('input[name="reg_base"]');
-    const discBase = document.querySelector('input[name="disc_base"]');
-    const regRate = document.querySelector('input[name="reg_rate"]');
-    const discRate = document.querySelector('input[name="disc_rate"]');
-
-    function extractNumber(val) {
-        // Remove anything that isn't a digit or a period
-        let clean = val.replace(/[^0-9.]/g, '');
-        return parseFloat(clean);
-    }
-
-    if (regBase && discBase) {
-        regBase.addEventListener('input', function() {
-            let val = extractNumber(this.value);
-            if (!isNaN(val)) {
-                discBase.value = (val * 0.8).toFixed(2);
-            } else {
-                discBase.value = '';
-            }
-        });
-    }
-
-    if (regRate && discRate) {
-        regRate.addEventListener('input', function() {
-            let val = extractNumber(this.value);
-            if (!isNaN(val)) {
-                discRate.value = (val * 0.8).toFixed(2);
-            } else {
-                discRate.value = '';
-            }
-        });
-    }
-
-});
-    // Automatically calculate discounted fare when regular fare is changed in the table
-    const tableRegInputs = document.querySelectorAll('input[name^="regular_fare["]');
-    tableRegInputs.forEach(function(input) {
-        input.addEventListener('input', function() {
-            let val = extractNumber(this.value);
-            // Find the corresponding discounted_fare input in the same row
-            const row = this.closest('tr');
-            const discInput = row.querySelector('input[name^="discounted_fare["]');
-            
-            if (discInput) {
-                if (!isNaN(val)) {
-                    discInput.value = (val * 0.8).toFixed(2);
-                } else {
-                    discInput.value = '';
-                }
-            }
-        });
-    });
-});
-</script>
+<script src="../../assets/js/admin/busFare.js"></script>
 </body>
 </html>

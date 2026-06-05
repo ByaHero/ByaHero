@@ -34,7 +34,7 @@ if (!$circle) {
 $circleId = $circle['id'];
 
 // Remove the friend from this circle
-$delStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND member_user_id = ?");
+$delStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND user_id = ?");
 $delStmt->bind_param("ii", $circleId, $friendId);
 
 if ($delStmt->execute()) {
@@ -51,7 +51,7 @@ if ($delStmt->execute()) {
 
     if ($friendCircle) {
         $friendCircleId = $friendCircle['id'];
-        $delMeStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND member_user_id = ?");
+        $delMeStmt = $conn->prepare("DELETE FROM circle_members WHERE circle_id = ? AND user_id = ?");
         $delMeStmt->bind_param("ii", $friendCircleId, $ownerId);
         $delMeStmt->execute();
         $delMeStmt->close();

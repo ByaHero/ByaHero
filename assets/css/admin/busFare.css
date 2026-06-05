@@ -1,0 +1,91 @@
+/**
+ * busFare.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Admin Bus Fare management screen.
+ * Extracted from public/admin/busFare.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+:root {
+    --brand: #1c5ab5;
+}
+
+body {
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.card-standard {
+    border: none;
+    border-radius: 14px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    background: #fff;
+}
+
+.card-header-std {
+    background: #fff;
+    border-bottom: 1px solid #e2e8f0;
+    font-weight: 900;
+    padding: 1rem 1.25rem;
+    border-radius: 14px 14px 0 0 !important;
+}
+
+.mono {
+    font-variant-numeric: tabular-nums;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+.pill-btn {
+    border-radius: 999px;
+    font-weight: 900;
+}
+
+.help-box {
+    border: 1px dashed rgba(148,163,184,0.6);
+    background: rgba(248,250,252,0.75);
+    border-radius: 12px;
+    padding: 10px 12px;
+}
+
+.form-label {
+    color: #1c5ab5 !important;
+}
+
+.btn-primary {
+    background-color: #1c5ab5 !important;
+    border-color: #1c5ab5 !important;
+    color: #fff !important;
+}
+
+/* all outline buttons become solid like Save */
+.btn-outline-primary {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+}
+
+.btn-outline-secondary {
+    background-color: #64748b !important;   /* solid gray */
+    border-color: #64748b !important;
+    color: #fff !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+    filter: brightness(0.95);
+}
+
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    filter: brightness(0.95);
+}
+
+@media (max-width: 991.98px) {
+    .table-responsive {
+        border-radius: 14px;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+}
