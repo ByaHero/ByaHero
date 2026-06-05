@@ -62,11 +62,11 @@ $sql = "
         pr.status AS ride_status,
         b.code AS boarded_bus_code
     FROM circle_members cm
-    JOIN users u ON u.id = cm.member_user_id
+    JOIN users u ON u.id = cm.user_id
     LEFT JOIN user_locations ul ON ul.user_id = u.id
     LEFT JOIN waiting_passengers wp ON wp.user_id = u.id AND wp.status = 'waiting'
     $joinSql
-    WHERE cm.circle_id = ? AND cm.status = 'active'
+    WHERE cm.circle_id = ?
     ORDER BY u.name ASC
 ";
 

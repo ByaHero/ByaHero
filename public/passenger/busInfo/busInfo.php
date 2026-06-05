@@ -4,10 +4,11 @@ require_once __DIR__ . '/../auth_passenger.php';
 // Load database connection helper
 require_once __DIR__ . '/../../../config/db.php';
 
+$conn = null;
 try {
     $conn = db();
 
-    $result = $conn->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC");
+    $result = $conn ? $conn->query("SELECT stop_id, location_name FROM bus_stops ORDER BY km_marker ASC") : null;
     $stops = $result ? $result->fetch_all(MYSQLI_ASSOC) : [];
 } catch (Throwable $e) {
     $stops = [];
@@ -95,11 +96,11 @@ $backLink = 'javascript:history.back()';
         <?php
         // NEW: Read schedule from DB (bus_schedule)
         try {
-            $resSched = $conn->query("
+            $resSched = $conn ? $conn->query("
                 SELECT terminal_name, time_open, time_close, is_suspended, suspend_message
                 FROM bus_schedule
                 ORDER BY terminal_name ASC
-            ");
+            ") : null;
             $schedules = $resSched ? $resSched->fetch_all(MYSQLI_ASSOC) : [];
         } catch (Throwable $e) {
             $schedules = [];

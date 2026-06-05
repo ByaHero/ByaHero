@@ -1,0 +1,191 @@
+/**
+ * conductorLive.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and UI styling for ByaHero Conductor Live Operation Tracking Dashboard.
+ * Extracted from public/conductor/conductorLive.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+:root { 
+    --bg: #f5f7fa; 
+    --blue: #0f3878; 
+    --btn-blue: #1c5ab5;
+    --btn-red: #ef4444;
+}
+
+body {
+    background: #fff;
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    margin: 0;
+    padding-bottom: 80px;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+}
+
+.main-content-wrapper {
+    padding: 12px 14px 84px;
+}
+
+.status-pill {
+    display: inline-block;
+    padding: 6px 18px;
+    border-radius: 999px;
+    background: #d8f5da;
+    color: #1a8d3d;
+    font-weight: 800;
+    font-size: 0.8rem;
+}
+
+.status-row {
+    display: flex;
+    justify-content: center;
+    margin: 6px 0 10px;
+}
+
+.map-card-wrapper {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #fff;
+    height: 300px;
+    box-shadow: 0 8px 24px rgba(15,23,42,0.08);
+    border: 1px solid #e2e8f0;
+}
+#mainMap { width: 100%; height: 100%; z-index: 1; }
+
+.seats-control {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 14px;
+    margin-top: 14px;
+}
+
+.btn-seat {
+    width: 52px;
+    height: 46px;
+    border-radius: 12px;
+    border: 0;
+    background: #eef2f6;
+    box-shadow: 0 4px 10px rgba(15,23,42,0.06);
+    font-size: 24px;
+    font-weight: 900;
+    line-height: 1;
+    color: #0f172a;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.btn-seat:hover {
+    background: #e2e8f0;
+    transform: scale(1.06);
+}
+.btn-seat:active {
+    transform: scale(0.95);
+}
+
+.seats-num {
+    width: 64px;
+    height: 46px;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 12px rgba(15,23,42,0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    font-weight: 900;
+    color: #0f172a;
+    border: 1px solid #e2e8f0;
+}
+
+.info-card {
+    margin-top: 14px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 16px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 6px;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.88rem;
+}
+.info-item:last-child { border-bottom: 0; }
+.info-label { color: #64748b; font-weight: 600; }
+.info-value { color: #0f172a; font-weight: 700; }
+
+.location-link {
+    color: var(--btn-blue);
+    font-weight: 700;
+    text-decoration: none;
+}
+.location-link:hover { text-decoration: underline; }
+
+.btn-stop {
+    margin-top: 18px;
+    width: 100%;
+    border: 0;
+    border-radius: 999px;
+    padding: 14px 16px;
+    font-weight: 900;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+    background: var(--blue);
+    color: #fff;
+    box-shadow: 0 8px 20px rgba(15, 56, 120, 0.2);
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    cursor: pointer;
+}
+.btn-stop:hover { 
+    background: #0b2f66; 
+    color: #fff; 
+    transform: translateY(-2px);
+    box-shadow: 0 12px 24px rgba(15, 56, 120, 0.3);
+}
+.btn-stop:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.footer-bar {
+    position: fixed;
+    bottom: 0; left: 0;
+    width: 100%;
+    height: 30px;
+    background: var(--blue);
+    z-index: 1000;
+}
+
+.alert-area {
+    position: absolute;
+    bottom: 14px;
+    left: 14px;
+    right: 14px;
+    z-index: 900;
+    pointer-events: none;
+}
+.alert-area .alert { pointer-events: auto; }
+
+#statusSelect { display: none; }
+
+.leaflet-marker-icon {
+    pointer-events: auto;
+}
+
+@media (min-width: 992px) {
+    .map-card-wrapper {
+        height: 480px;
+        margin-bottom: 0;
+    }
+    .main-content-wrapper {
+        padding: 24px 20px 84px;
+    }
+    .btn-stop {
+        margin-top: 0;
+    }
+}

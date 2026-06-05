@@ -161,59 +161,7 @@ $backLink  = 'admin.php';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <style>
-        :root { --brand: #2563eb; }
-        body {
-            background: #f8fafc;
-            color: #1e293b;
-            font-family: "Segoe UI", system-ui, sans-serif;
-        }
-
-        .card-standard {
-            border: none;
-            border-radius: 14px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-            background: #fff;
-            color: #1d4ed8; /* darker blue */
-        }
-        .card-header-std {
-            background: #fff;
-            border-bottom: 1px solid #e2e8f0;
-            font-weight: 800;
-            padding: 1rem 1.25rem;
-            border-radius: 14px 14px 0 0 !important;
-        }
-        .pill-btn {
-            border-radius: 999px;
-            font-weight: 800;
-            letter-spacing: .2px;
-        }
-        .help-card {
-            border-radius: 14px;
-            border: 1px dashed rgba(148,163,184,0.8);
-            background: #f8fafc;
-            padding: 12px 14px;
-        }
-        .form-control, .form-select {
-            border-radius: 12px;
-            color: #1e293b;
-        }
-
-        /* NEW (UI): route containers to visually separate both routes */
-        .route-card {
-            border: 1px solid #e2e8f0;
-            border-radius: 14px;
-            background: #ffffff;
-            padding: 14px;
-        }
-        .route-card + .route-card {
-            margin-top: 14px;
-        }
-        .route-title {
-            font-weight: 900;
-            margin: 0;
-        }
-    </style>
+    <link href="../../assets/css/admin/operationSchedule.css" rel="stylesheet">
 </head>
 <body>
 

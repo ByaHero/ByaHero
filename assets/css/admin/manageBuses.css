@@ -1,0 +1,170 @@
+/**
+ * manageBuses.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Buses Management panel.
+ * Extracted from public/admin/manageBuses.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+body {
+    background: #f8f9fa;
+    color: #212529;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.app-shell {
+    max-width: 420px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: #f5f6f8;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 0 20px rgba(0,0,0,0.05);
+}
+
+.app-content {
+    flex: 1;
+    padding: 20px;
+}
+
+.section-title {
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #000;
+    margin-bottom: 16px;
+}
+
+.add-bus-card {
+    background: #f4f5f7;
+    border-radius: 16px;
+    padding: 20px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 30px;
+}
+
+.add-bus-input {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 15px;
+    background: #ffffff;
+    font-size: 0.95rem;
+}
+
+.add-bus-input::placeholder {
+    color: #9ca3af;
+}
+
+.bus-card {
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+    border: none;
+}
+
+.bus-card-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.95rem;
+}
+
+.bus-card-label {
+    color: #4b5563;
+    font-size: 0.9rem;
+}
+
+.bus-card-value {
+    font-weight: 700;
+    color: #000;
+}
+
+.bus-icon-container {
+    width: 60px;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: center;
+    margin-top: 5px;
+}
+
+.bus-icon-container img {
+    max-width: 100%;
+    height: auto;
+}
+
+.badge-status {
+    border-radius: 999px;
+    padding: 4px 12px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.badge-available {
+    background: #a7f3d0;
+    color: #065f46;
+}
+
+.badge-unavailable {
+    background: #fecaca;
+    color: #991b1b;
+}
+
+/* Actions row: label on left, compact pill-style select on right */
+.bus-card-row.actions-row {
+    align-items: center;
+    margin-top: 4px;
+}
+
+.actions-right {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.action-select {
+    background-color: #f3f4f6;
+    border: none;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    padding: 4px 26px 4px 12px;
+    color: #000;
+    cursor: pointer;
+    box-shadow: inset 0 0 0 1px #e5e7eb;
+    min-width: 120px;
+}
+
+.action-select:focus {
+    outline: none;
+    box-shadow: inset 0 0 0 1px #1e5dd9;
+}
+
+.btn-pill {
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 6px 20px;
+    border: none;
+}
+
+.btn-primary-custom {
+    background-color: #1e5dd9;
+    color: #fff;
+}
+
+.btn-primary-custom:hover {
+    background-color: #164bb8;
+    color: #fff;
+}
+
+.btn-danger-custom {
+    background-color: #b91c1c;
+    color: #fff;
+}
+
+.btn-danger-custom:hover {
+    background-color: #991b1b;
+    color: #fff;
+}

@@ -44,8 +44,16 @@ declare(strict_types=1);
 function get_env_config(string $key, string $default): string {
     global $_ENV;
     if (isset($_ENV[$key]) && $_ENV[$key] !== '') {
-        return $_ENV[$key];
+        $val = $_ENV[$key];
+        if (strpos($val, '${') === false) {
+            return $val;
+        }
     }
     $val = getenv($key);
-    return ($val !== false && $val !== '') ? $val : $default;
+    if ($val !== false && $val !== '') {
+        if (strpos($val, '${') === false) {
+            return $val;
+        }
+    }
+    return $default;
 }
