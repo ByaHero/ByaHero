@@ -212,7 +212,7 @@ function notification_icon(string $type): array
         You haven't enabled any notifications yet. Turn on Smart Notifications to stay updated about bus schedules,
         arrivals, and seat availability.
       </p>
-      <a href="passengerSettings/smartNotification.php" class="btn btn-primary">
+      <a href="passengerSettings/smartNotification" class="btn btn-primary">
         <span class="material-symbols-rounded me-2"
           style="vertical-align: middle; font-size: 1.2rem;">notifications_active</span>
         Enable Notifications
@@ -317,7 +317,7 @@ function notification_icon(string $type): array
 
   <script>
     function selectNav(element, tabName) {
-      window.location.href = 'index.php';
+      location.href = "index";
     }
   </script>
 

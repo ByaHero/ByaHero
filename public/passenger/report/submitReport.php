@@ -46,10 +46,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $_SESSION['report_error'] = "Please select a reason for your report.";
     }
 
-    header("Location: report.php");
+    header("Location: report");
     exit;
 } else {
-    header("Location: report.php");
+    header("Location: report");
     exit;
 }
 ?>

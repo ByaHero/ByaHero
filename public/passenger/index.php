@@ -67,10 +67,10 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
         <div class="modal-body text-center">
           <?php if ($currentUser): ?>
             <h6><?= htmlspecialchars($currentUser['name'] ?? $currentUser['email']) ?></h6>
-            <a href="../logout.php" class="btn btn-sm btn-outline-danger mt-2">Logout</a>
+            <a href="../logout" class="btn btn-sm btn-outline-danger mt-2">Logout</a>
           <?php else: ?>
             <p>Please log in.</p>
-            <a href="../login.php" class="btn btn-primary btn-sm">Login</a>
+            <a href="../login" class="btn btn-primary btn-sm">Login</a>
           <?php endif; ?>
         </div>
       </div>

@@ -227,7 +227,7 @@ try {
         $_SESSION['user_name']     = $name !== '' ? $name : $email;
         $_SESSION['user_contacts'] = $contact;
 
-        respond(true, 'Account created successfully!', ['redirect' => 'passenger/showGuide/showGuide.php']);
+        respond(true, 'Account created successfully!', ["redirect" => "passenger/showGuide/showGuide"]);
     }
 
     // COMPLETE PROFILE
@@ -336,7 +336,7 @@ try {
 
         session_unset();
         session_destroy();
-        respond(true, 'Account deleted', ['redirect' => 'accountDeleted.php']);
+        respond(true, 'Account deleted', ["redirect" => "accountDeleted"]);
     }
 
     // GOOGLE AUTH
@@ -387,7 +387,7 @@ try {
             $_SESSION['user_contacts'] = '';
             $_SESSION['user_profile_picture'] = $profilePic;
 
-            respond(true, 'Signup successful', ['redirect' => 'passenger/completeProfile.php']);
+            respond(true, 'Signup successful', ["redirect" => "passenger/completeProfile"]);
         }
     }
 

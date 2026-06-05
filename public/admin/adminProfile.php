@@ -12,7 +12,7 @@ require_once __DIR__ . '/../../config/db.php';
  * - $_SESSION['user_role']  (admin|driver|conductor|user)
  */
 if (empty($_SESSION['user_id']) || empty($_SESSION['user_role'])) {
-    header('Location: ../login.php?redirect=admin/adminProfile.php');
+    header("Location: ../login?redirect=admin/adminProfile.php");
     exit;
 }
 
@@ -21,15 +21,15 @@ if ($_SESSION['user_role'] !== 'admin') {
     $role = (string)$_SESSION['user_role'];
 
     if ($role === 'conductor') {
-        header('Location: ../conductor/conductor.php');
+        header("Location: ../conductor/conductor");
         exit;
     }
     if ($role === 'driver') {
-        header('Location: ../driver/dashboard.php');
+        header("Location: ../driver/dashboard");
         exit;
     }
     // passenger/user
-    header('Location: ../passenger/index.php');
+    header("Location: ../passenger/index");
     exit;
 }
 
@@ -66,7 +66,7 @@ if (!$admin) {
     }
     session_destroy();
 
-    header('Location: ../login.php');
+    header("Location: ../login");
     exit;
 }
 
@@ -242,7 +242,7 @@ $backLink  = 'admin.php';
         <div class="custom-box">
             <h3>Edit Email</h3>
             <p>Enter your new email address below.</p>
-            <form method="POST" action="adminProfile.php">
+            <form method="POST" action="adminProfile">
                 <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" required>
                 <div class="d-flex justify-content-center gap-2">
                     <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closeEmailModal()">Cancel</button>
@@ -258,7 +258,7 @@ $backLink  = 'admin.php';
             <h3>Edit Password</h3>
             <p>Enter your current and new password below.</p>
 
-            <form method="POST" action="adminProfile.php">
+            <form method="POST" action="adminProfile">
                 <div class="pw-wrap mb-3">
                     <input type="password" name="current_password" id="pwCurrent" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Current password" required>
                     <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">

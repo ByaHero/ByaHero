@@ -405,7 +405,7 @@ $pageTitle = 'Ride History';
                             </div>
                             <h4 class="fw-bold">No Rides Yet</h4>
                             <p class="text-muted">Your journey starts here! Take your first ride and see your history grow.</p>
-                            <a href="index.php" class="btn btn-primary rounded-pill px-5 py-3 fw-bold mt-3 shadow">Start a Trip</a>
+                            <a href="index" class="btn btn-primary rounded-pill px-5 py-3 fw-bold mt-3 shadow">Start a Trip</a>
                         </div>
                     `;
                     document.getElementById('statsPlaceholder').style.display = 'none';
@@ -497,7 +497,7 @@ $pageTitle = 'Ride History';
                         </div>
 
                         <div class="mt-3 pt-3 border-top d-flex justify-content-end">
-                            <button class="report-btn" onclick="window.location.href='report/report.php?bus_number=${ride.bus_code}'">
+                            <button class="report-btn" onclick="location.href = "report/report?bus_number=${ride.bus_code}"">
                                 <span class="material-symbols-rounded" style="font-size: 18px;">report</span>
                                 Report Issue
                             </button>

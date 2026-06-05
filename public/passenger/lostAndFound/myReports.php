@@ -120,7 +120,7 @@ $pageType = 'settings';
         
         <!-- Smooth Title Layout -->
         <div class="header-title-container mt-2">
-            <a href="lostAndFound.php" class="back-button">
+            <a href="lostAndFound" class="back-button">
                 <span class="material-symbols-rounded" style="font-size: 20px;">arrow_back</span>
             </a>
             <h4 class="fw-bold text-primary mb-0">My Reports</h4>

@@ -3,7 +3,7 @@
 
 // Enforce Access Control
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
-    header("Location: ../index.php");
+    header("Location: ../index");
     exit;
 }
 
@@ -30,7 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['bus_id'])) {
     if ($busOwner !== false && $busOwner !== null && $busOwner != $userId) {
         // Someone else already has this bus
         unset($_SESSION['current_bus']);
-        header('Location: conductor.php?error=bus_taken');
+        header("Location: conductor?error=bus_taken");
         exit;
     } else {
         // Claim the bus / update it
@@ -93,7 +93,7 @@ if (empty($_SESSION['current_bus'])) {
 
 // 3) If after all that we STILL don't have a current bus, send them back to conductor.php
 if (empty($_SESSION['current_bus'])) {
-    header("Location: conductor.php");
+    header("Location: conductor");
     exit;
 }
 

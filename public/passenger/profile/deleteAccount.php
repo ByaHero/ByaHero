@@ -92,7 +92,7 @@ $userId = $_SESSION['user_id'];
             <span id="btnText">Permanently Delete Account</span>
             <span id="btnLoader" class="spinner-border spinner-border-sm d-none" role="status"></span>
           </button>
-          <a href="accountSettings.php" class="btn btn-light border py-3" style="border-radius: 12px; font-weight: 600; font-size: 1rem;">Keep My Account</a>
+          <a href="accountSettings" class="btn btn-light border py-3" style="border-radius: 12px; font-weight: 600; font-size: 1rem;">Keep My Account</a>
         </div>
       </form>
     </div>

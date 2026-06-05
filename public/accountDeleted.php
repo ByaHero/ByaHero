@@ -175,11 +175,11 @@ if (isset($_COOKIE[session_name()])) {
           </p>
         </div>
 
-        <a href="login.php" class="submit-pill">Go to Login</a>
+        <a href="login" class="submit-pill">Go to Login</a>
         
         <div class="small-muted">
           Want to join us again?
-          <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Create a new account</a>
+          <a href="signUp" class="fw-bold text-primary text-decoration-none">Create a new account</a>
         </div>
       </div>
     </div>

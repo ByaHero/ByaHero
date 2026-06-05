@@ -100,7 +100,7 @@ if (empty($bus_number)) {
 
         <!-- Form Card -->
         <div class="bg-light border-0 p-4" style="border-radius: 20px;">
-            <form id="reportProblemForm" action="submitReport.php" method="POST">
+            <form id="reportProblemForm" action="submitReport" method="POST">
                 
                 <div class="mb-4">
                     <label class="d-block small fw-bold text-dark text-start mb-2" for="busNumberInput" style="font-size: 0.85rem;">Bus Number:</label>

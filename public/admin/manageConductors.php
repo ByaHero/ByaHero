@@ -10,7 +10,7 @@ require __DIR__ . '/../../config/db.php';
 
 // --- AUTH: rely on public/login.php session values ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header('Location: ../login.php');
+    header("Location: ../login");
     exit;
 }
 

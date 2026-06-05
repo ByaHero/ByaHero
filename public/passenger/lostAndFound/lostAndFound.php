@@ -45,13 +45,13 @@ $pageTitle = 'Lost and Found';
 
     <div class="container mt-4 pt-5 pb-5 mb-5 text-center px-4">
         <div class="d-flex justify-content-end mb-4 pt-1">
-            <a href="myReports.php" class="btn btn-outline-primary rounded-pill fw-bold py-1 px-3 shadow-sm d-flex align-items-center gap-1" style="font-size: 0.85rem; border-width: 2px;">
+            <a href="myReports" class="btn btn-outline-primary rounded-pill fw-bold py-1 px-3 shadow-sm d-flex align-items-center gap-1" style="font-size: 0.85rem; border-width: 2px;">
                 <span class="material-symbols-rounded" style="font-size: 16px;">receipt_long</span>
                 Check Status
             </a>
         </div>
         
-        <form id="lostFoundForm" action="lostAndFoundDone.php" method="POST" enctype="multipart/form-data">
+        <form id="lostFoundForm" action="lostAndFoundDone" method="POST" enctype="multipart/form-data">
             
             <!-- Type Selector -->
             <div class="d-flex justify-content-between mb-4 mt-2">

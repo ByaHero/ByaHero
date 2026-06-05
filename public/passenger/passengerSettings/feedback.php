@@ -77,7 +77,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       <?php if (!$isLoggedIn): ?>
         <div class="alert alert-warning d-flex align-items-center gap-3 p-3 mb-4 border-start border-4 border-warning rounded-3" style="background-color: #fffbeb; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.05);">
           <span class="material-symbols-rounded text-warning">info</span>
-          <span style="color: #92400e;">Please <a href="../../../public/login.php" style="color: #d97706; text-decoration: underline; font-weight: bold;">login</a> to submit feedback.</span>
+          <span style="color: #92400e;">Please <a href="../../../public/login" style="color: #d97706; text-decoration: underline; font-weight: bold;">login</a> to submit feedback.</span>
         </div>
       <?php endif; ?>
 
@@ -96,7 +96,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
         </div>
 
         <div class="mt-4 pt-2 d-flex justify-content-center gap-3">
-          <button class="btn btn-light border rounded-pill fw-semibold py-2 px-4 btn-secondary-custom" onclick="window.location.href='../index.php';" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;">Cancel</button>
+          <button class="btn btn-light border rounded-pill fw-semibold py-2 px-4 btn-secondary-custom" onclick="location.href = "../index";" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;">Cancel</button>
           <button class="btn btn-primary rounded-pill fw-semibold py-2 px-4 btn-primary-custom" id="submitBtn" onclick="submitFeedback()" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;" disabled>Submit Feedback</button>
         </div>
       </div>
@@ -134,7 +134,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       star.addEventListener('click', function() {
         if (!isLoggedIn) {
           alert("Please login to submit feedback.");
-          window.location.href = '../../../public/login.php';
+          location.href = "../../../public/login";
           return;
         }
         selectedRating = this.getAttribute('data-value');
@@ -165,7 +165,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
     function submitFeedback() {
       if (!isLoggedIn) {
         alert("Please login to submit feedback.");
-        window.location.href = '../../../public/login.php';
+        location.href = "../../../public/login";
         return;
       }
 
@@ -196,7 +196,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
           document.getElementById('feedbackFormContent').style.display = 'none';
           document.getElementById('successMessage').style.display = 'block';
           setTimeout(() => {
-            window.location.href = '../index.php';
+            location.href = "../index";
           }, 2000);
         } else {
           alert("Failed to submit feedback: " + data.message);

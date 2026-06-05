@@ -87,7 +87,7 @@ $isLoggedIn = true;
     <?php if (!$isLoggedIn): ?>
       <div class="alert alert-primary d-flex align-items-center gap-2 m-3 border-start border-4 border-primary rounded-3" style="background-color: #dbeafe;">
         <span class="material-symbols-rounded text-primary">info</span>
-        <span class="small" style="color: #1e40af;">You're using accessibility as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences.</span>
+        <span class="small" style="color: #1e40af;">You're using accessibility as a guest. <a href="../../../public/login" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences.</span>
       </div>
     <?php endif; ?>
 

@@ -37,6 +37,6 @@ if (isset($_COOKIE[session_name()])) {
 }
 
 // 4. Redirect to login page
-header("Location: passenger/index.php");
+header("Location: passenger/index");
 exit;
 ?>

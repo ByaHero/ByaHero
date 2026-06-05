@@ -220,8 +220,8 @@ if (!empty($userName)) {
             </div>
 
             <div class="button-group">
-                <a href="../index.php?start_tour=true" class="btn-start">Start</a>
-                <button class="btn-skip" onclick="window.location.href='../index.php';">Skip</button>
+                <a href="../index?start_tour=true" class="btn-start">Start</a>
+                <button class="btn-skip" onclick="location.href = "../index";">Skip</button>
             </div>
             
         </div>
