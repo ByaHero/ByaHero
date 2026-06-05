@@ -16,7 +16,6 @@ window.PassengerRideTracker = {
   _tickRunning: false,
 
   init: async function() {
-    console.log('Initializing PassengerRideTracker...');
     await this.checkActiveRide();
     this.updateInterval();
 
@@ -84,34 +83,27 @@ window.PassengerRideTracker = {
 
   checkProximityToBuses: async function() {
     if (!window.userLocation || !window.allBuses || window.allBuses.length === 0) {
-      console.log('Proximity Check Skipped: Location or buses not loaded.');
       return;
     }
     
-    console.log(`Checking proximity to ${window.allBuses.length} buses (Threshold: ${this.proximityThreshold}m)...`);
     const nearbyBusIds = new Set();
     
     for (const bus of window.allBuses) {
       if (!bus.coords) {
-        console.log(`Bus ${bus.code} skipped: No coordinates.`);
         continue;
       }
       if (!bus.operation_id) {
-        console.log(`Bus ${bus.code} skipped: Conductor is not actively tracking this bus (no active operation_id).`);
         continue;
       }
       
       const dist = window.distanceMeters(window.userLocation.lat, window.userLocation.lng, bus.coords[0], bus.coords[1]);
-      console.log(`Bus ${bus.code} is ${dist.toFixed(1)} meters away. (Ticks: ${this.proximityTicks[bus.id] || 0}/2)`);
       
       if (dist <= this.proximityThreshold) {
         nearbyBusIds.add(bus.id);
         this.proximityTicks[bus.id] = (this.proximityTicks[bus.id] || 0) + 1;
-        console.log(`Bus ${bus.code} is within boarding range! Tick incremented to ${this.proximityTicks[bus.id]}.`);
         
         // Instant Boarding: triggers immediately on the very first proximity detection tick
         if (this.proximityTicks[bus.id] >= 1) {
-          console.log(`Confirming boarding for Bus ${bus.code}! Dispatching joinRide...`);
           this.proximityTicks = {}; // Reset ticks
           this.joinRide(bus);
           break; 

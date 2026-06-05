@@ -155,7 +155,7 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
         // Wait brief moment for rendering engines/CSS animation transitions to stabilize
         setTimeout(() => {
             if (!this.popover) return;
-            
+
             const isNoTarget = !step.element;
             let target = null;
             if (!isNoTarget) {
@@ -228,7 +228,7 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
 
     positionNoTargetPopover(step) {
         this.popover.className = 'tour-popover'; // Clear arrow indicators
-        
+
         // Hide dynamic HTML arrow
         const arrow = document.getElementById('tour-arrow');
         if (arrow) arrow.style.display = 'none';
@@ -245,13 +245,13 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
 
     positionTargetPopover(rect, step) {
         this.popover.className = 'tour-popover'; // Clear arrow classes
-        
+
         const popoverWidth = 290;
         let left = rect.left + (rect.width / 2) - (popoverWidth / 2);
-        
+
         // Boundary check for horizontal alignment
         left = Math.max(16, Math.min(window.innerWidth - popoverWidth - 16, left));
-        
+
         // Decide placement: if the highlighted element is extremely large/tall (e.g. takes up more than 60% of viewport),
         // position the popover as a floating card at the bottom of the screen to prevent it from going offscreen.
         const isVeryTall = rect.height > window.innerHeight * 0.6;
@@ -262,16 +262,16 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
             const centerLeft = (window.innerWidth - popoverWidth) / 2;
             const popoverHeight = 160;
             const safeTop = window.innerHeight - popoverHeight - 24;
-            
+
             this.popover.style.left = `${centerLeft}px`;
             this.popover.style.top = `${safeTop}px`;
-            
+
             this.renderPopoverContent(step);
             return;
         }
 
         const isInBottomHalf = (rect.top + rect.height / 2) > (window.innerHeight / 2);
-        const popoverHeight = 160; 
+        const popoverHeight = 160;
         let top;
 
         if (isInBottomHalf) {
@@ -340,21 +340,22 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
 
         if (this.currentStep < this.steps.length - 1) {
             this.currentStep++;
-            
+
             const nextStep = this.steps[this.currentStep];
             if (nextStep.pagePath) {
-                const currentUrl = window.location.pathname.toLowerCase();
-                const targetPath = nextStep.pagePath.toLowerCase();
-                
+                const currentUrl = window.location.pathname.toLowerCase().replace(/\.php$/, '');
+                const targetPath = nextStep.pagePath.toLowerCase().replace(/\.php$/, '');
+
                 // If target path is different from current page, redirect browser to next stage
                 if (!currentUrl.includes(targetPath)) {
                     const basePath = window.PROJECT_BASE || window.APP_BASE_URL || '';
-                    const fullUrl = `${basePath}${nextStep.pagePath}?start_tour=true&step=${this.currentStep}`;
+                    const cleanPagePath = nextStep.pagePath.replace(/\.php$/, '');
+                    const fullUrl = `${basePath}${cleanPagePath}?start_tour=true&step=${this.currentStep}`;
                     window.location.href = fullUrl;
                     return;
                 }
             }
-            
+
             this.showStep();
         } else {
             this.stop();
@@ -380,295 +381,302 @@ window.ByaheroTour = ByaheroTour;
 // --- GLOBAL MULTI-PAGE TOUR CONFIG & INITIALIZATION ---
 if (!window._byaheroTourInitialized) {
     window._byaheroTourInitialized = true;
-    document.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('start_tour') === 'true') {
-        const stepIndex = parseInt(urlParams.get('step') || '0', 10);
-        
-        // Mock Location for the Tour if we are on the index page and no location is currently available
-        if (window.location.pathname.toLowerCase().includes('/public/passenger/index.php')) {
-            const hasLocation = window.userLocation && window.locationPermissionGranted;
-            
-            if (!hasLocation) {
-                window.locationPermissionGranted = true;
-                window.userLocation = { lat: 14.0905, lng: 121.0550 };
-            }
-            
-            const checkMapInterval = setInterval(() => {
-                if (window._map) {
-                    clearInterval(checkMapInterval);
-                    
-                    if (window.userLocation) {
-                        const targetLat = window.userLocation.lat;
-                        const targetLng = window.userLocation.lng;
-                        
-                        if (!window.userMarker) {
-                            window.userMarker = L.marker([targetLat, targetLng], { 
-                                icon: window.getUserIcon ? window.getUserIcon() : L.divIcon({className: 'user-marker-container'}), 
-                                zIndexOffset: 100 
-                            }).addTo(window._map);
-                            if (window.bindUserMarker) window.bindUserMarker(window.userMarker);
-                        } else {
-                            window.userMarker.setLatLng([targetLat, targetLng]);
-                        }
-                        
-                        // Auto recenter map to the location
-                        window._map.setView([targetLat, targetLng], 15);
-                    }
-                    
-                    if (window.updateUserMarkerWaitingStyle) window.updateUserMarkerWaitingStyle();
-                }
-            }, 100);
-            
-            setTimeout(() => clearInterval(checkMapInterval), 5000);
-        }
-        
-        const steps = [
-            {
-                title: 'Welcome to ByaHero!',
-                description: "Let's take a quick interactive tour to show you how to navigate your live commuter dashboard.",
-                pagePath: '/public/passenger/index.php'
-            },
-            {
-                element: '#tab-location',
-                title: '🚌 Bus Locations',
-                description: 'See all live buses operating on routes, including their capacity and real-time ETAs.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                }
-            },
-            {
-                element: '#tab-routes',
-                title: '🗺️ Filter Routes',
-                description: 'Filter routes in one click to track only the buses heading in your direction.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('routes');
-                }
-            },
-            {
-                element: '#tab-groups',
-                title: '👥 Circle Groups',
-                description: 'Track your private circle members and friends on the map in real time.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('groups');
-                }
-            },
-            {
-                element: '#tab-busstops',
-                title: '🚏 Pickup Stops',
-                description: 'Discover pick-up terminals and designated boarding stops nearby.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('busstops');
-                }
-            },
-            {
-                element: '.my-location-btn-wrap button',
-                title: '🎯 Recenter Map',
-                description: 'Tap this target button anytime to snap the map view directly back to your live GPS coordinates.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                }
-            },
-            {
-                element: '.user-marker-container',
-                title: '📍 Commuter Location',
-                description: 'Focuses on your avatar marker on the map (loading simulated mockup coordinates if your live location is currently unavailable).',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                    if (window._map && window.userLocation) {
-                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
-                    }
-                }
-            },
-            {
-                element: '.user-waiting-chat-bubble',
-                title: '🚌 Commuter Waiting Status',
-                description: 'Tap on your blue avatar marker or the floating "Waiting" bubble on the map to open the pickup status dialog.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                    if (window._map && window.userLocation) {
-                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
-                    }
-                    const modalEl = document.getElementById('waitingModal');
-                    if (modalEl) {
-                        const instance = bootstrap.Modal.getInstance(modalEl);
-                        if (instance) instance.hide();
-                    }
-                }
-            },
-            {
-                element: '#waitingModal .modal-content',
-                title: '🚌 Set Waiting Status',
-                description: 'Declare that you are actively waiting at your current location so incoming bus drivers can see your coordinates and prepare for pickup.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                    if (window._map && window.userLocation) {
-                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
-                    }
-                    if (typeof window.openWaitingModal === 'function') {
-                        window.openWaitingModal();
-                    }
-                }
-            },
-            {
-                element: '#btnSetWaiting',
-                title: '🚌 Broadcast Status',
-                description: 'Tap this primary button to broadcast your active waiting coordinates instantly to all oncoming bus drivers.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                    if (window._map && window.userLocation) {
-                        window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
-                    }
-                    if (typeof window.openWaitingModal === 'function') {
-                        window.openWaitingModal();
-                    }
-                }
-            },
-            {
-                element: '.sos-dome, #desktop-nav-links a[href*="sos.php"]',
-                title: '🚨 Emergency SOS Indicator',
-                description: 'This is the Emergency SOS button. Tap it in case of danger. Let\'s open the Emergency Center to see how it works.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
-                    const modalEl = document.getElementById('waitingModal');
-                    if (modalEl) {
-                        const instance = bootstrap.Modal.getInstance(modalEl);
-                        if (instance) instance.hide();
-                    }
-                }
-            },
-            {
-                element: '.main-sos-btn',
-                title: '🚨 Trigger SOS Alert',
-                description: 'When in danger, press and hold this SOS button for 5 seconds to broadcast your exact live coordinates to all circles and emergency contacts.',
-                pagePath: '/public/passenger/sos/sos.php'
-            },
-            {
-                element: '#topbar-notification-icon',
-                title: '🔔 Live Notifications Alert',
-                description: 'This is your alert notification bell. It flashes red when you receive circle invitations or warnings. Let\'s check your inbox.',
-                pagePath: '/public/passenger/index.php'
-            },
-            {
-                element: '.list-group, .no-notifications-container',
-                title: '🔔 Notifications Inbox',
-                description: 'Review received alerts, active SOS alerts from circle members, and smart transit announcements here.',
-                pagePath: '/public/passenger/notifications.php'
-            },
-            {
-                element: '#nav-info, #desktop-nav-links a[href*="busInfo.php"]',
-                title: 'ℹ️ Bus Information Tab',
-                description: 'This is the Bus Info tab. It lists scheduled fares, operator numbers, and timetables. Let\'s take a look.',
-                pagePath: '/public/passenger/index.php'
-            },
-            {
-                element: '.container > div.border',
-                title: 'ℹ️ Schedules & Rates',
-                description: 'Access bus schedules, fare rates, and active operator details here.',
-                pagePath: '/public/passenger/busInfo/busInfo.php'
-            },
-            {
-                element: '[data-bs-target="#passengerMenu"]',
-                title: '🍔 Passenger Menu Drawer',
-                description: 'Tap this hamburger menu button to open additional features, profile details, and account settings.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    const menuEl = document.getElementById('passengerMenu');
-                    if (menuEl) {
-                        const instance = bootstrap.Offcanvas.getInstance(menuEl);
-                        if (instance) instance.hide();
-                    }
-                }
-            },
-            {
-                element: 'a[href*="rideHistory.php"]',
-                title: '📜 Ride History Link',
-                description: 'This is your Ride History link. Tap here to view all your past boarding records, routes taken, and operator details. Let\'s check it out.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    const menuEl = document.getElementById('passengerMenu');
-                    if (menuEl) {
-                        const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
-                        instance.show();
-                    }
-                }
-            },
-            {
-                element: '.history-container > div.border',
-                title: '📜 Ride History Logs',
-                description: 'Access all details about your past travel logs, duration, and even report issues with specific buses here.',
-                pagePath: '/public/passenger/rideHistory.php'
-            },
-            {
-                element: 'a[href*="feedback.php"]',
-                title: '💬 Commuter Feedback Link',
-                description: 'This is the Feedback link. Share your ratings and feedback on your commuting experience. Let\'s open it.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    const menuEl = document.getElementById('passengerMenu');
-                    if (menuEl) {
-                        const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
-                        instance.show();
-                    }
-                }
-            },
-            {
-                element: '.feedback-card',
-                title: '💬 Commuter Feedback Card',
-                description: 'Rate your travel experience out of 5 stars and tell us how we can make your ByaHero journeys even better!',
-                pagePath: '/public/passenger/passengerSettings/feedback.php'
-            },
-            {
-                element: 'a[href*="report.php"]',
-                title: '⚠️ Report a Problem Link',
-                description: 'This is the Report a Problem link. Report any transit delays, reckless drivers, or app issues directly. Let\'s open it.',
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    const menuEl = document.getElementById('passengerMenu');
-                    if (menuEl) {
-                        const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
-                        instance.show();
-                    }
-                }
-            },
-            {
-                element: '.report-card',
-                title: '⚠️ Report a Problem Form',
-                description: 'Submit direct incident reports, choose issue types, specify details, and help keep ByaHero commutes safe and orderly.',
-                pagePath: '/public/passenger/report/report.php'
-            },
-            {
-                title: "You're All Set!",
-                description: "You've successfully completed the guide! Enjoy smart, safe, and efficient travel with ByaHero.",
-                pagePath: '/public/passenger/index.php',
-                onBefore: function() {
-                    const menuEl = document.getElementById('passengerMenu');
-                    if (menuEl) {
-                        const instance = bootstrap.Offcanvas.getInstance(menuEl);
-                        if (instance) instance.hide();
-                    }
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                }
-            }
-        ];
 
-        // Start the tour globally on whatever page we are on
-        setTimeout(() => {
-            window._byaheroTourInstance = new ByaheroTour(steps);
-            window._byaheroTourInstance.currentStep = stepIndex;
-            window._byaheroTourInstance.start();
-        }, 1200);
+    const initTour = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('start_tour') === 'true') {
+            const stepIndex = parseInt(urlParams.get('step') || '0', 10);
+
+            // Mock Location for the Tour if we are on the index page and no location is currently available
+            if (window.location.pathname.toLowerCase().includes('/public/passenger/index.php')) {
+                const hasLocation = window.userLocation && window.locationPermissionGranted;
+
+                if (!hasLocation) {
+                    window.locationPermissionGranted = true;
+                    window.userLocation = { lat: 14.0905, lng: 121.0550 };
+                }
+
+                const checkMapInterval = setInterval(() => {
+                    if (window._map) {
+                        clearInterval(checkMapInterval);
+
+                        if (window.userLocation) {
+                            const targetLat = window.userLocation.lat;
+                            const targetLng = window.userLocation.lng;
+
+                            if (!window.userMarker) {
+                                window.userMarker = L.marker([targetLat, targetLng], {
+                                    icon: window.getUserIcon ? window.getUserIcon() : L.divIcon({ className: 'user-marker-container' }),
+                                    zIndexOffset: 100
+                                }).addTo(window._map);
+                                if (window.bindUserMarker) window.bindUserMarker(window.userMarker);
+                            } else {
+                                window.userMarker.setLatLng([targetLat, targetLng]);
+                            }
+
+                            // Auto recenter map to the location
+                            window._map.setView([targetLat, targetLng], 15);
+                        }
+
+                        if (window.updateUserMarkerWaitingStyle) window.updateUserMarkerWaitingStyle();
+                    }
+                }, 100);
+
+                setTimeout(() => clearInterval(checkMapInterval), 5000);
+            }
+
+            const steps = [
+                {
+                    title: 'Welcome to ByaHero!',
+                    description: "Let's take a quick interactive tour to show you how to navigate your live commuter dashboard.",
+                    pagePath: '/public/passenger/index.php'
+                },
+                {
+                    element: '#tab-location',
+                    title: '🚌 Bus Locations',
+                    description: 'See all live buses operating on routes, including their capacity and real-time ETAs.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    }
+                },
+                {
+                    element: '#tab-routes',
+                    title: '🗺️ Filter Routes',
+                    description: 'Filter routes in one click to track only the buses heading in your direction.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('routes');
+                    }
+                },
+                {
+                    element: '#tab-groups',
+                    title: '👥 Circle Groups',
+                    description: 'Track your private circle members and friends on the map in real time.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('groups');
+                    }
+                },
+                {
+                    element: '#tab-busstops',
+                    title: '🚏 Pickup Stops',
+                    description: 'Discover pick-up terminals and designated boarding stops nearby.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('busstops');
+                    }
+                },
+                {
+                    element: '.my-location-btn-wrap button',
+                    title: '🎯 Recenter Map',
+                    description: 'Tap this target button anytime to snap the map view directly back to your live GPS coordinates.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                    }
+                },
+                {
+                    element: '.user-marker-container',
+                    title: '📍 Commuter Location',
+                    description: 'Focuses on your avatar marker on the map (loading simulated mockup coordinates if your live location is currently unavailable).',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                        if (window._map && window.userLocation) {
+                            window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                        }
+                    }
+                },
+                {
+                    element: '.user-waiting-chat-bubble',
+                    title: '🚌 Commuter Waiting Status',
+                    description: 'Tap on your blue avatar marker or the floating "Waiting" bubble on the map to open the pickup status dialog.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                        if (window._map && window.userLocation) {
+                            window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                        }
+                        const modalEl = document.getElementById('waitingModal');
+                        if (modalEl) {
+                            const instance = bootstrap.Modal.getInstance(modalEl);
+                            if (instance) instance.hide();
+                        }
+                    }
+                },
+                {
+                    element: '#waitingModal .modal-content',
+                    title: '🚌 Set Waiting Status',
+                    description: 'Declare that you are actively waiting at your current location so incoming bus drivers can see your coordinates and prepare for pickup.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                        if (window._map && window.userLocation) {
+                            window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                        }
+                        if (typeof window.openWaitingModal === 'function') {
+                            window.openWaitingModal();
+                        }
+                    }
+                },
+                {
+                    element: '#btnSetWaiting',
+                    title: '🚌 Broadcast Status',
+                    description: 'Tap this primary button to broadcast your active waiting coordinates instantly to all oncoming bus drivers.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                        if (window._map && window.userLocation) {
+                            window._map.setView([window.userLocation.lat, window.userLocation.lng], 15);
+                        }
+                        if (typeof window.openWaitingModal === 'function') {
+                            window.openWaitingModal();
+                        }
+                    }
+                },
+                {
+                    element: '.sos-dome, #desktop-nav-links a[href*="sos.php"]',
+                    title: '🚨 Emergency SOS Indicator',
+                    description: 'This is the Emergency SOS button. Tap it in case of danger. Let\'s open the Emergency Center to see how it works.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        if (typeof window.switchSheetTab === 'function') window.switchSheetTab('location');
+                        const modalEl = document.getElementById('waitingModal');
+                        if (modalEl) {
+                            const instance = bootstrap.Modal.getInstance(modalEl);
+                            if (instance) instance.hide();
+                        }
+                    }
+                },
+                {
+                    element: '.main-sos-btn',
+                    title: '🚨 Trigger SOS Alert',
+                    description: 'When in danger, press and hold this SOS button for 5 seconds to broadcast your exact live coordinates to all circles and emergency contacts.',
+                    pagePath: '/public/passenger/sos/sos.php'
+                },
+                {
+                    element: '#topbar-notification-icon',
+                    title: '🔔 Live Notifications Alert',
+                    description: 'This is your alert notification bell. It flashes red when you receive circle invitations or warnings. Let\'s check your inbox.',
+                    pagePath: '/public/passenger/index.php'
+                },
+                {
+                    element: '.list-group, .no-notifications-container',
+                    title: '🔔 Notifications Inbox',
+                    description: 'Review received alerts, active SOS alerts from circle members, and smart transit announcements here.',
+                    pagePath: '/public/passenger/notifications.php'
+                },
+                {
+                    element: '#nav-info, #desktop-nav-links a[href*="busInfo.php"]',
+                    title: 'ℹ️ Bus Information Tab',
+                    description: 'This is the Bus Info tab. It lists scheduled fares, operator numbers, and timetables. Let\'s take a look.',
+                    pagePath: '/public/passenger/index.php'
+                },
+                {
+                    element: '.container > div.border',
+                    title: 'ℹ️ Schedules & Rates',
+                    description: 'Access bus schedules, fare rates, and active operator details here.',
+                    pagePath: '/public/passenger/busInfo/busInfo.php'
+                },
+                {
+                    element: '[data-bs-target="#passengerMenu"]',
+                    title: '🍔 Passenger Menu Drawer',
+                    description: 'Tap this hamburger menu button to open additional features, profile details, and account settings.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        const menuEl = document.getElementById('passengerMenu');
+                        if (menuEl) {
+                            const instance = bootstrap.Offcanvas.getInstance(menuEl);
+                            if (instance) instance.hide();
+                        }
+                    }
+                },
+                {
+                    element: 'a[href*="rideHistory.php"]',
+                    title: '📜 Ride History Link',
+                    description: 'This is your Ride History link. Tap here to view all your past boarding records, routes taken, and operator details. Let\'s check it out.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        const menuEl = document.getElementById('passengerMenu');
+                        if (menuEl) {
+                            const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
+                            instance.show();
+                        }
+                    }
+                },
+                {
+                    element: '.history-container > div.border',
+                    title: '📜 Ride History Logs',
+                    description: 'Access all details about your past travel logs, duration, and even report issues with specific buses here.',
+                    pagePath: '/public/passenger/rideHistory.php'
+                },
+                {
+                    element: 'a[href*="feedback.php"]',
+                    title: '💬 Commuter Feedback Link',
+                    description: 'This is the Feedback link. Share your ratings and feedback on your commuting experience. Let\'s open it.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        const menuEl = document.getElementById('passengerMenu');
+                        if (menuEl) {
+                            const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
+                            instance.show();
+                        }
+                    }
+                },
+                {
+                    element: '.feedback-card',
+                    title: '💬 Commuter Feedback Card',
+                    description: 'Rate your travel experience out of 5 stars and tell us how we can make your ByaHero journeys even better!',
+                    pagePath: '/public/passenger/passengerSettings/feedback.php'
+                },
+                {
+                    element: 'a[href*="report.php"]',
+                    title: '⚠️ Report a Problem Link',
+                    description: 'This is the Report a Problem link. Report any transit delays, reckless drivers, or app issues directly. Let\'s open it.',
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        const menuEl = document.getElementById('passengerMenu');
+                        if (menuEl) {
+                            const instance = bootstrap.Offcanvas.getOrCreateInstance(menuEl);
+                            instance.show();
+                        }
+                    }
+                },
+                {
+                    element: '.report-card',
+                    title: '⚠️ Report a Problem Form',
+                    description: 'Submit direct incident reports, choose issue types, specify details, and help keep ByaHero commutes safe and orderly.',
+                    pagePath: '/public/passenger/report/report.php'
+                },
+                {
+                    title: "You're All Set!",
+                    description: "You've successfully completed the guide! Enjoy smart, safe, and efficient travel with ByaHero.",
+                    pagePath: '/public/passenger/index.php',
+                    onBefore: function () {
+                        const menuEl = document.getElementById('passengerMenu');
+                        if (menuEl) {
+                            const instance = bootstrap.Offcanvas.getInstance(menuEl);
+                            if (instance) instance.hide();
+                        }
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
+            ];
+
+            // Start the tour globally on whatever page we are on
+            setTimeout(() => {
+                window._byaheroTourInstance = new ByaheroTour(steps);
+                window._byaheroTourInstance.currentStep = stepIndex;
+                window._byaheroTourInstance.start();
+            }, 1200);
+        }
+    };
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initTour);
+    } else {
+        initTour();
     }
-});
 }
 
