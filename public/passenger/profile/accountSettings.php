@@ -219,10 +219,10 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
           <span id="avatarInitial" style="<?= $userProfilePic ? 'display:none;' : '' ?>"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
           <?php if ($userProfilePic): ?>
             <?php 
-              $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+              $isAbsolute = preg_match('~^https?://~i', $userProfilePic) || preg_match('~^data:image/~i', $userProfilePic);
               $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
             ?>
-            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar" onerror="this.style.display='none'; document.getElementById('avatarInitial').style.display='block'; document.getElementById('removePicBtn').style.display='none';">
+            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar" onerror="this.style.display='none'; document.getElementById('avatarInitial').style.display='block'; document.getElementById('removePicBtn').style.display='none'; document.getElementById('uploadPicBtn').style.display='inline-flex';">
           <?php endif; ?>
           <div class="overlay">CHANGE</div>
         </div>
@@ -231,7 +231,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
           <div class="fw-bold text-dark fs-5 leading-tight" id="displayNameText"><?= htmlspecialchars($userName ?: 'User') ?></div>
           <div class="text-muted small mb-2"><?= htmlspecialchars($userEmail) ?></div>
           <div class="d-flex align-items-center gap-2">
-            <button type="button" id="uploadPicBtn" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" onclick="document.getElementById('imageInput').click()">
+            <button type="button" id="uploadPicBtn" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" style="<?= !empty($userProfilePic) ? 'display:none;' : '' ?>" onclick="document.getElementById('imageInput').click()">
               <span class="material-symbols-rounded" style="font-size: 16px;">add_a_photo</span>
               Add Picture
             </button>
@@ -333,6 +333,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
         const initial = (uName || uEmail).charAt(0).toUpperCase();
         avatarContainer.innerHTML = `<span id="avatarInitial">${initial}</span><div class="overlay">CHANGE</div>`;
         removePicBtn.style.display = 'none';
+        document.getElementById('uploadPicBtn').style.display = 'inline-flex';
     });
 
     imageInput.addEventListener('change', function(e) {
@@ -374,6 +375,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
 
                 // Update UI preview
                 removePicBtn.style.display = 'inline-flex';
+                document.getElementById('uploadPicBtn').style.display = 'none';
                 
                 // Clear container and replace with preview image + overlay
                 avatarContainer.innerHTML = '';
