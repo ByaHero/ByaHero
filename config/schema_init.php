@@ -282,6 +282,20 @@ function sync_schema(mysqli $conn) {
         INDEX idx_circle (circle_id),
         INDEX idx_user (user_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+    
+    // Migrate old circle_members table structure to standard schema if needed
+    $checkCM = $conn->query("SHOW COLUMNS FROM circle_members LIKE 'member_user_id'");
+    if ($checkCM && $checkCM->num_rows > 0) {
+        $conn->query("ALTER TABLE circle_members CHANGE member_user_id user_id INT UNSIGNED NOT NULL");
+    }
+    $checkCMTime = $conn->query("SHOW COLUMNS FROM circle_members LIKE 'created_at'");
+    if ($checkCMTime && $checkCMTime->num_rows > 0) {
+        $conn->query("ALTER TABLE circle_members CHANGE created_at joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP");
+    }
+    $checkCMStatus = $conn->query("SHOW COLUMNS FROM circle_members LIKE 'status'");
+    if ($checkCMStatus && $checkCMStatus->num_rows > 0) {
+        $conn->query("ALTER TABLE circle_members DROP COLUMN status");
+    }
 
     // 15. Reports (Issue Reporting)
     $conn->query("CREATE TABLE IF NOT EXISTS reports (
