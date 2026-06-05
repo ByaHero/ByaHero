@@ -364,7 +364,7 @@ $backLink = 'admin.php';
             <!-- LTFRB Matrix Generator -->
             <div>
 
-                <div class="mb-4" style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; background: #fff;">
+                <div class="card border border-light-subtle rounded-3 p-4 mb-4 bg-white shadow-sm">
 
                     <form method="POST" onsubmit="return confirm('WARNING: This will instantly overwrite all 900+ rows with mathematical matrix calculations. Proceed?');">
                         <input type="hidden" name="action" value="generate_matrix">
@@ -397,7 +397,7 @@ $backLink = 'admin.php';
                         </div>
 
                         <div class="d-grid mt-2">
-                            <button class="btn btn-primary pill-btn fw-bold">Generate Matrix</button>
+                            <button class="btn btn-primary rounded-pill fw-bold">Generate Matrix</button>
                         </div>
                     </form>
                     
@@ -406,7 +406,7 @@ $backLink = 'admin.php';
                     <form method="POST" onsubmit="return confirm('Revoke changes by resetting ALL fares back to their original base values?');">
                         <input type="hidden" name="action" value="reset_to_base">
                         <div class="d-grid">
-                            <button class="btn btn-outline-secondary pill-btn">Undo (Reset to Base)</button>
+                            <button class="btn btn-outline-secondary rounded-pill fw-bold">Undo (Reset to Base)</button>
                         </div>
                     </form>
                 </div>
@@ -414,17 +414,17 @@ $backLink = 'admin.php';
 
             <!-- Snapshots -->
             <div>
-                <h6 class="fw-bold mb-3 mt-2" style="color: #1c5ab5;">
+                <h6 class="fw-bold mb-3 mt-2" style="color: #0f3878;">
                     Snapshots (Rollback)
                 </h6>
-                <div class="mb-4" style="border: 1px solid #e2e8f0; border-radius: 14px; padding: 20px; background: #fff;">
+                <div class="card border border-light-subtle rounded-3 p-4 mb-4 bg-white shadow-sm">
 
                     <form method="POST" class="mb-3" onsubmit="return confirm('Create snapshot of ALL fares now?');">
                         <input type="hidden" name="action" value="snapshot_create">
                         <label class="form-label small fw-bold text-uppercase">Snapshot label</label>
                         <input class="form-control mb-2" name="snapshot_label" placeholder="e.g. Before April rate change">
                         <div class="d-grid">
-                            <button class="btn btn-outline-primary pill-btn">Create Snapshot</button>
+                            <button class="btn btn-outline-primary rounded-pill fw-bold">Create Snapshot</button>
                         </div>
                     </form>
 
@@ -443,7 +443,7 @@ $backLink = 'admin.php';
                         </select>
 
                         <div class="d-grid">
-                            <button class="btn btn-outline-secondary pill-btn" <?= empty($snapshots) ? 'disabled' : '' ?>>Restore Snapshot</button>
+                            <button class="btn btn-outline-secondary rounded-pill fw-bold" <?= empty($snapshots) ? 'disabled' : '' ?>>Restore Snapshot</button>
                         </div>
                     </form>
 
@@ -456,7 +456,7 @@ $backLink = 'admin.php';
         <div class="col-lg-8">
             <div>
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                    <h6 class="fw-bold m-0" style="color: #1c5ab5;">
+                    <h6 class="fw-bold m-0" style="color: #0f3878;">
                         Route Fare Matrix
                     </h6>
                     <form class="d-flex flex-wrap gap-2 w-100" method="GET">
@@ -471,7 +471,7 @@ $backLink = 'admin.php';
                         </div>
                         <div class="d-flex gap-2 flex-grow-1" style="min-width: 200px;">
                             <input class="form-control form-control-sm flex-grow-1" name="q" value="<?= h($q) ?>" placeholder="Search destination...">
-                            <button class="btn btn-sm btn-primary pill-btn px-3">Filter</button>
+                            <button class="btn btn-sm btn-primary rounded-pill fw-bold px-3">Filter</button>
                         </div>
                     </form>
                 </div>

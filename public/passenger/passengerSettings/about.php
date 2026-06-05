@@ -26,31 +26,6 @@ $pageDepth = "../../../";      // Fixes the logo path used for topBarLogo.svg
       font-family: "Segoe UI", sans-serif;
       background-color: #f8f9fa;
     }
-
-    .about-container {
-      margin-top: 70px; /* Ensures spacing between navbar and content */
-      text-align: center;
-    }
-
-    .about-logo {
-      margin: 20px auto;
-      width: 150px;
-      height: auto;
-    }
-
-    .about-heading {
-      font-weight: bold;
-      font-size: 1.5rem;
-      color: #1e3a8a;
-      margin-top: 1rem;
-    }
-
-    .about-text {
-      font-size: 1rem;
-      color: #6b7280;
-      margin-top: 1rem;
-      line-height: 1.6;
-    }
   </style>
 </head>
 
@@ -58,15 +33,15 @@ $pageDepth = "../../../";      // Fixes the logo path used for topBarLogo.svg
 <?php include "../../../components/navbarPassenger.php"; ?>
 
   <!-- Main Content -->
-  <div class="container about-container">
+  <div class="container text-center mt-5 pt-3" style="margin-top: 70px !important;">
     <!-- Logo -->
-    <img src="../../../assets/images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="about-logo">
+    <img src="../../../assets/images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="d-block mx-auto my-4" style="width: 150px; height: auto;">
 
     <!-- Heading -->
-    <div class="about-heading">Welcome to ByaHero</div>
+    <div class="fw-bold fs-4 text-primary mt-3">Welcome to ByaHero</div>
 
     <!-- Text Content -->
-    <p class="about-text">
+    <p class="fs-6 text-secondary mt-3" style="line-height: 1.6;">
       ByaHero is dedicated to revolutionizing the way passengers experience bus transport. Our goal is to provide
       seamless tracking of bus schedules, timely notifications, and intelligent insights to enhance your travel experience.
       <br><br>
@@ -77,7 +52,7 @@ $pageDepth = "../../../";      // Fixes the logo path used for topBarLogo.svg
     </p>
 
     <!-- Contact Information -->
-    <p class="about-text">
+    <p class="fs-6 text-secondary mt-3" style="line-height: 1.6;">
       <strong>Contact Us:</strong><br>
       Email: support@byahero.com<br>
       Phone: +1 234 567 890

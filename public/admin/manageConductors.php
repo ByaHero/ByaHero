@@ -126,94 +126,93 @@ $backLink = 'admin.php';
 
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="page-wrap">
+<div class="container py-3 py-lg-4" style="max-width: 480px;">
 
     <?php if($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 14px;">
             <?= $message ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 14px;">
             <?= $error ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
-    <div class="page-title">New Conductor & Driver</div>
+    <h2 class="text-center fw-bold fs-4 mb-3" style="color: #0f172a; margin: 18px 0 14px;">New Conductor & Driver</h2>
 
-    <div class="form-shell">
-        <div class="form-card">
-            <form method="POST">
-                <input type="hidden" name="action" value="add_user">
+    <div class="bg-white rounded-4 shadow border p-4 mb-4" style="border-color: rgba(148, 163, 184, 0.35) !important;">
+        <form method="POST">
+            <input type="hidden" name="action" value="add_user">
 
-                <!-- Photo has First/Last name fields; backend doesn't store them.
-                     We keep the UI similar but do NOT send them to backend to avoid breaking anything. -->
-                <div class="mb-3">
-                    <div class="field-label">First Name</div>
-                    <input type="text" class="form-control pill-input" placeholder="First Name" disabled>
+            <!-- Photo has First/Last name fields; backend doesn't store them.
+                 We keep the UI similar but do NOT send them to backend to avoid breaking anything. -->
+            <div class="mb-3">
+                <div class="small text-secondary fw-semibold mb-1" style="font-size: 0.78rem;">First Name</div>
+                <input type="text" class="form-control shadow-sm px-3 py-2" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" placeholder="First Name" disabled>
+            </div>
+
+            <div class="mb-3">
+                <div class="small text-secondary fw-semibold mb-1" style="font-size: 0.78rem;">Last name</div>
+                <input type="text" class="form-control shadow-sm px-3 py-2" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" placeholder="Last name" disabled>
+            </div>
+
+            <div class="mb-3">
+                <div class="small text-secondary fw-semibold mb-1" style="font-size: 0.78rem;">Email</div>
+                <input type="email" name="email" class="form-control shadow-sm px-3 py-2" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" placeholder="staff@byahero.com" required>
+            </div>
+
+            <div class="mb-3">
+                <div class="small text-secondary fw-semibold mb-1" style="font-size: 0.78rem;">Password</div>
+                <div class="pw-wrap">
+                    <input type="password" name="password" id="pwField" class="form-control shadow-sm px-3 py-2 pe-5" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" required>
+                    <button type="button" class="pw-eye" id="togglePw" aria-pressed="false" aria-label="Show password" title="Show password">
+                        <span id="eyeIcon" class="material-icons-round" style="font-size:18px;line-height:1;">visibility_off</span>
+                    </button>
                 </div>
+            </div>
 
-                <div class="mb-3">
-                    <div class="field-label">Last name</div>
-                    <input type="text" class="form-control pill-input" placeholder="Last name" disabled>
-                </div>
+            <!-- keep role support but visually minimal (not in photo) -->
+            <div class="mb-3">
+                <div class="small text-secondary fw-semibold mb-1" style="font-size: 0.78rem;">Role</div>
+                <select name="role" class="form-select shadow-sm px-3 py-2" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" aria-label="Role">
+                    <option value="conductor" selected>Conductor</option>
+                    <option value="driver">Driver</option>
+                </select>
+            </div>
 
-                <div class="mb-3">
-                    <div class="field-label">Email</div>
-                    <input type="email" name="email" class="form-control pill-input" placeholder="staff@byahero.com" required>
-                </div>
-
-                <div class="mb-3">
-                    <div class="field-label">Password</div>
-                    <div class="pw-wrap">
-                        <input type="password" name="password" id="pwField" class="form-control pill-input pe-5" required>
-                        <button type="button" class="pw-eye" id="togglePw" aria-pressed="false" aria-label="Show password" title="Show password">
-                            <span id="eyeIcon" class="material-icons-round" style="font-size:18px;line-height:1;">visibility_off</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- keep role support but visually minimal (not in photo) -->
-                <div class="mb-2">
-                    <select name="role" class="form-select pill-input" aria-label="Role">
-                        <option value="conductor" selected>Conductor</option>
-                        <option value="driver">Driver</option>
-                    </select>
-                </div>
-
-                <div class="save-wrap">
-                    <button type="submit" class="btn btn-primary btn-save">Save</button>
-                </div>
-            </form>
-        </div>
+            <div class="d-flex justify-content-center mt-4">
+                <button type="submit" class="btn btn-primary rounded-pill px-5 py-2 fw-bold" style="background-color: #1d4ed8; border-color: #1d4ed8; font-size: 0.95rem;">Save</button>
+            </div>
+        </form>
     </div>
 
-    <div class="list-title d-flex justify-content-between align-items-center" data-bs-toggle="collapse" data-bs-target="#staffListCollapse" aria-expanded="false" aria-controls="staffListCollapse">
+    <div class="d-flex justify-content-between align-items-center fw-bold mt-4 mb-2 mx-auto" style="max-width: 420px; color: #0f172a; cursor: pointer; user-select: none;" data-bs-toggle="collapse" data-bs-target="#staffListCollapse" aria-expanded="false" aria-controls="staffListCollapse">
         <span>Registered Staff</span>
         <span class="material-icons-round transition-icon text-muted">expand_more</span>
     </div>
     <div class="collapse" id="staffListCollapse">
-        <div class="list-card mb-4">
+        <div class="bg-white rounded-4 shadow border overflow-hidden mb-4" style="max-width: 420px; margin: 0 auto; border-color: rgba(148, 163, 184, 0.30) !important;">
             <?php if(empty($staff)): ?>
                 <div class="text-center text-muted py-4">No staff accounts found.</div>
             <?php else: foreach($staff as $u): ?>
-                <div class="staff-row">
+                <div class="d-flex justify-content-between align-items-center gap-2 p-3 border-bottom" style="border-bottom-color: #f1f5f9 !important;">
                     <div style="min-width:0">
-                        <p class="staff-email text-truncate"><?= h($u['email']) ?></p>
-                        <p class="staff-sub"><?= h($u['created_at'] ?? '') ?></p>
+                        <p class="fw-bold mb-0 text-truncate text-dark" style="font-size: 0.95rem;"><?= h($u['email']) ?></p>
+                        <p class="mb-0 text-secondary" style="font-size: 0.78rem;"><?= h($u['created_at'] ?? '') ?></p>
                     </div>
 
                     <div class="d-flex align-items-center gap-2">
-                        <span class="role-pill"><?= h($u['role'] ?? 'staff') ?></span>
+                        <span class="badge rounded-pill bg-secondary bg-opacity-10 text-dark px-2 py-1 text-uppercase fw-bold" style="font-size: 0.72rem;"><?= h($u['role'] ?? 'staff') ?></span>
 
                         <form method="POST" onsubmit="return confirm('Delete <?= h($u['email']) ?>?');" class="m-0">
                             <input type="hidden" name="action" value="delete_user">
                             <input type="hidden" name="id" value="<?= h($u['id']) ?>">
                             <input type="hidden" name="role" value="<?= h($u['role'] ?? 'conductor') ?>">
-                            <button class="btn btn-remove" type="submit">Remove</button>
+                            <button class="btn btn-danger rounded-pill px-3 py-1 fw-bold" style="background-color: #dc2626; border-color: #dc2626; font-size: 0.78rem;" type="submit">Remove</button>
                         </form>
                     </div>
                 </div>

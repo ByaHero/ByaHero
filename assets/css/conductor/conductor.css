@@ -20,45 +20,9 @@ body {
     min-height: 100vh;
 }
 
-.action-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 15px;
-    margin-bottom: 15px;
-    padding: 0 10px;
-}
-
-.settings-icon {
-    color: #0f3878;
-    font-size: 32px;
-}
-
-.filter-pill {
-    background: white;
-    padding: 8px 24px;
-    border-radius: 999px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    font-weight: 700;
-    font-size: 0.75rem;
-    color: #374151;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border: 1px solid #e5e7eb;
-    text-transform: uppercase;
-}
-.filter-pill::after { display: none !important; }
-
 .map-card-wrapper {
-    position: relative;
-    border-radius: var(--card-radius);
-    overflow: hidden;
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
-    background: white;
     height: 320px;
     margin-bottom: 20px;
-    border: 4px solid white;
 }
 #mainMap { width: 100%; height: 100%; z-index: 1; }
 
@@ -195,24 +159,6 @@ body {
     transform: translateY(0) scale(0.98);
 }
 
-.footer-bar {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    width: 100%;
-    height: 35px;
-    background-color: #0f3878;
-    z-index: 1000;
-}
-
-.alert-area {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    z-index: 900;
-}
-
 .leaflet-marker-icon {
     pointer-events: auto;
 }
@@ -221,10 +167,6 @@ body {
     .map-card-wrapper {
         height: 480px;
         margin-bottom: 0;
-    }
-    .action-row {
-        padding: 0;
-        margin-top: 0;
     }
     .btn-circle-start {
         max-width: 100%;

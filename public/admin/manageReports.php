@@ -136,8 +136,8 @@ $backLink  = 'admin.php';
 
     <div class="row g-4 mt-1 mb-5">
         <div class="col-lg-8 mx-auto">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex align-items-center gap-2">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 d-flex align-items-center gap-2 text-primary" style="border-radius: 16px 16px 0 0;">
                     <span class="fs-4">Passenger Reports</span>
                 </div>
 
@@ -149,21 +149,21 @@ $backLink  = 'admin.php';
                             $id     = $report['id'];
                             $status = in_array(($report['status'] ?? ''), $ALLOWED_STATUS, true) ? $report['status'] : 'pending';
                         ?>
-                            <div class="route-card">
-                                <div class="ticket-header">
-                                    <span class="ticket-type">
+                            <div class="border rounded-4 bg-white p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                    <span class="fw-bold text-primary text-uppercase" style="font-size: 0.95rem;">
                                         <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
                                             report
                                         </span>
                                         REPORT #<?= h((string)$id) ?>
                                     </span>
-                                    <span class="ticket-date"><?= date('M d, Y h:i A', strtotime($report['created_at'])) ?></span>
+                                    <span class="small text-secondary" style="font-size: 0.8rem;"><?= date('M d, Y h:i A', strtotime($report['created_at'])) ?></span>
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-sm-4 col-12 ticket-row">
-                                        <span class="ticket-label">Reporter</span>
-                                        <div class="ticket-value">
+                                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Reporter</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1">
                                             <?php 
                                                 $rawName = $report['reporter_name'] ?? 'Unknown User';
                                                 $firstName = explode(' ', trim($rawName))[0];
@@ -172,16 +172,16 @@ $backLink  = 'admin.php';
                                             <div class="small text-muted"><?= h($report['reporter_email'] ?? '') ?></div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-4 col-12 ticket-row">
-                                        <span class="ticket-label">Bus Number</span>
-                                        <div class="ticket-value fw-bold" style="color: #1e3a8a;">
+                                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Bus Number</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1 fw-bold" style="color: #1e3a8a;">
                                             <span class="material-symbols-rounded" style="font-size: 16px; vertical-align: middle;">directions_bus</span>
                                             <?= h($report['bus_number'] ?: 'N/A') ?>
                                         </div>
                                     </div>
-                                    <div class="col-sm-4 col-12 ticket-row">
-                                        <span class="ticket-label">Contact Number</span>
-                                        <div class="ticket-value">
+                                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Contact Number</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1">
                                             <?php $cp = $report['contact_number'] ?? ''; ?>
                                             <?php if (!empty($cp)): ?>
                                                 <a href="tel:<?= h($cp) ?>" class="text-decoration-none fw-bold" style="color: #1d4ed8;">
@@ -195,15 +195,15 @@ $backLink  = 'admin.php';
                                     </div>
                                 </div>
 
-                                <div class="ticket-row mt-2">
-                                    <span class="ticket-label">Report Reason</span>
-                                    <div class="ticket-value fw-bold text-danger"><?= h($report['report_reason']) ?></div>
+                                <div class="mb-2 mt-2" style="font-size: 0.95rem;">
+                                    <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Report Reason</span>
+                                    <div class="text-danger bg-light p-2 rounded-2 mt-1 fw-bold"><?= h($report['report_reason']) ?></div>
                                 </div>
 
                                 <?php if (!empty($report['others_details'])): ?>
-                                    <div class="ticket-row">
-                                        <span class="ticket-label">Additional Details</span>
-                                        <div class="ticket-value" style="white-space: pre-wrap;"><?= h($report['others_details']) ?></div>
+                                    <div class="mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Additional Details</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1" style="white-space: pre-wrap;"><?= h($report['others_details']) ?></div>
                                     </div>
                                 <?php endif; ?>
 
@@ -211,11 +211,11 @@ $backLink  = 'admin.php';
 
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="d-flex align-items-center gap-2">
-                                        <span class="ticket-label m-0">Status:</span>
+                                        <span class="text-primary fw-semibold d-block m-0" style="font-size: 0.85rem;">Status:</span>
                                         <form method="POST" id="update-form-<?= $id ?>" class="m-0 d-flex gap-2">
                                             <input type="hidden" name="action" value="update_status">
                                             <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                            <select name="status" class="form-select action-select" onchange="this.form.submit()">
+                                            <select name="status" class="form-select rounded-pill px-3 py-1 fw-semibold text-dark border-0 bg-light" style="font-size: 0.8rem; box-shadow: inset 0 0 0 1px #e5e7eb;" onchange="this.form.submit()">
                                                 <option value="pending" <?= $status === 'pending' ? 'selected' : '' ?>>Pending</option>
                                                 <option value="resolved" <?= $status === 'resolved' ? 'selected' : '' ?>>Resolved</option>
                                             </select>
@@ -225,7 +225,7 @@ $backLink  = 'admin.php';
                                     <form method="POST" class="m-0" onsubmit="return confirm('Permanently delete report #<?= $id ?>?');">
                                         <input type="hidden" name="action" value="delete_report">
                                         <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                        <button type="submit" class="btn btn-danger-custom btn-pill shadow-sm" style="padding: 4px 12px; font-size: 0.8rem;">Delete</button>
+                                        <button type="submit" class="btn btn-danger rounded-pill px-3 py-1 fw-bold shadow-sm" style="background-color: #ef4444; border-color: #ef4444; font-size: 0.8rem;">Delete</button>
                                     </form>
                                 </div>
 

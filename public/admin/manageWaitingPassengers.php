@@ -150,14 +150,14 @@ $backLink  = 'admin.php';
         <div class="col-lg-8 mx-auto">
             
             <!-- Dynamic Count Stats Card -->
-            <div class="card card-standard mb-4">
+            <div class="card border-0 rounded-4 shadow-sm bg-white mb-4">
                 <div class="card-body p-4">
                     <div class="row align-items-center">
-                        <div class="col-sm-5 border-end-sm text-center text-sm-start mb-3 mb-sm-0">
+                        <div class="col-sm-5 border-end text-center text-sm-start mb-3 mb-sm-0">
                             <div class="text-muted small text-uppercase fw-bold mb-1">Total Waiting</div>
                             <div class="d-flex align-items-center justify-content-center justify-content-sm-start gap-3">
                                 <span class="display-4 fw-bold text-dark"><?= $totalWaiting ?></span>
-                                <span class="pulse-badge">
+                                <span class="badge rounded-pill px-3 py-2 border d-inline-flex align-items-center gap-1" style="background: #dcfce7; color: #15803d; border-color: #bbf7d0 !important;">
                                     <span class="pulse-dot"></span> Active
                                 </span>
                             </div>
@@ -188,15 +188,15 @@ $backLink  = 'admin.php';
             </div>
 
             <!-- Main Interactive Card -->
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 d-flex justify-content-between align-items-center flex-wrap gap-2" style="border-radius: 16px 16px 0 0;">
                     <div class="d-flex align-items-center gap-2">
                         <span class="material-symbols-rounded text-primary fs-3">hail</span>
-                        <span class="fs-4">Waiting Passengers Directory</span>
+                        <span class="fs-4 text-primary fw-bold">Waiting Passengers Directory</span>
                     </div>
                     
                     <!-- Premium Auto-Refresh Countdown UI -->
-                    <div class="countdown-wrap d-flex align-items-center gap-2">
+                    <div class="small text-secondary d-flex align-items-center gap-2">
                         <button type="button" id="btn-manual-refresh" class="btn btn-sm btn-light border rounded-pill d-flex align-items-center gap-1 py-1 px-3 fs-7" title="Force Refresh">
                             <span class="material-symbols-rounded fs-6 align-middle">refresh</span>
                             <span>Refresh Now</span>
@@ -215,10 +215,10 @@ $backLink  = 'admin.php';
                     </div>
 
                     <!-- Client-Side Filter Inputs -->
-                    <div class="search-filter-bar mb-4">
+                    <div class="p-2 bg-light border mb-4" style="border-radius: 12px;">
                         <div class="row g-2">
                             <div class="col-sm-12">
-                                <select id="filterLocation" class="form-select">
+                                <select id="filterLocation" class="form-select" style="border-radius: 8px;">
                                     <option value="">All Stop Locations</option>
                                     <?php foreach ($location_whitelist as $whitelistLoc): ?>
                                         <option value="<?= h($whitelistLoc) ?>" <?= isset($locationCounts[$whitelistLoc]) ? 'class="fw-bold text-primary"' : '' ?>>
@@ -242,24 +242,24 @@ $backLink  = 'admin.php';
                         <!-- List Container -->
                         <div id="passengers-container">
                             <?php foreach ($locationCounts as $locName => $count): ?>
-                                <div class="route-card passenger-card" data-location="<?= h($locName) ?>">
-                                    <div class="ticket-header">
-                                        <span class="ticket-type">
+                                <div class="route-card border rounded-4 bg-white p-3 mb-3" data-location="<?= h($locName) ?>">
+                                    <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                        <span class="fw-bold text-primary text-uppercase" style="font-size: 0.95rem;">
                                             <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
                                                 location_on
                                             </span>
                                             <?= h($locName) ?>
                                         </span>
-                                        <span class="ticket-date d-flex align-items-center gap-1">
+                                        <span class="small text-secondary d-flex align-items-center gap-1">
                                             <span class="spinner-grow spinner-grow-sm text-success" role="status" style="width: 8px; height: 8px;"></span>
                                             Active
                                         </span>
                                     </div>
 
                                     <div class="row">
-                                        <div class="col-sm-12 ticket-row">
-                                            <span class="ticket-label">Passengers Waiting</span>
-                                            <div class="ticket-value fw-bold fs-5 text-primary">
+                                        <div class="col-sm-12 mb-2" style="font-size: 0.95rem;">
+                                            <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Passengers Waiting</span>
+                                            <div class="text-dark bg-light p-2 rounded-2 mt-1 fw-bold fs-5 text-primary">
                                                 <?= $count ?> passenger<?= $count > 1 ? 's' : '' ?>
                                             </div>
                                         </div>
@@ -270,7 +270,7 @@ $backLink  = 'admin.php';
                                             <form method="POST" class="m-0 mt-3 mt-sm-0" onsubmit="return confirm('Dismiss all waiting signals for <?= h($locName) ?>?');">
                                                 <input type="hidden" name="action" value="cancel_location">
                                                 <input type="hidden" name="location" value="<?= h($locName) ?>">
-                                                <button type="submit" class="btn btn-danger-custom btn-pill shadow-sm" style="padding: 6px 14px; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
+                                                <button type="submit" class="btn btn-danger rounded-pill px-3 py-2 fw-bold shadow-sm" style="background-color: #ef4444; border-color: #ef4444; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;">
                                                     <span class="material-symbols-rounded fs-6">cancel</span>
                                                     <span>Dismiss All Signals Here</span>
                                                 </button>

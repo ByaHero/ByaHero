@@ -103,124 +103,122 @@ $backLink  = 'admin.php';
 </head>
 <body>
 
-<div class="app-shell">
-    <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-    <div class="app-content">
+<div class="container py-4" style="max-width: 600px;">
 
-        <?php if ($message): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= $message ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+    <?php if ($message): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 12px;">
+            <?= $message ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?= $error ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 12px;">
+            <?= $error ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
 
-        <h2 class="section-title">Lost and Found Board</h2>
+    <h2 class="fw-bold text-dark mb-4" style="font-size: 1.25rem;">Lost and Found Board</h2>
 
-        <?php if (empty($tickets)): ?>
-            <p class="text-muted small">No items reported yet.</p>
-        <?php else: ?>
-            <?php foreach ($tickets as $ticket):
-                $id     = $ticket['id'];
-                $type   = $ticket['type'];
-                $status = in_array(($ticket['status'] ?? ''), $ALLOWED_STATUS, true) ? $ticket['status'] : 'open';
-                $colorClass = $type === 'lost' ? 'type-lost' : 'type-found';
-            ?>
-                <div class="ticket-card">
-                    <div class="ticket-header">
-                        <span class="ticket-type <?= $colorClass ?>">
-                            <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
-                                <?= $type === 'lost' ? 'search' : 'inventory_2' ?>
-                            </span>
-                            <?= h(strtoupper($type)) ?> ITEM
+    <?php if (empty($tickets)): ?>
+        <p class="text-muted small">No items reported yet.</p>
+    <?php else: ?>
+        <?php foreach ($tickets as $ticket):
+            $id     = $ticket['id'];
+            $type   = $ticket['type'];
+            $status = in_array(($ticket['status'] ?? ''), $ALLOWED_STATUS, true) ? $ticket['status'] : 'open';
+            $textColorClass = $type === 'lost' ? 'text-danger' : 'text-success';
+        ?>
+            <div class="bg-white rounded-4 p-4 border mb-3 shadow-sm">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <span class="fw-bold text-uppercase <?= $textColorClass ?>" style="font-size: 0.95rem;">
+                        <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
+                            <?= $type === 'lost' ? 'search' : 'inventory_2' ?>
                         </span>
-                        <span class="ticket-date"><?= date('M d, Y h:i A', strtotime($ticket['created_at'])) ?></span>
-                    </div>
+                        <?= h(strtoupper($type)) ?> ITEM
+                    </span>
+                    <span class="small text-secondary" style="font-size: 0.8rem;"><?= date('M d, Y h:i A', strtotime($ticket['created_at'])) ?></span>
+                </div>
 
-                    <div class="row">
-                        <div class="col-sm-4 col-12 ticket-row">
-                            <span class="ticket-label">Reporter</span>
-                            <div class="ticket-value">
-                                <?php 
-                                    $rawName = $ticket['reporter_name'] ?? 'Unknown User';
-                                    $firstName = explode(' ', trim($rawName))[0];
-                                ?>
-                                #<?= h($ticket['user_id']) ?> - <?= h($firstName) ?>
-                            </div>
-                        </div>
-                        <div class="col-sm-4 col-12 ticket-row">
-                            <span class="ticket-label">Contact Number</span>
-                            <div class="ticket-value">
-                                <?php $cp = $ticket['reporter_contact'] ?? 'None provided'; ?>
-                                <?php if ($cp !== 'None provided'): ?>
-                                    <a href="tel:<?= h($cp) ?>" class="text-decoration-none fw-bold text-primary">
-                                        <span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle;">call</span>
-                                        <?= h($cp) ?>
-                                    </a>
-                                <?php else: ?>
-                                    <i class="text-muted">None provided</i>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                        <div class="col-sm-4 col-12 ticket-row">
-                            <span class="ticket-label">Bus Number</span>
-                            <div class="ticket-value"><?= !empty($ticket['bus_number']) ? h($ticket['bus_number']) : '<i class="text-muted">Not specified</i>' ?></div>
+                <div class="row">
+                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                        <span class="text-secondary fw-semibold d-block" style="font-size: 0.85rem;">Reporter</span>
+                        <div class="text-dark bg-light p-2 rounded-2 mt-1">
+                            <?php 
+                                $rawName = $ticket['reporter_name'] ?? 'Unknown User';
+                                $firstName = explode(' ', trim($rawName))[0];
+                            ?>
+                            #<?= h($ticket['user_id']) ?> - <?= h($firstName) ?>
                         </div>
                     </div>
-
-                    <div class="ticket-row">
-                        <span class="ticket-label">Item Description</span>
-                        <div class="ticket-value" style="white-space: pre-wrap;"><?= h($ticket['item_description']) ?></div>
+                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                        <span class="text-secondary fw-semibold d-block" style="font-size: 0.85rem;">Contact Number</span>
+                        <div class="text-dark bg-light p-2 rounded-2 mt-1">
+                            <?php $cp = $ticket['reporter_contact'] ?? 'None provided'; ?>
+                            <?php if ($cp !== 'None provided'): ?>
+                                <a href="tel:<?= h($cp) ?>" class="text-decoration-none fw-bold text-primary">
+                                    <span class="material-symbols-rounded" style="font-size: 14px; vertical-align: middle;">call</span>
+                                    <?= h($cp) ?>
+                                </a>
+                            <?php else: ?>
+                                <i class="text-muted">None provided</i>
+                            <?php endif; ?>
+                        </div>
                     </div>
+                    <div class="col-sm-4 col-12 mb-2" style="font-size: 0.95rem;">
+                        <span class="text-secondary fw-semibold d-block" style="font-size: 0.85rem;">Bus Number</span>
+                        <div class="text-dark bg-light p-2 rounded-2 mt-1"><?= !empty($ticket['bus_number']) ? h($ticket['bus_number']) : '<i class="text-muted">Not specified</i>' ?></div>
+                    </div>
+                </div>
 
-                    <?php if (!empty($ticket['image1_path']) || !empty($ticket['image2_path'])): ?>
-                        <div class="ticket-row mt-3">
-                            <span class="ticket-label mb-2">Attached Photos</span>
-                            <div class="d-flex gap-2">
-                                <?php if (!empty($ticket['image1_path'])): ?>
-                                    <img src="../../<?= h($ticket['image1_path']) ?>" class="img-preview" alt="Attachment 1" onclick="openImageModal(this.src)" style="cursor: zoom-in;">
-                                <?php endif; ?>
-                                <?php if (!empty($ticket['image2_path'])): ?>
-                                    <img src="../../<?= h($ticket['image2_path']) ?>" class="img-preview" alt="Attachment 2" onclick="openImageModal(this.src)" style="cursor: zoom-in;">
-                                <?php endif; ?>
-                            </div>
+                <div class="mb-2" style="font-size: 0.95rem;">
+                    <span class="text-secondary fw-semibold d-block" style="font-size: 0.85rem;">Item Description</span>
+                    <div class="text-dark bg-light p-2 rounded-2 mt-1" style="white-space: pre-wrap;"><?= h($ticket['item_description']) ?></div>
+                </div>
+
+                <?php if (!empty($ticket['image1_path']) || !empty($ticket['image2_path'])): ?>
+                    <div class="mb-2 mt-3" style="font-size: 0.95rem;">
+                        <span class="text-secondary fw-semibold d-block mb-2" style="font-size: 0.85rem;">Attached Photos</span>
+                        <div class="d-flex gap-2">
+                            <?php if (!empty($ticket['image1_path'])): ?>
+                                <img src="../../<?= h($ticket['image1_path']) ?>" class="rounded-2 border" style="width: 60px; height: 60px; object-fit: cover; cursor: zoom-in;" alt="Attachment 1" onclick="openImageModal(this.src)">
+                            <?php endif; ?>
+                            <?php if (!empty($ticket['image2_path'])): ?>
+                                <img src="../../<?= h($ticket['image2_path']) ?>" class="rounded-2 border" style="width: 60px; height: 60px; object-fit: cover; cursor: zoom-in;" alt="Attachment 2" onclick="openImageModal(this.src)">
+                            <?php endif; ?>
                         </div>
-                    <?php endif; ?>
+                    </div>
+                <?php endif; ?>
 
-                    <hr class="mt-4 mb-3" style="border-color: #eee;">
+                <hr class="mt-4 mb-3" style="border-color: #eee;">
 
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div class="d-flex align-items-center gap-2">
-                            <span class="ticket-label m-0">Status:</span>
-                            <form method="POST" id="update-form-<?= $id ?>" class="m-0 d-flex gap-2">
-                                <input type="hidden" name="action" value="update_status">
-                                <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                <select name="status" class="form-select action-select" onchange="this.form.submit()">
-                                    <option value="open" <?= $status === 'open' ? 'selected' : '' ?>>Open</option>
-                                    <option value="resolved" <?= $status === 'resolved' ? 'selected' : '' ?>>Resolved</option>
-                                    <option value="closed" <?= $status === 'closed' ? 'selected' : '' ?>>Closed</option>
-                                </select>
-                            </form>
-                        </div>
-
-                        <form method="POST" class="m-0" onsubmit="return confirm('Permanently delete ticket #<?= $id ?>?');">
-                            <input type="hidden" name="action" value="delete_ticket">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="text-secondary fw-semibold d-block m-0" style="font-size: 0.85rem;">Status:</span>
+                        <form method="POST" id="update-form-<?= $id ?>" class="m-0 d-flex gap-2">
+                            <input type="hidden" name="action" value="update_status">
                             <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                            <button type="submit" class="btn btn-danger-custom btn-pill border-0 shadow-sm" style="padding: 4px 12px; font-size: 0.8rem;">Delete</button>
+                            <select name="status" class="form-select rounded-pill px-3 py-1 fw-semibold text-dark border-0 bg-light" style="font-size: 0.8rem; box-shadow: inset 0 0 0 1px #e5e7eb;" onchange="this.form.submit()">
+                                <option value="open" <?= $status === 'open' ? 'selected' : '' ?>>Open</option>
+                                <option value="resolved" <?= $status === 'resolved' ? 'selected' : '' ?>>Resolved</option>
+                                <option value="closed" <?= $status === 'closed' ? 'selected' : '' ?>>Closed</option>
+                            </select>
                         </form>
                     </div>
 
+                    <form method="POST" class="m-0" onsubmit="return confirm('Permanently delete ticket #<?= $id ?>?');">
+                        <input type="hidden" name="action" value="delete_ticket">
+                        <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                        <button type="submit" class="btn btn-danger rounded-pill px-3 py-1 fw-bold shadow-sm" style="background-color: #b91c1c; border-color: #b91c1c; font-size: 0.8rem;">Delete</button>
+                    </form>
                 </div>
-            <?php endforeach; ?>
-        <?php endif; ?>
-    </div>
+
+            </div>
+        <?php endforeach; ?>
+    <?php endif; ?>
 </div>
 
 <!-- Image Viewer Modal -->

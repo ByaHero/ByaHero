@@ -26,30 +26,8 @@ body {
     padding: 12px 14px 84px;
 }
 
-.status-pill {
-    display: inline-block;
-    padding: 6px 18px;
-    border-radius: 999px;
-    background: #d8f5da;
-    color: #1a8d3d;
-    font-weight: 800;
-    font-size: 0.8rem;
-}
-
-.status-row {
-    display: flex;
-    justify-content: center;
-    margin: 6px 0 10px;
-}
-
 .map-card-wrapper {
-    position: relative;
-    border-radius: 18px;
-    overflow: hidden;
-    background: #fff;
     height: 300px;
-    box-shadow: 0 8px 24px rgba(15,23,42,0.08);
-    border: 1px solid #e2e8f0;
 }
 #mainMap { width: 100%; height: 100%; z-index: 1; }
 
@@ -101,41 +79,7 @@ body {
     border: 1px solid #e2e8f0;
 }
 
-.info-card {
-    margin-top: 14px;
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 16px;
-}
-
-.info-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 12px 6px;
-    border-bottom: 1px solid #f1f5f9;
-    font-size: 0.88rem;
-}
-.info-item:last-child { border-bottom: 0; }
-.info-label { color: #64748b; font-weight: 600; }
-.info-value { color: #0f172a; font-weight: 700; }
-
-.location-link {
-    color: var(--btn-blue);
-    font-weight: 700;
-    text-decoration: none;
-}
-.location-link:hover { text-decoration: underline; }
-
 .btn-stop {
-    margin-top: 18px;
-    width: 100%;
-    border: 0;
-    border-radius: 999px;
-    padding: 14px 16px;
-    font-weight: 900;
-    font-size: 0.9rem;
-    letter-spacing: 0.5px;
     background: var(--blue);
     color: #fff;
     box-shadow: 0 8px 20px rgba(15, 56, 120, 0.2);
@@ -151,25 +95,6 @@ body {
 .btn-stop:active {
     transform: translateY(0) scale(0.98);
 }
-
-.footer-bar {
-    position: fixed;
-    bottom: 0; left: 0;
-    width: 100%;
-    height: 30px;
-    background: var(--blue);
-    z-index: 1000;
-}
-
-.alert-area {
-    position: absolute;
-    bottom: 14px;
-    left: 14px;
-    right: 14px;
-    z-index: 900;
-    pointer-events: none;
-}
-.alert-area .alert { pointer-events: auto; }
 
 #statusSelect { display: none; }
 

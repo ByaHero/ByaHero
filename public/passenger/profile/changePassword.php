@@ -87,57 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-    .password-container {
-      margin-top: 70px;
-      max-width: 600px;
-    }
-    .password-card {
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .security-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 2.5rem;
-      margin: 0 auto 1.5rem;
-    }
-    .form-label {
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.5rem;
-    }
-    .form-control:focus {
-      border-color: #2563eb;
-      box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.25);
-    }
-    .password-requirements {
-      background: #eff6ff;
-      border: 1px solid #bfdbfe;
-      border-radius: 8px;
-      padding: 1rem;
-      margin-top: 1rem;
-    }
-    .password-requirements ul {
-      margin: 0;
-      padding-left: 1.5rem;
-    }
-    .password-requirements li {
-      color: #1d4ed8;
-      font-size: 0.9rem;
-    }
-
-    /* Keep your existing wrapper */
-    .input-wrapper { position: relative; }
-
-    /* CHANGE: eye button to match the "toggle bar" pattern (manageConductors) */
     .toggle-password{
       position: absolute;
       right: 10px;
@@ -152,8 +101,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       user-select: none;
       line-height: 1;
     }
-
-    /* ONLY CHANGE: make the show.png icon bigger */
     .toggle-password img{
       width: 24px;
       height: 24px;
@@ -170,10 +117,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container password-container">
-    <div class="password-card">
-      <div class="security-icon">
-        <span class="material-symbols-rounded">lock</span>
+  <div class="container mt-5 pt-3" style="max-width: 600px; margin-top: 70px !important;">
+    <div class="bg-white p-4 p-sm-5 shadow-sm border" style="border-radius: 12px;">
+      <div class="d-flex align-items-center justify-content-center rounded-circle text-white mx-auto mb-4" style="width: 80px; height: 80px; background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); font-size: 2.5rem;">
+        <span class="material-symbols-rounded" style="font-size: 2.5rem;">lock</span>
       </div>
       
       <h4 class="text-center fw-bold mb-1"><?= $hasPassword ? 'Change Password' : 'Set Password' ?></h4>
@@ -207,8 +154,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <form method="POST" id="passwordForm">
         <?php if ($hasPassword): ?>
         <div class="mb-3">
-          <label for="current_password" class="form-label">Current Password</label>
-          <div class="input-wrapper">
+          <label for="current_password" class="form-label fw-semibold text-secondary mb-2">Current Password</label>
+          <div class="position-relative">
             <input 
               type="password" 
               class="form-control pe-5"
@@ -216,6 +163,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               name="current_password" 
               required
               placeholder="Enter current password"
+              style="border-radius: 12px; padding: 12px;"
             >
             <button type="button" class="toggle-password" data-target="current_password" aria-label="Show password">
               <img src="../../../assets/images/icons/show.png" alt="Show">
@@ -225,8 +173,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <?php endif; ?>
 
         <div class="mb-3">
-          <label for="new_password" class="form-label">New Password</label>
-          <div class="input-wrapper">
+          <label for="new_password" class="form-label fw-semibold text-secondary mb-2">New Password</label>
+          <div class="position-relative">
             <input 
               type="password" 
               class="form-control pe-5"
@@ -235,6 +183,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               required
               minlength="6"
               placeholder="Enter new password"
+              style="border-radius: 12px; padding: 12px;"
             >
             <button type="button" class="toggle-password" data-target="new_password" aria-label="Show password">
               <img src="../../../assets/images/icons/show.png" alt="Show">
@@ -243,8 +192,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
 
         <div class="mb-3">
-          <label for="confirm_password" class="form-label">Confirm New Password</label>
-          <div class="input-wrapper">
+          <label for="confirm_password" class="form-label fw-semibold text-secondary mb-2">Confirm New Password</label>
+          <div class="position-relative">
             <input 
               type="password" 
               class="form-control pe-5"
@@ -253,6 +202,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
               required
               minlength="6"
               placeholder="Confirm new password"
+              style="border-radius: 12px; padding: 12px;"
             >
             <button type="button" class="toggle-password" data-target="confirm_password" aria-label="Show password">
               <img src="../../../assets/images/icons/show.png" alt="Show">
@@ -260,21 +210,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
           </div>
         </div>
 
-        <div class="password-requirements">
+        <div class="border border-primary-subtle rounded-3 p-3 mt-3" style="background: #eff6ff;">
           <strong class="d-block mb-2" style="color: #1d4ed8;">Password Requirements:</strong>
-          <ul>
-            <li>At least 6 characters long</li>
-            <li>Mix of letters and numbers recommended</li>
-            <li>Avoid common passwords</li>
+          <ul class="m-0 ps-4">
+            <li class="small" style="color: #1d4ed8;">At least 6 characters long</li>
+            <li class="small" style="color: #1d4ed8;">Mix of letters and numbers recommended</li>
+            <li class="small" style="color: #1d4ed8;">Avoid common passwords</li>
           </ul>
         </div>
 
         <div class="d-grid gap-2 mt-4">
-          <button type="submit" class="btn btn-primary rounded-pill py-2" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none;">
+          <button type="submit" class="btn btn-primary rounded-pill py-3" style="background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%); border: none; font-weight: 600;">
             <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">shield</span>
             Update Password
           </button>
-          <button type="button" class="btn btn-outline-secondary rounded-pill py-2" onclick="window.location.href='accountSettings.php'">
+          <button type="button" class="btn btn-outline-secondary rounded-pill py-3" onclick="window.location.href='accountSettings.php'" style="font-weight: 600;">
             Cancel
           </button>
         </div>

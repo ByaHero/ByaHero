@@ -156,13 +156,13 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             <div class="col-lg-7 d-flex flex-column">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <h5 class="fw-bold mb-0 text-dark" style="font-size: 1.15rem; letter-spacing: 0.2px;">Live Route Navigation</h5>
-                    <div class="status-row m-0">
-                        <div class="status-pill" id="netStatus">Active</div>
+                    <div class="d-flex justify-content-center m-0">
+                        <span class="badge rounded-pill px-3 py-2 fw-bold" id="netStatus" style="background-color: #d8f5da; color: #1a8d3d; font-size: 0.8rem;">Active</span>
                     </div>
                 </div>
 
-                <div class="map-card-wrapper flex-grow-1">
-                    <div class="alert-area" id="alertBox"></div>
+                <div class="map-card-wrapper flex-grow-1 position-relative overflow-hidden bg-white shadow-sm border" style="border-radius: 18px;">
+                    <div class="position-absolute start-0 end-0 p-2" id="alertBox" style="bottom: 14px; z-index: 900; pointer-events: none;"></div>
                     <div id="mainMap"></div>
                 </div>
             </div>
@@ -200,31 +200,30 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
                             </select>
 
                             <!-- Operational Information -->
-                            <div class="info-card mb-4">
-                                <div class="info-item">
-                                    <div class="info-label">Bus Number</div>
-                                    <div class="info-value"><?= htmlspecialchars((string)$busCode) ?></div>
+                            <div class="mt-3 p-3 bg-light border" style="border-radius: 18px; background-color: #f8fafc !important; border-color: #e2e8f0 !important;">
+                                <div class="d-flex justify-content-between py-2 border-bottom" style="font-size: 0.88rem; border-bottom-color: #f1f5f9 !important;">
+                                    <div class="text-secondary fw-semibold">Bus Number</div>
+                                    <div class="text-dark fw-bold"><?= htmlspecialchars((string)$busCode) ?></div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">Route</div>
-                                    <div class="info-value"><?= htmlspecialchars($busRoute ?: '-') ?></div>
+                                <div class="d-flex justify-content-between py-2 border-bottom" style="font-size: 0.88rem; border-bottom-color: #f1f5f9 !important;">
+                                    <div class="text-secondary fw-semibold">Route</div>
+                                    <div class="text-dark fw-bold"><?= htmlspecialchars($busRoute ?: '-') ?></div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">Location</div>
-                                    <div class="info-value text-end" style="max-width: 60%; word-break: break-word;">
-                                        <a id="currentLocation" class="location-link" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a>
+                                <div class="d-flex justify-content-between py-2 border-bottom" style="font-size: 0.88rem; border-bottom-color: #f1f5f9 !important;">
+                                    <div class="text-secondary fw-semibold">Location</div>
+                                    <div class="text-dark fw-bold text-end" style="max-width: 60%; word-break: break-word;">
+                                        <a id="currentLocation" class="text-primary fw-bold text-decoration-none" href="#" target="_blank" rel="noopener noreferrer">Waiting for GPS...</a>
                                     </div>
                                 </div>
-                                <div class="info-item">
-                                    <div class="info-label">Last Update</div>
-                                    <div class="info-value" id="lastUpdate">00:00</div>
+                                <div class="d-flex justify-content-between py-2" style="font-size: 0.88rem;">
+                                    <div class="text-secondary fw-semibold">Last Update</div>
+                                    <div class="text-dark fw-bold" id="lastUpdate">00:00</div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- Stop Button -->
                         <div class="text-center w-100 mt-auto">
-                            <button id="stopBtn" class="btn-stop" type="button">Stop Tracking</button>
+                            <button id="stopBtn" class="btn btn-stop w-100 border-0 rounded-pill py-3 fw-bold text-white text-uppercase" type="button" style="font-size: 0.9rem; letter-spacing: 0.5px;">Stop Tracking</button>
                         </div>
                     </div>
                 </div>
@@ -232,7 +231,7 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
         </div>
     </main>
 
-    <div class="footer-bar"></div>
+    <div class="position-fixed bottom-0 start-0 w-100 bg-primary" style="height: 30px; background-color: #0f3878 !important; z-index: 1000;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

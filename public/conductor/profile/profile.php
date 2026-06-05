@@ -177,145 +177,9 @@ $iconHide = '../../../assets/images/icons/shownot.svg';
     <style>
         :root{
             --header-blue: #0f3878;
-            --page-bg: #ffffff;
-            --sheet-bg: #eef2f6;
-            --muted: #6b7280;
-            --shadow: 0 6px 14px rgba(0,0,0,0.10);
-            --radius-lg: 26px;
-            --radius-card: 16px;
         }
 
-        html, body{ height: 100%; }
-
-        body{
-            background: var(--page-bg);
-            font-family: 'Segoe UI', sans-serif;
-            margin: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100%;
-        }
-
-        /* Header */
-        .profile-header-wrap{
-            padding: 26px 18px 10px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .avatar-circle{
-            width: 110px;
-            height: 110px;
-            border-radius: 50%;
-            background: #d9d9d9;
-            display: grid;
-            place-items: center;
-            font-weight: 900;
-            font-size: 52px;
-            color: #111;
-        }
-
-        .profile-name{
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: #1d4ed8;
-            margin: 0;
-        }
-
-        /* Bottom sheet */
-        .bottom-sheet{
-            background: var(--sheet-bg);
-            border-top-left-radius: var(--radius-lg);
-            border-top-right-radius: var(--radius-lg);
-            min-height: 0;
-            flex: 1;
-            padding: 22px 18px 30px;
-        }
-
-        .section-title{
-            font-weight: 900;
-            font-size: 0.8rem;
-            color: #111;
-            margin: 12px 6px 14px;
-        }
-
-        /* Card layout */
-        .detail-card{
-            background: #f0f2f4;
-            border-radius: var(--radius-card);
-            box-shadow: var(--shadow);
-            padding: 14px 14px;
-            display: grid;
-            grid-template-columns: 34px 1fr 34px;
-            gap: 12px;
-            align-items: center;
-            margin-bottom: 14px;
-        }
-
-        .detail-icon{
-            width: 30px;
-            height: 30px;
-            display: grid;
-            place-items: center;
-        }
-
-        .detail-icon img{
-            width: 22px;
-            height: 22px;
-            object-fit: contain;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            transform: translateZ(0);
-        }
-
-        .detail-main{ min-width: 0; }
-
-        .detail-label{
-            font-size: 0.72rem;
-            font-weight: 800;
-            color: var(--muted);
-            margin: 0 0 2px;
-        }
-
-        .detail-value{
-            font-size: 0.78rem;
-            font-weight: 900;
-            color: #111;
-            margin: 0;
-            word-break: break-word;
-        }
-
-        .detail-action{
-            width: 34px;
-            height: 34px;
-            border: 0;
-            background: transparent;
-            padding: 0;
-            display: grid;
-            place-items: center;
-        }
-
-        .detail-action img{
-            width: 18px;
-            height: 18px;
-            object-fit: contain;
-            image-rendering: -webkit-optimize-contrast;
-            image-rendering: crisp-edges;
-            transform: translateZ(0);
-        }
-
-        /* Alert */
-        .msg{
-            border-radius: 12px;
-            font-weight: 700;
-            font-size: 0.85rem;
-            padding: 10px 12px;
-            margin: 0 0 14px;
-        }
-
-        /* Modals */
+        /* Modals Overlay */
         .modal-overlay{
             position: fixed;
             inset: 0;
@@ -336,23 +200,7 @@ $iconHide = '../../../assets/images/icons/shownot.svg';
             text-align: center;
             box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         }
-        .custom-box h3{
-            font-weight: 900;
-            font-size: 1.25rem;
-            margin: 0 0 8px;
-            color: #000;
-        }
-        .custom-box p{
-            color: #4a4a4a;
-            font-size: 0.9rem;
-            margin-bottom: 18px;
-            line-height: 1.4;
-        }
 
-        /* Password toggle bar pattern (from manageConductors) */
-        .pw-wrap{
-            position: relative;
-        }
         .pw-eye{
             position: absolute;
             right: 10px;
@@ -363,109 +211,84 @@ $iconHide = '../../../assets/images/icons/shownot.svg';
             font-weight: 900;
             color: #334155;
             padding: 6px 8px;
+            cursor: pointer;
         }
 
-        /* ONLY CHANGE: make the show.png icon bigger */
         .pw-eye img{
             width: 24px;
             height: 24px;
             object-fit: contain;
             display: block;
         }
-
-        .modal-actions{
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-        }
-        .modal-btn{
-            border-radius: 12px;
-            padding: 10px 18px;
-            font-weight: 800;
-            font-size: 0.95rem;
-            border: none;
-            cursor: pointer;
-            text-decoration: none;
-            flex: 1;
-        }
-        .btn-no{ background-color: #f0f2f5; color: #333; }
-        .btn-yes{ background-color: var(--header-blue); color: #fff; }
-
-        .footer-bar{
-            width: 100%;
-            height: 35px;
-            background-color: var(--header-blue);
-            flex: 0 0 auto;
-        }
     </style>
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100 m-0 bg-white" style="font-family: 'Segoe UI', sans-serif;">
 
     <?php include __DIR__ . '/../../../components/navbarConductor.php'; ?>
 
-    <div class="profile-header-wrap">
-        <div class="avatar-circle">
+    <div class="d-flex flex-column align-items-center gap-2 pt-4 px-3 pb-2">
+        <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold text-dark" style="width: 110px; height: 110px; background: #d9d9d9; font-size: 52px;">
             <?php echo htmlspecialchars(strtoupper(substr($displayName, 0, 1))); ?>
         </div>
-        <h2 class="profile-name"><?php echo htmlspecialchars($displayName); ?></h2>
+        <h2 class="fw-bold text-primary mb-0" style="font-size: 1.15rem;"><?php echo htmlspecialchars($displayName); ?></h2>
     </div>
 
-    <div class="bottom-sheet">
+    <div class="flex-grow-1 p-4 pb-5 bg-light" style="border-top-left-radius: 26px; border-top-right-radius: 26px; background-color: #eef2f6 !important; min-height: 0;">
 
         <?php if ($message): ?>
-            <div class="alert alert-info msg text-center">
+            <div class="alert alert-info py-2 px-3 mb-3 fw-bold text-center" style="border-radius: 12px; font-size: 0.85rem;">
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
 
-        <div class="section-title">Account Details</div>
+        <div class="fw-bold text-dark mt-2 mb-3 ms-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Account Details</div>
 
         <!-- Email Card -->
-        <div class="detail-card">
-            <div class="detail-icon">
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
                 <img src="<?php echo htmlspecialchars($iconMail); ?>" alt="Email" width="22" height="22">
             </div>
 
-            <div class="detail-main">
-                <p class="detail-label">Email Address</p>
-                <p class="detail-value"><?php echo htmlspecialchars($userEmail); ?></p>
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Email Address</p>
+                <p class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;"><?php echo htmlspecialchars($userEmail); ?></p>
             </div>
 
-            <button type="button" class="detail-action" onclick="openEmailModal()" aria-label="Edit Email">
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openEmailModal()" aria-label="Edit Email" style="width: 34px; height: 34px;">
                 <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
             </button>
         </div>
 
         <!-- Password Card -->
-        <div class="detail-card">
-            <div class="detail-icon">
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
                 <img src="<?php echo htmlspecialchars($iconPassword); ?>" alt="Password" width="22" height="22">
             </div>
 
-            <div class="detail-main">
-                <p class="detail-label">Password</p>
-                <p class="detail-value">••••••••••••</p>
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Password</p>
+                <p class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;">••••••••••••</p>
             </div>
 
-            <button type="button" class="detail-action" onclick="openPasswordModal()" aria-label="Edit Password">
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openPasswordModal()" aria-label="Edit Password" style="width: 34px; height: 34px;">
                 <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
             </button>
         </div>
 
     </div>
 
-    <div class="footer-bar"></div>
+    <div class="w-100 bg-primary" style="height: 35px; background-color: #0f3878 !important; flex: 0 0 auto;"></div>
 
     <div id="emailModal" class="modal-overlay">
         <div class="custom-box">
-            <h3>Edit Email</h3>
-            <p>Enter your new email address below.</p>
+            <h3 class="fw-bold text-dark mb-2" style="font-size: 1.25rem;">Edit Email</h3>
+            <p class="text-secondary small mb-4" style="line-height: 1.4;">Enter your new email address below.</p>
             <form method="POST" action="profile.php">
                 <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" required>
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn btn-no" onclick="closeEmailModal()">Cancel</button>
-                    <button type="submit" name="update_email" class="modal-btn btn-yes">Save</button>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closeEmailModal()">Cancel</button>
+                    <button type="submit" name="update_email" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
                 </div>
             </form>
         </div>
@@ -474,34 +297,34 @@ $iconHide = '../../../assets/images/icons/shownot.svg';
     <!-- PASSWORD MODAL (NOW WITH TOGGLE BUTTONS) -->
     <div id="passwordModal" class="modal-overlay">
         <div class="custom-box">
-            <h3>Edit Password</h3>
-            <p>Enter your current and new password below.</p>
+            <h3 class="fw-bold text-dark mb-2" style="font-size: 1.25rem;">Edit Password</h3>
+            <p class="text-secondary small mb-4" style="line-height: 1.4;">Enter your current and new password below.</p>
 
             <form method="POST" action="profile.php">
-                <div class="pw-wrap mb-3">
+                <div class="position-relative mb-3">
                     <input type="password" name="current_password" id="pwCurrent" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Current password" required>
                     <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">
                         <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
                     </button>
                 </div>
 
-                <div class="pw-wrap mb-3">
+                <div class="position-relative mb-3">
                     <input type="password" name="new_password" id="pwNew" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="New password" required>
                     <button type="button" class="pw-eye" data-target="pwNew" aria-label="Show password">
                         <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
                     </button>
                 </div>
 
-                <div class="pw-wrap mb-4">
+                <div class="position-relative mb-4">
                     <input type="password" name="confirm_new_password" id="pwConfirm" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Confirm new password" required>
                     <button type="button" class="pw-eye" data-target="pwConfirm" aria-label="Show password">
                         <img src="<?php echo htmlspecialchars($iconShow); ?>" alt="Show">
                     </button>
                 </div>
 
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn btn-no" onclick="closePasswordModal()">Cancel</button>
-                    <button type="submit" name="update_password" class="modal-btn btn-yes">Save</button>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closePasswordModal()">Cancel</button>
+                    <button type="submit" name="update_password" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
                 </div>
             </form>
         </div>

@@ -23,45 +23,6 @@ require_once __DIR__ . '/../auth_passenger.php';
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-    .notification-container {
-      margin-top: 70px;
-    }
-    .section-heading {
-      font-weight: bold;
-      font-size: 1.2rem;
-      color: #1e3a8a;
-    }
-    .notification-description {
-      background-color: white;
-      padding: 16px;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-      font-size: 0.9rem;
-      color: #6b7280;
-    }
-    .notification-item {
-      padding: 12px 16px;
-      background-color: #f3f4f6;
-      margin-bottom: 0.5rem;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .notification-item .icon-wrapper {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      background-color: #1e3a8a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: white;
-      font-size: 1.5rem;
-    }
     .form-check .form-check-input[type='checkbox'] {
       width: 1.5em;
       height: 1.5em;
@@ -76,12 +37,14 @@ require_once __DIR__ . '/../auth_passenger.php';
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container notification-container">
-    <div class="section-heading">Smart Notifications</div>
-    <div class="notification-description">
+  <div class="container mt-5 pt-3" style="margin-top: 70px !important;">
+    <div class="fw-bold text-primary mb-2" style="font-size: 1.2rem;">Smart Notifications</div>
+    
+    <div class="p-3 bg-white mb-3 rounded-3 shadow-sm text-secondary small" style="border-radius: 10px !important;">
       Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and seat availability.
     </div>
-    <div class="notification-description">
+
+    <div class="p-3 bg-white mb-3 rounded-3 shadow-sm text-secondary small" style="border-radius: 10px !important;">
       <div class="d-flex align-items-start gap-3">
         <div class="flex-grow-1">
           <div class="fw-semibold text-dark mb-1">Enable push notifications</div>
@@ -94,9 +57,9 @@ require_once __DIR__ . '/../auth_passenger.php';
       </div>
     </div>
 
-    <div class="notification-item">
+    <div class="p-3 bg-light mb-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="border-radius: 10px !important; padding: 12px 16px !important;">
       <div class="d-flex align-items-center">
-        <div class="icon-wrapper">
+        <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 40px; height: 40px; font-size: 1.5rem;">
           <span class="material-symbols-rounded">schedule</span>
         </div>
         <span class="ms-2">Bus Schedule Update</span>
@@ -106,9 +69,9 @@ require_once __DIR__ . '/../auth_passenger.php';
       </div>
     </div>
 
-    <div class="notification-item">
+    <div class="p-3 bg-light mb-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="border-radius: 10px !important; padding: 12px 16px !important;">
       <div class="d-flex align-items-center">
-        <div class="icon-wrapper">
+        <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 40px; height: 40px; font-size: 1.5rem;">
           <span class="material-symbols-rounded">directions_bus</span>
         </div>
         <span class="ms-2">Bus Arrival</span>
@@ -118,9 +81,9 @@ require_once __DIR__ . '/../auth_passenger.php';
       </div>
     </div>
 
-    <div class="notification-item">
+    <div class="p-3 bg-light mb-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="border-radius: 10px !important; padding: 12px 16px !important;">
       <div class="d-flex align-items-center">
-        <div class="icon-wrapper">
+        <div class="d-flex align-items-center justify-content-center bg-primary text-white rounded-circle" style="width: 40px; height: 40px; font-size: 1.5rem;">
           <span class="material-symbols-rounded">event_seat</span>
         </div>
         <span class="ms-2">Seat Availability</span>

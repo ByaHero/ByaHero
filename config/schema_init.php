@@ -323,22 +323,50 @@ function sync_schema(mysqli $conn) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // 17. Bus Fares (Fare matrix)
+    // Run migration checks first to update existing bus_fares table if needed
+    $checkFareId = $conn->query("SHOW COLUMNS FROM bus_fares LIKE 'fare_id'");
+    if ($checkFareId && $checkFareId->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_fares CHANGE COLUMN id fare_id INT UNSIGNED AUTO_INCREMENT");
+    }
+    $busFareCols = [
+        'base_regular_fare' => "DECIMAL(10,2) NULL AFTER discounted_fare",
+        'base_discounted_fare' => "DECIMAL(10,2) NULL AFTER base_regular_fare",
+        'distance_km' => "DECIMAL(10,2) NOT NULL DEFAULT 0.00 AFTER base_discounted_fare",
+        'updated_at' => "TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP AFTER distance_km"
+    ];
+    foreach ($busFareCols as $col => $def) {
+        $check = $conn->query("SHOW COLUMNS FROM bus_fares LIKE '$col'");
+        if ($check && $check->num_rows === 0) {
+            $conn->query("ALTER TABLE bus_fares ADD COLUMN `$col` $def");
+        }
+    }
+
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fares (
-        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        fare_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         route_name VARCHAR(100) NULL,
         origin_stop_id INT UNSIGNED NOT NULL,
         destination_stop_id INT UNSIGNED NOT NULL,
         regular_fare DECIMAL(10,2) NOT NULL,
         discounted_fare DECIMAL(10,2) NOT NULL,
+        base_regular_fare DECIMAL(10,2) NULL,
+        base_discounted_fare DECIMAL(10,2) NULL,
+        distance_km DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_route_path (origin_stop_id, destination_stop_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // 18. Bus Fare Snapshots (History of fare changes)
+    // Run migration checks: drop if old id column is present instead of snapshot_id
+    $checkSnapId = $conn->query("SHOW COLUMNS FROM bus_fare_snapshots LIKE 'snapshot_id'");
+    if ($checkSnapId && $checkSnapId->num_rows === 0) {
+        $conn->query("DROP TABLE IF EXISTS bus_fare_snapshot_rows");
+        $conn->query("DROP TABLE IF EXISTS bus_fare_snapshots");
+    }
+
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshots (
-        id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        effective_date DATETIME NOT NULL,
-        description VARCHAR(255) NULL,
+        snapshot_id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+        label VARCHAR(255) NOT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
@@ -346,9 +374,14 @@ function sync_schema(mysqli $conn) {
     $conn->query("CREATE TABLE IF NOT EXISTS bus_fare_snapshot_rows (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
         snapshot_id INT UNSIGNED NOT NULL,
-        origin_stop_name VARCHAR(255) NOT NULL,
-        destination_stop_name VARCHAR(255) NOT NULL,
-        fare_amount DECIMAL(10,2) NOT NULL,
+        fare_id INT UNSIGNED NOT NULL,
+        regular_fare DECIMAL(10,2) NOT NULL,
+        discounted_fare DECIMAL(10,2) NOT NULL,
+        base_regular_fare DECIMAL(10,2) NULL,
+        base_discounted_fare DECIMAL(10,2) NULL,
+        distance_km DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+        origin_stop_id INT UNSIGNED NOT NULL,
+        destination_stop_id INT UNSIGNED NOT NULL,
         INDEX idx_snapshot (snapshot_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 

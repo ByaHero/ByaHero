@@ -25,28 +25,7 @@ $userId = $_SESSION['user_id'];
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-    .delete-container {
-      margin-top: 70px;
-      max-width: 600px;
-    }
-    .delete-card {
-      background: white;
-      border-radius: 20px;
-      padding: 2.5rem;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.08);
-      border: 1px solid #fee2e2;
-    }
-    .warning-icon {
-      width: 80px;
-      height: 80px;
-      border-radius: 50%;
-      background: #fef2f2;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #dc2626;
-      font-size: 3rem;
-      margin: 0 auto 1.5rem;
+    .warning-icon-pulse {
       animation: pulse 2s infinite;
     }
     @keyframes pulse {
@@ -54,58 +33,13 @@ $userId = $_SESSION['user_id'];
       70% { transform: scale(1.05); box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
       100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
     }
-    .warning-box {
-      background: #fff1f2;
-      border: 1px solid #fecdd3;
-      border-radius: 12px;
-      padding: 1.25rem;
-      margin-bottom: 2rem;
-    }
-    .warning-title {
-      color: #9f1239;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      margin-bottom: 0.5rem;
-    }
-    .warning-text {
-      color: #be123c;
-      font-size: 0.9rem;
-      margin: 0;
-    }
-    .form-label {
-      font-weight: 600;
-      color: #374151;
-    }
-    .btn-delete {
-      background: #dc2626;
-      color: white;
-      border: none;
-      padding: 0.75rem;
-      border-radius: 12px;
-      font-weight: 600;
-      transition: all 0.2s;
-    }
-    .btn-delete:hover {
-      background: #b91c1c;
+    .btn-delete-hover:hover {
+      background: #b91c1c !important;
       transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+      box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3) !important;
     }
-    .btn-delete:disabled {
-      background: #f87171;
-      transform: none;
-      box-shadow: none;
-    }
-    .toggle-password {
-      position: absolute;
-      right: 15px;
-      top: 50%;
-      transform: translateY(-50%);
-      background: none;
-      border: none;
-      color: #6b7280;
-      cursor: pointer;
+    .btn-delete-hover:active {
+      transform: translateY(1px);
     }
   </style>
 </head>
@@ -117,21 +51,21 @@ $userId = $_SESSION['user_id'];
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container delete-container">
-    <div class="delete-card">
-      <div class="warning-icon">
-        <span class="material-symbols-rounded">warning</span>
+  <div class="container mt-5 pt-3" style="max-width: 600px; margin-top: 70px !important;">
+    <div class="bg-white p-4 p-sm-5 shadow-sm border border-danger-subtle" style="border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08) !important;">
+      <div class="d-flex align-items-center justify-content-center rounded-circle text-danger mx-auto mb-4 warning-icon-pulse" style="width: 80px; height: 80px; background: #fef2f2; font-size: 3rem;">
+        <span class="material-symbols-rounded" style="font-size: 3rem;">warning</span>
       </div>
       
       <h3 class="text-center fw-bold mb-2">Delete Account?</h3>
       <p class="text-center text-muted mb-4">We're sorry to see you go, <?= htmlspecialchars($userName) ?>. Please confirm your decision.</p>
 
-      <div class="warning-box">
-        <div class="warning-title">
+      <div class="border border-danger-subtle rounded-3 p-4 mb-4" style="background: #fff1f2; border-radius: 12px;">
+        <div class="fw-bold d-flex align-items-center gap-2 mb-2" style="color: #9f1239;">
           <span class="material-symbols-rounded" style="font-size: 20px;">info</span>
           Important Information
         </div>
-        <ul class="warning-text">
+        <ul class="small mb-0" style="color: #be123c;">
           <li>Your profile and all personal data will be <strong>permanently deleted</strong>.</li>
           <li>Your SOS history and emergency contacts will be erased.</li>
           <li>This action <strong>cannot be undone</strong>.</li>
@@ -142,8 +76,8 @@ $userId = $_SESSION['user_id'];
 
       <form id="deleteForm">
         <div class="mb-4">
-          <label for="confirmText" class="form-label">Type "delete my account" to Confirm</label>
-          <input type="text" class="form-control form-control-lg" id="confirmText" name="confirmText" required placeholder="delete my account" autocomplete="off">
+          <label for="confirmText" class="form-label fw-semibold text-secondary">Type "delete my account" to Confirm</label>
+          <input type="text" class="form-control form-control-lg" id="confirmText" name="confirmText" required placeholder="delete my account" autocomplete="off" style="border-radius: 12px;">
         </div>
 
         <div class="form-check mb-4">
@@ -154,11 +88,11 @@ $userId = $_SESSION['user_id'];
         </div>
 
         <div class="d-grid gap-2">
-          <button type="submit" class="btn btn-delete" id="submitBtn">
+          <button type="submit" class="btn btn-danger w-100 py-3 fw-semibold btn-delete-hover" id="submitBtn" style="border-radius: 12px; background: #dc2626; border: none; font-size: 1rem; transition: all 0.2s;">
             <span id="btnText">Permanently Delete Account</span>
             <span id="btnLoader" class="spinner-border spinner-border-sm d-none" role="status"></span>
           </button>
-          <a href="accountSettings.php" class="btn btn-light border py-2" style="border-radius: 12px; font-weight: 600;">Keep My Account</a>
+          <a href="accountSettings.php" class="btn btn-light border py-3" style="border-radius: 12px; font-weight: 600; font-size: 1rem;">Keep My Account</a>
         </div>
       </form>
     </div>

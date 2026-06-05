@@ -27,64 +27,8 @@ $isLoggedIn = true;
       padding-bottom: 80px;
     }
 
-    .privacy-container {
-      margin-top: 70px;
-    }
-
-    .settings-section-header {
-      font-weight: bold;
-      padding: 8px 16px;
-      color: #1e3a8a;
-      margin-top: 1rem;
-    }
-
-    .privacy-item {
-      padding: 14px 16px;
-      background-color: white;
-      margin: 0.5rem 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      cursor: pointer;
-      justify-content: space-between;
-    }
-
-    .privacy-item .privacy-icon {
-      font-size: 1.2rem;
-      margin-right: 12px;
-      color: #4b5563;
-    }
-
-    .privacy-item .item-content {
-      display: flex;
-      align-items: center;
-      flex: 1;
-    }
-
-    .privacy-item .item-text {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .privacy-item .item-title {
-      font-weight: 500;
-      color: #1f2937;
-    }
-
-    .privacy-item .item-description {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-top: 2px;
-    }
-
-    .privacy-item:hover {
-      background: #e8eaf6;
-    }
-
-    .privacy-item .chevron-icon {
-      color: #9ca3af;
-      margin-left: auto;
+    .privacy-item-hover:hover {
+      background: #e8eaf6 !important;
     }
 
     .toggle-switch {
@@ -116,53 +60,6 @@ $isLoggedIn = true;
     .toggle-switch.active .toggle-switch-handle {
       left: 27px;
     }
-
-    .blue-box {
-      padding: 16px;
-      background: #1e3a8a;
-      color: white;
-      border-radius: 10px;
-      margin-bottom: 1rem;
-    }
-
-    .blue-box h5 {
-      margin-bottom: 8px;
-      font-weight: bold;
-    }
-
-    .blue-box p {
-      margin-bottom: 0;
-      line-height: 1.5;
-    }
-
-    .blue-box a {
-      color: #fbbf24;
-      text-decoration: underline;
-    }
-
-    .blue-box a:hover {
-      color: #fcd34d;
-    }
-
-    .login-notice {
-      background-color: #dbeafe;
-      border-left: 4px solid #3b82f6;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin: 1rem 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .login-notice .material-symbols-rounded {
-      color: #3b82f6;
-    }
-
-    .login-notice span {
-      color: #1e40af;
-      font-size: 0.9rem;
-    }
   </style>
 </head>
 
@@ -174,32 +71,32 @@ $isLoggedIn = true;
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container privacy-container">
+  <div class="container mt-5 pt-3" style="margin-top: 70px !important;">
 
-    <div class="blue-box">
-      <h5>Privacy and Security</h5>
-      <p class="small">
+    <div class="p-4 bg-primary text-white mb-4 rounded-3" style="background-color: #1e3a8a !important;">
+      <h5 class="mb-2 fw-bold">Privacy and Security</h5>
+      <p class="mb-0 small">
         Control which apps can access your data and location.
-        <a href="privacyPolicy.php" style="color: #fbbf24; text-decoration: underline;">Learn more...</a>
+        <a href="privacyPolicy.php" class="text-warning fw-semibold" style="text-decoration: underline;">Learn more...</a>
       </p>
     </div>
 
     <?php if (!$isLoggedIn): ?>
-      <div class="login-notice">
-        <span class="material-symbols-rounded">info</span>
-        <span>You're using privacy settings as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences across devices.</span>
+      <div class="alert alert-primary d-flex align-items-center gap-2 m-3 border-start border-4 border-primary rounded-3" style="background-color: #dbeafe;">
+        <span class="material-symbols-rounded text-primary">info</span>
+        <span class="small" style="color: #1e40af;">You're using privacy settings as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences across devices.</span>
       </div>
     <?php endif; ?>
 
-    <div class="privacy-section">
-      <div class="settings-section-header">Permissions</div>
+    <div>
+      <div class="fw-bold text-primary mb-2 mt-3 px-3">Permissions</div>
 
-      <div class="privacy-item">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">location_on</span>
-          <div class="item-text">
-            <div class="item-title">Location Services</div>
-            <div class="item-description">Allow ByaHero to access your location</div>
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+        <div class="d-flex align-items-center flex-grow-1">
+          <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">location_on</span>
+          <div class="d-flex flex-column">
+            <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Location Services</div>
+            <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Allow ByaHero to access your location</div>
           </div>
         </div>
         <div class="toggle-switch active" id="locationToggle" onclick="toggleLocation()">
@@ -208,29 +105,29 @@ $isLoggedIn = true;
       </div>
     </div>
 
-    <div class="privacy-section">
-      <div class="settings-section-header">Additional Resources</div>
+    <div>
+      <div class="fw-bold text-primary mb-2 mt-3 px-3">Additional Resources</div>
 
-      <div class="privacy-item" onclick="window.location.href='privacyPolicy.php';">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">description</span>
-          <div class="item-text">
-            <div class="item-title">Privacy Policy</div>
-            <div class="item-description">Read our privacy policy</div>
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="window.location.href='privacyPolicy.php';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+        <div class="d-flex align-items-center flex-grow-1">
+          <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">description</span>
+          <div class="d-flex flex-column">
+            <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Privacy Policy</div>
+            <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Read our privacy policy</div>
           </div>
         </div>
-        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
+        <span class="material-symbols-rounded text-muted ms-auto">chevron_right</span>
       </div>
 
-      <div class="privacy-item" onclick="window.location.href='termsOfService.php';">
-        <div class="item-content">
-          <span class="material-symbols-rounded privacy-icon">gavel</span>
-          <div class="item-text">
-            <div class="item-title">Terms of Service</div>
-            <div class="item-description">Read our terms and conditions</div>
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="window.location.href='termsOfService.php';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+        <div class="d-flex align-items-center flex-grow-1">
+          <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">gavel</span>
+          <div class="d-flex flex-column">
+            <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Terms of Service</div>
+            <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Read our terms and conditions</div>
           </div>
         </div>
-        <span class="material-symbols-rounded chevron-icon">chevron_right</span>
+        <span class="material-symbols-rounded text-muted ms-auto">chevron_right</span>
       </div>
     </div>
 
