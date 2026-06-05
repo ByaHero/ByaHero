@@ -605,6 +605,26 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     window.showLocationDisabledNotice();
     return;
   }
+
+  // Request native permission if running in Capacitor (Bluestacks/Android)
+  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+    try {
+      const Geolocation = window.Capacitor.Plugins.Geolocation;
+      let perm = await Geolocation.checkPermissions();
+      if (perm.location !== 'granted') {
+        perm = await Geolocation.requestPermissions();
+      }
+      if (perm.location !== 'granted') {
+        window.locationPermissionGranted = false;
+        window.showLocationPermissionDenied();
+        return;
+      }
+      window.locationPermissionGranted = true;
+    } catch (e) {
+      console.warn('Native Geolocation permission check failed:', e);
+    }
+  }
+
   if (!navigator.geolocation) return;
 
   const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
