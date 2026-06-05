@@ -129,207 +129,29 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
   <style>
     body {
       font-family: "Segoe UI", sans-serif;
-      background-color: #f8f9fa;
       padding-bottom: 80px;
     }
 
-    .account-container {
-      margin-top: 70px;
-      padding: 0 1rem;
-    }
-
-    .account-heading {
-      font-weight: bold;
-      font-size: 1.3rem;
-      color: #1e3a8a;
-      margin-bottom: 0.5rem;
-    }
-
-    .account-description {
-      color: #6b7280;
-      font-size: 0.9rem;
-      margin-bottom: 1.5rem;
-    }
-
-    .account-section {
-      margin-top: 1.5rem;
-    }
-
-    .account-section-header {
-      font-weight: 600;
-      color: #1e3a8a;
-      margin-bottom: 0.75rem;
-      font-size: 1rem;
-      padding-left: 0.25rem;
-    }
-
-    .settings-item {
-      padding: 16px;
-      background-color: white;
-      margin-bottom: 0.5rem;
-      border-radius: 12px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid #e5e7eb;
-    }
-
-    .settings-item:hover {
-      background: #f0f4ff;
-      border-color: #c7d2fe;
-      transform: translateY(-1px);
-      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
-    }
-
-    .settings-item:active {
-      transform: translateY(0);
-    }
-
-    .settings-item .settings-icon {
-      font-size: 24px;
-      margin-right: 14px;
-      color: #6366f1;
-      flex-shrink: 0;
-    }
-
-    .settings-item .item-label {
-      display: flex;
-      align-items: center;
-      flex: 1;
-      min-width: 0;
-    }
-
-    .settings-item .item-text {
-      display: flex;
-      flex-direction: column;
-      min-width: 0;
-      flex: 1;
-    }
-
-    .settings-item .item-title {
-      font-weight: 500;
-      color: #1f2937;
-      font-size: 0.95rem;
-      margin-bottom: 2px;
-    }
-
-    .settings-item .item-subtitle {
-      font-size: 0.8rem;
-      color: #6b7280;
-      line-height: 1.3;
-    }
-
-    .settings-item .chevron {
-      color: #9ca3af;
-      font-size: 20px;
-      flex-shrink: 0;
-      margin-left: 8px;
-    }
-
-    .user-profile-card {
-      background: white;
-      border-radius: 14px;
-      padding: 1.25rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-      margin-bottom: 1.5rem;
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      border: 1px solid #e5e7eb;
-    }
-
-    .user-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      background-color: #ffffff;
-      color: #1e3a8a;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.6rem;
-      font-weight: bold;
-      flex-shrink: 0;
-      border: 2px solid #1e3a8a;
-      overflow: hidden;
-    }
-
-    .user-info {
-      flex: 1;
-      min-width: 0;
-    }
-
-    .user-name {
-      font-weight: 600;
-      color: #1f2937;
-      font-size: 1.05rem;
-      margin-bottom: 2px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .user-email {
-      color: #6b7280;
-      font-size: 0.85rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .btn-edit-profile {
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      border: none;
-      padding: 0.5rem 1rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      font-weight: 500;
-      transition: all 0.2s;
-      flex-shrink: 0;
-    }
-
-    .btn-edit-profile:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-      color: white;
-    }
-
-    @media (max-width: 576px) {
-      .user-profile-card {
-        flex-direction: column;
-        text-align: center;
-      }
-
-      .user-info {
-        width: 100%;
-      }
-
-      .btn-edit-profile {
-        width: 100%;
-      }
-    }
-
-    /* Styles for Edit Profile Modal */
+    /* Interactive Avatar Picker Styles */
     .profile-avatar {
-      width: 100px;
-      height: 100px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
       background-color: #ffffff;
       color: #1e3a8a;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 2.5rem;
+      font-size: 1.8rem;
       font-weight: bold;
-      margin: 0 auto 1rem;
-      border: 3px solid #1e3a8a;
       position: relative;
       overflow: hidden;
       cursor: pointer;
+      border: 2px solid #1e3a8a;
+      transition: transform 0.2s;
+    }
+    .profile-avatar:hover {
+      transform: scale(1.02);
     }
     .profile-avatar img {
       width: 100%;
@@ -343,164 +165,151 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
       right: 0;
       background: rgba(0,0,0,0.5);
       color: white;
-      font-size: 10px;
-      padding: 4px 0;
+      font-size: 8px;
+      padding: 2px 0;
       text-align: center;
       opacity: 0;
-      transition: opacity 0.3s;
+      transition: opacity 0.2s;
     }
     .profile-avatar:hover .overlay {
       opacity: 1;
     }
-    .form-label {
-      font-weight: 600;
-      color: #374151;
-      margin-bottom: 0.5rem;
-    }
-    .remove-pic-btn {
-      font-size: 12px;
-      color: #dc2626;
-      text-decoration: none;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      margin-top: 8px;
-    }
-    .remove-pic-btn:hover {
-      text-decoration: underline;
-      color: #b91c1c;
-    }
   </style>
 </head>
 
-<body>
+<body class="bg-light">
   <?php
-  // This variable passes the name to the navbar!
   $pageTitle = 'Profile'; 
   $pageType = 'settings';
   $backLink = 'profile.php';
   $pageDepth = "../../../";
   
-  // Go up 3 levels from public/passenger/profile/ to reach the root, then into components/
   require_once "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container account-container">
+  <div class="container mt-5 pt-4 px-3" style="max-width: 600px;">
 
-    <div class="account-heading">Account Settings</div>
-    <p class="account-description">Manage your account security and preferences</p>
+    <h4 class="fw-bold text-primary mb-1">Account Settings</h4>
+    <p class="text-muted small mb-4">Manage your account security and preferences</p>
 
     <?php if ($message): ?>
-      <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <span class="material-symbols-rounded" style="font-size:20px; vertical-align:middle">check_circle</span>
-        <?= htmlspecialchars($message) ?>
+      <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+        <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">check_circle</span>
+        <span class="align-middle"><?= htmlspecialchars($message) ?></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <?php endif; ?>
 
     <?php if ($error): ?>
-      <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <span class="material-symbols-rounded" style="font-size:20px; vertical-align:middle">error</span>
-        <?= htmlspecialchars($error) ?>
+      <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm" role="alert">
+        <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">error</span>
+        <span class="align-middle"><?= htmlspecialchars($error) ?></span>
         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
       </div>
     <?php endif; ?>
 
-    <form method="POST" id="profileForm" class="user-profile-card flex-column align-items-stretch gap-3">
+    <!-- Profile Edit Form (Inline Card) -->
+    <form method="POST" id="profileForm" class="card shadow-sm border border-light-subtle rounded-4 p-4 mb-4">
       <input type="hidden" name="action" value="update_profile">
       <input type="hidden" name="profile_image_data" id="profile_image_data">
       <input type="hidden" name="remove_image" id="remove_image_input" value="0">
       
-      <div class="d-flex align-items-center gap-3 flex-wrap">
-        <div class="profile-avatar m-0" onclick="document.getElementById('imageInput').click()" style="width: 72px; height: 72px; font-size: 1.8rem; border-width: 2px;">
+      <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
+        <div class="profile-avatar m-0" onclick="document.getElementById('imageInput').click()">
+          <span id="avatarInitial" style="<?= $userProfilePic ? 'display:none;' : '' ?>"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
           <?php if ($userProfilePic): ?>
             <?php 
               $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
               $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
             ?>
-            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar">
-          <?php else: ?>
-            <span id="avatarInitial"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
+            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar" onerror="this.style.display='none'; document.getElementById('avatarInitial').style.display='block'; document.getElementById('removePicBtn').style.display='none';">
           <?php endif; ?>
-          <div class="overlay" style="font-size: 8px; padding: 2px 0;">CHANGE</div>
+          <div class="overlay">CHANGE</div>
         </div>
         
-        <div class="user-info">
-          <div class="user-name fw-bold" id="displayNameText"><?= htmlspecialchars($userName ?: 'User') ?></div>
-          <div class="user-email text-muted small"><?= htmlspecialchars($userEmail) ?></div>
-          <a href="#" id="removePicBtn" class="remove-pic-btn" style="<?= empty($userProfilePic) ? 'display:none;' : '' ?> font-size: 11px;">
-            <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
-            Remove Picture
-          </a>
+        <div class="user-info flex-grow-1">
+          <div class="fw-bold text-dark fs-5 leading-tight" id="displayNameText"><?= htmlspecialchars($userName ?: 'User') ?></div>
+          <div class="text-muted small mb-2"><?= htmlspecialchars($userEmail) ?></div>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" id="uploadPicBtn" class="btn btn-outline-primary btn-sm d-inline-flex align-items-center gap-1" onclick="document.getElementById('imageInput').click()">
+              <span class="material-symbols-rounded" style="font-size: 16px;">add_a_photo</span>
+              Add Picture
+            </button>
+            <button type="button" id="removePicBtn" class="btn btn-link text-danger text-decoration-none p-0 fw-semibold d-inline-flex align-items-center gap-1" style="<?= empty($userProfilePic) ? 'display:none;' : '' ?> font-size: 11px;">
+              <span class="material-symbols-rounded" style="font-size: 14px;">delete</span>
+              Remove Picture
+            </button>
+          </div>
         </div>
         
         <input type="file" id="imageInput" accept="image/*" style="display: none">
       </div>
 
-      <div class="row g-2 mt-1">
+      <div class="row g-3">
         <div class="col-12 col-sm-6">
-          <label for="name" class="form-label small mb-1">Full Name</label>
-          <input type="text" class="form-control form-control-sm rounded-3" id="name" name="name" value="<?= htmlspecialchars($userName) ?>" required placeholder="Enter your full name">
+          <label for="name" class="form-label fw-semibold text-secondary small mb-1">Full Name</label>
+          <input type="text" class="form-control rounded-3" id="name" name="name" value="<?= htmlspecialchars($userName) ?>" required placeholder="Enter your full name">
         </div>
 
         <div class="col-12 col-sm-6">
-          <label for="email" class="form-label small mb-1">Email Address</label>
-          <input type="email" class="form-control form-control-sm rounded-3" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" required placeholder="Enter your email">
+          <label for="email" class="form-label fw-semibold text-secondary small mb-1">Email Address</label>
+          <input type="email" class="form-control rounded-3" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" required placeholder="Enter your email">
         </div>
       </div>
 
-      <div class="d-flex justify-content-end mt-1">
-        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3 d-flex align-items-center gap-1">
-          <span class="material-symbols-rounded" style="font-size:16px;">save</span>
+      <div class="d-flex justify-content-end mt-3">
+        <button type="submit" class="btn btn-primary px-4 rounded-3 d-flex align-items-center gap-1">
+          <span class="material-symbols-rounded" style="font-size: 18px;">save</span>
           Save Changes
         </button>
       </div>
     </form>
 
-    <div class="account-section">
-      <div class="account-section-header">Security</div>
-
-      <div class="settings-item" onclick="window.location.href='changePassword.php'">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">lock</span>
-          <div class="item-text">
-            <div class="item-title">Change Password</div>
-            <div class="item-subtitle">Update your password</div>
+    <!-- Security Settings list -->
+    <div class="mb-4">
+      <h6 class="fw-bold text-primary mb-2 small text-uppercase tracking-wider">Security</h6>
+      <div class="list-group shadow-sm border border-light-subtle rounded-3 overflow-hidden">
+        <a href="changePassword.php" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
+          <div class="d-flex align-items-center gap-3">
+            <span class="material-symbols-rounded text-primary fs-4">lock</span>
+            <div>
+              <div class="fw-semibold text-dark small">Change Password</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Update your password</div>
+            </div>
           </div>
-        </div>
-        <span class="material-symbols-rounded chevron">chevron_right</span>
-      </div>
-
-      <div class="settings-item" onclick="window.location.href='loginActivity.php'">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon">history</span>
-          <div class="item-text">
-            <div class="item-title">Login Activity</div>
-            <div class="item-subtitle">Recent login sessions</div>
+          <span class="material-symbols-rounded text-secondary fs-5">chevron_right</span>
+        </a>
+        <a href="loginActivity.php" class="list-group-item list-group-item-action d-flex align-items-center justify-content-between p-3 border-light-subtle">
+          <div class="d-flex align-items-center gap-3">
+            <span class="material-symbols-rounded text-primary fs-4">history</span>
+            <div>
+              <div class="fw-semibold text-dark small">Login Activity</div>
+              <div class="text-muted" style="font-size: 0.75rem;">Recent login sessions</div>
+            </div>
           </div>
-        </div>
-        <span class="material-symbols-rounded chevron">chevron_right</span>
+          <span class="material-symbols-rounded text-secondary fs-5">chevron_right</span>
+        </a>
       </div>
     </div>
 
-    <div class="account-section">
-      <div class="account-section-header" style="color: #dc2626;">Danger Zone</div>
-      <div class="settings-item" onclick="window.location.href='deleteAccount.php'" style="border-color: #fee2e2;">
-        <div class="item-label">
-          <span class="material-symbols-rounded settings-icon" style="color: #dc2626;">delete_forever</span>
-          <div class="item-text">
-            <div class="item-title" style="color: #dc2626;">Delete Account</div>
-            <div class="item-subtitle">Permanently remove your account data</div>
+    <!-- Danger Zone settings list -->
+    <div class="mb-4">
+      <h6 class="fw-bold text-danger mb-2 small text-uppercase tracking-wider">Danger Zone</h6>
+      <div class="list-group shadow-sm border border-danger-subtle rounded-3 overflow-hidden">
+        <a href="deleteAccount.php" class="list-group-item list-group-item-action list-group-item-danger d-flex align-items-center justify-content-between p-3 border-danger-subtle">
+          <div class="d-flex align-items-center gap-3">
+            <span class="material-symbols-rounded text-danger fs-4">delete_forever</span>
+            <div>
+              <div class="fw-semibold text-danger small">Delete Account</div>
+              <div class="text-danger-emphasis" style="font-size: 0.75rem;">Permanently remove your account data</div>
+            </div>
           </div>
-        </div>
-        <span class="material-symbols-rounded chevron" style="color: #fca5a5;">chevron_right</span>
+          <span class="material-symbols-rounded text-danger opacity-75 fs-5">chevron_right</span>
+        </a>
       </div>
     </div>
 
   </div>
-
-
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/js/accessibility.js"></script>
