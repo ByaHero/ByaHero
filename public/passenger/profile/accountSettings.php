@@ -407,26 +407,56 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
       </div>
     <?php endif; ?>
 
-    <div class="user-profile-card">
-      <div class="user-avatar">
-        <?php if ($userProfilePic): ?>
-          <?php 
-            $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
-            $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
-          ?>
-          <img src="<?= $imgSrc ?>" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover;">
-        <?php else: ?>
-          <?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?>
-        <?php endif; ?>
+    <form method="POST" id="profileForm" class="user-profile-card flex-column align-items-stretch gap-3">
+      <input type="hidden" name="action" value="update_profile">
+      <input type="hidden" name="profile_image_data" id="profile_image_data">
+      <input type="hidden" name="remove_image" id="remove_image_input" value="0">
+      
+      <div class="d-flex align-items-center gap-3 flex-wrap">
+        <div class="profile-avatar m-0" onclick="document.getElementById('imageInput').click()" style="width: 72px; height: 72px; font-size: 1.8rem; border-width: 2px;">
+          <?php if ($userProfilePic): ?>
+            <?php 
+              $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
+              $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
+            ?>
+            <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar">
+          <?php else: ?>
+            <span id="avatarInitial"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
+          <?php endif; ?>
+          <div class="overlay" style="font-size: 8px; padding: 2px 0;">CHANGE</div>
+        </div>
+        
+        <div class="user-info">
+          <div class="user-name fw-bold" id="displayNameText"><?= htmlspecialchars($userName ?: 'User') ?></div>
+          <div class="user-email text-muted small"><?= htmlspecialchars($userEmail) ?></div>
+          <a href="#" id="removePicBtn" class="remove-pic-btn" style="<?= empty($userProfilePic) ? 'display:none;' : '' ?> font-size: 11px;">
+            <span class="material-symbols-rounded" style="font-size:14px;">delete</span>
+            Remove Picture
+          </a>
+        </div>
+        
+        <input type="file" id="imageInput" accept="image/*" style="display: none">
       </div>
-      <div class="user-info">
-        <div class="user-name"><?= htmlspecialchars($userName ?: 'User') ?></div>
-        <div class="user-email"><?= htmlspecialchars($userEmail) ?></div>
+
+      <div class="row g-2 mt-1">
+        <div class="col-12 col-sm-6">
+          <label for="name" class="form-label small mb-1">Full Name</label>
+          <input type="text" class="form-control form-control-sm rounded-3" id="name" name="name" value="<?= htmlspecialchars($userName) ?>" required placeholder="Enter your full name">
+        </div>
+
+        <div class="col-12 col-sm-6">
+          <label for="email" class="form-label small mb-1">Email Address</label>
+          <input type="email" class="form-control form-control-sm rounded-3" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" required placeholder="Enter your email">
+        </div>
       </div>
-      <button class="btn btn-edit-profile" data-bs-toggle="modal" data-bs-target="#editProfileModal">
-        Edit Profile
-      </button>
-    </div>
+
+      <div class="d-flex justify-content-end mt-1">
+        <button type="submit" class="btn btn-primary btn-sm px-4 rounded-3 d-flex align-items-center gap-1">
+          <span class="material-symbols-rounded" style="font-size:16px;">save</span>
+          Save Changes
+        </button>
+      </div>
+    </form>
 
     <div class="account-section">
       <div class="account-section-header">Security</div>
@@ -470,69 +500,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
 
   </div>
 
-  <!-- Edit Profile Modal -->
-  <div class="modal fade" id="editProfileModal" tabindex="-1" aria-labelledby="editProfileModalLabel" aria-hidden="true" style="z-index: 2000;">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content rounded-4 border-0 shadow">
-        <div class="modal-header border-0 pb-0">
-          <h5 class="modal-title fw-bold text-primary" id="editProfileModalLabel">Edit Profile</h5>
-          <button type="button" class="btn border-0 bg-transparent p-0" style="box-shadow: none;" data-bs-dismiss="modal" aria-label="Close">
-            <span class="material-symbols-rounded">close</span>
-          </button>
-        </div>
-        <div class="modal-body pt-2 pb-4">
-          <form method="POST" id="profileForm">
-            <input type="hidden" name="action" value="update_profile">
-            <input type="hidden" name="profile_image_data" id="profile_image_data">
-            <input type="hidden" name="remove_image" id="remove_image_input" value="0">
-            
-            <div class="profile-avatar mb-2" onclick="document.getElementById('imageInput').click()">
-              <?php if ($userProfilePic): ?>
-                <?php 
-                  $isAbsolute = preg_match('~^https?://~i', $userProfilePic);
-                  $imgSrc = $isAbsolute ? htmlspecialchars($userProfilePic) : $pageDepth . ltrim(htmlspecialchars($userProfilePic), '/');
-                ?>
-                <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar">
-              <?php else: ?>
-                <span id="avatarInitial"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
-              <?php endif; ?>
-              <div class="overlay">CHANGE</div>
-            </div>
-            
-            <div class="text-center mb-3">
-              <a href="#" id="removePicBtn" class="remove-pic-btn" style="<?= empty($userProfilePic) ? 'display:none' : '' ?>">
-                <span class="material-symbols-rounded" style="font-size:16px;">delete</span>
-                Remove Picture
-              </a>
-            </div>
 
-            <input type="file" id="imageInput" accept="image/*" style="display: none">
-
-            <div class="mb-3">
-              <label for="name" class="form-label">Full Name</label>
-              <input type="text" class="form-control" id="name" name="name" value="<?= htmlspecialchars($userName) ?>" required placeholder="Enter your full name">
-            </div>
-
-            <div class="mb-3">
-              <label for="email" class="form-label">Email Address</label>
-              <input type="email" class="form-control" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" required placeholder="Enter your email">
-              <small class="text-muted">You'll use this email to log in</small>
-            </div>
-
-            <div class="d-grid gap-2 mt-4">
-              <button type="submit" class="btn btn-primary">
-                <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">save</span>
-                Save Changes
-              </button>
-              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
-                Cancel
-              </button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
-  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script src="../../../assets/js/accessibility.js"></script>
