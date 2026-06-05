@@ -7,28 +7,13 @@
  */
 
 :root {
-    --brand: #2563eb;
+    --brand: #0f3878;
 }
 
 body {
     background: #f8fafc;
     color: #1e293b;
     font-family: "Segoe UI", system-ui, sans-serif;
-}
-
-.card-standard {
-    border: none;
-    border-radius: 14px;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
-    background: #fff;
-}
-
-.card-header-std {
-    background: #fff;
-    border-bottom: 1px solid #e2e8f0;
-    font-weight: 800;
-    padding: 1rem 1.25rem;
-    border-radius: 14px 14px 0 0 !important;
 }
 
 #stopMap {
@@ -38,56 +23,8 @@ body {
     border: 1px solid #e2e8f0;
 }
 
-.hint {
-    font-size: .9rem;
-    color: #64748b;
-}
-
-.table > :not(caption) > * > * {
-    padding: 0.65rem 0.9rem;
-    vertical-align: middle;
-}
-
 @media (max-width: 991px) {
     #stopMap {
         height: 320px;
     }
-}
-
-.icon-size-card {
-    border: 1px dashed #cbd5e1;
-    border-radius: 14px;
-    padding: .75rem;
-    background: #f8fafc;
-}
-
-.icon-size-value {
-    font-variant-numeric: tabular-nums;
-    font-weight: 800;
-}
-
-.pill-btn {
-    border-radius: 999px;
-    font-weight: 800;
-    letter-spacing: .2px;
-}
-
-.form-control, .form-select {
-    border-radius: 12px;
-}
-
-.route-list-card {
-    margin-bottom: 1.5rem;
-}
-
-/* Draggable list styling */
-.route-item {
-    cursor: grab;
-    background: #f8fafc;
-    border-radius: 8px;
-    padding: 6px 8px;
-}
-
-.route-item + .route-item {
-    margin-top: 4px;
 }

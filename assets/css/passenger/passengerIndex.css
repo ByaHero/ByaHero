@@ -24,23 +24,9 @@ body {
   padding-bottom: 0 !important; /* Override navbarPassenger padding for this fixed-height page */
 }
 
-#map {
-  height: 100%;
-  width: 100%;
-  z-index: 1;
-}
-
-.h-60px {
-  height: 60px;
-}
-
 .rounded-top-4 {
   border-top-left-radius: 1.5rem;
   border-top-right-radius: 1.5rem;
-}
-
-.map-overlay {
-  z-index: 1000;
 }
 
 .leaflet-marker-icon {
@@ -242,92 +228,14 @@ body {
   }
 }
 
-/* --- SLEEK PREMIUM WAITING MODAL STYLES --- */
-.waiting-modal-content {
-  border-radius: 40px !important;
-  padding: 3rem 2rem 2.5rem 2rem !important;
-  border: none !important;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15) !important;
-  background: #ffffff !important;
-  position: relative !important;
-}
-
-.waiting-modal-close {
-  position: absolute !important;
-  top: 24px !important;
-  right: 24px !important;
-  background: none !important;
-  border: none !important;
-  font-size: 1.75rem !important;
-  line-height: 1 !important;
-  color: #000000 !important;
-  opacity: 0.8 !important;
-  cursor: pointer !important;
-  padding: 0 !important;
-  transition: opacity 0.2s, transform 0.2s !important;
-  z-index: 10 !important;
-}
-
-.waiting-modal-close:hover {
+/* --- SLEEK PREMIUM WAITING MODAL HOVER & ACTIVE OVERRIDES --- */
+.waiting-modal-close-hover:hover {
   opacity: 1 !important;
   transform: scale(1.1) !important;
 }
 
-.waiting-modal-icon-image {
-  width: 110px !important;
-  height: 110px !important;
-  display: block !important;
-  margin: 0 auto 2rem auto !important;
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
-}
-
-.waiting-modal-icon-image:hover {
+.waiting-modal-icon-hover:hover {
   transform: scale(1.08) rotate(5deg) !important;
-}
-
-.waiting-modal-title {
-  font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif !important;
-  font-size: 1.85rem !important;
-  font-weight: 700 !important;
-  color: #000000 !important;
-  margin-bottom: 0.75rem !important;
-  letter-spacing: -0.5px !important;
-}
-
-.waiting-modal-subtitle {
-  font-size: 1.05rem !important;
-  font-weight: 400 !important;
-  color: #374151 !important;
-  line-height: 1.45 !important;
-  margin-bottom: 1.75rem !important;
-  max-width: 90% !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
-}
-
-.waiting-modal-location-container {
-  margin-bottom: 1.75rem !important;
-}
-
-.waiting-modal-location-badge {
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 8px !important;
-  padding: 0.5rem 1.25rem !important;
-  background-color: #f1f5f9 !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 50px !important;
-}
-
-.waiting-modal-location-badge span.loc-icon {
-  font-size: 18px !important;
-  color: #2b72c4 !important;
-}
-
-.waiting-modal-location-badge span.loc-text {
-  font-size: 0.9rem !important;
-  font-weight: 600 !important;
-  color: #475569 !important;
 }
 
 #btnSetWaiting {
@@ -354,59 +262,20 @@ body {
   pointer-events: none !important;
 }
 
-.waiting-modal-btn-cancel {
-  background-color: #f1f5f9 !important;
-  border: 1px solid #cbd5e1 !important;
-  border-radius: 20px !important;
-  padding: 1.1rem 2rem !important;
-  font-size: 1.2rem !important;
-  font-weight: 700 !important;
-  color: #475569 !important;
-  display: flex;
-  align-items: center !important;
-  justify-content: center !important;
-  gap: 12px !important;
-  width: 100% !important;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05) !important;
-  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s !important;
-}
-
-.waiting-modal-btn-cancel:hover:not(:disabled) {
+.waiting-modal-btn-cancel-hover:hover:not(:disabled) {
   background-color: #e2e8f0 !important;
   color: #334155 !important;
   transform: translateY(-1px) !important;
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08) !important;
 }
 
-.waiting-modal-btn-cancel:active:not(:disabled) {
+.waiting-modal-btn-cancel-hover:active:not(:disabled) {
   transform: translateY(1px) !important;
 }
 
-.waiting-modal-btn-cancel:disabled {
+.waiting-modal-btn-cancel-hover:disabled {
   opacity: 0.6 !important;
   background-color: #9ca3af !important;
   cursor: not-allowed !important;
   box-shadow: none !important;
-}
-
-.waiting-modal-btn-circle-icon {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 28px !important;
-  height: 28px !important;
-  border-radius: 50% !important;
-  background-color: #ffffff !important;
-}
-
-.waiting-modal-btn-circle-icon.text-primary span {
-  color: #174288 !important;
-}
-
-.waiting-modal-btn-circle-icon.text-secondary {
-  background-color: #475569 !important;
-}
-
-.waiting-modal-btn-circle-icon.text-secondary span {
-  color: #ffffff !important;
 }

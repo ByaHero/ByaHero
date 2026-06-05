@@ -27,67 +27,16 @@ $pageDepth = "../../../";
       min-height: 100vh;
     }
 
-    .share-card {
-      background: #ffffff;
-      border: none;
-      border-radius: 24px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
-      padding: 2.5rem 2rem;
-      margin-top: 80px;
-      text-align: center;
-    }
-
-    .share-heading {
-      font-size: 1.75rem;
-      color: #1e3a8a;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 0.5rem;
-    }
-
-    .share-description {
-      color: #64748b;
-      font-size: 1.05rem;
-      margin-bottom: 2.5rem;
-    }
-
-    .share-item {
-      display: flex;
-      align-items: center;
-      padding: 1rem 1.25rem;
-      background: #f8fafc;
-      border-radius: 16px;
-      margin-bottom: 1rem;
-      text-decoration: none;
-      color: #334155;
-      font-weight: 600;
+    .share-item-hover {
       transition: all 0.2s ease;
-      border: 1px solid transparent;
-      cursor: pointer;
     }
 
-    .share-item:hover {
-      background: #ffffff;
-      border-color: #e2e8f0;
+    .share-item-hover:hover {
+      background: #ffffff !important;
+      border-color: #e2e8f0 !important;
       transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-      color: #1e3a8a;
-    }
-
-    .share-item .icon-wrap {
-      width: 44px;
-      height: 44px;
-      background: #eef2ff;
-      border-radius: 12px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin-right: 1rem;
-      color: #1e3a8a;
-    }
-
-    .share-item .material-symbols-rounded {
-      font-size: 24px;
+      color: #1e3a8a !important;
     }
 
     #copyFeedback {
@@ -106,51 +55,38 @@ $pageDepth = "../../../";
       pointer-events: none;
       z-index: 3000;
     }
-
-    .qr-container {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 20px;
-      display: inline-block;
-      margin: 1rem 0;
-    }
-
-    #qrImg {
-      width: 200px;
-      height: 200px;
-    }
   </style>
 </head>
 
 <body>
   <?php include "../../../components/navbarPassenger.php"; ?>
 
-  <div class="container">
+  <div class="container mt-5 pt-3" style="margin-top: 80px !important;">
     <div class="row justify-content-center">
       <div class="col-md-6 col-lg-5">
-        <div class="share-card">
-          <div class="share-heading">Share ByaHero</div>
-          <p class="share-description">
+        <div class="bg-white border-0 p-4 p-sm-5 shadow-sm text-center" style="border-radius: 24px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06) !important;">
+          <div class="fw-bold text-primary mb-2" style="font-size: 1.75rem; letter-spacing: -0.5px;">Share ByaHero</div>
+          <p class="text-secondary mb-4" style="font-size: 1.05rem;">
             Help us reach more passengers! Share ByaHero with your friends and family.
           </p>
 
-          <div class="share-item" onclick="shareViaLink()">
-            <div class="icon-wrap">
-              <span class="material-symbols-rounded">link</span>
+          <div class="d-flex align-items-center p-3 bg-light rounded-4 mb-3 text-decoration-none text-dark fw-semibold border border-transparent cursor-pointer share-item-hover" onclick="shareViaLink()" style="border-radius: 16px !important;">
+            <div class="d-flex align-items-center justify-content-center rounded-3 me-3" style="width: 44px; height: 44px; background-color: #eef2ff; color: #1e3a8a;">
+              <span class="material-symbols-rounded" style="font-size: 24px;">link</span>
             </div>
             <span>Share via Link</span>
           </div>
 
-          <div class="share-item" onclick="shareViaQR()">
-            <div class="icon-wrap">
-              <span class="material-symbols-rounded">qr_code</span>
+          <div class="d-flex align-items-center p-3 bg-light rounded-4 mb-3 text-decoration-none text-dark fw-semibold border border-transparent cursor-pointer share-item-hover" onclick="shareViaQR()" style="border-radius: 16px !important;">
+            <div class="d-flex align-items-center justify-content-center rounded-3 me-3" style="width: 44px; height: 44px; background-color: #eef2ff; color: #1e3a8a;">
+              <span class="material-symbols-rounded" style="font-size: 24px;">qr_code</span>
             </div>
             <span>Share via QR Code</span>
           </div>
 
-          <div class="share-item" onclick="shareOnSocial()">
-            <div class="icon-wrap">
-              <span class="material-symbols-rounded">share</span>
+          <div class="d-flex align-items-center p-3 bg-light rounded-4 mb-3 text-decoration-none text-dark fw-semibold border border-transparent cursor-pointer share-item-hover" onclick="shareOnSocial()" style="border-radius: 16px !important;">
+            <div class="d-flex align-items-center justify-content-center rounded-3 me-3" style="width: 44px; height: 44px; background-color: #eef2ff; color: #1e3a8a;">
+              <span class="material-symbols-rounded" style="font-size: 24px;">share</span>
             </div>
             <span>Share on Social Media</span>
           </div>
@@ -167,8 +103,8 @@ $pageDepth = "../../../";
       <div class="modal-content" style="border-radius: 24px; border: none;">
         <div class="modal-body text-center p-4">
           <h5 class="fw-bold mb-3" style="color: #1e3a8a;">Scan QR Code</h5>
-          <div class="qr-container shadow-sm border">
-            <img id="qrImg" src="" alt="ByaHero QR Code">
+          <div class="bg-white p-3 rounded-4 d-inline-block my-2 border shadow-sm" style="border-radius: 20px !important;">
+            <img id="qrImg" src="" alt="ByaHero QR Code" style="width: 200px; height: 200px;">
           </div>
           <p class="text-muted small mt-2">Friends can scan this to download or open ByaHero.</p>
           <button type="button" class="btn btn-primary w-100 mt-3" data-bs-dismiss="modal" style="border-radius: 50px; background: #1e3a8a;">Done</button>

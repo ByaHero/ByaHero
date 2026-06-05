@@ -22,69 +22,6 @@ require_once __DIR__ . '/../auth_passenger.php';
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-
-    .location-container {
-      margin-top: 70px;
-      text-align: center;
-    }
-
-    .location-heading {
-      font-weight: bold;
-      font-size: 1.5rem;
-      color: #1e3a8a;
-      margin-top: 0.5rem;
-    }
-
-    .location-description {
-      font-size: 1rem;
-      color: #6b7280;
-      line-height: 1.5;
-      margin: 0.5rem auto 1.5rem auto;
-    }
-
-    .location-button {
-      padding: 12px 20px;
-      font-size: 1rem;
-      border-radius: 10px;
-      margin: 0.5rem auto;
-      width: 90%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-    }
-
-    .location-button .material-symbols-rounded {
-      font-size: 1.5rem;
-      margin-right: 8px;
-    }
-
-    .location-button.current {
-      color: white;
-      background-color: #1e3a8a;
-    }
-
-    .location-button.map {
-      color: #1e3a8a;
-      background-color: white;
-      border: 1px solid #1e3a8a;
-    }
-
-    .location-button.stop {
-      color: white;
-      background-color: #dc3545;
-    }
-
-    .location-button:hover {
-      opacity: 0.9;
-    }
-
-    .status-pill {
-      display: inline-block;
-      padding: 6px 12px;
-      border-radius: 999px;
-      font-size: 0.85rem;
-    }
   </style>
 </head>
 
@@ -96,28 +33,28 @@ require_once __DIR__ . '/../auth_passenger.php';
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container location-container">
-    <div class="location-heading">Share My Location</div>
-    <p class="location-description">
+  <div class="container text-center mt-5 pt-3" style="margin-top: 70px !important;">
+    <div class="fw-bold text-primary mt-1" style="font-size: 1.5rem;">Share My Location</div>
+    <p class="small text-secondary mx-auto mb-4" style="font-size: 1rem; line-height: 1.5; max-width: 500px;">
       Turn on Share Location to appear live in your Circle. If it’s off, friends will see “Last seen…”.
     </p>
 
-    <div class="mb-3">
-      <span id="share-status" class="status-pill bg-secondary text-white">Checking…</span>
+    <div class="mb-4">
+      <span id="share-status" class="badge rounded-pill py-2 px-3 bg-secondary text-white">Checking…</span>
     </div>
 
-    <div class="location-buttons">
-      <div class="location-button current" onclick="enableShareLocation()">
-        <span class="material-symbols-rounded">my_location</span> Turn ON Share Location
-      </div>
+    <div class="d-flex flex-column gap-2 align-items-center">
+      <button class="btn btn-primary w-100 py-3 d-flex align-items-center justify-content-center mb-2" onclick="enableShareLocation()" style="border-radius: 10px; max-width: 400px; background-color: #1e3a8a; border-color: #1e3a8a;">
+        <span class="material-symbols-rounded me-2" style="font-size: 1.5rem;">my_location</span> Turn ON Share Location
+      </button>
 
-      <div class="location-button map" onclick="enableShareLocation()">
-        <span class="material-symbols-rounded">location_on</span> Turn ON (then select on map later)
-      </div>
+      <button class="btn btn-outline-primary w-100 py-3 d-flex align-items-center justify-content-center mb-2" onclick="enableShareLocation()" style="border-radius: 10px; max-width: 400px; background-color: white; border-color: #1e3a8a; color: #1e3a8a;">
+        <span class="material-symbols-rounded me-2" style="font-size: 1.5rem;">location_on</span> Turn ON (then select on map later)
+      </button>
 
-      <div class="location-button stop" onclick="disableShareLocation()">
-        <span class="material-symbols-rounded">cancel</span> Turn OFF Share Location
-      </div>
+      <button class="btn btn-danger w-100 py-3 d-flex align-items-center justify-content-center mb-2" onclick="disableShareLocation()" style="border-radius: 10px; max-width: 400px;">
+        <span class="material-symbols-rounded me-2" style="font-size: 1.5rem;">cancel</span> Turn OFF Share Location
+      </button>
     </div>
   </div>
 
@@ -143,10 +80,10 @@ require_once __DIR__ . '/../auth_passenger.php';
         const on = data && data.success && parseInt(data.share_location) === 1;
 
         el.textContent = on ? 'Share Location: ON' : 'Share Location: OFF';
-        el.className = 'status-pill ' + (on ? 'bg-success text-white' : 'bg-secondary text-white');
+        el.className = 'badge rounded-pill py-2 px-3 ' + (on ? 'bg-success text-white' : 'bg-secondary text-white');
       } catch (e) {
         el.textContent = 'Status unavailable';
-        el.className = 'status-pill bg-secondary text-white';
+        el.className = 'badge rounded-pill py-2 px-3 bg-secondary text-white';
       }
     }
 

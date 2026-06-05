@@ -187,9 +187,9 @@ $backLink  = 'admin.php';
 
     <div class="row g-4 mt-1">
         <div class="col-lg-8 mx-auto">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex align-items-center gap-2">
-                    <span class="fs-4">Operation Schedule</span>
+            <div class="card border-0 shadow-sm rounded-3">
+                <div class="card-header bg-white border-bottom border-light-subtle py-3 px-4 d-flex align-items-center gap-2 text-primary">
+                    <span class="fs-4 fw-bold">Operation Schedule</span>
                 </div>
 
                 <div class="card-body">
@@ -197,9 +197,9 @@ $backLink  = 'admin.php';
                         <input type="hidden" name="action" value="save_routes">
 
                         <!-- ROUTE 1: LAUREL - TANAUAN -->
-                        <div class="route-card">
+                        <div class="card card-body border border-light-subtle rounded-3 p-3 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="route-title">LAUREL - TANAUAN</h6>
+                                <h6 class="fw-bold m-0 text-dark">LAUREL - TANAUAN</h6>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input"
                                            type="checkbox"
@@ -243,9 +243,9 @@ $backLink  = 'admin.php';
                         </div>
 
                         <!-- ROUTE 2: TANAUAN - LAUREL -->
-                        <div class="route-card">
+                        <div class="card card-body border border-light-subtle rounded-3 p-3 mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <h6 class="route-title">TANAUAN - LAUREL</h6>
+                                <h6 class="fw-bold m-0 text-dark">TANAUAN - LAUREL</h6>
                                 <div class="form-check form-switch m-0">
                                     <input class="form-check-input"
                                            type="checkbox"
@@ -289,7 +289,7 @@ $backLink  = 'admin.php';
                         </div>
 
                         <div class="d-grid mt-3">
-                            <button class="btn btn-primary pill-btn">Save Schedules</button>
+                            <button class="btn btn-primary rounded-pill fw-bold py-2">Save Schedules</button>
                         </div>
 
 

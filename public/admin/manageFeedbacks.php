@@ -120,8 +120,8 @@ $backLink  = 'admin.php';
 
     <div class="row g-4 mt-1 mb-5">
         <div class="col-lg-8 mx-auto">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex align-items-center gap-2">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 d-flex align-items-center gap-2 text-primary" style="border-radius: 16px 16px 0 0;">
                     <span class="fs-4">Passenger Feedbacks</span>
                 </div>
 
@@ -173,26 +173,26 @@ $backLink  = 'admin.php';
                             for ($i = 1; $i <= 5; $i++) {
                                 if ($i <= $rating) {
                                     $starHtml .= '<img src="../../assets/images/star_full.svg" style="width: 22px; height: 22px; margin-right: 2px;" alt="★">';
-                                } else {
+                                  } else {
                                     $starHtml .= '<img src="../../assets/images/star_blank.svg" style="width: 22px; height: 22px; margin-right: 2px;" alt="☆">';
                                 }
                             }
                         ?>
-                            <div class="route-card">
-                                <div class="ticket-header">
-                                    <span class="ticket-type">
+                            <div class="border rounded-4 bg-white p-3 mb-3">
+                                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                                    <span class="fw-bold text-primary text-uppercase" style="font-size: 0.95rem;">
                                         <span class="material-symbols-rounded" style="vertical-align: text-bottom; font-size: 1.1rem;">
                                             reviews
                                         </span>
                                         FEEDBACK #<?= h((string)$id) ?>
                                     </span>
-                                    <span class="ticket-date"><?= date('M d, Y h:i A', strtotime($fb['created_at'])) ?></span>
+                                    <span class="small text-secondary" style="font-size: 0.8rem;"><?= date('M d, Y h:i A', strtotime($fb['created_at'])) ?></span>
                                 </div>
 
                                 <div class="row">
-                                    <div class="col-sm-6 col-12 ticket-row">
-                                        <span class="ticket-label">Passenger</span>
-                                        <div class="ticket-value">
+                                    <div class="col-sm-6 col-12 mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Passenger</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1">
                                             <?php 
                                                 $rawName = $fb['passenger_name'] ?? 'Unknown User';
                                                 $firstName = explode(' ', trim($rawName))[0];
@@ -201,23 +201,23 @@ $backLink  = 'admin.php';
                                             <div class="small text-muted"><?= h($fb['passenger_email'] ?? '') ?></div>
                                         </div>
                                     </div>
-                                    <div class="col-sm-6 col-12 ticket-row">
-                                        <span class="ticket-label">Rating</span>
-                                        <div class="ticket-value d-flex align-items-center">
+                                    <div class="col-sm-6 col-12 mb-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Rating</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1 d-flex align-items-center" style="height: calc(100% - 1.25rem - 4px); min-height: 40px;">
                                             <?= $starHtml ?>
                                         </div>
                                     </div>
                                 </div>
 
                                 <?php if (!empty($fb['feedback_text'])): ?>
-                                    <div class="ticket-row mt-2">
-                                        <span class="ticket-label">Comments</span>
-                                        <div class="ticket-value" style="white-space: pre-wrap;"><?= h($fb['feedback_text']) ?></div>
+                                    <div class="mb-2 mt-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Comments</span>
+                                        <div class="text-dark bg-light p-2 rounded-2 mt-1" style="white-space: pre-wrap;"><?= h($fb['feedback_text']) ?></div>
                                     </div>
                                 <?php else: ?>
-                                    <div class="ticket-row mt-2">
-                                        <span class="ticket-label">Comments</span>
-                                        <div class="ticket-value text-muted" style="font-style: italic;">No additional comments.</div>
+                                    <div class="mb-2 mt-2" style="font-size: 0.95rem;">
+                                        <span class="text-primary fw-semibold d-block" style="font-size: 0.85rem;">Comments</span>
+                                        <div class="text-muted bg-light p-2 rounded-2 mt-1" style="font-style: italic;">No additional comments.</div>
                                     </div>
                                 <?php endif; ?>
 
@@ -227,7 +227,7 @@ $backLink  = 'admin.php';
                                     <form method="POST" class="m-0" onsubmit="return confirm('Permanently delete feedback #<?= $id ?>?');">
                                         <input type="hidden" name="action" value="delete_feedback">
                                         <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                        <button type="submit" class="btn btn-danger-custom btn-pill shadow-sm" style="padding: 4px 12px; font-size: 0.8rem;">Delete</button>
+                                        <button type="submit" class="btn btn-danger rounded-pill px-3 py-1 fw-bold shadow-sm" style="background-color: #ef4444; border-color: #ef4444; font-size: 0.8rem;">Delete</button>
                                     </form>
                                 </div>
 

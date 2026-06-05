@@ -95,12 +95,12 @@ $pageType = 'dashboard';
 
     <div class="container pb-4">
         <!-- Control Center Header -->
-        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 mt-4 pb-3 control-header-border">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 mt-4 pb-3 border-bottom">
             <div>
                 <h2 class="fw-bold mb-1 text-dark">Control Center</h2>
                 <p class="text-muted mb-0 small">Monitor and manage real-time transport fleet, personnel, and passenger analytics.</p>
             </div>
-            <div class="mt-3 mt-md-0 d-flex align-items-center gap-2 px-3 py-2 rounded-pill status-badge">
+            <div class="mt-3 mt-md-0 d-flex align-items-center gap-2 px-3 py-2 rounded-pill bg-white text-secondary border shadow-sm" style="font-size: 0.82rem; font-weight: 600;">
                 <span class="status-pulse"></span>
                 <span>Live System: <strong class="text-success">Operational</strong></span>
             </div>
@@ -238,8 +238,8 @@ $pageType = 'dashboard';
             </div>
         </div>
 
-        <div class="card card-standard">
-            <div class="card-header-std d-flex justify-content-between align-items-center">
+        <div class="card border rounded-4 shadow-sm mb-4 bg-white overflow-hidden">
+            <div class="card-header bg-white border-bottom fw-bold p-3 d-flex justify-content-between align-items-center" style="font-size: 0.95rem; color: #0f3878; letter-spacing: 0.5px;">
                 <div class="d-flex align-items-center gap-2">
                     <img src="<?= htmlspecialchars($baseUrl) ?>/assets/images/byaheroLogo.png" alt="ByaHero Logo" style="width: 24px; height: 24px; object-fit: contain;">
                     <span>BUS TRACKER</span>
@@ -250,7 +250,7 @@ $pageType = 'dashboard';
                 </small>
             </div>
             <div class="card-body p-0">
-                <div id="map" class="map-wrapper"></div>
+                <div id="map" class="w-100 overflow-hidden" style="height: 500px;"></div>
             </div>
         </div>
     </div>

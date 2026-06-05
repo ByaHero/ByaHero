@@ -131,100 +131,98 @@ $backLink  = 'admin.php';
 </head>
 <body>
 
-<div class="app-shell">
-    <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
+<?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-    <div class="app-content">
+<div class="container py-4" style="max-width: 420px;">
 
-        <?php if ($message): ?>
-            <div class="alert alert-success alert-dismissible fade show" role="alert">
-                <?= $message ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
-        <?php if ($error): ?>
-            <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                <?= $error ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
-        <div class="add-bus-card">
-            <h2 class="section-title">Add Bus</h2>
-            <form method="POST">
-                <input type="hidden" name="action" value="add_bus">
-                <div class="mb-3">
-                    <input type="text" name="code" class="form-control add-bus-input w-100" placeholder="Bus 00001" required>
-                </div>
-                <div class="text-end">
-                    <button type="submit" class="btn btn-primary-custom btn-pill">Save</button>
-                </div>
-            </form>
+    <?php if ($message): ?>
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 12px;">
+            <?= $message ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    <?php endif; ?>
 
-        <div>
-            <h2 class="section-title">All Buses</h2>
-
-            <?php if (empty($buses)): ?>
-                <p class="text-muted small">No buses yet. Add one above.</p>
-            <?php else: ?>
-                <?php foreach ($buses as $bus):
-                    $id     = $bus['Bus_ID'] ?? null;
-                    $status = in_array(($bus['status'] ?? ''), $ALLOWED_STATUS, true) ? $bus['status'] : 'unavailable';
-                ?>
-                    <div class="bus-card d-flex gap-3">
-                        <div class="bus-icon-container">
-                            <img src="../../assets/images/busonallbuses.svg" alt="Bus Icon">
-                        </div>
-
-                        <div class="flex-grow-1">
-                            <div class="bus-card-row">
-                                <span class="bus-card-label">Code</span>
-                                <span class="bus-card-value"><?= h($bus['code'] ?? 'BUS') ?></span>
-                            </div>
-
-                            <div class="bus-card-row">
-                                <span class="bus-card-label">Status</span>
-                                <?php if ($status === 'available'): ?>
-                                    <span class="badge-status badge-available">Available</span>
-                                <?php else: ?>
-                                    <span class="badge-status badge-unavailable">Unavailable</span>
-                                <?php endif; ?>
-                            </div>
-
-                            <!-- Actions row: label + compact dropdown -->
-                            <div class="bus-card-row actions-row">
-                                <span class="bus-card-label">Actions</span>
-                                <div class="actions-right">
-                                    <select form="update-form-<?= $id ?>" name="status" class="form-select action-select">
-                                        <option value="available"   <?= $status === 'available'   ? 'selected' : '' ?>>Available</option>
-                                        <option value="unavailable" <?= $status === 'unavailable' ? 'selected' : '' ?>>Unavailable</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-end gap-2 mt-3">
-                                <form method="POST" id="update-form-<?= $id ?>" class="m-0">
-                                    <input type="hidden" name="action" value="update_bus">
-                                    <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                    <button type="submit" class="btn btn-primary-custom btn-pill">Save</button>
-                                </form>
-
-                                <form method="POST" class="m-0" onsubmit="return confirm('Delete bus <?= h($bus['code'] ?? '') ?>?');">
-                                    <input type="hidden" name="action" value="delete_bus">
-                                    <input type="hidden" name="id" value="<?= h((string)$id) ?>">
-                                    <button type="submit" class="btn btn-danger-custom btn-pill">Delete</button>
-                                </form>
-                            </div>
-
-                        </div>
-                    </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
+    <?php if ($error): ?>
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 12px;">
+            <?= $error ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
+    <?php endif; ?>
 
+    <div class="bg-light rounded-4 p-4 border mb-4">
+        <h2 class="fw-bold text-dark mb-3" style="font-size: 1.25rem;">Add Bus</h2>
+        <form method="POST">
+            <input type="hidden" name="action" value="add_bus">
+            <div class="mb-3">
+                <input type="text" name="code" class="form-control bg-white border" style="border-radius: 8px; padding: 10px 15px; font-size: 0.95rem;" placeholder="Bus 00001" required>
+            </div>
+            <div class="text-end">
+                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold" style="background-color: #1e5dd9; border-color: #1e5dd9; font-size: 0.85rem;">Save</button>
+            </div>
+        </form>
     </div>
+
+    <div>
+        <h2 class="fw-bold text-dark mb-3" style="font-size: 1.25rem;">All Buses</h2>
+
+        <?php if (empty($buses)): ?>
+            <p class="text-muted small">No buses yet. Add one above.</p>
+        <?php else: ?>
+            <?php foreach ($buses as $bus):
+                $id     = $bus['Bus_ID'] ?? null;
+                $status = in_array(($bus['status'] ?? ''), $ALLOWED_STATUS, true) ? $bus['status'] : 'unavailable';
+            ?>
+                <div class="bg-white rounded-4 p-4 border mb-3 shadow-sm d-flex gap-3">
+                    <div class="d-flex justify-content-center mt-1" style="width: 60px; flex-shrink: 0;">
+                        <img src="../../assets/images/busonallbuses.svg" alt="Bus Icon" style="max-width: 100%; height: auto;">
+                    </div>
+
+                    <div class="flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.95rem;">
+                            <span class="text-secondary" style="font-size: 0.9rem;">Code</span>
+                            <span class="fw-bold text-dark"><?= h($bus['code'] ?? 'BUS') ?></span>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.95rem;">
+                            <span class="text-secondary" style="font-size: 0.9rem;">Status</span>
+                            <?php if ($status === 'available'): ?>
+                                <span class="badge rounded-pill px-3 py-1 fw-bold text-uppercase" style="background: #a7f3d0; color: #065f46; font-size: 0.75rem;">Available</span>
+                            <?php else: ?>
+                                <span class="badge rounded-pill px-3 py-1 fw-bold text-uppercase" style="background: #fecaca; color: #991b1b; font-size: 0.75rem;">Unavailable</span>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Actions row: label + compact dropdown -->
+                        <div class="d-flex justify-content-between align-items-center mb-2" style="font-size: 0.95rem; margin-top: 4px;">
+                            <span class="text-secondary" style="font-size: 0.9rem;">Actions</span>
+                            <div class="d-flex align-items-center justify-content-end">
+                                <select form="update-form-<?= $id ?>" name="status" class="form-select rounded-pill px-3 py-1 fw-semibold text-dark border-0 bg-light" style="font-size: 0.8rem; min-width: 120px; box-shadow: inset 0 0 0 1px #e5e7eb;">
+                                    <option value="available"   <?= $status === 'available'   ? 'selected' : '' ?>>Available</option>
+                                    <option value="unavailable" <?= $status === 'unavailable' ? 'selected' : '' ?>>Unavailable</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <form method="POST" id="update-form-<?= $id ?>" class="m-0">
+                                <input type="hidden" name="action" value="update_bus">
+                                <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                                <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold" style="background-color: #1e5dd9; border-color: #1e5dd9; font-size: 0.85rem;">Save</button>
+                            </form>
+
+                            <form method="POST" class="m-0" onsubmit="return confirm('Delete bus <?= h($bus['code'] ?? '') ?>?');">
+                                <input type="hidden" name="action" value="delete_bus">
+                                <input type="hidden" name="id" value="<?= h((string)$id) ?>">
+                                <button type="submit" class="btn btn-danger rounded-pill px-4 py-2 fw-bold" style="background-color: #b91c1c; border-color: #b91c1c; font-size: 0.85rem;">Delete</button>
+                            </form>
+                        </div>
+
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

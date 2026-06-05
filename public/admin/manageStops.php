@@ -231,10 +231,10 @@ $backLink  = 'admin.php';
 
     <div class="row g-4 mt-1">
         <div class="col-lg-8">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 d-flex justify-content-between align-items-center" style="border-radius: 16px 16px 0 0;">
                     <div class="fw-bold">Stops Map</div>
-                    <div class="hint text-nowrap">Click map to pick</div>
+                    <div class="small text-secondary text-nowrap">Click map to pick</div>
                 </div>
                 <div class="card-body">
                     <div class="rounded-4 text-center py-3 mb-3" style="background-color: #e5e7eb;">
@@ -250,11 +250,11 @@ $backLink  = 'admin.php';
 
                     <div id="stopMap"></div>
 
-                    <div class="icon-size-card mt-3">
+                    <div class="border p-3 bg-light mt-3" style="border-style: dashed !important; border-radius: 14px;">
                         <div class="d-flex justify-content-between align-items-center">
                             <div class="fw-bold">Marker Icon Size</div>
                             <div class="small text-muted">
-                                <span class="icon-size-value" id="iconSizeValue">42</span>px
+                                <span class="fw-bold" id="iconSizeValue" style="font-variant-numeric: tabular-nums;">42</span>px
                             </div>
                         </div>
                         <input
@@ -282,8 +282,8 @@ $backLink  = 'admin.php';
         </div>
 
         <div class="col-lg-4">
-            <div class="card card-standard">
-                <div class="card-header-std text-primary d-flex align-items-center gap-2">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 text-primary d-flex align-items-center gap-2" style="border-radius: 16px 16px 0 0;">
                     <span class="material-icons-round">add_location_alt</span>
                     <span>Add Stop / Terminal</span>
                 </div>
@@ -295,12 +295,12 @@ $backLink  = 'admin.php';
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Name</label>
-                            <input type="text" name="name" class="form-control" placeholder="e.g. TALISAY" required>
+                            <input type="text" name="name" class="form-control" style="border-radius: 12px;" placeholder="e.g. TALISAY" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Type</label>
-                            <select name="type" id="typeSelect" class="form-select" required>
+                            <select name="type" id="typeSelect" class="form-select" style="border-radius: 12px;" required>
                                 <option value="bus_stop">Bus Stop</option>
                                 <option value="pickup_point">Pick-up Point</option>
                                 <option value="terminal">Terminal</option>
@@ -309,7 +309,7 @@ $backLink  = 'admin.php';
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Route</label>
-                            <select name="route" class="form-select" required>
+                            <select name="route" class="form-select" style="border-radius: 12px;" required>
                                 <option value="<?= h(ROUTE_FORWARD) ?>">LAUREL - TANAUAN</option>
                                 <option value="<?= h(ROUTE_REVERSE) ?>">TANAUAN - LAUREL</option>
                             </select>
@@ -317,16 +317,16 @@ $backLink  = 'admin.php';
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Location Name</label>
-                            <input type="text" name="location_name" class="form-control" placeholder="e.g. Mototrade" required>
+                            <input type="text" name="location_name" class="form-control" style="border-radius: 12px;" placeholder="e.g. Mototrade" required>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label small fw-bold text-uppercase">Location Landmark (optional)</label>
-                            <input type="text" name="location_landmark" class="form-control" placeholder="e.g. Near public market">
+                            <input type="text" name="location_landmark" class="form-control" style="border-radius: 12px;" placeholder="e.g. Near public market">
                         </div>
 
                         <div class="d-grid">
-                            <button class="btn btn-primary pill-btn">Save</button>
+                            <button class="btn btn-primary rounded-pill px-4 py-2 fw-bold" style="letter-spacing: 0.2px;">Save</button>
                         </div>
                     </form>
                 </div>
@@ -337,9 +337,9 @@ $backLink  = 'admin.php';
 
     <!-- Per‑route draggable summaries -->
     <div class="row g-4 my-4">
-        <div class="col-lg-6">
-            <div class="card card-standard route-list-card">
-                <div class="card-header-std text-primary">
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 text-primary" style="border-radius: 16px 16px 0 0;">
                     Laurel → Tanauan (Bus Stops &amp; Pick‑up Points)
                 </div>
                 <div class="card-body">
@@ -348,7 +348,7 @@ $backLink  = 'admin.php';
                     <?php else: ?>
                         <ul class="list-unstyled mb-0 small" id="route-forward-list">
                             <?php foreach ($stopsForward as $s): ?>
-                                <li class="route-item" data-id="<?= h($s['id']) ?>">
+                                <li class="d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
                                     <span class="fw-bold"><?= h($s['name']) ?></span>
                                     <span class="text-muted"> — <?= h($s['location_name']) ?></span>
                                     <?php if (!empty($s['location_landmark'])): ?>
@@ -361,7 +361,7 @@ $backLink  = 'admin.php';
                         <form method="POST" id="route-forward-order-form" class="mt-3">
                             <input type="hidden" name="action" value="save_forward_order">
                             <input type="hidden" name="order" id="route-forward-order-input">
-                            <button type="submit" class="btn btn-outline-primary btn-sm pill-btn">
+                            <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-bold" style="letter-spacing: 0.2px;">
                                 Save Order (Laurel → Tanauan)
                             </button>
                         </form>
@@ -370,9 +370,9 @@ $backLink  = 'admin.php';
             </div>
         </div>
 
-        <div class="col-lg-6">
-            <div class="card card-standard route-list-card">
-                <div class="card-header-std text-primary">
+        <div class="col-lg-6 mb-4">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 text-primary" style="border-radius: 16px 16px 0 0;">
                     Tanauan → Laurel (Bus Stops &amp; Pick‑up Points)
                 </div>
                 <div class="card-body">
@@ -381,7 +381,7 @@ $backLink  = 'admin.php';
                     <?php else: ?>
                         <ul class="list-unstyled mb-0 small" id="route-reverse-list">
                             <?php foreach ($stopsReverse as $s): ?>
-                                <li class="route-item" data-id="<?= h($s['id']) ?>">
+                                <li class="d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
                                     <span class="fw-bold"><?= h($s['name']) ?></span>
                                     <span class="text-muted"> — <?= h($s['location_name']) ?></span>
                                     <?php if (!empty($s['location_landmark'])): ?>
@@ -394,7 +394,7 @@ $backLink  = 'admin.php';
                         <form method="POST" id="route-reverse-order-form" class="mt-3">
                             <input type="hidden" name="action" value="save_reverse_order">
                             <input type="hidden" name="order" id="route-reverse-order-input">
-                            <button type="submit" class="btn btn-outline-primary btn-sm pill-btn">
+                            <button type="submit" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1 fw-bold" style="letter-spacing: 0.2px;">
                                 Save Order (Tanauan → Laurel)
                             </button>
                         </form>
@@ -407,8 +407,8 @@ $backLink  = 'admin.php';
     <!-- Existing Stops (Full Width) -->
     <div class="row g-4 my-4">
         <div class="col-12">
-            <div class="card card-standard">
-                <div class="card-header-std d-flex justify-content-between align-items-center">
+            <div class="card border-0 rounded-4 shadow-sm bg-white">
+                <div class="card-header bg-white border-bottom fw-bold p-3 d-flex justify-content-between align-items-center" style="border-radius: 16px 16px 0 0;">
                     <div class="fw-bold">Existing Stops (All Routes)</div>
                     <div class="small text-muted">Rows: <?= count($stops) ?></div>
                 </div>
@@ -417,10 +417,10 @@ $backLink  = 'admin.php';
                         <table class="table table-sm table-hover mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th>Name</th>
-                                    <th>Type</th>
-                                    <th>Route</th>
-                                    <th></th>
+                                    <th class="px-3 py-2">Name</th>
+                                    <th class="px-3 py-2">Type</th>
+                                    <th class="px-3 py-2">Route</th>
+                                    <th class="px-3 py-2"></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -428,20 +428,20 @@ $backLink  = 'admin.php';
                                 <tr><td colspan="4" class="text-center text-muted py-3">No stops yet.</td></tr>
                             <?php else: foreach ($stops as $s): ?>
                                 <tr>
-                                    <td class="fw-bold">
+                                    <td class="fw-bold px-3 py-2">
                                         <?= h($s['name']) ?>
                                         <div class="small text-muted"><?= h($s['location_name']) ?></div>
                                         <?php if (!empty($s['location_landmark'])): ?>
                                             <div class="small text-muted">Landmark: <?= h($s['location_landmark']) ?></div>
                                         <?php endif; ?>
                                     </td>
-                                    <td class="text-uppercase small"><?= h($s['type']) ?></td>
-                                    <td class="small"><?= h($s['route'] ?? '') ?></td>
-                                    <td class="text-end">
+                                    <td class="text-uppercase small px-3 py-2"><?= h($s['type']) ?></td>
+                                    <td class="small px-3 py-2"><?= h($s['route'] ?? '') ?></td>
+                                    <td class="text-end px-3 py-2">
                                         <form method="POST" onsubmit="return confirm('Delete this stop?');" class="m-0 p-0">
                                             <input type="hidden" name="action" value="delete_stop">
                                             <input type="hidden" name="id" value="<?= h($s['id']) ?>">
-                                            <button class="btn btn-sm btn-outline-danger pill-btn">Delete</button>
+                                            <button class="btn btn-sm btn-outline-danger rounded-pill px-3 py-1 fw-bold" style="letter-spacing: 0.2px;">Delete</button>
                                         </form>
                                     </td>
                                 </tr>

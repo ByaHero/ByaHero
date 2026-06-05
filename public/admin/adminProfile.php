@@ -182,55 +182,55 @@ $backLink  = 'admin.php';
     <link href="../../assets/css/admin/adminProfile.css" rel="stylesheet">
 </head>
 
-<body>
+<body class="d-flex flex-column min-vh-100 m-0 bg-white" style="font-family: 'Segoe UI', sans-serif;">
 
     <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-    <div class="profile-header-wrap">
-        <div class="avatar-circle">
+    <div class="d-flex flex-column align-items-center gap-2 pt-4 px-3 pb-2">
+        <div class="d-flex align-items-center justify-content-center rounded-circle fw-bold text-dark" style="width: 110px; height: 110px; background: #d9d9d9; font-size: 52px;">
             <?php echo htmlspecialchars(strtoupper(substr($displayName, 0, 1))); ?>
         </div>
-        <h2 class="profile-name"><?php echo htmlspecialchars($displayName); ?></h2>
+        <h2 class="fw-bold text-primary mb-0" style="font-size: 1.15rem;"><?php echo htmlspecialchars($displayName); ?></h2>
     </div>
 
-    <div class="bottom-sheet">
+    <div class="flex-grow-1 p-4 pb-5 bg-light" style="border-top-left-radius: 26px; border-top-right-radius: 26px; background-color: #eef2f6 !important; min-height: 0;">
 
         <?php if ($message): ?>
-            <div class="alert alert-info msg text-center">
+            <div class="alert alert-info py-2 px-3 mb-3 fw-bold text-center" style="border-radius: 12px; font-size: 0.85rem;">
                 <?php echo htmlspecialchars($message); ?>
             </div>
         <?php endif; ?>
 
-        <div class="section-title">Account Details</div>
+        <div class="fw-bold text-dark mt-2 mb-3 ms-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Account Details</div>
 
         <!-- Email Card -->
-        <div class="detail-card">
-            <div class="detail-icon">
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
                 <img src="<?php echo htmlspecialchars($iconMail); ?>" alt="Email" width="22" height="22">
             </div>
 
-            <div class="detail-main">
-                <p class="detail-label">Email Address</p>
-                <p class="detail-value"><?php echo htmlspecialchars($userEmail); ?></p>
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Email Address</p>
+                <p class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;"><?php echo htmlspecialchars($userEmail); ?></p>
             </div>
 
-            <button type="button" class="detail-action" onclick="openEmailModal()" aria-label="Edit Email">
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openEmailModal()" aria-label="Edit Email" style="width: 34px; height: 34px;">
                 <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
             </button>
         </div>
 
         <!-- Password Card -->
-        <div class="detail-card">
-            <div class="detail-icon">
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
                 <img src="<?php echo htmlspecialchars($iconPassword); ?>" alt="Password" width="22" height="22">
             </div>
 
-            <div class="detail-main">
-                <p class="detail-label">Password</p>
-                <p class="detail-value">••••••••••••</p>
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Password</p>
+                <p class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;">••••••••••••</p>
             </div>
 
-            <button type="button" class="detail-action" onclick="openPasswordModal()" aria-label="Edit Password">
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openPasswordModal()" aria-label="Edit Password" style="width: 34px; height: 34px;">
                 <img src="<?php echo htmlspecialchars($iconEdit); ?>" alt="Edit" width="18" height="18">
             </button>
         </div>
@@ -244,9 +244,9 @@ $backLink  = 'admin.php';
             <p>Enter your new email address below.</p>
             <form method="POST" action="adminProfile.php">
                 <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" required>
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn btn-no" onclick="closeEmailModal()">Cancel</button>
-                    <button type="submit" name="update_email" class="modal-btn btn-yes">Save</button>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closeEmailModal()">Cancel</button>
+                    <button type="submit" name="update_email" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
                 </div>
             </form>
         </div>
@@ -280,9 +280,9 @@ $backLink  = 'admin.php';
                     </button>
                 </div>
 
-                <div class="modal-actions">
-                    <button type="button" class="modal-btn btn-no" onclick="closePasswordModal()">Cancel</button>
-                    <button type="submit" name="update_password" class="modal-btn btn-yes">Save</button>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closePasswordModal()">Cancel</button>
+                    <button type="submit" name="update_password" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
                 </div>
             </form>
         </div>

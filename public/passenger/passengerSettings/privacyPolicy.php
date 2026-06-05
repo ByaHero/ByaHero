@@ -21,21 +21,6 @@ require_once __DIR__ . '/../auth_passenger.php';
       background-color: #f8f9fa;
       padding-bottom: 80px;
     }
-    .policy-container {
-      margin-top: 70px;
-      background: white;
-      border-radius: 12px;
-      padding: 2rem;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-    .policy-header {
-      border-bottom: 3px solid #1e3a8a;
-      padding-bottom: 1rem;
-      margin-bottom: 2rem;
-    }
-    .policy-section {
-      margin-bottom: 2rem;
-    }
     .policy-section h2 {
       color: #1e3a8a;
       font-size: 1.5rem;
@@ -56,14 +41,6 @@ require_once __DIR__ . '/../auth_passenger.php';
     .policy-section ul {
       padding-left: 1.5rem;
     }
-    .last-updated {
-      background: #f3f4f6;
-      padding: 0.75rem 1rem;
-      border-radius: 8px;
-      font-size: 0.9rem;
-      color: #6b7280;
-      margin-bottom: 2rem;
-    }
   </style>
 </head>
 <body>
@@ -74,13 +51,13 @@ require_once __DIR__ . '/../auth_passenger.php';
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container policy-container">
-    <div class="policy-header">
+  <div class="container bg-white p-4 p-sm-5 border rounded-3 mt-5 pt-3 shadow-sm" style="margin-top: 70px !important; border-radius: 12px !important;">
+    <div class="border-bottom border-3 border-primary pb-3 mb-4">
       <h1 class="fw-bold text-primary mb-2">Privacy Policy</h1>
       <p class="text-muted mb-0">How ByaHero collects, uses, and protects your information</p>
     </div>
 
-    <div class="last-updated">
+    <div class="bg-light p-3 rounded-3 small text-secondary mb-4">
       <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">schedule</span>
       Last Updated: February 7, 2026
     </div>

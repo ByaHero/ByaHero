@@ -83,10 +83,10 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         <div class="row g-4 align-items-stretch">
             <!-- Left Column: Map & Filter -->
             <div class="col-lg-7 d-flex flex-column">
-                <div class="action-row position-relative d-flex align-items-center mb-3 justify-content-center">
+                <div class="position-relative d-flex align-items-center justify-content-center justify-content-lg-between mb-3 px-2 px-lg-0 mt-3 mt-lg-0">
                     <h5 class="fw-bold mb-0 text-dark d-none d-lg-block position-absolute start-0" style="font-size: 1.15rem; letter-spacing: 0.2px;">Commuter Dispatch Map</h5>
                     <div class="dropdown mx-auto">
-                        <button id="filterBtnLabel" class="filter-pill dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <button id="filterBtnLabel" class="btn bg-white px-4 py-2 rounded-pill shadow-sm fw-bold text-secondary border d-flex align-items-center gap-2 text-uppercase" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="font-size: 0.75rem;">
                             FILTER ROUTES <span class="material-symbols-rounded" style="font-size: 18px;">route</span>
                         </button>
                         <ul class="dropdown-menu dropdown-menu-end">
@@ -97,8 +97,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
                     </div>
                 </div>
 
-                <div class="map-card-wrapper flex-grow-1">
-                    <div class="alert-area" id="alertBox"></div>
+                <div class="map-card-wrapper flex-grow-1 position-relative overflow-hidden shadow bg-white border border-4 border-white" style="border-radius: 20px;">
+                    <div class="position-absolute start-0 end-0 p-2" id="alertBox" style="bottom: 10px; z-index: 900;"></div>
                     <div id="mainMap"></div>
                 </div>
             </div>
@@ -152,7 +152,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         </div>
     </main>
 
-    <div class="footer-bar"></div>
+    <div class="position-fixed bottom-0 start-0 w-100 bg-primary" style="height: 35px; background-color: #0f3878 !important; z-index: 1000;"></div>
 
     <!-- PRE-DEPARTURE MODAL -->
     <div class="modal fade" id="preDepartureModal" tabindex="-1" aria-hidden="true" style="z-index: 2000;">

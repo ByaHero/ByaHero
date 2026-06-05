@@ -25,48 +25,12 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
       padding-bottom: 80px;
       min-height: 100vh;
     }
-    .feedback-container {
-      margin-top: 80px;
-      max-width: 600px;
-    }
-    .feedback-card {
-      background: #ffffff;
-      border: none;
-      border-radius: 24px;
-      box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06);
-      padding: 2.5rem 2rem;
-    }
-    .feedback-header {
-      text-align: center;
-      margin-bottom: 2rem;
-    }
-    .feedback-header h5 {
-      font-size: 1.75rem;
-      color: #1e3a8a;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-    }
-    .feedback-header p {
-      color: #64748b;
-      font-size: 1.05rem;
-    }
-    .star-wrapper {
-      background: #f8fafc;
-      border-radius: 16px;
-      padding: 1.5rem;
-      margin-bottom: 2rem;
-    }
     .star {
       width: clamp(40px, 12vw, 55px);
       height: clamp(40px, 12vw, 55px);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
       filter: drop-shadow(0 4px 6px rgba(0,0,0,0.05));
-    }
-    @media (max-width: 480px) {
-      .star-wrapper {
-        padding: 1rem 0.5rem !important;
-      }
     }
     .star:hover {
       transform: scale(1.2) translateY(-5px);
@@ -75,87 +39,23 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
     .star:active {
       transform: scale(0.9);
     }
-    .feedback-form label {
-      color: #334155;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-    .feedback-textarea {
-      width: 100%;
-      height: 140px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      background-color: #f8fafc;
-      padding: 16px;
-      font-size: 1rem;
-      resize: vertical;
-      transition: all 0.2s ease;
-      color: #1e293b;
-    }
     .feedback-textarea:focus {
-      border-color: #1e3a8a;
-      background-color: #ffffff;
+      border-color: #1e3a8a !important;
+      background-color: #ffffff !important;
       outline: none;
-      box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1);
-    }
-    .feedback-textarea::placeholder {
-      color: #94a3b8;
-    }
-    .btn-custom {
-      border-radius: 50rem;
-      font-weight: 600;
-      transition: all 0.2s ease;
+      box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1) !important;
     }
     .btn-primary-custom {
-      background-color: #1e3a8a;
-      border-color: #1e3a8a;
-      color: white;
-      box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
+      background-color: #1e3a8a !important;
+      border-color: #1e3a8a !important;
     }
-    .btn-primary-custom:hover {
-      background-color: #172554;
-      border-color: #172554;
+    .btn-primary-custom:hover:not(:disabled) {
+      background-color: #172554 !important;
+      border-color: #172554 !important;
       transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(30, 58, 138, 0.3);
-      color: white;
-    }
-    .btn-primary-custom:disabled {
-      background-color: #cbd5e1;
-      border-color: #cbd5e1;
-      color: #64748b;
-      cursor: not-allowed;
-      transform: none;
-      box-shadow: none;
-    }
-    .btn-secondary-custom {
-      background-color: #f1f5f9;
-      border-color: #f1f5f9;
-      color: #475569;
     }
     .btn-secondary-custom:hover {
-      background-color: #e2e8f0;
-      border-color: #e2e8f0;
-      color: #1e293b;
       transform: translateY(-2px);
-    }
-    .login-required-notice {
-      background-color: #fffbeb;
-      border: 1px solid #fde68a;
-      border-left: 4px solid #f59e0b;
-      padding: 16px;
-      border-radius: 12px;
-      margin-bottom: 2rem;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.05);
-    }
-    .login-required-notice .material-symbols-rounded {
-      color: #f59e0b;
-    }
-    .login-required-notice span {
-      color: #92400e;
-      font-size: 0.95rem;
     }
   </style>
 </head>
@@ -167,22 +67,22 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
   include "../../../components/navbarPassenger.php";
   ?>
 
-  <div class="container feedback-container">
-    <div class="feedback-card">
-      <div class="feedback-header">
-        <h5>Help us improve!</h5>
-        <p>How would you rate your experience with ByaHero?</p>
+  <div class="container mt-5 pt-3" style="margin-top: 80px; max-width: 600px;">
+    <div class="bg-white border-0 p-4 p-sm-5 shadow-sm" style="border-radius: 24px; box-shadow: 0 12px 36px rgba(0, 0, 0, 0.06) !important;">
+      <div class="text-center mb-4">
+        <h5 class="fw-bold text-primary mb-2" style="font-size: 1.75rem; letter-spacing: -0.5px;">Help us improve!</h5>
+        <p class="text-secondary" style="font-size: 1.05rem;">How would you rate your experience with ByaHero?</p>
       </div>
 
       <?php if (!$isLoggedIn): ?>
-        <div class="login-required-notice">
-          <span class="material-symbols-rounded">info</span>
-          <span>Please <a href="../../../public/login.php" style="color: #d97706; text-decoration: underline; font-weight: bold;">login</a> to submit feedback.</span>
+        <div class="alert alert-warning d-flex align-items-center gap-3 p-3 mb-4 border-start border-4 border-warning rounded-3" style="background-color: #fffbeb; box-shadow: 0 2px 8px rgba(245, 158, 11, 0.05);">
+          <span class="material-symbols-rounded text-warning">info</span>
+          <span style="color: #92400e;">Please <a href="../../../public/login.php" style="color: #d97706; text-decoration: underline; font-weight: bold;">login</a> to submit feedback.</span>
         </div>
       <?php endif; ?>
 
       <div id="feedbackFormContent">
-        <div class="star-wrapper d-flex justify-content-center gap-2 gap-sm-4">
+        <div class="d-flex justify-content-center gap-2 gap-sm-4 p-4 mb-4 bg-light rounded-4" style="border-radius: 16px !important;">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="1" alt="1 star">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="2" alt="2 stars">
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="3" alt="3 stars">
@@ -190,14 +90,14 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
           <img src="../../../assets/images/star_blank.svg" class="star" data-value="5" alt="5 stars">
         </div>
 
-        <div class="feedback-form">
-          <label for="feedbackTextarea" class="mb-3 d-block">Additional Information (What would you like to say?)</label>
-          <textarea id="feedbackTextarea" class="feedback-textarea" placeholder="Share your thoughts, suggestions, or report issues..." <?php echo !$isLoggedIn ? 'disabled' : ''; ?>></textarea>
+        <div class="mb-3">
+          <label for="feedbackTextarea" class="mb-3 d-block fw-semibold text-secondary" style="font-size: 0.95rem;">Additional Information (What would you like to say?)</label>
+          <textarea id="feedbackTextarea" class="form-control border p-3 feedback-textarea" placeholder="Share your thoughts, suggestions, or report issues..." style="height: 140px; resize: vertical; border-radius: 12px; background-color: #f8fafc; font-size: 1rem; color: #1e293b;" <?php echo !$isLoggedIn ? 'disabled' : ''; ?>></textarea>
         </div>
 
         <div class="mt-4 pt-2 d-flex justify-content-center gap-3">
-          <button class="btn btn-secondary-custom btn-custom" onclick="window.location.href='../index.php';">Cancel</button>
-          <button class="btn btn-primary-custom btn-custom" id="submitBtn" onclick="submitFeedback()" disabled>Submit Feedback</button>
+          <button class="btn btn-light border rounded-pill fw-semibold py-2 px-4 btn-secondary-custom" onclick="window.location.href='../index.php';" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;">Cancel</button>
+          <button class="btn btn-primary rounded-pill fw-semibold py-2 px-4 btn-primary-custom" id="submitBtn" onclick="submitFeedback()" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;" disabled>Submit Feedback</button>
         </div>
       </div>
 

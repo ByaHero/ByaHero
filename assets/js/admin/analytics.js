@@ -26,7 +26,10 @@ function h(s) {
 }
 
 function emptyState(icon, msg) {
-    return `<div class="empty-state"><span class="material-icons-round">${icon}</span><p>${msg}</p></div>`;
+    return `<div class="text-center py-5 text-muted">
+        <span class="material-icons-round fs-1 mb-2 opacity-50">${icon}</span>
+        <p class="fw-bold small mb-0">${msg}</p>
+    </div>`;
 }
 
 async function loadAnalytics() {
@@ -53,21 +56,29 @@ function renderAnalytics(data) {
 
     // Summary cards
     document.getElementById('statGrid').innerHTML = `
-        <div class="stat-card">
-            <div class="stat-value">${Number(s.total_trips || 0).toLocaleString()}</div>
-            <div class="stat-label">Total Trips</div>
+        <div class="col-6 col-md-3">
+            <div class="card border border-light-subtle shadow-sm rounded-3 p-3 text-center bg-white h-100">
+                <div class="fs-2 fw-bold text-primary lh-sm">${Number(s.total_trips || 0).toLocaleString()}</div>
+                <div class="text-uppercase text-muted fw-bold small tracking-wider mt-1" style="font-size:0.7rem;">Total Trips</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">${Number(s.total_passengers || 0).toLocaleString()}</div>
-            <div class="stat-label">Passengers Boarded</div>
+        <div class="col-6 col-md-3">
+            <div class="card border border-light-subtle shadow-sm rounded-3 p-3 text-center bg-white h-100">
+                <div class="fs-2 fw-bold text-primary lh-sm">${Number(s.total_passengers || 0).toLocaleString()}</div>
+                <div class="text-uppercase text-muted fw-bold small tracking-wider mt-1" style="font-size:0.7rem;">Passengers Boarded</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">${Number(s.total_departed || 0).toLocaleString()}</div>
-            <div class="stat-label">Passengers Departed</div>
+        <div class="col-6 col-md-3">
+            <div class="card border border-light-subtle shadow-sm rounded-3 p-3 text-center bg-white h-100">
+                <div class="fs-2 fw-bold text-primary lh-sm">${Number(s.total_departed || 0).toLocaleString()}</div>
+                <div class="text-uppercase text-muted fw-bold small tracking-wider mt-1" style="font-size:0.7rem;">Passengers Departed</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">${Math.round(Number(s.avg_trip_minutes || 0))}<span style="font-size:.9rem;color:var(--muted)">min</span></div>
-            <div class="stat-label">Avg Trip Duration</div>
+        <div class="col-6 col-md-3">
+            <div class="card border border-light-subtle shadow-sm rounded-3 p-3 text-center bg-white h-100">
+                <div class="fs-2 fw-bold text-primary lh-sm">${Math.round(Number(s.avg_trip_minutes || 0))}<span class="fs-6 text-muted fw-normal"> min</span></div>
+                <div class="text-uppercase text-muted fw-bold small tracking-wider mt-1" style="font-size:0.7rem;">Avg Trip Duration</div>
+            </div>
         </div>
     `;
 
@@ -161,24 +172,32 @@ function renderHourlyChart(hourlyData) {
 function renderRouteTable(routes) {
     const el = document.getElementById('routeTable');
     if (!routes.length) { el.innerHTML = emptyState('route', 'No route data yet'); return; }
-    el.innerHTML = `<table class="analytics-table">
-        <thead><tr><th>Route</th><th>Trips</th><th>Passengers</th></tr></thead>
-        <tbody>${routes.map(r => `<tr>
-            <td>${h(r.route)}</td>
-            <td>${r.trips}</td>
-            <td style="color:var(--brand);font-weight:900">${Number(r.passengers).toLocaleString()}</td>
-        </tr>`).join('')}</tbody>
-    </table>`;
+    el.innerHTML = `<div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+            <thead>
+                <tr class="text-uppercase text-muted small border-bottom border-light-subtle" style="font-size:0.7rem;">
+                    <th class="py-2">Route</th>
+                    <th class="py-2">Trips</th>
+                    <th class="py-2">Passengers</th>
+                </tr>
+            </thead>
+            <tbody>${routes.map(r => `<tr>
+                <td class="text-dark fw-bold py-2">${h(r.route)}</td>
+                <td class="py-2">${r.trips}</td>
+                <td class="text-primary fw-bold py-2">${Number(r.passengers).toLocaleString()}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+    </div>`;
 }
 
 function renderHotspotSummary(s, locations) {
     const el = document.getElementById('hotspotSummary');
     
-    let locListHtml = '<div class="text-center mt-3 pt-3 border-top"><div class="details-title">Boarding Locations</div><div class="d-flex flex-wrap justify-content-center gap-2 mt-2">';
+    let locListHtml = '<div class="text-center mt-3 pt-3 border-top"><div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size:0.7rem; margin-bottom:8px;">Boarding Locations</div><div class="d-flex flex-wrap justify-content-center gap-2 mt-2">';
     if (locations && locations.length) {
         locListHtml += locations.map(l => `
-            <span class="badge bg-light text-dark border py-2 px-3" style="border-radius:10px; font-weight:700;">
-                ${h(l.location_name)} — <span style="color:#166534">${l.total}</span> <span style="font-size:0.65rem; color:var(--muted)">Boarded</span>
+            <span class="badge bg-light text-dark border py-2 px-3 rounded-pill fw-bold">
+                ${h(l.location_name)} — <span class="text-success">${l.total}</span> <span class="text-muted" style="font-size:0.65rem">Boarded</span>
             </span>
         `).join('');
     } else {
@@ -187,13 +206,13 @@ function renderHotspotSummary(s, locations) {
     locListHtml += '</div></div>';
 
     el.innerHTML = `
-        <div class="section-card" style="padding: 24px;">
-            <div class="text-center">
-                <div class="details-title" style="margin-bottom:8px;">Total Boarded Passengers</div>
-                <div style="font-size: 2.8rem; font-weight: 900; color: #166534; line-height: 1.1;">
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <div class="text-center py-2">
+                <div class="text-uppercase text-muted fw-bold small tracking-wider" style="font-size:0.7rem; margin-bottom:8px;">Total Boarded Passengers</div>
+                <div class="display-5 fw-bold text-success lh-sm">
                     ${Number(s.total_passengers || 0).toLocaleString()}
                 </div>
-                <div style="font-size: 0.8rem; color: var(--muted); font-weight: 700; margin-top: 6px;">Activity across all tracked terminals & stops</div>
+                <div class="text-muted fw-semibold small mt-2">Activity across all tracked terminals & stops</div>
             </div>
             ${locListHtml}
         </div>
@@ -204,38 +223,43 @@ function renderBusTable(buses) {
     const el = document.getElementById('busTable');
     if (!buses.length) { el.innerHTML = emptyState('directions_bus', 'No bus data yet'); return; }
     
-    let html = `<table class="analytics-table">
-        <thead><tr><th>Bus Code</th><th>Trips</th><th>Passengers</th></tr></thead>
+    let html = `<table class="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+        <thead>
+            <tr class="text-uppercase text-muted small border-bottom border-light-subtle" style="font-size:0.7rem;">
+                <th class="py-2">Bus Code</th>
+                <th class="py-2">Trips</th>
+                <th class="py-2">Passengers</th>
+            </tr>
+        </thead>
         <tbody>`;
     
     buses.forEach((b, idx) => {
         const rowId = `bus-details-${idx}`;
-        // Clean up conductor emails to show only names
         const conductorNames = (b.conductors || '').split(', ').map(email => email.split('@')[0]).join(', ');
         
         html += `
-            <tr class="bus-row" onclick="toggleBusDetails('${rowId}', this)">
-                <td style="font-weight:900">
-                    <span class="material-icons-round expand-icon">expand_more</span>
+            <tr style="cursor:pointer;" onclick="toggleBusDetails('${rowId}', this)">
+                <td class="text-dark fw-bold py-2">
+                    <span class="material-icons-round expand-icon align-middle" style="font-size: 1.1rem; margin-right: 4px;">expand_more</span>
                     ${h(b.code)}
                 </td>
-                <td>${b.trips}</td>
-                <td style="color:var(--brand);font-weight:900">${Number(b.passengers).toLocaleString()}</td>
+                <td class="py-2">${b.trips}</td>
+                <td class="text-primary fw-bold py-2">${Number(b.passengers).toLocaleString()}</td>
             </tr>
-            <tr id="${rowId}" class="details-row">
-                <td colspan="3">
-                    <div class="details-content">
+            <tr id="${rowId}" style="display:none; background-color: #fafafa;">
+                <td colspan="3" class="p-0 border-0">
+                    <div class="border-start border-4 border-primary p-3 bg-light-subtle rounded-end shadow-inner">
                         <div class="row mb-3">
                             <div class="col-6">
-                                <div class="details-title" style="margin-bottom:4px;">Routes Taken</div>
-                                <div style="font-size:.8rem; font-weight:700; color:var(--text);">${h(b.routes || 'N/A')}</div>
+                                <div class="text-uppercase text-muted fw-bold small tracking-wider mb-1" style="font-size:0.7rem;">Routes Taken</div>
+                                <div class="text-dark fw-bold" style="font-size:.8rem;">${h(b.routes || 'N/A')}</div>
                             </div>
                             <div class="col-6">
-                                <div class="details-title" style="margin-bottom:4px;">Conductors</div>
-                                <div style="font-size:.8rem; font-weight:700; color:var(--text);">${h(conductorNames || 'N/A')}</div>
+                                <div class="text-uppercase text-muted fw-bold small tracking-wider mb-1" style="font-size:0.7rem;">Conductors</div>
+                                <div class="text-dark fw-bold" style="font-size:.8rem;">${h(conductorNames || 'N/A')}</div>
                             </div>
                         </div>
-                        <div class="details-title">Departure Hotspots</div>
+                        <div class="text-uppercase text-muted fw-bold small tracking-wider mb-2" style="font-size:0.7rem;">Departure Hotspots</div>
                         ${renderHotspotBars(b.hotspots || [])}
                     </div>
                 </td>
@@ -248,7 +272,7 @@ function renderBusTable(buses) {
 }
 
 function renderHotspotBars(hotspots) {
-    if (!hotspots.length) return `<p style="font-size:.8rem; color:var(--muted); font-weight:600; margin:0;">No departure data recorded for this bus.</p>`;
+    if (!hotspots.length) return `<p class="small text-muted fw-bold mb-0">No departure data recorded for this bus.</p>`;
     
     const maxVal = Math.max(...hotspots.map(l => Number(l.total)));
     const limit = 3;
@@ -256,29 +280,31 @@ function renderHotspotBars(hotspots) {
     
     let html = hotspots.map((l, i) => {
         const pct = maxVal > 0 ? (Number(l.total) / maxVal * 100) : 0;
-        const hiddenClass = i >= limit ? `hidden-item ${id}` : '';
-        return `<div class="loc-bar ${hiddenClass}">
-            <span class="loc-label" style="font-size:.75rem;">${h(l.location_name)}</span>
-            <div class="loc-bar-bg" style="height:6px;"><div class="loc-bar-fill" style="width:${pct}%; height:6px;"></div></div>
-            <span class="loc-count" style="font-size:.75rem;">${Number(l.total).toLocaleString()}</span>
+        const hiddenClass = i >= limit ? 'd-none ' + id : '';
+        return `<div class="d-flex align-items-center gap-2 mb-2 ${hiddenClass}">
+            <span class="text-muted fw-bold small" style="min-width: 90px; font-size:.75rem;">${h(l.location_name)}</span>
+            <div class="progress flex-grow-1" style="height: 6px; background-color: #e2e8f0;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: ${pct}%;"></div>
+            </div>
+            <span class="text-primary fw-bold small text-end" style="min-width: 35px; font-size:.75rem;">${Number(l.total).toLocaleString()}</span>
         </div>`;
     }).join('');
 
     if (hotspots.length > limit) {
-        html += `<button class="btn-see-more" onclick="toggleSeeMore('${id}', this)">See More (${hotspots.length - limit})</button>`;
+        html += `<button class="btn btn-light btn-sm w-100 py-1 mt-2 fw-bold text-primary rounded-3 text-uppercase tracking-wider" style="font-size:.72rem;" onclick="toggleSeeMore('${id}', this)">See More (${hotspots.length - limit})</button>`;
     }
     return html;
 }
 
 function toggleSeeMore(className, btn) {
     const items = document.querySelectorAll('.' + className);
-    const isHidden = items[0].classList.contains('hidden-item');
+    const isHidden = items[0].classList.contains('d-none');
     
     if (isHidden) {
-        items.forEach(el => el.classList.remove('hidden-item'));
+        items.forEach(el => el.classList.remove('d-none'));
         btn.textContent = 'See Less';
     } else {
-        items.forEach(el => el.classList.add('hidden-item'));
+        items.forEach(el => el.classList.add('d-none'));
         const count = items.length;
         btn.textContent = `See More (${count})`;
     }
@@ -300,14 +326,22 @@ function toggleBusDetails(id, rowEl) {
 function renderConductorTable(conductors) {
     const el = document.getElementById('conductorTable');
     if (!conductors.length) { el.innerHTML = emptyState('badge', 'No conductor data yet'); return; }
-    el.innerHTML = `<table class="analytics-table">
-        <thead><tr><th>Conductor</th><th>Trips</th><th>Passengers</th></tr></thead>
-        <tbody>${conductors.map(c => `<tr>
-            <td>${h(c.email)}</td>
-            <td>${c.trips}</td>
-            <td style="color:var(--brand);font-weight:900">${Number(c.passengers).toLocaleString()}</td>
-        </tr>`).join('')}</tbody>
-    </table>`;
+    el.innerHTML = `<div class="table-responsive">
+        <table class="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+            <thead>
+                <tr class="text-uppercase text-muted small border-bottom border-light-subtle" style="font-size:0.7rem;">
+                    <th class="py-2">Conductor</th>
+                    <th class="py-2">Trips</th>
+                    <th class="py-2">Passengers</th>
+                </tr>
+            </thead>
+            <tbody>${conductors.map(c => `<tr>
+                <td class="text-dark fw-bold py-2">${h(c.email)}</td>
+                <td class="py-2">${c.trips}</td>
+                <td class="text-primary fw-bold py-2">${Number(c.passengers).toLocaleString()}</td>
+            </tr>`).join('')}</tbody>
+        </table>
+    </div>`;
 }
 
 function renderLocationLogs(logs) {
@@ -317,25 +351,35 @@ function renderLocationLogs(logs) {
     const limit = 10;
     const id = 'loclogs-hidden';
     
-    let html = `<table class="analytics-table">
-        <thead><tr><th>Time</th><th>Location</th><th>Bus</th><th>Conductor</th><th>Route</th><th>Board</th><th>Depart</th></tr></thead>
+    let html = `<table class="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+        <thead>
+            <tr class="text-uppercase text-muted small border-bottom border-light-subtle" style="font-size:0.7rem;">
+                <th class="py-2">Time</th>
+                <th class="py-2">Location</th>
+                <th class="py-2">Bus</th>
+                <th class="py-2">Conductor</th>
+                <th class="py-2">Route</th>
+                <th class="py-2">Board</th>
+                <th class="py-2">Depart</th>
+            </tr>
+        </thead>
         <tbody>${logs.map((l, i) => {
             const timeStr = new Date(l.recorded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            const hiddenClass = i >= limit ? `hidden-item ${id}` : '';
+            const hiddenClass = i >= limit ? `d-none ${id}` : '';
             return `<tr class="${hiddenClass}">
-                <td style="white-space:nowrap;">${timeStr}</td>
-                <td style="font-weight:800; color:var(--brand-light);">${h(l.location_name || 'Terminal')}</td>
-                <td style="font-weight:900">${h(l.bus_code || '')}</td>
-                <td>${h((l.conductor_email || '').split('@')[0])}</td>
-                <td style="font-size:.75rem;">${h(l.route || '')}</td>
-                <td style="color:#166534;">+${l.boarded}</td>
-                <td style="color:#991b1b;">-${l.departed}</td>
+                <td class="py-2" style="white-space:nowrap;">${timeStr}</td>
+                <td class="text-primary fw-bold py-2">${h(l.location_name || 'Terminal')}</td>
+                <td class="text-dark fw-bold py-2">${h(l.bus_code || '')}</td>
+                <td class="py-2">${h((l.conductor_email || '').split('@')[0])}</td>
+                <td class="py-2" style="font-size:.75rem;">${h(l.route || '')}</td>
+                <td class="text-success fw-bold py-2">+${l.boarded}</td>
+                <td class="text-danger fw-bold py-2">-${l.departed}</td>
             </tr>`;
         }).join('')}</tbody>
     </table>`;
 
     if (logs.length > limit) {
-        html += `<button class="btn-see-more" onclick="toggleSeeMore('${id}', this)">See More (${logs.length - limit})</button>`;
+        html += `<button class="btn btn-light btn-sm w-100 py-2 mt-2 fw-bold text-primary rounded-3 text-uppercase tracking-wider" style="font-size:.72rem;" onclick="toggleSeeMore('${id}', this)">See More (${logs.length - limit})</button>`;
     }
     el.innerHTML = html;
 }
@@ -347,25 +391,34 @@ function renderRecentOps(ops) {
     const limit = 10;
     const id = 'recentops-hidden';
 
-    let html = `<table class="analytics-table">
-        <thead><tr><th>Bus</th><th>Route</th><th>Conductor</th><th>Boarded</th><th>Duration</th><th>Status</th></tr></thead>
+    let html = `<table class="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+        <thead>
+            <tr class="text-uppercase text-muted small border-bottom border-light-subtle" style="font-size:0.7rem;">
+                <th class="py-2">Bus</th>
+                <th class="py-2">Route</th>
+                <th class="py-2">Conductor</th>
+                <th class="py-2">Boarded</th>
+                <th class="py-2">Duration</th>
+                <th class="py-2">Status</th>
+            </tr>
+        </thead>
         <tbody>${ops.map((o, i) => {
-            const statusClass = o.status === 'active' ? 'op-active' : 'op-completed';
-            const dur = o.duration_min != null ? `${o.duration_min}min` : '-';
-            const hiddenClass = i >= limit ? `hidden-item ${id}` : '';
+            const statusBadge = o.status === 'active' ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary';
+            const dur = o.duration_min != null ? `${o.duration_min} min` : '-';
+            const hiddenClass = i >= limit ? `d-none ${id}` : '';
             return `<tr class="${hiddenClass}">
-                <td style="font-weight:900">${h(o.bus_code || '')}</td>
-                <td>${h(o.route || '')}</td>
-                <td>${h((o.conductor_email || '').split('@')[0])}</td>
-                <td style="color:var(--brand);font-weight:900">${Number(o.total_boarded || 0)}</td>
-                <td>${dur}</td>
-                <td><span class="op-status ${statusClass}">${h(o.status || '')}</span></td>
+                <td class="text-dark fw-bold py-2">${h(o.bus_code || '')}</td>
+                <td class="py-2">${h(o.route || '')}</td>
+                <td class="py-2">${h((o.conductor_email || '').split('@')[0])}</td>
+                <td class="text-primary fw-bold py-2">${Number(o.total_boarded || 0)}</td>
+                <td class="py-2">${dur}</td>
+                <td class="py-2"><span class="badge rounded-pill fw-bold text-uppercase px-2 py-1 ${statusBadge}" style="font-size: 0.65rem;">${h(o.status || '')}</span></td>
             </tr>`;
         }).join('')}</tbody>
     </table>`;
 
     if (ops.length > limit) {
-        html += `<button class="btn-see-more" onclick="toggleSeeMore('${id}', this)">See More (${ops.length - limit})</button>`;
+        html += `<button class="btn btn-light btn-sm w-100 py-2 mt-2 fw-bold text-primary rounded-3 text-uppercase tracking-wider" style="font-size:.72rem;" onclick="toggleSeeMore('${id}', this)">See More (${ops.length - limit})</button>`;
     }
     el.innerHTML = html;
 }

@@ -41,7 +41,7 @@ $backLink  = 'admin.php';
     </div>
 
     <!-- Period filter -->
-    <div class="period-bar">
+    <div class="d-flex gap-2 mb-4 flex-wrap">
         <button class="period-pill active" data-period="today">Today</button>
         <button class="period-pill" data-period="week">This Week</button>
         <button class="period-pill" data-period="month">This Month</button>
@@ -58,65 +58,65 @@ $backLink  = 'admin.php';
     <div id="analyticsContent" style="display:none;">
 
         <!-- Summary Stats -->
-        <div class="stat-grid" id="statGrid"></div>
+        <div class="row g-3 mb-4" id="statGrid"></div>
 
         <!-- Hotspot Activity Summary -->
         <div id="hotspotSummary"></div>
 
         <!-- Hourly Passenger Flow Chart -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">show_chart</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">show_chart</span>
                 Passenger Flow
-            </div>
+            </h5>
             <div class="chart-wrap">
                 <canvas id="hourlyChart"></canvas>
             </div>
         </div>
 
         <!-- Route Breakdown -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">route</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">route</span>
                 Route Breakdown
-            </div>
+            </h5>
             <div id="routeTable"></div>
         </div>
 
         <!-- Bus Performance -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">directions_bus</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">directions_bus</span>
                 Bus Performance
-            </div>
-            <p style="font-size: .75rem; color: var(--muted); margin-bottom: 12px; font-weight: 600;">Click on a bus to view its specific departure hotspots.</p>
+            </h5>
+            <p style="font-size: .75rem; color: #64748b; margin-bottom: 12px; font-weight: 600;">Click on a bus to view its specific departure hotspots.</p>
             <div id="busTable" style="overflow-x:auto;"></div>
         </div>
 
         <!-- Conductor Activity -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">badge</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">badge</span>
                 Conductor Activity
-            </div>
+            </h5>
             <div id="conductorTable"></div>
         </div>
 
         <!-- Location Activity Log -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">list_alt</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">list_alt</span>
                 Location Activity Log
-            </div>
+            </h5>
             <div id="locationLogs" style="overflow-x:auto;"></div>
         </div>
 
         <!-- Recent Operations -->
-        <div class="section-card">
-            <div class="section-title">
-                <span class="material-icons-round">history</span>
+        <div class="card border border-light-subtle shadow-sm rounded-3 p-4 mb-4 bg-white">
+            <h5 class="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
+                <span class="material-icons-round text-primary fs-5">history</span>
                 Recent Operations
-            </div>
+            </h5>
             <div id="recentOps" style="overflow-x:auto;"></div>
         </div>
 

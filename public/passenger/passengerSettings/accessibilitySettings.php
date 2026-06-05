@@ -30,53 +30,6 @@ $isLoggedIn = true;
       padding-bottom: 80px;
     }
 
-    .accessibility-container {
-      margin-top: 70px;
-    }
-
-    .accessibility-heading {
-      font-weight: bold;
-      font-size: 1.3rem;
-      color: #1e3a8a;
-      margin-bottom: 0.5rem;
-      padding: 0 16px;
-    }
-
-    .accessibility-description {
-      font-size: 0.9rem;
-      color: #6b7280;
-      margin-bottom: 1rem;
-      padding: 0 16px;
-    }
-
-    .accessibility-item {
-      padding: 14px 16px;
-      background-color: white;
-      margin: 0.5rem 0;
-      border-radius: 10px;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .accessibility-item .item-content {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .accessibility-item .item-title {
-      font-weight: 600;
-      color: #1f2937;
-      font-size: 1rem;
-    }
-
-    .accessibility-item .item-description {
-      font-size: 0.85rem;
-      color: #6b7280;
-      margin-top: 2px;
-    }
-
     .toggle-switch {
       position: relative;
       width: 50px;
@@ -106,60 +59,12 @@ $isLoggedIn = true;
       left: 27px;
     }
 
-    .text-size-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+    .text-size-btn-hover:hover {
+      background-color: #d1d5db !important;
     }
 
-    .text-size-btn {
-      background-color: #e5e7eb;
-      border: none;
-      border-radius: 8px;
-      width: 44px;
-      height: 44px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      font-weight: bold;
-      color: #374151;
-      transition: all 0.2s;
-    }
-
-    .text-size-btn:hover {
-      background-color: #d1d5db;
-    }
-
-    .text-size-btn:active {
+    .text-size-btn-hover:active {
       transform: scale(0.95);
-    }
-
-    .text-size-display {
-      font-weight: 600;
-      color: #1e3a8a;
-      min-width: 70px;
-      text-align: center;
-    }
-
-    .login-notice {
-      background-color: #dbeafe;
-      border-left: 4px solid #3b82f6;
-      padding: 12px 16px;
-      border-radius: 8px;
-      margin: 1rem 0;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .login-notice .material-symbols-rounded {
-      color: #3b82f6;
-    }
-
-    .login-notice span {
-      color: #1e40af;
-      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -173,37 +78,37 @@ $isLoggedIn = true;
   ?>
 
   <!-- Main Content -->
-  <div class="container accessibility-container">
-    <div class="accessibility-heading">Accessibility Settings</div>
-    <p class="accessibility-description">
+  <div class="container mt-5 pt-3" style="margin-top: 70px !important;">
+    <div class="fw-bold fs-5 text-primary mb-1 px-3" style="font-size: 1.3rem !important;">Accessibility Settings</div>
+    <p class="small text-secondary mb-3 px-3">
       Customize your experience to make ByaHero easier to use.
     </p>
 
     <?php if (!$isLoggedIn): ?>
-      <div class="login-notice">
-        <span class="material-symbols-rounded">info</span>
-        <span>You're using accessibility as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences.</span>
+      <div class="alert alert-primary d-flex align-items-center gap-2 m-3 border-start border-4 border-primary rounded-3" style="background-color: #dbeafe;">
+        <span class="material-symbols-rounded text-primary">info</span>
+        <span class="small" style="color: #1e40af;">You're using accessibility as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences.</span>
       </div>
     <?php endif; ?>
 
     <!-- Text Size -->
-    <div class="accessibility-item">
-      <div class="item-content">
-        <div class="item-title">Text Size</div>
-        <div class="item-description">Adjust text size for better readability</div>
+    <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="padding: 14px 16px !important; border-radius: 10px !important;">
+      <div class="d-flex flex-column">
+        <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Text Size</div>
+        <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Adjust text size for better readability</div>
       </div>
-      <div class="text-size-controls">
-        <button class="text-size-btn" onclick="decreaseTextSize()">A-</button>
-        <div class="text-size-display" id="textSizeDisplay">Medium</div>
-        <button class="text-size-btn" onclick="increaseTextSize()">A+</button>
+      <div class="d-flex align-items-center gap-2">
+        <button class="btn btn-light d-flex align-items-center justify-content-center fw-bold text-size-btn-hover" onclick="decreaseTextSize()" style="width: 44px; height: 44px; background-color: #e5e7eb; border-radius: 8px; border: none;">A-</button>
+        <div class="fw-semibold text-primary text-center" id="textSizeDisplay" style="min-width: 70px;">Medium</div>
+        <button class="btn btn-light d-flex align-items-center justify-content-center fw-bold text-size-btn-hover" onclick="increaseTextSize()" style="width: 44px; height: 44px; background-color: #e5e7eb; border-radius: 8px; border: none;">A+</button>
       </div>
     </div>
 
     <!-- High Contrast Mode -->
-    <div class="accessibility-item">
-      <div class="item-content">
-        <div class="item-title">High Contrast Mode</div>
-        <div class="item-description">Increase contrast for better visibility</div>
+    <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="padding: 14px 16px !important; border-radius: 10px !important;">
+      <div class="d-flex flex-column">
+        <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">High Contrast Mode</div>
+        <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Increase contrast for better visibility</div>
       </div>
       <div class="toggle-switch" id="highContrastToggle" onclick="toggleHighContrast()">
         <div class="toggle-switch-handle"></div>
@@ -211,10 +116,10 @@ $isLoggedIn = true;
     </div>
 
     <!-- Screen Reader Support -->
-    <div class="accessibility-item">
-      <div class="item-content">
-        <div class="item-title">Screen Reader Support</div>
-        <div class="item-description">Optimize for screen reader compatibility</div>
+    <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between" style="padding: 14px 16px !important; border-radius: 10px !important;">
+      <div class="d-flex flex-column">
+        <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Screen Reader Support</div>
+        <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Optimize for screen reader compatibility</div>
       </div>
       <div class="toggle-switch" id="screenReaderToggle" onclick="toggleScreenReader()">
         <div class="toggle-switch-handle"></div>

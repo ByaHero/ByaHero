@@ -547,6 +547,62 @@ $pageDepth = "../../../";
             checks.forEach(c => c.checked = anyUnchecked);
         }
 
+        async function sendFcmPushes(data) {
+            if (!data.fcm_tokens || data.fcm_tokens.length === 0 || !data.jwt || !data.project_id) return;
+            const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: data.jwt })
+            });
+            const tokenData = await tokenRes.json();
+            if (!tokenData.access_token) throw new Error("Could not get access token: " + JSON.stringify(tokenData));
+            
+            const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
+            await Promise.all(data.fcm_tokens.map(async (token) => {
+                await fetch(fcmUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenData.access_token}` },
+                    body: JSON.stringify({
+                        message: {
+                            token: token,
+                            notification: { 
+                                title: '🚨 SOS Alert', 
+                                body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '') 
+                            },
+                            data: { 
+                                type: 'sos_alert', 
+                                sender_name: data.sender_name, 
+                                location_text: data.location_text || '' 
+                            },
+                            android: {
+                                priority: 'high',
+                                notification: {
+                                    channel_id: 'sos_alerts_v2',
+                                    sound: 'default',
+                                    notification_priority: 'PRIORITY_HIGH',
+                                    visibility: 'public'
+                                }
+                            },
+                            apns: {
+                                payload: {
+                                    aps: {
+                                        alert: {
+                                            title: '🚨 SOS Alert',
+                                            body: `${data.sender_name} needs help!`
+                                        },
+                                        sound: 'default',
+                                        'mutable-content': 1
+                                    }
+                                },
+                                headers: {
+                                    'apns-priority': '10'
+                                }
+                            }
+                        }
+                    })
+                });
+            }));
+        }
+
         async function sendSosToSelectedFriends() {
             const statusEl = document.getElementById("friends-status");
             const selected = Array.from(document.querySelectorAll(".friend-checkbox:checked")).map(c => parseInt(c.value, 10));
@@ -563,60 +619,7 @@ $pageDepth = "../../../";
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
                 if (statusEl) statusEl.textContent = `SOS Alert recorded. Sending pushes...`;
                 
-                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
-                    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-                        method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: data.jwt })
-                    });
-                    const tokenData = await tokenRes.json();
-                    if (tokenData.access_token) {
-                        const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
-                        await Promise.all(data.fcm_tokens.map(async (token) => {
-                            await fetch(fcmUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenData.access_token}` },
-                                body: JSON.stringify({
-                                    message: {
-                                        token: token,
-                                        notification: { 
-                                            title: '🚨 SOS Alert', 
-                                            body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '') 
-                                        },
-                                        data: { 
-                                            type: 'sos_alert', 
-                                            sender_name: data.sender_name, 
-                                            location_text: data.location_text || '' 
-                                        },
-                                        android: {
-                                            priority: 'high',
-                                            notification: {
-                                                channel_id: 'sos_alerts_v2',
-                                                sound: 'default',
-                                                notification_priority: 'PRIORITY_HIGH',
-                                                visibility: 'public'
-                                            }
-                                        },
-                                        apns: {
-                                            payload: {
-                                                aps: {
-                                                    alert: {
-                                                        title: '🚨 SOS Alert',
-                                                        body: `${data.sender_name} needs help!`
-                                                    },
-                                                    sound: 'default',
-                                                    'mutable-content': 1
-                                                }
-                                            },
-                                            headers: {
-                                                'apns-priority': '10'
-                                            }
-                                        }
-                                    }
-                                })
-                            });
-                        }));
-                    }
-                }
+                await sendFcmPushes(data);
                 
                 if (statusEl) statusEl.textContent = `SOS successfully received by ${selected.length} friends!`;
                 if (sosFriendsModal) sosFriendsModal.hide();
@@ -755,66 +758,7 @@ $pageDepth = "../../../";
 
                 if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
                     try {
-                        const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                            body: new URLSearchParams({
-                                grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-                                assertion: data.jwt
-                            })
-                        });
-                        const tokenData = await tokenRes.json();
-                        if (!tokenData.access_token) throw new Error("Could not get access token: " + JSON.stringify(tokenData));
-                        
-                        const fcmUrl = `https://fcm.googleapis.com/v1/projects/${data.project_id}/messages:send`;
-                        
-                        await Promise.all(data.fcm_tokens.map(async (token) => {
-                            await fetch(fcmUrl, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${tokenData.access_token}`
-                                },
-                                body: JSON.stringify({
-                                    message: {
-                                        token: token,
-                                        notification: {
-                                            title: '🚨 SOS Alert',
-                                            body: `${data.sender_name} needs help!` + (data.location_text ? ` Location: ${data.location_text}` : '')
-                                        },
-                                        data: {
-                                            type: 'sos_alert',
-                                            sender_name: data.sender_name,
-                                            location_text: data.location_text || ''
-                                        },
-                                        android: {
-                                            priority: 'high',
-                                            notification: {
-                                                channel_id: 'sos_alerts_v2',
-                                                sound: 'default',
-                                                notification_priority: 'PRIORITY_HIGH',
-                                                visibility: 'public'
-                                            }
-                                        },
-                                        apns: {
-                                            payload: {
-                                                aps: {
-                                                    alert: {
-                                                        title: '🚨 SOS Alert',
-                                                        body: `${data.sender_name} needs help!`
-                                                    },
-                                                    sound: 'default',
-                                                    'mutable-content': 1
-                                                }
-                                            },
-                                            headers: {
-                                                'apns-priority': '10'
-                                            }
-                                        }
-                                    }
-                                })
-                            });
-                        }));
+                        await sendFcmPushes(data);
                         if (statusEl) statusEl.textContent = `SOS successfully received by ${recipients.length} friends!`;
                         
                         // Vibrate and sound alarm to indicate the SOS was successfully sent

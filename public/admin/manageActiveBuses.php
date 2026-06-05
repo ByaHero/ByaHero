@@ -69,17 +69,17 @@ $backLink  = 'admin.php';
 
 <?php include __DIR__ . '/../../components/navbarAdmin.php'; ?>
 
-<div class="page-wrap">
+<div class="container py-3 py-lg-4" style="max-width: 1100px;">
 
     <?php if ($message): ?>
-        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-success alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 14px;">
             <?= $message ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     <?php endif; ?>
 
     <?php if ($error): ?>
-        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+        <div class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 14px;">
             <?= $error ?>
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
@@ -87,7 +87,7 @@ $backLink  = 'admin.php';
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <div class="fw-bold" style="color:#0f172a;">Active Buses</div>
+            <h2 class="fw-bold fs-5 mb-0 text-dark">Active Buses</h2>
             <div class="small text-primary d-flex align-items-center gap-1 mt-1" style="font-weight: 600;">
                 <span class="spinner-grow spinner-grow-sm" role="status" style="width:0.6rem;height:0.6rem"></span> Live Updates
             </div>
@@ -100,46 +100,46 @@ $backLink  = 'admin.php';
                 No active buses right now.
             </div>
         <?php else: ?>
-            <div class="bus-grid d-flex flex-column gap-3">
+            <div class="row row-cols-1 row-cols-lg-2 g-3">
                 <?php foreach ($activeBuses as $bus):
                     $s = (string)($bus['status'] ?? '');
-                    $pillClass = 'pill-available';
+                    $pillStyle = 'background: #dcfce7; color: #166534;';
                     $pillText  = 'Available';
 
                     if ($s === 'on_stop') {
-                        $pillClass = 'pill-on_stop';
+                        $pillStyle = 'background: #fef3c7; color: #92400e;';
                         $pillText  = 'On Stop';
                     } elseif ($s === 'full') {
-                        $pillClass = 'pill-full';
+                        $pillStyle = 'background: #fee2e2; color: #b91c1c;';
                         $pillText  = 'Full';
                     }
 
                     $busId = $bus['Bus_ID'] ?? $bus['id'] ?? null;
                 ?>
-                    <div class="bus-card">
-                        <div class="bus-icon" aria-hidden="true">
-                            <!-- you can swap this icon based on status if you want -->
-                            <img src="../../assets/images/icons/activeBus.png" alt="Bus">
-                        </div>
+                    <div class="col">
+                        <div class="bg-white rounded-4 shadow-sm border p-3 d-flex align-items-center gap-3" style="border-color: rgba(148, 163, 184, 0.35) !important;">
+                            <div class="d-flex align-items-center justify-content-center flex-shrink-0 bg-light rounded-3" style="width: 56px; height: 56px;">
+                                <img src="../../assets/images/icons/activeBus.png" alt="Bus" style="width: 40px; height: 40px; object-fit: contain;">
+                            </div>
 
-                        <div class="flex-grow-1">
-                            <div class="d-flex justify-content-between align-items-start gap-2">
-                                <div>
-                                    <p class="bus-title"><?= h($bus['code'] ?? 'BUS') ?></p>
-                                    <p class="bus-sub">
-                                        Route:
-                                        <?= !empty($bus['route']) ? h($bus['route']) : '<em class="text-muted">None</em>' ?>
-                                    </p>
-                                    <p class="bus-sub">
-                                        Available Seats:
-                                        <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?>
-                                    </p>
-                                    <p class="bus-sub mt-1 text-primary">
-                                        <span class="material-icons-round align-middle" style="font-size: 14px;">person</span>
-                                        Conductor: <span class="fw-bold"><?= !empty($bus['conductor_email']) ? h($bus['conductor_email']) : 'Unknown' ?></span>
-                                    </p>
+                            <div class="flex-grow-1">
+                                <div class="d-flex justify-content-between align-items-start gap-2">
+                                    <div>
+                                        <p class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;"><?= h($bus['code'] ?? 'BUS') ?></p>
+                                        <p class="mb-0 text-secondary" style="font-size: 0.85rem;">
+                                            Route:
+                                            <?= !empty($bus['route']) ? h($bus['route']) : '<em class="text-muted">None</em>' ?>
+                                        </p>
+                                        <p class="mb-0 text-secondary" style="font-size: 0.85rem;">
+                                            Available Seats:
+                                            <?= h($bus['seat_availability']) ?>/<?= h($bus['total_seats']) ?>
+                                        </p>
+                                        <p class="mb-0 mt-1 text-primary" style="font-size: 0.85rem;">
+                                            Conductor: <span class="fw-bold"><?= !empty($bus['conductor_email']) ? h($bus['conductor_email']) : 'Unknown' ?></span>
+                                        </p>
+                                    </div>
+                                    <span class="badge rounded-pill px-3 py-2 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px; <?= $pillStyle ?>"><?= h($pillText) ?></span>
                                 </div>
-                                <span class="status-pill <?= $pillClass ?>"><?= h($pillText) ?></span>
                             </div>
                         </div>
                     </div>
