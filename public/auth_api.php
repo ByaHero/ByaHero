@@ -303,7 +303,6 @@ try {
         
         $queries = [
             "DELETE FROM user_fcm_tokens WHERE user_id = ?",
-            "DELETE FROM emergency_contacts WHERE user_id = ?",
             "DELETE FROM user_settings WHERE user_id = ?",
             "DELETE FROM user_locations WHERE user_id = ?",
             "DELETE FROM circle_members WHERE user_id = ?",
@@ -317,6 +316,9 @@ try {
 
         foreach ($queries as $q) {
             $st = $conn->prepare($q);
+            if (!$st) {
+                respond(false, "Database error: " . $conn->error . " in query: " . $q);
+            }
             if (strpos($q, 'OR') !== false) {
                 $st->bind_param("ii", $userId, $userId);
             } else {
