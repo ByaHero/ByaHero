@@ -465,7 +465,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <div class="d-flex align-items-center">
-      <a href="<?php echo $defaultBack; ?>"
+      <a href="<?php echo $backTarget; ?>"
         class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
         <span class="material-symbols-rounded text-white">arrow_back</span>
       </a>

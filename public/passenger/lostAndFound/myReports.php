@@ -37,6 +37,7 @@ $reports = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
 
 $pageDepth = '../../../';
 $pageType = 'settings';
+$backLink = 'lostAndFound';
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -117,14 +118,6 @@ $pageType = 'settings';
     <?php include '../../../components/navbarPassenger.php'; ?>
 
     <div class="container mt-4 pt-5 pb-5 mb-5 px-3 text-center">
-        
-        <!-- Smooth Title Layout -->
-        <div class="header-title-container mt-2">
-            <a href="lostAndFound" class="back-button">
-                <span class="material-symbols-rounded" style="font-size: 20px;">arrow_back</span>
-            </a>
-            <h4 class="fw-bold text-primary mb-0">My Reports</h4>
-        </div>
 
         <?php if ($message): ?>
             <div class="alert alert-success rounded-4 small text-start border-0 shadow-sm fw-semibold">
