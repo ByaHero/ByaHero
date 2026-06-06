@@ -256,6 +256,22 @@ window.PassengerRideTracker = {
         if (data.success) {
             this.activeRide = null;
             this.updateUI();
+
+            // Reset client-side waiting status
+            window.isPassengerWaiting = false;
+            window.passengerWaitingLocation = null;
+            if (typeof window.updateUserWaitingCardUI === 'function') {
+                window.updateUserWaitingCardUI();
+            }
+
+            // Sync waiting modal elements state if they are open/rendered
+            const btnCancel = document.getElementById('btnCancelWaiting');
+            const btnSet = document.getElementById('btnSetWaiting');
+            const statusMsg = document.getElementById('waitingStatusMsg');
+            if (btnCancel) btnCancel.classList.add('d-none');
+            if (btnSet) btnSet.classList.remove('d-none');
+            if (statusMsg) statusMsg.classList.add('d-none');
+
             this.showDepartureNotice(msg || "You moved away from the bus. Automatically departed.");
             window.updateUserMarkerWaitingStyle();
         }

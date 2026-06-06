@@ -402,7 +402,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
       async function loadWaitCount() {
           try {
               const base = window.APP_BASE_URL || '';
-              const res = await fetch(base + '/backend/waiting_api.php?action=get_wait_count', { credentials: 'have' });
+              const res = await fetch(base + '/backend/waiting_api.php?action=get_wait_count', { credentials: 'include' });
               const data = await res.json();
               if (!data || !data.success) return;
               
@@ -463,6 +463,6 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 })();
 </script>
 <script>
-  window.APP_BASE_URL = window.APP_BASE_URL || '<?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>';
+  window.APP_BASE_URL = window.APP_BASE_URL || <?= json_encode($base, JSON_UNESCAPED_SLASHES) ?>;
 </script>
 <script src="<?= htmlspecialchars($base) ?>/assets/js/capacitor_back_button.js"></script>

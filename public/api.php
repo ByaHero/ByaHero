@@ -815,6 +815,15 @@ function leaveRide(): array {
     $st = $conn->prepare("UPDATE passenger_rides SET departed_at = NOW(), status = 'completed' WHERE user_id = ? AND status IN ({$activeStatusSql})");
     $st->bind_param("i", $userId);
     $st->execute();
+    $st->close();
+
+    // Auto-clear waiting status when passenger departs
+    $stWait = $conn->prepare("UPDATE waiting_passengers SET status='cancelled', updated_at=NOW() WHERE user_id=? AND status='waiting'");
+    if ($stWait) {
+        $stWait->bind_param("i", $userId);
+        $stWait->execute();
+        $stWait->close();
+    }
 
     return ['success' => true];
 }

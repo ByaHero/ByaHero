@@ -108,7 +108,7 @@ $isLoggedIn = true;
     <div>
       <div class="fw-bold text-primary mb-2 mt-3 px-3">Additional Resources</div>
 
-      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = "privacyPolicy";" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'privacyPolicy';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
         <div class="d-flex align-items-center flex-grow-1">
           <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">description</span>
           <div class="d-flex flex-column">
@@ -119,7 +119,7 @@ $isLoggedIn = true;
         <span class="material-symbols-rounded text-muted ms-auto">chevron_right</span>
       </div>
 
-      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = "termsOfService";" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'termsOfService';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
         <div class="d-flex align-items-center flex-grow-1">
           <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">gavel</span>
           <div class="d-flex flex-column">
