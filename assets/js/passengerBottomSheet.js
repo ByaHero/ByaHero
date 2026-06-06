@@ -43,13 +43,19 @@ document.addEventListener('DOMContentLoaded', function () {
   var header = document.getElementById('sheetHeader');
   if (!sheet || !header) return;
 
+  function isInteractiveTarget(target) {
+    if (!target || typeof target.closest !== 'function') return false;
+    return !!target.closest('button, a, input, select, textarea, label, [role="button"], .sheet-tab, [onclick]');
+  }
+
   var startY = 0;
   var startHeight = 0;
   var isDragging = false;
   var moved = false;
 
   header.addEventListener('touchstart', function (e) {
-    // Make the entire header area draggable (any touch inside #sheetHeader)
+    if (isInteractiveTarget(e.target)) return;
+    // Keep header drag, but allow taps on interactive controls (tabs/buttons).
     isDragging = true;
     moved = false;
     startY = e.touches[0].clientY;
