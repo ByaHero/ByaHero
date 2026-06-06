@@ -425,3 +425,195 @@ function renderRecentOps(ops) {
 
 // Load on page ready
 document.addEventListener('DOMContentLoaded', loadAnalytics);
+
+// Export to PDF functionality
+document.addEventListener('DOMContentLoaded', () => {
+    const radioToday = document.getElementById('exportToday');
+    const radioCustom = document.getElementById('exportCustom');
+    const customFields = document.getElementById('customDateFields');
+    const btnExport = document.getElementById('btnConfirmExport');
+
+    if (radioToday && radioCustom && customFields) {
+        radioToday.addEventListener('change', () => customFields.classList.add('d-none'));
+        radioCustom.addEventListener('change', () => customFields.classList.remove('d-none'));
+    }
+
+    if (btnExport) {
+        btnExport.addEventListener('click', async () => {
+            let query = 'period=today';
+            let titleDate = 'Today';
+            if (radioCustom.checked) {
+                const start = document.getElementById('exportStart').value;
+                const end = document.getElementById('exportEnd').value;
+                if (!start || !end) {
+                    alert('Please select both start and end dates.');
+                    return;
+                }
+                query = `period=custom&start=${start}&end=${end}`;
+                titleDate = `${start} to ${end}`;
+            }
+
+            btnExport.disabled = true;
+            btnExport.textContent = 'Generating...';
+
+            try {
+                const res = await fetch(`../api.php?action=get_analytics&${query}`);
+                const data = await res.json();
+                if (!data.success) throw new Error(data.error || 'Failed to fetch data');
+
+                generatePdfReport(data, titleDate);
+            } catch (e) {
+                console.error(e);
+                alert('Error generating PDF: ' + e.message);
+            } finally {
+                btnExport.disabled = false;
+                btnExport.textContent = 'Generate PDF';
+                const modalEl = document.getElementById('exportModal');
+                const modal = bootstrap.Modal.getInstance(modalEl);
+                if (modal) modal.hide();
+            }
+        });
+    }
+});
+
+function generatePdfReport(data, titleDate) {
+    // Create a temporary container for the PDF content
+    const container = document.createElement('div');
+    container.style.padding = '20px';
+    container.style.fontFamily = 'Arial, sans-serif';
+    container.style.color = '#333';
+    
+    // Title & Summary
+    const s = data.summary || {};
+    container.innerHTML = `
+        <h2 style="text-align: center; color: #1d4ed8; margin-bottom: 5px;">ByaHero Analytics Report</h2>
+        <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px;">Period: ${titleDate}</p>
+        
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
+            <tr>
+                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_trips || 0).toLocaleString()}</div>
+                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Total Trips</div>
+                </td>
+                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_passengers || 0).toLocaleString()}</div>
+                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Passengers Boarded</div>
+                </td>
+                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_departed || 0).toLocaleString()}</div>
+                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Passengers Departed</div>
+                </td>
+                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Math.round(Number(s.avg_trip_minutes || 0))} min</div>
+                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Avg Trip Duration</div>
+                </td>
+            </tr>
+        </table>
+
+        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Passenger Flow</h3>
+        <div style="width: 100%; height: 250px; margin-bottom: 30px;">
+            <canvas id="pdfChartCanvas"></canvas>
+        </div>
+        
+        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Route Breakdown</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;">
+            <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
+                    <th style="padding: 8px; text-align: left;">Route</th>
+                    <th style="padding: 8px; text-align: center;">Trips</th>
+                    <th style="padding: 8px; text-align: right;">Passengers</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(data.routes || []).map(r => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px;">${h(r.route)}</td>
+                    <td style="padding: 8px; text-align: center;">${r.trips}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #1d4ed8;">${Number(r.passengers).toLocaleString()}</td>
+                </tr>`).join('')}
+                ${(data.routes || []).length === 0 ? '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #94a3b8;">No data available</td></tr>' : ''}
+            </tbody>
+        </table>
+
+        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Bus Performance</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;">
+            <thead>
+                <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
+                    <th style="padding: 8px; text-align: left;">Bus Code</th>
+                    <th style="padding: 8px; text-align: center;">Trips</th>
+                    <th style="padding: 8px; text-align: right;">Passengers</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${(data.buses || []).map(b => `
+                <tr style="border-bottom: 1px solid #e2e8f0;">
+                    <td style="padding: 8px;">${h(b.code)}</td>
+                    <td style="padding: 8px; text-align: center;">${b.trips}</td>
+                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #1d4ed8;">${Number(b.passengers).toLocaleString()}</td>
+                </tr>`).join('')}
+                ${(data.buses || []).length === 0 ? '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #94a3b8;">No data available</td></tr>' : ''}
+            </tbody>
+        </table>
+    `;
+
+    // Append to body temporarily so chart can render
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '-9999px';
+    container.style.width = '800px';
+    document.body.appendChild(container);
+
+    // Render the chart on the temporary canvas
+    const ctx = document.getElementById('pdfChartCanvas').getContext('2d');
+    const hours = Array.from({length: 24}, (_, i) => i);
+    const counts = new Array(24).fill(0);
+    (data.hourly_flow || []).forEach(h => { counts[Number(h.hr)] = Number(h.total); });
+    const labels = hours.map(h => {
+        const ampm = h >= 12 ? 'PM' : 'AM';
+        const hr = h % 12 || 12;
+        return `${hr}${ampm}`;
+    });
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Passengers',
+                data: counts,
+                borderColor: '#1d4ed8',
+                backgroundColor: 'rgba(29, 78, 216, 0.1)',
+                borderWidth: 2,
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false, // disable animation for synchronous capture
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { beginAtZero: true, ticks: { font: { size: 10 }, stepSize: 1 } }
+            }
+        }
+    });
+
+    // Let the chart render then generate PDF
+    setTimeout(() => {
+        const opt = {
+            margin:       0.5,
+            filename:     `ByaHero_Analytics_${titleDate.replace(/[^a-z0-9]/gi, '_')}.pdf`,
+            image:        { type: 'jpeg', quality: 0.98 },
+            html2canvas:  { scale: 2 },
+            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(container).save().then(() => {
+            document.body.removeChild(container);
+        });
+    }, 500);
+}
+

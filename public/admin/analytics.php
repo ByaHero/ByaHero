@@ -29,6 +29,7 @@ $backLink  = 'admin.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         <?php include __DIR__ . '/../../assets/css/admin/analytics.css'; ?>
     </style>
@@ -42,11 +43,16 @@ $backLink  = 'admin.php';
         <h2 class="fw-bold mb-0">Analytics Dashboard</h2>
     </div>
 
-    <!-- Period filter -->
-    <div class="d-flex gap-2 mb-4 flex-wrap">
-        <button class="period-pill active" data-period="today">Today</button>
-        <button class="period-pill" data-period="week">This Week</button>
-        <button class="period-pill" data-period="month">This Month</button>
+    <!-- Period filter & Export -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+        <div class="d-flex gap-2 flex-wrap">
+            <button class="period-pill active" data-period="today">Today</button>
+            <button class="period-pill" data-period="week">This Week</button>
+            <button class="period-pill" data-period="month">This Month</button>
+        </div>
+        <button class="btn btn-outline-primary d-flex align-items-center gap-2 fw-bold" data-bs-toggle="modal" data-bs-target="#exportModal">
+            <span class="material-icons-round">picture_as_pdf</span> Export PDF
+        </button>
     </div>
 
     <!-- Loading state -->
@@ -123,6 +129,48 @@ $backLink  = 'admin.php';
         </div>
 
     </div>
+</div>
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 rounded-4 shadow">
+      <div class="modal-header border-bottom-0 pb-0">
+        <h5 class="modal-title fw-bold">Export Analytics to PDF</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label class="form-label fw-bold small text-uppercase text-muted">Time Period</label>
+          <div class="form-check mb-2">
+            <input class="form-check-input" type="radio" name="exportPeriod" id="exportToday" value="today" checked>
+            <label class="form-check-label fw-semibold" for="exportToday">Just Today</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="radio" name="exportPeriod" id="exportCustom" value="custom">
+            <label class="form-check-label fw-semibold" for="exportCustom">Custom Date Range</label>
+          </div>
+        </div>
+
+        <div id="customDateFields" class="d-none">
+            <div class="row g-2">
+                <div class="col-6">
+                    <label class="form-label fw-bold small text-muted">Start Date</label>
+                    <input type="date" id="exportStart" class="form-control rounded-3">
+                </div>
+                <div class="col-6">
+                    <label class="form-label fw-bold small text-muted">End Date</label>
+                    <input type="date" id="exportEnd" class="form-control rounded-3">
+                </div>
+            </div>
+        </div>
+      </div>
+      <div class="modal-footer border-top-0 pt-0">
+        <button type="button" class="btn btn-light rounded-pill fw-bold" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" id="btnConfirmExport" class="btn btn-primary rounded-pill fw-bold px-4">Generate PDF</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
