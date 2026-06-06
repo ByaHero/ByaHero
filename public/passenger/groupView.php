@@ -365,8 +365,8 @@
 
     function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a', profilePicture = null, isWaiting = false, isBoarded = false, busCode = '') {
         let innerHtml = initials;
+        const basePath = window.APP_BASE_URL ? (window.APP_BASE_URL.endsWith('/') ? window.APP_BASE_URL : window.APP_BASE_URL + '/') : "<?php echo isset($depth) ? $depth : '../../'; ?>";
         if (profilePicture) {
-            const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
             const isAbsolute = /^https?:\/\/|^data:/i.test(profilePicture);
             const safePath = isAbsolute ? profilePicture : basePath + (profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture);
             innerHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
@@ -374,7 +374,7 @@
 
         let bubbleHtml = '';
         if (isWaiting) {
-            const bubbleUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/waitingMEG.svg';
+            const bubbleUrl = basePath + 'assets/images/waitingMEG.svg';
             bubbleHtml = `
                 <div class="friend-waiting-bubble" style="position: absolute; bottom: 38px; left: calc(50% + 20px); width: 46px; height: 20px; z-index: 1001; pointer-events: none;">
                     <img src="${bubbleUrl}" style="width: 100%; height: 100%; display: block;" />
@@ -384,7 +384,7 @@
 
         let busBadgeHtml = '';
         if (isBoarded) {
-            const busIconUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/busonallbuses.svg';
+            const busIconUrl = basePath + 'assets/images/busonallbuses.svg';
             busBadgeHtml = `
                 <div class="friend-boarded-badge" style="position: absolute; bottom: -4px; right: -4px; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); z-index: 1002;">
                     <img src="${busIconUrl}" style="width: 11px; height: 11px; filter: brightness(0) invert(1);" />
@@ -439,6 +439,7 @@
 
             groupListEl.innerHTML = '';
             data.friends.forEach(friend => {
+                const basePath = window.APP_BASE_URL ? (window.APP_BASE_URL.endsWith('/') ? window.APP_BASE_URL : window.APP_BASE_URL + '/') : "<?php echo isset($depth) ? $depth : '../../'; ?>";
                 const id = friend && friend.id != null ? String(friend.id) : null;
                 if (id && seenIds.has(id)) return;
                 if (id) seenIds.add(id);
@@ -473,7 +474,6 @@
 
                 let avatarHtml = initials;
                 if (friend.profile_picture) {
-                    const basePath = window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>";
                     const isAbsolute = /^https?:\/\/|^data:/i.test(friend.profile_picture);
                     const safePath = isAbsolute ? friend.profile_picture : basePath + (friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture);
                     avatarHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
@@ -481,10 +481,10 @@
 
                 let avatarBadgeHtml = '';
                 if (isWaiting) {
-                    const markUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/waitingMark.svg';
+                    const markUrl = basePath + 'assets/images/waitingMark.svg';
                     avatarBadgeHtml = `<div class="friend-avatar-badge" title="Waiting at ${friend.waiting_location}"><img src="${markUrl}" alt="Waiting"></div>`;
                 } else if (isBoarded) {
-                    const busUrl = (window.APP_BASE_URL || "<?php echo isset($depth) ? $depth : '../../'; ?>") + 'assets/images/busonallbuses.svg';
+                    const busUrl = basePath + 'assets/images/busonallbuses.svg';
                     avatarBadgeHtml = `<div class="friend-avatar-badge" style="background: #3b82f6; border-color: #3b82f6;" title="Onboard Bus ${friend.boarded_bus_code}"><img src="${busUrl}" alt="Boarded" style="filter: brightness(0) invert(1);"></div>`;
                 }
 
@@ -516,7 +516,7 @@
                   </div>
               </div>
           </div>
-          <img src="${window.APP_BASE_URL || '<?php echo isset($depth) ? $depth : '../../'; ?>'}assets/images/unfriend.svg" class="ms-2 remove-friend-btn" title="Remove from Circle" alt="Unfriend" style="width: 32px; height: 32px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+          <img src="${basePath}assets/images/unfriend.svg" class="ms-2 remove-friend-btn" title="Remove from Circle" alt="Unfriend" style="width: 32px; height: 32px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
         `;
 
                 card.querySelector('.card-fly-content').addEventListener('click', () => {

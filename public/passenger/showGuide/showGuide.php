@@ -221,7 +221,7 @@ if (!empty($userName)) {
 
             <div class="button-group">
                 <a href="../index?start_tour=true" class="btn-start">Start</a>
-                <button class="btn-skip" onclick="location.href = "../index";">Skip</button>
+                <button class="btn-skip" onclick="location.href = '../index';">Skip</button>
             </div>
             
         </div>
