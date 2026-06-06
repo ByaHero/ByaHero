@@ -206,7 +206,9 @@ $backLink  = 'admin.php';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="../../assets/css/admin/manageStops.css" rel="stylesheet">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/admin/manageStops.css'; ?>
+    </style>
 </head>
 <body>
 
@@ -470,6 +472,8 @@ $backLink  = 'admin.php';
         routeReverse: <?= json_encode(ROUTE_REVERSE) ?>
     };
 </script>
-<script src="../../assets/js/admin/manageStops.js"></script>
+<script>
+    <?php include __DIR__ . '/../../assets/js/admin/manageStops.js'; ?>
+</script>
 </body>
 </html>

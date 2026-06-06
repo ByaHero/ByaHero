@@ -120,7 +120,9 @@ $backLink = 'admin.php';
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link href="../../assets/css/admin/manageConductors.css" rel="stylesheet">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/admin/manageConductors.css'; ?>
+    </style>
 </head>
 <body>
 
@@ -223,6 +225,8 @@ $backLink = 'admin.php';
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../../assets/js/admin/manageConductors.js"></script>
+<script>
+    <?php include __DIR__ . '/../../assets/js/admin/manageConductors.js'; ?>
+</script>
 </body>
 </html>
