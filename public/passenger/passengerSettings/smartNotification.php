@@ -32,7 +32,7 @@ require_once __DIR__ . '/../auth_passenger.php';
 <body>
   <?php
   $pageType = 'settings';
-  $backLink = 'settings.php';
+  $backLink = '../index.php';
   $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>

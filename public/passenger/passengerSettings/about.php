@@ -1,7 +1,7 @@
 <?php
 require_once __DIR__ . '/../auth_passenger.php';
 $pageType = 'settings';        // Configures navbar for About page
-$backLink = 'settings.php';    // Back button navigates to settings.php
+$backLink = '../index.php';    // Back button navigates to index.php
 $pageDepth = "../../../";      // Fixes the logo path used for topBarLogo.svg
 ?>
 <!doctype html>

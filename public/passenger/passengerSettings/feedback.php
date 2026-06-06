@@ -62,7 +62,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
 <body>
   <?php
   $pageType = 'settings';
-  $backLink = 'settings.php';
+  $backLink = '../index.php';
   $pageDepth = "../../../";
   include "../../../components/navbarPassenger.php";
   ?>
