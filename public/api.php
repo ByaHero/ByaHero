@@ -570,6 +570,15 @@ function getAnalytics(): array {
     switch ($period) {
         case 'week':  $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)"; break;
         case 'month': $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)"; break;
+        case 'custom':
+            $start = $conn->real_escape_string($_GET['start'] ?? '');
+            $end = $conn->real_escape_string($_GET['end'] ?? '');
+            if ($start && $end) {
+                $dateFilter = "AND o.started_at >= '{$start} 00:00:00' AND o.started_at <= '{$end} 23:59:59'";
+            } else {
+                $dateFilter = "AND DATE(o.started_at) = CURDATE()";
+            }
+            break;
         default:      $dateFilter = "AND DATE(o.started_at) = CURDATE()"; break;
     }
 
