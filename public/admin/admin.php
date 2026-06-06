@@ -86,7 +86,9 @@ $pageType = 'dashboard';
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="../../assets/css/admin/admin.css">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/admin/admin.css'; ?>
+    </style>
 </head>
 
 <body>
@@ -257,7 +259,9 @@ $pageType = 'dashboard';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.3/dist/leaflet.js"></script>
-    <script src="../../assets/js/admin/admin.js"></script>
+    <script>
+        <?php include __DIR__ . '/../../assets/js/admin/admin.js'; ?>
+    </script>
 </body>
 
 </html>

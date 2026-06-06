@@ -179,7 +179,9 @@ $backLink  = 'admin.php';
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <link href="../../assets/css/admin/adminProfile.css" rel="stylesheet">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/admin/adminProfile.css'; ?>
+    </style>
 </head>
 
 <body class="d-flex flex-column min-vh-100 m-0 bg-white" style="font-family: 'Segoe UI', sans-serif;">
@@ -294,6 +296,8 @@ $backLink  = 'admin.php';
             iconHide: <?php echo json_encode($iconHide); ?>
         };
     </script>
-    <script src="../../assets/js/admin/adminProfile.js"></script>
+    <script>
+        <?php include __DIR__ . '/../../assets/js/admin/adminProfile.js'; ?>
+    </script>
 </body>
 </html>

@@ -65,7 +65,9 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
-    <link rel="stylesheet" href="../../assets/css/conductor/conductor.css">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/conductor/conductor.css'; ?>
+    </style>
 </head>
 
 <body>
@@ -178,6 +180,8 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/conductor/conductor.js"></script>
+    <script>
+        <?php include __DIR__ . '/../../assets/js/conductor/conductor.js'; ?>
+    </script>
 </body>
 </html>

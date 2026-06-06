@@ -40,14 +40,18 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <link rel="manifest" href="../manifest.webmanifest">
   <meta name="theme-color" content="#1e3a8a">
 
-  <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passengerBottomSheet.css?v=5">
-  <link rel="stylesheet" href="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/css/passenger/passengerIndex.css?v=<?= time() ?>">
-  <link rel="stylesheet" href="../../assets/css/accessibility.css">
+  <style>
+    <?php
+    include __DIR__ . '/../../assets/css/passengerBottomSheet.css';
+    include __DIR__ . '/../../assets/css/passenger/passengerIndex.css';
+    include __DIR__ . '/../../assets/css/accessibility.css';
+    ?>
+  </style>
 
   <script>
     window._sosPendingToken = null;
+    <?php include __DIR__ . '/../../assets/js/accessibility.js'; ?>
   </script>
-  <script src="../../assets/js/accessibility.js"></script>
 </head>
 
 <body class="bg-light">
@@ -83,7 +87,9 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
   <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js" defer></script>
-  <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
+  <script>
+    <?php include __DIR__ . '/../../assets/js/passengerBottomSheet.js'; ?>
+  </script>
 
   <script>
     // Pass PHP context variables to Javascript
@@ -102,10 +108,14 @@ $baseUrl = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
     })();
   </script>
 
-  <script src="../../assets/js/byaheroTracking.js?v=<?= time() ?>"></script>
-  <script src="../../assets/js/passenger/passengerMap.js?v=<?= time() ?>"></script>
-  <script src="../../assets/js/passenger/passengerRideTracker.js?v=<?= time() ?>"></script>
-  <script src="../../assets/js/passenger/byaheroTour.js?v=<?= time() ?>"></script>
+  <script>
+    <?php
+    include __DIR__ . '/../../assets/js/byaheroTracking.js';
+    include __DIR__ . '/../../assets/js/passenger/passengerMap.js';
+    include __DIR__ . '/../../assets/js/passenger/passengerRideTracker.js';
+    include __DIR__ . '/../../assets/js/passenger/byaheroTour.js';
+    ?>
+  </script>
 
   <script>
     // Initialize map

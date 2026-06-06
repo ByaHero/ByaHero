@@ -142,7 +142,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="../../assets/css/conductor/conductorLive.css">
+    <style>
+        <?php include __DIR__ . '/../../assets/css/conductor/conductorLive.css'; ?>
+    </style>
 </head>
 <body>
 
@@ -235,7 +237,9 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
 
     <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../assets/js/byaheroTracking.js?v=3"></script>
+    <script>
+        <?php include __DIR__ . '/../../assets/js/byaheroTracking.js'; ?>
+    </script>
 
     <script>
         // Pass PHP variables to global JS scope configuration
@@ -250,6 +254,8 @@ $seatsAvailable = isset($currentBus['seats_available']) ? (int)$currentBus['seat
             preDepartureCount: <?= json_encode((int)($currentBus['pre_departure_count'] ?? 0)) ?>
         };
     </script>
-    <script src="../../assets/js/conductor/conductorLive.js"></script>
+    <script>
+        <?php include __DIR__ . '/../../assets/js/conductor/conductorLive.js'; ?>
+    </script>
 </body>
 </html>
