@@ -350,7 +350,7 @@ $backLink  = 'admin.php';
                     <?php else: ?>
                         <ul class="list-unstyled mb-0 small" id="route-forward-list">
                             <?php foreach ($stopsForward as $s): ?>
-                                <li class="d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
+                                <li class="route-item d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
                                     <span class="fw-bold"><?= h($s['name']) ?></span>
                                     <span class="text-muted"> — <?= h($s['location_name']) ?></span>
                                     <?php if (!empty($s['location_landmark'])): ?>
@@ -383,7 +383,7 @@ $backLink  = 'admin.php';
                     <?php else: ?>
                         <ul class="list-unstyled mb-0 small" id="route-reverse-list">
                             <?php foreach ($stopsReverse as $s): ?>
-                                <li class="d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
+                                <li class="route-item d-block bg-light rounded-2 p-2 mb-1" style="cursor: grab;" data-id="<?= h($s['id']) ?>">
                                     <span class="fw-bold"><?= h($s['name']) ?></span>
                                     <span class="text-muted"> — <?= h($s['location_name']) ?></span>
                                     <?php if (!empty($s['location_landmark'])): ?>
