@@ -5,7 +5,7 @@
  * Merged from: passengerBottomSheet.js + public/passenger/index.php
  *
  * Load order in index.php (after Leaflet + Bootstrap):
- *   <script src="../../assets/js/passengerBottomSheet.js?v=2"></script>
+ *   <script src="../../assets/js/passengerBottomSheet.js?v=2"><\/script>
  *
  * APP_BASE_URL and PROJECT_BASE must be set on window BEFORE this script
  * runs, OR this file will detect them automatically using the same logic
