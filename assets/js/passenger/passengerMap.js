@@ -644,37 +644,37 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
 
     if (!navigator.geolocation) return;
 
-  const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-  if (bgPluginAvailable) {
-    const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-    try {
-      const permissions = await BG.requestPermissions();
-      if (permissions.location !== 'granted') {
-        window.startWebGeolocation();
-        return;
-      }
-
-      window.bgWatcherId = await BG.addWatcher(
-        {
-          backgroundMessage: "Tracking active. Keep app open in background.",
-          backgroundTitle: "ByaHero Journey Tracking",
-          requestPermissions: true,
-          distanceFilter: 0
-        },
-        function callback(location, error) {
-          if (error) return;
-          const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
-          window.onLocationUpdate(pos);
+    const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+    if (bgPluginAvailable) {
+      const BG = window.Capacitor.Plugins.BackgroundGeolocation;
+      try {
+        const permissions = await BG.requestPermissions();
+        if (permissions.location !== 'granted') {
+          if (!isNative) window.startWebGeolocation();
+          return;
         }
-      );
-      window.startKeepAliveAudio();
-      window.acquireWakeLock();
-    } catch (e) {
-      window.startWebGeolocation();
+
+        window.bgWatcherId = await BG.addWatcher(
+          {
+            backgroundMessage: "Tracking active. Keep app open in background.",
+            backgroundTitle: "ByaHero Journey Tracking",
+            requestPermissions: true,
+            distanceFilter: 0
+          },
+          function callback(location, error) {
+            if (error) return;
+            const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
+            window.onLocationUpdate(pos);
+          }
+        );
+        window.startKeepAliveAudio();
+        window.acquireWakeLock();
+      } catch (e) {
+        if (!isNative) window.startWebGeolocation();
+      }
+    } else {
+      if (!isNative) window.startWebGeolocation();
     }
-  } else {
-    window.startWebGeolocation();
-  }
   }
 };
 

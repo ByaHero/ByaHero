@@ -281,10 +281,10 @@ async function startGeolocation() {
             showAlert('Background Tracking Started', 'primary');
         } catch (e) {
             showAlert('Plugin Error', 'danger');
-            startWebGeolocation();
+            if (!isNative) startWebGeolocation();
         }
     } else {
-        startWebGeolocation();
+        if (!isNative) startWebGeolocation();
     }
   }
 }

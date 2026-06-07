@@ -183,6 +183,12 @@ $userName = $_SESSION['user_name'] ?? 'User';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        window.APP_BASE_URL = "../../";
+    </script>
+    <script src="../../capacitor.js"></script>
+    <script src="../../assets/js/capacitor_firebase_bridge.js"></script>
+    <script src="../../assets/js/capacitor_back_button.js"></script>
+    <script>
         const form = document.getElementById('contactForm');
         const submitBtn = document.getElementById('submitBtn');
         const alertBox = document.getElementById('alertBox');
