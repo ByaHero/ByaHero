@@ -477,94 +477,12 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function generatePdfReport(data, titleDate) {
-    // Create a temporary container for the PDF content
-    const container = document.createElement('div');
-    container.style.padding = '20px';
-    container.style.fontFamily = 'Arial, sans-serif';
-    container.style.color = '#333';
+    // We render the chart to a hidden temporary canvas to get its base64 image
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = 800;
+    tempCanvas.height = 300;
+    const ctx = tempCanvas.getContext('2d');
     
-    // Title & Summary
-    const s = data.summary || {};
-    container.innerHTML = `
-        <h2 style="text-align: center; color: #1d4ed8; margin-bottom: 5px;">ByaHero Analytics Report</h2>
-        <p style="text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px;">Period: ${titleDate}</p>
-        
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px;">
-            <tr>
-                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_trips || 0).toLocaleString()}</div>
-                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Total Trips</div>
-                </td>
-                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_passengers || 0).toLocaleString()}</div>
-                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Passengers Boarded</div>
-                </td>
-                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Number(s.total_departed || 0).toLocaleString()}</div>
-                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Passengers Departed</div>
-                </td>
-                <td style="padding: 15px; border: 1px solid #e2e8f0; text-align: center;">
-                    <div style="font-size: 24px; font-weight: bold; color: #1d4ed8;">${Math.round(Number(s.avg_trip_minutes || 0))} min</div>
-                    <div style="font-size: 12px; color: #64748b; text-transform: uppercase;">Avg Trip Duration</div>
-                </td>
-            </tr>
-        </table>
-
-        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Passenger Flow</h3>
-        <div style="width: 100%; height: 250px; margin-bottom: 30px;">
-            <canvas id="pdfChartCanvas"></canvas>
-        </div>
-        
-        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Route Breakdown</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;">
-            <thead>
-                <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
-                    <th style="padding: 8px; text-align: left;">Route</th>
-                    <th style="padding: 8px; text-align: center;">Trips</th>
-                    <th style="padding: 8px; text-align: right;">Passengers</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${(data.routes || []).map(r => `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 8px;">${h(r.route)}</td>
-                    <td style="padding: 8px; text-align: center;">${r.trips}</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #1d4ed8;">${Number(r.passengers).toLocaleString()}</td>
-                </tr>`).join('')}
-                ${(data.routes || []).length === 0 ? '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #94a3b8;">No data available</td></tr>' : ''}
-            </tbody>
-        </table>
-
-        <h3 style="color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;">Bus Performance</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;">
-            <thead>
-                <tr style="background-color: #f8fafc; border-bottom: 1px solid #cbd5e1;">
-                    <th style="padding: 8px; text-align: left;">Bus Code</th>
-                    <th style="padding: 8px; text-align: center;">Trips</th>
-                    <th style="padding: 8px; text-align: right;">Passengers</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${(data.buses || []).map(b => `
-                <tr style="border-bottom: 1px solid #e2e8f0;">
-                    <td style="padding: 8px;">${h(b.code)}</td>
-                    <td style="padding: 8px; text-align: center;">${b.trips}</td>
-                    <td style="padding: 8px; text-align: right; font-weight: bold; color: #1d4ed8;">${Number(b.passengers).toLocaleString()}</td>
-                </tr>`).join('')}
-                ${(data.buses || []).length === 0 ? '<tr><td colspan="3" style="padding: 8px; text-align: center; color: #94a3b8;">No data available</td></tr>' : ''}
-            </tbody>
-        </table>
-    `;
-
-    // Append to body temporarily so chart can render
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '-9999px';
-    container.style.width = '800px';
-    document.body.appendChild(container);
-
-    // Render the chart on the temporary canvas
-    const ctx = document.getElementById('pdfChartCanvas').getContext('2d');
     const hours = Array.from({length: 24}, (_, i) => i);
     const counts = new Array(24).fill(0);
     (data.hourly_flow || []).forEach(h => { counts[Number(h.hr)] = Number(h.total); });
@@ -574,6 +492,7 @@ function generatePdfReport(data, titleDate) {
         return `${hr}${ampm}`;
     });
 
+    // Chart requires animation: false to render synchronously detached
     new Chart(ctx, {
         type: 'line',
         data: {
@@ -590,9 +509,9 @@ function generatePdfReport(data, titleDate) {
             }]
         },
         options: {
-            responsive: true,
+            responsive: false,
             maintainAspectRatio: false,
-            animation: false, // disable animation for synchronous capture
+            animation: false,
             plugins: { legend: { display: false } },
             scales: {
                 x: { grid: { display: false }, ticks: { font: { size: 10 } } },
@@ -601,19 +520,204 @@ function generatePdfReport(data, titleDate) {
         }
     });
 
-    // Let the chart render then generate PDF
+    // Let chart render synchronously, then grab image and open print view
     setTimeout(() => {
-        const opt = {
-            margin:       0.5,
-            filename:     `ByaHero_Analytics_${titleDate.replace(/[^a-z0-9]/gi, '_')}.pdf`,
-            image:        { type: 'jpeg', quality: 0.98 },
-            html2canvas:  { scale: 2 },
-            jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-        };
+        const chartImgData = tempCanvas.toDataURL('image/png');
+        const s = data.summary || {};
 
-        html2pdf().set(opt).from(container).save().then(() => {
-            document.body.removeChild(container);
-        });
+        const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>ByaHero Analytics Report</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    color: #333;
+                    padding: 20px;
+                    margin: 0;
+                }
+                .header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    gap: 15px;
+                    margin-bottom: 5px;
+                }
+                .header img {
+                    height: 40px;
+                    width: auto;
+                }
+                .title {
+                    margin: 0; color: #1d4ed8; font-size: 24px; font-weight: 800; letter-spacing: 1px;
+                }
+                .subtitle {
+                    color: #64748b; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+                }
+                .period {
+                    text-align: center; color: #64748b; font-size: 14px; margin-bottom: 20px;
+                }
+                .summary-table {
+                    width: 100%; border-collapse: collapse; margin-bottom: 30px;
+                }
+                .summary-table td {
+                    padding: 15px; border: 1px solid #e2e8f0; text-align: center;
+                }
+                .summary-val {
+                    font-size: 24px; font-weight: bold; color: #1d4ed8;
+                }
+                .summary-label {
+                    font-size: 12px; color: #64748b; text-transform: uppercase;
+                }
+                .section-title {
+                    color: #334155; margin-bottom: 10px; font-size: 16px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px;
+                }
+                .chart-container {
+                    text-align: center; margin-bottom: 30px;
+                }
+                .chart-container img {
+                    max-width: 100%; height: auto;
+                }
+                .data-table {
+                    width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px;
+                }
+                .data-table th, .data-table td {
+                    padding: 8px; border-bottom: 1px solid #e2e8f0;
+                }
+                .data-table th {
+                    background-color: #f8fafc; border-bottom: 2px solid #cbd5e1; text-align: left;
+                }
+                .text-center { text-align: center; }
+                .text-right { text-align: right; }
+                .fw-bold { font-weight: bold; }
+                .text-primary { color: #1d4ed8; }
+                
+                @media print {
+                    body { padding: 0; }
+                    .page-break { page-break-inside: avoid; }
+                    table { page-break-inside: auto; }
+                    tr { page-break-inside: avoid; page-break-after: auto; }
+                    thead { display: table-header-group; }
+                    tfoot { display: table-footer-group; }
+                }
+            </style>
+        </head>
+        <body>
+            <div class="header">
+                <!-- Using absolute root path to ensure it loads in the new window context -->
+                <img src="${window.location.origin}/ByaHero/assets/images/byaheroLogo.png" alt="Logo" onload="window.logoLoaded = true;" onerror="window.logoLoaded = true;" />
+                <div>
+                    <h2 class="title">BYAHERO</h2>
+                    <div class="subtitle">Analytics Report</div>
+                </div>
+            </div>
+            <p class="period">Period: ${h(titleDate)}</p>
+            
+            <table class="summary-table">
+                <tr>
+                    <td>
+                        <div class="summary-val">${Number(s.total_trips || 0).toLocaleString()}</div>
+                        <div class="summary-label">Total Trips</div>
+                    </td>
+                    <td>
+                        <div class="summary-val">${Number(s.total_passengers || 0).toLocaleString()}</div>
+                        <div class="summary-label">Passengers Boarded</div>
+                    </td>
+                    <td>
+                        <div class="summary-val">${Number(s.total_departed || 0).toLocaleString()}</div>
+                        <div class="summary-label">Passengers Departed</div>
+                    </td>
+                    <td>
+                        <div class="summary-val">${Math.round(Number(s.avg_trip_minutes || 0))} min</div>
+                        <div class="summary-label">Avg Trip Duration</div>
+                    </td>
+                </tr>
+            </table>
+
+            <div class="page-break">
+                <h3 class="section-title">Passenger Flow</h3>
+                <div class="chart-container">
+                    <img src="${chartImgData}" alt="Chart" />
+                </div>
+            </div>
+            
+            <div class="page-break">
+                <h3 class="section-title">Route Breakdown</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Route</th>
+                            <th class="text-center">Trips</th>
+                            <th class="text-right">Passengers</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(data.routes || []).map(r => `
+                        <tr>
+                            <td>${h(r.route)}</td>
+                            <td class="text-center">${h(r.trips)}</td>
+                            <td class="text-right fw-bold text-primary">${Number(r.passengers).toLocaleString()}</td>
+                        </tr>`).join('')}
+                        ${(data.routes || []).length === 0 ? '<tr><td colspan="3" class="text-center" style="color: #94a3b8;">No data available</td></tr>' : ''}
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="page-break">
+                <h3 class="section-title">Bus Performance</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Bus Code</th>
+                            <th class="text-center">Trips</th>
+                            <th class="text-right">Passengers</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(data.buses || []).map(b => `
+                        <tr>
+                            <td>${h(b.code)}</td>
+                            <td class="text-center">${h(b.trips)}</td>
+                            <td class="text-right fw-bold text-primary">${Number(b.passengers).toLocaleString()}</td>
+                        </tr>`).join('')}
+                        ${(data.buses || []).length === 0 ? '<tr><td colspan="3" class="text-center" style="color: #94a3b8;">No data available</td></tr>' : ''}
+                    </tbody>
+                </table>
+            </div>
+            
+            <script>
+                // Wait for logo to load before printing
+                let checkLogo = setInterval(() => {
+                    if (window.logoLoaded) {
+                        clearInterval(checkLogo);
+                        setTimeout(() => {
+                            window.print();
+                        }, 200);
+                    }
+                }, 100);
+                
+                // Fallback timeout in case image fails
+                setTimeout(() => {
+                    clearInterval(checkLogo);
+                    if (!window.logoLoaded) {
+                        window.print();
+                    }
+                }, 3000);
+            <\/script>
+        </body>
+        </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.open();
+            printWindow.document.write(html);
+            printWindow.document.close();
+            printWindow.document.title = `ByaHero_Analytics_${titleDate.replace(/[^a-z0-9]/gi, '_')}`;
+        } else {
+            alert('Popup blocked! Please allow popups to generate the PDF report.');
+        }
+
     }, 500);
 }
 
