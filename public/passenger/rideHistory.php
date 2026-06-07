@@ -17,7 +17,6 @@ $pageTitle = 'Ride History';
     <style>
         :root {
             --primary: #1e3a8a;
-            --primary-light: #e0e7ff;
             --accent: #2563eb;
             --bg-light: #f8fafc;
             --text-main: #1e293b;
@@ -36,22 +35,19 @@ $pageTitle = 'Ride History';
         .history-container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 16px;
         }
 
-        /* Stats Header */
-        .stats-header {
-            background-color: #1e3a8a;
-            border-radius: 24px;
-            padding: 24px;
-            color: white;
-            margin-bottom: 24px;
-            box-shadow: 0 15px 30px rgba(30, 58, 138, 0.2);
-            position: relative;
-            overflow: hidden;
+        .btn-primary {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+        .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+            background-color: #152962 !important;
+            border-color: #152962 !important;
         }
 
-        .stats-header::before {
+        /* Stats Header Background Design */
+        .stats-header-card::before {
             content: "";
             position: absolute;
             top: -50%;
@@ -62,70 +58,12 @@ $pageTitle = 'Ride History';
             border-radius: 50%;
         }
 
-        .stats-title {
-            font-size: 0.9rem;
-            font-weight: 600;
-            opacity: 0.8;
-            margin-bottom: 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .stats-value {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 16px;
-        }
-
-        .stats-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            padding-top: 16px;
-        }
-
-        .stat-item .label {
-            font-size: 0.75rem;
-            opacity: 0.8;
-            display: block;
-        }
-
-        .stat-item .value {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        /* Group Label */
-        .group-label {
-            font-size: 0.85rem;
-            font-weight: 800;
-            color: var(--text-muted);
-            margin: 24px 0 12px 4px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .group-label::after {
-            content: "";
-            flex: 1;
-            height: 1px;
-            background: rgba(0, 0, 0, 0.05);
-        }
-
-        /* Ride Card */
+        /* Ride Card Animations & Shadows */
         .ride-card {
-            background: white;
             border-radius: 20px;
-            padding: 20px;
-            margin-bottom: 16px;
             box-shadow: var(--card-shadow);
             border: 1px solid rgba(255, 255, 255, 0.8);
             transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
             animation: slideUp 0.5s ease-out forwards;
             opacity: 0;
         }
@@ -141,28 +79,12 @@ $pageTitle = 'Ride History';
 
         .ride-card.active-ride {
             border: 2px solid var(--accent);
-            background: linear-gradient(to bottom, #ffffff, #f0f7ff);
+            background: linear-gradient(to bottom, #ffffff, #f0f7ff) !important;
         }
 
-        .bus-badge {
-            background: var(--primary-light);
-            color: var(--primary);
-            padding: 4px 10px;
-            border-radius: 8px;
-            font-weight: 700;
-            font-size: 0.75rem;
+        .pulse-active {
+            animation: pulse 2s infinite;
         }
-
-        .status-pill {
-            font-size: 0.65rem;
-            font-weight: 800;
-            padding: 4px 10px;
-            border-radius: 99px;
-            text-transform: uppercase;
-        }
-
-        .status-pill.completed { background: #f1f5f9; color: #475569; }
-        .status-pill.active { background: #dcfce7; color: #166534; animation: pulse 2s infinite; }
 
         @keyframes pulse {
             0% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0.4); }
@@ -170,6 +92,7 @@ $pageTitle = 'Ride History';
             100% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0); }
         }
 
+        /* Route Timeline Path */
         .route-path {
             position: relative;
             margin-top: 16px;
@@ -200,60 +123,6 @@ $pageTitle = 'Ride History';
         .path-dot.start { top: 0; border-color: var(--accent); }
         .path-dot.end { bottom: 0; border-color: var(--text-muted); }
 
-        .path-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .location-text {
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-main);
-        }
-
-        .time-text {
-            font-size: 0.8rem;
-            font-weight: 600;
-            color: var(--text-muted);
-        }
-
-        .duration-tag {
-            background: #fff;
-            border: 1px solid #e2e8f0;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            color: var(--text-muted);
-            margin: 12px 0;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-        }
-
-        .empty-state {
-            text-align: center;
-            padding: 80px 24px;
-        }
-
-        .empty-illustration {
-            width: 120px;
-            height: 120px;
-            background: white;
-            border-radius: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 24px;
-            box-shadow: var(--card-shadow);
-        }
-
-        .empty-illustration span {
-            font-size: 60px;
-            color: var(--primary-light);
-        }
-
         /* Shimmer Loading */
         .shimmer-card {
             height: 150px;
@@ -276,63 +145,26 @@ $pageTitle = 'Ride History';
             0% { transform: translateX(-100%); }
             100% { transform: translateX(100%); }
         }
-
-        /* Filters */
-        .btn-filter {
-            border-radius: 99px;
-            padding: 8px 20px;
-            font-size: 0.85rem;
-            font-weight: 700;
-            background: white;
-            border: 1px solid #e2e8f0;
-            color: var(--text-muted);
-            transition: all 0.2s;
-        }
-
-        .btn-filter.active {
-            background: var(--primary);
-            color: white;
-            border-color: var(--primary);
-            box-shadow: 0 4px 12px rgba(30, 58, 138, 0.2);
-        }
-
-        .report-btn {
-            background: none;
-            border: none;
-            color: #ef4444;
-            font-size: 0.75rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border-radius: 8px;
-            transition: background 0.2s;
-        }
-
-        .report-btn:hover {
-            background: #fee2e2;
-        }
     </style>
 </head>
 <body>
 
     <?php include __DIR__ . '/../../components/navbarPassenger.php'; ?>
 
-    <div class="history-container">
+    <div class="history-container p-3">
         <!-- Summary Section -->
         <div id="statsPlaceholder">
-            <div class="stats-header">
-                <div class="stats-title">This Month</div>
-                <div class="stats-value" id="totalRides">...</div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <span class="label">Total Duration</span>
-                        <span class="value" id="totalDuration">...</span>
+            <div class="stats-header-card p-4 text-white mb-4 position-relative overflow-hidden" style="background-color: #1e3a8a; border-radius: 24px; box-shadow: 0 15px 30px rgba(30, 58, 138, 0.2);">
+                <div class="text-uppercase fw-semibold mb-1 opacity-75 small" style="letter-spacing: 1px; font-size: 0.9rem;">This Month</div>
+                <div class="fs-2 fw-bold mb-3" id="totalRides">...</div>
+                <div class="row pt-3 border-top border-white-20 g-2">
+                    <div class="col-6">
+                        <span class="d-block small opacity-75" style="font-size: 0.75rem;">Total Duration</span>
+                        <span class="fs-5 fw-bold" id="totalDuration">...</span>
                     </div>
-                    <div class="stat-item">
-                        <span class="label">Fav Route</span>
-                        <span class="value" id="favRoute">...</span>
+                    <div class="col-6">
+                        <span class="d-block small opacity-75" style="font-size: 0.75rem;">Fav Route</span>
+                        <span class="fs-5 fw-bold text-truncate d-block" id="favRoute">...</span>
                     </div>
                 </div>
             </div>
@@ -345,9 +177,9 @@ $pageTitle = 'Ride History';
         </div>
 
         <div id="filters" class="d-flex gap-2 mb-4" style="display: none !important;">
-            <button class="btn btn-filter active" data-filter="all" onclick="setFilter('all')">All</button>
-            <button class="btn btn-filter" data-filter="active" onclick="setFilter('active')">Active</button>
-            <button class="btn btn-filter" data-filter="completed" onclick="setFilter('completed')">Past</button>
+            <button class="btn btn-filter btn-primary rounded-pill px-4 fw-bold shadow-sm" data-filter="all" onclick="setFilter('all')">All</button>
+            <button class="btn btn-filter btn-light border rounded-pill px-4 fw-bold text-muted" data-filter="active" onclick="setFilter('active')">Active</button>
+            <button class="btn btn-filter btn-light border rounded-pill px-4 fw-bold text-muted" data-filter="completed" onclick="setFilter('completed')">Past</button>
         </div>
 
         <div id="historyList"></div>
@@ -384,14 +216,18 @@ $pageTitle = 'Ride History';
             currentFilter = filter;
             document.querySelectorAll('.btn-filter').forEach(btn => {
                 const btnFilter = btn.getAttribute('data-filter');
-                btn.classList.toggle('active', btnFilter === filter);
+                if (btnFilter === filter) {
+                    btn.className = 'btn btn-filter btn-primary rounded-pill px-4 fw-bold shadow-sm';
+                } else {
+                    btn.className = 'btn btn-filter btn-light border rounded-pill px-4 fw-bold text-muted';
+                }
             });
             renderHistory();
         }
 
         async function fetchHistory() {
             try {
-                const res = await fetch('../api.php?action=get_ride_history');
+                const res = await fetch('../api?action=get_ride_history');
                 const data = await res.json();
                 
                 const loading = document.getElementById('loadingState');
@@ -399,8 +235,8 @@ $pageTitle = 'Ride History';
                 
                 if (!data.success || !data.history || data.history.length === 0) {
                     document.getElementById('historyList').innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-illustration">
+                        <div class="text-center py-5 px-4">
+                            <div class="bg-white rounded-5 d-flex align-items-center justify-content-center mx-auto mb-4 shadow-sm" style="width: 120px; height: 120px;">
                                 <img src="../../assets/images/WAITING.svg" alt="Waiting" style="width: 90px; height: 90px;" />
                             </div>
                             <h4 class="fw-bold">No Rides Yet</h4>
@@ -458,46 +294,51 @@ $pageTitle = 'Ride History';
                 const group = getGroupLabel(ride.boarded_at);
                 if (group !== currentGroup) {
                     currentGroup = group;
-                    html += `<div class="group-label">${group}</div>`;
+                    html += `
+                        <div class="d-flex align-items-center text-uppercase fw-bold text-secondary my-4 ms-1 small" style="letter-spacing: 1px; font-size: 0.85rem; gap: 8px;">
+                            ${group}
+                            <div class="flex-grow-1" style="height: 1px; background: rgba(0, 0, 0, 0.05);"></div>
+                        </div>
+                    `;
                 }
 
                 const duration = formatDuration(ride.boarded_at, ride.departed_at);
                 const boardedTime = new Date(ride.boarded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 const departedTime = ride.departed_at ? new Date(ride.departed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ongoing';
                 
-                const statusClass = ride.status === 'active' ? 'active' : 'completed';
-                const cardClass = ride.status === 'active' ? 'ride-card active-ride' : 'ride-card';
+                const statusClass = ride.status === 'active' ? 'bg-success-subtle text-success pulse-active' : 'bg-light text-secondary';
+                const cardClass = ride.status === 'active' ? 'ride-card active-ride bg-white p-4 mb-3 position-relative' : 'ride-card bg-white p-4 mb-3 position-relative';
 
                 html += `
                     <div class="${cardClass}" style="animation-delay: ${index * 0.05}s">
                         <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="bus-badge">Bus ${ride.bus_code}</div>
-                            <span class="status-pill ${statusClass}">${ride.status === 'active' ? 'On Ride' : 'Completed'}</span>
+                            <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1" style="font-size: 0.75rem;">Bus ${ride.bus_code}</span>
+                            <span class="badge rounded-pill text-uppercase px-2.5 py-1 ${statusClass}" style="font-size: 0.65rem; font-weight: 800;">${ride.status === 'active' ? 'On Ride' : 'Completed'}</span>
                         </div>
                         
                         <h5 class="fw-bold mb-1">${ride.route || 'Express Route'}</h5>
                         
                         <div class="route-path">
                             <div class="path-dot start"></div>
-                            <div class="path-info">
-                                <span class="location-text">Boarded</span>
-                                <span class="time-text">${boardedTime}</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold" style="font-size: 0.95rem;">Boarded</span>
+                                <span class="small text-muted fw-semibold">${boardedTime}</span>
                             </div>
                             
-                            <div class="duration-tag">
+                            <div class="bg-white border rounded-3 px-2.5 py-1 my-2 text-muted fw-bold d-inline-flex align-items-center gap-1 small" style="font-size: 0.75rem;">
                                 <span class="material-symbols-rounded" style="font-size: 16px;">schedule</span>
                                 ${duration}
                             </div>
                             
                             <div class="path-dot end"></div>
-                            <div class="path-info">
-                                <span class="location-text">Departed</span>
-                                <span class="time-text">${departedTime}</span>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold" style="font-size: 0.95rem;">Departed</span>
+                                <span class="small text-muted fw-semibold">${departedTime}</span>
                             </div>
                         </div>
 
                         <div class="mt-3 pt-3 border-top d-flex justify-content-end">
-                            <button class="report-btn" onclick="location.href = "report/report?bus_number=${ride.bus_code}"">
+                            <button class="btn btn-link text-danger fw-bold d-flex align-items-center gap-1 text-decoration-none p-1 small" onclick="location.href = 'report/report?bus_number=${ride.bus_code}'">
                                 <span class="material-symbols-rounded" style="font-size: 18px;">report</span>
                                 Report Issue
                             </button>
