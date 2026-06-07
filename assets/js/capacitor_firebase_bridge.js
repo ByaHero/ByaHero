@@ -326,11 +326,9 @@
     function initWhenReady() {
       const path = window.location.pathname.toLowerCase();
       
-      // Block pure auth/landing pages, but ALLOW dashboards like passenger/index.php
+      // Block pure landing pages, but allow logins, signups, and dashboards
       let isAuthPage = false;
-      if (path.includes('login.php') || path.includes('signup.php')) {
-          isAuthPage = true;
-      } else if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/'))) {
+      if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/')) && !path.includes('login') && !path.includes('signup')) {
           isAuthPage = true;
       }
       
