@@ -63,7 +63,7 @@ $baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
         <div class="login-card">
             <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <h1 class="brand-title">BYAHERO</h1>
+                <img src="../assets/images/ByaHero_rext_.svg" alt="BYAHERO" class="brand-title" style="height: 45px; width: auto;" />
             </header>
 
             <main class="form-card">
@@ -94,7 +94,7 @@ $baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
                         <div class="mb-3 password-wrapper">
                             <input type="password" name="password" id="passInput" class="form-control input-pill pe-5" placeholder="Password" required minlength="6" autocomplete="new-password">
                             <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
-                                <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
+                                <img src="../assets/images/hash.svg" id="iconPass" style="width:18px; height:18px;" alt="Show password">
                             </button>
                             <div class="invalid-feedback ps-3">Password must be at least 6 characters.</div>
                         </div>
@@ -102,7 +102,7 @@ $baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
                         <div class="mb-2 password-wrapper">
                             <input type="password" name="confirm_password" id="confirmInput" class="form-control input-pill pe-5" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
                             <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
-                                <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
+                                <img src="../assets/images/hash.svg" id="iconConfirm" style="width:18px; height:18px;" alt="Show password">
                             </button>
                             <div class="invalid-feedback ps-3">Passwords do not match.</div>
                         </div>
@@ -118,7 +118,7 @@ $baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
                         </div>
 
                         <div id="google-auth-container">
-                            <div id="gsi-web-container" style="<?= $isCapacitor ? 'display: none;' : '' ?>">
+                            <div id="gsi-web-container" style="<?= $isCapacitor ? 'display: none;' : 'display: flex; justify-content: center;' ?>">
                                 <div id="g_id_onload"
                                     data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
                                     data-context="signup"
