@@ -193,8 +193,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
                              placeholder="Password" class="form-control input-pill" required />
                         <button type="button" id="togglePwd" class="input-addon" aria-pressed="false"
                              aria-label="Show password" title="Show password">
-                            <span id="eyeIcon" class="material-icons-round"
-                                 style="font-size:18px;line-height:1;">visibility_off</span>
+                            <img src="../assets/images/hash.svg" id="eyeIcon" style="width:18px; height:18px;" alt="Show password">
                         </button>
                     </div>
 

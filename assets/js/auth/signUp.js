@@ -24,10 +24,10 @@ function togglePass(inputId, iconId) {
     if (input && icon) {
         if (input.type === 'password') {
             input.type = 'text';
-            icon.textContent = 'visibility';
+            icon.src = '../assets/images/pass.svg';
         } else {
             input.type = 'password';
-            icon.textContent = 'visibility_off';
+            icon.src = '../assets/images/hash.svg';
         }
         input.focus();
     }
