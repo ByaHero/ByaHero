@@ -606,26 +606,43 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     return;
   }
 
-  // Request native permission if running in Capacitor (Bluestacks/Android)
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-    try {
-      const Geolocation = window.Capacitor.Plugins.Geolocation;
-      let perm = await Geolocation.checkPermissions();
-      if (perm.location !== 'granted') {
-        perm = await Geolocation.requestPermissions();
+  // Poll/wait for Capacitor to be ready if we are running in the native app
+  const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
+  if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation)) {
+    let attempts = 0;
+    const interval = setInterval(async () => {
+      attempts++;
+      if ((window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) || attempts > 200) {
+        clearInterval(interval);
+        executeLocationWatch();
       }
-      if (perm.location !== 'granted') {
-        window.locationPermissionGranted = false;
-        window.showLocationPermissionDenied();
-        return;
-      }
-      window.locationPermissionGranted = true;
-    } catch (e) {
-      console.warn('Native Geolocation permission check failed:', e);
-    }
+    }, 100);
+    return;
   }
 
-  if (!navigator.geolocation) return;
+  executeLocationWatch();
+
+  async function executeLocationWatch() {
+    // Request native permission if running in Capacitor (Bluestacks/Android)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+      try {
+        const Geolocation = window.Capacitor.Plugins.Geolocation;
+        let perm = await Geolocation.checkPermissions();
+        if (perm.location !== 'granted') {
+          perm = await Geolocation.requestPermissions();
+        }
+        if (perm.location !== 'granted') {
+          window.locationPermissionGranted = false;
+          window.showLocationPermissionDenied();
+          return;
+        }
+        window.locationPermissionGranted = true;
+      } catch (e) {
+        console.warn('Native Geolocation permission check failed:', e);
+      }
+    }
+
+    if (!navigator.geolocation) return;
 
   const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
   if (bgPluginAvailable) {
@@ -657,6 +674,7 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     }
   } else {
     window.startWebGeolocation();
+  }
   }
 };
 

@@ -235,7 +235,24 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
-    const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+    // Poll/wait for Capacitor to be ready if we are running in the native app
+    const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
+    if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.BackgroundGeolocation)) {
+        let attempts = 0;
+        const interval = setInterval(async () => {
+            attempts++;
+            if ((window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) || attempts > 200) {
+                clearInterval(interval);
+                executeConductorWatch();
+            }
+        }, 100);
+        return;
+    }
+
+    executeConductorWatch();
+
+    async function executeConductorWatch() {
+        const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
     if (bgAvailable) {
         const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
         try {
@@ -269,6 +286,7 @@ async function startGeolocation() {
     } else {
         startWebGeolocation();
     }
+  }
 }
 
 // App Lifecycles & Visibility Triggers
