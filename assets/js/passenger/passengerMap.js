@@ -618,36 +618,35 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     return;
   }
 
-  // Wait for Capacitor bridge to be fully ready
-  if (window.Capacitor) {
-    let attempts = 0;
-    while (attempts < 20 && (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
-      await new Promise(resolve => setTimeout(resolve, 50));
-      attempts++;
-    }
-  }
-
   // Request native permission if running in Capacitor (Bluestacks/Android)
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-    try {
-      const Geolocation = window.Capacitor.Plugins.Geolocation;
-      let perm = await Geolocation.checkPermissions();
-      if (perm.location !== 'granted') {
-        // Wait 200ms and try checkPermissions one more time to handle native initialization lag
-        await new Promise(resolve => setTimeout(resolve, 200));
-        perm = await Geolocation.checkPermissions();
+    let attempts = 0;
+    let success = false;
+    const Geolocation = window.Capacitor.Plugins.Geolocation;
+    
+    while (attempts < 10 && !success) {
+      try {
+        let perm = await Geolocation.checkPermissions();
+        success = true; // Bridge is ready and call succeeded
+        
+        if (perm.location !== 'granted') {
+          perm = await Geolocation.requestPermissions();
+        }
+        if (perm.location !== 'granted') {
+          window.locationPermissionGranted = false;
+          window.showLocationPermissionDenied();
+          return;
+        }
+        window.locationPermissionGranted = true;
+      } catch (e) {
+        console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
+        await new Promise(resolve => setTimeout(resolve, 150));
+        attempts++;
       }
-      if (perm.location !== 'granted') {
-        perm = await Geolocation.requestPermissions();
-      }
-      if (perm.location !== 'granted') {
-        window.locationPermissionGranted = false;
-        window.showLocationPermissionDenied();
-        return;
-      }
-      window.locationPermissionGranted = true;
-    } catch (e) {
-      console.warn('Native Geolocation permission check failed:', e);
+    }
+    
+    if (!success) {
+      console.warn('Capacitor Geolocation bridge failed to initialize after 10 attempts.');
     }
   }
 

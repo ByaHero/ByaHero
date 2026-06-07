@@ -282,30 +282,31 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
-    // Wait for Capacitor bridge to be fully ready
-    if (window.Capacitor) {
+    // Request native permission if running in Capacitor (Bluestacks/Android)
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
         let attempts = 0;
-        while (attempts < 20 && (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-            attempts++;
+        let success = false;
+        const Geolocation = window.Capacitor.Plugins.Geolocation;
+        
+        while (attempts < 10 && !success) {
+            try {
+                let perm = await Geolocation.checkPermissions();
+                success = true; // Bridge is ready and call succeeded
+                
+                if (perm.location !== 'granted') {
+                    perm = await Geolocation.requestPermissions();
+                }
+            } catch (e) {
+                console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
+                await new Promise(resolve => setTimeout(resolve, 150));
+                attempts++;
+            }
         }
     }
 
     const nativePlugin = getNativeBackgroundLocationPlugin();
     if (nativePlugin) {
         try {
-            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-                const Geolocation = window.Capacitor.Plugins.Geolocation;
-                let perm = await Geolocation.checkPermissions();
-                if (perm.location !== 'granted') {
-                    // Wait 200ms and try checkPermissions one more time to handle native initialization lag
-                    await new Promise(resolve => setTimeout(resolve, 200));
-                    perm = await Geolocation.checkPermissions();
-                }
-                if (perm.location !== 'granted') {
-                    perm = await Geolocation.requestPermissions();
-                }
-            }
             await nativePlugin.start(getNativeLocationOptions());
             nativeLocationActive = true;
             console.log('Native background tracking started for conductor');
