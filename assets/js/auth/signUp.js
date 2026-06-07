@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Capacitor Native auth initializers
     let attempts = 0;
     const pollTimer = setInterval(() => {
-        if (initNativeCapacitorGoogleAuth() || attempts > 20) {
+        if (initNativeCapacitorGoogleAuth() || attempts > 300) {
             clearInterval(pollTimer);
         }
         attempts++;

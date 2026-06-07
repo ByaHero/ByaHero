@@ -342,7 +342,7 @@
           initializePushNotifications();
         } else {
           pollAttempts++;
-          if (pollAttempts < 60) { // 3 seconds max (50ms * 60)
+          if (pollAttempts < 600) { // 30 seconds max (50ms * 600)
             setTimeout(poll, 50);
           } else {
             dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
