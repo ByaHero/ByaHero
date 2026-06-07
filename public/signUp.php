@@ -30,6 +30,8 @@ if (isset($_SESSION['user_id'])) {
     }
     exit;
 }
+
+$isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor');
 ?>
 <!doctype html>
 <html lang="en">
@@ -113,7 +115,7 @@ if (isset($_SESSION['user_id'])) {
                         </div>
 
                         <div id="google-auth-container">
-                            <div id="gsi-web-container">
+                            <div id="gsi-web-container" style="<?= $isCapacitor ? 'display: none;' : '' ?>">
                                 <div id="g_id_onload"
                                     data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
                                     data-context="signup"
@@ -132,7 +134,7 @@ if (isset($_SESSION['user_id'])) {
                                 </div>
                             </div>
 
-                            <div id="gsi-native-container" style="display: none; justify-content: center;">
+                            <div id="gsi-native-container" style="<?= $isCapacitor ? 'display: flex; justify-content: center;' : 'display: none; justify-content: center;' ?>">
                                 <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
                                     <svg width="18" height="18" viewBox="0 0 48 48">
                                         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
