@@ -830,7 +830,7 @@
                 return;
             }
 
-            navigator.geolocation.getCurrentPosition(async (pos) => {
+            window.safeGetCurrentPosition(async (pos) => {
                 try {
                     const lat = pos?.coords?.latitude;
                     const lng = pos?.coords?.longitude;

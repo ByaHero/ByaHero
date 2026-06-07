@@ -324,13 +324,11 @@ async function startGeolocation() {
         }
 
         // Force an immediate location check so the map updates instantly even if stationary
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                onLocationUpdate,
-                err => console.warn('Initial GPS check failed:', err.message),
-                { enableHighAccuracy: true, timeout: 5000 }
-            );
-        }
+        window.safeGetCurrentPosition(
+            onLocationUpdate,
+            err => console.warn('Initial GPS check failed:', err.message),
+            { enableHighAccuracy: true, timeout: 5000 }
+        );
     } finally {
         isStartingGeolocation = false;
     }

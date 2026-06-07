@@ -716,8 +716,7 @@ window.startUserLocationWatch = function startUserLocationWatch() {
  * Forces a geolocation pull instantly.
  */
 window.triggerManualUpdate = async function triggerManualUpdate() {
-  if (!navigator.geolocation) return;
-  navigator.geolocation.getCurrentPosition(pos => {
+  window.safeGetCurrentPosition(pos => {
     window.onLocationUpdate(pos);
   }, err => { }, { enableHighAccuracy: true, timeout: 5000 });
 };
@@ -1028,12 +1027,7 @@ window.centerToMyLocation = function centerToMyLocation() {
     return;
   }
   
-  if (!navigator.geolocation) {
-    alert('Geolocation is not supported on this device/browser.');
-    return;
-  }
-
-  navigator.geolocation.getCurrentPosition(
+  window.safeGetCurrentPosition(
     pos => {
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;

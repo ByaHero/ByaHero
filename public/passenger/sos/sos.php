@@ -384,6 +384,7 @@ $pageDepth = "../../../";
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../../assets/js/byaheroTracking.js?v=<?= time() ?>"></script>
 
     <script>
         let currentCoords = { lat: null, lng: null };
@@ -450,19 +451,17 @@ $pageDepth = "../../../";
             } catch (e) { console.warn(e); }
         }
 
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                async (pos) => {
-                    currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                    await setLocationUI(currentCoords.lat, currentCoords.lng);
-                },
-                () => {
-                    const el = document.getElementById("location-text");
-                    if (el) el.innerText = "Unknown Location";
-                },
-                { enableHighAccuracy: true, timeout: 10000 }
-            );
-        }
+        window.safeGetCurrentPosition(
+            async (pos) => {
+                currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                await setLocationUI(currentCoords.lat, currentCoords.lng);
+            },
+            () => {
+                const el = document.getElementById("location-text");
+                if (el) el.innerText = "Unknown Location";
+            },
+            { enableHighAccuracy: true, timeout: 10000 }
+        );
     </script>
 
     <script>

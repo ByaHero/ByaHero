@@ -176,3 +176,33 @@ window.stopKeepAliveAudio = function stopKeepAliveAudio() {
         window.keepAliveAudio = null;
     }
 };
+
+/**
+ * Safely fetches the current GPS position, prioritizing native Capacitor Geolocation
+ * over standard browser geolocation to prevent WebView permission failures on remote domains.
+ */
+window.safeGetCurrentPosition = async function safeGetCurrentPosition(successCallback, errorCallback, options) {
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        try {
+            const Geolocation = window.Capacitor.Plugins.Geolocation;
+            // Ensure permissions are checked/requested before querying location
+            let perm = await Geolocation.checkPermissions();
+            if (perm.location !== 'granted') {
+                perm = await Geolocation.requestPermissions();
+            }
+            if (perm.location === 'granted') {
+                const coordinates = await Geolocation.getCurrentPosition(options);
+                successCallback(coordinates);
+                return;
+            }
+        } catch (e) {
+            console.warn('Native safeGetCurrentPosition failed, falling back to web:', e);
+        }
+    }
+    
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
+    } else {
+        errorCallback({ code: 0, message: "Geolocation not supported" });
+    }
+};
