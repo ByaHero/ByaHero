@@ -249,7 +249,7 @@
         return {
             baseUrl,
             updateUrl: `${baseUrl}/backend/updateUserLocation.php`,
-            intervalMs: 30000
+            intervalMs: 5000
         };
     }
 

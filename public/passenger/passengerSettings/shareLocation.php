@@ -70,7 +70,7 @@ require_once __DIR__ . '/../auth_passenger.php';
       return {
         baseUrl,
         updateUrl: `${baseUrl}/backend/updateUserLocation.php`,
-        intervalMs: 30000
+        intervalMs: 5000
       };
     }
 

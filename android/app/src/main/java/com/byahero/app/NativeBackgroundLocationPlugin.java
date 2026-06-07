@@ -7,6 +7,7 @@ import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.webkit.CookieManager;
+import android.webkit.WebSettings;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
@@ -18,7 +19,7 @@ import com.getcapacitor.annotation.CapacitorPlugin;
 public class NativeBackgroundLocationPlugin extends Plugin {
     private static final String DEFAULT_BASE_URL = "https://byahero.app";
     private static final String DEFAULT_UPDATE_URL = "https://byahero.app/backend/updateUserLocation.php";
-    private static final long DEFAULT_INTERVAL_MS = 30000L;
+    private static final long DEFAULT_INTERVAL_MS = 5000L;
     private static final String PREFS = "native_background_location";
 
     @PluginMethod
@@ -38,11 +39,27 @@ public class NativeBackgroundLocationPlugin extends Plugin {
             return;
         }
 
+        String payloadType = call.getString("payloadType", "passenger");
+
         Intent intent = new Intent(getContext(), NativeBackgroundLocationService.class);
         intent.setAction(NativeBackgroundLocationService.ACTION_START);
         intent.putExtra(NativeBackgroundLocationService.EXTRA_UPDATE_URL, updateUrl);
         intent.putExtra(NativeBackgroundLocationService.EXTRA_COOKIE, cookie);
         intent.putExtra(NativeBackgroundLocationService.EXTRA_INTERVAL_MS, intervalMs);
+        intent.putExtra("payloadType", payloadType);
+
+        if ("conductor".equals(payloadType)) {
+            intent.putExtra("bus_id", call.getLong("busId", 0L));
+            intent.putExtra("route", call.getString("route", ""));
+            intent.putExtra("seats_available", call.getInt("seatsAvailable", 0));
+            intent.putExtra("status", call.getString("status", "available"));
+        }
+
+        try {
+            intent.putExtra("userAgent", WebSettings.getDefaultUserAgent(getContext()));
+        } catch (Exception e) {
+            // Fallback in case of webview/settings init issues
+        }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(intent);

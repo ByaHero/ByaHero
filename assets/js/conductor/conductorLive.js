@@ -31,6 +31,40 @@ const alertBox = el('alertBox');
 const netStatus = el('netStatus');
 let bgWatcherId = null;
 let _appStateListener = null;
+let nativeLocationActive = false;
+
+function getNativeBackgroundLocationPlugin() {
+    return window.Capacitor?.Plugins?.NativeBackgroundLocation || null;
+}
+
+function getNativeLocationOptions() {
+    const appBase = window.APP_BASE_URL || '';
+    const baseUrl = `${window.location.origin}${appBase}`;
+    const statusSelect = el('statusSelect');
+    const status = lastComputedStatus || (statusSelect?.value || 'available');
+    return {
+        baseUrl,
+        updateUrl: `${baseUrl}/public/update_geo_location.php`,
+        intervalMs: 5000,
+        payloadType: "conductor",
+        busId: parseInt(busId),
+        route: busRoute,
+        seatsAvailable: parseInt(seats),
+        status: status
+    };
+}
+
+async function updateNativeLocationMetadata() {
+    const plugin = getNativeBackgroundLocationPlugin();
+    if (plugin && nativeLocationActive) {
+        try {
+            await plugin.start(getNativeLocationOptions());
+            console.log('Native background location metadata updated successfully');
+        } catch (e) {
+            console.warn('Failed to update native location metadata:', e);
+        }
+    }
+}
 
 let lastMoveCheck = { time: 0, lat: null, lng: null };
 let lastResolvedLocation = { lat: null, lng: null, name: null };
@@ -118,7 +152,11 @@ async function sendDataToServer(lat, lng, locName) {
     const statusSelect = el('statusSelect');
     const status = autoComputeStatus(lat, lng) || (statusSelect?.value || 'available');
     if (statusSelect) statusSelect.value = status;
+    const statusChanged = lastComputedStatus !== status;
     lastComputedStatus = status;
+    if (statusChanged) {
+        updateNativeLocationMetadata();
+    }
 
     const payload = {
         bus_id: busId,
@@ -235,8 +273,26 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
+    const nativePlugin = getNativeBackgroundLocationPlugin();
+    if (nativePlugin) {
+        try {
+            if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+                const Geolocation = window.Capacitor.Plugins.Geolocation;
+                let perm = await Geolocation.checkPermissions();
+                if (perm.location !== 'granted') {
+                    perm = await Geolocation.requestPermissions();
+                }
+            }
+            await nativePlugin.start(getNativeLocationOptions());
+            nativeLocationActive = true;
+            console.log('Native background tracking started for conductor');
+        } catch (e) {
+            console.warn('NativeBackgroundLocation failed, falling back:', e);
+        }
+    }
+
     const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-    if (bgAvailable) {
+    if (bgAvailable && !nativeLocationActive) {
         const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
         try {
             const permissions = await BackgroundGeolocation.requestPermissions();
@@ -277,7 +333,7 @@ const _onVisibilityChange = async () => {
         acquireWakeLock();
         if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(() => {});
         
-        const trackingActive = bgWatcherId !== null || watchId !== null;
+        const trackingActive = bgWatcherId !== null || watchId !== null || nativeLocationActive;
         if (!trackingActive) {
             await startGeolocation();
         } else if (lastKnownLocation) {
@@ -384,6 +440,14 @@ async function stopTracking() {
         try { window.Capacitor.Plugins.MediaSession.setPlaybackState({ playbackState: 'none' }).catch(() => {}); } catch (e) {}
     }
 
+    const nativePlugin = getNativeBackgroundLocationPlugin();
+    if (nativePlugin && nativeLocationActive) {
+        try {
+            await nativePlugin.stop();
+            nativeLocationActive = false;
+        } catch (e) {}
+    }
+
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
@@ -443,6 +507,7 @@ function incrementPassengers() {
     seats = seats - 1;
     updateSeatsUI();
     updateMediaSessionMetadata();
+    updateNativeLocationMetadata();
     pendingBoards++;
     scheduleSync();
 }
@@ -452,6 +517,7 @@ function decrementPassengers() {
         seats = seats + 1;
         updateSeatsUI();
         updateMediaSessionMetadata();
+        updateNativeLocationMetadata();
         pendingDeparts++;
         scheduleSync();
     }
@@ -531,6 +597,14 @@ function _cleanup() {
         } else if (listener.remove) {
             listener.remove();
         }
+    }
+    
+    const nativePlugin = getNativeBackgroundLocationPlugin();
+    if (nativePlugin && nativeLocationActive) {
+        try {
+            nativePlugin.stop();
+            nativeLocationActive = false;
+        } catch (e) {}
     }
     
     if (watchId !== null) {
