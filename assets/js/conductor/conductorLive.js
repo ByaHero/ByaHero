@@ -609,13 +609,8 @@ function _cleanup() {
         }
     }
     
-    const nativePlugin = getNativeBackgroundLocationPlugin();
-    if (nativePlugin && nativeLocationActive) {
-        try {
-            nativePlugin.stop();
-            nativeLocationActive = false;
-        } catch (e) {}
-    }
+    // Do not stop nativePlugin in _cleanup, otherwise swiping the app away (which triggers pagehide/beforeunload) will kill background tracking.
+    // The nativePlugin.stop() is already explicitly handled in stopTracking().
     
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
