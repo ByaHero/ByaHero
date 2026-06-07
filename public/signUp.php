@@ -32,6 +32,9 @@ if (isset($_SESSION['user_id'])) {
 }
 
 $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor');
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -48,7 +51,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="../assets/css/auth/auth.css">
     
-    <script src="/capacitor.js"></script>
+    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES); ?>/capacitor.js"></script>
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
