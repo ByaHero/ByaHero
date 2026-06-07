@@ -27,6 +27,10 @@ php_value session.gc_maxlifetime 2592000
 <IfModule mod_rewrite.c>
     RewriteEngine On
 
+    # Skip all redirects/rewrites for the Capacitor App to prevent WebView native bridge disconnection
+    RewriteCond %{HTTP_USER_AGENT} ByaHeroCapacitor [NC]
+    RewriteRule ^ - [L]
+
     # Keep backend and JSON/API endpoints addressable with their existing .php URLs.
     # This avoids redirecting fetch/XHR calls that the frontend already depends on.
     RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
