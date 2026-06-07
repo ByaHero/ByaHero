@@ -282,12 +282,26 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
+    // Wait for Capacitor bridge to be fully ready
+    if (window.Capacitor) {
+        let attempts = 0;
+        while (attempts < 20 && (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+        }
+    }
+
     const nativePlugin = getNativeBackgroundLocationPlugin();
     if (nativePlugin) {
         try {
             if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
                 const Geolocation = window.Capacitor.Plugins.Geolocation;
                 let perm = await Geolocation.checkPermissions();
+                if (perm.location !== 'granted') {
+                    // Wait 200ms and try checkPermissions one more time to handle native initialization lag
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    perm = await Geolocation.checkPermissions();
+                }
                 if (perm.location !== 'granted') {
                     perm = await Geolocation.requestPermissions();
                 }

@@ -618,12 +618,12 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     return;
   }
 
-  // If Capacitor is present but plugins are not yet initialized, wait and retry
-  if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') {
-    if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation) {
-      console.log('Capacitor native plugins not ready yet, retrying startUserLocationWatch in 100ms...');
-      setTimeout(startUserLocationWatch, 100);
-      return;
+  // Wait for Capacitor bridge to be fully ready
+  if (window.Capacitor) {
+    let attempts = 0;
+    while (attempts < 20 && (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
+      await new Promise(resolve => setTimeout(resolve, 50));
+      attempts++;
     }
   }
 
@@ -632,6 +632,11 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     try {
       const Geolocation = window.Capacitor.Plugins.Geolocation;
       let perm = await Geolocation.checkPermissions();
+      if (perm.location !== 'granted') {
+        // Wait 200ms and try checkPermissions one more time to handle native initialization lag
+        await new Promise(resolve => setTimeout(resolve, 200));
+        perm = await Geolocation.checkPermissions();
+      }
       if (perm.location !== 'granted') {
         perm = await Geolocation.requestPermissions();
       }
