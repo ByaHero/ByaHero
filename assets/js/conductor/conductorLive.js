@@ -223,70 +223,106 @@ function startWebGeolocation() {
 /**
  * Handles initialization and request permissions for Geolocation background tracking.
  */
+let isStartingGeolocation = false;
 async function startGeolocation() {
-    if (watchId !== null) {
-        try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
-        watchId = null;
-    }
-    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
-        bgWatcherId = null;
-    }
-
-    setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
-
-    // Poll/wait for Capacitor to be ready if we are running in the native app
-    const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
-    if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.BackgroundGeolocation)) {
-        let attempts = 0;
-        const interval = setInterval(async () => {
-            attempts++;
-            if ((window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) || attempts > 200) {
-                clearInterval(interval);
-                executeConductorWatch();
-            }
-        }, 100);
+    if (isStartingGeolocation) {
+        console.log('startGeolocation already in progress, skipping concurrent call.');
         return;
     }
+    isStartingGeolocation = true;
 
-    executeConductorWatch();
+    try {
+        // Remove any stale background geolocation watcher from previous sessions/pages
+        const staleBgWatcherId = localStorage.getItem('byahero_conductor_bg_watcher_id');
+        if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try {
+                await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
+                console.log('Removed stale conductor background watcher:', staleBgWatcherId);
+            } catch (e) {}
+            localStorage.removeItem('byahero_conductor_bg_watcher_id');
+        }
 
-    async function executeConductorWatch() {
-        const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-    if (bgAvailable) {
-        const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
-        try {
-            const permissions = await BackgroundGeolocation.requestPermissions();
-            if (permissions.location !== 'granted') {
-                return showAlert('Background location permission denied.', 'danger');
+        if (watchId !== null) {
+            try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
+            watchId = null;
+        }
+        if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+            try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
+            bgWatcherId = null;
+        }
+
+        setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
+
+        // Poll/wait for Capacitor to be ready if we are running in the native app
+        const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
+        if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
+            let attempts = 0;
+            while ((!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation) && attempts < 30) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                attempts++;
             }
+        }
 
-            bgWatcherId = await BackgroundGeolocation.addWatcher(
-                {
-                    backgroundMessage: "Tracking active. Keep app open in background.",
-                    backgroundTitle: "Tracking ByaHero Bus",
-                    requestPermissions: true,
-                    stale: false,
-                    distanceFilter: 5
-                },
-                function callback(location, error) {
-                    if (error) return;
-                    const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
-                    onLocationUpdate(pos);
+        // Request native permission if running in Capacitor (Bluestacks/Android)
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+            let attempts = 0;
+            let success = false;
+            const Geolocation = window.Capacitor.Plugins.Geolocation;
+            while (attempts < 10 && !success) {
+                try {
+                    let perm = await Geolocation.checkPermissions();
+                    success = true;
+                    if (perm.location !== 'granted') {
+                        perm = await Geolocation.requestPermissions();
+                    }
+                } catch (e) {
+                    console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
+                    await new Promise(resolve => setTimeout(resolve, 150));
+                    attempts++;
                 }
-            );
+            }
+        }
 
-            startKeepAliveAudio();
-            acquireWakeLock();
-            showAlert('Background Tracking Started', 'primary');
-        } catch (e) {
-            showAlert('Plugin Error', 'danger');
+        const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+        if (bgAvailable) {
+            const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
+            try {
+                const permissions = await BackgroundGeolocation.requestPermissions();
+                if (permissions.location !== 'granted') {
+                    return showAlert('Background location permission denied.', 'danger');
+                }
+
+                bgWatcherId = await BackgroundGeolocation.addWatcher(
+                    {
+                        backgroundMessage: "Tracking active. Keep app open in background.",
+                        backgroundTitle: "Tracking ByaHero Bus",
+                        requestPermissions: true,
+                        stale: false,
+                        distanceFilter: 5
+                    },
+                    function callback(location, error) {
+                        if (error) return;
+                        const pos = { coords: { latitude: location.latitude, longitude: location.longitude } };
+                        onLocationUpdate(pos);
+                    }
+                );
+                if (bgWatcherId) {
+                    localStorage.setItem('byahero_conductor_bg_watcher_id', bgWatcherId);
+                }
+
+                startKeepAliveAudio();
+                acquireWakeLock();
+                showAlert('Background Tracking Started', 'primary');
+            } catch (e) {
+                showAlert('Plugin Error', 'danger');
+                if (!isNative) startWebGeolocation();
+            }
+        } else {
             if (!isNative) startWebGeolocation();
         }
-    } else {
-        if (!isNative) startWebGeolocation();
+    } finally {
+        isStartingGeolocation = false;
     }
-  }
 }
 
 // App Lifecycles & Visibility Triggers
@@ -555,10 +591,12 @@ function _cleanup() {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
     }
-    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
-        bgWatcherId = null;
-    }
+    
+    // Do not remove native background geolocation watcher here during beforeunload/pagehide.
+    // Doing so asynchronously during context destruction causes WebView hangs/crashes.
+    // The stale watcher will be safely cleared in startGeolocation() upon next page load.
+    bgWatcherId = null;
+    
     releaseWakeLock();
     stopKeepAliveAudio();
 }

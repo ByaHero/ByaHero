@@ -334,20 +334,25 @@
       
       if (isAuthPage) return;
 
-      let pollAttempts = 0;
-      function poll() {
-        if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
-          initializePushNotifications();
-        } else {
-          pollAttempts++;
-          if (pollAttempts < 600) { // 30 seconds max (50ms * 600)
-            setTimeout(poll, 50);
+      const isMobile = window.Capacitor || /Android|iPhone|iPad/i.test(navigator.userAgent);
+      const delay = isMobile ? 500 : 0;
+
+      setTimeout(() => {
+        let pollAttempts = 0;
+        function poll() {
+          if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
+            initializePushNotifications();
           } else {
-            dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
+            pollAttempts++;
+            if (pollAttempts < 600) { // 30 seconds max (50ms * 600)
+              setTimeout(poll, 50);
+            } else {
+              dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
+            }
           }
         }
-      }
-      poll();
+        poll();
+      }, delay);
     }
 
     document.addEventListener('DOMContentLoaded', () => {
