@@ -615,6 +615,8 @@ window.startUserLocationWatch = function startUserLocationWatch() {
         try {
           await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
           console.log('Removed stale background geolocation watcher:', staleBgWatcherId);
+          // Safety cooldown: allow native Android service to cleanly release locks
+          await new Promise(resolve => setTimeout(resolve, 500));
         } catch (e) {
           console.warn('Failed to remove stale background geolocation watcher:', e);
         }
