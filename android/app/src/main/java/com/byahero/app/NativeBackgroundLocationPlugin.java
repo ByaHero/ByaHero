@@ -69,7 +69,10 @@ public class NativeBackgroundLocationPlugin extends Plugin {
 
         String baseUrl = call.getString("baseUrl", DEFAULT_BASE_URL);
         String updateUrl = call.getString("updateUrl", DEFAULT_UPDATE_URL);
-        Long intervalMs = call.getLong("intervalMs", DEFAULT_INTERVAL_MS);
+        
+        Integer intervalMsInt = call.getInt("intervalMs");
+        long intervalMs = intervalMsInt != null ? intervalMsInt.longValue() : DEFAULT_INTERVAL_MS;
+        
         String cookie = call.getString("cookie", getCookie(baseUrl, updateUrl));
 
         if (cookie == null || cookie.trim().isEmpty()) {
@@ -87,7 +90,9 @@ public class NativeBackgroundLocationPlugin extends Plugin {
         intent.putExtra("payloadType", payloadType);
 
         if ("conductor".equals(payloadType)) {
-            intent.putExtra("bus_id", call.getLong("busId", 0L));
+            Integer busIdInt = call.getInt("busId");
+            long busId = busIdInt != null ? busIdInt.longValue() : 0L;
+            intent.putExtra("bus_id", busId);
             intent.putExtra("route", call.getString("route", ""));
             intent.putExtra("seats_available", call.getInt("seatsAvailable", 0));
             intent.putExtra("status", call.getString("status", "available"));

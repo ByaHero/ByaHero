@@ -3,7 +3,7 @@
 
 // Enforce Access Control
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
-    header("Location: ../index");
+    header("Location: ../../index");
     exit;
 }
 

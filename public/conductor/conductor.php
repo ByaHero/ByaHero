@@ -7,7 +7,7 @@ if (isset($_GET['stopped']) && $_GET['stopped'] == '1') {
 }
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
-    header("Location: ../index");
+    header("Location: ../../index");
     exit;
 }
 

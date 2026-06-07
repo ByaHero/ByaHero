@@ -234,6 +234,7 @@ public class NativeBackgroundLocationService extends Service {
                     payload.put("accuracy", location.hasAccuracy() ? location.getAccuracy() : JSONObject.NULL);
                 }
 
+                android.util.Log.d("ByaHeroLocation", "postLocation: payload = " + payload.toString());
                 byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
                 connection = (HttpURLConnection) new URL(updateUrl).openConnection();
                 connection.setRequestMethod("POST");
