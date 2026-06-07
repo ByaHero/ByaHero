@@ -42,11 +42,14 @@
       });
     }
   
+    window.pushNotificationsPromise = Promise.resolve(false);
+  
     window.sosBridge = {
       saveToken: saveToken,
       isSaved: () => _saved,
       requestPushPermission: async () => {
-        return await initializePushNotifications(true);
+        window.pushNotificationsPromise = initializePushNotifications(true);
+        return await window.pushNotificationsPromise;
       },
       cleanup: _cleanup
     };
@@ -341,13 +344,14 @@
         let pollAttempts = 0;
         function poll() {
           if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
-            initializePushNotifications();
+            window.pushNotificationsPromise = initializePushNotifications();
           } else {
             pollAttempts++;
             if (pollAttempts < 600) { // 30 seconds max (50ms * 600)
               setTimeout(poll, 50);
             } else {
               dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
+              window.pushNotificationsPromise = Promise.resolve(false);
             }
           }
         }

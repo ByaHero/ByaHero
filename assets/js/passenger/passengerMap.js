@@ -600,107 +600,111 @@ window.startWebGeolocation = function startWebGeolocation() {
  * Initializes and checks permission for Capacitor or browser Geolocation services.
  */
 let _startingUserLocationWatch = false;
-window.startUserLocationWatch = async function startUserLocationWatch() {
+let _locationWatchPromise = null;
+window.startUserLocationWatch = function startUserLocationWatch() {
   if (_startingUserLocationWatch) {
     console.log('startUserLocationWatch already in progress, skipping concurrent call.');
-    return;
+    return _locationWatchPromise;
   }
   _startingUserLocationWatch = true;
-
-  try {
-    // Remove any stale background geolocation watcher from previous sessions/pages
-    const staleBgWatcherId = localStorage.getItem('byahero_bg_watcher_id');
-    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-      try {
-        await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
-        console.log('Removed stale background geolocation watcher:', staleBgWatcherId);
-      } catch (e) {
-        console.warn('Failed to remove stale background geolocation watcher:', e);
-      }
-      localStorage.removeItem('byahero_bg_watcher_id');
-    }
-
-    const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
-    if (!locationEnabled) {
-      window.showLocationDisabledNotice();
-      return;
-    }
-
-    // Poll/wait for Capacitor to be ready if we are running in the native app
-    const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
-    if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
-      let attempts = 0;
-      while ((!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation) && attempts < 30) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-        attempts++;
-      }
-    }
-
-    // Request native permission if running in Capacitor (Bluestacks/Android)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-      let attempts = 0;
-      let success = false;
-      const Geolocation = window.Capacitor.Plugins.Geolocation;
-      while (attempts < 10 && !success) {
+  _locationWatchPromise = (async () => {
+    try {
+      // Remove any stale background geolocation watcher from previous sessions/pages
+      const staleBgWatcherId = localStorage.getItem('byahero_bg_watcher_id');
+      if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
         try {
-          let perm = await Geolocation.checkPermissions();
-          success = true;
-          if (perm.location !== 'granted') {
-            perm = await Geolocation.requestPermissions();
-          }
-          if (perm.location !== 'granted') {
-            window.locationPermissionGranted = false;
-            window.showLocationPermissionDenied();
-            return;
-          }
-          window.locationPermissionGranted = true;
+          await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
+          console.log('Removed stale background geolocation watcher:', staleBgWatcherId);
         } catch (e) {
-          console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
-          await new Promise(resolve => setTimeout(resolve, 150));
+          console.warn('Failed to remove stale background geolocation watcher:', e);
+        }
+        localStorage.removeItem('byahero_bg_watcher_id');
+      }
+
+      const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
+      if (!locationEnabled) {
+        window.showLocationDisabledNotice();
+        return;
+      }
+
+      // Poll/wait for Capacitor to be ready if we are running in the native app
+      const isNative = navigator.userAgent.includes('Capacitor') || window.location.href.includes('capacitor://');
+      if (isNative && (!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation)) {
+        let attempts = 0;
+        while ((!window.Capacitor || !window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation) && attempts < 30) {
+          await new Promise(resolve => setTimeout(resolve, 100));
           attempts++;
         }
       }
-    }
 
-    if (!navigator.geolocation) return;
-
-    const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-    if (bgPluginAvailable) {
-      const BG = window.Capacitor.Plugins.BackgroundGeolocation;
-      try {
-        const permissions = await BG.requestPermissions();
-        if (permissions.location !== 'granted') {
-          if (!isNative) window.startWebGeolocation();
-          return;
-        }
-
-        window.bgWatcherId = await BG.addWatcher(
-          {
-            backgroundMessage: "Tracking active. Keep app open in background.",
-            backgroundTitle: "ByaHero Journey Tracking",
-            requestPermissions: true,
-            distanceFilter: 0
-          },
-          function callback(location, error) {
-            if (error) return;
-            const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
-            window.onLocationUpdate(pos);
+      // Request native permission if running in Capacitor (Bluestacks/Android)
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+        let attempts = 0;
+        let success = false;
+        const Geolocation = window.Capacitor.Plugins.Geolocation;
+        while (attempts < 10 && !success) {
+          try {
+            let perm = await Geolocation.checkPermissions();
+            success = true;
+            if (perm.location !== 'granted') {
+              perm = await Geolocation.requestPermissions();
+            }
+            if (perm.location !== 'granted') {
+              window.locationPermissionGranted = false;
+              window.showLocationPermissionDenied();
+              return;
+            }
+            window.locationPermissionGranted = true;
+          } catch (e) {
+            console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
+            await new Promise(resolve => setTimeout(resolve, 150));
+            attempts++;
           }
-        );
-        if (window.bgWatcherId) {
-          localStorage.setItem('byahero_bg_watcher_id', window.bgWatcherId);
         }
-        window.startKeepAliveAudio();
-        window.acquireWakeLock();
-      } catch (e) {
+      }
+
+      if (!navigator.geolocation) return;
+
+      const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+      if (bgPluginAvailable) {
+        const BG = window.Capacitor.Plugins.BackgroundGeolocation;
+        try {
+          const permissions = await BG.requestPermissions();
+          if (permissions.location !== 'granted') {
+            if (!isNative) window.startWebGeolocation();
+            return;
+          }
+
+          window.bgWatcherId = await BG.addWatcher(
+            {
+              backgroundMessage: "Tracking active. Keep app open in background.",
+              backgroundTitle: "ByaHero Journey Tracking",
+              requestPermissions: true,
+              distanceFilter: 0
+            },
+            function callback(location, error) {
+              if (error) return;
+              const pos = { coords: { latitude: location.latitude, longitude: location.longitude, accuracy: location.accuracy } };
+              window.onLocationUpdate(pos);
+            }
+          );
+          if (window.bgWatcherId) {
+            localStorage.setItem('byahero_bg_watcher_id', window.bgWatcherId);
+          }
+          window.startKeepAliveAudio();
+          window.acquireWakeLock();
+        } catch (e) {
+          if (!isNative) window.startWebGeolocation();
+        }
+      } else {
         if (!isNative) window.startWebGeolocation();
       }
-    } else {
-      if (!isNative) window.startWebGeolocation();
+    } finally {
+      _startingUserLocationWatch = false;
     }
-  } finally {
-    _startingUserLocationWatch = false;
-  }
+  })();
+  window.locationWatchPromise = _locationWatchPromise;
+  return _locationWatchPromise;
 };
 
 /**
