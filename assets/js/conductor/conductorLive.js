@@ -657,3 +657,13 @@ function _cleanup() {
 
 window.addEventListener('beforeunload', _cleanup);
 window.addEventListener('pagehide', _cleanup);
+
+window.addEventListener('pageshow', async function (event) {
+    if (map) {
+        try { map.invalidateSize(); } catch (e) {}
+    }
+    const trackingActive = watchId !== null || bgWatcherId !== null || nativeLocationActive;
+    if (!trackingActive) {
+        await startGeolocation();
+    }
+});

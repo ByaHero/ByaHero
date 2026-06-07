@@ -1414,3 +1414,13 @@ function _cleanup() {
 
 window.addEventListener('beforeunload', _cleanup);
 window.addEventListener('pagehide', _cleanup);
+
+window.addEventListener('pageshow', function (event) {
+  if (window._map) {
+    try { window._map.invalidateSize(); } catch (e) {}
+  }
+  const trackingActive = window.watchId !== null || window.bgWatcherId !== null;
+  if (!trackingActive) {
+    window.startUserLocationWatch();
+  }
+});
