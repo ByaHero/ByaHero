@@ -515,11 +515,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const isStale = lastKnownLocation && (Date.now() - lastNetworkSync > 20000);
 
         if (!hasWatcher || isStale) {
-            if (!hasWatcher && lastKnownLocation === null) {
-                heartbeatInterval = setTimeout(_heartbeatTick, 5000);
-                return;
-            }
-
             startGeolocation().finally(() => {
                 heartbeatInterval = setTimeout(_heartbeatTick, 5000);
             });
