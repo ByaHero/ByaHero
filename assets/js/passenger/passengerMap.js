@@ -606,6 +606,15 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     return;
   }
 
+  // If Capacitor is present but plugins are not yet initialized, wait and retry
+  if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') {
+    if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.Geolocation || !window.Capacitor.Plugins.BackgroundGeolocation) {
+      console.log('Capacitor native plugins not ready yet, retrying startUserLocationWatch in 100ms...');
+      setTimeout(startUserLocationWatch, 100);
+      return;
+    }
+  }
+
   // Request native permission if running in Capacitor (Bluestacks/Android)
   if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
     try {
