@@ -699,6 +699,9 @@ window.startUserLocationWatch = function startUserLocationWatch() {
       } else {
         if (!isNative) window.startWebGeolocation();
       }
+      
+      // Force an immediate location check so the map updates instantly even if stationary
+      window.triggerManualUpdate();
     } finally {
       _startingUserLocationWatch = false;
     }
