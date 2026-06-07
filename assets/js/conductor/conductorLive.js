@@ -286,6 +286,16 @@ async function startGeolocation() {
             await nativePlugin.start(getNativeLocationOptions());
             nativeLocationActive = true;
             console.log('Native background tracking started for conductor');
+            showAlert('Native Tracking Started', 'primary');
+
+            try { await nativePlugin.removeAllListeners(); } catch (e) {}
+            nativePlugin.addListener('locationUpdate', (data) => {
+                console.log('Location update from native plugin:', data);
+                if (data && data.latitude && data.longitude) {
+                    const pos = { coords: { latitude: data.latitude, longitude: data.longitude } };
+                    onLocationUpdate(pos);
+                }
+            });
         } catch (e) {
             console.warn('NativeBackgroundLocation failed, falling back:', e);
         }
@@ -322,7 +332,7 @@ async function startGeolocation() {
             showAlert('Plugin Error', 'danger');
             startWebGeolocation();
         }
-    } else {
+    } else if (!nativeLocationActive) {
         startWebGeolocation();
     }
 }

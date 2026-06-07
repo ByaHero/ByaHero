@@ -61,6 +61,18 @@ public class NativeBackgroundLocationService extends Service {
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
                     android.util.Log.d("ByaHeroLocation", "onLocationResult: lat=" + location.getLatitude() + ", lng=" + location.getLongitude());
+                    
+                    // Broadcast location update immediately to the main process
+                    try {
+                        Intent broadcastIntent = new Intent("com.byahero.app.LOCATION_UPDATE");
+                        broadcastIntent.setPackage(getPackageName());
+                        broadcastIntent.putExtra("latitude", location.getLatitude());
+                        broadcastIntent.putExtra("longitude", location.getLongitude());
+                        sendBroadcast(broadcastIntent);
+                    } catch (Exception e) {
+                        android.util.Log.e("ByaHeroLocation", "Failed to send location update broadcast", e);
+                    }
+                    
                     postLocation(location);
                 } else {
                     android.util.Log.d("ByaHeroLocation", "onLocationResult: location is null");

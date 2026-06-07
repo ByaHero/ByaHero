@@ -4,6 +4,8 @@ import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.BroadcastReceiver;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.webkit.CookieManager;
@@ -21,6 +23,42 @@ public class NativeBackgroundLocationPlugin extends Plugin {
     private static final String DEFAULT_UPDATE_URL = "https://byahero.app/backend/updateUserLocation.php";
     private static final long DEFAULT_INTERVAL_MS = 5000L;
     private static final String PREFS = "native_background_location";
+
+    private BroadcastReceiver locationReceiver;
+
+    @Override
+    public void load() {
+        super.load();
+        locationReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent != null && "com.byahero.app.LOCATION_UPDATE".equals(intent.getAction())) {
+                    double lat = intent.getDoubleExtra("latitude", 0.0);
+                    double lng = intent.getDoubleExtra("longitude", 0.0);
+                    JSObject data = new JSObject();
+                    data.put("latitude", lat);
+                    data.put("longitude", lng);
+                    notifyListeners("locationUpdate", data);
+                }
+            }
+        };
+        IntentFilter filter = new IntentFilter("com.byahero.app.LOCATION_UPDATE");
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            getContext().registerReceiver(locationReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
+        } else {
+            getContext().registerReceiver(locationReceiver, filter);
+        }
+    }
+
+    @Override
+    protected void handleOnDestroy() {
+        if (locationReceiver != null) {
+            try {
+                getContext().unregisterReceiver(locationReceiver);
+            } catch (Exception ignored) {}
+        }
+        super.handleOnDestroy();
+    }
 
     @PluginMethod
     public void start(PluginCall call) {
