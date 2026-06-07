@@ -233,10 +233,49 @@
     // --- Location update controls ---
     const LOCATION_UPDATE_INTERVAL_MS = 5000; // 5s (was 1s)
     let isSendingLocation = false;
+    let nativeBackgroundLocationStarted = false;
 
     // Cache share_location so we don't fetch it too frequently
     let shareLocationCache = { value: null, ts: 0 };
     const SHARE_LOCATION_CACHE_MS = 15000; // 15s
+
+    function getNativeBackgroundLocationPlugin() {
+        return window.Capacitor?.Plugins?.NativeBackgroundLocation || null;
+    }
+
+    function getNativeLocationOptions() {
+        const appBase = window.APP_BASE_URL || '';
+        const baseUrl = `${window.location.origin}${appBase}`;
+        return {
+            baseUrl,
+            updateUrl: `${baseUrl}/backend/updateUserLocation.php`,
+            intervalMs: 30000
+        };
+    }
+
+    async function startNativeBackgroundLocation() {
+        const plugin = getNativeBackgroundLocationPlugin();
+        if (!plugin || nativeBackgroundLocationStarted) return;
+
+        try {
+            await plugin.start(getNativeLocationOptions());
+            nativeBackgroundLocationStarted = true;
+        } catch (err) {
+            console.warn('Native background location unavailable:', err?.message || err);
+        }
+    }
+
+    async function stopNativeBackgroundLocation() {
+        const plugin = getNativeBackgroundLocationPlugin();
+        if (!plugin) return;
+
+        try {
+            await plugin.stop();
+            nativeBackgroundLocationStarted = false;
+        } catch (err) {
+            console.warn('Could not stop native background location:', err?.message || err);
+        }
+    }
 
     function getLastSeenLabel(updatedAt) {
         if (!updatedAt) return '';
@@ -801,6 +840,11 @@
             const enabled = !!(data && data.success && parseInt(data.share_location) === 1);
 
             shareLocationCache = { value: enabled, ts: now };
+            if (enabled) {
+                startNativeBackgroundLocation();
+            } else {
+                stopNativeBackgroundLocation();
+            }
             return enabled;
         } catch (e) {
             shareLocationCache = { value: false, ts: now };
