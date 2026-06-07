@@ -262,6 +262,15 @@ function startWebGeolocation() {
  * Handles initialization and request permissions for Geolocation background tracking.
  */
 async function startGeolocation() {
+    const staleBgWatcherId = localStorage.getItem('byahero_conductor_bg_watcher_id');
+    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        try {
+            await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
+            console.log('Removed stale conductor background watcher:', staleBgWatcherId);
+        } catch (e) {}
+        localStorage.removeItem('byahero_conductor_bg_watcher_id');
+    }
+
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
@@ -324,6 +333,9 @@ async function startGeolocation() {
                     onLocationUpdate(pos);
                 }
             );
+            if (bgWatcherId) {
+                localStorage.setItem('byahero_conductor_bg_watcher_id', bgWatcherId);
+            }
 
             startKeepAliveAudio();
             acquireWakeLock();
@@ -462,8 +474,10 @@ async function stopTracking() {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
     }
-    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
+    const staleBgWatcherId = bgWatcherId || localStorage.getItem('byahero_conductor_bg_watcher_id');
+    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId }); } catch (e) {}
+        localStorage.removeItem('byahero_conductor_bg_watcher_id');
         bgWatcherId = null;
     }
 
@@ -616,8 +630,10 @@ function _cleanup() {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
     }
-    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
+    const staleBgWatcherId = bgWatcherId || localStorage.getItem('byahero_conductor_bg_watcher_id');
+    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId }); } catch (e) {}
+        localStorage.removeItem('byahero_conductor_bg_watcher_id');
         bgWatcherId = null;
     }
     releaseWakeLock();
