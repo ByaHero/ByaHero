@@ -214,6 +214,18 @@ function initNativeCapacitorGoogleAuth() {
             nativeContainer.style.setProperty('display', 'flex', 'important');
         }
         
+        if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            try {
+                window.Capacitor.Plugins.GoogleAuth.initialize({
+                    clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true,
+                });
+            } catch (e) {
+                console.warn('GoogleAuth initialize issue:', e);
+            }
+        }
+        
         const nativeBtn = document.getElementById('native-google-btn');
         if (nativeBtn) {
             nativeBtn.addEventListener('click', async () => {

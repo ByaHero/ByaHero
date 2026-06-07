@@ -754,6 +754,7 @@ else: ?>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
+<script src="/capacitor.js"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_firebase_bridge.js?v=<?= time() ?>"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_back_button.js?v=<?= time() ?>"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/passenger/byaheroTour.js?v=<?= time() ?>"></script>
