@@ -70,7 +70,6 @@ function initStopIcons() {
 
   const base = window.PROJECT_BASE || '';
   const stopIconUrl = `${base}/assets/images/icons/busStopMarkerFinal1.svg`;
-  const terminalIconUrl = `${base}/assets/images/icons/BUSSTOP.png`;
   
   const defaultAnchor = {
     iconSize: [50, 50],
@@ -80,7 +79,7 @@ function initStopIcons() {
 
   STOP_ICONS.pickup_point = L.icon({ iconUrl: stopIconUrl, ...defaultAnchor });
   STOP_ICONS.bus_stop = L.icon({ iconUrl: stopIconUrl, ...defaultAnchor });
-  STOP_ICONS.terminal = L.icon({ iconUrl: terminalIconUrl, ...defaultAnchor });
+  STOP_ICONS.terminal = L.icon({ iconUrl: stopIconUrl, ...defaultAnchor });
 }
 
 /**
