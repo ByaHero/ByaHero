@@ -22,7 +22,6 @@ if (empty($input['bus_id'])) {
 }
 
 $busId = (int)$input['bus_id'];
-
 $conn = db();
 
 // MANDATORY: Enforce that the user is logged in and is the conductor assigned to this bus
@@ -107,7 +106,7 @@ $tmp = $file . '.tmp';
 @file_put_contents($tmp, $data, LOCK_EX);
 @rename($tmp, $file);
 
-// Update DB: store friendly name into current_location column (no DB schema change)
+// Update DB fields dynamically
 $fields = [];
 $params = [];
 $types  = "";
@@ -139,8 +138,13 @@ if (isset($input['seats_available'])) {
         $types .= "i";
     }
 }
-if (isset($input['status'])) {
-    $allowed = ['available','on_stop','full','unavailable'];
+
+// FIXED: Dynamic structure validation checks.
+// Only add status field configuration updates if it is present and explicitly provided.
+// If it is null or absent (sent from background service tracking ticks), the status fields 
+// remain entirely unaltered, retaining state alignment cleanly across app lifecycles.
+if (isset($input['status']) && $input['status'] !== null) {
+    $allowed = ['available', 'on_stop', 'full', 'unavailable'];
     if (in_array($input['status'], $allowed, true)) {
         $fields[] = 'status = ?';
         $params[] = $input['status'];
