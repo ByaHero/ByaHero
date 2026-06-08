@@ -1,7 +1,7 @@
 <?php
 @session_start();
 header('Content-Type: application/json');
-include_once '../config/db.php';
+require_once '../config/db.php';
 $conn = db();
 
 $userId = (int)($_SESSION['user_id'] ?? 0);

@@ -3,7 +3,7 @@ declare(strict_types=1);
 header('Content-Type: application/json; charset=utf-8');
 @session_start();
 
-include_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 
 function respond(bool $ok, string $msg = '', array $extra = []): void {
     echo json_encode(array_merge(['success' => $ok, 'message' => $msg], $extra));

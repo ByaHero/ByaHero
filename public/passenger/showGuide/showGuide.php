@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/../auth_passenger.php';
+require_once __DIR__ . '/../auth_passenger.php';
 
 // Personalized Welcome Text
 $userName = $_SESSION['user_name'] ?? ''; 

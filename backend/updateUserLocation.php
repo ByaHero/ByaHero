@@ -1,5 +1,5 @@
 <?php
-include_once '../config/db.php';
+require_once '../config/db.php';
 @session_start();
 header('Content-Type: application/json');
 $conn = db();

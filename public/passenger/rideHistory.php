@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/auth_passenger.php';
+require_once __DIR__ . '/auth_passenger.php';
 $pageTitle = 'Ride History';
 ?>
 <!doctype html>

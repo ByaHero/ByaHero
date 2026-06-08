@@ -1,6 +1,6 @@
 <?php
 declare(strict_types=1);
-include_once __DIR__ . '/../config/db.php';
+require_once __DIR__ . '/../config/db.php';
 @session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Frame-Options: DENY');

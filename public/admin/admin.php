@@ -5,7 +5,7 @@ declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-include __DIR__ . '/../../config/db.php';
+require __DIR__ . '/../../config/db.php';
 
 @session_start();
 

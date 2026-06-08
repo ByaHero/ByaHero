@@ -1,6 +1,6 @@
 <?php
-include_once __DIR__ . '/../auth_passenger.php';
-include_once __DIR__ . '/../../../config/db.php';
+require_once __DIR__ . '/../auth_passenger.php';
+require_once __DIR__ . '/../../../config/db.php';
 $conn = db();
 
 $userId = $_SESSION['user_id'];
@@ -164,7 +164,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
   $backLink = 'profile.php';
   $pageDepth = "../../../";
   
-  include_once "../../../components/navbarPassenger.php";
+  require_once "../../../components/navbarPassenger.php";
   ?>
 
   <div class="container mt-5 pt-4 px-3" style="max-width: 600px;">

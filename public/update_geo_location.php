@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 
-include __DIR__ . '/../config/db.php';
+require __DIR__ . '/../config/db.php';
 
 @session_start();
 $currentUserId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;

@@ -11,7 +11,7 @@ if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['co
     exit;
 }
 
-include_once __DIR__ . '/../../config/db.php';
+require_once __DIR__ . '/../../config/db.php';
 $conn = db();
 
 $userId   = (int)($_SESSION['user_id'] ?? 0);

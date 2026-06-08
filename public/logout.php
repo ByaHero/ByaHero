@@ -3,7 +3,7 @@
 
 // 1. Remove ONLY the FCM token for this specific device (not all devices)
 if (isset($_SESSION['user_id'])) {
-    include_once '../config/db.php';
+    require_once '../config/db.php';
     $conn = db();
 
     try {

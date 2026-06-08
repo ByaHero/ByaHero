@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/auth_passenger.php';
+require_once __DIR__ . '/auth_passenger.php';
 
 // If they already have a contact number, redirect to dashboard
 if (!empty($_SESSION['user_contacts'])) {

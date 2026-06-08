@@ -60,7 +60,7 @@ function db(): mysqli {
     static $conn = null;
     if ($conn instanceof mysqli) return $conn;
 
-    include_once __DIR__ . '/bootstrap.php';
+    require_once __DIR__ . '/bootstrap.php';
 
     // Fall back to standard DB_* and any loaded .env / custom variables
     $env_host = get_env_config('DB_HOST', '');
@@ -101,7 +101,7 @@ function db(): mysqli {
     $conn->set_charset("utf8mb4");
 
     // Automatic Schema Update (Sync local structure with InfinityFree)
-    include_once __DIR__ . '/schema_init.php';
+    require_once __DIR__ . '/schema_init.php';
     sync_schema($conn);
 
     // Ensure MySQL session is also in GMT+8

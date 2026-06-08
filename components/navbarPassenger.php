@@ -69,7 +69,7 @@ if (!$hasUnreadNotifications && isset($_SESSION['user_id'])) {
   try {
     // db.php lives at project-root/config/db.php
     // navbarPassenger.php lives at project-root/components/navbarPassenger.php
-    include_once __DIR__ . '/../config/db.php';
+    require_once __DIR__ . '/../config/db.php';
     $conn = db();
 
     if (isset($conn) && $conn instanceof mysqli) {

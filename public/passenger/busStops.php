@@ -1,10 +1,10 @@
 <?php
-include_once __DIR__ . '/auth_passenger.php';
+require_once __DIR__ . '/auth_passenger.php';
 
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-include __DIR__ . '/../config/db.php'; // adjust relative path if needed
+require __DIR__ . '/../config/db.php'; // adjust relative path if needed
 
 $conn = db();
 

@@ -1,9 +1,9 @@
 <?php
-include_once __DIR__ . '/../auth_passenger.php';
+require_once __DIR__ . '/../auth_passenger.php';
 $pageDepth = '../../../';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    include_once '../../../config/db.php';
+    require_once '../../../config/db.php';
     try {
         $conn = db();
         

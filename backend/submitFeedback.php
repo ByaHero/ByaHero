@@ -1,6 +1,6 @@
 <?php
 @session_start();
-include_once '../config/db.php';
+require_once '../config/db.php';
 $conn = db();
 
 // Check if user is logged in

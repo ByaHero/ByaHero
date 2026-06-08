@@ -1,5 +1,5 @@
 <?php
-include_once __DIR__ . '/../auth_passenger.php';
+require_once __DIR__ . '/../auth_passenger.php';
 $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
 ?>
 <!doctype html>
