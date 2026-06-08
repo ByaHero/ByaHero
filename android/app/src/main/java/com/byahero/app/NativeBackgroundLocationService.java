@@ -247,18 +247,29 @@ public class NativeBackgroundLocationService extends Service {
                     long busId = prefs.getLong("bus_id", 0L);
                     String route = prefs.getString("route", "");
                     int seatsAvailable = prefs.getInt("seats_available", 0);
+                    String status = prefs.getString("status", "available");
+
+                    // DYNAMIC ALIGNMENT FIX:
+                    // If the device's location reports it's moving (> 1.2 m/s or ~4.3 km/h),
+                    // clear the stuck "on_stop" status payload and force it to "available".
+                    if (location.hasSpeed() && location.getSpeed() > 1.2f) {
+                        if ("on_stop".equals(status)) {
+                            status = "available";
+                            getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString("status", "available").apply();
+                            
+                            // Dynamically update the Android background media layout text to show it's driving
+                            String busCode = prefs.getString("bus_code", "");
+                            int seatsTotal = prefs.getInt("seats_total", 25);
+                            updateMediaSession(busCode, route, seatsAvailable, seatsTotal);
+                        }
+                    }
 
                     payload.put("bus_id", busId);
                     payload.put("lat", location.getLatitude());
                     payload.put("lng", location.getLongitude());
                     payload.put("route", route);
                     payload.put("seats_available", seatsAvailable);
-                    
-                    // FIXED: Do not send a static status field during automated coordinates push.
-                    // This mirrors the functional expectation when the app is open, allowing 
-                    // the database to safely keep its context without dropping into stale states.
-                    payload.put("status", JSONObject.NULL);
-                    
+                    payload.put("status", status); // Send matched text value cleanly
                     payload.put("current_location_name", String.format(java.util.Locale.US, "%.5f, %.5f", location.getLatitude(), location.getLongitude()));
                 } else {
                     payload.put("latitude", location.getLatitude());
