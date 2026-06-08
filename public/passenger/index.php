@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/auth_passenger.php';
+include_once __DIR__ . '/auth_passenger.php';
 
 // GATEKEEPER: Ensure user has a contact number
 if (empty($_SESSION['user_contacts'])) {

@@ -10,7 +10,7 @@ declare(strict_types=1);
  * 2. Go to SMTP & API -> API Keys
  */
 
-require_once __DIR__ . '/bootstrap.php';
+include_once __DIR__ . '/bootstrap.php';
 
 define('BREVO_API_KEY', get_env_config('BREVO_API_KEY', 'YOUR_BREVO_API_KEY_HERE'));
 define('SENDER_EMAIL', get_env_config('SENDER_EMAIL', 'no-reply@byahero.com'));

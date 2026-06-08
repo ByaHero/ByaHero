@@ -1,6 +1,6 @@
 <?php
 
-require __DIR__ . '/../config/db.php';
+include __DIR__ . '/../config/db.php';
 
 @session_start();
 

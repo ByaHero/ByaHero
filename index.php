@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 
-require_once __DIR__ . '/config/db.php';
+include_once __DIR__ . '/config/db.php';
 
 @session_start();
 

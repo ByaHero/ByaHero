@@ -4,7 +4,7 @@ declare(strict_types=1);
 ini_set('display_errors', '1');
 error_reporting(E_ALL);
 
-require __DIR__ . '/../../config/db.php';
+include __DIR__ . '/../../config/db.php';
 @session_start();
 
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/busFare.php';

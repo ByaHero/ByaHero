@@ -1,8 +1,8 @@
 <?php
-require_once __DIR__ . '/../auth_passenger.php';
+include_once __DIR__ . '/../auth_passenger.php';
 
 // Load database connection helper
-require_once __DIR__ . '/../../../config/db.php';
+include_once __DIR__ . '/../../../config/db.php';
 
 $conn = null;
 try {

@@ -1,7 +1,7 @@
 <?php
 @session_start();
 header('Content-Type: application/json');
-require_once '../config/db.php';
+include_once '../config/db.php';
 $conn = db();
 
 // Auto-migration for Infinity Free: ensure the table exists in case no one registered a token yet
@@ -90,7 +90,7 @@ try {
     $conn->commit();
 
     // 3. Generate the self-signed JWT for the Frontend Bypass!
-    require_once __DIR__ . '/../config/bootstrap.php';
+    include_once __DIR__ . '/../config/bootstrap.php';
 
     // Try Environment Variables first
     $clientEmail = get_env_config('FIREBASE_CLIENT_EMAIL', '');

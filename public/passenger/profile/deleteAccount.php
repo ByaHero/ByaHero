@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../auth_passenger.php';
+include_once __DIR__ . '/../auth_passenger.php';
 
 $userName = $_SESSION['user_name'] ?? 'User';
 $userId = $_SESSION['user_id'];

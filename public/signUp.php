@@ -8,7 +8,7 @@ $configPaths = [
 $loaded = false;
 foreach ($configPaths as $p) {
     if (file_exists($p)) {
-        require_once $p;
+        include_once $p;
         $loaded = true;
         break;
     }

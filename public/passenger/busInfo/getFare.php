@@ -6,7 +6,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 
 // Load database connection helper
-require_once __DIR__ . '/../../../config/db.php';
+include_once __DIR__ . '/../../../config/db.php';
 
 try {
     $conn = db();

@@ -2,7 +2,7 @@
 declare(strict_types=1);
 @session_start();
 
-require_once __DIR__ . '/../../config/db.php';
+include_once __DIR__ . '/../../config/db.php';
 $conn = db();
 
 $userId = isset($_SESSION['user_id']) ? (int)$_SESSION['user_id'] : 0;

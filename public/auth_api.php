@@ -9,7 +9,7 @@ $configPaths = [
 $loaded = false;
 foreach ($configPaths as $p) {
     if (file_exists($p)) {
-        require_once $p;
+        include_once $p;
         $loaded = true;
         break;
     }
@@ -31,7 +31,7 @@ header('Referrer-Policy: same-origin');
 // Load mail configuration
 $mailConfigPath = __DIR__ . '/../config/mail.php';
 if (file_exists($mailConfigPath)) {
-    require_once $mailConfigPath;
+    include_once $mailConfigPath;
 }
 
 function respond(bool $ok, string $msg = '', array $extra = []): void {

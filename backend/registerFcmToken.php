@@ -4,7 +4,7 @@
  * Saves FCM device token for the logged-in user.
  */
 
-require_once '../config/db.php';
+include_once '../config/db.php';
 
 @session_start();
 header('Content-Type: application/json');

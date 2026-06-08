@@ -1,6 +1,6 @@
 <?php
-require_once __DIR__ . '/auth_passenger.php';
-require_once __DIR__ . '/../../config/db.php';
+include_once __DIR__ . '/auth_passenger.php';
+include_once __DIR__ . '/../../config/db.php';
 $conn = db();
 
 // Check if user is logged in

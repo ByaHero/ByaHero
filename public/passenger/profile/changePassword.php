@@ -1,7 +1,7 @@
 <?php
-require_once __DIR__ . '/../auth_passenger.php';
+include_once __DIR__ . '/../auth_passenger.php';
 
-require_once '../../../config/db.php';
+include_once '../../../config/db.php';
 $conn = db();
 
 $userId = $_SESSION['user_id'];
