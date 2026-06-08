@@ -114,6 +114,15 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
                 top: 100%;
                 border-top-color: #ffffff;
             }
+            /* Slot Bootstrap modal BELOW the tour overlay so the SVG cutout reveals it,
+               while the popover (inside the overlay stacking context) stays on top. */
+            .tour-modal-boosted {
+                z-index: 2045 !important;
+            }
+            .tour-modal-boosted + .modal-backdrop,
+            .modal-backdrop.tour-backdrop-boosted {
+                z-index: 2040 !important;
+            }
         `;
         document.head.appendChild(style);
         this.cssInjected = true;
@@ -144,17 +153,83 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
         this.popover = overlay.querySelector('.tour-popover');
     }
 
+    /**
+     * Check if the current step targets an element inside a Bootstrap modal.
+     * If so, boost that modal's z-index above the tour overlay.
+     * Otherwise, restore any previously boosted modal.
+     */
+    manageModalZIndex(step) {
+        // Always restore previously boosted modals first
+        document.querySelectorAll('.tour-modal-boosted').forEach(m => {
+            m.classList.remove('tour-modal-boosted');
+        });
+        document.querySelectorAll('.tour-backdrop-boosted').forEach(b => {
+            b.classList.remove('tour-backdrop-boosted');
+        });
+
+        if (!step.element) return;
+
+        // Check if the step selector targets something inside a .modal
+        try {
+            const targetEl = document.querySelector(step.element);
+            if (targetEl) {
+                const parentModal = targetEl.closest('.modal');
+                if (parentModal) {
+                    parentModal.classList.add('tour-modal-boosted');
+                    // Also boost the backdrop associated with this modal
+                    const backdrop = parentModal.nextElementSibling;
+                    if (backdrop && backdrop.classList.contains('modal-backdrop')) {
+                        backdrop.classList.add('tour-backdrop-boosted');
+                    } else {
+                        // Bootstrap 5 may place backdrop elsewhere
+                        document.querySelectorAll('.modal-backdrop').forEach(b => {
+                            b.classList.add('tour-backdrop-boosted');
+                        });
+                    }
+                }
+            }
+        } catch (e) {
+            // Selector may be invalid or composite — ignore
+        }
+    }
+
+    /**
+     * Dismiss any open Bootstrap modal that is NOT needed by the current step.
+     */
+    dismissUnneededModals(step) {
+        const selector = step.element || '';
+        // Only keep waitingModal open if the step targets something inside it
+        const needsWaitingModal = selector.includes('waitingModal') || selector.includes('btnSetWaiting');
+
+        if (!needsWaitingModal) {
+            const modalEl = document.getElementById('waitingModal');
+            if (modalEl) {
+                const instance = bootstrap.Modal.getInstance(modalEl);
+                if (instance) instance.hide();
+            }
+        }
+    }
+
     async showStep() {
         const step = this.steps[this.currentStep];
+
+        // Dismiss modals not needed by this step before any hooks run
+        this.dismissUnneededModals(step);
 
         // Trigger pre-step hook (e.g. tabs switching or sheet expansion)
         if (typeof step.onBefore === 'function') {
             await step.onBefore();
         }
 
+        // Manage modal z-index layering after onBefore has opened/closed modals
+        this.manageModalZIndex(step);
+
         // Wait brief moment for rendering engines/CSS animation transitions to stabilize
         setTimeout(() => {
             if (!this.popover) return;
+
+            // Re-apply modal z-index boost after transition delay
+            this.manageModalZIndex(step);
 
             const isNoTarget = !step.element;
             let target = null;
@@ -350,7 +425,7 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
                 if (!currentUrl.includes(targetPath)) {
                     const basePath = window.PROJECT_BASE || window.APP_BASE_URL || '';
                     const cleanPagePath = nextStep.pagePath.replace(/\.php$/, '');
-                    const fullUrl = `${basePath}${cleanPagePath}?start_tour=true&step=${this.currentStep}`;
+                    const fullUrl = `${basePath}${cleanPagePath}.php?start_tour=true&step=${this.currentStep}`;
                     window.location.href = fullUrl;
                     return;
                 }
@@ -366,6 +441,19 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
         if (this.popover) {
             this.popover.style.opacity = '0';
             this.popover.style.transform = 'scale(0.9)';
+        }
+        // Restore any boosted modal z-indexes
+        document.querySelectorAll('.tour-modal-boosted').forEach(m => {
+            m.classList.remove('tour-modal-boosted');
+        });
+        document.querySelectorAll('.tour-backdrop-boosted').forEach(b => {
+            b.classList.remove('tour-backdrop-boosted');
+        });
+        // Dismiss waitingModal if still open
+        const modalEl = document.getElementById('waitingModal');
+        if (modalEl) {
+            const instance = bootstrap.Modal.getInstance(modalEl);
+            if (instance) instance.hide();
         }
         setTimeout(() => {
             if (this.overlay) {

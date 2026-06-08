@@ -1055,7 +1055,7 @@ window.openWaitingModal = async function openWaitingModal() {
   if (isBoarded) {
     if (displaySpan) displaySpan.textContent = `On Bus ${window.PassengerRideTracker.activeRide.bus_code}`;
     if (btnSet) btnSet.classList.add('d-none');
-    if (btnCancel) btnCancel.classList.add('d-none');
+    if (btnCancel) { btnCancel.classList.add('d-none'); btnCancel.classList.remove('d-flex'); }
     if (statusMsg) {
       statusMsg.classList.remove('d-none');
       statusMsg.className = "alert alert-info py-2 px-3 mb-3 small rounded-3";
@@ -1064,7 +1064,7 @@ window.openWaitingModal = async function openWaitingModal() {
   } else if (window.isPassengerWaiting) {
     if (displaySpan) displaySpan.textContent = window.passengerWaitingLocation || "Your current stop";
     if (btnSet) btnSet.classList.add('d-none');
-    if (btnCancel) btnCancel.classList.remove('d-none');
+    if (btnCancel) { btnCancel.classList.remove('d-none'); btnCancel.classList.add('d-flex'); }
     if (statusMsg) {
       statusMsg.classList.remove('d-none');
       statusMsg.className = "alert alert-success py-2 px-3 mb-3 small rounded-3";
@@ -1077,7 +1077,7 @@ window.openWaitingModal = async function openWaitingModal() {
         btnSet.classList.remove('d-none');
         btnSet.removeAttribute('disabled');
       }
-      if (btnCancel) btnCancel.classList.add('d-none');
+      if (btnCancel) { btnCancel.classList.add('d-none'); btnCancel.classList.remove('d-flex'); }
       if (statusMsg) statusMsg.classList.add('d-none');
     } else {
       if (displaySpan) displaySpan.textContent = "Unrecognized Stop";
@@ -1085,7 +1085,7 @@ window.openWaitingModal = async function openWaitingModal() {
         btnSet.classList.remove('d-none');
         btnSet.setAttribute('disabled', 'true');
       }
-      if (btnCancel) btnCancel.classList.add('d-none');
+      if (btnCancel) { btnCancel.classList.add('d-none'); btnCancel.classList.remove('d-flex'); }
       if (statusMsg) {
         statusMsg.classList.remove('d-none');
         statusMsg.className = "alert alert-danger py-2 px-3 mb-3 small rounded-3";
@@ -1129,7 +1129,7 @@ window.handleSetWaiting = async function handleSetWaiting() {
 
       btnSet.classList.add('d-none');
       const btnCancel = document.getElementById('btnCancelWaiting');
-      if (btnCancel) btnCancel.classList.remove('d-none');
+      if (btnCancel) { btnCancel.classList.remove('d-none'); btnCancel.classList.add('d-flex'); }
 
       const statusMsg = document.getElementById('waitingStatusMsg');
       if (statusMsg) {
@@ -1174,7 +1174,7 @@ window.handleCancelWaiting = async function handleCancelWaiting() {
       window.updateUserMarkerWaitingStyle();
       window.updateUserWaitingCardUI();
 
-      btnCancel.classList.add('d-none');
+      btnCancel.classList.add('d-none'); btnCancel.classList.remove('d-flex');
       if (btnSet) btnSet.classList.remove('d-none');
 
       const statusMsg = document.getElementById('waitingStatusMsg');
