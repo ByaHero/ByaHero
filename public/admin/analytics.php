@@ -7,7 +7,7 @@ require __DIR__ . '/../../config/db.php';
 @session_start();
 
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: ../login");
+    header("Location: ../login.php");
     exit;
 }
 

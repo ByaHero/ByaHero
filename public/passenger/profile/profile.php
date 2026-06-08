@@ -208,7 +208,7 @@ if (!empty($currentUser['phone'])) {
 
             <div class="text-uppercase fw-bold text-secondary mb-2 small">Account Management</div>
 
-            <a href="accountSettings" class="card border-0 shadow-sm mb-3 text-decoration-none text-dark clickable-card">
+            <a href="accountSettings.php" class="card border-0 shadow-sm mb-3 text-decoration-none text-dark clickable-card">
                 <div class="card-body d-flex align-items-center justify-content-between">
                     <div class="d-flex align-items-center gap-3">
                         <span class="material-symbols-rounded fs-3 text-dark">settings</span>

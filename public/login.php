@@ -198,7 +198,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
                     </div>
 
                     <div class="d-flex justify-content-start">
-                        <a class="forgot" href="forgotPassword" tabindex="-1">Forgot Password?</a>
+                        <a class="forgot" href="forgotPassword.php" tabindex="-1">Forgot Password?</a>
                     </div>
 
                     <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectAfter) ?>" />
@@ -249,7 +249,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
 
                 <div class="small-muted">
                     Don't have an account?
-                    <a href="signUp" class="fw-bold text-primary text-decoration-none">Sign up</a>
+                    <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
                 </div>
             </main>
         </div>

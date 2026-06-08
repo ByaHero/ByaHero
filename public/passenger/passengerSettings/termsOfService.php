@@ -188,7 +188,7 @@ require_once __DIR__ . '/../auth_passenger.php';
 
     <div class="policy-section">
       <h2>11. Privacy</h2>
-      <p>Your use of the Service is also governed by our <a href="privacyPolicy" class="text-primary fw-bold">Privacy Policy</a>. Please review it to understand how we collect, use, and protect your information.</p>
+      <p>Your use of the Service is also governed by our <a href="privacyPolicy.php" class="text-primary fw-bold">Privacy Policy</a>. Please review it to understand how we collect, use, and protect your information.</p>
     </div>
 
     <div class="policy-section">
@@ -227,7 +227,7 @@ require_once __DIR__ . '/../auth_passenger.php';
     </div>
 
     <div class="text-center mt-5 mb-3">
-      <button class="btn btn-primary px-4" onclick="location.href = 'privacySecurity'">
+      <button class="btn btn-primary px-4" onclick="location.href = 'privacySecurity.php'">
         <span class="material-symbols-rounded" style="font-size:18px; vertical-align:middle">arrow_back</span>
         Back to Privacy & Security
       </button>

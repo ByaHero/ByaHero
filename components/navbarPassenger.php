@@ -13,7 +13,7 @@ if (!headers_sent()) {
 
 // 1) Resolve Paths
 $depth = isset($pageDepth) ? $pageDepth : '../../';
-$defaultBack = $depth . 'public/passenger/index';
+$defaultBack = $depth . 'public/passenger/index.php';
 $backTarget = isset($backLink) ? $backLink : $defaultBack;
 
 // 2) Get base URL for icons
@@ -25,9 +25,9 @@ if (!isset($baseUrl)) {
 
 // 3) Profile URL
 if (isset($_SESSION['user_id'])) {
-  $profileUrl = $depth . 'public/passenger/profile/profile';
+  $profileUrl = $depth . 'public/passenger/profile/profile.php';
 } else {
-  $profileUrl = $depth . 'public/login';
+  $profileUrl = $depth . 'public/login.php';
 }
 
 // Display name in hamburger header (no DB calls here)
@@ -49,13 +49,13 @@ $hasUnreadNotifications = isset($hasUnreadNotifications) ? (bool) $hasUnreadNoti
 
 $desktopNavLinksHtml = '
   <div class="d-none d-lg-flex align-items-center gap-3 ms-auto me-3" id="desktop-nav-links">
-    <a href="' . htmlspecialchars($depth) . 'public/passenger/index" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['index.php', 'index']) ? 'active' : '') . '">
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/index.php" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['index.php', 'index']) ? 'active' : '') . '">
       <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">map</span>Live Map
     </a>
-    <a href="' . htmlspecialchars($depth) . 'public/passenger/sos/sos" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['sos.php', 'sos']) ? 'active' : '') . '">
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/sos/sos.php" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['sos.php', 'sos']) ? 'active' : '') . '">
       <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">emergency</span>SOS
     </a>
-    <a href="' . htmlspecialchars($depth) . 'public/passenger/busInfo/busInfo" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['busInfo.php', 'busInfo']) ? 'active' : '') . '">
+    <a href="' . htmlspecialchars($depth) . 'public/passenger/busInfo/busInfo.php" class="desktop-nav-link ' . (in_array(basename($_SERVER['PHP_SELF']), ['busInfo.php', 'busInfo']) ? 'active' : '') . '">
       <span class="material-symbols-rounded align-middle me-1" style="font-size: 20px;">directions_bus</span>Bus Info
     </a>
   </div>
@@ -534,7 +534,7 @@ else: ?>
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
       <?php echo $desktopNavLinksHtml; ?>
 
-      <a href="<?php echo $depth; ?>public/passenger/notifications"
+      <a href="<?php echo $depth; ?>public/passenger/notifications.php"
         class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;">
 
@@ -597,7 +597,7 @@ else: ?>
     <div class="d-grid gap-3">
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/profile/profile">
+        href="<?php echo $depth; ?>public/passenger/profile/profile.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/person.svg" alt="person" height="30">
         </div>
@@ -606,7 +606,7 @@ else: ?>
 
       <!--
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/accessibilitySettings.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/accessibility.svg" alt="accessibility" height="30">
         </div>
@@ -615,7 +615,7 @@ else: ?>
       -->
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/showGuide/showGuide">
+        href="<?php echo $depth; ?>public/passenger/showGuide/showGuide.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
         </div>
@@ -623,7 +623,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/privacySecurity.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/privacy.svg" alt="privacy" height="30">
         </div>
@@ -631,7 +631,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/lostAndFound/lostAndFound">
+        href="<?php echo $depth; ?>public/passenger/lostAndFound/lostAndFound.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/lostandfound.svg" alt="lost and found" height="30">
         </div>
@@ -639,7 +639,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/about">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/about.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/about.svg" alt="about" height="30">
         </div>
@@ -647,7 +647,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/feedback.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/feedback.svg" alt="feedback" height="30">
         </div>
@@ -655,7 +655,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/report/report">
+        href="<?php echo $depth; ?>public/passenger/report/report.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/report.svg" alt="report a problem" height="30">
         </div>
@@ -663,7 +663,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/passengerSettings/share">
+        href="<?php echo $depth; ?>public/passenger/passengerSettings/share.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/share.svg" alt="share" height="30">
         </div>
@@ -671,7 +671,7 @@ else: ?>
       </a>
 
       <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-        href="<?php echo $depth; ?>public/passenger/rideHistory">
+        href="<?php echo $depth; ?>public/passenger/rideHistory.php">
         <div class="" style="margin-left: 20px; margin-right: 10px;">
           <img src="<?php echo $depth; ?>assets/images/HISTORY.svg" alt="ride history" height="30">
         </div>
@@ -679,7 +679,7 @@ else: ?>
       </a>
 
       <?php if (isset($_SESSION['user_id'])): ?>
-        <form id="logout-form" action="<?php echo $depth; ?>public/logout" method="POST" style="display:none;">
+        <form id="logout-form" action="<?php echo $depth; ?>public/logout.php" method="POST" style="display:none;">
           <input type="hidden" name="fcm_token" id="logout-fcm-token" value="">
         </form>
         <button type="button"
@@ -697,7 +697,7 @@ else: ?>
         </button>
       <?php else: ?>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark" style="background-color: #ececec;"
-          href="<?php echo $depth; ?>public/login">
+          href="<?php echo $depth; ?>public/login.php">
           <span class="material-symbols-rounded" style="margin-left: 20px; margin-right: 10px; font-size: 30px;">login</span>
           Log in
         </a>
@@ -714,7 +714,7 @@ else: ?>
       <div class="col-4 p-0 text-center">
         <button id="nav-location"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
-          data-action="link" data-url="<?php echo $depth; ?>public/passenger/index">
+          data-action="link" data-url="<?php echo $depth; ?>public/passenger/index.php">
           <img id="nav-location-icon"
             src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/locationBlack.svg" alt="Bus Location"
             style="width: 24px; height: 24px; object-fit: contain;" />
@@ -724,7 +724,7 @@ else: ?>
 
       <div class="col-4 p-0 text-center sos-col">
         <button id="nav-sos" class="sos-btn nav-btn" data-action="link"
-          data-url="<?php echo $depth; ?>public/passenger/sos/sos">
+          data-url="<?php echo $depth; ?>public/passenger/sos/sos.php">
           <div class="sos-dome">
             <div class="sos-icon-wrap">
               <img id="nav-sos-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/SOS.svg"
@@ -739,7 +739,7 @@ else: ?>
       <div class="col-4 p-0 text-center">
         <button id="nav-info"
           class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark"
-          data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo">
+          data-action="link" data-url="<?php echo $depth; ?>public/passenger/busInfo/busInfo.php">
           <img id="nav-info-icon" src="<?= htmlspecialchars($baseUrl, ENT_QUOTES) ?>/assets/images/icons/busActive.svg"
             alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
           <span class="nav-label">BUS INFO</span>
@@ -859,7 +859,7 @@ else: ?>
   // ===== BOTTOM NAV LOGIC =====
   document.addEventListener('DOMContentLoaded', () => {
     const basePath = "<?php echo $depth; ?>";
-    const indexUrl = basePath + "passenger/index";
+    const indexUrl = basePath + "passenger/index.php";
 
     const hasMap = document.getElementById('map') || document.getElementById('map-desktop-placeholder');
     const path = window.location.pathname;

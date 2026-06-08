@@ -24,9 +24,9 @@ if (!$loaded) {
 
 if (isset($_SESSION['user_id'])) {
     if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
-        header("Location: conductor/conductor");
+        header("Location: conductor/conductor.php");
     } else {
-        header("Location: passenger/index");
+        header("Location: passenger/index.php");
     }
     exit;
 }
@@ -175,7 +175,7 @@ $baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 
                 <div class="small-muted">
                     Already have an account?
-                    <a href="login" class="fw-bold text-primary text-decoration-none">Login</a>
+                    <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a>
                 </div>
             </main>
         </div>
