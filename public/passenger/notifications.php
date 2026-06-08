@@ -150,7 +150,7 @@ function notification_icon(string $type): array
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <meta name="theme-color" content="#1e3a8a">
 
-  <link rel="stylesheet" href="../../assets/css/accessibility.css">
+  <style><?php include __DIR__ . '/../../assets/css/accessibility.css'; ?></style>
 
   <style>
     body {
@@ -313,7 +313,7 @@ function notification_icon(string $type): array
   <?php endif; ?>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../assets/js/accessibility.js"></script>
+  <script><?php include __DIR__ . '/../../assets/js/accessibility.js'; ?></script>
 
   <script>
     function selectNav(element, tabName) {

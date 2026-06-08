@@ -157,12 +157,12 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <link rel="stylesheet" href="../assets/css/auth/auth.css">
+    <style><?php include __DIR__ . '/../assets/css/auth/auth.css'; ?></style>
 
-    <script src="../assets/js/capacitor_firebase_bridge.js"></script>
-    <script src="../assets/js/capacitor_back_button.js"></script>
+    <script><?php include __DIR__ . '/../assets/js/capacitor_firebase_bridge.js'; ?></script>
+    <script><?php include __DIR__ . '/../assets/js/capacitor_back_button.js'; ?></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="../assets/js/customAlerts.js?v=1"></script>
+    <script><?php include __DIR__ . '/../assets/js/customAlerts.js'; ?></script>
 </head>
 
 <body>
@@ -254,7 +254,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
         </div>
     </div>
 
-    <script src="../assets/js/auth/login.js"></script>
+    <script><?php include __DIR__ . '/../assets/js/auth/login.js'; ?></script>
 </body>
 
 </html>

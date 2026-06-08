@@ -21,7 +21,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
     <title>Complete Profile - ByaHero</title>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../assets/css/accessibility.css">
+    <style><?php include __DIR__ . '/../../assets/css/accessibility.css'; ?></style>
     <style>
         :root {
             --primary-blue: #1e3a8a;
@@ -185,8 +185,8 @@ $userName = $_SESSION['user_name'] ?? 'User';
     <script>
         window.APP_BASE_URL = "../../";
     </script>
-    <script src="../../assets/js/capacitor_firebase_bridge.js"></script>
-    <script src="../../assets/js/capacitor_back_button.js"></script>
+    <script><?php include __DIR__ . '/../../assets/js/capacitor_firebase_bridge.js'; ?></script>
+    <script><?php include __DIR__ . '/../../assets/js/capacitor_back_button.js'; ?></script>
     <script>
         const form = document.getElementById('contactForm');
         const submitBtn = document.getElementById('submitBtn');

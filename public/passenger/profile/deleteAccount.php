@@ -17,7 +17,7 @@ $userId = $_SESSION['user_id'];
   <title>Delete Account - ByaHero</title>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-  <link rel="stylesheet" href="../../../assets/css/accessibility.css">
+  <style><?php include __DIR__ . '/../../../assets/css/accessibility.css'; ?></style>
   
   <style>
     body {
@@ -99,7 +99,7 @@ $userId = $_SESSION['user_id'];
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-  <script src="../../../assets/js/accessibility.js"></script>
+  <script><?php include __DIR__ . '/../../../assets/js/accessibility.js'; ?></script>
   
   <script>
     const form = document.getElementById('deleteForm');

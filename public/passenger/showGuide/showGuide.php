@@ -231,7 +231,7 @@ if (!empty($userName)) {
     <script>
         window.APP_BASE_URL = "../../../";
     </script>
-    <script src="../../../assets/js/capacitor_firebase_bridge.js"></script>
-    <script src="../../../assets/js/capacitor_back_button.js"></script>
+    <script><?php include __DIR__ . '/../../../assets/js/capacitor_firebase_bridge.js'; ?></script>
+    <script><?php include __DIR__ . '/../../../assets/js/capacitor_back_button.js'; ?></script>
 </body>
 </html>

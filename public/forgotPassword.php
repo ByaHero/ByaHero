@@ -19,9 +19,9 @@ $pageTitle = 'Forgot Password';
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-    <link rel="stylesheet" href="../assets/css/auth/auth.css">
+    <style><?php include __DIR__ . '/../assets/css/auth/auth.css'; ?></style>
     
-    <script src="../assets/js/customAlerts.js?v=1"></script>
+    <script><?php include __DIR__ . '/../assets/js/customAlerts.js'; ?></script>
 </head>
 
 <body>
@@ -109,6 +109,6 @@ $pageTitle = 'Forgot Password';
         </div>
     </div>
 
-    <script src="../assets/js/auth/forgotPassword.js"></script>
+    <script><?php include __DIR__ . '/../assets/js/auth/forgotPassword.js'; ?></script>
 </body>
 </html>

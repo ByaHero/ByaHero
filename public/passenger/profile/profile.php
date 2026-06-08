@@ -88,7 +88,7 @@ if (!empty($currentUser['phone'])) {
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="../../../assets/css/accessibility.css">
+    <style><?php include __DIR__ . '/../../../assets/css/accessibility.css'; ?></style>
 
     <style>
         :root {
@@ -260,7 +260,7 @@ if (!empty($currentUser['phone'])) {
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../../../assets/js/accessibility.js"></script>
+    <script><?php include __DIR__ . '/../../../assets/js/accessibility.js'; ?></script>
 </body>
 
 </html>
