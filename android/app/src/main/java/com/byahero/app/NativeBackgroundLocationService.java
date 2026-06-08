@@ -143,7 +143,6 @@ public class NativeBackgroundLocationService extends Service {
                 }
             }
             editor.apply();
-            android.util.Log.d("ByaHeroLocation", "Saved settings: url=" + prefs.getString(EXTRA_UPDATE_URL, null) + ", userAgent=" + prefs.getString("userAgent", null) + ", payloadType=" + prefs.getString("payloadType", "passenger"));
         }
 
         if (!hasLocationPermission()) {
@@ -154,7 +153,6 @@ public class NativeBackgroundLocationService extends Service {
 
         if (wakeLock != null && !wakeLock.isHeld()) {
             wakeLock.acquire();
-            android.util.Log.d("ByaHeroLocation", "WakeLock acquired");
         }
 
         boolean isConductor = "conductor".equals(prefs.getString("payloadType", "passenger"));
@@ -183,7 +181,6 @@ public class NativeBackgroundLocationService extends Service {
     private void startTracking() {
         long intervalMs = getSharedPreferences(PREFS, MODE_PRIVATE)
             .getLong(EXTRA_INTERVAL_MS, DEFAULT_INTERVAL_MS);
-        android.util.Log.d("ByaHeroLocation", "startTracking: intervalMs=" + intervalMs);
 
         LocationRequest request = new LocationRequest.Builder(Priority.PRIORITY_HIGH_ACCURACY, intervalMs)
             .setMinUpdateIntervalMillis(Math.max(1000L, intervalMs / 2L))
@@ -194,14 +191,10 @@ public class NativeBackgroundLocationService extends Service {
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
                 || ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             fusedLocationClient.requestLocationUpdates(request, locationCallback, Looper.getMainLooper());
-            android.util.Log.d("ByaHeroLocation", "Fused location updates requested");
-        } else {
-            android.util.Log.e("ByaHeroLocation", "Cannot request location updates: Permission denied");
         }
     }
 
     private void stopTracking() {
-        android.util.Log.d("ByaHeroLocation", "stopTracking");
         getSharedPreferences(PREFS, MODE_PRIVATE)
             .edit()
             .putBoolean("trackingEnabled", false)
@@ -219,7 +212,6 @@ public class NativeBackgroundLocationService extends Service {
 
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
-            android.util.Log.d("ByaHeroLocation", "WakeLock released");
         }
 
         stopForeground(STOP_FOREGROUND_REMOVE);
@@ -233,7 +225,6 @@ public class NativeBackgroundLocationService extends Service {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             return ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_BACKGROUND_LOCATION) == PackageManager.PERMISSION_GRANTED;
         }
-
         return true;
     }
 
@@ -244,13 +235,9 @@ public class NativeBackgroundLocationService extends Service {
         String userAgent = prefs.getString("userAgent", "Mozilla/5.0 (Linux; Android 10; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/100.0.0.0 Mobile Safari/537.36");
 
         if (updateUrl == null || updateUrl.trim().isEmpty() || cookie == null || cookie.trim().isEmpty()) {
-            android.util.Log.w("ByaHeroLocation", "postLocation: URL or Cookie is empty!");
             return;
         }
 
-        android.util.Log.d("ByaHeroLocation", "postLocation: posting to " + updateUrl);
-        android.util.Log.d("ByaHeroLocation", "postLocation: using Cookie = " + cookie);
-        android.util.Log.d("ByaHeroLocation", "postLocation: using User-Agent = " + userAgent);
         networkExecutor.execute(() -> {
             HttpURLConnection connection = null;
             try {
@@ -260,14 +247,18 @@ public class NativeBackgroundLocationService extends Service {
                     long busId = prefs.getLong("bus_id", 0L);
                     String route = prefs.getString("route", "");
                     int seatsAvailable = prefs.getInt("seats_available", 0);
-                    String status = prefs.getString("status", "available");
 
                     payload.put("bus_id", busId);
                     payload.put("lat", location.getLatitude());
                     payload.put("lng", location.getLongitude());
                     payload.put("route", route);
                     payload.put("seats_available", seatsAvailable);
-                    payload.put("status", status);
+                    
+                    // FIXED: Do not send a static status field during automated coordinates push.
+                    // This mirrors the functional expectation when the app is open, allowing 
+                    // the database to safely keep its context without dropping into stale states.
+                    payload.put("status", JSONObject.NULL);
+                    
                     payload.put("current_location_name", String.format(java.util.Locale.US, "%.5f, %.5f", location.getLatitude(), location.getLongitude()));
                 } else {
                     payload.put("latitude", location.getLatitude());
@@ -275,7 +266,6 @@ public class NativeBackgroundLocationService extends Service {
                     payload.put("accuracy", location.hasAccuracy() ? location.getAccuracy() : JSONObject.NULL);
                 }
 
-                android.util.Log.d("ByaHeroLocation", "postLocation: payload = " + payload.toString());
                 byte[] body = payload.toString().getBytes(StandardCharsets.UTF_8);
                 connection = (HttpURLConnection) new URL(updateUrl).openConnection();
                 connection.setRequestMethod("POST");
@@ -293,20 +283,6 @@ public class NativeBackgroundLocationService extends Service {
                 }
 
                 int responseCode = connection.getResponseCode();
-                String responseBody = "";
-                try {
-                    java.io.InputStream is = (responseCode >= 200 && responseCode < 300) ? connection.getInputStream() : connection.getErrorStream();
-                    if (is != null) {
-                        java.io.BufferedReader br = new java.io.BufferedReader(new java.io.InputStreamReader(is, StandardCharsets.UTF_8));
-                        StringBuilder sb = new StringBuilder();
-                        String line;
-                        while ((line = br.readLine()) != null) {
-                            sb.append(line);
-                        }
-                        responseBody = sb.toString();
-                    }
-                } catch (Exception ignored) {}
-                android.util.Log.d("ByaHeroLocation", "postLocation: HTTP response = " + responseCode + ", body = " + responseBody);
             } catch (Exception e) {
                 android.util.Log.e("ByaHeroLocation", "postLocation network error", e);
             } finally {
