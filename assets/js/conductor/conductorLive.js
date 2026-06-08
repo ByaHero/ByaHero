@@ -31,42 +31,6 @@ const alertBox = el('alertBox');
 const netStatus = el('netStatus');
 let bgWatcherId = null;
 let _appStateListener = null;
-let nativeLocationActive = false;
-
-function getNativeBackgroundLocationPlugin() {
-    return window.Capacitor?.Plugins?.NativeBackgroundLocation || null;
-}
-
-function getNativeLocationOptions() {
-    const appBase = window.APP_BASE_URL || '';
-    const baseUrl = `${window.location.origin}${appBase}`;
-    const statusSelect = el('statusSelect');
-    const status = lastComputedStatus || (statusSelect?.value || 'available');
-    return {
-        baseUrl,
-        updateUrl: `${baseUrl}/public/update_geo_location.php`,
-        intervalMs: 5000,
-        payloadType: "conductor",
-        busId: parseInt(busId),
-        busCode: busCode,
-        route: busRoute,
-        seatsAvailable: parseInt(seats),
-        seatsTotal: parseInt(seatsTotal),
-        status: status
-    };
-}
-
-async function updateNativeLocationMetadata() {
-    const plugin = getNativeBackgroundLocationPlugin();
-    if (plugin && nativeLocationActive) {
-        try {
-            await plugin.start(getNativeLocationOptions());
-            console.log('Native background location metadata updated successfully');
-        } catch (e) {
-            console.warn('Failed to update native location metadata:', e);
-        }
-    }
-}
 
 let lastMoveCheck = { time: 0, lat: null, lng: null };
 let lastResolvedLocation = { lat: null, lng: null, name: null };
@@ -154,11 +118,7 @@ async function sendDataToServer(lat, lng, locName) {
     const statusSelect = el('statusSelect');
     const status = autoComputeStatus(lat, lng) || (statusSelect?.value || 'available');
     if (statusSelect) statusSelect.value = status;
-    const statusChanged = lastComputedStatus !== status;
     lastComputedStatus = status;
-    if (statusChanged) {
-        updateNativeLocationMetadata();
-    }
 
     const payload = {
         bus_id: busId,
@@ -264,15 +224,6 @@ function startWebGeolocation() {
  * Handles initialization and request permissions for Geolocation background tracking.
  */
 async function startGeolocation() {
-    const staleBgWatcherId = localStorage.getItem('byahero_conductor_bg_watcher_id');
-    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try {
-            await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
-            console.log('Removed stale conductor background watcher:', staleBgWatcherId);
-        } catch (e) {}
-        localStorage.removeItem('byahero_conductor_bg_watcher_id');
-    }
-
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
@@ -284,59 +235,8 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
-    // Request native permission if running in Capacitor (Bluestacks/Android)
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-        let attempts = 0;
-        let success = false;
-        const Geolocation = window.Capacitor.Plugins.Geolocation;
-        
-        while (attempts < 10 && !success) {
-            try {
-                let perm = await Geolocation.checkPermissions();
-                success = true; // Bridge is ready and call succeeded
-                
-                if (perm.location !== 'granted') {
-                    perm = await Geolocation.requestPermissions();
-                }
-            } catch (e) {
-                console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
-                await new Promise(resolve => setTimeout(resolve, 150));
-                attempts++;
-            }
-        }
-    }
-
-    const nativePlugin = getNativeBackgroundLocationPlugin();
-    if (nativePlugin) {
-        try {
-            await nativePlugin.start(getNativeLocationOptions());
-            nativeLocationActive = true;
-            console.log('Native background tracking started for conductor');
-            showAlert('Native Tracking Started', 'primary');
-
-            try { await nativePlugin.removeAllListeners(); } catch (e) {}
-            nativePlugin.addListener('locationUpdate', (data) => {
-                console.log('Location update from native plugin:', data);
-                if (data && data.latitude && data.longitude) {
-                    const pos = { coords: { latitude: data.latitude, longitude: data.longitude } };
-                    onLocationUpdate(pos);
-                }
-            });
-            nativePlugin.addListener('seatsUpdate', (data) => {
-                console.log('Seats update from native plugin:', data);
-                if (data && typeof data.seatsAvailable !== 'undefined') {
-                    seats = data.seatsAvailable;
-                    updateSeatsUI();
-                    updateMediaSessionMetadata();
-                }
-            });
-        } catch (e) {
-            console.warn('NativeBackgroundLocation failed, falling back:', e);
-        }
-    }
-
     const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-    if (bgAvailable && !nativeLocationActive) {
+    if (bgAvailable) {
         const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
         try {
             const permissions = await BackgroundGeolocation.requestPermissions();
@@ -358,9 +258,6 @@ async function startGeolocation() {
                     onLocationUpdate(pos);
                 }
             );
-            if (bgWatcherId) {
-                localStorage.setItem('byahero_conductor_bg_watcher_id', bgWatcherId);
-            }
 
             startKeepAliveAudio();
             acquireWakeLock();
@@ -369,7 +266,7 @@ async function startGeolocation() {
             showAlert('Plugin Error', 'danger');
             startWebGeolocation();
         }
-    } else if (!nativeLocationActive) {
+    } else {
         startWebGeolocation();
     }
 }
@@ -380,7 +277,7 @@ const _onVisibilityChange = async () => {
         acquireWakeLock();
         if (keepAliveAudio && keepAliveAudio.paused) keepAliveAudio.play().catch(() => {});
         
-        const trackingActive = bgWatcherId !== null || watchId !== null || nativeLocationActive;
+        const trackingActive = bgWatcherId !== null || watchId !== null;
         if (!trackingActive) {
             await startGeolocation();
         } else if (lastKnownLocation) {
@@ -487,22 +384,12 @@ async function stopTracking() {
         try { window.Capacitor.Plugins.MediaSession.setPlaybackState({ playbackState: 'none' }).catch(() => {}); } catch (e) {}
     }
 
-    const nativePlugin = getNativeBackgroundLocationPlugin();
-    if (nativePlugin && nativeLocationActive) {
-        try {
-            await nativePlugin.stop();
-            nativeLocationActive = false;
-        } catch (e) {}
-    }
-
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
     }
-    const staleBgWatcherId = bgWatcherId || localStorage.getItem('byahero_conductor_bg_watcher_id');
-    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId }); } catch (e) {}
-        localStorage.removeItem('byahero_conductor_bg_watcher_id');
+    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
         bgWatcherId = null;
     }
 
@@ -556,7 +443,6 @@ function incrementPassengers() {
     seats = seats - 1;
     updateSeatsUI();
     updateMediaSessionMetadata();
-    updateNativeLocationMetadata();
     pendingBoards++;
     scheduleSync();
 }
@@ -566,7 +452,6 @@ function decrementPassengers() {
         seats = seats + 1;
         updateSeatsUI();
         updateMediaSessionMetadata();
-        updateNativeLocationMetadata();
         pendingDeparts++;
         scheduleSync();
     }
@@ -648,17 +533,12 @@ function _cleanup() {
         }
     }
     
-    // Do not stop nativePlugin in _cleanup, otherwise swiping the app away (which triggers pagehide/beforeunload) will kill background tracking.
-    // The nativePlugin.stop() is already explicitly handled in stopTracking().
-    
     if (watchId !== null) {
         try { navigator.geolocation.clearWatch(watchId); } catch (e) {}
         watchId = null;
     }
-    const staleBgWatcherId = bgWatcherId || localStorage.getItem('byahero_conductor_bg_watcher_id');
-    if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
-        try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId }); } catch (e) {}
-        localStorage.removeItem('byahero_conductor_bg_watcher_id');
+    if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+        try { window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
         bgWatcherId = null;
     }
     releaseWakeLock();
@@ -667,13 +547,3 @@ function _cleanup() {
 
 window.addEventListener('beforeunload', _cleanup);
 window.addEventListener('pagehide', _cleanup);
-
-window.addEventListener('pageshow', async function (event) {
-    if (map) {
-        try { map.invalidateSize(); } catch (e) {}
-    }
-    const trackingActive = watchId !== null || bgWatcherId !== null || nativeLocationActive;
-    if (!trackingActive) {
-        await startGeolocation();
-    }
-});
