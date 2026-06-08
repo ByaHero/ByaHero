@@ -208,7 +208,7 @@ try {
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-<script src="../../assets/js/byaheroTracking.js?v=<?= time() ?>"></script>
+<script><?php include __DIR__ . '/../../assets/js/byaheroTracking.js'; ?></script>
 <script>
     // Initial map
     const map = L.map('stopsMap').setView([14.0905, 121.0550], 12);
