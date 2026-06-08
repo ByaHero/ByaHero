@@ -103,17 +103,6 @@ $isLoggedIn = true;
           <div class="toggle-switch-handle"></div>
         </div>
       </div>
-
-      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'shareLocation.php';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
-        <div class="d-flex align-items-center flex-grow-1">
-          <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">share_location</span>
-          <div class="d-flex flex-column">
-            <div class="fw-semibold text-dark fs-6" style="color: #1f2937 !important;">Share My Location</div>
-            <div class="small text-secondary mt-1" style="font-size: 0.85rem !important;">Show your live location to your circle</div>
-          </div>
-        </div>
-        <span class="material-symbols-rounded text-muted ms-auto">chevron_right</span>
-      </div>
     </div>
 
     <div>
