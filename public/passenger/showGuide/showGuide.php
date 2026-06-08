@@ -220,8 +220,8 @@ if (!empty($userName)) {
             </div>
 
             <div class="button-group">
-                <a href="../index?start_tour=true" class="btn-start">Start</a>
-                <button class="btn-skip" onclick="location.href = '../index';">Skip</button>
+                <a href="../index.php?start_tour=true" class="btn-start">Start</a>
+                <button class="btn-skip" onclick="location.href = '../index.php';">Skip</button>
             </div>
             
         </div>
@@ -231,7 +231,6 @@ if (!empty($userName)) {
     <script>
         window.APP_BASE_URL = "../../../";
     </script>
-    <script src="../../../capacitor.js"></script>
     <script src="../../../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../../../assets/js/capacitor_back_button.js"></script>
 </body>
