@@ -320,6 +320,14 @@ async function startGeolocation() {
                     onLocationUpdate(pos);
                 }
             });
+            nativePlugin.addListener('seatsUpdate', (data) => {
+                console.log('Seats update from native plugin:', data);
+                if (data && typeof data.seatsAvailable !== 'undefined') {
+                    seats = data.seatsAvailable;
+                    updateSeatsUI();
+                    updateMediaSessionMetadata();
+                }
+            });
         } catch (e) {
             console.warn('NativeBackgroundLocation failed, falling back:', e);
         }
