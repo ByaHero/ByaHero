@@ -96,7 +96,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
         </div>
 
         <div class="mt-4 pt-2 d-flex justify-content-center gap-3">
-          <button class="btn btn-light border rounded-pill fw-semibold py-2 px-4 btn-secondary-custom" onclick="location.href = "../index";" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;">Cancel</button>
+          <button class="btn btn-light border rounded-pill fw-semibold py-2 px-4 btn-secondary-custom" onclick="location.href = "../index.php";" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;">Cancel</button>
           <button class="btn btn-primary rounded-pill fw-semibold py-2 px-4 btn-primary-custom" id="submitBtn" onclick="submitFeedback()" style="font-size: 1rem; transition: all 0.2s ease; border-radius: 50rem;" disabled>Submit Feedback</button>
         </div>
       </div>
@@ -196,7 +196,7 @@ $isLoggedIn = true; // auth_passenger.php ensures the user is logged in
           document.getElementById('feedbackFormContent').style.display = 'none';
           document.getElementById('successMessage').style.display = 'block';
           setTimeout(() => {
-            location.href = "../index";
+            location.href = "../index.php";
           }, 2000);
         } else {
           alert("Failed to submit feedback: " + data.message);

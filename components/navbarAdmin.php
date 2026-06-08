@@ -81,8 +81,8 @@ $logoUrl = $baseUrl . '/assets/images/topBarLogo.svg';
 $hamburgerImg = $baseUrl . '/assets/images/HAMBURGER.svg';
 
 // Menu links
-$profileUrl = $baseUrl . '/public/admin/adminProfile';
-$logoutUrl  = $baseUrl . '/public/logout';
+$profileUrl = $baseUrl . '/public/admin/adminProfile.php';
+$logoutUrl  = $baseUrl . '/public/logout.php';
 
 // Menu icons (same as conductor menu)
 $personImg = $baseUrl . '/assets/images/person.svg';
