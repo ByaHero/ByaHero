@@ -176,7 +176,8 @@ try {
         if (function_exists('sendOTPEmail')) {
             $mailRes = sendOTPEmail($email, $otp, 'signup');
             if (!$mailRes['success']) {
-                if (strpos($mailRes['message'], 'not configured') !== false || strpos($mailRes['message'], 'SMTP Key') !== false) {
+                $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1']);
+                if ($isLocal || strpos($mailRes['message'], 'not configured') !== false || strpos($mailRes['message'], 'SMTP Key') !== false) {
                     respond(true, 'Dev mode: OTP created.', ['dev_otp' => $otp]);
                 }
                 respond(false, 'Email service error: ' . $mailRes['message']);
@@ -227,7 +228,7 @@ try {
         $_SESSION['user_name']     = $name !== '' ? $name : $email;
         $_SESSION['user_contacts'] = $contact;
 
-        respond(true, 'Account created successfully!', ["redirect" => "passenger/showGuide/showGuide"]);
+        respond(true, 'Account created successfully!', ["redirect" => "passenger/showGuide/showGuide.php"]);
     }
 
     // COMPLETE PROFILE
@@ -336,7 +337,7 @@ try {
 
         session_unset();
         session_destroy();
-        respond(true, 'Account deleted', ["redirect" => "accountDeleted"]);
+        respond(true, 'Account deleted', ["redirect" => "accountDeleted.php"]);
     }
 
     // GOOGLE AUTH
@@ -387,7 +388,7 @@ try {
             $_SESSION['user_contacts'] = '';
             $_SESSION['user_profile_picture'] = $profilePic;
 
-            respond(true, 'Signup successful', ["redirect" => "passenger/completeProfile"]);
+            respond(true, 'Signup successful', ["redirect" => "passenger/completeProfile.php"]);
         }
     }
 
@@ -421,7 +422,8 @@ try {
 
         if (function_exists('sendOTPEmail')) {
             $mailRes = sendOTPEmail($email, $otp);
-            if (!$mailRes['success'] && (strpos($mailRes['message'], 'configured') !== false)) {
+            $isLocal = in_array($_SERVER['SERVER_NAME'] ?? '', ['localhost', '127.0.0.1', '::1']);
+            if (!$mailRes['success'] && ($isLocal || strpos($mailRes['message'], 'configured') !== false)) {
                 respond(true, 'Dev Mode: OTP created.', ['dev_otp' => $otp]);
             }
             respond($mailRes['success'], $mailRes['message']);
