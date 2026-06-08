@@ -43,7 +43,7 @@
             android:name=".NativeBackgroundLocationService"
             android:exported="false"
             android:process=":locationService"
-            android:foregroundServiceType="location"
+            android:foregroundServiceType="location|mediaPlayback"
             android:stopWithTask="false" />
 
         <receiver

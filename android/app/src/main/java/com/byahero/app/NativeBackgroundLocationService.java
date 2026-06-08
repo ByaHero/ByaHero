@@ -135,8 +135,10 @@ public class NativeBackgroundLocationService extends Service {
                 editor.putString("payloadType", payloadType);
                 if ("conductor".equals(payloadType)) {
                     editor.putLong("bus_id", intent.getLongExtra("bus_id", 0L));
+                    editor.putString("bus_code", intent.getStringExtra("bus_code"));
                     editor.putString("route", intent.getStringExtra("route"));
                     editor.putInt("seats_available", intent.getIntExtra("seats_available", 0));
+                    editor.putInt("seats_total", intent.getIntExtra("seats_total", 25));
                     editor.putString("status", intent.getStringExtra("status"));
                 }
             }
@@ -155,11 +157,25 @@ public class NativeBackgroundLocationService extends Service {
             android.util.Log.d("ByaHeroLocation", "WakeLock acquired");
         }
 
-        if ("conductor".equals(prefs.getString("payloadType", "passenger"))) {
-            updateMediaSession(prefs.getString("route", ""), prefs.getInt("seats_available", 0));
+        boolean isConductor = "conductor".equals(prefs.getString("payloadType", "passenger"));
+        if (isConductor) {
+            updateMediaSession(
+                prefs.getString("bus_code", ""),
+                prefs.getString("route", ""),
+                prefs.getInt("seats_available", 0),
+                prefs.getInt("seats_total", 25)
+            );
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification());
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int serviceType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION;
+            if (isConductor) {
+                serviceType |= android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+            }
+            startForeground(NOTIFICATION_ID, buildNotification(), serviceType);
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification());
+        }
         startTracking();
         return START_STICKY;
     }
@@ -331,8 +347,12 @@ public class NativeBackgroundLocationService extends Service {
             .setPriority(NotificationCompat.PRIORITY_LOW);
 
         if (isConductor && mediaSession != null) {
+            String busCode = prefs.getString("bus_code", "BUS");
             String route = prefs.getString("route", "-");
             int seatsAvailable = prefs.getInt("seats_available", 0);
+            int seatsTotal = prefs.getInt("seats_total", 25);
+            int passengerCount = seatsTotal - seatsAvailable;
+            if (passengerCount < 0) passengerCount = 0;
 
             Intent prevIntent = new Intent(this, NativeBackgroundLocationService.class);
             prevIntent.setAction(ACTION_PREVIOUS);
@@ -342,8 +362,8 @@ public class NativeBackgroundLocationService extends Service {
             nextIntent.setAction(ACTION_NEXT);
             PendingIntent nextPendingIntent = PendingIntent.getService(this, 3, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
 
-            builder.setContentTitle("ByaHero Conductor Tracker")
-                .setContentText("Route: " + route + " | Seats Available: " + seatsAvailable)
+            builder.setContentTitle("BUS " + busCode + " • " + route)
+                .setContentText("Passenger Count: " + passengerCount)
                 .addAction(0, "Prev", prevPendingIntent)
                 .addAction(0, "Next", nextPendingIntent)
                 .addAction(0, "Stop", stopPendingIntent)
@@ -374,7 +394,7 @@ public class NativeBackgroundLocationService extends Service {
         manager.createNotificationChannel(channel);
     }
 
-    private void updateMediaSession(String route, int seatsAvailable) {
+    private void updateMediaSession(String busCode, String route, int seatsAvailable, int seatsTotal) {
         if (mediaSession == null) {
             mediaSession = new android.media.session.MediaSession(this, "ByaHeroConductorTracker");
             mediaSession.setCallback(new android.media.session.MediaSession.Callback() {
@@ -391,10 +411,16 @@ public class NativeBackgroundLocationService extends Service {
             mediaSession.setActive(true);
         }
 
+        int passengerCount = seatsTotal - seatsAvailable;
+        if (passengerCount < 0) passengerCount = 0;
+
+        String title = "BUS " + (busCode != null && !busCode.trim().isEmpty() ? busCode : "BUS") + " • " + (route != null ? route : "-");
+        String artist = "Passenger Count: " + passengerCount;
+
         android.media.MediaMetadata.Builder metadataBuilder = new android.media.MediaMetadata.Builder();
-        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_TITLE, "ByaHero Conductor Tracker");
-        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, "Route: " + (route != null ? route : "-"));
-        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ALBUM, "Seats Available: " + seatsAvailable);
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title);
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, artist);
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ALBUM, "ByaHero Conductor Tracker");
         mediaSession.setMetadata(metadataBuilder.build());
 
         android.media.session.PlaybackState.Builder stateBuilder = new android.media.session.PlaybackState.Builder();
@@ -416,12 +442,15 @@ public class NativeBackgroundLocationService extends Service {
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
         int current = prefs.getInt("seats_available", 0);
         int newSeats = current + delta;
+        int seatsTotal = prefs.getInt("seats_total", 25);
         if (newSeats < 0) newSeats = 0;
+        if (newSeats > seatsTotal) newSeats = seatsTotal;
         
         prefs.edit().putInt("seats_available", newSeats).apply();
         
+        String busCode = prefs.getString("bus_code", "");
         String route = prefs.getString("route", "");
-        updateMediaSession(route, newSeats);
+        updateMediaSession(busCode, route, newSeats, seatsTotal);
 
         NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null) {

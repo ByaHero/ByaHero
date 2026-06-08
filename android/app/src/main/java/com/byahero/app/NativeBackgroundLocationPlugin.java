@@ -102,8 +102,10 @@ public class NativeBackgroundLocationPlugin extends Plugin {
             Integer busIdInt = call.getInt("busId");
             long busId = busIdInt != null ? busIdInt.longValue() : 0L;
             intent.putExtra("bus_id", busId);
+            intent.putExtra("bus_code", call.getString("busCode", ""));
             intent.putExtra("route", call.getString("route", ""));
             intent.putExtra("seats_available", call.getInt("seatsAvailable", 0));
+            intent.putExtra("seats_total", call.getInt("seatsTotal", 25));
             intent.putExtra("status", call.getString("status", "available"));
         }
 

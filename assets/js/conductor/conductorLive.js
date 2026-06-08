@@ -48,8 +48,10 @@ function getNativeLocationOptions() {
         intervalMs: 5000,
         payloadType: "conductor",
         busId: parseInt(busId),
+        busCode: busCode,
         route: busRoute,
         seatsAvailable: parseInt(seats),
+        seatsTotal: parseInt(seatsTotal),
         status: status
     };
 }
