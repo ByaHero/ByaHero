@@ -138,12 +138,7 @@ if (isset($input['seats_available'])) {
         $types .= "i";
     }
 }
-
-// FIXED: Dynamic structure validation checks.
-// Only add status field configuration updates if it is present and explicitly provided.
-// If it is null or absent (sent from background service tracking ticks), the status fields 
-// remain entirely unaltered, retaining state alignment cleanly across app lifecycles.
-if (isset($input['status']) && $input['status'] !== null) {
+if (isset($input['status'])) {
     $allowed = ['available', 'on_stop', 'full', 'unavailable'];
     if (in_array($input['status'], $allowed, true)) {
         $fields[] = 'status = ?';
