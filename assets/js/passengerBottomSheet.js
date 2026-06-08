@@ -188,11 +188,15 @@ window.switchSheetTab = function switchSheetTab(tabName) {
       window._stopsLoaded = true;
       if (typeof loadStops === 'function') {
         loadStops().then(function () {
-          if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(true);
+          if (window.allStops && typeof window.renderStopsList === 'function') {
+            window.renderStopsList(window.allStops);
+          }
         });
       }
     } else {
-      if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(true);
+      if (window.allStops && typeof window.renderStopsList === 'function') {
+        window.renderStopsList(window.allStops);
+      }
     }
   }
 
