@@ -10,7 +10,7 @@ require __DIR__ . '/../../config/db.php';
 
 // --- AUTH: rely on public/login.php session values ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
-    header("Location: ../login");
+    header("Location: ../login.php");
     exit;
 }
 
@@ -172,7 +172,7 @@ $backLink = 'admin.php';
                 <div class="pw-wrap">
                     <input type="password" name="password" id="pwField" class="form-control shadow-sm px-3 py-2 pe-5" style="border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.55);" required>
                     <button type="button" class="pw-eye" id="togglePw" aria-pressed="false" aria-label="Show password" title="Show password">
-                        <span id="eyeIcon" class="material-icons-round" style="font-size:18px;line-height:1;">visibility_off</span>
+                        <img src="../../assets/images/hash.svg" id="eyeIcon" style="width:18px; height:18px;" alt="Show password">
                     </button>
                 </div>
             </div>

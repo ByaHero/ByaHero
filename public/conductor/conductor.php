@@ -7,7 +7,7 @@ if (isset($_GET['stopped']) && $_GET['stopped'] == '1') {
 }
 
 if (!isset($_SESSION['user_id']) || !in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'])) {
-    header("Location: ../index");
+    header("Location: ../index.php");
     exit;
 }
 
@@ -44,7 +44,7 @@ if (!isset($_GET['stopped']) || $_GET['stopped'] != '1') {
         $busRow = $stmtBus->get_result()->fetch_assoc();
 
         if ($busRow) {
-            header("Location: conductorLive");
+            header("Location: conductorLive.php");
             exit;
         }
     }

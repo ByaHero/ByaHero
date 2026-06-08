@@ -14,12 +14,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function syncIcon() {
         if (!pw || !eye || !toggle) return;
         if (pw.type === 'password') {
-            eye.textContent = 'visibility_off';
+            eye.src = '../../assets/images/hash.svg';
             toggle.setAttribute('aria-pressed', 'false');
             toggle.setAttribute('title', 'Show password');
             toggle.setAttribute('aria-label', 'Show password');
         } else {
-            eye.textContent = 'visibility';
+            eye.src = '../../assets/images/pass.svg';
             toggle.setAttribute('aria-pressed', 'true');
             toggle.setAttribute('title', 'Hide password');
             toggle.setAttribute('aria-label', 'Hide password');

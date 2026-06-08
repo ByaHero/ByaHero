@@ -77,14 +77,14 @@ $isLoggedIn = true;
       <h5 class="mb-2 fw-bold">Privacy and Security</h5>
       <p class="mb-0 small">
         Control which apps can access your data and location.
-        <a href="privacyPolicy" class="text-warning fw-semibold" style="text-decoration: underline;">Learn more...</a>
+        <a href="privacyPolicy.php" class="text-warning fw-semibold" style="text-decoration: underline;">Learn more...</a>
       </p>
     </div>
 
     <?php if (!$isLoggedIn): ?>
       <div class="alert alert-primary d-flex align-items-center gap-2 m-3 border-start border-4 border-primary rounded-3" style="background-color: #dbeafe;">
         <span class="material-symbols-rounded text-primary">info</span>
-        <span class="small" style="color: #1e40af;">You're using privacy settings as a guest. <a href="../../../public/login" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences across devices.</span>
+        <span class="small" style="color: #1e40af;">You're using privacy settings as a guest. <a href="../../../public/login.php" style="color: #1e3a8a; font-weight: bold;">Login</a> to save your preferences across devices.</span>
       </div>
     <?php endif; ?>
 
@@ -119,7 +119,7 @@ $isLoggedIn = true;
     <div>
       <div class="fw-bold text-primary mb-2 mt-3 px-3">Additional Resources</div>
 
-      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'privacyPolicy';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'privacyPolicy.php';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
         <div class="d-flex align-items-center flex-grow-1">
           <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">description</span>
           <div class="d-flex flex-column">
@@ -130,7 +130,7 @@ $isLoggedIn = true;
         <span class="material-symbols-rounded text-muted ms-auto">chevron_right</span>
       </div>
 
-      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'termsOfService';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
+      <div class="p-3 bg-white my-2 rounded-3 shadow-sm d-flex align-items-center justify-content-between privacy-item-hover" onclick="location.href = 'termsOfService.php';" style="padding: 14px 16px !important; border-radius: 10px !important; cursor: pointer;">
         <div class="d-flex align-items-center flex-grow-1">
           <span class="material-symbols-rounded text-secondary me-3" style="font-size: 1.25rem;">gavel</span>
           <div class="d-flex flex-column">

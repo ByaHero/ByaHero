@@ -3,7 +3,7 @@ require_once __DIR__ . '/auth_passenger.php';
 
 // If they already have a contact number, redirect to dashboard
 if (!empty($_SESSION['user_contacts'])) {
-    header("Location: index");
+    header("Location: index.php");
     exit;
 }
 
@@ -183,6 +183,12 @@ $userName = $_SESSION['user_name'] ?? 'User';
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        window.APP_BASE_URL = "../../";
+    </script>
+    <script src="../../capacitor.js"></script>
+    <script src="../../assets/js/capacitor_firebase_bridge.js"></script>
+    <script src="../../assets/js/capacitor_back_button.js"></script>
+    <script>
         const form = document.getElementById('contactForm');
         const submitBtn = document.getElementById('submitBtn');
         const alertBox = document.getElementById('alertBox');
@@ -214,7 +220,7 @@ $userName = $_SESSION['user_name'] ?? 'User';
                 const data = await res.json();
 
                 if (data.success) {
-                    location.href = "showGuide/showGuide";
+                    location.href = "showGuide/showGuide.php";
                 } else {
                     alertBox.innerHTML = `<div class="alert alert-danger small py-2">${data.message}</div>`;
                     submitBtn.disabled = false;

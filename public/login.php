@@ -140,6 +140,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
+<?php
+$isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor');
+?>
 <!doctype html>
 <html lang="en">
 
@@ -156,6 +159,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="../assets/css/auth/auth.css">
     
+    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES); ?>/capacitor.js"></script>
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -167,7 +171,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="login-card">
             <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <h1 class="brand-title">BYAHERO</h1>
+                <img src="../assets/images/ByaHero_rext_.svg" alt="BYAHERO" class="brand-title" style="height: 45px; width: auto;" />
             </header>
 
             <main class="form-card">
@@ -180,22 +184,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <form method="POST" novalidate>
                     <div class="mb-3">
                         <input name="email" type="email" inputmode="email" autocomplete="username" placeholder="Email"
-                            class="form-control input-pill" required
-                            value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>" />
+                             class="form-control input-pill" required
+                             value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>" />
                     </div>
 
                     <div class="mb-2 input-group-pill">
                         <input id="password" name="password" type="password" autocomplete="current-password"
-                            placeholder="Password" class="form-control input-pill" required />
+                             placeholder="Password" class="form-control input-pill" required />
                         <button type="button" id="togglePwd" class="input-addon" aria-pressed="false"
-                            aria-label="Show password" title="Show password">
-                            <span id="eyeIcon" class="material-icons-round"
-                                style="font-size:18px;line-height:1;">visibility_off</span>
+                             aria-label="Show password" title="Show password">
+                            <img src="../assets/images/hash.svg" id="eyeIcon" style="width:18px; height:18px;" alt="Show password">
                         </button>
                     </div>
 
                     <div class="d-flex justify-content-start">
-                        <a class="forgot" href="forgotPassword" tabindex="-1">Forgot Password?</a>
+                        <a class="forgot" href="forgotPassword.php" tabindex="-1">Forgot Password?</a>
                     </div>
 
                     <input type="hidden" name="redirect" value="<?= htmlspecialchars($redirectAfter) ?>" />
@@ -210,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <div id="google-auth-container">
                         <!-- Standard Web Flow -->
-                        <div id="gsi-web-container">
+                        <div id="gsi-web-container" style="<?= $isCapacitor ? 'display: none;' : 'display: flex; justify-content: center;' ?>">
                             <div id="g_id_onload"
                                 data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
                                 data-context="signin"
@@ -230,7 +233,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <!-- Native Capacitor Button (Hidden by default) -->
-                        <div id="gsi-native-container" style="display: none; justify-content: center;">
+                        <div id="gsi-native-container" style="<?= $isCapacitor ? 'display: flex; justify-content: center;' : 'display: none; justify-content: center;' ?>">
                             <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06); transition: all 0.2s;">
                                 <svg width="18" height="18" viewBox="0 0 48 48" style="display: block;">
                                     <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
@@ -246,7 +249,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                 <div class="small-muted">
                     Don't have an account?
-                    <a href="signUp" class="fw-bold text-primary text-decoration-none">Sign up</a>
+                    <a href="signUp.php" class="fw-bold text-primary text-decoration-none">Sign up</a>
                 </div>
             </main>
         </div>

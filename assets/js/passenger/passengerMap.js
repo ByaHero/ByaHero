@@ -570,7 +570,9 @@ window.onLocationUpdate = function onLocationUpdate(pos) {
   }
 
   if (now - _lastNetworkSync > SYNC_INTERVAL) {
-    window.uploadMyLocation(lat, lng, acc);
+    if (!window.nativeBgActive) {
+      window.uploadMyLocation(lat, lng, acc);
+    }
     _lastNetworkSync = now;
   }
 
@@ -617,43 +619,30 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
     window.showLocationDisabledNotice();
     return;
   }
-
-  // Request native permission if running in Capacitor (Bluestacks/Android)
-  if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
-    let attempts = 0;
-    let success = false;
-    const Geolocation = window.Capacitor.Plugins.Geolocation;
-    
-    while (attempts < 10 && !success) {
-      try {
-        let perm = await Geolocation.checkPermissions();
-        success = true; // Bridge is ready and call succeeded
-        
-        if (perm.location !== 'granted') {
-          perm = await Geolocation.requestPermissions();
-        }
-        if (perm.location !== 'granted') {
-          window.locationPermissionGranted = false;
-          window.showLocationPermissionDenied();
-          return;
-        }
-        window.locationPermissionGranted = true;
-      } catch (e) {
-        console.warn(`Capacitor Geolocation bridge not ready yet, retrying in 150ms (attempt ${attempts + 1}):`, e);
-        await new Promise(resolve => setTimeout(resolve, 150));
-        attempts++;
-      }
-    }
-    
-    if (!success) {
-      console.warn('Capacitor Geolocation bridge failed to initialize after 10 attempts.');
-    }
-  }
-
   if (!navigator.geolocation) return;
 
+  const nativeBgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation;
   const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-  if (bgPluginAvailable) {
+  
+  if (nativeBgAvailable) {
+    const NativeBG = window.Capacitor.Plugins.NativeBackgroundLocation;
+    try {
+      const baseUrl = window.location.origin;
+      const updateUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
+      const startResult = await NativeBG.start({
+        baseUrl: baseUrl,
+        updateUrl: updateUrl,
+        intervalMs: 5000,
+        cookie: document.cookie,
+        payloadType: "passenger"
+      });
+      console.log("Native background location service started:", startResult);
+      window.nativeBgActive = true;
+    } catch (e) {
+      console.error("Failed to start NativeBackgroundLocation:", e);
+    }
+    window.startWebGeolocation();
+  } else if (bgPluginAvailable) {
     const BG = window.Capacitor.Plugins.BackgroundGeolocation;
     try {
       const permissions = await BG.requestPermissions();
@@ -1371,6 +1360,12 @@ window.addEventListener('storage', e => {
       window.userMarker = null;
     }
     window.userLocation = null;
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation) {
+      try {
+        window.Capacitor.Plugins.NativeBackgroundLocation.stop();
+        window.nativeBgActive = false;
+      } catch (e) {}
+    }
   }
 });
 
@@ -1414,13 +1409,3 @@ function _cleanup() {
 
 window.addEventListener('beforeunload', _cleanup);
 window.addEventListener('pagehide', _cleanup);
-
-window.addEventListener('pageshow', function (event) {
-  if (window._map) {
-    try { window._map.invalidateSize(); } catch (e) {}
-  }
-  const trackingActive = window.watchId !== null || window.bgWatcherId !== null;
-  if (!trackingActive) {
-    window.startUserLocationWatch();
-  }
-});

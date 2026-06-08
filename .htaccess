@@ -22,28 +22,6 @@ php_value session.gc_maxlifetime 2592000
 </IfModule>
 
 # =========================================================================
-# CLEAN PHP URLS - Hide .php on normal page URLs without breaking API calls
-# =========================================================================
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-
-    # Keep backend and JSON/API endpoints addressable with their existing .php URLs.
-    # This avoids redirecting fetch/XHR calls that the frontend already depends on.
-    RewriteCond %{REQUEST_METHOD} ^(?:GET|HEAD)$ [NC]
-    RewriteCond %{THE_REQUEST} \s/[^?\s]+?\.php [NC]
-    RewriteCond %{REQUEST_URI} !/(backend|config|components)/ [NC]
-    RewriteCond %{REQUEST_URI} !/(api|auth_api|api_pins|map_data|stream_buses|update_geo_location)\.php [NC]
-    RewriteCond %{REQUEST_URI} ^/(.+?)\.php$ [NC]
-    RewriteRule ^ /%1 [R=302,L,NE]
-
-    # Serve extensionless URLs from matching PHP files.
-    # Example: /public/passenger/profile/profile -> /public/passenger/profile/profile.php
-    RewriteCond %{REQUEST_FILENAME} !-d
-    RewriteCond %{REQUEST_FILENAME}.php -f
-    RewriteRule ^(.+?)/?$ $1.php [L]
-</IfModule>
-
-# =========================================================================
 # BROWSER CACHING - Tells browsers to cache static assets locally
 # Dramatically speeds up repeat visits and page navigations
 # =========================================================================

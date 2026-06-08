@@ -679,4 +679,3 @@ if (!window._byaheroTourInitialized) {
         initTour();
     }
 }
-

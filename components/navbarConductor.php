@@ -14,8 +14,8 @@ $logoUrl     = $base . '/assets/images/topBarLogo.svg'; // Falls back to text if
 $wordmarkUrl = $base . '/assets/images/ByaHero.svg';    // Added ByaHero wordmark
 
 // Conductor links
-$profileUrl = $base . '/public/conductor/profile/profile';
-$logoutUrl  = $base . '/public/logout';
+$profileUrl = $base . '/public/conductor/profile/profile.php';
+$logoutUrl  = $base . '/public/logout.php';
 
 // Use SAME images as navbarPassenger (icons)
 $hamburgerImg = $base . '/assets/images/HAMBURGER.svg';
@@ -260,7 +260,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
 <?php if ($isConductorProfile): ?>
 
     <div class="nav-conductor-profilebar">
-        <a href="<?= htmlspecialchars($base . '/public/conductor/conductor') ?>" aria-label="Close">
+        <a href="<?= htmlspecialchars($base . '/public/conductor/conductor.php') ?>" aria-label="Close">
             <span class="material-symbols-rounded" style="font-size: 26px;">close</span>
         </a>
         <div class="title">Profile</div>

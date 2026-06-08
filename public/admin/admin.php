@@ -117,7 +117,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Total Buses</span>
                         <div class="stat-card-number"><?= $totalBusesCount ?></div>
-                        <a class="btn-manage-pill" href="manageBuses">Manage</a>
+                        <a class="btn-manage-pill" href="manageBuses.php">Manage</a>
                     </div>
                 </div>
 
@@ -126,7 +126,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Active Buses</span>
                         <div class="stat-card-number"><?= $activeBusesCount ?></div>
-                        <a class="btn-manage-pill" href="manageActiveBuses">Manage</a>
+                        <a class="btn-manage-pill" href="manageActiveBuses.php">Manage</a>
                     </div>
                 </div>
 
@@ -135,7 +135,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Schedules</span>
                         <div class="stat-card-number"><?= $scheduleCount ?></div>
-                        <a class="btn-manage-pill" href="operationSchedule">Manage</a>
+                        <a class="btn-manage-pill" href="operationSchedule.php">Manage</a>
                     </div>
                 </div>
 
@@ -144,7 +144,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Waiting Pax</span>
                         <div class="stat-card-number"><?= $waitingPassengersCount ?></div>
-                        <a class="btn-manage-pill" href="manageWaitingPassengers">Manage</a>
+                        <a class="btn-manage-pill" href="manageWaitingPassengers.php">Manage</a>
                     </div>
                 </div>
             </div>
@@ -159,7 +159,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Drivers</span>
                         <div class="stat-card-number"><?= $driversCount ?></div>
-                        <a class="btn-manage-pill" href="manageConductors">Manage</a>
+                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
                     </div>
                 </div>
 
@@ -168,7 +168,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Conductors</span>
                         <div class="stat-card-number"><?= $conductorsCount ?></div>
-                        <a class="btn-manage-pill" href="manageConductors">Manage</a>
+                        <a class="btn-manage-pill" href="manageConductors.php">Manage</a>
                     </div>
                 </div>
 
@@ -177,7 +177,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Bus Stops</span>
                         <div class="stat-card-number"><?= $stopsCount ?></div>
-                        <a class="btn-manage-pill" href="manageStops">Manage</a>
+                        <a class="btn-manage-pill" href="manageStops.php">Manage</a>
                     </div>
                 </div>
             </div>
@@ -192,7 +192,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Lost & Found</span>
                         <div class="stat-card-number"><?= $lostFoundCount ?></div>
-                        <a class="btn-manage-pill" href="manageLostAndFound">Manage</a>
+                        <a class="btn-manage-pill" href="manageLostAndFound.php">Manage</a>
                     </div>
                 </div>
 
@@ -201,7 +201,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Reports</span>
                         <div class="stat-card-number"><?= $reportsCount ?></div>
-                        <a class="btn-manage-pill" href="manageReports">Manage</a>
+                        <a class="btn-manage-pill" href="manageReports.php">Manage</a>
                     </div>
                 </div>
 
@@ -210,7 +210,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Feedbacks</span>
                         <div class="stat-card-number"><?= $feedbacksCount ?></div>
-                        <a class="btn-manage-pill" href="manageFeedbacks">Manage</a>
+                        <a class="btn-manage-pill" href="manageFeedbacks.php">Manage</a>
                     </div>
                 </div>
             </div>
@@ -225,7 +225,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Bus Fares</span>
                         <div class="stat-card-number"><?= $faresCount ?></div>
-                        <a class="btn-manage-pill" href="busFare">Manage</a>
+                        <a class="btn-manage-pill" href="busFare.php">Manage</a>
                     </div>
                 </div>
 
@@ -234,7 +234,7 @@ $pageType = 'dashboard';
                     <div class="stat-card">
                         <span class="stat-card-title">Analytics (Boarded)</span>
                         <div class="stat-card-number"><?= $analyticsCount ?></div>
-                        <a class="btn-manage-pill" href="analytics">View</a>
+                        <a class="btn-manage-pill" href="analytics.php">View</a>
                     </div>
                 </div>
             </div>

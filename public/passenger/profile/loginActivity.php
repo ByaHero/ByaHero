@@ -147,7 +147,7 @@ function getDeviceType($userAgent) {
         </div>
 
         <div class="d-grid gap-2 mt-4">
-          <button class="btn btn-outline-primary py-2 rounded-3 fw-medium" onclick="location.href = "accountSettings"">
+          <button class="btn btn-outline-primary py-2 rounded-3 fw-medium" onclick="location.href = 'accountSettings.php'">
             Back to Account Settings
           </button>
         </div>

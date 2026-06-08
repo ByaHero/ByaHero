@@ -24,12 +24,17 @@ if (!$loaded) {
 
 if (isset($_SESSION['user_id'])) {
     if (in_array($_SESSION['user_role'] ?? '', ['conductor', 'driver'], true)) {
-        header("Location: conductor/conductor");
+        header("Location: conductor/conductor.php");
     } else {
-        header("Location: passenger/index");
+        header("Location: passenger/index.php");
     }
     exit;
 }
+
+$isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor');
+$scriptName = $_SERVER['SCRIPT_NAME'] ?? '';
+$publicDir = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
+$baseUrl = preg_replace('~/public(/.*)?$~', '', $publicDir) ?: '';
 ?>
 <!doctype html>
 <html lang="en">
@@ -46,6 +51,7 @@ if (isset($_SESSION['user_id'])) {
     <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Round&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <link rel="stylesheet" href="../assets/css/auth/auth.css">
     
+    <script src="<?= htmlspecialchars($baseUrl, ENT_QUOTES); ?>/capacitor.js"></script>
     <script src="../assets/js/capacitor_firebase_bridge.js"></script>
     <script src="../assets/js/capacitor_back_button.js"></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -57,7 +63,7 @@ if (isset($_SESSION['user_id'])) {
         <div class="login-card">
             <header class="brand-wrap">
                 <img src="../assets/images/byaheroLogo.png" alt="ByaHero Logo" class="brand-logo" />
-                <h1 class="brand-title">BYAHERO</h1>
+                <img src="../assets/images/ByaHero_rext_.svg" alt="BYAHERO" class="brand-title" style="height: 45px; width: auto;" />
             </header>
 
             <main class="form-card">
@@ -88,7 +94,7 @@ if (isset($_SESSION['user_id'])) {
                         <div class="mb-3 password-wrapper">
                             <input type="password" name="password" id="passInput" class="form-control input-pill pe-5" placeholder="Password" required minlength="6" autocomplete="new-password">
                             <button type="button" class="input-addon" onclick="togglePass('passInput', 'iconPass')">
-                                <span class="material-icons-round" id="iconPass" style="font-size:18px;">visibility_off</span>
+                                <img src="../assets/images/hash.svg" id="iconPass" style="width:18px; height:18px;" alt="Show password">
                             </button>
                             <div class="invalid-feedback ps-3">Password must be at least 6 characters.</div>
                         </div>
@@ -96,7 +102,7 @@ if (isset($_SESSION['user_id'])) {
                         <div class="mb-2 password-wrapper">
                             <input type="password" name="confirm_password" id="confirmInput" class="form-control input-pill pe-5" placeholder="Confirm Password" required minlength="6" autocomplete="new-password">
                             <button type="button" class="input-addon" onclick="togglePass('confirmInput', 'iconConfirm')">
-                                <span class="material-icons-round" id="iconConfirm" style="font-size:18px;">visibility_off</span>
+                                <img src="../assets/images/hash.svg" id="iconConfirm" style="width:18px; height:18px;" alt="Show password">
                             </button>
                             <div class="invalid-feedback ps-3">Passwords do not match.</div>
                         </div>
@@ -112,7 +118,7 @@ if (isset($_SESSION['user_id'])) {
                         </div>
 
                         <div id="google-auth-container">
-                            <div id="gsi-web-container">
+                            <div id="gsi-web-container" style="<?= $isCapacitor ? 'display: none;' : 'display: flex; justify-content: center;' ?>">
                                 <div id="g_id_onload"
                                     data-client_id="299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com"
                                     data-context="signup"
@@ -131,7 +137,7 @@ if (isset($_SESSION['user_id'])) {
                                 </div>
                             </div>
 
-                            <div id="gsi-native-container" style="display: none; justify-content: center;">
+                            <div id="gsi-native-container" style="<?= $isCapacitor ? 'display: flex; justify-content: center;' : 'display: none; justify-content: center;' ?>">
                                 <button type="button" id="native-google-btn" style="background: #fff; border: 1px solid #dadce0; border-radius: 999px; padding: 10px 24px; font-weight: 500; color: #3c4043; display: flex; align-items: center; gap: 12px; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,0.06);">
                                     <svg width="18" height="18" viewBox="0 0 48 48">
                                         <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.7 17.74 9.5 24 9.5z"/>
@@ -169,7 +175,7 @@ if (isset($_SESSION['user_id'])) {
 
                 <div class="small-muted">
                     Already have an account?
-                    <a href="login" class="fw-bold text-primary text-decoration-none">Login</a>
+                    <a href="login.php" class="fw-bold text-primary text-decoration-none">Login</a>
                 </div>
             </main>
         </div>

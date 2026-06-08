@@ -14,12 +14,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (pwd && toggle && eye) {
         const syncIcon = () => {
             if (pwd.type === 'password') {
-                eye.textContent = 'visibility_off';
+                eye.src = '../assets/images/hash.svg';
                 toggle.setAttribute('aria-pressed', 'false');
                 toggle.setAttribute('title', 'Show password');
                 toggle.setAttribute('aria-label', 'Show password');
             } else {
-                eye.textContent = 'visibility';
+                eye.src = '../assets/images/pass.svg';
                 toggle.setAttribute('aria-pressed', 'true');
                 toggle.setAttribute('title', 'Hide password');
                 toggle.setAttribute('aria-label', 'Hide password');
@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Polling watch for Capacitor loading Native SDK
     let attempts = 0;
     const pollTimer = setInterval(() => {
-        if (initNativeCapacitorGoogleAuth() || attempts > 20) {
+        if (initNativeCapacitorGoogleAuth() || attempts > 300) {
             clearInterval(pollTimer);
         }
         attempts++;

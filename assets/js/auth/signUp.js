@@ -24,10 +24,10 @@ function togglePass(inputId, iconId) {
     if (input && icon) {
         if (input.type === 'password') {
             input.type = 'text';
-            icon.textContent = 'visibility';
+            icon.src = '../assets/images/pass.svg';
         } else {
             input.type = 'password';
-            icon.textContent = 'visibility_off';
+            icon.src = '../assets/images/hash.svg';
         }
         input.focus();
     }
@@ -159,7 +159,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Capacitor Native auth initializers
     let attempts = 0;
     const pollTimer = setInterval(() => {
-        if (initNativeCapacitorGoogleAuth() || attempts > 20) {
+        if (initNativeCapacitorGoogleAuth() || attempts > 300) {
             clearInterval(pollTimer);
         }
         attempts++;
@@ -212,6 +212,18 @@ function initNativeCapacitorGoogleAuth() {
         if (webContainer) webContainer.style.display = 'none';
         if (nativeContainer) {
             nativeContainer.style.setProperty('display', 'flex', 'important');
+        }
+        
+        if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            try {
+                window.Capacitor.Plugins.GoogleAuth.initialize({
+                    clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true,
+                });
+            } catch (e) {
+                console.warn('GoogleAuth initialize issue:', e);
+            }
         }
         
         const nativeBtn = document.getElementById('native-google-btn');

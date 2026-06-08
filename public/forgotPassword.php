@@ -47,7 +47,7 @@ $pageTitle = 'Forgot Password';
                         </div>
                         <button type="submit" class="submit-pill" id="btn-1">Send Recovery Code</button>
                     </form>
-                    <a href="login" class="back-link"><span class="material-symbols-rounded" style="font-size: 18px;">arrow_back</span> Back to Login</a>
+                    <a href="login.php" class="back-link"><span class="material-symbols-rounded" style="font-size: 18px;">arrow_back</span> Back to Login</a>
                 </div>
 
                 <!-- STEP 2: Enter OTP -->
@@ -101,7 +101,7 @@ $pageTitle = 'Forgot Password';
                     <div class="form-heading text-center">Password Reset Complete</div>
                     <div class="form-subheading">Your account is now secure. You can log in using your new password.</div>
                     
-                    <button type="button" class="submit-pill" onclick="location.href = "login"">Go to Login</button>
+                    <button type="button" class="submit-pill" onclick="location.href = 'login.php'">Go to Login</button>
                 </div>
 
             </main>

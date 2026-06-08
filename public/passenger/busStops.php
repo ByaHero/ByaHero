@@ -208,6 +208,7 @@ try {
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../assets/js/byaheroTracking.js?v=<?= time() ?>"></script>
 <script>
     // Initial map
     const map = L.map('stopsMap').setView([14.0905, 121.0550], 12);
@@ -339,70 +340,66 @@ try {
 
     const sortStatus = document.getElementById('sortStatus');
     
-    if ("geolocation" in navigator) {
-        navigator.geolocation.getCurrentPosition(
-            (position) => {
-                const userLat = position.coords.latitude;
-                const userLng = position.coords.longitude;
+    window.safeGetCurrentPosition(
+        (position) => {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
 
-                // Add a marker for the user
-                const userIcon = L.divIcon({
-                    html: `<span class="material-icons-round text-primary" style="font-size: 32px; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.4));">person_pin_circle</span>`,
-                    className: '',
-                    iconSize: [32, 32],
-                    iconAnchor: [16, 32],
-                    popupAnchor: [0, -32]
+            // Add a marker for the user
+            const userIcon = L.divIcon({
+                html: `<span class="material-icons-round text-primary" style="font-size: 32px; filter: drop-shadow(0px 2px 2px rgba(0,0,0,0.4));">person_pin_circle</span>`,
+                className: '',
+                iconSize: [32, 32],
+                iconAnchor: [16, 32],
+                popupAnchor: [0, -32]
+            });
+            
+            L.marker([userLat, userLng], {icon: userIcon}).addTo(map)
+                .bindPopup("<div class='fw-bold'>You are here</div>")
+                .openPopup();
+
+            // Sort the list
+            const listContainer = document.getElementById('stopsList');
+            if (listContainer) {
+                const items = Array.from(listContainer.querySelectorAll('.stop-item'));
+                
+                items.forEach(item => {
+                    const sLat = parseFloat(item.getAttribute('data-lat'));
+                    const sLng = parseFloat(item.getAttribute('data-lng'));
+                    
+                    if (!isNaN(sLat) && !isNaN(sLng)) {
+                        const dist = getDistance(userLat, userLng, sLat, sLng);
+                        item.dataset.distance = dist;
+                        
+                        const distLabel = item.querySelector('.distance-label');
+                        if (distLabel) {
+                            distLabel.style.display = 'block';
+                            distLabel.innerHTML = `<span class="material-icons-round" style="font-size: 14px; vertical-align: middle;">directions_walk</span> ${dist < 1 ? Math.round(dist * 1000) + ' m' : dist.toFixed(1) + ' km'} away`;
+                        }
+                    } else {
+                        item.dataset.distance = 999999;
+                    }
                 });
                 
-                L.marker([userLat, userLng], {icon: userIcon}).addTo(map)
-                    .bindPopup("<div class='fw-bold'>You are here</div>")
-                    .openPopup();
-
-                // Sort the list
-                const listContainer = document.getElementById('stopsList');
-                if (listContainer) {
-                    const items = Array.from(listContainer.querySelectorAll('.stop-item'));
-                    
-                    items.forEach(item => {
-                        const sLat = parseFloat(item.getAttribute('data-lat'));
-                        const sLng = parseFloat(item.getAttribute('data-lng'));
-                        
-                        if (!isNaN(sLat) && !isNaN(sLng)) {
-                            const dist = getDistance(userLat, userLng, sLat, sLng);
-                            item.dataset.distance = dist;
-                            
-                            const distLabel = item.querySelector('.distance-label');
-                            if (distLabel) {
-                                distLabel.style.display = 'block';
-                                distLabel.innerHTML = `<span class="material-icons-round" style="font-size: 14px; vertical-align: middle;">directions_walk</span> ${dist < 1 ? Math.round(dist * 1000) + ' m' : dist.toFixed(1) + ' km'} away`;
-                            }
-                        } else {
-                            item.dataset.distance = 999999;
-                        }
-                    });
-                    
-                    items.sort((a, b) => parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance));
-                    items.forEach(item => listContainer.appendChild(item));
-                    
-                    if (sortStatus) {
-                        sortStatus.innerText = 'Sorted by Nearest';
-                        sortStatus.classList.replace('bg-secondary', 'bg-success');
-                    }
-                }
-            },
-            (error) => {
-                console.warn("Geolocation error:", error);
+                items.sort((a, b) => parseFloat(a.dataset.distance) - parseFloat(b.dataset.distance));
+                items.forEach(item => listContainer.appendChild(item));
+                
                 if (sortStatus) {
-                    sortStatus.innerText = 'Alphabetical';
-                    sortStatus.classList.replace('bg-secondary', 'bg-dark');
-                    sortStatus.title = 'Location access denied or unavailable.';
+                    sortStatus.innerText = 'Sorted by Nearest';
+                    sortStatus.classList.replace('bg-secondary', 'bg-success');
                 }
-            },
-            { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-        );
-    } else {
-        if (sortStatus) sortStatus.style.display = 'none';
-    }
+            }
+        },
+        (error) => {
+            console.warn("Geolocation error:", error);
+            if (sortStatus) {
+                sortStatus.innerText = 'Alphabetical';
+                sortStatus.classList.replace('bg-secondary', 'bg-dark');
+                sortStatus.title = 'Location access denied or unavailable.';
+            }
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
+    );
 </script>
 </body>
 </html>
