@@ -60,6 +60,42 @@ require_once __DIR__ . '/../auth_passenger.php';
 
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+    function getNativeBackgroundLocationPlugin() {
+      return window.Capacitor?.Plugins?.NativeBackgroundLocation || null;
+    }
+
+    function getNativeLocationOptions() {
+      const appBase = window.APP_BASE_URL || '';
+      const baseUrl = `${window.location.origin}${appBase}`;
+      return {
+        baseUrl,
+        updateUrl: `${baseUrl}/backend/updateUserLocation.php`,
+        intervalMs: 5000
+      };
+    }
+
+    async function startNativeBackgroundLocation() {
+      const plugin = getNativeBackgroundLocationPlugin();
+      if (!plugin) return;
+
+      try {
+        await plugin.start(getNativeLocationOptions());
+      } catch (err) {
+        alert(err?.message || 'Allow location access all the time, then turn Share Location on again.');
+      }
+    }
+
+    async function stopNativeBackgroundLocation() {
+      const plugin = getNativeBackgroundLocationPlugin();
+      if (!plugin) return;
+
+      try {
+        await plugin.stop();
+      } catch (err) {
+        console.warn('Could not stop native background location:', err?.message || err);
+      }
+    }
+
     async function postSetting(setting_name, setting_value) {
       const fd = new FormData();
       fd.append('setting_name', setting_name);
@@ -93,7 +129,8 @@ require_once __DIR__ . '/../auth_passenger.php';
         alert(r.message || 'Failed to enable Share Location');
         return;
       }
-      alert('Share Location is ON. Open Circle to appear live.');
+      await startNativeBackgroundLocation();
+      alert('Share Location is ON.');
       refreshStatus();
     }
 
@@ -103,6 +140,7 @@ require_once __DIR__ . '/../auth_passenger.php';
         alert(r.message || 'Failed to disable Share Location');
         return;
       }
+      await stopNativeBackgroundLocation();
       alert('Share Location is OFF.');
       refreshStatus();
     }

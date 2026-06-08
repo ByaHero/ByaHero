@@ -570,7 +570,9 @@ window.onLocationUpdate = function onLocationUpdate(pos) {
   }
 
   if (now - _lastNetworkSync > SYNC_INTERVAL) {
-    window.uploadMyLocation(lat, lng, acc);
+    if (!window.nativeBgActive) {
+      window.uploadMyLocation(lat, lng, acc);
+    }
     _lastNetworkSync = now;
   }
 
@@ -600,6 +602,18 @@ window.startWebGeolocation = function startWebGeolocation() {
  * Initializes and checks permission for Capacitor or browser Geolocation services.
  */
 window.startUserLocationWatch = async function startUserLocationWatch() {
+  // Remove any stale background geolocation watcher from previous sessions/pages
+  const staleBgWatcherId = localStorage.getItem('byahero_bg_watcher_id');
+  if (staleBgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
+    try {
+      await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: staleBgWatcherId });
+      console.log('Removed stale background geolocation watcher:', staleBgWatcherId);
+    } catch (e) {
+      console.warn('Failed to remove stale background geolocation watcher:', e);
+    }
+    localStorage.removeItem('byahero_bg_watcher_id');
+  }
+
   const locationEnabled = localStorage.getItem('byahero_location_services') !== '0';
   if (!locationEnabled) {
     window.showLocationDisabledNotice();
@@ -607,8 +621,28 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
   }
   if (!navigator.geolocation) return;
 
+  const nativeBgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation;
   const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-  if (bgPluginAvailable) {
+  
+  if (nativeBgAvailable) {
+    const NativeBG = window.Capacitor.Plugins.NativeBackgroundLocation;
+    try {
+      const baseUrl = window.location.origin;
+      const updateUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
+      const startResult = await NativeBG.start({
+        baseUrl: baseUrl,
+        updateUrl: updateUrl,
+        intervalMs: 5000,
+        cookie: document.cookie,
+        payloadType: "passenger"
+      });
+      console.log("Native background location service started:", startResult);
+      window.nativeBgActive = true;
+    } catch (e) {
+      console.error("Failed to start NativeBackgroundLocation:", e);
+    }
+    window.startWebGeolocation();
+  } else if (bgPluginAvailable) {
     const BG = window.Capacitor.Plugins.BackgroundGeolocation;
     try {
       const permissions = await BG.requestPermissions();
@@ -630,6 +664,9 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
           window.onLocationUpdate(pos);
         }
       );
+      if (window.bgWatcherId) {
+        localStorage.setItem('byahero_bg_watcher_id', window.bgWatcherId);
+      }
       window.startKeepAliveAudio();
       window.acquireWakeLock();
     } catch (e) {
@@ -1323,6 +1360,12 @@ window.addEventListener('storage', e => {
       window.userMarker = null;
     }
     window.userLocation = null;
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation) {
+      try {
+        window.Capacitor.Plugins.NativeBackgroundLocation.stop();
+        window.nativeBgActive = false;
+      } catch (e) {}
+    }
   }
 });
 
@@ -1350,10 +1393,12 @@ function _cleanup() {
     window.watchId = null;
   }
   
-  const bgPluginAvailable = window.bgWatcherId && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
+  const bgPluginAvailable = (window.bgWatcherId || localStorage.getItem('byahero_bg_watcher_id')) && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
   if (bgPluginAvailable) {
     try {
-      window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: window.bgWatcherId });
+      const idToRemove = window.bgWatcherId || localStorage.getItem('byahero_bg_watcher_id');
+      window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: idToRemove });
+      localStorage.removeItem('byahero_bg_watcher_id');
     } catch (e) { }
     window.bgWatcherId = null;
   }

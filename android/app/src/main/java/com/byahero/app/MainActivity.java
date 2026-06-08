@@ -10,6 +10,7 @@ import java.util.List;
 public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(NativeBackgroundLocationPlugin.class);
         super.onCreate(savedInstanceState);
     }
 
