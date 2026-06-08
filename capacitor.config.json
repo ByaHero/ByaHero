@@ -13,8 +13,7 @@
 		]
 	},
 	"android": {
-		"useLegacyBridge": true,
-		"appendUserAgent": "ByaHeroCapacitor"
+		"useLegacyBridge": true
 	},
 	"plugins": {
 		"GoogleAuth": {

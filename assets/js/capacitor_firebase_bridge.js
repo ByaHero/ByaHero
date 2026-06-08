@@ -42,14 +42,11 @@
       });
     }
   
-    window.pushNotificationsPromise = Promise.resolve(false);
-  
     window.sosBridge = {
       saveToken: saveToken,
       isSaved: () => _saved,
       requestPushPermission: async () => {
-        window.pushNotificationsPromise = initializePushNotifications(true);
-        return await window.pushNotificationsPromise;
+        return await initializePushNotifications(true);
       },
       cleanup: _cleanup
     };
@@ -329,34 +326,30 @@
     function initWhenReady() {
       const path = window.location.pathname.toLowerCase();
       
-      // Block pure landing pages, but allow logins, signups, and dashboards
+      // Block pure auth/landing pages, but ALLOW dashboards like passenger/index.php
       let isAuthPage = false;
-      if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/')) && !path.includes('login') && !path.includes('signup')) {
+      if (path.includes('login.php') || path.includes('signup.php')) {
+          isAuthPage = true;
+      } else if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/'))) {
           isAuthPage = true;
       }
       
       if (isAuthPage) return;
 
-      const isMobile = window.Capacitor || /Android|iPhone|iPad/i.test(navigator.userAgent);
-      const delay = isMobile ? 500 : 0;
-
-      setTimeout(() => {
-        let pollAttempts = 0;
-        function poll() {
-          if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
-            window.pushNotificationsPromise = initializePushNotifications();
+      let pollAttempts = 0;
+      function poll() {
+        if (window.Capacitor && window.Capacitor.Plugins.PushNotifications) {
+          initializePushNotifications();
+        } else {
+          pollAttempts++;
+          if (pollAttempts < 60) { // 3 seconds max (50ms * 60)
+            setTimeout(poll, 50);
           } else {
-            pollAttempts++;
-            if (pollAttempts < 600) { // 30 seconds max (50ms * 600)
-              setTimeout(poll, 50);
-            } else {
-              dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
-              window.pushNotificationsPromise = Promise.resolve(false);
-            }
+            dbg('warn', '[SOS-FCM] Capacitor PushNotifications not found after polling.');
           }
         }
-        poll();
-      }, delay);
+      }
+      poll();
     }
 
     document.addEventListener('DOMContentLoaded', () => {

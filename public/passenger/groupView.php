@@ -822,15 +822,7 @@
                 return;
             }
 
-            // If the main map is managing the geolocation watch, skip querying it again here.
-            // This prevents concurrent Geolocation/GPS locks on Android WebView.
-            if (typeof window.startUserLocationWatch !== 'undefined') {
-                loadGroupMembers();
-                isSendingLocation = false;
-                return;
-            }
-
-            window.safeGetCurrentPosition(async (pos) => {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
                 try {
                     const lat = pos?.coords?.latitude;
                     const lng = pos?.coords?.longitude;

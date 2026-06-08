@@ -442,7 +442,7 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
   // CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
-  $currentFile = basename($_SERVER['PHP_SELF'], '.php');
+  $currentFile = basename($_SERVER['PHP_SELF']);
   $settingsTitles = [
     'settings' => 'Settings',
     'about' => 'About',
@@ -465,7 +465,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
     class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky"
     style="height: 40px;">
     <div class="d-flex align-items-center">
-      <a href="<?php echo $backTarget; ?>"
+      <a href="<?php echo $defaultBack; ?>"
         class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
         <span class="material-symbols-rounded text-white">arrow_back</span>
       </a>
@@ -478,7 +478,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
   // CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
-  $currentFile = basename($_SERVER['PHP_SELF'], '.php');
+  $currentFile = basename($_SERVER['PHP_SELF']);
   $profileTitles = [
     'profile' => 'My Profile',
     'accountSettings' => 'Account Settings',
@@ -754,7 +754,6 @@ else: ?>
   // Must be set BEFORE the bridge script loads so REGISTER_URL is computed correctly
   window.APP_BASE_URL = <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>;
 </script>
-<script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/capacitor.js"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_firebase_bridge.js?v=<?= time() ?>"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/capacitor_back_button.js?v=<?= time() ?>"></script>
 <script src="<?php echo htmlspecialchars($baseUrl, ENT_QUOTES); ?>/assets/js/passenger/byaheroTour.js?v=<?= time() ?>"></script>

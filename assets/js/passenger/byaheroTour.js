@@ -664,25 +664,12 @@ if (!window._byaheroTourInitialized) {
                 }
             ];
 
-            // Start the tour globally after both location and notification permission dialogs are resolved
-            const startTourWithPermissions = async () => {
-                if (window.locationWatchPromise) {
-                    try { await window.locationWatchPromise; } catch (e) {}
-                }
-                // Small sleep to ensure the fcm bridge has finished polling & has assigned its promise
-                await new Promise(resolve => setTimeout(resolve, 600));
-                if (window.pushNotificationsPromise) {
-                    try { await window.pushNotificationsPromise; } catch (e) {}
-                }
-                // Brief pause to allow any dialog transitions to settle
-                await new Promise(resolve => setTimeout(resolve, 500));
-
+            // Start the tour globally on whatever page we are on
+            setTimeout(() => {
                 window._byaheroTourInstance = new ByaheroTour(steps);
                 window._byaheroTourInstance.currentStep = stepIndex;
                 window._byaheroTourInstance.start();
-            };
-            
-            startTourWithPermissions();
+            }, 1200);
         }
     };
 
@@ -692,4 +679,3 @@ if (!window._byaheroTourInitialized) {
         initTour();
     }
 }
-
