@@ -436,7 +436,7 @@ window.renderStopsList = function renderStopsList(stops) {
   const listEl = document.getElementById('busStopsListMobile');
   if (!listEl || !stops) return;
 
-  const filteredStops = stops.filter(s => !s.route || s.route.toUpperCase() === window.currentStopsRoute);
+  const filteredStops = stops.filter(s => s.route && s.route.toUpperCase() === window.currentStopsRoute);
   let stopsToRender = filteredStops;
 
   // Sync Leaflet map layer visibility for matching stops
