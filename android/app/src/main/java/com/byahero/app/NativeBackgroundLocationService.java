@@ -18,6 +18,7 @@ import android.os.PowerManager;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
 import androidx.core.app.NotificationCompat;
+import androidx.media.app.NotificationCompat.MediaStyle;
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationCallback;
 import com.google.android.gms.location.LocationRequest;
@@ -35,6 +36,8 @@ import org.json.JSONObject;
 public class NativeBackgroundLocationService extends Service {
     public static final String ACTION_START = "com.byahero.app.location.START";
     public static final String ACTION_STOP = "com.byahero.app.location.STOP";
+    public static final String ACTION_PREVIOUS = "com.byahero.app.location.PREVIOUS";
+    public static final String ACTION_NEXT = "com.byahero.app.location.NEXT";
     public static final String EXTRA_UPDATE_URL = "updateUrl";
     public static final String EXTRA_COOKIE = "cookie";
     public static final String EXTRA_INTERVAL_MS = "intervalMs";
@@ -49,6 +52,8 @@ public class NativeBackgroundLocationService extends Service {
     private LocationCallback locationCallback;
     private final ExecutorService networkExecutor = Executors.newSingleThreadExecutor();
     private PowerManager.WakeLock wakeLock;
+    private Location lastLocation;
+    private android.media.session.MediaSession mediaSession;
 
     @Override
     public void onCreate() {
@@ -60,6 +65,7 @@ public class NativeBackgroundLocationService extends Service {
             public void onLocationResult(LocationResult locationResult) {
                 Location location = locationResult.getLastLocation();
                 if (location != null) {
+                    lastLocation = location;
                     android.util.Log.d("ByaHeroLocation", "onLocationResult: lat=" + location.getLatitude() + ", lng=" + location.getLongitude());
                     
                     // Broadcast location update immediately to the main process
@@ -89,10 +95,19 @@ public class NativeBackgroundLocationService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         android.util.Log.d("ByaHeroLocation", "onStartCommand: action=" + (intent != null ? intent.getAction() : "null"));
-        if (intent != null && ACTION_STOP.equals(intent.getAction())) {
-            stopTracking();
-            stopSelf();
-            return START_NOT_STICKY;
+        if (intent != null) {
+            String action = intent.getAction();
+            if (ACTION_STOP.equals(action)) {
+                stopTracking();
+                stopSelf();
+                return START_NOT_STICKY;
+            } else if (ACTION_PREVIOUS.equals(action)) {
+                adjustSeats(1);
+                return START_STICKY;
+            } else if (ACTION_NEXT.equals(action)) {
+                adjustSeats(-1);
+                return START_STICKY;
+            }
         }
 
         SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
@@ -120,8 +135,10 @@ public class NativeBackgroundLocationService extends Service {
                 editor.putString("payloadType", payloadType);
                 if ("conductor".equals(payloadType)) {
                     editor.putLong("bus_id", intent.getLongExtra("bus_id", 0L));
+                    editor.putString("bus_code", intent.getStringExtra("bus_code"));
                     editor.putString("route", intent.getStringExtra("route"));
                     editor.putInt("seats_available", intent.getIntExtra("seats_available", 0));
+                    editor.putInt("seats_total", intent.getIntExtra("seats_total", 25));
                     editor.putString("status", intent.getStringExtra("status"));
                 }
             }
@@ -140,7 +157,25 @@ public class NativeBackgroundLocationService extends Service {
             android.util.Log.d("ByaHeroLocation", "WakeLock acquired");
         }
 
-        startForeground(NOTIFICATION_ID, buildNotification());
+        boolean isConductor = "conductor".equals(prefs.getString("payloadType", "passenger"));
+        if (isConductor) {
+            updateMediaSession(
+                prefs.getString("bus_code", ""),
+                prefs.getString("route", ""),
+                prefs.getInt("seats_available", 0),
+                prefs.getInt("seats_total", 25)
+            );
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            int serviceType = android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION;
+            if (isConductor) {
+                serviceType |= android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PLAYBACK;
+            }
+            startForeground(NOTIFICATION_ID, buildNotification(), serviceType);
+        } else {
+            startForeground(NOTIFICATION_ID, buildNotification());
+        }
         startTracking();
         return START_STICKY;
     }
@@ -171,6 +206,12 @@ public class NativeBackgroundLocationService extends Service {
             .edit()
             .putBoolean("trackingEnabled", false)
             .apply();
+
+        if (mediaSession != null) {
+            mediaSession.setActive(false);
+            mediaSession.release();
+            mediaSession = null;
+        }
 
         if (fusedLocationClient != null && locationCallback != null) {
             fusedLocationClient.removeLocationUpdates(locationCallback);
@@ -279,6 +320,9 @@ public class NativeBackgroundLocationService extends Service {
     private Notification buildNotification() {
         createNotificationChannel();
 
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        boolean isConductor = "conductor".equals(prefs.getString("payloadType", "passenger"));
+
         Intent launchIntent = new Intent(this, MainActivity.class);
         PendingIntent launchPendingIntent = PendingIntent.getActivity(
             this,
@@ -296,15 +340,43 @@ public class NativeBackgroundLocationService extends Service {
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
-        return new NotificationCompat.Builder(this, CHANNEL_ID)
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stat_location)
-            .setContentTitle("ByaHero location sharing")
-            .setContentText("Sharing your live location while enabled.")
             .setContentIntent(launchPendingIntent)
             .setOngoing(true)
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .addAction(0, "Stop", stopPendingIntent)
-            .build();
+            .setPriority(NotificationCompat.PRIORITY_LOW);
+
+        if (isConductor && mediaSession != null) {
+            String busCode = prefs.getString("bus_code", "BUS");
+            String route = prefs.getString("route", "-");
+            int seatsAvailable = prefs.getInt("seats_available", 0);
+            int seatsTotal = prefs.getInt("seats_total", 25);
+            int passengerCount = seatsTotal - seatsAvailable;
+            if (passengerCount < 0) passengerCount = 0;
+
+            Intent prevIntent = new Intent(this, NativeBackgroundLocationService.class);
+            prevIntent.setAction(ACTION_PREVIOUS);
+            PendingIntent prevPendingIntent = PendingIntent.getService(this, 2, prevIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            Intent nextIntent = new Intent(this, NativeBackgroundLocationService.class);
+            nextIntent.setAction(ACTION_NEXT);
+            PendingIntent nextPendingIntent = PendingIntent.getService(this, 3, nextIntent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+
+            builder.setContentTitle("BUS " + busCode + " • " + route)
+                .setContentText("Passenger Count: " + passengerCount)
+                .addAction(0, "Prev", prevPendingIntent)
+                .addAction(0, "Next", nextPendingIntent)
+                .addAction(0, "Stop", stopPendingIntent)
+                .setStyle(new MediaStyle()
+                    .setMediaSession(android.support.v4.media.session.MediaSessionCompat.Token.fromToken(mediaSession.getSessionToken()))
+                    .setShowActionsInCompactView(0, 1));
+        } else {
+            builder.setContentTitle("ByaHero location sharing")
+                .setContentText("Sharing your live location while enabled.")
+                .addAction(0, "Stop", stopPendingIntent);
+        }
+
+        return builder.build();
     }
 
     private void createNotificationChannel() {
@@ -322,6 +394,83 @@ public class NativeBackgroundLocationService extends Service {
         manager.createNotificationChannel(channel);
     }
 
+    private void updateMediaSession(String busCode, String route, int seatsAvailable, int seatsTotal) {
+        if (mediaSession == null) {
+            mediaSession = new android.media.session.MediaSession(this, "ByaHeroConductorTracker");
+            mediaSession.setCallback(new android.media.session.MediaSession.Callback() {
+                @Override
+                public void onSkipToNext() {
+                    adjustSeats(-1);
+                }
+
+                @Override
+                public void onSkipToPrevious() {
+                    adjustSeats(1);
+                }
+            });
+            mediaSession.setActive(true);
+        }
+
+        int passengerCount = seatsTotal - seatsAvailable;
+        if (passengerCount < 0) passengerCount = 0;
+
+        String title = "BUS " + (busCode != null && !busCode.trim().isEmpty() ? busCode : "BUS") + " • " + (route != null ? route : "-");
+        String artist = "Passenger Count: " + passengerCount;
+
+        android.media.MediaMetadata.Builder metadataBuilder = new android.media.MediaMetadata.Builder();
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_TITLE, title);
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ARTIST, artist);
+        metadataBuilder.putString(android.media.MediaMetadata.METADATA_KEY_ALBUM, "ByaHero Conductor Tracker");
+        mediaSession.setMetadata(metadataBuilder.build());
+
+        android.media.session.PlaybackState.Builder stateBuilder = new android.media.session.PlaybackState.Builder();
+        stateBuilder.setActions(
+            android.media.session.PlaybackState.ACTION_SKIP_TO_NEXT |
+            android.media.session.PlaybackState.ACTION_SKIP_TO_PREVIOUS |
+            android.media.session.PlaybackState.ACTION_PLAY
+        );
+        stateBuilder.setState(android.media.session.PlaybackState.STATE_PLAYING, 0, 1.0f);
+        mediaSession.setPlaybackState(stateBuilder.build());
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID, buildNotification());
+        }
+    }
+
+    private void adjustSeats(int delta) {
+        SharedPreferences prefs = getSharedPreferences(PREFS, MODE_PRIVATE);
+        int current = prefs.getInt("seats_available", 0);
+        int newSeats = current + delta;
+        int seatsTotal = prefs.getInt("seats_total", 25);
+        if (newSeats < 0) newSeats = 0;
+        if (newSeats > seatsTotal) newSeats = seatsTotal;
+        
+        prefs.edit().putInt("seats_available", newSeats).apply();
+        
+        String busCode = prefs.getString("bus_code", "");
+        String route = prefs.getString("route", "");
+        updateMediaSession(busCode, route, newSeats, seatsTotal);
+
+        NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID, buildNotification());
+        }
+        
+        try {
+            Intent broadcastIntent = new Intent("com.byahero.app.SEATS_UPDATE");
+            broadcastIntent.setPackage(getPackageName());
+            broadcastIntent.putExtra("seats_available", newSeats);
+            sendBroadcast(broadcastIntent);
+        } catch (Exception e) {
+            android.util.Log.e("ByaHeroLocation", "Failed to send seats update broadcast", e);
+        }
+        
+        if (lastLocation != null) {
+            postLocation(lastLocation);
+        }
+    }
+
     @Override
     public void onDestroy() {
         if (fusedLocationClient != null && locationCallback != null) {
@@ -329,6 +478,11 @@ public class NativeBackgroundLocationService extends Service {
         }
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
+        }
+        if (mediaSession != null) {
+            mediaSession.setActive(false);
+            mediaSession.release();
+            mediaSession = null;
         }
         networkExecutor.shutdown();
         super.onDestroy();

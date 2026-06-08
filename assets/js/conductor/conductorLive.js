@@ -48,8 +48,10 @@ function getNativeLocationOptions() {
         intervalMs: 5000,
         payloadType: "conductor",
         busId: parseInt(busId),
+        busCode: busCode,
         route: busRoute,
         seatsAvailable: parseInt(seats),
+        seatsTotal: parseInt(seatsTotal),
         status: status
     };
 }
@@ -318,6 +320,14 @@ async function startGeolocation() {
                 if (data && data.latitude && data.longitude) {
                     const pos = { coords: { latitude: data.latitude, longitude: data.longitude } };
                     onLocationUpdate(pos);
+                }
+            });
+            nativePlugin.addListener('seatsUpdate', (data) => {
+                console.log('Seats update from native plugin:', data);
+                if (data && typeof data.seatsAvailable !== 'undefined') {
+                    seats = data.seatsAvailable;
+                    updateSeatsUI();
+                    updateMediaSessionMetadata();
                 }
             });
         } catch (e) {

@@ -32,17 +32,26 @@ public class NativeBackgroundLocationPlugin extends Plugin {
         locationReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (intent != null && "com.byahero.app.LOCATION_UPDATE".equals(intent.getAction())) {
-                    double lat = intent.getDoubleExtra("latitude", 0.0);
-                    double lng = intent.getDoubleExtra("longitude", 0.0);
-                    JSObject data = new JSObject();
-                    data.put("latitude", lat);
-                    data.put("longitude", lng);
-                    notifyListeners("locationUpdate", data);
+                if (intent != null) {
+                    if ("com.byahero.app.LOCATION_UPDATE".equals(intent.getAction())) {
+                        double lat = intent.getDoubleExtra("latitude", 0.0);
+                        double lng = intent.getDoubleExtra("longitude", 0.0);
+                        JSObject data = new JSObject();
+                        data.put("latitude", lat);
+                        data.put("longitude", lng);
+                        notifyListeners("locationUpdate", data);
+                    } else if ("com.byahero.app.SEATS_UPDATE".equals(intent.getAction())) {
+                        int seatsVal = intent.getIntExtra("seats_available", 0);
+                        JSObject data = new JSObject();
+                        data.put("seatsAvailable", seatsVal);
+                        notifyListeners("seatsUpdate", data);
+                    }
                 }
             }
         };
-        IntentFilter filter = new IntentFilter("com.byahero.app.LOCATION_UPDATE");
+        IntentFilter filter = new IntentFilter();
+        filter.addAction("com.byahero.app.LOCATION_UPDATE");
+        filter.addAction("com.byahero.app.SEATS_UPDATE");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             getContext().registerReceiver(locationReceiver, filter, Context.RECEIVER_NOT_EXPORTED);
         } else {
@@ -93,8 +102,10 @@ public class NativeBackgroundLocationPlugin extends Plugin {
             Integer busIdInt = call.getInt("busId");
             long busId = busIdInt != null ? busIdInt.longValue() : 0L;
             intent.putExtra("bus_id", busId);
+            intent.putExtra("bus_code", call.getString("busCode", ""));
             intent.putExtra("route", call.getString("route", ""));
             intent.putExtra("seats_available", call.getInt("seatsAvailable", 0));
+            intent.putExtra("seats_total", call.getInt("seatsTotal", 25));
             intent.putExtra("status", call.getString("status", "available"));
         }
 
