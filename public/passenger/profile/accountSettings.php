@@ -146,34 +146,14 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
       font-weight: bold;
       position: relative;
       overflow: hidden;
-      cursor: pointer;
       border: 2px solid #1e3a8a;
-      transition: transform 0.2s;
-    }
-    .profile-avatar:hover {
-      transform: scale(1.02);
     }
     .profile-avatar img {
       width: 100%;
       height: 100%;
       object-fit: cover;
     }
-    .profile-avatar .overlay {
-      position: absolute;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      background: rgba(0,0,0,0.5);
-      color: white;
-      font-size: 8px;
-      padding: 2px 0;
-      text-align: center;
-      opacity: 0;
-      transition: opacity 0.2s;
-    }
-    .profile-avatar:hover .overlay {
-      opacity: 1;
-    }
+
   </style>
 </head>
 
@@ -215,7 +195,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
       <input type="hidden" name="remove_image" id="remove_image_input" value="0">
       
       <div class="d-flex align-items-center gap-3 flex-wrap mb-2">
-        <div class="profile-avatar m-0" onclick="document.getElementById('imageInput').click()">
+        <div class="profile-avatar m-0">
           <span id="avatarInitial" style="<?= $userProfilePic ? 'display:none;' : '' ?>"><?= strtoupper(substr($userName ?: $userEmail, 0, 1)) ?></span>
           <?php if ($userProfilePic): ?>
             <?php 
@@ -224,7 +204,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
             ?>
             <img src="<?= $imgSrc ?>" id="currentAvatar" alt="Avatar" onerror="this.style.display='none'; document.getElementById('avatarInitial').style.display='block'; document.getElementById('removePicBtn').classList.add('d-none'); document.getElementById('uploadPicBtn').classList.remove('d-none');">
           <?php endif; ?>
-          <div class="overlay">CHANGE</div>
+
         </div>
         
         <div class="user-info flex-grow-1">
@@ -253,12 +233,12 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
 
         <div class="col-12 col-sm-6">
           <label for="email" class="form-label fw-semibold text-secondary small mb-1">Email Address</label>
-          <input type="email" class="form-control rounded-3" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" required placeholder="Enter your email">
+          <input type="email" class="form-control rounded-3 bg-light" id="email" name="email" value="<?= htmlspecialchars($userEmail) ?>" readonly style="cursor: not-allowed;">
         </div>
       </div>
 
       <div class="d-flex justify-content-end mt-3">
-        <button type="submit" class="btn btn-primary px-4 rounded-3 d-flex align-items-center gap-1">
+        <button type="submit" id="saveBtn" class="btn btn-primary px-4 rounded-3 d-flex align-items-center gap-1" disabled>
           <span class="material-symbols-rounded" style="font-size: 18px;">save</span>
           Save Changes
         </button>
@@ -323,6 +303,22 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
     const uName = <?= json_encode($userName) ?>;
     const uEmail = <?= json_encode($userEmail) ?>;
 
+    // Save button change detection
+    const saveBtn = document.getElementById('saveBtn');
+    const nameInput = document.getElementById('name');
+    const origName = nameInput.value;
+    const origImageData = profileImageData.value;
+    const origRemoveFlag = removeImageInput.value;
+
+    function checkForChanges() {
+      const changed = nameInput.value !== origName
+                   || profileImageData.value !== origImageData
+                   || removeImageInput.value !== origRemoveFlag;
+      saveBtn.disabled = !changed;
+    }
+
+    nameInput.addEventListener('input', checkForChanges);
+
     // Remove picture logic
     removePicBtn.addEventListener('click', function(e) {
         e.preventDefault();
@@ -331,9 +327,10 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
         
         // Update UI to show initials
         const initial = (uName || uEmail).charAt(0).toUpperCase();
-        avatarContainer.innerHTML = `<span id="avatarInitial">${initial}</span><div class="overlay">CHANGE</div>`;
+        avatarContainer.innerHTML = `<span id="avatarInitial">${initial}</span>`;
         removePicBtn.classList.add('d-none');
         document.getElementById('uploadPicBtn').classList.remove('d-none');
+        checkForChanges();
     });
 
     imageInput.addEventListener('change', function(e) {
@@ -384,10 +381,7 @@ $userProfilePic = $userData['profile_picture'] ?? $_SESSION['user_profile_pictur
                 newImg.src = compressedDataUrl;
                 avatarContainer.appendChild(newImg);
                 
-                const overlay = document.createElement('div');
-                overlay.className = 'overlay';
-                overlay.innerText = 'CHANGE';
-                avatarContainer.appendChild(overlay);
+                checkForChanges();
             };
             img.src = event.target.result;
         };

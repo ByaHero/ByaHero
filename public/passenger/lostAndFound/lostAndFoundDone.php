@@ -105,7 +105,7 @@ $pageTitle = 'Submission Complete';
             Thank you for your<br>submission
         </h3>
 
-        <a href="../../../public/passenger/index" class="btn btn-primary rounded-pill fw-bold shadow-sm" style="padding-left: 60px; padding-right: 60px; padding-top: 10px; padding-bottom: 10px; font-size: 1.1rem;">
+        <a href="../../../public/passenger/index.php" class="btn btn-primary rounded-pill fw-bold shadow-sm" style="padding-left: 60px; padding-right: 60px; padding-top: 10px; padding-bottom: 10px; font-size: 1.1rem;">
             Back
         </a>
     </div>
