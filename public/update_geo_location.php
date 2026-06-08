@@ -22,6 +22,7 @@ if (empty($input['bus_id'])) {
 }
 
 $busId = (int)$input['bus_id'];
+
 $conn = db();
 
 // MANDATORY: Enforce that the user is logged in and is the conductor assigned to this bus
@@ -106,7 +107,7 @@ $tmp = $file . '.tmp';
 @file_put_contents($tmp, $data, LOCK_EX);
 @rename($tmp, $file);
 
-// Update DB fields dynamically
+// Update DB: store friendly name into current_location column (no DB schema change)
 $fields = [];
 $params = [];
 $types  = "";
@@ -139,7 +140,7 @@ if (isset($input['seats_available'])) {
     }
 }
 if (isset($input['status'])) {
-    $allowed = ['available', 'on_stop', 'full', 'unavailable'];
+    $allowed = ['available','on_stop','full','unavailable'];
     if (in_array($input['status'], $allowed, true)) {
         $fields[] = 'status = ?';
         $params[] = $input['status'];
