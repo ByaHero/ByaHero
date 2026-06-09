@@ -440,7 +440,7 @@ $userProfilePic = $_SESSION['user_profile_picture'] ?? null;
           if (!modal) return;
           modal.addEventListener('show.bs.modal', () => { 
               loadWaitCount();
-              _waitInterval = setInterval(loadWaitCount, 15000); 
+              _waitInterval = setInterval(loadWaitCount, 30000); 
           });
           modal.addEventListener('hide.bs.modal', () => { 
               clearInterval(_waitInterval); 

@@ -2,9 +2,42 @@
 /**
  * ByaHero Schema Initializer / Auto-Migration
  * Ensures database tables and columns are up-to-date.
+ *
+ * Performance: Uses a file-based flag to skip re-running on every request.
+ * Bump SCHEMA_VERSION after adding new migrations to force a re-sync.
  */
 
+define('BYAHERO_SCHEMA_VERSION', '2026-06-09-v1'); // Bump this after adding new migrations
+define('BYAHERO_SCHEMA_TTL', 86400); // Re-check every 24 hours (seconds)
+
 function sync_schema(mysqli $conn) {
+    // --- File-based caching: skip if already synced recently ---
+    $flagDir = __DIR__;
+    $flagFile = $flagDir . '/.schema_synced';
+
+    if (file_exists($flagFile)) {
+        $content = @file_get_contents($flagFile);
+        $parts = explode('|', $content, 2);
+        $flagVersion = $parts[0] ?? '';
+        $flagTime = (int)($parts[1] ?? 0);
+
+        // Skip if same version and within TTL
+        if ($flagVersion === BYAHERO_SCHEMA_VERSION && (time() - $flagTime) < BYAHERO_SCHEMA_TTL) {
+            return;
+        }
+    }
+
+    // --- Run full schema sync ---
+    _do_sync_schema($conn);
+
+    // --- Write flag file ---
+    @file_put_contents($flagFile, BYAHERO_SCHEMA_VERSION . '|' . time());
+}
+
+/**
+ * Internal: performs the actual schema migration queries.
+ */
+function _do_sync_schema(mysqli $conn) {
     // 1. Core Role Tables
     $roleTables = ['admins', 'drivers', 'conductors', 'users'];
     foreach ($roleTables as $table) {

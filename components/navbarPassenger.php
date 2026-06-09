@@ -762,7 +762,7 @@ else: ?>
   (function () {
     // Poll unread notifications + active SOS alerts
     // Keep interval conservative for InfinityFree
-    const POLL_MS = 30000; // 30 seconds
+    const POLL_MS = 60000; // 60 seconds (balanced for InfinityFree)
     let _pollIntervalId = null;
 
     function setNotifIcon(hasUnread) {

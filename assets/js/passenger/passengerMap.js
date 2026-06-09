@@ -28,7 +28,7 @@ window.currentStopsRoute = 'LAUREL - TANAUAN';
 // Constants
 const AVG_SPEED_MPS = (30 * 1000) / 3600;
 const MAX_DISTANCE_METERS = 5000;
-const SYNC_INTERVAL = 5000;
+const SYNC_INTERVAL = 15000;
 
 const statusColors = {
   available: '#10b981',
@@ -794,7 +794,7 @@ window.scheduleNextBusUpdate = function scheduleNextBusUpdate() {
   window._updateBusesTimer = setTimeout(async () => {
     await window.updateBuses();
     window.scheduleNextBusUpdate();
-  }, 4000);
+  }, 15000);
 };
 
 // =========================================================================
@@ -1304,10 +1304,10 @@ async function _heartbeatTick() {
     }
   } finally {
     _heartbeatRunning = false;
-    window._heartbeatIntervalId = setTimeout(_heartbeatTick, 5000);
+    window._heartbeatIntervalId = setTimeout(_heartbeatTick, 30000);
   }
 }
-window._heartbeatIntervalId = setTimeout(_heartbeatTick, 5000);
+window._heartbeatIntervalId = setTimeout(_heartbeatTick, 30000);
 
 // Storage Synchronization Listener (Privacy Toggles)
 window.addEventListener('storage', e => {

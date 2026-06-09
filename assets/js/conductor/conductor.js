@@ -141,7 +141,7 @@ function scheduleNextLiveBusesUpdate() {
     _fetchLiveBusesTimer = setTimeout(async () => {
         await fetchLiveBuses();
         scheduleNextLiveBusesUpdate();
-    }, 4000);
+    }, 15000);
 }
 
 /**
