@@ -442,7 +442,7 @@ elseif (isset($pageType) && $pageType === 'sos'): ?>
   // CASE C: SETTINGS PAGES (Specific Titles)
 elseif (isset($pageType) && $pageType === 'settings'):
 
-  $currentFile = basename($_SERVER['PHP_SELF']);
+  $currentFile = basename($_SERVER['PHP_SELF'], '.php');
   $settingsTitles = [
     'settings' => 'Settings',
     'about' => 'About',
@@ -478,7 +478,7 @@ elseif (isset($pageType) && $pageType === 'settings'):
   // CASE D: PROFILE PAGES
 elseif (isset($pageType) && $pageType === 'profile'):
 
-  $currentFile = basename($_SERVER['PHP_SELF']);
+  $currentFile = basename($_SERVER['PHP_SELF'], '.php');
   $profileTitles = [
     'profile' => 'My Profile',
     'accountSettings' => 'Account Settings',
