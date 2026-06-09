@@ -424,7 +424,7 @@ function notification_icon(string $type): array
         _pollSosIntervalId = setTimeout(async () => {
             await pollSosAlerts();
             scheduleNextSosPoll();
-        }, 10000);
+        }, 30000);
     }
 
     scheduleNextSosPoll();

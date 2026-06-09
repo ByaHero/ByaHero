@@ -231,7 +231,7 @@
     const LOCATION_STALE_MINUTES = 5;
 
     // --- Location update controls ---
-    const LOCATION_UPDATE_INTERVAL_MS = 5000; // 5s (was 1s)
+    const LOCATION_UPDATE_INTERVAL_MS = 15000; // 15s (balanced for InfinityFree)
     let isSendingLocation = false;
 
     // Cache share_location so we don't fetch it too frequently

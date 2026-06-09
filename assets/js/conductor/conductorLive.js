@@ -25,7 +25,7 @@ let lastNetworkSync = 0;
 let lastLocationUpdateAt = 0;
 let lastKnownLocation = null;
 let heartbeatInterval = null;
-const SYNC_INTERVAL = 1000;
+const SYNC_INTERVAL = 5000;
 const el = id => document.getElementById(id);
 const alertBox = el('alertBox');
 const netStatus = el('netStatus');
@@ -498,12 +498,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (!hasWatcher || isStale) {
             if (!hasWatcher && lastKnownLocation === null) {
-                heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+                heartbeatInterval = setTimeout(_heartbeatTick, 30000);
                 return;
             }
 
             startGeolocation().finally(() => {
-                heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+                heartbeatInterval = setTimeout(_heartbeatTick, 30000);
             });
             return;
         }
@@ -511,9 +511,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (lastKnownLocation && (Date.now() - lastNetworkSync > 8000)) {
             triggerManualUpdate();
         }
-        heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+        heartbeatInterval = setTimeout(_heartbeatTick, 30000);
     }
-    heartbeatInterval = setTimeout(_heartbeatTick, 5000);
+    heartbeatInterval = setTimeout(_heartbeatTick, 30000);
 
     el('stopBtn').addEventListener('click', stopTracking);
 });

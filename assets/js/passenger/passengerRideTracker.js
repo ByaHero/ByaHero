@@ -10,7 +10,7 @@ window.PassengerRideTracker = {
   activeRide: null,
   proximityThreshold: 60, // meters (increased for better GPS reliability in real-world testing)
   departureThreshold: 150, // meters
-  checkInterval: 10000, // 10 seconds base (dynamic)
+  checkInterval: 20000, // 20 seconds base (dynamic, balanced for InfinityFree)
   busUpdateTracker: {},
   proximityTicks: {},
   _tickRunning: false,
@@ -33,11 +33,11 @@ window.PassengerRideTracker = {
 
   updateInterval: function() {
     if (document.hidden) {
-      this.checkInterval = 40000; // 40s when backgrounded
+      this.checkInterval = 60000; // 60s when backgrounded (balanced)
     } else if (this.activeRide) {
-      this.checkInterval = 30000; // 30s when on ride (battery save)
+      this.checkInterval = 45000; // 45s when on ride (battery save)
     } else {
-      this.checkInterval = 10000; // 10s base when waiting
+      this.checkInterval = 20000; // 20s base when waiting (balanced)
     }
   },
 

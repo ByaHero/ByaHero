@@ -3,3 +3,4 @@ node_modules/
 backend/serviceAccountKey.json
 .claude/
 scratch/
+config/.schema_synced
