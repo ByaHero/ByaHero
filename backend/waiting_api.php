@@ -20,15 +20,34 @@ function send_json_response(bool $success, string $message = '', array $extra = 
     exit;
 }
 
-// 26 exact locations from laurel-talisay-tanauan.geojson
-$location_whitelist = [
-    "J. Leviste, Laurel", "Sampaloc, Talisay", "Caloocan, Talisay", "Buco, Talisay",
-    "Balas, Talisay", "Ambulong, Tanauan", "Banadero, Tanauan", "Talaga, Tanauan",
-    "Sambat, Tanauan", "Tanauan", "Sto. Tomas", "Bugaan West, Laurel", "Laurel",
-    "Balakilong, Laurel", "Berinayan, Laurel", "Leynes, Talisay", "Santa Maria, Talisay",
-    "Banga, Talisay", "Talisay", "Tumaway, Talisay", "Quiling, Talisay", "Aya, Talisay",
-    "Santor, Tanauan", "Bugaan East, Laurel", "Looc, Calamba", "San Isidro"
-];
+// Load whitelist dynamically from public/routes/laurel-talisay-tanauan.geojson
+$location_whitelist = [];
+$geojson_path = __DIR__ . '/../public/routes/laurel-talisay-tanauan.geojson';
+if (is_file($geojson_path)) {
+    $geojson_content = @file_get_contents($geojson_path);
+    if ($geojson_content !== false) {
+        $geojson_data = json_decode($geojson_content, true);
+        if (isset($geojson_data['features']) && is_array($geojson_data['features'])) {
+            foreach ($geojson_data['features'] as $feature) {
+                $name = $feature['properties']['Current Location'] ?? $feature['properties']['name'] ?? null;
+                if ($name !== null) {
+                    $location_whitelist[] = trim((string)$name);
+                }
+            }
+        }
+    }
+}
+// Fallback if file read fails
+if (empty($location_whitelist)) {
+    $location_whitelist = [
+        "J. Leviste, Laurel", "Sampaloc, Talisay", "Caloocan, Talisay", "Buco, Talisay",
+        "Balas, Talisay", "Ambulong, Tanauan", "Banadero, Tanauan", "Talaga, Tanauan",
+        "Sambat, Tanauan", "Tanauan", "Sto. Tomas", "Bugaan West, Laurel", "Laurel",
+        "Balakilong, Laurel", "Berinayan, Laurel", "Leynes, Talisay", "Santa Maria, Talisay",
+        "Banga, Talisay", "Talisay", "Tumaway, Talisay", "Quiling, Talisay", "Aya, Talisay",
+        "Santor, Tanauan", "Bugaan East, Laurel", "Looc, Calamba", "San Isidro"
+    ];
+}
 
 // Read input payload for JSON POSTs, fallback to $_GET/$_POST
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -54,7 +73,7 @@ try {
         }
 
         if (!in_array($location, $location_whitelist, true)) {
-            send_json_response(false, 'Invalid location stop');
+            send_json_response(false, 'Invalid waiting location');
         }
 
         // Check if there is already an active waiting entry

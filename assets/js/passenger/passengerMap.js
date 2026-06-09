@@ -1076,7 +1076,7 @@ window.openWaitingModal = async function openWaitingModal() {
       statusMsg.innerHTML = `<span class="material-symbols-rounded align-middle me-1" style="font-size:16px;">directions_bus</span> You are currently boarded. Enjoy your ride!`;
     }
   } else if (window.isPassengerWaiting) {
-    if (displaySpan) displaySpan.textContent = window.passengerWaitingLocation || "Your current stop";
+    if (displaySpan) displaySpan.textContent = window.passengerWaitingLocation || "Your current location";
     if (btnSet) btnSet.classList.add('d-none');
     if (btnCancel) { btnCancel.classList.remove('d-none'); btnCancel.classList.add('d-flex'); }
     if (statusMsg) {
@@ -1094,7 +1094,7 @@ window.openWaitingModal = async function openWaitingModal() {
       if (btnCancel) { btnCancel.classList.add('d-none'); btnCancel.classList.remove('d-flex'); }
       if (statusMsg) statusMsg.classList.add('d-none');
     } else {
-      if (displaySpan) displaySpan.textContent = "Unrecognized Stop";
+      if (displaySpan) displaySpan.textContent = "Unrecognized Location";
       if (btnSet) {
         btnSet.classList.remove('d-none');
         btnSet.setAttribute('disabled', 'true');
@@ -1103,7 +1103,7 @@ window.openWaitingModal = async function openWaitingModal() {
       if (statusMsg) {
         statusMsg.classList.remove('d-none');
         statusMsg.className = "alert alert-danger py-2 px-3 mb-3 small rounded-3";
-        statusMsg.innerHTML = `<span class="material-symbols-rounded align-middle me-1" style="font-size:16px;">warning</span> You are not at any recognized stop. Waiting can only be activated at designated locations.`;
+        statusMsg.innerHTML = `<span class="material-symbols-rounded align-middle me-1" style="font-size:16px;">warning</span> You are not inside any recognized location. Waiting can only be activated at designated locations.`;
       }
     }
   }
@@ -1122,7 +1122,7 @@ window.handleSetWaiting = async function handleSetWaiting() {
   const btnSet = document.getElementById('btnSetWaiting');
   const resolvedLoc = (window.lastKnownLocation && window.lastKnownLocation.locName) ? window.resolveLocationName(window.lastKnownLocation.lat, window.lastKnownLocation.lng) : null;
   if (!resolvedLoc) {
-    alert("Unable to set waiting status. You must be at a recognized stop.");
+    alert("Unable to set waiting status. You must be inside a recognized location.");
     return;
   }
 
