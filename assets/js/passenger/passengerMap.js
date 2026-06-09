@@ -117,8 +117,15 @@ window.stopIcon = function stopIcon(type) {
         window.lastKnownLocation = { lat, lng, locName: savedLocName || '' };
       }
     }
+
+    const savedWaiting = localStorage.getItem('byahero_is_passenger_waiting');
+    const savedWaitingLoc = localStorage.getItem('byahero_passenger_waiting_location');
+    if (savedWaiting === '1') {
+      window.isPassengerWaiting = true;
+      window.passengerWaitingLocation = savedWaitingLoc || '';
+    }
   } catch (e) {
-    console.warn('Failed to restore last known location:', e);
+    console.warn('Failed to restore last known location or waiting status:', e);
   }
 })();
 
@@ -239,6 +246,14 @@ window.checkWaitingStatus = async function checkWaitingStatus() {
     if (data && data.success) {
       window.isPassengerWaiting = !!data.is_waiting;
       window.passengerWaitingLocation = data.location_name;
+      try {
+        localStorage.setItem('byahero_is_passenger_waiting', data.is_waiting ? '1' : '0');
+        if (data.location_name) {
+          localStorage.setItem('byahero_passenger_waiting_location', data.location_name);
+        } else {
+          localStorage.removeItem('byahero_passenger_waiting_location');
+        }
+      } catch (e) {}
       window.updateUserMarkerWaitingStyle();
       window.updateUserWaitingCardUI();
     }
@@ -1123,6 +1138,10 @@ window.handleSetWaiting = async function handleSetWaiting() {
     if (res && res.success) {
       window.isPassengerWaiting = true;
       window.passengerWaitingLocation = resolvedLoc;
+      try {
+        localStorage.setItem('byahero_is_passenger_waiting', '1');
+        localStorage.setItem('byahero_passenger_waiting_location', resolvedLoc);
+      } catch (e) {}
       window.updateUserMarkerWaitingStyle();
       window.updateUserWaitingCardUI();
 
@@ -1170,6 +1189,10 @@ window.handleCancelWaiting = async function handleCancelWaiting() {
     if (res && res.success) {
       window.isPassengerWaiting = false;
       window.passengerWaitingLocation = null;
+      try {
+        localStorage.setItem('byahero_is_passenger_waiting', '0');
+        localStorage.removeItem('byahero_passenger_waiting_location');
+      } catch (e) {}
       window.updateUserMarkerWaitingStyle();
       window.updateUserWaitingCardUI();
 
@@ -1245,7 +1268,7 @@ document.addEventListener('DOMContentLoaded', () => {
     btnCancel.addEventListener('click', () => window.handleCancelWaiting());
   }
 
-  setTimeout(window.checkWaitingStatus, 2000);
+  window.checkWaitingStatus();
   window.updateUserWaitingCardUI();
 });
 

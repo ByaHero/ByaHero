@@ -1,6 +1,7 @@
 <?php
 require_once __DIR__ . '/../auth_passenger.php';
-$pageType = 'settings';        
+$pageType = 'settings';
+$pageTitle = 'Share ByaHero';
 $backLink = '../index.php';    
 $pageDepth = "../../../";      
 ?>
