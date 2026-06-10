@@ -35,4 +35,4 @@ jobs:
           port: 21
           protocol: ftp
           local-dir: ./
-          server-dir: /htdocs/
+          server-dir: ./byahero.app/htdocs/
