@@ -4,12 +4,12 @@
 	"webDir": "www",
 	"bundledWebRuntime": false,
 	"server": {
-		"url": "https://byahero.free.nf",
+		"url": "https://byahero.app",
 		"cleartext": true,
 		"errorPath": "error.html",
 		"allowNavigation": [
-			"byahero.free.nf",
-			"*.byahero.free.nf"
+			"byahero.app",
+			"*.byahero.app"
 		]
 	},
 	"android": {
