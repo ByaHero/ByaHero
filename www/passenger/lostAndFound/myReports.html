@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="../../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Reports - ByaHero</title>
+    
+    <link href="../../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" />
+    
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background-color: #f8f9fa; 
+            padding-top: 54px;
+            padding-bottom: 80px;
+        }
+        
+        .passenger-topbar-sticky {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100%;
+            z-index: 2002 !important;
+        }
+
+        .hover-bg-white-10:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .report-card { 
+            background: white; 
+            border-radius: 16px; 
+            padding: 20px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.03); 
+            margin-bottom: 20px; 
+            border: 1px solid #eee; 
+            text-align: left; 
+        }
+        .badge-status { 
+            font-weight: 800; 
+            border-radius: 999px; 
+            padding: 4px 12px; 
+            font-size: 0.75rem; 
+            letter-spacing: 0.5px;
+        }
+        .status-open { background: #fff3cd; color: #856404; }
+        .status-resolved { background: #d1e7dd; color: #0f5132; }
+        .status-closed { background: #f8d7da; color: #842029; }
+        .status-pending { background: #e2e8f0; color: #475569; }
+        
+        .btn-resolve { 
+            background-color: #1e40af; 
+            color: white; 
+            border-radius: 999px; 
+            font-weight: 600; 
+            padding: 6px 16px; 
+            border: none; 
+            font-size: 0.85rem; 
+            transition: all 0.2s;
+        }
+        .btn-resolve:hover:not(:disabled) {
+            background-color: #1e3a8a;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 10px rgba(30, 64, 175, 0.2);
+        }
+        .btn-resolve:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header Top Bar Component -->
+    <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 40px;">
+        <div class="d-flex align-items-center">
+            <a href="lostAndFound.html" class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+                <span class="material-symbols-rounded text-white" style="font-size: 24px;">arrow_back</span>
+            </a>
+            <h6 class="h5 mb-0 text-white fw-normal ms-2" style="font-size: 1.1rem;">My Reports</h6>
+        </div>
+    </div>
+
+    <div class="container mt-4 pt-4 px-3">
+        <!-- Toast Alerts -->
+        <div class="alert alert-success rounded-4 small text-start border-0 shadow-sm fw-semibold d-none" id="alertSuccess">
+            <span class="material-symbols-rounded align-middle me-1" style="font-size: 18px;">check_circle</span>
+            <span id="alertSuccessText">Action successful!</span>
+        </div>
+        <div class="alert alert-danger rounded-4 small text-start border-0 shadow-sm fw-semibold d-none" id="alertError">
+            <span class="material-symbols-rounded align-middle me-1" style="font-size: 18px;">error</span>
+            <span id="alertErrorText">An error occurred.</span>
+        </div>
+
+        <div id="reportsList">
+            <!-- Dynamically Populated -->
+            <div class="text-center mt-5 py-5" id="loadingSpinner">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+        const email = localStorage.getItem('byahero_cached_email');
+        const isLoggedIn = !!email;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            loadReports();
+        });
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '';
+            const d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr;
+            const options = { month: 'short', day: 'numeric', year: 'numeric' };
+            return d.toLocaleDateString('en-US', options);
+        }
+
+        async function loadReports() {
+            const listContainer = document.getElementById('reportsList');
+            
+            // Gather offline pending items
+            const pendingQueue = JSON.parse(localStorage.getItem('byahero_pending_lost_and_found') || '[]');
+            
+            let serverReports = [];
+            
+            if (navigator.onLine && isLoggedIn) {
+                try {
+                    const res = await fetch(SERVER_URL + '/passenger/lostAndFound/myReports.php?json=1');
+                    const data = await res.json();
+                    if (data && data.reports) {
+                        serverReports = data.reports;
+                        // Cache server reports
+                        localStorage.setItem('byahero_cached_my_reports', JSON.stringify(serverReports));
+                    }
+                } catch (err) {
+                    console.error("Error loading from server:", err);
+                    serverReports = JSON.parse(localStorage.getItem('byahero_cached_my_reports') || '[]');
+                }
+            } else {
+                serverReports = JSON.parse(localStorage.getItem('byahero_cached_my_reports') || '[]');
+            }
+
+            // Clear spinner
+            listContainer.innerHTML = '';
+
+            if (pendingQueue.length === 0 && serverReports.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="text-center mt-5 py-5">
+                        <span class="material-symbols-rounded text-muted" style="font-size: 4rem; opacity: 0.3;">description</span>
+                        <p class="text-muted mt-3 fw-semibold">No active reports found.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Render Pending Queue (Offline submissions) first
+            pendingQueue.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'report-card';
+                const iconColor = item.type === 'lost' ? '#dc3545' : '#198754';
+                const iconSymbol = item.type === 'lost' ? 'search' : 'inventory_2';
+                
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <span class="fw-bold text-dark d-flex align-items-center gap-1" style="font-size: 0.95rem;">
+                            <span class="material-symbols-rounded" style="color: ${iconColor}; font-size: 1.2rem;">
+                                ${iconSymbol}
+                            </span>
+                            ${item.type.toUpperCase()} ITEM (PENDING SYNC)
+                        </span>
+                        <span class="badge-status status-pending">PENDING</span>
+                    </div>
+                    <p class="mb-2 text-dark" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4; color: #374151;">${escapeHTML(item.description)}</p>
+                    <div class="text-muted mb-3 d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                        <span class="material-symbols-rounded" style="font-size: 14px;">calendar_month</span> ${formatDisplayDate(new Date(item.timestamp))}
+                        ${item.busNumber ? `<span class="text-muted px-1">•</span> <span class="fw-semibold">Bus ${escapeHTML(item.busNumber)}</span>` : ''}
+                    </div>
+                `;
+                listContainer.appendChild(card);
+            });
+
+            // Render Server Reports
+            serverReports.forEach(r => {
+                const card = document.createElement('div');
+                card.className = 'report-card';
+                
+                const status = r.status ? r.status.toLowerCase() : 'open';
+                const badgeClass = 'status-' + status;
+                const type = (r.type || 'lost').toUpperCase();
+                const date = formatDisplayDate(r.created_at);
+                const iconColor = r.type === 'lost' ? '#dc3545' : '#198754';
+                const iconSymbol = r.type === 'lost' ? 'search' : 'inventory_2';
+
+                let actionHtml = '';
+                if (status === 'open') {
+                    actionHtml = `
+                        <form class="mt-3 text-end m-0" onsubmit="resolveReport(event, ${r.id}, '${r.type}')">
+                            <button type="submit" class="btn-resolve shadow-sm d-inline-flex align-items-center gap-1" ${!navigator.onLine ? 'disabled' : ''}>
+                                <span class="material-symbols-rounded" style="font-size: 16px;">check_circle</span>
+                                Mark as ${r.type === 'lost' ? 'Found' : 'Returned'}
+                            </button>
+                            ${!navigator.onLine ? '<div class="small text-muted mt-1">Requires online connection to close</div>' : ''}
+                        </form>
+                    `;
+                }
+
+                card.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <span class="fw-bold text-dark d-flex align-items-center gap-1" style="font-size: 0.95rem;">
+                            <span class="material-symbols-rounded" style="color: ${iconColor}; font-size: 1.2rem;">
+                                ${iconSymbol}
+                            </span>
+                            ${type} ITEM
+                        </span>
+                        <span class="badge-status ${badgeClass}">${status.toUpperCase()}</span>
+                    </div>
+                    <p class="mb-2 text-dark" style="white-space: pre-wrap; font-size: 0.9rem; line-height: 1.4; color: #374151;">${escapeHTML(r.item_description)}</p>
+                    <div class="text-muted mb-3 d-flex align-items-center gap-1" style="font-size: 0.8rem;">
+                        <span class="material-symbols-rounded" style="font-size: 14px;">calendar_month</span> ${date}
+                        ${r.bus_number ? `<span class="text-muted px-1">•</span> <span class="fw-semibold">Bus ${escapeHTML(r.bus_number)}</span>` : ''}
+                    </div>
+                    ${actionHtml}
+                `;
+                listContainer.appendChild(card);
+            });
+        }
+
+        async function resolveReport(event, ticketId, itemType) {
+            event.preventDefault();
+            if (!confirm('Do you want to permanently mark this case as successfully closed?')) {
+                return;
+            }
+
+            const successAlert = document.getElementById('alertSuccess');
+            const errorAlert = document.getElementById('alertError');
+            successAlert.classList.add('d-none');
+            errorAlert.classList.add('d-none');
+
+            try {
+                const res = await fetch(SERVER_URL + '/passenger/lostAndFound/myReports.php?json=1', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        action: 'resolve',
+                        ticket_id: ticketId
+                    })
+                });
+                
+                const data = await res.json();
+                if (data && data.success) {
+                    document.getElementById('alertSuccessText').textContent = data.message || "Report marked as resolved!";
+                    successAlert.classList.remove('d-none');
+                    // Refresh view
+                    loadReports();
+                } else {
+                    document.getElementById('alertErrorText').textContent = data.error || "Action failed.";
+                    errorAlert.classList.remove('d-none');
+                }
+            } catch (err) {
+                console.error("Resolve error:", err);
+                document.getElementById('alertErrorText').textContent = "Failed to communicate with the server.";
+                errorAlert.classList.remove('d-none');
+            }
+        }
+
+        function escapeHTML(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;',
+                    '<': '&lt;',
+                    '>': '&gt;',
+                    "'": '&#39;',
+                    '"': '&quot;'
+                }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>

@@ -18,6 +18,24 @@ $stmt->close();
 
 $hasPassword = !empty($userData['password']);
 
+// Support JSON status check for GET requests
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')))) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'hasPassword' => $hasPassword
+    ]);
+    exit;
+}
+
+// Support JSON input for POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if ($input) {
+        $_POST = array_merge($_POST, $input);
+    }
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $currentPassword = $_POST['current_password'] ?? '';
@@ -64,6 +82,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $stmt->close();
                 }
         }
+    }
+
+    if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => empty($error),
+            'message' => $message,
+            'error' => $error,
+            'hasPassword' => $hasPassword
+        ]);
+        exit;
     }
 }
 ?>

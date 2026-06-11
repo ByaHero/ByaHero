@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="../../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>SOS - ByaHero</title>
+
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" />
+    <link href="../../css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --bs-primary: #1e3a8a;
+            --bs-bg-light: #f3f4f6;
+            --sos-red-dark: #b02a37;
+            --sos-btn-size: 220px;
+        }
+
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background-color: var(--bs-bg-light);
+            padding-top: 54px;
+            padding-bottom: 20px;
+        }
+
+        .passenger-topbar-sticky {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100%;
+            z-index: 2002 !important;
+        }
+
+        .hover-bg-white-10:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .sos-btn-container {
+            width: var(--sos-btn-size);
+            height: var(--sos-btn-size);
+            margin: 2rem auto;
+            position: relative;
+        }
+
+        .main-sos-btn {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: linear-gradient(145deg, #ff4d5e, #dc3545);
+            border: 6px solid #fff;
+            box-shadow: 0 10px 30px rgba(220, 53, 69, 0.4);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.2s;
+        }
+
+        .main-sos-btn:active {
+            transform: scale(0.92);
+        }
+
+        .sos-ring {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            border: 2px solid #dc3545;
+            animation: pulse 2.5s infinite;
+            z-index: 1;
+        }
+
+        .sos-ring:nth-child(2) {
+            animation-delay: 0.8s;
+        }
+
+        @keyframes pulse {
+            0% {
+                width: 80%;
+                height: 80%;
+                opacity: 0.8;
+            }
+            100% {
+                width: 200%;
+                height: 200%;
+                opacity: 0;
+            }
+        }
+
+        #sos-countdown-layer {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            z-index: 3000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .countdown-container {
+            position: relative;
+            width: 170px;
+            height: 170px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 1.5rem auto;
+        }
+
+        .progress-ring {
+            position: absolute;
+            top: 0;
+            left: 0;
+            transform: rotate(-90deg);
+        }
+
+        .progress-ring__circle {
+            transition: stroke-dashoffset 1s linear;
+            stroke-dasharray: 439.82;
+            stroke-dashoffset: 0;
+        }
+
+        .countdown-inner {
+            width: 120px;
+            height: 120px;
+            font-size: 3.8rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            z-index: 10;
+        }
+
+        .slider-track {
+            height: 76px;
+            max-width: 400px;
+            width: 90%;
+            background-color: #f1f5f9;
+            border: 2px solid #e2e8f0;
+            touch-action: none;
+            position: relative;
+            overflow: hidden;
+            border-radius: 100px;
+            margin-top: 2rem;
+        }
+
+        .slider-handle {
+            width: 64px;
+            height: 64px;
+            top: 4px;
+            left: 4px;
+            cursor: grab;
+            position: absolute;
+            z-index: 2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+        }
+
+        .slider-text {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #dc3545;
+            font-weight: 700;
+            font-size: 1rem;
+            letter-spacing: 0.5px;
+            user-select: none;
+            padding-left: 50px;
+        }
+
+        .contact-card {
+            border: none;
+            border-radius: 12px;
+            transition: transform 0.2s;
+        }
+        .contact-card:active {
+            transform: scale(0.98);
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Header Top Bar Component -->
+    <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 40px;">
+        <div class="d-flex align-items-center">
+            <a href="../index.html" class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+                <span class="material-symbols-rounded text-white" style="font-size: 24px;">arrow_back</span>
+            </a>
+            <h6 class="h5 mb-0 text-white fw-normal ms-2" style="font-size: 1.1rem;">Emergency Center</h6>
+        </div>
+    </div>
+
+    <main class="container mt-4">
+        <!-- Location Card -->
+        <div class="card border-0 shadow-sm rounded-4 mb-4">
+            <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center overflow-hidden">
+                    <div class="bg-primary bg-opacity-10 text-primary p-2 rounded-circle me-3 flex-shrink-0">
+                        <span class="material-symbols-rounded">my_location</span>
+                    </div>
+                    <div class="text-start overflow-hidden">
+                        <small class="text-muted fw-bold d-block" style="font-size: 0.7rem; letter-spacing: 0.5px;">YOUR LOCATION</small>
+                        <span class="fw-bold text-dark text-truncate d-block" id="location-text">Locating...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SOS Button Trigger -->
+        <div class="text-center py-3">
+            <div class="sos-btn-container">
+                <div class="sos-ring"></div>
+                <div class="sos-ring"></div>
+                <button class="main-sos-btn" id="sosTriggerBtn">
+                    <h1 class="material-symbols-rounded text-white mb-0" style="font-variation-settings: 'FILL' 1; font-size: 4rem;">sos</h1>
+                    <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
+                </button>
+            </div>
+            <p class="text-secondary small mt-2" id="networkStatusText">
+                Alerts will be broadcasted to your Circle.
+            </p>
+        </div>
+
+        <!-- Emergency Contacts Section -->
+        <h5 class="fw-bold text-dark mb-3 mt-4">Local Emergency Contacts</h5>
+        <div class="row g-3" id="emergencyContactsList">
+            <!-- Loaded dynamically from offline_data.js -->
+        </div>
+    </main>
+
+    <!-- SOS Countdown Overlay Layer -->
+    <div id="sos-countdown-layer" class="d-none">
+        <h1 class="text-danger fw-bold display-6 mb-2">Slide to cancel</h1>
+        <p class="text-muted text-center w-75 mb-4 small" id="countdownDesc">
+            After 5 seconds, your SOS alert and location will be sent.
+        </p>
+
+        <!-- Circular progress countdown -->
+        <div class="countdown-container">
+            <svg class="progress-ring" width="170" height="170">
+                <circle stroke="#f1f5f9" stroke-width="8" fill="transparent" r="70" cx="85" cy="85" />
+                <circle class="progress-ring__circle" stroke="#dc3545" stroke-width="8" stroke-linecap="round" fill="transparent" r="70" cx="85" cy="85" />
+            </svg>
+            <div class="countdown-inner bg-danger text-white rounded-circle d-flex justify-content-center align-items-center fw-bold shadow-lg z-2" id="timerDisplay">5</div>
+        </div>
+
+        <div class="slider-track shadow-sm position-relative" id="sliderContainer">
+            <div class="slider-text">
+                <span>Slide right to cancel SOS</span>
+            </div>
+            <div class="slider-handle shadow-sm" id="sliderHandle">
+                <span class="material-symbols-rounded" style="font-size: 32px;">chevron_right</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../../data/offline_data.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const data = window.BYAHERO_OFFLINE_DATA || { emergencyContacts: [] };
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+            
+            // Adjust network status text
+            const statusText = document.getElementById('networkStatusText');
+            if (navigator.onLine === false) {
+                statusText.innerHTML = "⚠️ Offline Mode: Calling hotlines directly is recommended.";
+                statusText.classList.add('text-danger');
+            }
+
+            // 1. Render emergency contacts
+            const contactsList = document.getElementById('emergencyContactsList');
+            contactsList.innerHTML = data.emergencyContacts.map(c => {
+                let icon = 'call';
+                let color = 'bg-primary text-primary';
+                if (c.type === 'Fire') { icon = 'fire_truck'; color = 'bg-danger text-danger'; }
+                else if (c.type === 'Medical') { icon = 'medical_services'; color = 'bg-success text-success'; }
+                else if (c.type === 'Disaster') { icon = 'tsunami'; color = 'bg-warning text-warning'; }
+
+                return `
+                    <div class="col-12 col-md-6">
+                        <a href="tel:${c.phone}" class="text-decoration-none">
+                            <div class="card contact-card border-0 shadow-sm mb-1">
+                                <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center overflow-hidden">
+                                        <div class="${color} bg-opacity-10 p-2 rounded-circle me-3 flex-shrink-0">
+                                            <span class="material-symbols-rounded">${icon}</span>
+                                        </div>
+                                        <div class="text-start overflow-hidden">
+                                            <div class="fw-bold text-dark text-truncate">${c.name}</div>
+                                            <small class="text-muted d-block">${c.phone}</small>
+                                        </div>
+                                    </div>
+                                    <span class="material-symbols-rounded text-primary">call</span>
+                                </div>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            }).join('');
+
+            // 2. Geolocation coordinates & place name
+            let currentCoords = { lat: null, lng: null };
+            let resolvedPlace = "Unknown Location";
+
+            async function reverseGeocode(lat, lng) {
+                const url = `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+                const res = await fetch(url, { headers: { "Accept": "application/json" } });
+                if (!res.ok) throw new Error("Failed reverse geocode");
+                const resJson = await res.json();
+                const a = resJson.address || {};
+                const barangay = a.barangay || a.neighbourhood || a.suburb || a.village || "";
+                const city = a.city || a.town || a.municipality || "";
+                const province = a.state || "";
+                const parts = [barangay, city, province].filter(Boolean);
+                return parts.length ? parts.join(", ") : (resJson.display_name || "Unknown");
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    async (pos) => {
+                        currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                        document.getElementById('location-text').innerText = `${currentCoords.lat.toFixed(4)}, ${currentCoords.lng.toFixed(4)}`;
+                        
+                        try {
+                            const place = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                            resolvedPlace = place;
+                            document.getElementById('location-text').innerText = place;
+                        } catch (e) {
+                            console.warn("Reverse geocoding fail:", e);
+                        }
+                    },
+                    () => {
+                        document.getElementById('location-text').innerText = "Unknown Location";
+                    },
+                    { enableHighAccuracy: true, timeout: 8000 }
+                );
+            }
+
+            // 3. SOS Countdown Mechanics
+            const sosBtn = document.getElementById('sosTriggerBtn');
+            const countdownLayer = document.getElementById('sos-countdown-layer');
+            const timerDisplay = document.getElementById('timerDisplay');
+            const progressCircle = document.querySelector('.progress-ring__circle');
+            const circumference = 2 * Math.PI * 70; // 439.82
+
+            progressCircle.style.strokeDasharray = `${circumference} ${circumference}`;
+            progressCircle.style.strokeDashoffset = `${circumference}`;
+
+            let countdownInterval = null;
+            let timeLeft = 5;
+            let isSOSActive = false;
+
+            function setProgress(percent) {
+                const offset = circumference - (percent / 100) * circumference;
+                progressCircle.style.strokeDashoffset = offset;
+            }
+
+            sosBtn.addEventListener('click', () => {
+                // Show countdown overlay
+                countdownLayer.classList.remove('d-none');
+                document.getElementById('countdownDesc').textContent = "After 5 seconds, your SOS alert and location will be sent.";
+                
+                timeLeft = 5;
+                timerDisplay.textContent = timeLeft;
+                setProgress(100);
+                isSOSActive = true;
+
+                // Reset slider position
+                handle.style.left = '4px';
+
+                // Vibrate device
+                if (navigator.vibrate) navigator.vibrate([200]);
+
+                if (countdownInterval) clearInterval(countdownInterval);
+                countdownInterval = setInterval(() => {
+                    if (!isSOSActive) return;
+                    timeLeft--;
+                    timerDisplay.textContent = timeLeft;
+                    setProgress((timeLeft / 5) * 100);
+
+                    if (timeLeft <= 0) {
+                        clearInterval(countdownInterval);
+                        triggerSOSAlert();
+                    }
+                }, 1000);
+            });
+
+            // Cancel SOS slider mechanics
+            const track = document.getElementById('sliderContainer');
+            const handle = document.getElementById('sliderHandle');
+            let isDragging = false;
+            let startX = 0;
+
+            const onStart = (e) => {
+                isDragging = true;
+                startX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+            };
+
+            const onMove = (e) => {
+                if (!isDragging) return;
+                const clientX = e.type.includes('touch') ? e.touches[0].clientX : e.clientX;
+                const deltaX = clientX - startX;
+                const maxSlide = track.offsetWidth - handle.offsetWidth - 8;
+                
+                let newLeft = Math.max(4, Math.min(deltaX + 4, maxSlide));
+                handle.style.left = `${newLeft}px`;
+
+                // If slid successfully to the end (right) -> Cancel
+                if (newLeft >= maxSlide - 10) {
+                    cancelSOSAlert();
+                }
+            };
+
+            const onEnd = () => {
+                isDragging = false;
+                if (isSOSActive) {
+                    // Reset position back to left if not fully slid
+                    handle.style.left = '4px';
+                }
+            };
+
+            handle.addEventListener('mousedown', onStart);
+            handle.addEventListener('touchstart', onStart);
+            window.addEventListener('mousemove', onMove);
+            window.addEventListener('touchmove', onMove, { passive: false });
+            window.addEventListener('mouseup', onEnd);
+            window.addEventListener('touchend', onEnd);
+
+            function cancelSOSAlert() {
+                isSOSActive = false;
+                clearInterval(countdownInterval);
+                timerDisplay.textContent = "✕";
+                setProgress(0);
+                document.getElementById('countdownDesc').textContent = "SOS Alert Cancelled.";
+                
+                setTimeout(() => {
+                    countdownLayer.classList.add('d-none');
+                }, 1000);
+            }
+
+            async function triggerSOSAlert() {
+                isSOSActive = false;
+                setProgress(0);
+                timerDisplay.textContent = "✓";
+
+                if (navigator.onLine === false) {
+                    alert("You are offline. Sending SOS to your Circle requires an active internet connection. Please call the emergency contacts listed on the dashboard directly.");
+                    countdownLayer.classList.add('d-none');
+                    return;
+                }
+
+                // If online, post SOS
+                try {
+                    const email = localStorage.getItem('byahero_cached_email') || 'Guest';
+                    const res = await fetch(SERVER_URL + '/backend/sendSosAlert.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            recipients: [], // default send to whole circle
+                            location_text: resolvedPlace,
+                            lat: currentCoords.lat,
+                            lng: currentCoords.lng
+                        })
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        alert("SOS Alert sent successfully to your Circle!");
+                    } else {
+                        alert("Failed to send SOS: " + (data.message || "Unknown error"));
+                    }
+                } catch (err) {
+                    console.error("SOS Alert send error:", err);
+                    alert("Network error: Failed to send SOS alert to the server.");
+                } finally {
+                    countdownLayer.classList.add('d-none');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
