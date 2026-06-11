@@ -95,6 +95,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
     }
+
+    if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => empty($error),
+            'message' => $message,
+            'error' => $error,
+            'user' => [
+                'name' => $name ?? '',
+                'email' => $email ?? ''
+            ]
+        ]);
+        exit;
+    }
+}
+
+// Support JSON output for GET requests
+if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+    // Fetch fresh user data from DB for display
+    $stmt = $conn->prepare("SELECT name, email, profile_picture FROM users WHERE id = ?");
+    $stmt->bind_param("i", $userId);
+    $stmt->execute();
+    $userData = $stmt->get_result()->fetch_assoc();
+    $stmt->close();
+    
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'user' => [
+            'name' => $userData['name'] ?? '',
+            'email' => $userData['email'] ?? '',
+            'profile_picture' => $userData['profile_picture'] ?? ''
+        ]
+    ]);
+    exit;
 }
 
 // Fetch fresh user data from DB for display

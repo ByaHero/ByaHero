@@ -5,6 +5,12 @@ require_once '../../../config/db.php';
 $conn = db();
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Support JSON body
+    $input = json_decode(file_get_contents('php://input'), true);
+    if ($input) {
+        $_POST = array_merge($_POST, $input);
+    }
+
     $user_id = $_SESSION['user_id'];
     $report_reason = $_POST['report_reason'] ?? '';
     $others_details = $_POST['others_details'] ?? '';
@@ -16,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $report_reason = 'Others';
     }
 
+    $success = false;
+    $message = '';
     if (!empty($report_reason)) {
         // Self-healing: Check if bus_number column exists, add it if not
         $checkCol = $conn->query("SHOW COLUMNS FROM `reports` LIKE 'bus_number'");
@@ -34,16 +42,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->bind_param("issss", $user_id, $bus_number, $report_reason, $others_details, $contact_number);
             
             if ($stmt->execute()) {
-                $_SESSION['report_success'] = "Thank you for letting us know! Your report has been submitted and will be reviewed by our team.";
+                $success = true;
+                $message = "Thank you for letting us know! Your report has been submitted and will be reviewed by our team.";
+                $_SESSION['report_success'] = $message;
             } else {
-                $_SESSION['report_error'] = "Execution failed: " . $stmt->error;
+                $message = "Execution failed: " . $stmt->error;
+                $_SESSION['report_error'] = $message;
             }
             $stmt->close();
         } else {
-            $_SESSION['report_error'] = "Database error: " . $conn->error;
+            $message = "Database error: " . $conn->error;
+            $_SESSION['report_error'] = $message;
         }
     } else {
-        $_SESSION['report_error'] = "Please select a reason for your report.";
+        $message = "Please select a reason for your report.";
+        $_SESSION['report_error'] = $message;
+    }
+
+    if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => $success,
+            'message' => $message
+        ]);
+        exit;
     }
 
     header("Location: report.php");

@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>ByaHero - Ride History</title>
+    
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" />
+    
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --accent: #2563eb;
+            --bg-light: #f8fafc;
+            --text-main: #1e293b;
+            --text-muted: #64748b;
+            --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding-top: 54px;
+            padding-bottom: 40px;
+            color: var(--text-main);
+        }
+
+        .passenger-topbar-sticky {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            right: 0 !important;
+            width: 100%;
+            z-index: 2002 !important;
+        }
+
+        .hover-bg-white-10:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .history-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .btn-primary {
+            background-color: var(--primary) !important;
+            border-color: var(--primary) !important;
+        }
+
+        /* Stats Header Background Design */
+        .stats-header-card::before {
+            content: "";
+            position: absolute;
+            top: -50%;
+            right: -20%;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        /* Ride Card Animations & Shadows */
+        .ride-card {
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .ride-card:active {
+            transform: scale(0.97);
+        }
+
+        .ride-card.active-ride {
+            border: 2px solid var(--accent);
+            background: linear-gradient(to bottom, #ffffff, #f0f7ff) !important;
+        }
+
+        .pulse-active {
+            animation: pulse 2.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(22, 101, 52, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(22, 101, 52, 0); }
+        }
+
+        /* Route Timeline Path */
+        .route-path {
+            position: relative;
+            margin-top: 16px;
+            padding-left: 24px;
+        }
+
+        .route-path::before {
+            content: "";
+            position: absolute;
+            left: 7px;
+            top: 8px;
+            bottom: 8px;
+            width: 2px;
+            background: repeating-linear-gradient(to bottom, #cbd5e1, #cbd5e1 4px, transparent 4px, transparent 8px);
+        }
+
+        .path-dot {
+            position: absolute;
+            left: 0;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #cbd5e1;
+            z-index: 1;
+        }
+
+        .path-dot.start { top: 0; border-color: var(--accent); }
+        .path-dot.end { bottom: 0; border-color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <!-- Header Top Bar Component -->
+    <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 40px;">
+        <div class="d-flex align-items-center">
+            <a href="index.html" class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
+                <span class="material-symbols-rounded text-white" style="font-size: 24px;">arrow_back</span>
+            </a>
+            <h6 class="h5 mb-0 text-white fw-normal ms-2" style="font-size: 1.1rem;">Ride History</h6>
+        </div>
+    </div>
+
+    <div class="history-container p-3 mt-3">
+        <!-- Offline Notice Banner -->
+        <div class="alert alert-warning border-0 rounded-4 shadow-sm mb-3 d-none" id="offlineHistoryNotice">
+            ⚠️ Offline Mode: Displaying cached ride history from your last connection.
+        </div>
+
+        <!-- Summary Section -->
+        <div id="statsPlaceholder">
+            <div class="stats-header-card p-4 text-white mb-4 position-relative overflow-hidden shadow-lg" style="background-color: #1e3a8a; border-radius: 24px;">
+                <div class="text-uppercase fw-semibold mb-1 opacity-75 small" style="letter-spacing: 1px; font-size: 0.8rem;">Journey Stats</div>
+                <div class="fs-2 fw-bold mb-3" id="totalRides">0 Rides</div>
+                <div class="row pt-3 border-top border-white-20 g-2">
+                    <div class="col-6">
+                        <span class="d-block small opacity-75" style="font-size: 0.75rem;">Total Duration</span>
+                        <span class="fs-5 fw-bold" id="totalDuration">0m</span>
+                    </div>
+                    <div class="col-6">
+                        <span class="d-block small opacity-75" style="font-size: 0.75rem;">Fav Route</span>
+                        <span class="fs-5 fw-bold text-truncate d-block" id="favRoute">N/A</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="loadingState" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+
+        <div id="historyList"></div>
+    </div>
+
+    <script src="../data/offline_data.js"></script>
+
+    <script>
+        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+        let allHistory = [];
+
+        function formatDuration(start, end) {
+            if (!end) return 'Ongoing';
+            const diff = new Date(end) - new Date(start);
+            const mins = Math.floor(diff / 60000);
+            if (mins < 60) return mins + ' mins';
+            const hrs = Math.floor(mins / 60);
+            const remainingMins = mins % 60;
+            return hrs + 'h ' + remainingMins + 'm';
+        }
+
+        function getGroupLabel(date) {
+            const now = new Date();
+            const rideDate = new Date(date);
+            const diffDays = Math.floor((now - rideDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
+            
+            if (diffDays === 0) return 'Today';
+            if (diffDays === 1) return 'Yesterday';
+            if (diffDays < 7) return 'This Week';
+            
+            return rideDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        }
+
+        async function fetchHistory() {
+            const loading = document.getElementById('loadingState');
+
+            // 1. If offline, load cached data immediately
+            if (navigator.onLine === false) {
+                loading.style.display = 'none';
+                document.getElementById('offlineHistoryNotice').classList.remove('d-none');
+                
+                const cached = localStorage.getItem('byahero_cached_ride_history');
+                if (cached) {
+                    allHistory = JSON.parse(cached);
+                    processStatsAndRender(allHistory);
+                } else {
+                    renderEmptyState();
+                }
+                return;
+            }
+
+            // 2. Online: Fetch from API
+            try {
+                const res = await fetch(SERVER_URL + '/public/api.php?action=get_ride_history');
+                const data = await res.json();
+                
+                loading.style.display = 'none';
+                
+                if (data.success && data.history && data.history.length > 0) {
+                    allHistory = data.history;
+                    
+                    // Cache locally for offline use
+                    localStorage.setItem('byahero_cached_ride_history', JSON.stringify(allHistory));
+                    processStatsAndRender(allHistory);
+                } else {
+                    renderEmptyState();
+                }
+            } catch (e) {
+                console.error(e);
+                loading.style.display = 'none';
+                
+                // Fallback to cache on network failure
+                const cached = localStorage.getItem('byahero_cached_ride_history');
+                if (cached) {
+                    allHistory = JSON.parse(cached);
+                    processStatsAndRender(allHistory);
+                } else {
+                    document.getElementById('historyList').innerHTML = '<div class="alert alert-danger rounded-4">Failed to load ride history. Plese check connection.</div>';
+                }
+            }
+        }
+
+        function processStatsAndRender(history) {
+            const totalRides = history.length;
+            let totalMins = 0;
+            const routes = {};
+            
+            history.forEach(r => {
+                if (r.departed_at) {
+                    totalMins += Math.floor((new Date(r.departed_at) - new Date(r.boarded_at)) / 60000);
+                }
+                routes[r.route] = (routes[r.route] || 0) + 1;
+            });
+
+            const favRoute = Object.entries(routes).sort((a,b) => b[1] - a[1])[0]?.[0] || 'N/A';
+            
+            document.getElementById('totalRides').textContent = totalRides + ' Rides';
+            document.getElementById('totalDuration').textContent = totalMins > 60 ? (Math.floor(totalMins/60) + 'h ' + (totalMins%60) + 'm') : (totalMins + 'm');
+            document.getElementById('favRoute').textContent = favRoute;
+
+            renderHistory();
+        }
+
+        function renderEmptyState() {
+            document.getElementById('historyList').innerHTML = `
+                <div class="text-center py-5 px-4">
+                    <div class="bg-white rounded-5 d-flex align-items-center justify-content-center mx-auto mb-4 shadow-sm" style="width: 120px; height: 120px;">
+                        <img src="../assets/images/WAITING.svg" alt="Waiting" style="width: 90px; height: 90px;" />
+                    </div>
+                    <h4 class="fw-bold">No Rides Yet</h4>
+                    <p class="text-muted">Your journey starts here! Take your first ride and see your history grow.</p>
+                    <a href="index.html" class="btn btn-primary rounded-pill px-5 py-3 fw-bold mt-3 shadow">Start a Trip</a>
+                </div>
+            `;
+            document.getElementById('statsPlaceholder').style.display = 'none';
+        }
+
+        function renderHistory() {
+            const list = document.getElementById('historyList');
+            let currentGroup = '';
+            let html = '';
+
+            allHistory.forEach((ride, index) => {
+                const group = getGroupLabel(ride.boarded_at);
+                if (group !== currentGroup) {
+                    currentGroup = group;
+                    html += `
+                        <div class="d-flex align-items-center text-uppercase fw-bold text-secondary my-4 ms-1 small" style="letter-spacing: 1px; font-size: 0.85rem; gap: 8px;">
+                            ${group}
+                            <div class="flex-grow-1" style="height: 1px; background: rgba(0, 0, 0, 0.05);"></div>
+                        </div>
+                    `;
+                }
+
+                const duration = formatDuration(ride.boarded_at, ride.departed_at);
+                const boardedTime = new Date(ride.boarded_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                const departedTime = ride.departed_at ? new Date(ride.departed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ongoing';
+                
+                const statusClass = ride.status === 'active' ? 'bg-success-subtle text-success pulse-active' : 'bg-light text-secondary';
+                const cardClass = ride.status === 'active' ? 'ride-card active-ride bg-white p-4 mb-3 position-relative' : 'ride-card bg-white p-4 mb-3 position-relative';
+
+                html += `
+                    <div class="${cardClass}">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-primary-subtle text-primary fw-bold px-2 py-1" style="font-size: 0.75rem;">Bus ${ride.bus_code}</span>
+                            <span class="badge rounded-pill text-uppercase px-2 py-1 ${statusClass}" style="font-size: 0.65rem; font-weight: 800;">${ride.status === 'active' ? 'On Ride' : 'Completed'}</span>
+                        </div>
+                        
+                        <h5 class="fw-bold mb-1">${ride.route || 'Express Route'}</h5>
+                        
+                        <div class="route-path">
+                            <div class="path-dot start"></div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold" style="font-size: 0.95rem;">Boarded</span>
+                                <span class="small text-muted fw-semibold">${boardedTime}</span>
+                            </div>
+                            
+                            <div class="bg-white border rounded-3 px-2 py-1 my-2 text-muted fw-bold d-inline-flex align-items-center gap-1 small" style="font-size: 0.75rem;">
+                                <span class="material-symbols-rounded" style="font-size: 16px;">schedule</span>
+                                ${duration}
+                            </div>
+                            
+                            <div class="path-dot end"></div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="fw-bold" style="font-size: 0.95rem;">Departed</span>
+                                <span class="small text-muted fw-semibold">${departedTime}</span>
+                            </div>
+                        </div>
+
+                        <div class="mt-3 pt-3 border-top d-flex justify-content-end">
+                            <button class="btn btn-link text-danger fw-bold d-flex align-items-center gap-1 text-decoration-none p-1 small" onclick="location.href = 'report/report.html?bus_number=${ride.bus_code}'">
+                                <span class="material-symbols-rounded" style="font-size: 18px;">report</span>
+                                Report Issue
+                            </button>
+                        </div>
+                    </div>
+                `;
+            });
+
+            list.innerHTML = html;
+        }
+
+        document.addEventListener('DOMContentLoaded', fetchHistory);
+    </script>
+</body>
+</html>

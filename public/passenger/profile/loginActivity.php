@@ -32,6 +32,24 @@ function getDeviceType($userAgent) {
     }
     return 'Desktop';
 }
+
+if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+    header('Content-Type: application/json');
+    $formattedList = [];
+    foreach ($loginActivity as $activity) {
+        $formattedList[] = [
+            'browser' => parseUserAgent($activity['user_agent']),
+            'device' => getDeviceType($activity['user_agent']),
+            'ip_address' => $activity['ip_address'],
+            'created_at' => $activity['created_at']
+        ];
+    }
+    echo json_encode([
+        'success' => true,
+        'activity' => $formattedList
+    ]);
+    exit;
+}
 ?>
 <!doctype html>
 <html lang="en">

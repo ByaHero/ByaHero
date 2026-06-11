@@ -7,6 +7,14 @@ $userId = $_SESSION['user_id'];
 $message = '';
 $error = '';
 
+// Support JSON input for POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true);
+    if ($input) {
+        $_POST = array_merge($_POST, $input);
+    }
+}
+
 /**
  * Handle user voluntarily closing their own ticket if they found the item.
  */
@@ -26,6 +34,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $error = "A database error occurred while updating the status.";
         }
     }
+    
+    if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => empty($error),
+            'message' => $message,
+            'error' => $error
+        ]);
+        exit;
+    }
 }
 
 // Extract ticket history specifically for the securely logged in passenger
@@ -34,6 +52,15 @@ $stmt->bind_param("i", $userId);
 $stmt->execute();
 $res = $stmt->get_result();
 $reports = $res ? $res->fetch_all(MYSQLI_ASSOC) : [];
+
+if (isset($_GET['json']) || (isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json'))) {
+    header('Content-Type: application/json');
+    echo json_encode([
+        'success' => true,
+        'reports' => $reports
+    ]);
+    exit;
+}
 
 $pageDepth = '../../../';
 $pageType = 'settings';
