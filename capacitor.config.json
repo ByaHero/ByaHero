@@ -15,6 +15,9 @@
 		"useLegacyBridge": true
 	},
 	"plugins": {
+		"CapacitorHttp": {
+			"enabled": true
+		},
 		"GoogleAuth": {
 			"scopes": [
 				"profile",

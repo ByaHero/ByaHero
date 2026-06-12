@@ -90,7 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Online flow - Authenticate against live server
-            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+            let SERVER_URL = localStorage.getItem('byahero_server_url');
+            if (!SERVER_URL) {
+                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+                    SERVER_URL = 'http://10.0.2.2/ByaHero';
+                } else {
+                    SERVER_URL = 'https://byahero.app';
+                }
+            }
+
             const formData = new FormData();
             formData.append('action', 'login');
             formData.append('email', email);
@@ -133,7 +141,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             } catch (err) {
                 console.error(err);
-                showError('Network error connecting to the server. Please try again.');
+                if (SERVER_URL === 'https://byahero.app') {
+                    showError('Network error connecting to the server. Please check your connection, or tap the ByaHero logo 5 times to configure your local developer server URL.');
+                } else {
+                    showError(`Network error connecting to ${SERVER_URL}. Please ensure your local server (Apache) is running and accessible. Tap the ByaHero logo 5 times to reconfigure.`);
+                }
             }
         });
     }
