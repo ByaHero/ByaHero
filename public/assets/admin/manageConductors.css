@@ -1,0 +1,43 @@
+/**
+ * manageConductors.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Conductors and Drivers management.
+ * Extracted from public/admin/manageConductors.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+body {
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.pw-wrap {
+    position: relative;
+}
+
+.pw-eye {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: 0;
+    background: transparent;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+}
+
+.transition-icon {
+    transition: transform 0.3s ease;
+}
+
+.list-title[aria-expanded="true"] .transition-icon {
+    transform: rotate(180deg);
+}

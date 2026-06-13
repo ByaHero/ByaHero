@@ -53,8 +53,8 @@ try {
             break;
 
         case 'update':
-            $name = $_POST['setting_name'] ?? $_GET['setting_name'] ?? '';
-            $val = $_POST['setting_value'] ?? $_GET['setting_value'] ?? '';
+            $name = $_POST['setting_name'] ?? $_GET['setting_name'] ?? $_POST['setting'] ?? $_GET['setting'] ?? '';
+            $val = $_POST['setting_value'] ?? $_GET['setting_value'] ?? $_POST['value'] ?? $_GET['value'] ?? '';
 
             $allowed = [
                 'notify_bus_schedule', 'notify_bus_arrival', 'notify_seat_availability',

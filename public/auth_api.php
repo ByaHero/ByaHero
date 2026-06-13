@@ -125,7 +125,16 @@ try {
             $_SESSION['user_contacts'] = $user['contacts'] ?? '';
             $_SESSION['user_profile_picture'] = $user['profile_picture'] ?? null;
 
-            respond(true, 'Login successful', ['redirect' => ($roleRedirects[$role] ?? null)]);
+            respond(true, 'Login successful', [
+                'redirect' => ($roleRedirects[$role] ?? null),
+                'user' => [
+                    'id' => (int)$user['id'],
+                    'email' => $user['email'] ?? '',
+                    'name' => $_SESSION['user_name'],
+                    'contacts' => $_SESSION['user_contacts'],
+                    'profile_picture' => $_SESSION['user_profile_picture']
+                ]
+            ]);
         }
 
         respond(false, 'Invalid email/contact or password');
@@ -374,7 +383,16 @@ try {
             $_SESSION['user_profile_picture'] = !empty($user['profile_picture']) ? $user['profile_picture'] : $profilePic;
             $_SESSION['user_contacts'] = $user['contacts'] ?? '';
             
-            respond(true, 'Login successful', ['redirect' => $roleRedirects['passenger']]);
+            respond(true, 'Login successful', [
+                'redirect' => $roleRedirects['passenger'],
+                'user' => [
+                    'id' => (int)$user['id'],
+                    'email' => $user['email'],
+                    'name' => $_SESSION['user_name'],
+                    'contacts' => $_SESSION['user_contacts'],
+                    'profile_picture' => $_SESSION['user_profile_picture']
+                ]
+            ]);
         } else {
             $ins = $conn->prepare("INSERT INTO users (email, password, google_id, auth_provider, name, profile_picture, created_at) VALUES (?, '', ?, 'google', ?, ?, NOW())");
             $ins->bind_param("ssss", $email, $googleId, $name, $profilePic);
@@ -388,7 +406,16 @@ try {
             $_SESSION['user_contacts'] = '';
             $_SESSION['user_profile_picture'] = $profilePic;
 
-            respond(true, 'Signup successful', ["redirect" => "passenger/completeProfile.php"]);
+            respond(true, 'Signup successful', [
+                'redirect' => "passenger/completeProfile.php",
+                'user' => [
+                    'id' => $newId,
+                    'email' => $email,
+                    'name' => $name,
+                    'contacts' => '',
+                    'profile_picture' => $profilePic
+                ]
+            ]);
         }
     }
 

@@ -3,7 +3,7 @@
 
 <head>
   <meta charset="utf-8" />
-  <link rel="icon" href="../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+  <link rel="icon" href="../images/byaheroLogoBlue.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
@@ -33,6 +33,274 @@
       right: 0;
       z-index: 2001;
       display: none;
+    }
+
+    /* Bottom Navigation Styles */
+    .bottom-nav {
+      height: 70px;
+      z-index: 1060;
+      overflow: visible !important;
+    }
+
+    .bottom-nav button, 
+    .bottom-nav button:focus, 
+    .bottom-nav button:active {
+      border: none !important;
+      outline: none !important;
+      box-shadow: none !important;
+      background: transparent !important;
+    }
+
+    .bottom-nav .nav-item-btn {
+      width: 100%;
+      height: 70px;
+      border: 0;
+      background: transparent;
+    }
+
+    .bottom-nav .nav-label {
+      font-size: 0.70rem;
+      font-weight: 800;
+      letter-spacing: .3px;
+    }
+
+    .bottom-nav .nav-icon {
+      font-size: 30px;
+      line-height: 1;
+    }
+
+    /* SOS col needs to allow overflow */
+    .bottom-nav .sos-col {
+      position: relative;
+      overflow: visible;
+    }
+
+    /* The actual SOS button */
+    .bottom-nav .sos-btn {
+      border: 0;
+      background: transparent;
+      padding: 0;
+      width: 100%;
+      height: 70px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      padding-bottom: 6px;
+      position: relative;
+    }
+
+    /* The dome shape */
+    .bottom-nav .sos-dome {
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100px;
+      height: 76px;
+      background-color: #2563eb;
+      border-radius: 50px 50px 0 0;
+      box-shadow: 0 -4px 15px rgba(37, 99, 235, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      flex-direction: column;
+      padding-top: 14px;
+      gap: 2px;
+    }
+
+    .bottom-nav .sos-dome .sos-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bottom-nav .sos-dome .sos-icon-wrap img {
+      width: 32px;
+      height: 32px;
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
+    }
+
+    .bottom-nav .sos-dome .nav-label {
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: .5px;
+      line-height: 1;
+      margin-top: 2px;
+    }
+
+    /* Active state for bottom nav links */
+    .bottom-nav .nav-btn.active-nav:not(.sos-btn) {
+      color: #1e3a8a !important;
+    }
+
+    /* Active/Inactive icon styling for bottom nav */
+    .nav-item-btn img {
+      transition: opacity 0.2s ease;
+      width: 24px;
+      height: 24px;
+      object-fit: contain;
+    }
+
+    .nav-item-btn.active-nav img {
+      opacity: 1;
+    }
+
+    .nav-item-btn:not(.active-nav) img {
+      opacity: 0.6;
+    }
+
+    /* --- PREMIUM LIVE STATUS STYLES --- */
+    .friend-avatar-circle {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .friend-marker-container.is-waiting .friend-avatar-circle {
+      box-shadow: 0 0 0 3px #10b981, 0 0 0 8px rgba(16, 185, 129, 0.4), 0 2px 6px rgba(0,0,0,0.3) !important;
+      animation: friendWaitingPulse 2.5s infinite;
+    }
+
+    .friend-marker-container.is-boarded .friend-avatar-circle {
+      box-shadow: 0 0 0 3px #3b82f6, 0 0 0 8px rgba(59, 130, 246, 0.4), 0 2px 6px rgba(0,0,0,0.3) !important;
+      animation: friendBoardedPulse 2.5s infinite;
+    }
+
+    @keyframes friendWaitingPulse {
+      0% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0.5), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      70% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 10px rgba(16, 185, 129, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      100% {
+        box-shadow: 0 0 0 3px #10b981, 0 0 0 0px rgba(16, 185, 129, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+    }
+
+    @keyframes friendBoardedPulse {
+      0% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0.5), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      70% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 10px rgba(59, 130, 246, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+      100% {
+        box-shadow: 0 0 0 3px #3b82f6, 0 0 0 0px rgba(59, 130, 246, 0), 0 2px 6px rgba(0,0,0,0.3) !important;
+      }
+    }
+
+    /* List Card Status Badge */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 20px;
+      font-size: 0.65rem;
+      font-weight: 700;
+      line-height: 1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .status-badge.online {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+    
+    .status-badge.offline {
+      background-color: #f3f4f6;
+      color: #4b5563;
+    }
+
+    .status-badge.waiting {
+      background-color: #fef3c7;
+      color: #b45309;
+    }
+
+    .status-badge.boarded {
+      background-color: #dbeafe;
+      color: #1d4ed8;
+    }
+
+    /* Friend list avatar wrapper with status dot */
+    .friend-avatar-wrapper {
+      position: relative;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    .friend-online-dot {
+      position: absolute;
+      bottom: -1px;
+      right: -1px;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+      z-index: 5;
+    }
+    
+    .friend-online-dot.online {
+      background-color: #10b981;
+    }
+
+    .friend-online-dot.offline {
+      background-color: #9ca3af;
+    }
+
+    /* Overlay Badge on avatar */
+    .friend-avatar-badge {
+      position: absolute;
+      top: -4px;
+      left: -4px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: white;
+      border: 1px solid #cbd5e1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      z-index: 6;
+      padding: 2px;
+    }
+
+    .friend-avatar-badge img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    .hover-bg-white-10:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .profile-initial-circle {
+      width: 80px;
+      height: 80px;
+      background-color: #ffffff;
+      color: #1e3a8a;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-size: 36px;
+      font-weight: bold;
+      flex-shrink: 0;
+      margin-left: 10px;
+      overflow: hidden;
+    }
+
+    .offcanvas {
+      z-index: 2005 !important;
+    }
+
+    .offcanvas-backdrop {
+      z-index: 2004 !important;
     }
   </style>
 
@@ -68,8 +336,8 @@
           class="btn bg-white rounded-circle shadow border-0 d-flex align-items-center justify-content-center"
           style="width: 48px; height: 48px;" aria-label="Center to my location" title="Center to my location">
           <span class="bg-primary" style="width: 24px; height: 24px; 
-                       -webkit-mask: url('../assets/images/icons/my_location.svg') no-repeat center / contain; 
-                       mask: url('../assets/images/icons/my_location.svg') no-repeat center / contain;">
+                       -webkit-mask: url('../images/icons/my_location.svg') no-repeat center / contain; 
+                       mask: url('../images/icons/my_location.svg') no-repeat center / contain;">
           </span>
         </button>
       </div>
@@ -86,8 +354,8 @@
             <div id="tab-location"
               class="sheet-tab active bg-primary text-white rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
               style="height: 44px; padding: 0 18px;">
-              <img class="tab-icon-active" src="../assets/images/icons/busStopWhiteIcon.png" alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
-              <img class="tab-icon-idle" src="../assets/images/icons/busStopBlueIcon.png" alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-active" src="../images/icons/busStopWhiteIcon.png" alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-idle" src="../images/icons/busStopBlueIcon.png" alt="Location" style="width: 26px; height: 26px; object-fit: contain;" />
             </div>
           </div>
 
@@ -95,8 +363,8 @@
             <div id="tab-routes"
               class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
               style="height: 44px; padding: 0 18px;">
-              <img class="tab-icon-active" src="../assets/images/icons/routes active.svg" alt="Routes" style="width: 26px; height: 26px; object-fit: contain;" />
-              <img class="tab-icon-idle" src="../assets/images/icons/routes idle.svg" alt="Routes" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-active" src="../images/icons/routes active.svg" alt="Routes" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-idle" src="../images/icons/routes idle.svg" alt="Routes" style="width: 26px; height: 26px; object-fit: contain;" />
             </div>
           </div>
 
@@ -104,8 +372,8 @@
             <div id="tab-groups"
               class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
               style="height: 44px; padding: 0 18px;">
-              <img class="tab-icon-active" src="../assets/images/icons/groupsActive.svg" alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
-              <img class="tab-icon-idle" src="../assets/images/icons/groupsIdle.svg" alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-active" src="../images/icons/groupsActive.svg" alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-idle" src="../images/icons/groupsIdle.svg" alt="Groups" style="width: 26px; height: 26px; object-fit: contain;" />
             </div>
           </div>
 
@@ -113,8 +381,8 @@
             <div id="tab-busstops"
               class="sheet-tab bg-primary-subtle text-primary rounded-pill d-flex justify-content-center align-items-center cursor-pointer"
               style="height: 44px; padding: 0 18px;">
-              <img class="tab-icon-active" src="../assets/images/icons/busStopMarkerFinalWhite.svg" alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
-              <img class="tab-icon-idle" src="../assets/images/icons/busStopMarkerFinalBlue.svg" alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-active" src="../images/icons/busStopMarkerFinalWhite.svg" alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
+              <img class="tab-icon-idle" src="../images/icons/busStopMarkerFinalBlue.svg" alt="Bus Stops" style="width: 26px; height: 26px; object-fit: contain;" />
             </div>
           </div>
         </div>
@@ -163,8 +431,61 @@
         <div class="d-flex align-items-center justify-content-between mb-3">
           <div class="fw-bold text-black" style="font-size: 0.95rem; letter-spacing: 0.03em;">CIRCLES</div>
         </div>
-        <div class="p-3 bg-light rounded-4 mb-2 text-center text-muted small">
-          Circle details are only accessible in Online Mode.
+        
+        <!-- Offline Notice -->
+        <div id="circlesOfflineNotice" class="p-3 bg-light rounded-4 mb-2 text-center text-muted small">
+          ⚠️ Circles are only accessible in Online Mode. Please check your internet connection.
+        </div>
+
+        <!-- Online Circles Content Container -->
+        <div id="circlesOnlineContent" class="d-none">
+          <div class="p-3 bg-light rounded-4 mb-2">
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div>
+                <h6 class="mb-0 fw-bold text-dark">Your Invite Code</h6>
+                <small class="text-muted">Invite friends to your circle</small>
+              </div>
+              <img src="../images/REFRESH.svg" onclick="generateInviteCode(true)" title="Reset Code" alt="Refresh Code" style="width: 28px; height: 28px; cursor: pointer; transition: transform 0.3s;" onmouseover="this.style.transform='rotate(90deg)'" onmouseout="this.style.transform='rotate(0deg)'">
+            </div>
+            
+            <div class="d-flex align-items-center gap-2 mb-3">
+              <div id="invite-code" class="fw-bold fs-4 text-primary bg-white border rounded-3 px-3 py-2 flex-grow-1 text-center" style="letter-spacing: 2px;">------</div>
+              <img src="../images/COPY.svg" onclick="copyInviteCode()" title="Copy Code" alt="Copy Code" style="height: 48px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+            </div>
+
+            <div class="row g-2">
+              <div class="col-6">
+                <button class="btn btn-primary w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" onclick="showInviteQR()">
+                  <span class="material-symbols-rounded">qr_code_2</span>
+                  QR Code
+                </button>
+              </div>
+              <div class="col-6">
+                <button class="btn btn-outline-primary w-100 rounded-pill d-flex align-items-center justify-content-center gap-2" onclick="shareInviteLink()">
+                  <span class="material-symbols-rounded">share</span>
+                  Share Link
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div class="p-3 bg-light rounded-4 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+              <h6 class="mb-0 fw-bold text-dark">Join a Circle</h6>
+              <button class="btn btn-sm btn-primary rounded-pill d-flex align-items-center gap-1" onclick="toggleScanner()">
+                <span class="material-symbols-rounded" style="font-size: 18px;">qr_code_scanner</span>
+                Scan
+              </button>
+            </div>
+            
+            <div class="d-flex gap-2">
+              <input id="join-code-input" class="form-control rounded-pill" placeholder="Enter 6-digit code" />
+              <button class="btn btn-primary rounded-pill px-4" onclick="joinByCode()">Join</button>
+            </div>
+            <small id="join-message" class="d-block mt-2 text-muted"></small>
+          </div>
+
+          <div id="group-list"></div>
         </div>
       </div>
 
@@ -176,7 +497,7 @@
           </div>
           <button id="stopsRouteToggle" class="btn rounded-pill d-flex align-items-center gap-1 px-3 py-1 border-0" onclick="toggleStopsRoute()" style="background-color: #f3f4f6; color: #000000; font-size: 0.7rem; font-weight: bold; letter-spacing: 0.02em;">
             <span id="stopsRouteText">LAUREL - TANAUAN</span>
-            <img src="../assets/images/swap.svg" id="stopsRouteIcon" style="width: 16px; height: 16px; transition: transform 0.4s;" alt="swap">
+            <img src="../images/swap.svg" id="stopsRouteIcon" style="width: 16px; height: 16px; transition: transform 0.4s;" alt="swap">
           </button>
         </div>
         <div id="busStopsListMobile" class="bus-stops-list">
@@ -193,19 +514,22 @@
   <!-- Header Top Bar Component (Inlined from components/navbarPassenger.php) -->
   <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 54px;">
     <div class="d-flex align-items-center" style="width: 60px; height: 100%;">
-      <img src="../assets/images/topBarLogo.svg" alt="ByaHero" height="32">
+      <img src="../images/topBarLogo.svg" alt="ByaHero" height="32">
     </div>
 
     <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
-      <img src="../assets/images/ByaHero.svg" alt="ByaHero" height="30" style="object-fit: contain;">
+      <img src="../images/ByaHero.svg" alt="ByaHero" height="30" style="object-fit: contain;">
     </div>
 
     <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
+      <a href="notifications.html" class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+        <img id="topbar-notification-icon" src="../images/notification bell.svg" alt="Notifications" height="22">
+      </a>
       <!-- Hamburger Toggle -->
       <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
         style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
         aria-controls="passengerMenu">
-        <img src="../assets/images/HAMBURGER.svg" alt="ByaHero" height="18">
+        <img src="../images/HAMBURGER.svg" alt="ByaHero" height="18">
       </button>
     </div>
   </div>
@@ -229,61 +553,61 @@
       <div class="d-grid gap-3">
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="profile/profile.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/person.svg" alt="person" height="30">
+            <img src="../images/person.svg" alt="person" height="30">
           </div>
           Profile
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="showGuide/showGuide.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/icons/USER GUIDE.svg" alt="user guide" height="30">
+            <img src="../images/icons/USER GUIDE.svg" alt="user guide" height="30">
           </div>
           User Guide
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/privacySecurity.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/privacy.svg" alt="privacy" height="30">
+            <img src="../images/privacy.svg" alt="privacy" height="30">
           </div>
           Privacy and Security
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="lostAndFound/lostAndFound.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/lostandfound.svg" alt="lost and found" height="30">
+            <img src="../images/lostandfound.svg" alt="lost and found" height="30">
           </div>
           Lost and Found
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/about.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/about.svg" alt="about" height="30">
+            <img src="../images/about.svg" alt="about" height="30">
           </div>
           About
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/feedback.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/feedback.svg" alt="feedback" height="30">
+            <img src="../images/feedback.svg" alt="feedback" height="30">
           </div>
           Feedback
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="report/report.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/report.svg" alt="report a problem" height="30">
+            <img src="../images/report.svg" alt="report a problem" height="30">
           </div>
           Report a Problem
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/share.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/share.svg" alt="share" height="30">
+            <img src="../images/share.svg" alt="share" height="30">
           </div>
           Share ByaHero
         </a>
         <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="rideHistory.html">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/HISTORY.svg" alt="ride history" height="30">
+            <img src="../images/HISTORY.svg" alt="ride history" height="30">
           </div>
           Ride History
         </a>
         <button type="button" class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark w-100 border-0 text-start" style="background-color: #ececec;" onclick="logoutOffline()">
           <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../assets/images/logout.svg" alt="logout" height="30">
+            <img src="../images/logout.svg" alt="logout" height="30">
           </div>
           Log out (Offline)
         </button>
@@ -297,7 +621,7 @@
       <div class="row h-100 align-items-end m-0">
         <div class="col-4 p-0 text-center">
           <button id="nav-location" class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark active-nav" onclick="window.location.reload()">
-            <img id="nav-location-icon" src="../assets/images/icons/locationBlack.svg" alt="Bus Location" style="width: 24px; height: 24px; object-fit: contain;" />
+            <img id="nav-location-icon" src="../images/icons/locationBlack.svg" alt="Bus Location" style="width: 24px; height: 24px; object-fit: contain;" />
             <span class="nav-label">LOCATION</span>
           </button>
         </div>
@@ -305,7 +629,7 @@
           <button id="nav-sos" class="sos-btn nav-btn" onclick="location.href='sos/sos.html'">
             <div class="sos-dome">
               <div class="sos-icon-wrap">
-                <img id="nav-sos-icon" src="../assets/images/icons/SOS.svg" alt="SOS" style="width: 32px; height: 32px; object-fit: contain;" />
+                <img id="nav-sos-icon" src="../images/icons/SOS.svg" alt="SOS" style="width: 32px; height: 32px; object-fit: contain;" />
               </div>
               <span class="nav-label">SOS</span>
             </div>
@@ -313,7 +637,7 @@
         </div>
         <div class="col-4 p-0 text-center">
           <button id="nav-info" class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark" onclick="location.href='busInfo/busInfo.html'">
-            <img id="nav-info-icon" src="../assets/images/icons/busActive.svg" alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
+            <img id="nav-info-icon" src="../images/icons/busActive.svg" alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
             <span class="nav-label">BUS INFO</span>
           </button>
         </div>
@@ -324,6 +648,7 @@
   <!-- Scripts -->
   <script src="../js/leaflet.js"></script>
   <script src="../js/bootstrap.bundle.min.js"></script>
+  <script src="../js/html5-qrcode.min.js"></script>
   
   <script src="../assets/js/passengerBottomSheet.js"></script>
   <script src="../assets/js/byaheroTracking.js"></script>
@@ -336,14 +661,37 @@
 
   <script>
     // Context initialization
-    window.rawUserName = localStorage.getItem('byahero_cached_email') || 'Guest';
-    window.userInitial = window.rawUserName.charAt(0).toUpperCase();
-    document.getElementById('menuUserAvatar').textContent = window.userInitial;
+    window.rawUserName = localStorage.getItem('byahero_cached_name') || localStorage.getItem('byahero_cached_email') || 'Guest';
+    window.userInitial = (typeof window.rawUserName === 'string' && window.rawUserName.length > 0) ? window.rawUserName.charAt(0).toUpperCase() : '?';
+    
+    // Populate offcanvas menu profile pic or initials
+    const menuAvatarEl = document.getElementById('menuUserAvatar');
+    const cachedProfilePic = localStorage.getItem('byahero_cached_profile_picture');
+    if (menuAvatarEl) {
+      if (cachedProfilePic) {
+        let picSrc = cachedProfilePic;
+        if (!cachedProfilePic.startsWith('data:') && !cachedProfilePic.startsWith('http')) {
+          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          picSrc = SERVER_URL + '/' + cachedProfilePic;
+        }
+        menuAvatarEl.innerHTML = `<img src="${picSrc}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+      } else {
+        menuAvatarEl.textContent = window.userInitial;
+      }
+    }
     document.getElementById('menuUserName').textContent = window.rawUserName.split('@')[0];
+
+    // Gatekeeper: Check for contacts
+    const cachedEmail = localStorage.getItem('byahero_cached_email');
+    const cachedContacts = localStorage.getItem('byahero_cached_contacts') || localStorage.getItem('byahero_cached_phone') || '';
+    if (cachedEmail && cachedEmail !== 'guest@byahero.app' && !cachedContacts) {
+      console.log("Gatekeeper: missing contact number on load. Redirecting to completeProfile.html");
+      window.location.replace("completeProfile.html");
+    }
 
     window.PROJECT_BASE = "../";
     window.APP_BASE_URL = "../";
-    window.ICON_BASE = "../assets/images/icons";
+    window.ICON_BASE = "../images/icons";
 
     // Setup map
     var map = L.map('map', { zoomControl: false }).setView([14.0905, 121.0550], 12);
@@ -366,7 +714,7 @@
           const apiQuery = requestUrl.includes('?') ? '?' + requestUrl.split('?')[1] : '';
           fetchUrl = SERVER_URL + '/public/api.php' + apiQuery;
         } else if (requestUrl.includes('backend/')) {
-          fetchUrl = SERVER_URL + '/public/backend/' + requestUrl.substring(requestUrl.indexOf('backend/') + 8);
+          fetchUrl = SERVER_URL + '/backend/' + requestUrl.substring(requestUrl.indexOf('backend/') + 8);
         } else if (requestUrl.includes('passenger/')) {
           fetchUrl = SERVER_URL + '/public/passenger/' + requestUrl.substring(requestUrl.indexOf('passenger/') + 10);
         }
@@ -429,6 +777,795 @@
     scheduleNextBusUpdate();
   </script>
 
+  <!-- QR Code Modal -->
+  <div class="modal fade" id="qrCodeModal" tabindex="-1" aria-labelledby="qrCodeModalLabel" aria-hidden="true" style="z-index: 2005;">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-0 pb-0">
+          <span class="fw-bold small text-muted" id="qrCodeModalLabel">SCAN TO JOIN</span>
+          <button type="button" class="btn border-0 bg-transparent p-0" style="box-shadow: none;" data-bs-dismiss="modal" aria-label="Close">
+            <img src="../images/EKS.svg" alt="Close" style="width: 20px; height: 20px; display: block;" />
+          </button>
+        </div>
+        <div class="modal-body text-center pt-2 pb-4">
+          <div id="qr-code-img-container" class="mb-3 d-flex justify-content-center"></div>
+          <small class="text-muted d-block px-2">Let your friend scan this code to instantly join your circle.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR Scanner Modal -->
+  <div class="modal fade" id="qrScannerModal" tabindex="-1" aria-labelledby="qrScannerModalLabel" aria-hidden="true" style="z-index: 2005;">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content rounded-4 border-0 shadow">
+        <div class="modal-header border-0 pb-0">
+          <span class="fw-bold small text-muted" id="qrScannerModalLabel">SCAN QR CODE</span>
+          <button type="button" class="btn border-0 bg-transparent p-0" style="box-shadow: none;" data-bs-dismiss="modal" aria-label="Close" onclick="stopScanner()">
+            <img src="../images/EKS.svg" alt="Close" style="width: 20px; height: 20px; display: block;" />
+          </button>
+        </div>
+        <div class="modal-body text-center pt-2 pb-4">
+          <div id="qr-reader" style="width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden;" class="mx-auto border"></div>
+          <small class="text-muted d-block mt-3 px-2">Position the QR code within the frame to scan.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Circles / Groups Safety Circle Logic -->
+  <script>
+    let groupCircleLayer = null;
+    let groupMarkers = [];
+    let activeFriendMarker = null;
+    let locationTimer = null;
+    let currentFriendsData = [];
+    let isGroupTabActive = false;
+
+    let groupListEl = null;
+    let inviteCodeEl = null;
+    let joinMessageEl = null;
+
+    const LOCATION_STALE_MINUTES = 5;
+    const LOCATION_UPDATE_INTERVAL_MS = 15000;
+    let isSendingLocation = false;
+
+    let shareLocationCache = { value: null, ts: 0 };
+    const SHARE_LOCATION_CACHE_MS = 15000;
+
+    function getLastSeenLabel(updatedAt) {
+      if (!updatedAt) return '';
+      const last = new Date(updatedAt).getTime();
+      if (Number.isNaN(last)) return '';
+      const diffMinutes = Math.floor((Date.now() - last) / 60000);
+
+      if (diffMinutes <= 0) return 'Just now';
+      if (diffMinutes < 60) return `Last seen ${diffMinutes} min ago`;
+
+      const diffHours = Math.floor(diffMinutes / 60);
+      if (diffHours < 24) return `Last seen ${diffHours} hr ago`;
+
+      const diffDays = Math.floor(diffHours / 24);
+      return `Last seen ${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+    }
+
+    function isLocationFresh(updatedAt) {
+      if (!updatedAt) return false;
+      const last = new Date(updatedAt).getTime();
+      if (Number.isNaN(last)) return false;
+      const diffMinutes = (Date.now() - last) / 60000;
+      return diffMinutes <= LOCATION_STALE_MINUTES;
+    }
+
+    function showGroupVisuals() {
+      if (!window.map) return;
+      isGroupTabActive = true;
+      
+      if (navigator.onLine) {
+        document.getElementById('circlesOnlineContent').classList.remove('d-none');
+        document.getElementById('circlesOfflineNotice').classList.add('d-none');
+        loadGroupMembers();
+      } else {
+        document.getElementById('circlesOnlineContent').classList.add('d-none');
+        document.getElementById('circlesOfflineNotice').classList.remove('d-none');
+      }
+      renderGroupMarkersOnMap();
+    }
+
+    function hideGroupVisuals() {
+      isGroupTabActive = false;
+      if (groupCircleLayer) { window.map.removeLayer(groupCircleLayer); groupCircleLayer = null; }
+      groupMarkers.forEach(m => window.map.removeLayer(m));
+      groupMarkers = [];
+      if (activeFriendMarker) {
+        window.map.removeLayer(activeFriendMarker);
+        activeFriendMarker = null;
+      }
+    }
+
+    function initialsFromFriend(f) {
+      const base = (f.name || f.email || "??").trim();
+      const parts = base.split(/\s+/).filter(Boolean);
+      if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+      return base.slice(0, 2).toUpperCase();
+    }
+
+    function colorFromString(str) {
+      const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
+      let h = 0;
+      for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+      return colors[h % colors.length];
+    }
+
+    function renderGroupMarkersOnMap() {
+      groupMarkers.forEach(m => window.map.removeLayer(m));
+      groupMarkers = [];
+      if (activeFriendMarker) {
+        window.map.removeLayer(activeFriendMarker);
+        activeFriendMarker = null;
+      }
+      
+      if (!isGroupTabActive || !window.map) return;
+
+      const seenIds = new Set();
+      
+      currentFriendsData.forEach(friend => {
+        const id = friend && friend.id != null ? String(friend.id) : null;
+        if (id && seenIds.has(id)) return;
+        if (id) seenIds.add(id);
+
+        const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
+        const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+        const friendName = friend.name || friend.email || "?";
+        const initials = initialsFromFriend(friend);
+        const bgColor = colorFromString(friend.email || friend.name || initials);
+
+        const isWaiting = friend.waiting_status === 'waiting';
+        const isBoarded = friend.ride_status === 'active';
+        const busCode = friend.boarded_bus_code || '';
+
+        const marker = createPersonMarker(lat, lng, friendName, initials, bgColor, friend.profile_picture, isWaiting, isBoarded, busCode);
+        
+        const isFresh = isLocationFresh(friend.updated_at);
+        
+        let popupHtml = `<div><strong style="font-size: 0.95rem;">${friendName}</strong>`;
+        
+        if (isFresh) {
+          popupHtml += ` <span class="badge bg-success" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; vertical-align: middle;">Online</span>`;
+        } else {
+          popupHtml += ` <span class="badge bg-secondary" style="font-size: 0.65rem; padding: 2px 6px; margin-left: 4px; vertical-align: middle;">Offline</span>`;
+        }
+        
+        popupHtml += `</div>`;
+
+        if (isWaiting) {
+          popupHtml += `<div class="mt-1 small text-success d-flex align-items-center gap-1">`;
+          popupHtml += `<span class="material-symbols-rounded" style="font-size: 14px;">hourglass_empty</span>`;
+          popupHtml += `<span>Waiting at <b>${friend.waiting_location}</b></span>`;
+          popupHtml += `</div>`;
+        } else if (isBoarded) {
+          popupHtml += `<div class="mt-1 small text-primary d-flex align-items-center gap-1">`;
+          popupHtml += `<span class="material-symbols-rounded" style="font-size: 14px;">directions_bus</span>`;
+          popupHtml += `<span>Onboard Bus <b>${busCode}</b></span>`;
+          popupHtml += `</div>`;
+        }
+        
+        if (friend.updated_at) {
+          popupHtml += `<div class="text-muted mt-1" style="font-size: 0.7rem;">${getLastSeenLabel(friend.updated_at)}</div>`;
+        }
+
+        marker.bindPopup(popupHtml);
+
+        if (!isFresh) {
+          marker.setOpacity(0.6);
+        }
+        
+        marker.addTo(window.map);
+        groupMarkers.push(marker);
+      });
+    }
+
+    function createPersonMarker(lat, lng, label = '', initials = '?', bgColor = '#1e3a8a', profilePicture = null, isWaiting = false, isBoarded = false, busCode = '') {
+      let innerHtml = initials;
+      const basePath = "../";
+      if (profilePicture) {
+        const isAbsolute = /^https?:\/\/|^data:/i.test(profilePicture);
+        const safePath = isAbsolute ? profilePicture : basePath + (profilePicture.startsWith('/') ? profilePicture.substring(1) : profilePicture);
+        innerHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+      }
+
+      let bubbleHtml = '';
+      if (isWaiting) {
+        const bubbleUrl = basePath + 'images/waitingMEG.svg';
+        bubbleHtml = `
+          <div class="friend-waiting-bubble" style="position: absolute; bottom: 38px; left: calc(50% + 20px); width: 46px; height: 20px; z-index: 1001; pointer-events: none;">
+            <img src="${bubbleUrl}" style="width: 100%; height: 100%; display: block;" />
+          </div>
+        `;
+      }
+
+      let busBadgeHtml = '';
+      if (isBoarded) {
+        const busIconUrl = basePath + 'images/busonallbuses.svg';
+        busBadgeHtml = `
+          <div class="friend-boarded-badge" style="position: absolute; bottom: -4px; right: -4px; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); z-index: 1002;">
+            <img src="${busIconUrl}" style="width: 11px; height: 11px; filter: brightness(0) invert(1);" />
+          </div>
+        `;
+      }
+
+      const waitingClass = isWaiting ? ' is-waiting' : '';
+      const boardedClass = isBoarded ? ' is-boarded' : '';
+
+      return L.marker([lat, lng], {
+        icon: L.divIcon({
+          html: `
+            <div class="friend-marker-container${waitingClass}${boardedClass}" style="position: relative; width: 36px; height: 36px;">
+              <div class="friend-avatar-circle" style="background:${bgColor}; color:white; border-radius:50%; width:36px; height:36px;
+                display:flex; align-items:center; justify-content:center; border:2px solid white; box-shadow:0 2px 8px rgba(0,0,0,0.3); font-weight:bold; font-size:14px; letter-spacing:0.5px; overflow: hidden;">
+                ${innerHtml}
+              </div>
+              ${bubbleHtml}
+              ${busBadgeHtml}
+            </div>`,
+          className: 'person-marker',
+          iconSize: [36, 36],
+          iconAnchor: [18, 18],
+          popupAnchor: [0, -18]
+        })
+      }).bindPopup(`<b>${label}</b>`);
+    }
+
+    async function loadGroupMembers() {
+      if (!groupListEl) return;
+
+      try {
+        const res = await fetch('../backend/groupView.php', { cache: 'no-store' });
+        const data = await res.json();
+
+        if (!data.success) {
+          groupListEl.innerHTML = `<small class="text-danger">Failed to load group data</small>`;
+          return;
+        }
+
+        if (!data.friends || data.friends.length === 0) {
+          groupListEl.innerHTML = `<small class="text-muted">No circle members yet.</small>`;
+          currentFriendsData = [];
+          renderGroupMarkersOnMap();
+          return;
+        }
+
+        const seenIds = new Set();
+        currentFriendsData = data.friends || [];
+
+        groupListEl.innerHTML = '';
+        data.friends.forEach(friend => {
+          const basePath = "../";
+          const id = friend && friend.id != null ? String(friend.id) : null;
+          if (id && seenIds.has(id)) return;
+          if (id) seenIds.add(id);
+
+          const lat = friend.latitude !== null ? parseFloat(friend.latitude) : null;
+          const lng = friend.longitude !== null ? parseFloat(friend.longitude) : null;
+
+          const fresh = isLocationFresh(friend.updated_at);
+          const hasCoords = Number.isFinite(lat) && Number.isFinite(lng);
+          const hasLocationNow = hasCoords && fresh;
+
+          const isWaiting = friend.waiting_status === 'waiting';
+          const isBoarded = friend.ride_status === 'active';
+
+          let statusText = 'Location unavailable';
+          if (isWaiting) {
+            statusText = `at ${friend.waiting_location}`;
+          } else if (isBoarded) {
+            statusText = `Bus ${friend.boarded_bus_code}`;
+          } else if (hasLocationNow) {
+            statusText = 'Live location available';
+          } else if (friend.updated_at) {
+            statusText = getLastSeenLabel(friend.updated_at);
+          }
+
+          const friendName = friend.name || friend.email || "?";
+          const initials = initialsFromFriend(friend);
+          const bgColor = colorFromString(friend.email || friend.name || initials);
+
+          const card = document.createElement('div');
+          card.className = 'd-flex align-items-center p-3 bg-light rounded-4 mb-2 cursor-pointer';
+
+          let avatarHtml = initials;
+          if (friend.profile_picture) {
+            const isAbsolute = /^https?:\/\/|^data:/i.test(friend.profile_picture);
+            const safePath = isAbsolute ? friend.profile_picture : basePath + (friend.profile_picture.startsWith('/') ? friend.profile_picture.substring(1) : friend.profile_picture);
+            avatarHtml = `<img src="${safePath}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+          }
+
+          let avatarBadgeHtml = '';
+          if (isWaiting) {
+            const markUrl = basePath + 'images/waitingMark.svg';
+            avatarBadgeHtml = `<div class="friend-avatar-badge" title="Waiting at ${friend.waiting_location}"><img src="${markUrl}" alt="Waiting"></div>`;
+          } else if (isBoarded) {
+            const busUrl = basePath + 'images/busonallbuses.svg';
+            avatarBadgeHtml = `<div class="friend-avatar-badge" style="background: #3b82f6; border-color: #3b82f6;" title="Onboard Bus ${friend.boarded_bus_code}"><img src="${busUrl}" alt="Boarded" style="filter: brightness(0) invert(1);"></div>`;
+          }
+
+          let statusBadgeHtml = '';
+          if (isWaiting) {
+            statusBadgeHtml = `<span class="status-badge waiting me-1">Waiting</span>`;
+          } else if (isBoarded) {
+            statusBadgeHtml = `<span class="status-badge boarded me-1">Boarded</span>`;
+          } else if (fresh) {
+            statusBadgeHtml = `<span class="status-badge online me-1">Online</span>`;
+          } else {
+            statusBadgeHtml = `<span class="status-badge offline me-1">Offline</span>`;
+          }
+
+          card.innerHTML = `
+            <div class="d-flex align-items-center flex-grow-1 card-fly-content" style="min-width:0;">
+              <div class="friend-avatar-wrapper me-3">
+                <div class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white shadow-sm flex-shrink-0" style="width: 48px; height: 48px; background-color: ${bgColor}; border: 2px solid white; font-size: 18px; letter-spacing: 0.5px; overflow: hidden;">
+                  ${avatarHtml}
+                </div>
+                ${avatarBadgeHtml}
+                <div class="friend-online-dot ${fresh ? 'online' : 'offline'}"></div>
+              </div>
+              <div class="text-truncate">
+                <h6 class="mb-1 fw-bold text-dark text-truncate" style="font-size: 0.95rem;">${friendName}</h6>
+                <div class="d-flex align-items-center text-truncate">
+                  ${statusBadgeHtml}
+                  <small class="text-muted text-truncate" style="font-size: 0.75rem;">${statusText}</small>
+                </div>
+              </div>
+            </div>
+            <img src="${basePath}images/unfriend.svg" class="ms-2 remove-friend-btn" title="Remove from Circle" alt="Unfriend" style="width: 32px; height: 32px; cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+          `;
+
+          card.querySelector('.card-fly-content').addEventListener('click', () => {
+            if (!hasCoords) {
+              alert('Location is not available for this user. They may need to enable Share Location.');
+              return;
+            }
+
+            if (!fresh) {
+              alert('This user’s location is not live right now. They may have Share Location off or the app is closed.');
+              return;
+            }
+
+            window.map.setView([lat, lng], 16);
+            
+            const targetMarker = groupMarkers.find(m => {
+              const mll = m.getLatLng();
+              return Math.abs(mll.lat - lat) < 0.000001 && Math.abs(mll.lng - lng) < 0.000001;
+            });
+            if (targetMarker) targetMarker.openPopup();
+          });
+
+          card.querySelector('.remove-friend-btn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeFriend(friend.id, friendName);
+          });
+
+          groupListEl.appendChild(card);
+        });
+
+        if (isGroupTabActive) {
+          renderGroupMarkersOnMap();
+        }
+      } catch (err) {
+        console.error(err);
+        groupListEl.innerHTML = `<small class="text-danger">Error loading group data.</small>`;
+      }
+    }
+
+    async function removeFriend(id, name) {
+      if (!confirm(`Are you sure you want to remove ${name} from your circle?`)) return;
+
+      try {
+        const res = await fetch('../backend/removeFriend.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friend_id: id })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+          loadGroupMembers();
+          if (navigator.vibrate) navigator.vibrate(50);
+        } else {
+          alert(data.message || 'Failed to remove friend');
+        }
+      } catch (err) {
+        console.error('Remove friend error:', err);
+        alert('An error occurred while removing the friend.');
+      }
+    }
+
+    let html5QrScanner = null;
+
+    async function generateInviteCode(isReset = false) {
+      if (!inviteCodeEl) return;
+      inviteCodeEl.textContent = '...';
+
+      try {
+        const url = isReset ? '../backend/getInviteCode.php?reset=1' : '../backend/getInviteCode.php';
+        const res = await fetch(url, { cache: 'no-store' });
+        const data = await res.json();
+        if (data.success) {
+          inviteCodeEl.textContent = data.invite_code;
+          const qrModalEl = document.getElementById('qrCodeModal');
+          if (qrModalEl && qrModalEl.classList.contains('show')) {
+            showInviteQR();
+          }
+        } else {
+          inviteCodeEl.textContent = '------';
+        }
+      } catch (err) {
+        inviteCodeEl.textContent = '------';
+      }
+    }
+
+    function showInviteQR() {
+      const code = (inviteCodeEl.textContent || '').trim();
+      if (!code || code === '------' || code === '...') {
+        alert('Wait for invite code to load...');
+        return;
+      }
+
+      const imgContainer = document.getElementById('qr-code-img-container');
+      const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(code)}`;
+      
+      imgContainer.innerHTML = `<img src="${qrUrl}" alt="Invite QR Code" class="img-fluid border rounded-3 p-2 shadow-sm" style="max-width: 200px;">`;
+      
+      const qrModalEl = document.getElementById('qrCodeModal');
+      const modal = bootstrap.Modal.getInstance(qrModalEl) || new bootstrap.Modal(qrModalEl);
+      modal.show();
+    }
+
+    async function shareInviteLink() {
+      const code = (inviteCodeEl.textContent || '').trim();
+      if (!code || code === '------' || code === '...') {
+        alert('Wait for invite code to load...');
+        return;
+      }
+
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const shareUrl = `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`;
+      const shareData = {
+        title: 'Join my ByaHero Circle',
+        text: `Join my safety circle on ByaHero! Use this link to add me instantly:`,
+        url: shareUrl
+      };
+
+      try {
+        if (navigator.share) {
+          await navigator.share(shareData);
+        } else {
+          copyInviteCode(true);
+        }
+      } catch (err) {
+        console.error('Share failed:', err);
+      }
+    }
+
+    function toggleScanner() {
+      const scannerModalEl = document.getElementById('qrScannerModal');
+      const modal = bootstrap.Modal.getInstance(scannerModalEl) || new bootstrap.Modal(scannerModalEl);
+      modal.show();
+
+      setTimeout(() => {
+        startScanner();
+      }, 300);
+
+      scannerModalEl.addEventListener('hidden.bs.modal', function () {
+        stopScanner();
+      }, { once: true });
+    }
+
+    function startScanner() {
+      if (!html5QrScanner) {
+        html5QrScanner = new Html5Qrcode("qr-reader");
+      }
+      
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+      
+      html5QrScanner.start(
+        { facingMode: "environment" }, 
+        config,
+        (decodedText) => {
+          document.getElementById('join-code-input').value = decodedText;
+          stopScanner();
+          
+          const scannerModalEl = document.getElementById('qrScannerModal');
+          const modal = bootstrap.Modal.getInstance(scannerModalEl);
+          if (modal) modal.hide();
+          
+          joinByCode();
+        },
+        (errorMessage) => {}
+      ).catch(err => {
+        console.error('Camera access failed:', err);
+        alert('Unable to access camera. Please check permissions.');
+        
+        const scannerModalEl = document.getElementById('qrScannerModal');
+        const modal = bootstrap.Modal.getInstance(scannerModalEl);
+        if (modal) modal.hide();
+      });
+    }
+
+    function stopScanner() {
+      if (html5QrScanner && html5QrScanner.isScanning) {
+        html5QrScanner.stop().catch(err => console.error('Stop error:', err));
+      }
+    }
+
+    async function copyInviteCode(fromShare = false) {
+      if (!inviteCodeEl) return;
+
+      const code = (inviteCodeEl.textContent || '').trim();
+      if (!code || code === '------' || code === '...') {
+        alert('No invite code to copy yet.');
+        return;
+      }
+
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const shareUrl = fromShare 
+        ? `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`
+        : code;
+
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(shareUrl);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = shareUrl;
+          ta.setAttribute('readonly', '');
+          ta.style.position = 'absolute';
+          ta.style.left = '-9999px';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        alert(fromShare ? 'Invite link copied to clipboard!' : 'Invite code copied!');
+      } catch (e) {
+        console.error('Copy failed:', e);
+        alert('Copy failed. Please copy manually.');
+      }
+    }
+
+    async function joinByCode() {
+      if (!joinMessageEl) return;
+
+      const codeInput = document.getElementById('join-code-input');
+      const code = codeInput.value.trim();
+      joinMessageEl.textContent = 'Joining...';
+
+      if (!code) {
+        joinMessageEl.textContent = 'Please enter a code.';
+        return;
+      }
+
+      try {
+        const res = await fetch('../backend/joinCircleByCode.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invite_code: code })
+        });
+
+        const data = await res.json();
+        
+        if (data.success) {
+          joinMessageEl.innerHTML = `<span class="text-success fw-bold">${data.message || 'Joined successfully!'}</span>`;
+          codeInput.value = '';
+          loadGroupMembers();
+          if (navigator.vibrate) navigator.vibrate(50);
+        } else {
+          joinMessageEl.innerHTML = `<span class="text-danger">${data.message || 'Failed to join'}</span>`;
+        }
+      } catch (err) {
+        joinMessageEl.textContent = 'Join failed.';
+      }
+    }
+
+    async function isShareLocationEnabled() {
+      const now = Date.now();
+      if (shareLocationCache.value !== null && (now - shareLocationCache.ts) < SHARE_LOCATION_CACHE_MS) {
+        return shareLocationCache.value;
+      }
+
+      try {
+        const res = await fetch('../backend/getShareLocationSetting.php', { cache: 'no-store' });
+        const data = await res.json();
+        const enabled = !!(data && data.success && parseInt(data.share_location) === 1);
+
+        shareLocationCache = { value: enabled, ts: now };
+        return enabled;
+      } catch (e) {
+        shareLocationCache = { value: false, ts: now };
+        return false;
+      }
+    }
+
+    async function sendCurrentLocation() {
+      if (isSendingLocation) return;
+      if (!navigator.geolocation) return;
+      if (!navigator.onLine) return;
+
+      isSendingLocation = true;
+
+      try {
+        const shareOn = await isShareLocationEnabled();
+        if (!shareOn) {
+          loadGroupMembers();
+          isSendingLocation = false;
+          return;
+        }
+
+        navigator.geolocation.getCurrentPosition(async (pos) => {
+          try {
+            const lat = pos?.coords?.latitude;
+            const lng = pos?.coords?.longitude;
+            const accuracy = pos?.coords?.accuracy ?? null;
+
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+              loadGroupMembers();
+              return;
+            }
+
+            const payload = { latitude: lat, longitude: lng, accuracy };
+
+            const res = await fetch('../backend/updateUserLocation.php', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            });
+
+            const data = await res.json();
+            if (!data.success && data.message) {
+              console.warn('updateUserLocation:', data.message);
+            }
+
+            loadGroupMembers();
+          } catch (err) {
+            console.error(err);
+          } finally {
+            isSendingLocation = false;
+          }
+        }, (err) => {
+          console.warn('Location error:', err);
+          isSendingLocation = false;
+        }, {
+          enableHighAccuracy: true,
+          maximumAge: 5000,
+          timeout: 8000
+        });
+
+      } catch (e) {
+        console.error(e);
+        isSendingLocation = false;
+      }
+    }
+
+    function startLocationUpdates() {
+      sendCurrentLocation();
+      if (locationTimer) clearTimeout(locationTimer);
+      function scheduleNextLocationUpdate() {
+        locationTimer = setTimeout(async () => {
+          await sendCurrentLocation();
+          scheduleNextLocationUpdate();
+        }, LOCATION_UPDATE_INTERVAL_MS);
+      }
+      scheduleNextLocationUpdate();
+    }
+
+    function openGroupView() {
+      if (navigator.onLine) {
+        document.getElementById('circlesOnlineContent').classList.remove('d-none');
+        document.getElementById('circlesOfflineNotice').classList.add('d-none');
+        generateInviteCode();
+        loadGroupMembers();
+        startLocationUpdates();
+      } else {
+        document.getElementById('circlesOnlineContent').classList.add('d-none');
+        document.getElementById('circlesOfflineNotice').classList.remove('d-none');
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      groupListEl = document.getElementById('group-list');
+      inviteCodeEl = document.getElementById('invite-code');
+      joinMessageEl = document.getElementById('join-message');
+      openGroupView();
+    });
+
+    function _cleanup() {
+      if (locationTimer) { clearTimeout(locationTimer); locationTimer = null; }
+      isSendingLocation = false;
+    }
+    window.addEventListener('beforeunload', _cleanup);
+    window.addEventListener('pagehide', _cleanup);
+
+    // Dynamic Notification Unread Status Polling
+    (function() {
+      const POLL_MS = 60000; // 60s
+      let _pollIntervalId = null;
+      let _pollInProgress = false;
+
+      function setNotifIcon(hasUnread) {
+        const img = document.getElementById('topbar-notification-icon');
+        if (!img) return;
+        img.src = hasUnread ? '../images/notificationAlert.svg' : '../images/notification bell.svg';
+      }
+
+      async function pollUnread() {
+        if (_pollInProgress) return;
+        if (!navigator.onLine) return;
+        const cachedEmail = localStorage.getItem('byahero_cached_email');
+        if (!cachedEmail || cachedEmail === 'guest@byahero.app') return;
+
+        _pollInProgress = true;
+        try {
+          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          const res = await originalFetch(SERVER_URL + '/backend/getUnreadStatus.php?ts=' + Date.now(), {
+            credentials: 'include',
+            cache: 'no-store'
+          });
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data && data.success) {
+            setNotifIcon(!!data.has_unread);
+          }
+        } catch (e) {
+          // fail silently
+        } finally {
+          _pollInProgress = false;
+        }
+      }
+
+      function tick() {
+        if (document.visibilityState !== 'visible') return;
+        pollUnread();
+      }
+
+      function scheduleNextPoll() {
+        _pollIntervalId = setTimeout(() => {
+          tick();
+          scheduleNextPoll();
+        }, POLL_MS);
+      }
+
+      document.addEventListener('visibilitychange', tick);
+      scheduleNextPoll();
+      tick(); // run once on load
+
+      function _cleanupNotif() {
+        if (_pollIntervalId) { clearTimeout(_pollIntervalId); _pollIntervalId = null; }
+        document.removeEventListener('visibilitychange', tick);
+      }
+      window.addEventListener('beforeunload', _cleanupNotif);
+      window.addEventListener('pagehide', _cleanupNotif);
+    })();
+
+    // Dynamic Connection State Listeners
+    window.addEventListener('online', () => {
+      document.getElementById('offlineBanner').style.display = 'none';
+      const groupsTab = document.getElementById('tab-groups');
+      if (groupsTab && groupsTab.classList.contains('active')) {
+        openGroupView();
+      }
+    });
+
+    window.addEventListener('offline', () => {
+      document.getElementById('offlineBanner').style.display = 'block';
+      document.getElementById('circlesOnlineContent').classList.add('d-none');
+      document.getElementById('circlesOfflineNotice').classList.remove('d-none');
+      _cleanup();
+      hideGroupVisuals();
+    });
+  </script>
 </body>
 
 </html>
+
