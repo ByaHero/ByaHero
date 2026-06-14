@@ -658,6 +658,7 @@
   </div>
 
   <!-- Scripts -->
+  <script src="../capacitor.js"></script>
   <script src="../js/leaflet.js"></script>
   <script src="../js/bootstrap.bundle.min.js"></script>
   <script src="../js/html5-qrcode.min.js"></script>
@@ -987,6 +988,18 @@
       window.location.replace("../login.html");
     }
 
+    let _initializationsRun = false;
+    function runInitializations() {
+      if (_initializationsRun) return;
+      _initializationsRun = true;
+      console.log("Initializing map and sync routines...");
+      startUserLocationWatch();
+      updateBuses();
+      loadStops();
+      scheduleNextBusUpdate();
+      syncOfflineData();
+    }
+
     // Initialize map watchers & triggers
     if (navigator.onLine === false) {
       document.getElementById('offlineBanner').style.display = 'block';
@@ -995,21 +1008,35 @@
     // Network Status Handlers
     window.addEventListener('online', () => {
       document.getElementById('offlineBanner').style.display = 'none';
-      syncOfflineData();
-      updateBuses();
-      loadStops();
+      if (_initializationsRun) {
+        syncOfflineData();
+        updateBuses();
+        loadStops();
+      } else {
+        runInitializations();
+      }
     });
     window.addEventListener('offline', () => {
       document.getElementById('offlineBanner').style.display = 'block';
     });
 
-    startUserLocationWatch();
-    updateBuses();
-    loadStops();
-    scheduleNextBusUpdate();
-
-    // Trigger initial background sync
-    syncOfflineData();
+    // Capacitor readiness check
+    if (window.Capacitor) {
+      if (window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+        runInitializations();
+      } else {
+        console.log("Waiting for deviceready event to initialize...");
+        document.addEventListener('deviceready', runInitializations, { once: true });
+        setTimeout(() => {
+          if (!_initializationsRun) {
+            console.warn("deviceready timed out. Initializing map fallbacks...");
+            runInitializations();
+          }
+        }, 3000);
+      }
+    } else {
+      runInitializations();
+    }
   </script>
 
   <!-- QR Code Modal -->
@@ -1708,11 +1735,35 @@
       }
     }
 
+    let _groupViewInitRun = false;
+    function initGroupView() {
+      if (_groupViewInitRun) return;
+      _groupViewInitRun = true;
+      console.log("Initializing group view...");
+      openGroupView();
+    }
+
     document.addEventListener('DOMContentLoaded', () => {
       groupListEl = document.getElementById('group-list');
       inviteCodeEl = document.getElementById('invite-code');
       joinMessageEl = document.getElementById('join-message');
-      openGroupView();
+      
+      if (window.Capacitor) {
+        if (window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+          initGroupView();
+        } else {
+          console.log("Waiting for deviceready event for group view init...");
+          document.addEventListener('deviceready', initGroupView, { once: true });
+          setTimeout(() => {
+            if (!_groupViewInitRun) {
+              console.warn("deviceready timed out for group view init.");
+              initGroupView();
+            }
+          }, 3000);
+        }
+      } else {
+        initGroupView();
+      }
     });
 
     function _cleanup() {
