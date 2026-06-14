@@ -962,16 +962,8 @@ function getBusFares(): array {
 
 /** Get bus schedule */
 function getBusSchedule(): array {
-    $busId = (int)($_GET['bus_id'] ?? 0);
     $conn = db();
-    if ($busId > 0) {
-        $stmt = $conn->prepare("SELECT * FROM bus_schedule WHERE bus_id = ? ORDER BY scheduled_time");
-        $stmt->bind_param("i", $busId);
-        $stmt->execute();
-        $rows = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-    } else {
-        $rows = $conn->query("SELECT * FROM bus_schedule ORDER BY bus_id, scheduled_time")->fetch_all(MYSQLI_ASSOC);
-    }
+    $rows = $conn->query("SELECT terminal_name, time_open, time_close, is_suspended, suspend_message FROM bus_schedule ORDER BY terminal_name ASC")->fetch_all(MYSQLI_ASSOC);
     return ['success' => true, 'schedule' => $rows];
 }
 

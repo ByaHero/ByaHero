@@ -159,7 +159,43 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const data = window.BYAHERO_OFFLINE_DATA || { stops: [], schedules: [] };
+            // Load from local sync cache first, fallback to preseeded datasets
+            let stops = [];
+            let schedules = [];
+
+            const cachedStops = localStorage.getItem('byahero_offline_fare_stops');
+            const cachedSchedules = localStorage.getItem('byahero_offline_schedules');
+
+            if (cachedStops) {
+                try {
+                    const rawStops = JSON.parse(cachedStops);
+                    stops = rawStops.map(s => ({
+                        id: parseInt(s.stop_id),
+                        name: s.location_name,
+                        location_name: s.location_name,
+                        km_marker: parseFloat(s.km_marker),
+                        type: s.location_name.toLowerCase().includes('terminal') ? 'terminal' : 'bus_stop'
+                    }));
+                } catch(e) {
+                    console.error("Failed to parse cached stops", e);
+                }
+            }
+            if (stops.length === 0) {
+                stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
+            }
+
+            if (cachedSchedules) {
+                try {
+                    schedules = JSON.parse(cachedSchedules);
+                } catch(e) {
+                    console.error("Failed to parse cached schedules", e);
+                }
+            }
+            if (schedules.length === 0) {
+                schedules = window.BYAHERO_OFFLINE_DATA?.schedules || [];
+            }
+
+            const data = { stops, schedules };
             
             // 1. Render schedules
             const schedulesList = document.getElementById('schedulesList');
