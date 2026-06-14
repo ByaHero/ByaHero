@@ -19,6 +19,18 @@
   <link rel="stylesheet" href="../assets/css/accessibility.css">
 
   <style>
+    /* Clean slate background fallback for map when offline */
+    #map {
+      background-color: #f1f5f9 !important;
+    }
+    /* Hide broken tile image placeholders when offline */
+    .leaflet-tile {
+      opacity: 0;
+    }
+    .leaflet-tile-loaded {
+      opacity: 1 !important;
+    }
+
     /* Styling for offline indicator banner */
     .offline-banner {
       background-color: #ef4444;
@@ -717,6 +729,31 @@
           fetchUrl = SERVER_URL + '/backend/' + requestUrl.substring(requestUrl.indexOf('backend/') + 8);
         } else if (requestUrl.includes('passenger/')) {
           fetchUrl = SERVER_URL + '/public/passenger/' + requestUrl.substring(requestUrl.indexOf('passenger/') + 10);
+        } else if (requestUrl.includes('map_data.php')) {
+          fetchUrl = SERVER_URL + '/public/map_data.php';
+        }
+      }
+
+      // Intercept map_data.php request
+      if (typeof requestUrl === 'string' && (requestUrl.includes('map_data.php') || requestUrl.includes('/map_data.php'))) {
+        if (navigator.onLine) {
+          try {
+            const res = await originalFetch(fetchUrl, options);
+            const clone = res.clone();
+            const data = await clone.json();
+            if (data && Array.isArray(data.features)) {
+              localStorage.setItem('byahero_offline_map_data', JSON.stringify(data));
+            }
+            return res;
+          } catch(e) {
+            console.warn("Failed to fetch map data, using cache", e);
+          }
+        }
+        const cachedMapData = JSON.parse(localStorage.getItem('byahero_offline_map_data') || 'null');
+        if (cachedMapData) {
+          return new Response(JSON.stringify(cachedMapData), {
+            headers: { 'Content-Type': 'application/json' }
+          });
         }
       }
 
@@ -741,23 +778,124 @@
         });
       }
 
-      // Intercept bus stops request
+      // Intercept bus stops request (for map stops)
       if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_stops_terminal')) {
         if (navigator.onLine) {
           try {
-            return await originalFetch(fetchUrl, options);
+            const res = await originalFetch(fetchUrl, options);
+            const clone = res.clone();
+            const data = await clone.json();
+            if (data && data.success && Array.isArray(data.data)) {
+              localStorage.setItem('byahero_offline_stops', JSON.stringify(data.data));
+            }
+            return res;
           } catch(e) {
             console.warn("Failed to fetch online stops, using cache", e);
           }
         }
-        const offlineStops = window.BYAHERO_OFFLINE_DATA?.stops || [];
-        return new Response(JSON.stringify({ success: true, data: offlineStops }), {
+        const cachedStops = JSON.parse(localStorage.getItem('byahero_offline_stops') || '[]');
+        const displayStops = cachedStops.length > 0 ? cachedStops : (window.BYAHERO_OFFLINE_DATA?.stops || []);
+        return new Response(JSON.stringify({ success: true, data: displayStops }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Intercept bus stops request (for fare checking/km markers)
+      if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_stops') && !requestUrl.includes('get_bus_stops_terminal')) {
+        if (navigator.onLine) {
+          try {
+            const res = await originalFetch(fetchUrl, options);
+            const clone = res.clone();
+            const data = await clone.json();
+            if (data && data.success && Array.isArray(data.stops)) {
+              localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(data.stops));
+            }
+            return res;
+          } catch(e) {
+            console.warn("Failed to fetch online fare stops, using cache", e);
+          }
+        }
+        const cachedFareStops = JSON.parse(localStorage.getItem('byahero_offline_fare_stops') || '[]');
+        return new Response(JSON.stringify({ success: true, stops: cachedFareStops }), {
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+
+      // Intercept schedules request
+      if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_schedule')) {
+        if (navigator.onLine) {
+          try {
+            const res = await originalFetch(fetchUrl, options);
+            const clone = res.clone();
+            const data = await clone.json();
+            if (data && data.success && Array.isArray(data.schedule)) {
+              localStorage.setItem('byahero_offline_schedules', JSON.stringify(data.schedule));
+            }
+            return res;
+          } catch(e) {
+            console.warn("Failed to fetch online schedule, using cache", e);
+          }
+        }
+        const cachedSchedules = JSON.parse(localStorage.getItem('byahero_offline_schedules') || '[]');
+        const displaySchedules = cachedSchedules.length > 0 ? cachedSchedules : (window.BYAHERO_OFFLINE_DATA?.schedules || []);
+        return new Response(JSON.stringify({ success: true, schedule: displaySchedules }), {
           headers: { 'Content-Type': 'application/json' }
         });
       }
 
       return originalFetch(fetchUrl, options);
     };
+
+    // Background Synchronization Manager
+    async function syncOfflineData() {
+      if (!navigator.onLine) return;
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      console.log('Background Sync: starting synchronization from ' + SERVER_URL);
+
+      try {
+        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_stops_terminal');
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.data)) {
+          localStorage.setItem('byahero_offline_stops', JSON.stringify(json.data));
+          console.log('Background Sync: cached map stops');
+        }
+      } catch (e) {
+        console.warn('Background Sync stops failed:', e);
+      }
+
+      try {
+        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_stops');
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.stops)) {
+          localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(json.stops));
+          console.log('Background Sync: cached fare stops');
+        }
+      } catch (e) {
+        console.warn('Background Sync fare stops failed:', e);
+      }
+
+      try {
+        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_schedule');
+        const json = await res.json();
+        if (json && json.success && Array.isArray(json.schedule)) {
+          localStorage.setItem('byahero_offline_schedules', JSON.stringify(json.schedule));
+          console.log('Background Sync: cached terminal schedules');
+        }
+      } catch (e) {
+        console.warn('Background Sync schedules failed:', e);
+      }
+
+      try {
+        const res = await originalFetch(SERVER_URL + '/public/map_data.php');
+        const json = await res.json();
+        if (json && Array.isArray(json.features)) {
+          localStorage.setItem('byahero_offline_map_data', JSON.stringify(json));
+          console.log('Background Sync: cached geofencing boundaries');
+        }
+      } catch (e) {
+        console.warn('Background Sync map data failed:', e);
+      }
+    }
 
     // Logout Helper
     function logoutOffline() {
@@ -771,10 +909,25 @@
       document.getElementById('offlineBanner').style.display = 'block';
     }
 
+    // Network Status Handlers
+    window.addEventListener('online', () => {
+      document.getElementById('offlineBanner').style.display = 'none';
+      syncOfflineData();
+      updateBuses();
+    });
+    window.addEventListener('offline', () => {
+      document.getElementById('offlineBanner').style.display = 'block';
+    });
+
     startUserLocationWatch();
     updateBuses();
     loadStops();
     scheduleNextBusUpdate();
+
+    // Trigger initial background sync if online
+    if (navigator.onLine) {
+      syncOfflineData();
+    }
   </script>
 
   <!-- QR Code Modal -->
