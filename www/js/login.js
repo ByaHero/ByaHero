@@ -93,9 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const getBaseUrl = () => {
                 const customUrl = localStorage.getItem('byahero_server_url');
                 if (customUrl) return customUrl;
-                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
-                    return 'http://10.0.2.2/ByaHero';
-                }
                 return 'https://byahero.app';
             };
             const SERVER_URL = getBaseUrl();
@@ -175,17 +172,39 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
         localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
 
-        // Redirect to local app assets instead of remote server
-        if (role === 'passenger') {
-            if (!contacts) {
-                window.location.replace("passenger/completeProfile.html");
+        // Redirect to local assets if offline, or remote server if online
+        const getBaseUrl = () => {
+            const customUrl = localStorage.getItem('byahero_server_url');
+            if (customUrl) return customUrl;
+            return 'https://byahero.app';
+        };
+        const SERVER_URL = getBaseUrl();
+
+        if (navigator.onLine === false) {
+            if (role === 'passenger') {
+                if (!contacts) {
+                    window.location.replace("passenger/completeProfile.html");
+                } else {
+                    window.location.replace("passenger/index.html");
+                }
             } else {
                 window.location.replace("passenger/index.html");
             }
-        } else if (role === 'conductor') {
-            window.location.replace("conductor/index.html");
         } else {
-            window.location.replace("passenger/index.html");
+            // Online -> Go to remote server directly
+            if (role === 'passenger') {
+                if (!contacts) {
+                    window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
+                } else {
+                    window.location.replace(SERVER_URL + "/public/passenger/index.php");
+                }
+            } else if (role === 'conductor') {
+                window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
+            } else if (role === 'admin') {
+                window.location.replace(SERVER_URL + "/public/admin/admin.php");
+            } else {
+                window.location.replace(SERVER_URL + "/public/passenger/index.php");
+            }
         }
     }
 
@@ -250,9 +269,6 @@ window.handleGoogleLogin = function (response) {
     const getBaseUrl = () => {
         const customUrl = localStorage.getItem('byahero_server_url');
         if (customUrl) return customUrl;
-        if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
-            return 'http://10.0.2.2/ByaHero';
-        }
         return 'https://byahero.app';
     };
     const SERVER_URL = getBaseUrl();

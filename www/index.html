@@ -4,40 +4,75 @@
     <meta charset="utf-8" />
     <link rel="icon" href="../images/byaheroLogoBlue.svg" type="image/svg+xml">
     <script>
-      const cachedRole = localStorage.getItem('byahero_cached_role');
-      const cachedEmail = localStorage.getItem('byahero_cached_email');
-      const getBaseUrl = () => {
-        const customUrl = localStorage.getItem('byahero_server_url');
-        if (customUrl) return customUrl;
-        if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
-          return 'http://10.0.2.2/ByaHero';
-        }
-        return 'https://byahero.app';
-      };
-      const SERVER_URL = getBaseUrl();
+      const checkOnlineAndRoute = async () => {
+        const cachedRole = localStorage.getItem('byahero_cached_role');
+        const cachedEmail = localStorage.getItem('byahero_cached_email');
+        
+        const getBaseUrl = () => {
+          const customUrl = localStorage.getItem('byahero_server_url');
+          if (customUrl) return customUrl;
+          return 'https://byahero.app';
+        };
+        const SERVER_URL = getBaseUrl();
 
-      if (!cachedRole || !cachedEmail) {
-        // Not logged in -> Go to login page
-        window.location.replace("login.html");
-      } else {
-        if (cachedRole === 'passenger') {
-          // Passengers always run local offline-first pages to support local sync and network fallbacks
-          window.location.replace("passenger/index.html");
-        } else {
-          // Conductor / Admin route based on connectivity
-          if (navigator.onLine === false) {
-            window.location.replace("login.html");
+        if (!cachedRole || !cachedEmail) {
+          window.location.replace("login.html");
+          return;
+        }
+
+        // Perform a fast server ping check to avoid flaky navigator.onLine startup issues on mobile
+        let isReachable = false;
+        const useNative = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp);
+        
+        try {
+          if (useNative) {
+            const res = await window.Capacitor.Plugins.CapacitorHttp.get({
+              url: SERVER_URL + '/public/api.php?action=get_bus_schedule',
+              connectTimeout: 1500,
+              readTimeout: 1500
+            });
+            if (res.status === 200) {
+              isReachable = true;
+            }
           } else {
-            if (cachedRole === 'conductor') {
-              window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
-            } else if (cachedRole === 'admin') {
-              window.location.replace(SERVER_URL + "/public/admin/admin.php");
-            } else {
-              window.location.replace(SERVER_URL + "/public/passenger/index.php");
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 1500);
+            const res = await fetch(SERVER_URL + '/public/api.php?action=get_bus_schedule', {
+              method: 'GET',
+              signal: controller.signal,
+              cache: 'no-store'
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+              isReachable = true;
             }
           }
+        } catch (e) {
+          console.warn("Ping failed, assuming offline mode", e);
         }
-      }
+
+        if (isReachable) {
+          // Online -> Go to remote server (InfinityFree) directly
+          if (cachedRole === 'passenger') {
+            window.location.replace(SERVER_URL + "/public/passenger/index.php");
+          } else if (cachedRole === 'conductor') {
+            window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
+          } else if (cachedRole === 'admin') {
+            window.location.replace(SERVER_URL + "/public/admin/admin.php");
+          } else {
+            window.location.replace(SERVER_URL + "/public/passenger/index.php");
+          }
+        } else {
+          // Offline -> Load local offline assets
+          if (cachedRole === 'passenger') {
+            window.location.replace("passenger/index.html");
+          } else {
+            window.location.replace("login.html");
+          }
+        }
+      };
+
+      checkOnlineAndRoute();
     </script>
     <meta
       http-equiv="refresh"
