@@ -92,7 +92,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Online flow - Authenticate against live server
             let SERVER_URL = localStorage.getItem('byahero_server_url');
             if (!SERVER_URL) {
-                SERVER_URL = 'https://byahero.app';
+                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+                    SERVER_URL = 'http://10.0.2.2/ByaHero';
+                } else {
+                    SERVER_URL = 'https://byahero.app';
+                }
             }
 
             const formData = new FormData();

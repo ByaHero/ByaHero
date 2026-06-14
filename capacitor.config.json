@@ -8,10 +8,7 @@
 		"errorPath": "error.html",
 		"allowNavigation": [
 			"byahero.app",
-			"*.byahero.app",
-			"10.0.2.2",
-			"localhost",
-			"*"
+			"*.byahero.app"
 		]
 	},
 	"android": {

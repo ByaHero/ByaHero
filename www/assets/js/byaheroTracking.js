@@ -19,16 +19,6 @@ window.routeFeatures = [];
 window.safePost = async function safePost(relativeUrl, payload = {}) {
     const url = new URL(relativeUrl, window.location.href).href;
     try {
-        if (window.Capacitor) {
-            // Wait up to 2 seconds for Capacitor plugins to initialize (especially on first boot / page transitions)
-            for (let i = 0; i < 40; i++) {
-                if (window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
-                    break;
-                }
-                await new Promise(r => setTimeout(r, 50));
-            }
-        }
-
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
             const res = await window.Capacitor.Plugins.CapacitorHttp.post({
                 url,
@@ -40,15 +30,7 @@ window.safePost = async function safePost(relativeUrl, payload = {}) {
                 },
                 data: payload
             });
-            let data = res.data;
-            if (typeof data === 'string') {
-                try {
-                    data = JSON.parse(data);
-                } catch (e) {
-                    // Not valid JSON
-                }
-            }
-            return data;
+            return res.data;
         } else {
             const res = await fetch(url, {
                 method: 'POST',

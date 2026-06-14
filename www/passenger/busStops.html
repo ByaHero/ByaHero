@@ -91,17 +91,6 @@
             background: #2563eb;
             color: #fff;
         }
-        /* Clean slate background fallback for map when offline */
-        #stopsMap {
-            background-color: #f1f5f9 !important;
-        }
-        /* Hide broken tile image placeholders when offline */
-        .leaflet-tile {
-            opacity: 0;
-        }
-        .leaflet-tile-loaded {
-            opacity: 1 !important;
-        }
     </style>
 </head>
 <body>
@@ -190,19 +179,8 @@
         return stopIcon;
     }
 
-    // Load from cached offline data first, fallback to preseeded datasets
-    let stops = [];
-    const cachedStops = localStorage.getItem('byahero_offline_stops');
-    if (cachedStops) {
-        try {
-            stops = JSON.parse(cachedStops);
-        } catch (e) {
-            console.warn("Failed to parse cached stops:", e);
-        }
-    }
-    if (stops.length === 0) {
-        stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
-    }
+    // Load from preseeded offline data
+    const stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
     const markersById = {};
 
     function escapeHtml(str) {
