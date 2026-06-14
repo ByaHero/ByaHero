@@ -674,6 +674,16 @@
 
   <script>
     // Context initialization
+    const getBaseUrl = () => {
+      const customUrl = localStorage.getItem('byahero_server_url');
+      if (customUrl) return customUrl;
+      if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+        return 'http://10.0.2.2/ByaHero';
+      }
+      return 'https://byahero.app';
+    };
+    window.BYAHERO_SERVER_URL = getBaseUrl();
+
     window.rawUserName = localStorage.getItem('byahero_cached_name') || localStorage.getItem('byahero_cached_email') || 'Guest';
     window.userInitial = (typeof window.rawUserName === 'string' && window.rawUserName.length > 0) ? window.rawUserName.charAt(0).toUpperCase() : '?';
     
@@ -684,7 +694,7 @@
       if (cachedProfilePic) {
         let picSrc = cachedProfilePic;
         if (!cachedProfilePic.startsWith('data:') && !cachedProfilePic.startsWith('http')) {
-          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          const SERVER_URL = window.BYAHERO_SERVER_URL;
           picSrc = SERVER_URL + '/' + cachedProfilePic;
         }
         menuAvatarEl.innerHTML = `<img src="${picSrc}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
@@ -780,7 +790,7 @@
     }
 
     window.fetch = async function(url, options) {
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = window.BYAHERO_SERVER_URL;
       const requestUrl = (typeof url === 'object' && url !== null) ? url.url : url;
       
       let fetchUrl = requestUrl;
@@ -937,7 +947,7 @@
 
     // Background Synchronization Manager
     async function syncOfflineData() {
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = window.BYAHERO_SERVER_URL;
       console.log('Background Sync: starting synchronization from ' + SERVER_URL);
 
       try {
@@ -1492,7 +1502,7 @@
         return;
       }
 
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = window.BYAHERO_SERVER_URL;
       const shareUrl = `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`;
       const shareData = {
         title: 'Join my ByaHero Circle',
@@ -1571,7 +1581,7 @@
         return;
       }
 
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = window.BYAHERO_SERVER_URL;
       const shareUrl = fromShare 
         ? `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`
         : code;
@@ -1793,7 +1803,7 @@
 
         _pollInProgress = true;
         try {
-          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          const SERVER_URL = window.BYAHERO_SERVER_URL;
           const res = await originalFetch(SERVER_URL + '/backend/getUnreadStatus.php?ts=' + Date.now(), {
             credentials: 'include',
             cache: 'no-store'
