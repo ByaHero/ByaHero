@@ -716,6 +716,68 @@
 
     // Offline Override of Bus Data API Fetch
     const originalFetch = window.fetch;
+
+    // Helper to bypass CORS and InfinityFree security checks in Capacitor
+    async function safeGet(url) {
+      if (window.Capacitor) {
+        // Wait up to 2 seconds for Capacitor plugins to initialize (especially on first boot / permission prompts)
+        for (let i = 0; i < 40; i++) {
+          if (window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+            break;
+          }
+          await new Promise(r => setTimeout(r, 50));
+        }
+      }
+
+      if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+        try {
+          let res = await window.Capacitor.Plugins.CapacitorHttp.get({
+            url: url,
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'User-Agent': navigator.userAgent
+            }
+          });
+          let data = res.data;
+
+          // Detect InfinityFree security cookie challenge (HTML response instead of JSON)
+          const isChallenge = typeof data === 'string' && 
+            (data.trim().startsWith('<') || 
+             data.includes('__test') || 
+             data.includes('<script') || 
+             data.includes('security'));
+
+          if (isChallenge) {
+            console.warn('safeGet: Detected InfinityFree firewall challenge. Retrying natively via POST to bypass...');
+            // Retry the GET request using POST method to bypass the browser challenge
+            res = await window.Capacitor.Plugins.CapacitorHttp.post({
+              url: url,
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'Content-Type': 'application/json',
+                'User-Agent': navigator.userAgent
+              },
+              data: {}
+            });
+            data = res.data;
+          }
+
+          if (typeof data === 'string') {
+            try {
+              data = JSON.parse(data);
+            } catch (e) {
+              // Not valid JSON, return raw string
+            }
+          }
+          return data;
+        } catch (e) {
+          console.error('safeGet (CapacitorHttp) failed, falling back:', e);
+        }
+      }
+      const res = await originalFetch(url);
+      return await res.json();
+    }
+
     window.fetch = async function(url, options) {
       const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
       const requestUrl = (typeof url === 'object' && url !== null) ? url.url : url;
@@ -736,18 +798,19 @@
 
       // Intercept map_data.php request
       if (typeof requestUrl === 'string' && (requestUrl.includes('map_data.php') || requestUrl.includes('/map_data.php'))) {
-        if (navigator.onLine) {
-          try {
-            const res = await originalFetch(fetchUrl, options);
-            const clone = res.clone();
-            const data = await clone.json();
-            if (data && Array.isArray(data.features)) {
-              localStorage.setItem('byahero_offline_map_data', JSON.stringify(data));
-            }
-            return res;
-          } catch(e) {
-            console.warn("Failed to fetch map data, using cache", e);
+        try {
+          const data = await safeGet(fetchUrl);
+          if (!data || !Array.isArray(data.features)) {
+            throw new Error("Invalid map data (features array missing)");
           }
+          localStorage.setItem('byahero_offline_map_data', JSON.stringify(data));
+          const body = typeof data === 'object' ? JSON.stringify(data) : data;
+          const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+          return new Response(body, {
+            headers: { 'Content-Type': contentType }
+          });
+        } catch(e) {
+          console.warn("Failed to fetch map data, using cache", e);
         }
         const cachedMapData = JSON.parse(localStorage.getItem('byahero_offline_map_data') || 'null');
         if (cachedMapData) {
@@ -759,18 +822,19 @@
 
       // Intercept bus data request
       if (typeof requestUrl === 'string' && requestUrl.includes('get_buses')) {
-        if (navigator.onLine) {
-          try {
-            const res = await originalFetch(fetchUrl, options);
-            const clone = res.clone();
-            const data = await clone.json();
-            if (data && data.success && data.buses) {
-              localStorage.setItem('byahero_cached_buses', JSON.stringify(data.buses));
-            }
-            return res;
-          } catch(e) {
-            console.warn("Failed to fetch online buses, using cache", e);
+        try {
+          const data = await safeGet(fetchUrl);
+          if (!data || !data.success || !Array.isArray(data.buses)) {
+            throw new Error("Invalid buses data");
           }
+          localStorage.setItem('byahero_cached_buses', JSON.stringify(data.buses));
+          const body = typeof data === 'object' ? JSON.stringify(data) : data;
+          const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+          return new Response(body, {
+            headers: { 'Content-Type': contentType }
+          });
+        } catch(e) {
+          console.warn("Failed to fetch online buses, using cache", e);
         }
         const cachedBuses = JSON.parse(localStorage.getItem('byahero_cached_buses') || '[]');
         return new Response(JSON.stringify({ success: true, buses: cachedBuses }), {
@@ -780,18 +844,19 @@
 
       // Intercept bus stops request (for map stops)
       if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_stops_terminal')) {
-        if (navigator.onLine) {
-          try {
-            const res = await originalFetch(fetchUrl, options);
-            const clone = res.clone();
-            const data = await clone.json();
-            if (data && data.success && Array.isArray(data.data)) {
-              localStorage.setItem('byahero_offline_stops', JSON.stringify(data.data));
-            }
-            return res;
-          } catch(e) {
-            console.warn("Failed to fetch online stops, using cache", e);
+        try {
+          const data = await safeGet(fetchUrl);
+          if (!data || !data.success || !Array.isArray(data.data)) {
+            throw new Error("Invalid stops data");
           }
+          localStorage.setItem('byahero_offline_stops', JSON.stringify(data.data));
+          const body = typeof data === 'object' ? JSON.stringify(data) : data;
+          const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+          return new Response(body, {
+            headers: { 'Content-Type': contentType }
+          });
+        } catch(e) {
+          console.warn("Failed to fetch online stops, using cache/offline", e);
         }
         const cachedStops = JSON.parse(localStorage.getItem('byahero_offline_stops') || '[]');
         const displayStops = cachedStops.length > 0 ? cachedStops : (window.BYAHERO_OFFLINE_DATA?.stops || []);
@@ -802,18 +867,19 @@
 
       // Intercept bus stops request (for fare checking/km markers)
       if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_stops') && !requestUrl.includes('get_bus_stops_terminal')) {
-        if (navigator.onLine) {
-          try {
-            const res = await originalFetch(fetchUrl, options);
-            const clone = res.clone();
-            const data = await clone.json();
-            if (data && data.success && Array.isArray(data.stops)) {
-              localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(data.stops));
-            }
-            return res;
-          } catch(e) {
-            console.warn("Failed to fetch online fare stops, using cache", e);
+        try {
+          const data = await safeGet(fetchUrl);
+          if (!data || !data.success || !Array.isArray(data.stops)) {
+            throw new Error("Invalid fare stops data");
           }
+          localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(data.stops));
+          const body = typeof data === 'object' ? JSON.stringify(data) : data;
+          const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+          return new Response(body, {
+            headers: { 'Content-Type': contentType }
+          });
+        } catch(e) {
+          console.warn("Failed to fetch online fare stops, using cache", e);
         }
         const cachedFareStops = JSON.parse(localStorage.getItem('byahero_offline_fare_stops') || '[]');
         return new Response(JSON.stringify({ success: true, stops: cachedFareStops }), {
@@ -823,18 +889,19 @@
 
       // Intercept schedules request
       if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_schedule')) {
-        if (navigator.onLine) {
-          try {
-            const res = await originalFetch(fetchUrl, options);
-            const clone = res.clone();
-            const data = await clone.json();
-            if (data && data.success && Array.isArray(data.schedule)) {
-              localStorage.setItem('byahero_offline_schedules', JSON.stringify(data.schedule));
-            }
-            return res;
-          } catch(e) {
-            console.warn("Failed to fetch online schedule, using cache", e);
+        try {
+          const data = await safeGet(fetchUrl);
+          if (!data || !data.success || !Array.isArray(data.schedule)) {
+            throw new Error("Invalid schedules data");
           }
+          localStorage.setItem('byahero_offline_schedules', JSON.stringify(data.schedule));
+          const body = typeof data === 'object' ? JSON.stringify(data) : data;
+          const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+          return new Response(body, {
+            headers: { 'Content-Type': contentType }
+          });
+        } catch(e) {
+          console.warn("Failed to fetch online schedule, using cache", e);
         }
         const cachedSchedules = JSON.parse(localStorage.getItem('byahero_offline_schedules') || '[]');
         const displaySchedules = cachedSchedules.length > 0 ? cachedSchedules : (window.BYAHERO_OFFLINE_DATA?.schedules || []);
@@ -843,20 +910,39 @@
         });
       }
 
+      // Fallback: If it's a GET request targeting the remote server, proxy it through CapacitorHttp
+      if (typeof requestUrl === 'string' && fetchUrl.startsWith(SERVER_URL)) {
+        const method = (options && options.method || 'GET').toUpperCase();
+        if (method === 'GET') {
+          try {
+            const data = await safeGet(fetchUrl);
+            // If the response is an HTML challenge or invalid response, throw to fall back to originalFetch
+            if (typeof data === 'string' && (data.trim().startsWith('<') || data.includes('__test'))) {
+              throw new Error("Blocked by firewall challenge");
+            }
+            const body = typeof data === 'object' ? JSON.stringify(data) : data;
+            const contentType = typeof data === 'object' ? 'application/json' : 'text/plain';
+            return new Response(body, {
+              headers: { 'Content-Type': contentType }
+            });
+          } catch (e) {
+            console.warn("Proxy GET via safeGet failed, falling back to originalFetch", e);
+          }
+        }
+      }
+
       return originalFetch(fetchUrl, options);
     };
 
     // Background Synchronization Manager
     async function syncOfflineData() {
-      if (!navigator.onLine) return;
       const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
       console.log('Background Sync: starting synchronization from ' + SERVER_URL);
 
       try {
-        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_stops_terminal');
-        const json = await res.json();
-        if (json && json.success && Array.isArray(json.data)) {
-          localStorage.setItem('byahero_offline_stops', JSON.stringify(json.data));
+        const data = await safeGet(SERVER_URL + '/public/api.php?action=get_bus_stops_terminal');
+        if (data && data.success && Array.isArray(data.data)) {
+          localStorage.setItem('byahero_offline_stops', JSON.stringify(data.data));
           console.log('Background Sync: cached map stops');
         }
       } catch (e) {
@@ -864,10 +950,9 @@
       }
 
       try {
-        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_stops');
-        const json = await res.json();
-        if (json && json.success && Array.isArray(json.stops)) {
-          localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(json.stops));
+        const data = await safeGet(SERVER_URL + '/public/api.php?action=get_bus_stops');
+        if (data && data.success && Array.isArray(data.stops)) {
+          localStorage.setItem('byahero_offline_fare_stops', JSON.stringify(data.stops));
           console.log('Background Sync: cached fare stops');
         }
       } catch (e) {
@@ -875,10 +960,9 @@
       }
 
       try {
-        const res = await originalFetch(SERVER_URL + '/public/api.php?action=get_bus_schedule');
-        const json = await res.json();
-        if (json && json.success && Array.isArray(json.schedule)) {
-          localStorage.setItem('byahero_offline_schedules', JSON.stringify(json.schedule));
+        const data = await safeGet(SERVER_URL + '/public/api.php?action=get_bus_schedule');
+        if (data && data.success && Array.isArray(data.schedule)) {
+          localStorage.setItem('byahero_offline_schedules', JSON.stringify(data.schedule));
           console.log('Background Sync: cached terminal schedules');
         }
       } catch (e) {
@@ -886,10 +970,9 @@
       }
 
       try {
-        const res = await originalFetch(SERVER_URL + '/public/map_data.php');
-        const json = await res.json();
-        if (json && Array.isArray(json.features)) {
-          localStorage.setItem('byahero_offline_map_data', JSON.stringify(json));
+        const data = await safeGet(SERVER_URL + '/public/map_data.php');
+        if (data && Array.isArray(data.features)) {
+          localStorage.setItem('byahero_offline_map_data', JSON.stringify(data));
           console.log('Background Sync: cached geofencing boundaries');
         }
       } catch (e) {
@@ -914,6 +997,7 @@
       document.getElementById('offlineBanner').style.display = 'none';
       syncOfflineData();
       updateBuses();
+      loadStops();
     });
     window.addEventListener('offline', () => {
       document.getElementById('offlineBanner').style.display = 'block';
@@ -924,10 +1008,8 @@
     loadStops();
     scheduleNextBusUpdate();
 
-    // Trigger initial background sync if online
-    if (navigator.onLine) {
-      syncOfflineData();
-    }
+    // Trigger initial background sync
+    syncOfflineData();
   </script>
 
   <!-- QR Code Modal -->

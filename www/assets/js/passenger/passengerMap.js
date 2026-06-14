@@ -50,7 +50,7 @@ const STOP_ICONS = {};
 function initIconCache() {
   if (ICON_CACHE.available) return;
   
-  const iconBase = window.ICON_BASE || '../../assets/images/icons';
+  const iconBase = window.ICON_BASE || '../../images/icons';
   const iconConfig = {
     iconUrl: `${iconBase}/marker.svg`,
     iconSize: [40, 40],
@@ -69,7 +69,7 @@ function initStopIcons() {
   if (STOP_ICONS.pickup_point) return;
 
   const base = window.PROJECT_BASE || '';
-  const stopIconUrl = `${base}/assets/images/icons/busStopMarkerFinal1.svg`;
+  const stopIconUrl = `${window.ICON_BASE || (base + '/images/icons')}/busStopMarkerFinal1.svg`;
   
   const defaultAnchor = {
     iconSize: [50, 50],
