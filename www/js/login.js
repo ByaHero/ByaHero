@@ -90,130 +90,75 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Online flow - Authenticate against live server
-            const getBaseUrl = () => {
-                const customUrl = localStorage.getItem('byahero_server_url');
-                if (customUrl) return customUrl;
-                return 'https://byahero.app';
-            };
-            const SERVER_URL = getBaseUrl();
-
-            const useNative = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp);
-
-            if (useNative) {
-                try {
-                    const params = new URLSearchParams();
-                    params.append('action', 'login');
-                    params.append('email', email);
-                    params.append('password', password);
-
-                    const res = await window.Capacitor.Plugins.CapacitorHttp.post({
-                        url: SERVER_URL + '/public/auth_api.php',
-                        headers: {
-                            'Content-Type': 'application/x-www-form-urlencoded',
-                            'Accept': 'application/json, text/plain, */*'
-                        },
-                        data: params.toString()
-                    });
-                    let data = res.data;
-                    if (typeof data === 'string') {
-                        try { data = JSON.parse(data); } catch (e) {}
-                    }
-                    handleLoginSuccess(data, email);
-                } catch (err) {
-                    console.error(err);
-                    handleLoginError(SERVER_URL);
+            let SERVER_URL = localStorage.getItem('byahero_server_url');
+            if (!SERVER_URL) {
+                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+                    SERVER_URL = 'http://10.0.2.2/ByaHero';
+                } else {
+                    SERVER_URL = 'https://byahero.app';
                 }
-            } else {
-                const formData = new FormData();
-                formData.append('action', 'login');
-                formData.append('email', email);
-                formData.append('password', password);
+            }
 
-                try {
-                    const response = await fetch(SERVER_URL + '/public/auth_api.php', {
-                        method: 'POST',
-                        body: formData
-                    });
-                    const data = await response.json();
-                    handleLoginSuccess(data, email);
-                } catch (err) {
-                    console.error(err);
-                    handleLoginError(SERVER_URL);
+            const formData = new FormData();
+            formData.append('action', 'login');
+            formData.append('email', email);
+            formData.append('password', password);
+
+            try {
+                const response = await fetch(SERVER_URL + '/public/auth_api.php', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Cache session in LocalStorage
+                    localStorage.setItem('byahero_cached_email', email);
+
+                    // Deduce role from redirect path
+                    let role = 'passenger';
+                    if (data.redirect && data.redirect.includes('conductor')) {
+                        role = 'conductor';
+                    } else if (data.redirect && data.redirect.includes('driver')) {
+                        role = 'driver';
+                    } else if (data.redirect && data.redirect.includes('admin')) {
+                        role = 'admin';
+                    }
+
+                    localStorage.setItem('byahero_cached_role', role);
+
+                    // Cache user profile details
+                    const contacts = data.user?.contacts || '';
+                    localStorage.setItem('byahero_cached_contacts', contacts);
+                    localStorage.setItem('byahero_cached_phone', contacts);
+                    localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
+                    localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
+
+                    // Redirect to local app assets instead of remote server
+                    if (role === 'passenger') {
+                        if (!contacts) {
+                            window.location.replace("passenger/completeProfile.html");
+                        } else {
+                            window.location.replace("passenger/index.html");
+                        }
+                    } else if (role === 'conductor') {
+                        window.location.replace("conductor/index.html");
+                    } else {
+                        window.location.replace("passenger/index.html");
+                    }
+                } else {
+                    showError(data.message || 'Invalid email or password.');
+                }
+            } catch (err) {
+                console.error(err);
+                if (SERVER_URL === 'https://byahero.app') {
+                    showError('Network error connecting to the server. Please check your connection, or tap the ByaHero logo 5 times to configure your local developer server URL.');
+                } else {
+                    showError(`Network error connecting to ${SERVER_URL}. Please ensure your local server (Apache) is running and accessible. Tap the ByaHero logo 5 times to reconfigure.`);
                 }
             }
         });
-    }
-
-    function handleLoginSuccess(data, email) {
-        if (!data.success) {
-            showError(data.message || 'Invalid email or password.');
-            return;
-        }
-
-        // Cache session in LocalStorage
-        localStorage.setItem('byahero_cached_email', email);
-
-        // Deduce role from redirect path
-        let role = 'passenger';
-        if (data.redirect && data.redirect.includes('conductor')) {
-            role = 'conductor';
-        } else if (data.redirect && data.redirect.includes('driver')) {
-            role = 'driver';
-        } else if (data.redirect && data.redirect.includes('admin')) {
-            role = 'admin';
-        }
-
-        localStorage.setItem('byahero_cached_role', role);
-
-        // Cache user profile details
-        const contacts = data.user?.contacts || '';
-        localStorage.setItem('byahero_cached_contacts', contacts);
-        localStorage.setItem('byahero_cached_phone', contacts);
-        localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
-        localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
-
-        // Redirect to local assets if offline, or remote server if online
-        const getBaseUrl = () => {
-            const customUrl = localStorage.getItem('byahero_server_url');
-            if (customUrl) return customUrl;
-            return 'https://byahero.app';
-        };
-        const SERVER_URL = getBaseUrl();
-
-        if (navigator.onLine === false) {
-            if (role === 'passenger') {
-                if (!contacts) {
-                    window.location.replace("passenger/completeProfile.html");
-                } else {
-                    window.location.replace("passenger/index.html");
-                }
-            } else {
-                window.location.replace("passenger/index.html");
-            }
-        } else {
-            // Online -> Go to remote server directly
-            if (role === 'passenger') {
-                if (!contacts) {
-                    window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
-                } else {
-                    window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                }
-            } else if (role === 'conductor') {
-                window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
-            } else if (role === 'admin') {
-                window.location.replace(SERVER_URL + "/public/admin/admin.php");
-            } else {
-                window.location.replace(SERVER_URL + "/public/passenger/index.php");
-            }
-        }
-    }
-
-    function handleLoginError(SERVER_URL) {
-        if (SERVER_URL === 'https://byahero.app') {
-            showError('Network error connecting to the server. Please check your connection, or tap the ByaHero logo 5 times to configure your local developer server URL.');
-        } else {
-            showError(`Network error connecting to ${SERVER_URL}. Please ensure your local server (Apache) is running and accessible. Tap the ByaHero logo 5 times to reconfigure.`);
-        }
     }
 
     function showError(msg) {
@@ -266,57 +211,35 @@ window.handleGoogleLogin = function (response) {
         return;
     }
 
-    const getBaseUrl = () => {
-        const customUrl = localStorage.getItem('byahero_server_url');
-        if (customUrl) return customUrl;
-        return 'https://byahero.app';
-    };
-    const SERVER_URL = getBaseUrl();
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
     const credential = response.credential;
-    
-    const useNative = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp);
+    const formData = new FormData();
+    formData.append('action', 'google_auth');
+    formData.append('credential', credential);
 
-    if (useNative) {
-        const params = new URLSearchParams();
-        params.append('action', 'google_auth');
-        params.append('credential', credential);
-
-        window.Capacitor.Plugins.CapacitorHttp.post({
-            url: SERVER_URL + '/public/auth_api.php',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'Accept': 'application/json, text/plain, */*'
-            },
-            data: params.toString()
-        })
-        .then(res => {
-            let data = res.data;
-            if (typeof data === 'string') {
-                try { data = JSON.parse(data); } catch(e) {}
-            }
-            if (data.success) {
-                handleLoginSuccess(data, data.user?.email || 'Guest');
-            } else {
-                alert(`Google login failed: ${data.message}`);
-            }
-        })
-        .catch(err => {
-            console.error(err);
-            alert('An error occurred during Google sign in.');
-        });
-    } else {
-        const formData = new FormData();
-        formData.append('action', 'google_auth');
-        formData.append('credential', credential);
-
-        fetch(SERVER_URL + '/public/auth_api.php', {
-            method: 'POST',
-            body: formData
-        })
+    fetch(SERVER_URL + '/public/auth_api.php', {
+        method: 'POST',
+        body: formData
+    })
         .then(res => res.json())
         .then(data => {
             if (data.success) {
-                handleLoginSuccess(data, data.user?.email || 'Guest');
+                localStorage.setItem('byahero_cached_role', 'passenger');
+                
+                // Cache user profile details
+                const email = data.user?.email || 'Guest';
+                const contacts = data.user?.contacts || '';
+                localStorage.setItem('byahero_cached_email', email);
+                localStorage.setItem('byahero_cached_contacts', contacts);
+                localStorage.setItem('byahero_cached_phone', contacts);
+                localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
+                localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
+
+                if (!contacts) {
+                    window.location.replace("passenger/completeProfile.html");
+                } else {
+                    window.location.replace("passenger/index.html");
+                }
             } else {
                 alert(`Google login failed: ${data.message}`);
             }
@@ -325,5 +248,4 @@ window.handleGoogleLogin = function (response) {
             console.error(err);
             alert('An error occurred during Google sign in.');
         });
-    }
 };

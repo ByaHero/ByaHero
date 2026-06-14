@@ -50,7 +50,7 @@ const STOP_ICONS = {};
 function initIconCache() {
   if (ICON_CACHE.available) return;
   
-  const iconBase = window.ICON_BASE || '../../images/icons';
+  const iconBase = window.ICON_BASE || '../../assets/images/icons';
   const iconConfig = {
     iconUrl: `${iconBase}/marker.svg`,
     iconSize: [40, 40],
@@ -69,7 +69,7 @@ function initStopIcons() {
   if (STOP_ICONS.pickup_point) return;
 
   const base = window.PROJECT_BASE || '';
-  const stopIconUrl = `${window.ICON_BASE || (base + '/images/icons')}/busStopMarkerFinal1.svg`;
+  const stopIconUrl = `${base}/assets/images/icons/busStopMarkerFinal1.svg`;
   
   const defaultAnchor = {
     iconSize: [50, 50],
@@ -870,66 +870,55 @@ window.loadStops = async function loadStops() {
       </div>`;
   }
 
-  let stops = [];
   try {
     const res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
     const json = await res.json();
-    if (json && json.success && Array.isArray(json.data)) {
-      stops = json.data;
+    if (!json || !json.success || !Array.isArray(json.data)) {
+      const msg = json?.error || 'Failed to load stops';
+      if (listEl) listEl.innerHTML = `<div class="text-center text-danger mt-4 small">${window.escapeHtml(msg)}</div>`;
+      return;
     }
+
+    const stops = json.data;
+    window.allStops = stops;
+    window.renderStopsList(stops);
+
+    const ids = new Set(stops.map(s => String(s.id)));
+    Object.keys(window.stopMarkers).forEach(id => {
+      if (!ids.has(id)) {
+        window._map.removeLayer(window.stopMarkers[id]);
+        delete window.stopMarkers[id];
+      }
+    });
+
+    stops.forEach(s => {
+      const id = String(s.id);
+      const lat = parseFloat(s.lat);
+      const lng = parseFloat(s.lng);
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+
+      const typeLabel = String(s.type || '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
+      const popup = `
+        <b>${window.escapeHtml(s.name)}</b><br>
+        ${window.escapeHtml(s.location_name || '')}
+        ${s.location_landmark ? `<br><small>${window.escapeHtml(s.location_landmark)}</small>` : ''}
+        <br><small>${window.escapeHtml(typeLabel)}</small>`;
+
+      if (window.stopMarkers[id]) {
+        window.stopMarkers[id].setLatLng([lat, lng]).setIcon(window.stopIcon(s.type)).setPopupContent(popup);
+      } else {
+        window.stopMarkers[id] = L.marker([lat, lng], {
+          icon: window.stopIcon(s.type),
+          stopType: String(s.type || 'bus_stop').toLowerCase()
+        }).addTo(window._map).bindPopup(popup);
+      }
+    });
+
+    if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(false);
+    window.resizeStopMarkersForZoom(window._map.getZoom());
   } catch (e) {
-    console.warn('Failed to fetch stops, falling back to local cache:', e);
+    if (listEl) listEl.innerHTML = '<div class="text-center text-danger mt-4 small">Error loading bus stops</div>';
   }
-
-  if (!stops || stops.length === 0) {
-    const cachedStops = localStorage.getItem('byahero_offline_stops');
-    if (cachedStops) {
-      try {
-        stops = JSON.parse(cachedStops);
-      } catch (ex) {}
-    }
-  }
-
-  if (!stops || stops.length === 0) {
-    stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
-  }
-
-  window.allStops = stops;
-  window.renderStopsList(stops);
-
-  const ids = new Set(stops.map(s => String(s.id)));
-  Object.keys(window.stopMarkers).forEach(id => {
-    if (!ids.has(id)) {
-      window._map.removeLayer(window.stopMarkers[id]);
-      delete window.stopMarkers[id];
-    }
-  });
-
-  stops.forEach(s => {
-    const id = String(s.id);
-    const lat = parseFloat(s.lat);
-    const lng = parseFloat(s.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
-
-    const typeLabel = String(s.type || '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-    const popup = `
-      <b>${window.escapeHtml(s.name)}</b><br>
-      ${window.escapeHtml(s.location_name || '')}
-      ${s.location_landmark ? `<br><small>${window.escapeHtml(s.location_landmark)}</small>` : ''}
-      <br><small>${window.escapeHtml(typeLabel)}</small>`;
-
-    if (window.stopMarkers[id]) {
-      window.stopMarkers[id].setLatLng([lat, lng]).setIcon(window.stopIcon(s.type)).setPopupContent(popup);
-    } else {
-      window.stopMarkers[id] = L.marker([lat, lng], {
-        icon: window.stopIcon(s.type),
-        stopType: String(s.type || 'bus_stop').toLowerCase()
-      }).addTo(window._map).bindPopup(popup);
-    }
-  });
-
-  if (typeof setBusStopsVisibility === 'function') setBusStopsVisibility(false);
-  window.resizeStopMarkersForZoom(window._map.getZoom());
 };
 
 /**
