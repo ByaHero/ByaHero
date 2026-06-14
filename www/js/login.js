@@ -90,7 +90,15 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             // Online flow - Authenticate against live server
-            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+            const getBaseUrl = () => {
+                const customUrl = localStorage.getItem('byahero_server_url');
+                if (customUrl) return customUrl;
+                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+                    return 'http://10.0.2.2/ByaHero';
+                }
+                return 'https://byahero.app';
+            };
+            const SERVER_URL = getBaseUrl();
 
             const useNative = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp);
 
@@ -239,7 +247,15 @@ window.handleGoogleLogin = function (response) {
         return;
     }
 
-    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+    const getBaseUrl = () => {
+        const customUrl = localStorage.getItem('byahero_server_url');
+        if (customUrl) return customUrl;
+        if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+            return 'http://10.0.2.2/ByaHero';
+        }
+        return 'https://byahero.app';
+    };
+    const SERVER_URL = getBaseUrl();
     const credential = response.credential;
     
     const useNative = (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp);

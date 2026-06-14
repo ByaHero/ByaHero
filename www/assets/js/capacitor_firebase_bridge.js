@@ -2,7 +2,12 @@
     'use strict';
   
     const getBaseUrl = () => {
-        return localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+        const customUrl = localStorage.getItem('byahero_server_url');
+        if (customUrl) return customUrl;
+        if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
+            return 'http://10.0.2.2/ByaHero';
+        }
+        return 'https://byahero.app';
     };
     const REGISTER_URL = getBaseUrl() + '/backend/registerFcmToken.php';
     const PENDING_TOKEN_KEY = 'sos_fcm_pending_token';
