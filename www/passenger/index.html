@@ -586,6 +586,8 @@
         if (requestUrl.startsWith('../api.php') || requestUrl.startsWith('api.php') || requestUrl.includes('/api.php')) {
           const apiQuery = requestUrl.includes('?') ? '?' + requestUrl.split('?')[1] : '';
           fetchUrl = SERVER_URL + '/public/api.php' + apiQuery;
+        } else if (requestUrl.includes('map_data.php')) {
+          fetchUrl = SERVER_URL + '/public/map_data.php';
         } else if (requestUrl.includes('backend/')) {
           fetchUrl = SERVER_URL + '/backend/' + requestUrl.substring(requestUrl.indexOf('backend/') + 8);
         } else if (requestUrl.includes('passenger/')) {
@@ -688,6 +690,57 @@
         <div class="modal-body text-center pt-2 pb-4">
           <div id="qr-reader" style="width: 100%; min-height: 250px; border-radius: 8px; overflow: hidden;" class="mx-auto border"></div>
           <small class="text-muted d-block mt-3 px-2">Position the QR code within the frame to scan.</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Waiting Modal -->
+  <div class="modal fade" id="waitingModal" tabindex="-1" aria-labelledby="waitingModalLabel" aria-hidden="true" style="z-index: 2005;">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 420px;">
+      <div class="modal-content border-0 shadow-lg position-relative bg-white" style="border-radius: 40px; padding: 3rem 2rem 2.5rem 2rem;">
+        <button type="button" class="position-absolute border-0 bg-transparent p-0 waiting-modal-close-hover" data-bs-dismiss="modal" aria-label="Close" style="top: 24px; right: 24px; z-index: 10; opacity: 0.8; transition: opacity 0.2s, transform 0.2s;">
+          <img src="../images/EKS.svg" alt="Close" style="width: 24px; height: 24px; display: block;" />
+        </button>
+        
+        <div class="text-center">
+          <!-- Question Mark Circle Icon -->
+          <img src="../images/waitingMark.svg" alt="Waiting Mark" class="d-block mx-auto mb-4 waiting-modal-icon-hover" style="width: 110px; height: 110px; transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);" />
+
+          <!-- Modal Title -->
+          <h2 class="fw-bold text-dark mb-2" style="font-size: 1.85rem; letter-spacing: -0.5px;">Are you waiting for a bus?</h2>
+
+          <!-- Modal Subtitle -->
+          <p class="text-secondary mx-auto mb-4" style="font-size: 1.05rem; line-height: 1.45; max-width: 90%;">
+            Help us improve transit accuracy by confirming your status at this location
+          </p>
+
+          <!-- Current Location -->
+          <div id="waitingLocationStatusDiv" class="mb-4 text-center">
+            <div class="d-inline-flex align-items-center gap-2 py-2 px-4 bg-light border rounded-pill">
+              <span class="material-symbols-rounded text-primary" style="font-size: 18px;">my_location</span>
+              <span id="waitingLocationNameDisplay" class="small fw-semibold text-secondary">Resolving...</span>
+            </div>
+          </div>
+
+          <div id="waitingStatusMsg" class="alert alert-info py-2 px-3 mb-3 small d-none rounded-3">
+          </div>
+
+          <!-- Buttons Container -->
+          <div class="mt-4">
+            <!-- Yes, I'm Waiting Button -->
+            <button id="btnSetWaiting" type="button" class="btn p-0 border-0 bg-transparent w-100" style="box-shadow: none;">
+              <img src="../images/waitingButton.svg" alt="I am waiting" style="width: 100%; height: auto; max-width: 320px; display: block; margin: 0 auto;" />
+            </button>
+
+            <!-- Cancel Waiting Button -->
+            <button id="btnCancelWaiting" type="button" class="btn btn-light border w-100 d-none align-items-center justify-content-center gap-3 shadow-sm waiting-modal-btn-cancel-hover" style="border-radius: 20px; padding: 1.1rem 2rem; font-size: 1.2rem; font-weight: 700; color: #475569; transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;">
+              <span class="d-flex align-items-center justify-content-center rounded-circle" style="width: 28px; height: 28px; background-color: #475569;">
+                <img src="../images/EKS.svg" alt="Close" style="width: 18px; height: 18px; display: inline-block; vertical-align: middle; filter: invert(1);" />
+              </span>
+              <span>Cancel Waiting</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -201,6 +201,33 @@
         .contact-card:active {
             transform: scale(0.98);
         }
+
+        .avatar-stack {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .stack-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            color: #fff;
+            border: 3px solid #fff;
+            margin-left: -12px;
+            font-size: 14px;
+            user-select: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .stack-avatar:first-child {
+            margin-left: 0;
+        }
     </style>
 </head>
 
@@ -223,8 +250,8 @@
         </div>
 
         <!-- SOS Button Trigger -->
-        <div class="text-center py-3">
-            <div class="sos-btn-container">
+        <div class="d-flex flex-column justify-content-center align-items-center pb-2">
+            <div class="sos-btn-container mb-3">
                 <div class="sos-ring"></div>
                 <div class="sos-ring"></div>
                 <button class="main-sos-btn" id="sosTriggerBtn">
@@ -232,7 +259,17 @@
                     <span class="text-white fw-bold mt-1">ALERT CIRCLE</span>
                 </button>
             </div>
-            <p class="text-secondary small mt-2" id="networkStatusText">
+            
+            <section class="text-center mb-3">
+                <div id="friends-avatars" class="avatar-stack mb-1"></div>
+                <div id="friends-status" class="small text-muted mb-0">
+                    <div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </section>
+            
+            <p class="text-secondary small" id="networkStatusText">
                 Alerts will be broadcasted to your Circle.
             </p>
         </div>
@@ -278,6 +315,120 @@
         document.addEventListener('DOMContentLoaded', () => {
             const data = window.BYAHERO_OFFLINE_DATA || { emergencyContacts: [] };
             const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
+            let friendsCache = [];
+
+            function initialsFromFriend(f) {
+                const base = (f.name || f.email || "??").trim();
+                const parts = base.split(/\s+/).filter(Boolean);
+                if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+                return base.slice(0, 2).toUpperCase();
+            }
+
+            function colorFromString(str) {
+                const colors = ["#ec4899", "#3b82f6", "#22c55e", "#f43f5e", "#a855f7", "#06b6d4", "#f97316"];
+                let h = 0;
+                for (let i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+                return colors[h % colors.length];
+            }
+
+            function renderFriendStack() {
+                const avatarsEl = document.getElementById('friends-avatars');
+                const statusEl = document.getElementById('friends-status');
+                if (!avatarsEl || !statusEl) return;
+
+                if (!Array.isArray(friendsCache) || friendsCache.length === 0) {
+                    avatarsEl.innerHTML = '';
+                    statusEl.textContent = "No friends in your circle yet";
+                    return;
+                }
+
+                const shown = friendsCache.slice(0, 5);
+                avatarsEl.innerHTML = shown.map(f => {
+                    const init = initialsFromFriend(f);
+                    const bg = colorFromString(f.email || f.name || init);
+                    if (f.profile_picture) {
+                        const isAbsolute = /^https?:\/\/|^data:/i.test(f.profile_picture);
+                        const safePath = isAbsolute ? f.profile_picture : SERVER_URL + '/' + (f.profile_picture.startsWith('/') ? f.profile_picture.substring(1) : f.profile_picture);
+                        return `<div class="stack-avatar" style="background:${bg}"><img src="${safePath}" alt="Friend Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>`;
+                    }
+                    return `<div class="stack-avatar" style="background:${bg}">${init}</div>`;
+                }).join("");
+                statusEl.textContent = `Your SOS will be sent to ${friendsCache.length} people`;
+            }
+
+            async function fetchFriends() {
+                const statusEl = document.getElementById('friends-status');
+                try {
+                    const res = await fetch(SERVER_URL + "/backend/groupView.php", { credentials: "include" });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.message || "Failed to fetch friends");
+                    friendsCache = Array.isArray(data.friends) ? data.friends : [];
+                    renderFriendStack();
+                } catch (e) {
+                    console.error(e);
+                    if (document.getElementById('friends-avatars')) document.getElementById('friends-avatars').innerHTML = '';
+                    if (statusEl) statusEl.textContent = "Failed to load friend group";
+                }
+            }
+
+            async function sendFcmPushes(pushData) {
+                if (!pushData.fcm_tokens || pushData.fcm_tokens.length === 0 || !pushData.jwt || !pushData.project_id) return;
+                const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+                    method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion: pushData.jwt })
+                });
+                const tokenData = await tokenRes.json();
+                if (!tokenData.access_token) throw new Error("Could not get access token: " + JSON.stringify(tokenData));
+                
+                const fcmUrl = `https://fcm.googleapis.com/v1/projects/${pushData.project_id}/messages:send`;
+                await Promise.all(pushData.fcm_tokens.map(async (token) => {
+                    await fetch(fcmUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenData.access_token}` },
+                        body: JSON.stringify({
+                            message: {
+                                token: token,
+                                notification: { 
+                                    title: '🚨 SOS Alert', 
+                                    body: `${pushData.sender_name} needs help!` + (pushData.location_text ? ` Location: ${pushData.location_text}` : '') 
+                                },
+                                data: { 
+                                    type: 'sos_alert', 
+                                    sender_name: pushData.sender_name, 
+                                    location_text: pushData.location_text || '' 
+                                },
+                                android: {
+                                    priority: 'high',
+                                    notification: {
+                                        channel_id: 'sos_alerts_v2',
+                                        sound: 'default',
+                                        notification_priority: 'PRIORITY_HIGH',
+                                        visibility: 'public'
+                                    }
+                                },
+                                apns: {
+                                    payload: {
+                                        aps: {
+                                            alert: {
+                                                title: '🚨 SOS Alert',
+                                                body: `${pushData.sender_name} needs help!`
+                                            },
+                                            sound: 'default',
+                                            'mutable-content': 1
+                                        }
+                                    },
+                                    headers: {
+                                        'apns-priority': '10'
+                                    }
+                                }
+                            }
+                        })
+                    });
+                }));
+            }
+
+            fetchFriends();
             
             // Adjust network status text
             const statusText = document.getElementById('networkStatusText');
@@ -484,7 +635,16 @@
                     });
                     const data = await res.json();
                     if (data.success) {
-                        alert("SOS Alert sent successfully to your Circle!");
+                        if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+                            try {
+                                await sendFcmPushes(data);
+                                alert("SOS Alert sent successfully to your Circle!");
+                            } catch (pushErr) {
+                                alert("SOS registered on server, but failed to broadcast push notifications: " + pushErr.message);
+                            }
+                        } else {
+                            alert("SOS Alert registered on server (no active device tokens found in your circle).");
+                        }
                     } else {
                         alert("Failed to send SOS: " + (data.message || "Unknown error"));
                     }
