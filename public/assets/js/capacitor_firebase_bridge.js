@@ -7,7 +7,7 @@
         if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
             return 'http://10.0.2.2/ByaHero';
         }
-        return 'https://byahero.app';
+        return 'https://byahero.alwaysdata.net';
     };
     const REGISTER_URL = getBaseUrl() + '/backend/registerFcmToken.php';
     const PENDING_TOKEN_KEY = 'sos_fcm_pending_token';

@@ -34,7 +34,7 @@
       async function syncDataAndRedirect() {
         const cachedRole = localStorage.getItem('byahero_cached_role');
         const cachedEmail = localStorage.getItem('byahero_cached_email');
-        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
 
         if (navigator.onLine === true) {
           // Try to sync with a 1.2 second timeout
@@ -54,22 +54,7 @@
             console.warn("Sync warning:", e);
           }
 
-          // Online -> Go to remote server
-          if (!cachedRole || !cachedEmail) {
-            window.location.replace(SERVER_URL + "/public/login.php");
-          } else {
-            if (cachedRole === 'passenger') {
-              window.location.replace(SERVER_URL + "/public/passenger/index.php");
-            } else if (cachedRole === 'conductor') {
-              window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
-            } else if (cachedRole === 'admin') {
-              window.location.replace(SERVER_URL + "/public/admin/admin.php");
-            } else {
-              window.location.replace(SERVER_URL + "/public/passenger/index.php");
-            }
-          }
-        } else {
-          // Offline -> Go to local files
+          // Always route to local files to support offline-first operation
           if (!cachedRole || !cachedEmail) {
             window.location.replace("login.html");
           } else {
