@@ -125,7 +125,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     </div>
                     <h3>Logging in...</h3>
                     <script>
-                        window.location.replace("<?= addslashes($targetRedirect) ?>");
+                        const target = "<?= addslashes($targetRedirect) ?>";
+                        if (window.Capacitor || navigator.userAgent.includes('Capacitor')) {
+                            const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
+                            const localOrigin = (platform === 'ios') ? 'capacitor://localhost' : 'http://localhost';
+                            const role = "<?= addslashes($userRole) ?>";
+                            const email = "<?= addslashes($userRecord['email']) ?>";
+                            const name = "<?= addslashes($userRecord['name'] ?? $userRecord['email']) ?>";
+                            const contacts = "<?= addslashes(array_key_exists('contacts', $userRecord) ? $userRecord['contacts'] : '') ?>";
+                            const profilePic = "<?= addslashes(array_key_exists('profile_picture', $userRecord) ? $userRecord['profile_picture'] : '') ?>";
+                            
+                            window.location.replace(`${localOrigin}/sync.html?role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&contacts=${encodeURIComponent(contacts)}&profile_picture=${encodeURIComponent(profilePic)}&redirect=${encodeURIComponent(target)}`);
+                        } else {
+                            window.location.replace(target);
+                        }
                     </script>
                 </body>
                 </html>
@@ -163,6 +176,18 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
     <script><?php include __DIR__ . '/../assets/js/capacitor_back_button.js'; ?></script>
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script><?php include __DIR__ . '/../assets/js/customAlerts.js'; ?></script>
+    <script>
+        // If inside Capacitor, clear local credentials when landing on the remote login screen
+        if (navigator.userAgent.includes('Capacitor') || window.Capacitor || (window.android && window.android.bridge)) {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (!urlParams.get('sync_done')) {
+                const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+                const localOrigin = isIOS ? 'capacitor://localhost' : 'http://localhost';
+                const nextUrl = window.location.href + (window.location.href.includes('?') ? '&' : '?') + 'sync_done=1';
+                window.location.replace(`${localOrigin}/sync.html?action=logout&redirect=${encodeURIComponent(nextUrl)}`);
+            }
+        }
+    </script>
 </head>
 
 <body>

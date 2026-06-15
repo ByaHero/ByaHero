@@ -763,12 +763,19 @@
       if (typeof requestUrl === 'string' && requestUrl.includes('get_bus_stops_terminal')) {
         if (navigator.onLine) {
           try {
-            return await originalFetch(fetchUrl, options);
+            const res = await originalFetch(fetchUrl, options);
+            const clone = res.clone();
+            const data = await clone.json();
+            if (data && data.success && Array.isArray(data.data)) {
+              localStorage.setItem('byahero_cached_stops_terminal', JSON.stringify(data.data));
+            }
+            return res;
           } catch(e) {
             console.warn("Failed to fetch online stops, using cache", e);
           }
         }
-        const offlineStops = window.BYAHERO_OFFLINE_DATA?.stops || [];
+        const cachedStops = JSON.parse(localStorage.getItem('byahero_cached_stops_terminal') || 'null');
+        const offlineStops = cachedStops || (window.BYAHERO_OFFLINE_DATA?.stops || []);
         return new Response(JSON.stringify({ success: true, data: offlineStops }), {
           headers: { 'Content-Type': 'application/json' }
         });
