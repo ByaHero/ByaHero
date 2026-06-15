@@ -17,8 +17,23 @@ window.routeFeatures = [];
  * Uses a robust set of headers to ensure compatibility with various server environments (e.g. InfinityFree).
  */
 window.safePost = async function safePost(relativeUrl, payload = {}) {
-    const url = new URL(relativeUrl, window.location.href).href;
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+    
+    // Resolve absolute URL
+    let url;
+    if (window.Capacitor) {
+        const cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
+        url = SERVER_URL + '/' + cleanRel;
+    } else {
+        url = new URL(relativeUrl, window.location.href).href;
+    }
+
     try {
+        const cachedEmail = localStorage.getItem('byahero_cached_email');
+        if (cachedEmail && !payload.email) {
+            payload.email = cachedEmail;
+        }
+
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
             const res = await window.Capacitor.Plugins.CapacitorHttp.post({
                 url,
