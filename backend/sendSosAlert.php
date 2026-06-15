@@ -29,6 +29,37 @@ if ($legacyCheck && $legacyCheck->num_rows > 0) {
 // The frontend (which has unrestricted internet) will exchange the JWT for an Access Token
 // and dispatch the push notifications directly to Google's FCM API.
 
+$input = json_decode(file_get_contents('php://input'), true);
+
+if (!isset($_SESSION['user_id'])) {
+    $email = trim($_POST['email'] ?? ($input['email'] ?? ''));
+    if (!empty($email)) {
+        // Look up user_id from database
+        $roleTables = [
+            'admin'     => 'admins',
+            'driver'    => 'drivers',
+            'conductor' => 'conductors',
+            'passenger' => 'users',
+        ];
+        foreach ($roleTables as $role => $table) {
+            $stmt = $conn->prepare("SELECT id, name FROM {$table} WHERE email = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $res = $stmt->get_result()->fetch_assoc();
+                if ($res) {
+                    $_SESSION['user_id'] = (int)$res['id'];
+                    $_SESSION['user_role'] = $role;
+                    $_SESSION['user_email'] = $email;
+                    $_SESSION['user_name'] = $res['name'] ?? $email;
+                    break;
+                }
+                $stmt->close();
+            }
+        }
+    }
+}
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
@@ -37,11 +68,40 @@ if (!isset($_SESSION['user_id'])) {
 $senderId = (int)$_SESSION['user_id'];
 $senderName = $_SESSION['user_name'] ?? ($_SESSION['user_email'] ?? 'A user');
 
-$input = json_decode(file_get_contents('php://input'), true);
 $recipients = $input['recipients'] ?? [];
 $locationText = trim($input['location_text'] ?? '');
 
+// If recipients list is empty, fetch all members of the sender's circle from database
 if (empty($recipients) || !is_array($recipients)) {
+    $recipients = [];
+    
+    // 1. Find user's circle
+    $circleStmt = $conn->prepare("SELECT id FROM circles WHERE owner_user_id = ? LIMIT 1");
+    if ($circleStmt) {
+        $circleStmt->bind_param("i", $senderId);
+        $circleStmt->execute();
+        $circleRes = $circleStmt->get_result()->fetch_assoc();
+        $circleStmt->close();
+        
+        if ($circleRes) {
+            $circleId = (int)$circleRes['id'];
+            
+            // 2. Fetch all members of this circle
+            $membersStmt = $conn->prepare("SELECT user_id FROM circle_members WHERE circle_id = ?");
+            if ($membersStmt) {
+                $membersStmt->bind_param("i", $circleId);
+                $membersStmt->execute();
+                $membersRes = $membersStmt->get_result();
+                while ($row = $membersRes->fetch_assoc()) {
+                    $recipients[] = (int)$row['user_id'];
+                }
+                $membersStmt->close();
+            }
+        }
+    }
+}
+
+if (empty($recipients)) {
     echo json_encode(['success' => false, 'message' => 'No recipients provided.']);
     exit;
 }

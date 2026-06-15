@@ -475,6 +475,7 @@
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
+                            email: email, // include email for session-less fallback
                             recipients: [], // default send to whole circle
                             location_text: resolvedPlace,
                             lat: currentCoords.lat,
