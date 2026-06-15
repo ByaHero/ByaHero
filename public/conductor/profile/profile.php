@@ -1,9 +1,46 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/../../../config/db.php';
+
 @session_start();
 
-require_once __DIR__ . '/../../../config/db.php';
+// Hydrate session if email is provided and session is missing (Capacitor/WebView context)
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$email = trim((string)($input['email'] ?? $_POST['email'] ?? $_GET['email'] ?? ''));
+if (!isset($_SESSION['user_id']) && !empty($email)) {
+    try {
+        $conn = db();
+        $cleanEmail = mb_strtolower($email);
+        $roleTables = [
+            'admin'     => 'admins',
+            'driver'    => 'drivers',
+            'conductor' => 'conductors',
+            'passenger' => 'users',
+        ];
+        foreach ($roleTables as $role => $table) {
+            $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $cleanEmail);
+                $stmt->execute();
+                $db_user = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($db_user) {
+                    $_SESSION['user_id'] = (int)$db_user['id'];
+                    $_SESSION['user_email'] = $db_user['email'] ?? '';
+                    $_SESSION['user_role'] = $role;
+                    $_SESSION['user_name'] = $db_user['name'] ?? $db_user['email'] ?? '';
+                    $_SESSION['user_contacts'] = $db_user['contacts'] ?? '';
+                    $_SESSION['user_profile_picture'] = $db_user['profile_picture'] ?? null;
+                    break;
+                }
+            }
+        }
+        if (isset($conn) && $conn instanceof mysqli) {
+            $conn->close();
+        }
+    } catch (\Throwable $ignore) {}
+}
 
 /**
  * PROTECT THIS PAGE
@@ -82,6 +119,14 @@ $message = '';
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $isJson = (isset($_GET['json']) || isset($_POST['json']) || !empty($input) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false));
+    
+    if (!empty($input)) {
+        $_POST = array_merge($_POST, $input);
+    }
+
+    $success = false;
 
     // UPDATE EMAIL
     if (isset($_POST['update_email'])) {
@@ -106,6 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $message = "Email updated successfully.";
+            $success = true;
         }
     }
 
@@ -146,9 +192,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $up->execute();
 
                     $message = "Password successfully updated!";
+                    $success = true;
                 }
             }
         }
+    }
+
+    if ($isJson) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => $success,
+            'message' => $message,
+            'email' => $userEmail,
+            'name' => $displayName
+        ]);
+        exit;
     }
 }
 

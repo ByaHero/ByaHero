@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <link rel="icon" href="../../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>ByaHero - Profile</title>
+
+    <link href="../../css/bootstrap.min.css" rel="stylesheet">
+
+    <style>
+        :root{
+            --header-blue: #0f3878;
+        }
+
+        /* Modals Overlay */
+        .modal-overlay{
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.40);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            backdrop-filter: blur(2px);
+            padding: 18px;
+        }
+        .custom-box{
+            background: #fff;
+            border-radius: 24px;
+            padding: 26px;
+            width: 100%;
+            max-width: 360px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+
+        .pw-eye{
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            border: 0;
+            background: transparent;
+            font-weight: 900;
+            color: #334155;
+            padding: 6px 8px;
+            cursor: pointer;
+        }
+
+        .pw-eye img{
+            width: 24px;
+            height: 24px;
+            object-fit: contain;
+            display: block;
+        }
+    </style>
+</head>
+
+<body class="d-flex flex-column min-vh-100 m-0 bg-white" style="font-family: 'Segoe UI', sans-serif;">
+
+    <div id="navbar-top-placeholder"></div>
+
+    <div class="d-flex flex-column align-items-center gap-2 pt-4 px-3 pb-2">
+        <div id="profileInitials" class="d-flex align-items-center justify-content-center rounded-circle fw-bold text-dark" style="width: 110px; height: 110px; background: #d9d9d9; font-size: 52px;">
+            C
+        </div>
+        <h2 id="displayName" class="fw-bold text-primary mb-0" style="font-size: 1.15rem;">Conductor</h2>
+    </div>
+
+    <div class="flex-grow-1 p-4 pb-5 bg-light" style="border-top-left-radius: 26px; border-top-right-radius: 26px; background-color: #eef2f6 !important; min-height: 0;">
+
+        <div id="alertBanner" class="alert alert-info py-2 px-3 mb-3 fw-bold text-center d-none" style="border-radius: 12px; font-size: 0.85rem;">
+        </div>
+
+        <div class="fw-bold text-dark mt-2 mb-3 ms-1" style="font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">Account Details</div>
+
+        <!-- Email Card -->
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                <img src="../../assets/images/icons/mail.png" alt="Email" width="22" height="22">
+            </div>
+
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Email Address</p>
+                <p id="displayEmail" class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;">-</p>
+            </div>
+
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openEmailModal()" aria-label="Edit Email" style="width: 34px; height: 34px;">
+                <img src="../../assets/images/icons/edit.png" alt="Edit" width="18" height="18">
+            </button>
+        </div>
+
+        <!-- Password Card -->
+        <div class="p-3 mb-3 shadow-sm border-0 d-grid align-items-center" style="grid-template-columns: 34px 1fr 34px; gap: 12px; border-radius: 16px; background: #f0f2f4;">
+            <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px;">
+                <img src="../../assets/images/icons/password.png" alt="Password" width="22" height="22">
+            </div>
+
+            <div class="min-width-0">
+                <p class="small text-secondary fw-semibold mb-1" style="font-size: 0.72rem; text-transform: uppercase;">Password</p>
+                <p class="fw-bold text-dark mb-0 text-break" style="font-size: 0.78rem;">••••••••••••</p>
+            </div>
+
+            <button type="button" class="btn p-0 d-flex align-items-center justify-content-center" onclick="openPasswordModal()" aria-label="Edit Password" style="width: 34px; height: 34px;">
+                <img src="../../assets/images/icons/edit.png" alt="Edit" width="18" height="18">
+            </button>
+        </div>
+
+    </div>
+
+    <div class="w-100 bg-primary" style="height: 35px; background-color: #0f3878 !important; flex: 0 0 auto;"></div>
+
+    <div id="emailModal" class="modal-overlay">
+        <div class="custom-box">
+            <h3 class="fw-bold text-dark mb-2" style="font-size: 1.25rem;">Edit Email</h3>
+            <p class="text-secondary small mb-4" style="line-height: 1.4;">Enter your new email address below.</p>
+            <form id="emailForm">
+                <input type="email" name="new_email" class="form-control mb-4" style="border-radius: 10px; padding: 10px;" placeholder="New email address" required>
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closeEmailModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- PASSWORD MODAL -->
+    <div id="passwordModal" class="modal-overlay">
+        <div class="custom-box">
+            <h3 class="fw-bold text-dark mb-2" style="font-size: 1.25rem;">Edit Password</h3>
+            <p class="text-secondary small mb-4" style="line-height: 1.4;">Enter your current and new password below.</p>
+
+            <form id="passwordForm">
+                <div class="position-relative mb-3">
+                    <input type="password" name="current_password" id="pwCurrent" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Current password" required>
+                    <button type="button" class="pw-eye" data-target="pwCurrent" aria-label="Show password">
+                        <img src="../../assets/images/icons/show.png" alt="Show">
+                    </button>
+                </div>
+
+                <div class="position-relative mb-3">
+                    <input type="password" name="new_password" id="pwNew" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="New password" required>
+                    <button type="button" class="pw-eye" data-target="pwNew" aria-label="Show password">
+                        <img src="../../assets/images/icons/show.png" alt="Show">
+                    </button>
+                </div>
+
+                <div class="position-relative mb-4">
+                    <input type="password" name="confirm_new_password" id="pwConfirm" class="form-control" style="border-radius: 10px; padding: 10px; padding-right: 44px;" placeholder="Confirm new password" required>
+                    <button type="button" class="pw-eye" data-target="pwConfirm" aria-label="Show password">
+                        <img src="../../assets/images/icons/show.png" alt="Show">
+                    </button>
+                </div>
+
+                <div class="d-flex justify-content-center gap-2">
+                    <button type="button" class="btn btn-light w-100 py-2 fw-bold rounded-3" style="background-color: #f0f2f5; color: #333;" onclick="closePasswordModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary w-100 py-2 fw-bold rounded-3" style="background-color: #0f3878; border-color: #0f3878; color: #fff;">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="navbar-menu-placeholder"></div>
+
+    <script src="../../js/bootstrap.bundle.min.js"></script>
+    <script src="../../js/navbarConductor.js"></script>
+
+    <script>
+        function openEmailModal() { document.getElementById('emailModal').style.display = 'flex'; }
+        function closeEmailModal() { document.getElementById('emailModal').style.display = 'none'; }
+
+        function openPasswordModal() { document.getElementById('passwordModal').style.display = 'flex'; }
+        function closePasswordModal() { document.getElementById('passwordModal').style.display = 'none'; }
+
+        function showAlert(message, type = 'info') {
+            const banner = document.getElementById('alertBanner');
+            if (banner) {
+                banner.textContent = message;
+                banner.className = `alert alert-${type === 'danger' ? 'danger' : 'info'} py-2 px-3 mb-3 fw-bold text-center`;
+                banner.classList.remove('d-none');
+                setTimeout(() => banner.classList.add('d-none'), 4000);
+            } else {
+                alert(message);
+            }
+        }
+
+        // Populate details from localStorage
+        (function() {
+            const cachedName = localStorage.getItem('byahero_cached_name') || localStorage.getItem('byahero_cached_email') || 'Conductor';
+            const email = localStorage.getItem('byahero_cached_email') || '';
+            let displayHeaderName = cachedName;
+            if (displayHeaderName.includes('@')) {
+                displayHeaderName = displayHeaderName.split('@')[0];
+            }
+            displayHeaderName = displayHeaderName.charAt(0).toUpperCase() + displayHeaderName.slice(1);
+            const initial = displayHeaderName.charAt(0).toUpperCase() || '?';
+
+            document.getElementById('profileInitials').textContent = initial;
+            document.getElementById('displayName').textContent = displayHeaderName;
+            document.getElementById('displayEmail').textContent = email;
+        })();
+
+        // Password Toggle eye buttons
+        document.querySelectorAll('.pw-eye').forEach((btn) => {
+            btn.addEventListener('click', () => {
+                const id = btn.getAttribute('data-target');
+                const input = id ? document.getElementById(id) : null;
+                if (!input) return;
+
+                const isPw = input.type === 'password';
+                input.type = isPw ? 'text' : 'password';
+
+                btn.innerHTML = isPw
+                    ? '<img src="../../assets/images/icons/shownot.svg" alt="Hide">'
+                    : '<img src="../../assets/images/icons/show.png" alt="Show">';
+            });
+        });
+
+        // Email form AJAX submit
+        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const newEmail = e.target.new_email.value;
+            try {
+                const res = await fetch('profile.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ update_email: 1, new_email: newEmail })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('byahero_cached_email', data.email);
+                    localStorage.setItem('byahero_cached_name', data.name);
+                    
+                    document.getElementById('displayEmail').textContent = data.email;
+                    document.getElementById('displayName').textContent = data.name;
+                    document.getElementById('profileInitials').textContent = data.name.charAt(0).toUpperCase();
+
+                    closeEmailModal();
+                    showAlert('Email updated successfully.', 'info');
+                    e.target.reset();
+                } else {
+                    showAlert(data.message || 'Failed to update email.', 'danger');
+                }
+            } catch(err) {
+                console.error(err);
+                showAlert('Failed to connect to the server.', 'danger');
+            }
+        });
+
+        // Password form AJAX submit
+        document.getElementById('passwordForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const currentPassword = e.target.current_password.value;
+            const newPassword = e.target.new_password.value;
+            const confirmNewPassword = e.target.confirm_new_password.value;
+
+            if (newPassword !== confirmNewPassword) {
+                showAlert('New passwords do not match!', 'danger');
+                return;
+            }
+
+            try {
+                const res = await fetch('profile.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        update_password: 1,
+                        current_password: currentPassword,
+                        new_password: newPassword,
+                        confirm_new_password: confirmNewPassword
+                    })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    closePasswordModal();
+                    showAlert('Password successfully updated!', 'info');
+                    e.target.reset();
+                } else {
+                    showAlert(data.message || 'Failed to update password.', 'danger');
+                }
+            } catch(err) {
+                console.error(err);
+                showAlert('Failed to connect to the server.', 'danger');
+            }
+        });
+    </script>
+</body>
+</html>
