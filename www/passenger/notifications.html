@@ -79,16 +79,9 @@
   </style>
 </head>
 
-<body>
+<body data-page-title="Notifications" data-page-type="notifications" data-back-link="index.html">
   <!-- Header Top Bar Component -->
-  <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 40px;">
-    <div class="d-flex align-items-center">
-      <a href="index.html" class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-        <span class="material-symbols-rounded text-white" style="font-size: 24px;">close</span>
-      </a>
-      <h6 class="h5 mb-0 text-white fw-normal ms-2" style="font-size: 1.1rem;">Notifications</h6>
-    </div>
-  </div>
+  
 
   <div id="loadingSpinner" class="text-center py-5">
     <div class="spinner-border text-primary" role="status">
@@ -134,6 +127,7 @@
   </div>
 
   <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/navbarPassenger.js"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', async () => {
