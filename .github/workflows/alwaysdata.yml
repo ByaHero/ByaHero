@@ -1,0 +1,38 @@
+name: Deploy to AlwaysData via FTP
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest code
+        uses: actions/checkout@v3
+
+      - name: Create .env file
+        run: |
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> .env
+          echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
+          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> .env
+          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> .env
+          echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> .env
+          echo "DB_HOST=${{ secrets.ALWAYSDATA_DB_HOST }}" >> .env
+          echo "DB_USER=${{ secrets.ALWAYSDATA_DB_USER }}" >> .env
+          echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> .env
+          echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> .env
+
+      - name: Upload via FTP to AlwaysData
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
+          username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
+          password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
+          port: 21
+          protocol: ftp
+          local-dir: ./
+          server-dir: ./www/
