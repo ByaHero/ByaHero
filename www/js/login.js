@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
                     SERVER_URL = 'http://10.0.2.2/ByaHero';
                 } else {
-                    SERVER_URL = 'https://byahero.app';
+                    SERVER_URL = 'https://byahero.alwaysdata.net';
                 }
             }
 
@@ -135,40 +135,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
                     localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
 
-                    // Redirect to remote or local app assets based on online status
-                    if (navigator.onLine === true) {
-                        if (role === 'passenger') {
-                            if (!contacts) {
-                                window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
-                            } else {
-                                window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                            }
-                        } else if (role === 'conductor') {
-                            window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
-                        } else if (role === 'admin') {
-                            window.location.replace(SERVER_URL + "/public/admin/admin.php");
-                        } else {
-                            window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                        }
-                    } else {
-                        if (role === 'passenger') {
-                            if (!contacts) {
-                                window.location.replace("passenger/completeProfile.html");
-                            } else {
-                                window.location.replace("passenger/index.html");
-                            }
-                        } else if (role === 'conductor') {
-                            window.location.replace("conductor/index.html");
+                    // Always route to local static files to support offline-first operation
+                    if (role === 'passenger') {
+                        if (!contacts) {
+                            window.location.replace("passenger/completeProfile.html");
                         } else {
                             window.location.replace("passenger/index.html");
                         }
+                    } else if (role === 'conductor') {
+                        window.location.replace("conductor/index.html");
+                    } else {
+                        window.location.replace("passenger/index.html");
                     }
                 } else {
                     showError(data.message || 'Invalid email or password.');
                 }
             } catch (err) {
                 console.error(err);
-                if (SERVER_URL === 'https://byahero.app') {
+                if (SERVER_URL === 'https://byahero.alwaysdata.net') {
                     showError('Network error connecting to the server. Please check your connection, or tap the ByaHero logo 5 times to configure your local developer server URL.');
                 } else {
                     showError(`Network error connecting to ${SERVER_URL}. Please ensure your local server (Apache) is running and accessible. Tap the ByaHero logo 5 times to reconfigure.`);
@@ -199,16 +183,16 @@ document.addEventListener('DOMContentLoaded', () => {
             lastClick = now;
             if (clickCount === 5) {
                 clickCount = 0;
-                const currentUrl = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+                const currentUrl = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
                 const newUrl = prompt(
                     "ByaHero Developer Settings\n\nEnter Backend Base URL (e.g. http://10.0.2.2/ByaHero or http://192.168.18.77/ByaHero):",
                     currentUrl
                 );
                 if (newUrl !== null) {
                     const trimmed = newUrl.trim().replace(/\/$/, ""); // trim and strip trailing slash
-                    if (trimmed === '' || trimmed === 'https://byahero.app') {
+                    if (trimmed === '' || trimmed === 'https://byahero.alwaysdata.net') {
                         localStorage.removeItem('byahero_server_url');
-                        alert("Restored default server: https://byahero.app");
+                        alert("Restored default server: https://byahero.alwaysdata.net");
                     } else {
                         localStorage.setItem('byahero_server_url', trimmed);
                         alert("Server URL set to: " + trimmed);
@@ -227,7 +211,7 @@ window.handleGoogleLogin = function (response) {
         return;
     }
 
-    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
     const credential = response.credential;
     const formData = new FormData();
     formData.append('action', 'google_auth');

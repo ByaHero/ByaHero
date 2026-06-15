@@ -231,7 +231,7 @@
         } else {
           // Online Flow: POST to auth_api.php
           try {
-            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
             const formData = new FormData();
             formData.append('action', 'complete_profile');
             formData.append('contacts', contactVal);

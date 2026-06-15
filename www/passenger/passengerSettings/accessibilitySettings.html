@@ -167,7 +167,7 @@
 
       // Fetch fresh settings from server if online and logged in
       if (isLoggedIn && navigator.onLine) {
-        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
         fetch(SERVER_URL + '/backend/fetchSettings.php', { credentials: 'include' })
           .then(res => res.json())
           .then(data => {
@@ -253,7 +253,7 @@
     }
 
     function saveToDatabase(setting, value) {
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
       const formData = new FormData();
       formData.append('setting_name', setting);
       formData.append('setting_value', value);

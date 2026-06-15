@@ -689,7 +689,7 @@
       if (cachedProfilePic) {
         let picSrc = cachedProfilePic;
         if (!cachedProfilePic.startsWith('data:') && !cachedProfilePic.startsWith('http')) {
-          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
           picSrc = SERVER_URL + '/' + cachedProfilePic;
         }
         menuAvatarEl.innerHTML = `<img src="${picSrc}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
@@ -723,7 +723,7 @@
     // Offline Override of Bus Data API Fetch
     const originalFetch = window.fetch;
     window.fetch = async function(url, options) {
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
       const requestUrl = (typeof url === 'object' && url !== null) ? url.url : url;
       
       let fetchUrl = requestUrl;
@@ -1255,7 +1255,7 @@
         return;
       }
 
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
       const shareUrl = `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`;
       const shareData = {
         title: 'Join my ByaHero Circle',
@@ -1334,7 +1334,7 @@
         return;
       }
 
-      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+      const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
       const shareUrl = fromShare 
         ? `${SERVER_URL}/public/passenger/index.php?join_circle=${code}`
         : code;
@@ -1532,7 +1532,7 @@
 
         _pollInProgress = true;
         try {
-          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+          const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
           const res = await originalFetch(SERVER_URL + '/backend/getUnreadStatus.php?ts=' + Date.now(), {
             credentials: 'include',
             cache: 'no-store'
