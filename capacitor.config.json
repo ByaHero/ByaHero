@@ -7,9 +7,9 @@
 		"cleartext": true,
 		"errorPath": "error.html",
 		"allowNavigation": [
-			"byahero.app",
-			"*.byahero.app"
-		]
+			"*"
+		],
+		"appendUserAgent": "ByaHeroCapacitor"
 	},
 	"android": {
 		"useLegacyBridge": true
