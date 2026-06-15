@@ -4,6 +4,40 @@ require_once '../config/db.php';
 header('Content-Type: application/json');
 $conn = db();
 
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+// Hydrate session if email is provided and session is missing (Capacitor/WebView context)
+$email = trim((string)($input['email'] ?? $_POST['email'] ?? $_GET['email'] ?? ''));
+if (!isset($_SESSION['user_id']) && !empty($email)) {
+    $cleanEmail = mb_strtolower($email);
+    $roleTables = [
+        'admin'     => 'admins',
+        'driver'    => 'drivers',
+        'conductor' => 'conductors',
+        'passenger' => 'users',
+    ];
+    foreach ($roleTables as $role => $table) {
+        try {
+            $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $cleanEmail);
+                $stmt->execute();
+                $db_user = $stmt->get_result()->fetch_assoc();
+                $stmt->close();
+                if ($db_user) {
+                    $_SESSION['user_id'] = (int)$db_user['id'];
+                    $_SESSION['user_email'] = $db_user['email'] ?? '';
+                    $_SESSION['user_role'] = $role;
+                    $_SESSION['user_name'] = $db_user['name'] ?? $db_user['email'] ?? '';
+                    $_SESSION['user_contacts'] = $db_user['contacts'] ?? '';
+                    $_SESSION['user_profile_picture'] = $db_user['profile_picture'] ?? null;
+                    break;
+                }
+            }
+        } catch (\Throwable $ignore) {}
+    }
+}
+
 if (!isset($_SESSION['user_id'])) {
     echo json_encode(['success' => false, 'message' => 'Not logged in']);
     exit;
@@ -11,7 +45,6 @@ if (!isset($_SESSION['user_id'])) {
 
 $userId = $_SESSION['user_id'];
 
-$input = json_decode(file_get_contents('php://input'), true);
 $lat = $input['latitude'] ?? null;
 $lng = $input['longitude'] ?? null;
 $accuracy = $input['accuracy'] ?? null;

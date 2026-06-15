@@ -240,9 +240,35 @@ window.resizeStopMarkersForZoom = function resizeStopMarkersForZoom(zoom) {
  */
 window.checkWaitingStatus = async function checkWaitingStatus() {
   try {
-    const url = new URL('../../backend/waiting_api.php?action=get_my_status', window.location.href).href;
-    const res = await fetch(url, { credentials: 'include' });
-    const data = await res.json();
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+    let url;
+    if (window.Capacitor) {
+      const cleanRel = '../../backend/waiting_api.php?action=get_my_status'.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
+      url = SERVER_URL + '/' + cleanRel;
+    } else {
+      url = new URL('../../backend/waiting_api.php?action=get_my_status', window.location.href).href;
+    }
+    const cachedEmail = localStorage.getItem('byahero_cached_email');
+    if (cachedEmail) {
+      url += '&email=' + encodeURIComponent(cachedEmail);
+    }
+
+    let data;
+    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+      const res = await window.Capacitor.Plugins.CapacitorHttp.get({
+        url,
+        headers: {
+          'Accept': 'application/json, text/plain, */*',
+          'User-Agent': navigator.userAgent,
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
+      data = res.data;
+    } else {
+      const res = await fetch(url, { credentials: 'include' });
+      data = await res.json();
+    }
+
     if (data && data.success) {
       window.isPassengerWaiting = !!data.is_waiting;
       window.passengerWaitingLocation = data.location_name;
