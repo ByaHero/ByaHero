@@ -612,4 +612,11 @@
     script.src = `${depth}assets/js/accessibility.js`;
     body.appendChild(script);
 
+    // 13. Load capacitor_firebase_bridge.js dynamically if on Capacitor
+    if (window.Capacitor) {
+        const bridgeScript = document.createElement('script');
+        bridgeScript.src = `${depth}assets/js/capacitor_firebase_bridge.js`;
+        body.appendChild(bridgeScript);
+    }
+
 })();

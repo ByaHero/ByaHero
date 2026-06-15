@@ -358,12 +358,18 @@
       poll();
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
+    const runInit = () => {
       const pending = localStorage.getItem(PENDING_TOKEN_KEY);
       if (pending) saveToken(pending);
       
       initWhenReady();
-    });
+    };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', runInit);
+    } else {
+      runInit();
+    }
   
     function showSosBanner(payload) {
       if (document.getElementById('sos-push-banner')) return;
