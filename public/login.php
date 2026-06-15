@@ -177,9 +177,9 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script><?php include __DIR__ . '/../assets/js/customAlerts.js'; ?></script>
     <script>
-        // If inside Capacitor, clear local credentials when landing on the remote login screen
-        if (navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor') || window.Capacitor || (window.android && window.android.bridge)) {
-            const urlParams = new URLSearchParams(window.location.search);
+        // If inside Capacitor, only clear local credentials if explicitly logging out (action=logout)
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('action') === 'logout' && (navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor') || window.Capacitor || (window.android && window.android.bridge))) {
             if (!urlParams.get('sync_done')) {
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
                 const localOrigin = isIOS ? 'capacitor://localhost' : 'http://localhost';
