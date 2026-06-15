@@ -71,7 +71,7 @@ function handleGoogleLogin(response) {
     .then(data => {
         if (data.success) {
             const target = data.redirect || redirectUrl;
-            if (window.Capacitor || navigator.userAgent.includes('Capacitor')) {
+            if (window.Capacitor || navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor')) {
                 const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
                 const localOrigin = (platform === 'ios') ? 'capacitor://localhost' : 'http://localhost';
                 const role = data.user?.role || 'passenger';

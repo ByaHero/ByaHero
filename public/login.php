@@ -126,7 +126,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <h3>Logging in...</h3>
                     <script>
                         const target = "<?= addslashes($targetRedirect) ?>";
-                        if (window.Capacitor || navigator.userAgent.includes('Capacitor')) {
+                        if (window.Capacitor || navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor')) {
                             const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
                             const localOrigin = (platform === 'ios') ? 'capacitor://localhost' : 'http://localhost';
                             const role = "<?= addslashes($userRole) ?>";
@@ -178,7 +178,7 @@ $isCapacitor = str_contains($_SERVER['HTTP_USER_AGENT'] ?? '', 'ByaHeroCapacitor
     <script><?php include __DIR__ . '/../assets/js/customAlerts.js'; ?></script>
     <script>
         // If inside Capacitor, clear local credentials when landing on the remote login screen
-        if (navigator.userAgent.includes('Capacitor') || window.Capacitor || (window.android && window.android.bridge)) {
+        if (navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor') || window.Capacitor || (window.android && window.android.bridge)) {
             const urlParams = new URLSearchParams(window.location.search);
             if (!urlParams.get('sync_done')) {
                 const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
