@@ -610,10 +610,11 @@ $pageDepth = "../../../";
             const locText = await getResolvedLocationText();
             try {
                 if (statusEl) statusEl.textContent = "Sending…";
+                const email = localStorage.getItem('byahero_cached_email') || '';
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ recipients: selected, location_text: locText })
+                    body: JSON.stringify({ email: email, recipients: selected, location_text: locText })
                 });
                 const data = await res.json();
                 if (!data.success) throw new Error(data.message || "Failed to send SOS");
@@ -745,10 +746,11 @@ $pageDepth = "../../../";
             try {
                 if (statusEl) statusEl.textContent = "Sending SOS…";
 
+                const email = localStorage.getItem('byahero_cached_email') || '';
                 const res = await fetch("../../../backend/sendSosAlert.php", {
                     method: "POST", credentials: "include",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ recipients, location_text: locText })
+                    body: JSON.stringify({ email: email, recipients, location_text: locText })
                 });
 
                 const data = await res.json();
