@@ -1,9 +1,11 @@
-name: Deploy to FTP
+name: Deploy Landing Page to FTP
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'index.html'
 
 jobs:
   deploy:
@@ -13,18 +15,10 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v3
 
-      - name: Create .env file
+      - name: Prepare landing page
         run: |
-          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> .env
-          echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
-          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> .env
-          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
-          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> .env
-          echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> .env
-          echo "DB_HOST=${{ secrets.DB_HOST }}" >> .env
-          echo "DB_USER=${{ secrets.DB_USER }}" >> .env
-          echo "DB_PASS=${{ secrets.DB_PASS }}" >> .env
-          echo "DB_NAME=${{ secrets.DB_NAME }}" >> .env
+          mkdir -p deploy
+          cp index.html deploy/
 
       - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
@@ -34,5 +28,5 @@ jobs:
           password: ${{ secrets.FTP_PASSWORD }}
           port: 21
           protocol: ftp
-          local-dir: ./
+          local-dir: ./deploy/
           server-dir: ./byahero.app/htdocs/
