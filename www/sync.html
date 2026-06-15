@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Syncing Session...</title>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const action = urlParams.get('action') || 'login';
+            const redirect = urlParams.get('redirect');
+
+            if (action === 'logout') {
+                localStorage.removeItem('byahero_cached_role');
+                localStorage.removeItem('byahero_cached_email');
+                localStorage.removeItem('byahero_cached_name');
+                localStorage.removeItem('byahero_cached_contacts');
+                localStorage.removeItem('byahero_cached_phone');
+                localStorage.removeItem('byahero_cached_profile_picture');
+            } else {
+                const role = urlParams.get('role');
+                const email = urlParams.get('email');
+                const name = urlParams.get('name');
+                const contacts = urlParams.get('contacts');
+                const profilePic = urlParams.get('profile_picture');
+
+                if (role) localStorage.setItem('byahero_cached_role', role);
+                if (email) localStorage.setItem('byahero_cached_email', email);
+                if (name) localStorage.setItem('byahero_cached_name', name);
+                if (contacts) {
+                    localStorage.setItem('byahero_cached_contacts', contacts);
+                    localStorage.setItem('byahero_cached_phone', contacts);
+                }
+                if (profilePic) localStorage.setItem('byahero_cached_profile_picture', profilePic);
+            }
+
+            // Redirect back to the remote or local destination
+            if (redirect) {
+                window.location.replace(redirect);
+            } else {
+                window.location.replace("index.html");
+            }
+        });
+    </script>
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f8fafc;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            color: #1e293b;
+        }
+        .container {
+            text-align: center;
+        }
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e2e8f0;
+            border-top: 4px solid #1e3a8a;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="spinner"></div>
+        <h3>Syncing session data...</h3>
+    </div>
+</body>
+</html>

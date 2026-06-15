@@ -179,8 +179,22 @@
         return stopIcon;
     }
 
-    // Load from preseeded offline data
-    const stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
+    // Load from cache or fallback to preseeded offline data
+    let stops = [];
+    const cachedStopsRaw = localStorage.getItem('byahero_cached_stops_terminal');
+    if (cachedStopsRaw) {
+        try {
+            const parsed = JSON.parse(cachedStopsRaw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                stops = parsed;
+            }
+        } catch (e) {
+            console.warn("Error parsing cached stops_terminal", e);
+        }
+    }
+    if (stops.length === 0) {
+        stops = window.BYAHERO_OFFLINE_DATA?.stops || [];
+    }
     const markersById = {};
 
     function escapeHtml(str) {

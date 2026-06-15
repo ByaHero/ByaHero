@@ -4,35 +4,88 @@
     <meta charset="utf-8" />
     <link rel="icon" href="../images/byaheroLogoBlue.svg" type="image/svg+xml">
     <script>
-      const cachedRole = localStorage.getItem('byahero_cached_role');
-      const cachedEmail = localStorage.getItem('byahero_cached_email');
-
-      if (!cachedRole || !cachedEmail) {
-        // Not logged in -> Go to login page
-        window.location.replace("login.html");
-      } else {
-        // Logged in -> Route based on connectivity
-        if (navigator.onLine === false) {
-          if (cachedRole === 'passenger') {
-            window.location.replace("passenger/index.html");
-          } else if (cachedRole === 'conductor') {
-            window.location.replace("conductor/index.html");
-          } else {
-            window.location.replace("login.html");
+      async function safeGet(url) {
+        if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+          try {
+            const res = await window.Capacitor.Plugins.CapacitorHttp.get({
+              url,
+              headers: {
+                'Accept': 'application/json, text/plain, */*',
+                'User-Agent': navigator.userAgent,
+                'X-Requested-With': 'XMLHttpRequest'
+              }
+            });
+            return res.data;
+          } catch (e) {
+            console.warn("CapacitorHttp get failed:", e);
+            throw e;
           }
         } else {
+          const res = await fetch(url, {
+            headers: {
+              'Accept': 'application/json, text/plain, */*',
+              'X-Requested-With': 'XMLHttpRequest'
+            }
+          });
+          return await res.json();
+        }
+      }
+
+      async function syncDataAndRedirect() {
+        const cachedRole = localStorage.getItem('byahero_cached_role');
+        const cachedEmail = localStorage.getItem('byahero_cached_email');
+        const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+
+        if (navigator.onLine === true) {
+          // Try to sync with a 1.2 second timeout
+          try {
+            const syncPromise = safeGet(SERVER_URL + '/public/api.php?action=get_sync_data');
+            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 1200));
+            
+            const data = await Promise.race([syncPromise, timeoutPromise]);
+            if (data && data.success) {
+              if (data.stops_terminal) localStorage.setItem('byahero_cached_stops_terminal', JSON.stringify(data.stops_terminal));
+              if (data.bus_stops) localStorage.setItem('byahero_cached_bus_stops', JSON.stringify(data.bus_stops));
+              if (data.bus_fares) localStorage.setItem('byahero_cached_bus_fares', JSON.stringify(data.bus_fares));
+              if (data.bus_schedule) localStorage.setItem('byahero_cached_bus_schedule', JSON.stringify(data.bus_schedule));
+              localStorage.setItem('byahero_last_sync_time', Date.now().toString());
+            }
+          } catch (e) {
+            console.warn("Sync warning:", e);
+          }
+
           // Online -> Go to remote server
-          if (cachedRole === 'passenger') {
-            window.location.replace("https://byahero.app/public/passenger/index.php");
-          } else if (cachedRole === 'conductor') {
-            window.location.replace("https://byahero.app/public/conductor/conductor.php");
-          } else if (cachedRole === 'admin') {
-            window.location.replace("https://byahero.app/public/admin/admin.php");
+          if (!cachedRole || !cachedEmail) {
+            window.location.replace(SERVER_URL + "/public/login.php");
           } else {
-            window.location.replace("https://byahero.app/public/passenger/index.php");
+            if (cachedRole === 'passenger') {
+              window.location.replace(SERVER_URL + "/public/passenger/index.php");
+            } else if (cachedRole === 'conductor') {
+              window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
+            } else if (cachedRole === 'admin') {
+              window.location.replace(SERVER_URL + "/public/admin/admin.php");
+            } else {
+              window.location.replace(SERVER_URL + "/public/passenger/index.php");
+            }
+          }
+        } else {
+          // Offline -> Go to local files
+          if (!cachedRole || !cachedEmail) {
+            window.location.replace("login.html");
+          } else {
+            if (cachedRole === 'passenger') {
+              window.location.replace("passenger/index.html");
+            } else if (cachedRole === 'conductor') {
+              window.location.replace("conductor/index.html");
+            } else {
+              window.location.replace("login.html");
+            }
           }
         }
       }
+
+      // Execute sync and route
+      syncDataAndRedirect();
     </script>
     <meta
       http-equiv="refresh"

@@ -70,7 +70,20 @@ function handleGoogleLogin(response) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            window.location.href = data.redirect || redirectUrl;
+            const target = data.redirect || redirectUrl;
+            if (window.Capacitor || navigator.userAgent.includes('Capacitor')) {
+                const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
+                const localOrigin = (platform === 'ios') ? 'capacitor://localhost' : 'http://localhost';
+                const role = data.user?.role || 'passenger';
+                const email = data.user?.email || '';
+                const name = data.user?.name || '';
+                const contacts = data.user?.contacts || '';
+                const profilePic = data.user?.profile_picture || '';
+                
+                window.location.replace(`${localOrigin}/sync.html?role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&contacts=${encodeURIComponent(contacts)}&profile_picture=${encodeURIComponent(profilePic)}&redirect=${encodeURIComponent(target)}`);
+            } else {
+                window.location.href = target;
+            }
         } else {
             alert(`Google login failed: ${data.message}`);
         }

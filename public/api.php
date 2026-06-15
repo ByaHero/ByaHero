@@ -982,6 +982,34 @@ function getBusStops(): array {
     return ['success' => true, 'stops' => $rows];
 }
 
+function getSyncData(): array {
+    $conn = db();
+    
+    // 1. Get busstopsterminal
+    $resStopsTerminal = $conn->query("SELECT id, name, type, route, location_name, location_landmark, lat, lng FROM busstopsterminal ORDER BY name ASC");
+    $stopsTerminal = $resStopsTerminal ? $resStopsTerminal->fetch_all(MYSQLI_ASSOC) : [];
+
+    // 2. Get bus_stops
+    $resBusStops = $conn->query("SELECT stop_id, location_name, latitude, longitude, km_marker FROM bus_stops WHERE is_active = 1 ORDER BY km_marker ASC");
+    $busStops = $resBusStops ? $resBusStops->fetch_all(MYSQLI_ASSOC) : [];
+
+    // 3. Get bus_fares
+    $resBusFares = $conn->query("SELECT origin_stop_id, destination_stop_id, regular_fare, discounted_fare FROM bus_fares");
+    $busFares = $resBusFares ? $resBusFares->fetch_all(MYSQLI_ASSOC) : [];
+
+    // 4. Get bus_schedule
+    $resSched = $conn->query("SELECT terminal_name, time_open, time_close, is_suspended, suspend_message FROM bus_schedule ORDER BY terminal_name ASC");
+    $busSchedule = $resSched ? $resSched->fetch_all(MYSQLI_ASSOC) : [];
+
+    return [
+        'success' => true,
+        'stops_terminal' => $stopsTerminal,
+        'bus_stops' => $busStops,
+        'bus_fares' => $busFares,
+        'bus_schedule' => $busSchedule
+    ];
+}
+
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 
@@ -1004,6 +1032,7 @@ try {
         case 'get_bus_fares':             $response = getBusFares(); break;
         case 'get_bus_schedule':          $response = getBusSchedule(); break;
         case 'get_bus_stops':             $response = getBusStops(); break;
+        case 'get_sync_data':             $response = getSyncData(); break;
         default:
             http_response_code(400);
             $response = ['success' => false, 'error' => 'Invalid action'];

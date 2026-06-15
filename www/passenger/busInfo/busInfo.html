@@ -159,14 +159,56 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            const data = window.BYAHERO_OFFLINE_DATA || { stops: [], schedules: [] };
+            const offlineData = window.BYAHERO_OFFLINE_DATA || { stops: [], schedules: [] };
+            
+            // Load stops from cache
+            let stops = [];
+            const cachedStopsRaw = localStorage.getItem('byahero_cached_bus_stops');
+            if (cachedStopsRaw) {
+                try {
+                    const parsed = JSON.parse(cachedStopsRaw);
+                    if (Array.isArray(parsed)) {
+                        stops = parsed.map(s => ({
+                            id: parseInt(s.stop_id, 10),
+                            name: s.location_name,
+                            location_name: s.location_name,
+                            lat: s.latitude,
+                            lng: s.longitude,
+                            km_marker: parseFloat(s.km_marker),
+                            type: 'bus_stop' // Default to bus_stop so it passes the filter
+                        }));
+                    }
+                } catch (e) {
+                    console.warn("Error parsing cached bus stops", e);
+                }
+            }
+            if (stops.length === 0) {
+                stops = offlineData.stops || [];
+            }
+
+            // Load schedules from cache
+            let schedules = [];
+            const cachedSchedulesRaw = localStorage.getItem('byahero_cached_bus_schedule');
+            if (cachedSchedulesRaw) {
+                try {
+                    const parsed = JSON.parse(cachedSchedulesRaw);
+                    if (Array.isArray(parsed)) {
+                        schedules = parsed;
+                    }
+                } catch (e) {
+                    console.warn("Error parsing cached schedules", e);
+                }
+            }
+            if (schedules.length === 0) {
+                schedules = offlineData.schedules || [];
+            }
             
             // 1. Render schedules
             const schedulesList = document.getElementById('schedulesList');
-            if (data.schedules.length === 0) {
+            if (schedules.length === 0) {
                 schedulesList.innerHTML = `<div class="bg-white rounded-4 p-3 mb-3 border shadow-sm text-center text-muted">No schedule posted.</div>`;
             } else {
-                schedulesList.innerHTML = data.schedules.map(row => {
+                schedulesList.innerHTML = schedules.map(row => {
                     const formatTime = (timeStr) => {
                         if (!timeStr) return '';
                         const [h, m] = timeStr.split(':');
@@ -200,7 +242,7 @@
 
             const populateStopsDropdown = (menu, targetId) => {
                 // Filter stops of type bus_stop or terminal
-                const validStops = data.stops.filter(s => s.type === 'bus_stop' || s.type === 'terminal');
+                const validStops = stops.filter(s => s.type === 'bus_stop' || s.type === 'terminal');
                 menu.innerHTML = validStops.map(s => `
                     <li>
                         <a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
@@ -260,8 +302,8 @@
                     return;
                 }
 
-                const pickupStop = data.stops.find(s => s.id === pickupId);
-                const dropoffStop = data.stops.find(s => s.id === dropoffId);
+                const pickupStop = stops.find(s => s.id === pickupId);
+                const dropoffStop = stops.find(s => s.id === dropoffId);
 
                 if (!pickupStop || !dropoffStop) {
                     errorMessage.textContent = 'Invalid stops selected';
@@ -269,25 +311,47 @@
                     return;
                 }
 
-                // Calculate KM distance
-                const distance = Math.abs(parseFloat(pickupStop.km_marker) - parseFloat(dropoffStop.km_marker));
+                // Check direct bus fares cache first
+                let regularFare = null;
+                let discountedFare = null;
 
-                // Apply standard utility bus fare formula
-                let regularFare = 0;
-                let discountedFare = 0;
+                const cachedFaresRaw = localStorage.getItem('byahero_cached_bus_fares');
+                if (cachedFaresRaw) {
+                    try {
+                        const faresList = JSON.parse(cachedFaresRaw);
+                        if (Array.isArray(faresList)) {
+                            const match = faresList.find(f => 
+                                (parseInt(f.origin_stop_id, 10) === pickupId && parseInt(f.destination_stop_id, 10) === dropoffId) ||
+                                (parseInt(f.origin_stop_id, 10) === dropoffId && parseInt(f.destination_stop_id, 10) === pickupId)
+                            );
+                            if (match) {
+                                regularFare = parseFloat(match.regular_fare);
+                                discountedFare = parseFloat(match.discounted_fare);
+                            }
+                        }
+                    } catch (e) {
+                        console.warn("Error parsing cached fares", e);
+                    }
+                }
 
-                if (distance <= 4) {
-                    regularFare = 14.00;
-                    discountedFare = 11.25;
-                } else {
-                    // 14.00 base + 2.25 per km beyond the 4km mark
-                    // (Matches live getFare.php distance logic)
-                    regularFare = 14.00 + ((distance - 1) * 2.25);
-                    discountedFare = regularFare * 0.80;
+                if (regularFare === null) {
+                    // Calculate KM distance
+                    const distance = Math.abs(parseFloat(pickupStop.km_marker) - parseFloat(dropoffStop.km_marker));
 
-                    // Round to nearest 0.25
-                    regularFare = Math.round(regularFare * 4) / 4;
-                    discountedFare = Math.round(discountedFare * 4) / 4;
+                    // Apply standard utility bus fare formula
+                    if (distance <= 4) {
+                        regularFare = 14.00;
+                        discountedFare = 11.25;
+                    } else {
+                        // 14.00 base + 2.25 per km beyond the 4km mark
+                        // (Matches live getFare.php distance logic)
+                        regularFare = 14.00 + ((distance - 1) * 2.25);
+                        discountedFare = regularFare * 0.80;
+
+                        // Round to nearest 0.25
+                        regularFare = Math.round(regularFare * 4) / 4;
+                        discountedFare = Math.round(discountedFare * 4) / 4;
+                    }
                 }
 
                 const fare = (fareType === 'discounted') ? discountedFare : regularFare;

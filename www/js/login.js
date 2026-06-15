@@ -135,17 +135,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
                     localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
 
-                    // Redirect to local app assets instead of remote server
-                    if (role === 'passenger') {
-                        if (!contacts) {
-                            window.location.replace("passenger/completeProfile.html");
+                    // Redirect to remote or local app assets based on online status
+                    if (navigator.onLine === true) {
+                        if (role === 'passenger') {
+                            if (!contacts) {
+                                window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
+                            } else {
+                                window.location.replace(SERVER_URL + "/public/passenger/index.php");
+                            }
+                        } else if (role === 'conductor') {
+                            window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
+                        } else if (role === 'admin') {
+                            window.location.replace(SERVER_URL + "/public/admin/admin.php");
+                        } else {
+                            window.location.replace(SERVER_URL + "/public/passenger/index.php");
+                        }
+                    } else {
+                        if (role === 'passenger') {
+                            if (!contacts) {
+                                window.location.replace("passenger/completeProfile.html");
+                            } else {
+                                window.location.replace("passenger/index.html");
+                            }
+                        } else if (role === 'conductor') {
+                            window.location.replace("conductor/index.html");
                         } else {
                             window.location.replace("passenger/index.html");
                         }
-                    } else if (role === 'conductor') {
-                        window.location.replace("conductor/index.html");
-                    } else {
-                        window.location.replace("passenger/index.html");
                     }
                 } else {
                     showError(data.message || 'Invalid email or password.');
@@ -235,10 +251,18 @@ window.handleGoogleLogin = function (response) {
                 localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
                 localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
 
-                if (!contacts) {
-                    window.location.replace("passenger/completeProfile.html");
+                if (navigator.onLine === true) {
+                    if (!contacts) {
+                        window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
+                    } else {
+                        window.location.replace(SERVER_URL + "/public/passenger/index.php");
+                    }
                 } else {
-                    window.location.replace("passenger/index.html");
+                    if (!contacts) {
+                        window.location.replace("passenger/completeProfile.html");
+                    } else {
+                        window.location.replace("passenger/index.html");
+                    }
                 }
             } else {
                 alert(`Google login failed: ${data.message}`);
