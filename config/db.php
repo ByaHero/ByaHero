@@ -29,6 +29,8 @@ date_default_timezone_set('Asia/Manila');
 
     // 2. Secure & Cross-Origin Session Cookie Setup (essential for HTTPS proxying)
     if (session_status() === PHP_SESSION_NONE) {
+        // Set session lifetime to 30 days (2592000 seconds)
+        ini_set('session.gc_maxlifetime', '2592000');
         // Disable session garbage collection to prevent "Permission Denied" notices on free hosting environments
         ini_set('session.gc_probability', '0');
 
@@ -41,7 +43,7 @@ date_default_timezone_set('Asia/Manila');
             // Over HTTPS, session cookies must be Secure and SameSite=None so they work cross-origin in Capacitor/WebView
             if (PHP_VERSION_ID >= 70300) {
                 session_set_cookie_params([
-                    'lifetime' => 0,
+                    'lifetime' => 2592000,
                     'path' => '/',
                     'domain' => '',
                     'secure' => true,
@@ -49,7 +51,20 @@ date_default_timezone_set('Asia/Manila');
                     'samesite' => 'None'
                 ]);
             } else {
-                session_set_cookie_params(0, '/; SameSite=None; Secure', '', true, true);
+                session_set_cookie_params(2592000, '/; SameSite=None; Secure', '', true, true);
+            }
+        } else {
+            // Over HTTP (e.g. localhost / developer testing)
+            if (PHP_VERSION_ID >= 70300) {
+                session_set_cookie_params([
+                    'lifetime' => 2592000,
+                    'path' => '/',
+                    'domain' => '',
+                    'secure' => false,
+                    'httponly' => true
+                ]);
+            } else {
+                session_set_cookie_params(2592000, '/', '', false, true);
             }
         }
     }
