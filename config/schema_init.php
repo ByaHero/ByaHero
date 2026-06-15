@@ -7,7 +7,7 @@
  * Bump SCHEMA_VERSION after adding new migrations to force a re-sync.
  */
 
-define('BYAHERO_SCHEMA_VERSION', '2026-06-09-v1'); // Bump this after adding new migrations
+define('BYAHERO_SCHEMA_VERSION', '2026-06-15-v1'); // Bump this after adding new migrations
 define('BYAHERO_SCHEMA_TTL', 86400); // Re-check every 24 hours (seconds)
 
 function sync_schema(mysqli $conn) {
@@ -354,6 +354,20 @@ function _do_sync_schema(mysqli $conn) {
         is_active TINYINT(1) DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Ensure missing columns exist in bus_stops
+    $checkLat = $conn->query("SHOW COLUMNS FROM bus_stops LIKE 'latitude'");
+    if ($checkLat && $checkLat->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_stops ADD COLUMN latitude DECIMAL(10,8) NULL AFTER location_name");
+    }
+    $checkLng = $conn->query("SHOW COLUMNS FROM bus_stops LIKE 'longitude'");
+    if ($checkLng && $checkLng->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_stops ADD COLUMN longitude DECIMAL(11,8) NULL AFTER latitude");
+    }
+    $checkIsActive = $conn->query("SHOW COLUMNS FROM bus_stops LIKE 'is_active'");
+    if ($checkIsActive && $checkIsActive->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_stops ADD COLUMN is_active TINYINT(1) DEFAULT 1 AFTER km_marker");
+    }
 
     // 17. Bus Fares (Fare matrix)
     // Run migration checks first to update existing bus_fares table if needed
