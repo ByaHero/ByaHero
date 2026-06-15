@@ -586,6 +586,8 @@
         if (requestUrl.startsWith('../api.php') || requestUrl.startsWith('api.php') || requestUrl.includes('/api.php')) {
           const apiQuery = requestUrl.includes('?') ? '?' + requestUrl.split('?')[1] : '';
           fetchUrl = SERVER_URL + '/public/api.php' + apiQuery;
+        } else if (requestUrl.includes('map_data.php')) {
+          fetchUrl = SERVER_URL + '/public/map_data.php';
         } else if (requestUrl.includes('backend/')) {
           fetchUrl = SERVER_URL + '/backend/' + requestUrl.substring(requestUrl.indexOf('backend/') + 8);
         } else if (requestUrl.includes('passenger/')) {
