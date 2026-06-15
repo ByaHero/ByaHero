@@ -312,7 +312,7 @@
   <script src="../assets/js/customAlerts.js"></script>
 </head>
 
-<body class="bg-light">
+<body class="bg-light" data-active-tab="location">
 
   <!-- Offline Status Banner -->
   <div class="offline-banner" id="offlineBanner">
@@ -512,143 +512,15 @@
     </div>
   </div>
 
-  <!-- Header Top Bar Component (Inlined from components/navbarPassenger.php) -->
-  <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 54px;">
-    <div class="d-flex align-items-center" style="width: 60px; height: 100%;">
-      <img src="../images/topBarLogo.svg" alt="ByaHero" height="32">
-    </div>
-
-    <div class="position-absolute top-50 start-50 translate-middle" style="z-index: 0; pointer-events: none;">
-      <img src="../images/ByaHero.svg" alt="ByaHero" height="30" style="object-fit: contain;">
-    </div>
-
-    <div class="d-flex align-items-center gap-2 justify-content-end" style="height: 100%;">
-      <a href="notifications.html" class="text-white text-decoration-none position-relative d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-        <img id="topbar-notification-icon" src="../images/notification bell.svg" alt="Notifications" height="22">
-      </a>
-      <!-- Hamburger Toggle -->
-      <button type="button" class="btn p-0 text-white d-flex align-items-center justify-content-center"
-        style="width: 40px; height: 40px;" data-bs-toggle="offcanvas" data-bs-target="#passengerMenu"
-        aria-controls="passengerMenu">
-        <img src="../images/HAMBURGER.svg" alt="ByaHero" height="18">
-      </button>
-    </div>
-  </div>
-
-  <!-- Offcanvas Navigation Menu (Inlined from components/navbarPassenger.php) -->
-  <!-- Offcanvas Navigation Menu (Inlined from components/navbarPassenger.php) -->
-  <div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel" style="width: 80vw;">
-    <div class="bg-primary text-white p-3 rounded-bottom-4 position-relative">
-      <button type="button" class="btn p-0 position-absolute top-0 end-0 m-3 text-white" data-bs-dismiss="offcanvas" aria-label="Close">
-        <span class="material-symbols-rounded" style="font-size: 28px;">close</span>
-      </button>
-
-      <div class="d-flex align-items-center gap-3 pt-2 pb-3 w-100">
-        <div class="profile-initial-circle" id="menuUserAvatar">G</div>
-        <div class="fw-bold text-break" style="font-size: 24px !important; line-height: 1.1 !important;" id="menuUserName">Guest User</div>
-      </div>
-      <div style="border-top: 2px solid #ffffff; height: 3px; margin-top: 8px; margin-bottom: 8px;"></div>
-    </div>
-
-    <div class="offcanvas-body bg-white">
-      <div class="d-grid gap-3">
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="profile/profile.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/person.svg" alt="person" height="30">
-          </div>
-          Profile
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="showGuide/showGuide.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/icons/USER GUIDE.svg" alt="user guide" height="30">
-          </div>
-          User Guide
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/privacySecurity.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/privacy.svg" alt="privacy" height="30">
-          </div>
-          Privacy and Security
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="lostAndFound/lostAndFound.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/lostandfound.svg" alt="lost and found" height="30">
-          </div>
-          Lost and Found
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/about.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/about.svg" alt="about" height="30">
-          </div>
-          About
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/feedback.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/feedback.svg" alt="feedback" height="30">
-          </div>
-          Feedback
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="report/report.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/report.svg" alt="report a problem" height="30">
-          </div>
-          Report a Problem
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="passengerSettings/share.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/share.svg" alt="share" height="30">
-          </div>
-          Share ByaHero
-        </a>
-        <a class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark text-decoration-none" style="background-color: #ececec;" href="rideHistory.html">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/HISTORY.svg" alt="ride history" height="30">
-          </div>
-          Ride History
-        </a>
-        <button type="button" class="btn shadow rounded-4 py-3 d-flex align-items-center justify-content-start gap-3 fw-bold text-dark w-100 border-0 text-start" style="background-color: #ececec;" onclick="logoutOffline()">
-          <div class="" style="margin-left: 20px; margin-right: 10px;">
-            <img src="../images/logout.svg" alt="logout" height="30">
-          </div>
-          Log out (Offline)
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Navigation Sticky Bar -->
-  <div class="fixed-bottom bg-white border-top shadow-lg bottom-nav" style="height: 65px; z-index: 1060;">
-    <div class="container-fluid h-100">
-      <div class="row h-100 align-items-end m-0">
-        <div class="col-4 p-0 text-center">
-          <button id="nav-location" class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark active-nav" onclick="window.location.reload()">
-            <img id="nav-location-icon" src="../images/icons/locationBlack.svg" alt="Bus Location" style="width: 24px; height: 24px; object-fit: contain;" />
-            <span class="nav-label">LOCATION</span>
-          </button>
-        </div>
-        <div class="col-4 p-0 text-center sos-col">
-          <button id="nav-sos" class="sos-btn nav-btn" onclick="location.href='sos/sos.html'">
-            <div class="sos-dome">
-              <div class="sos-icon-wrap">
-                <img id="nav-sos-icon" src="../images/icons/SOS.svg" alt="SOS" style="width: 32px; height: 32px; object-fit: contain;" />
-              </div>
-              <span class="nav-label">SOS</span>
-            </div>
-          </button>
-        </div>
-        <div class="col-4 p-0 text-center">
-          <button id="nav-info" class="nav-item-btn d-flex flex-column align-items-center justify-content-center nav-btn text-dark" onclick="location.href='busInfo/busInfo.html'">
-            <img id="nav-info-icon" src="../images/icons/busActive.svg" alt="Bus Info" style="width: 24px; height: 24px; object-fit: contain;" />
-            <span class="nav-label">BUS INFO</span>
-          </button>
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- Navigation Placeholders -->
+  <div id="navbar-top-placeholder"></div>
+  <div id="navbar-menu-placeholder"></div>
+  <div id="navbar-bottom-placeholder"></div>
 
   <!-- Scripts -->
   <script src="../js/leaflet.js"></script>
   <script src="../js/bootstrap.bundle.min.js"></script>
+  <script src="../js/navbarPassenger.js"></script>
   <script src="../js/html5-qrcode.min.js"></script>
   
   <script src="../assets/js/passengerBottomSheet.js"></script>

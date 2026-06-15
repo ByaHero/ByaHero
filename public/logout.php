@@ -2,29 +2,40 @@
 @session_start();
 
 // 1. Remove ONLY the FCM token for this specific device (not all devices)
-if (isset($_SESSION['user_id'])) {
-    require_once '../config/db.php';
-    $conn = db();
+// 1. Remove ONLY the FCM token for this specific device (not all devices)
+require_once '../config/db.php';
+$conn = db();
 
-    try {
-        $userId   = (int)$_SESSION['user_id'];
-        // The navbar sends the device's active token via POST
-        $fcmToken = trim($_POST['fcm_token'] ?? '');
+try {
+    // The navbar sends the device's active token via POST
+    $fcmToken = trim($_POST['fcm_token'] ?? '');
+    if ($fcmToken === '') {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $fcmToken = trim($input['fcm_token'] ?? '');
+    }
 
-        if ($fcmToken !== '') {
-            // Device-specific delete: only removes this device's token
+    if ($fcmToken !== '') {
+        if (isset($_SESSION['user_id'])) {
+            $userId = (int)$_SESSION['user_id'];
+            // Device-specific delete: only removes this device's token for this user
             $stmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE user_id = ? AND fcm_token = ?");
             if ($stmt) {
                 $stmt->bind_param("is", $userId, $fcmToken);
                 $stmt->execute();
                 $stmt->close();
             }
+        } else {
+            // Session lost/absent: delete the device token unconditionally to unregister the device
+            $stmt = $conn->prepare("DELETE FROM user_fcm_tokens WHERE fcm_token = ?");
+            if ($stmt) {
+                $stmt->bind_param("s", $fcmToken);
+                $stmt->execute();
+                $stmt->close();
+            }
         }
-        // If no token was sent (e.g. a direct GET request or very old client),
-        // we intentionally do NOT delete all tokens — other devices keep their tokens.
-    } catch (Exception $e) {
-        error_log("[Logout] Token cleanup failed: " . $e->getMessage());
     }
+} catch (Exception $e) {
+    error_log("[Logout] Token cleanup failed: " . $e->getMessage());
 }
 
 // 2. Destroy all session data

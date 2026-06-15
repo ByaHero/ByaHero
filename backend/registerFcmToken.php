@@ -9,6 +9,41 @@ require_once '../config/db.php';
 @session_start();
 header('Content-Type: application/json');
 
+$conn = db();
+
+if (!isset($_SESSION['user_id'])) {
+    $email = trim($_POST['email'] ?? '');
+    if (empty($email)) {
+        $input = json_decode(file_get_contents('php://input'), true);
+        $email = trim($input['email'] ?? '');
+    }
+    
+    if (!empty($email)) {
+        // Look up user_id from database
+        $roleTables = [
+            'admin'     => 'admins',
+            'driver'    => 'drivers',
+            'conductor' => 'conductors',
+            'passenger' => 'users',
+        ];
+        foreach ($roleTables as $role => $table) {
+            $stmt = $conn->prepare("SELECT id FROM {$table} WHERE email = ? LIMIT 1");
+            if ($stmt) {
+                $stmt->bind_param("s", $email);
+                $stmt->execute();
+                $res = $stmt->get_result()->fetch_assoc();
+                if ($res) {
+                    $_SESSION['user_id'] = (int)$res['id'];
+                    $_SESSION['user_role'] = $role;
+                    $_SESSION['user_email'] = $email;
+                    break;
+                }
+                $stmt->close();
+            }
+        }
+    }
+}
+
 if (!isset($_SESSION['user_id'])) {
     http_response_code(401);
     echo json_encode([
@@ -18,7 +53,6 @@ if (!isset($_SESSION['user_id'])) {
     ]);
     exit;
 }
-$conn = db();
 
 // Auto-migration: ensure the table exists
 // UNIQUE on fcm_token (not user_id) so one user can have multiple devices

@@ -124,17 +124,7 @@
         .path-dot.end { bottom: 0; border-color: var(--text-muted); }
     </style>
 </head>
-<body>
-
-    <!-- Header Top Bar Component -->
-    <div class="bg-primary d-flex align-items-center justify-content-between rounded-bottom-4 px-3 shadow-sm position-absolute top-0 start-0 z-3 w-100 passenger-topbar-sticky" style="height: 40px;">
-        <div class="d-flex align-items-center">
-            <a href="index.html" class="text-white text-decoration-none d-flex align-items-center p-1 rounded-circle hover-bg-white-10">
-                <span class="material-symbols-rounded text-white" style="font-size: 24px;">arrow_back</span>
-            </a>
-            <h6 class="h5 mb-0 text-white fw-normal ms-2" style="font-size: 1.1rem;">Ride History</h6>
-        </div>
-    </div>
+<body class="bg-light" data-page-title="Ride History" data-page-type="generic" data-back-link="index.html">
 
     <div class="history-container p-3 mt-3">
         <!-- Offline Notice Banner -->
@@ -169,6 +159,8 @@
         <div id="historyList"></div>
     </div>
 
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/navbarPassenger.js"></script>
     <script src="../data/offline_data.js"></script>
 
     <script>

@@ -20,12 +20,13 @@
     function saveToken(token) {
       if (!token || _saved) return;
       
+      const cachedEmail = localStorage.getItem('byahero_cached_email') || '';
       dbg('log', '[SOS-FCM] Posting token to: ' + REGISTER_URL);
       fetch(REGISTER_URL, {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'fcm_token=' + encodeURIComponent(token)
+        body: 'fcm_token=' + encodeURIComponent(token) + '&email=' + encodeURIComponent(cachedEmail)
       })
       .then(r => r.json())
       .then(d => {
@@ -333,9 +334,9 @@
       
       // Block pure auth/landing pages, but ALLOW dashboards like passenger/index.php
       let isAuthPage = false;
-      if (path.includes('login.php') || path.includes('signup.php')) {
+      if (path.includes('login.php') || path.includes('signup.php') || path.includes('login.html') || path.includes('signup.html')) {
           isAuthPage = true;
-      } else if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path === '/' || path.endsWith('byahero-prototype-v3/'))) {
+      } else if (!path.includes('passenger/') && !path.includes('conductor/') && !path.includes('conductorlive') && (path.endsWith('index.php') || path.endsWith('index.html') || path === '/' || path.endsWith('byahero-prototype-v3/'))) {
           isAuthPage = true;
       }
       
