@@ -43,5 +43,5 @@ if (ini_get("session.use_cookies")) {
     );
 }
 session_destroy();
-header("Location: ../passenger/index.php");
+header("Location: ../login.php?action=logout");
 exit;
