@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="../images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <script src="capacitor.js"></script>
     <script>
+      // Clean up/migrate old server URLs
+      const storedUrl = localStorage.getItem('byahero_server_url');
+      if (storedUrl && storedUrl.includes('byahero.app')) {
+        localStorage.removeItem('byahero_server_url');
+      }
       async function safeGet(url) {
         if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
           try {
@@ -36,41 +42,60 @@
         const cachedEmail = localStorage.getItem('byahero_cached_email');
         const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
 
-        if (navigator.onLine === true) {
-          // Try to sync with a 1.2 second timeout
-          try {
-            const syncPromise = safeGet(SERVER_URL + '/public/api.php?action=get_sync_data');
-            const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 1200));
-            
-            const data = await Promise.race([syncPromise, timeoutPromise]);
-            if (data && data.success) {
-              if (data.stops_terminal) localStorage.setItem('byahero_cached_stops_terminal', JSON.stringify(data.stops_terminal));
-              if (data.bus_stops) localStorage.setItem('byahero_cached_bus_stops', JSON.stringify(data.bus_stops));
-              if (data.bus_fares) localStorage.setItem('byahero_cached_bus_fares', JSON.stringify(data.bus_fares));
-              if (data.bus_schedule) localStorage.setItem('byahero_cached_bus_schedule', JSON.stringify(data.bus_schedule));
-              localStorage.setItem('byahero_last_sync_time', Date.now().toString());
-            }
-          } catch (e) {
-            console.warn("Sync warning:", e);
+        // Try to sync with a 1.2 second timeout
+        try {
+          const syncPromise = safeGet(SERVER_URL + '/public/api.php?action=get_sync_data');
+          const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Sync timeout')), 1200));
+          
+          const data = await Promise.race([syncPromise, timeoutPromise]);
+          if (data && data.success) {
+            if (data.stops_terminal) localStorage.setItem('byahero_cached_stops_terminal', JSON.stringify(data.stops_terminal));
+            if (data.bus_stops) localStorage.setItem('byahero_cached_bus_stops', JSON.stringify(data.bus_stops));
+            if (data.bus_fares) localStorage.setItem('byahero_cached_bus_fares', JSON.stringify(data.bus_fares));
+            if (data.bus_schedule) localStorage.setItem('byahero_cached_bus_schedule', JSON.stringify(data.bus_schedule));
+            localStorage.setItem('byahero_last_sync_time', Date.now().toString());
           }
+        } catch (e) {
+          console.warn("Sync warning:", e);
+        }
 
-          // Always route to local files to support offline-first operation
-          if (!cachedRole || !cachedEmail) {
-            window.location.replace("login.html");
+        // Always route to local files to support offline-first operation
+        if (!cachedRole || !cachedEmail) {
+          window.location.replace("login.html");
+        } else {
+          if (cachedRole === 'passenger') {
+            window.location.replace("passenger/index.html");
+          } else if (cachedRole === 'conductor') {
+            window.location.replace("conductor/index.html");
           } else {
-            if (cachedRole === 'passenger') {
-              window.location.replace("passenger/index.html");
-            } else if (cachedRole === 'conductor') {
-              window.location.replace("conductor/index.html");
-            } else {
-              window.location.replace("login.html");
-            }
+            window.location.replace("login.html");
           }
         }
       }
 
-      // Execute sync and route
-      syncDataAndRedirect();
+      function checkCapacitorReady() {
+        return new Promise((resolve) => {
+          if (window.Capacitor && window.Capacitor.Plugins) {
+            resolve();
+          } else {
+            let attempts = 0;
+            const interval = setInterval(() => {
+              attempts++;
+              if ((window.Capacitor && window.Capacitor.Plugins) || attempts > 30) {
+                clearInterval(interval);
+                resolve();
+              }
+            }, 30);
+          }
+        });
+      }
+
+      // Execute sync and route when page loads and Capacitor is ready
+      window.addEventListener('load', () => {
+        checkCapacitorReady().then(() => {
+          syncDataAndRedirect();
+        });
+      });
     </script>
     <meta
       http-equiv="refresh"

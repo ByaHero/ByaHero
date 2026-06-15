@@ -9,6 +9,7 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
     <title>Bus Information - ByaHero</title>
+    <script src="../../capacitor.js"></script>
 
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0&display=swap" rel="stylesheet" />
     <link href="../../css/bootstrap.min.css" rel="stylesheet">
@@ -160,103 +161,175 @@
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const offlineData = window.BYAHERO_OFFLINE_DATA || { stops: [], schedules: [] };
-            
-            // Load stops from cache
             let stops = [];
-            const cachedStopsRaw = localStorage.getItem('byahero_cached_bus_stops');
-            if (cachedStopsRaw) {
-                try {
-                    const parsed = JSON.parse(cachedStopsRaw);
-                    if (Array.isArray(parsed)) {
-                        stops = parsed.map(s => ({
-                            id: parseInt(s.stop_id, 10),
-                            name: s.location_name,
-                            location_name: s.location_name,
-                            lat: s.latitude,
-                            lng: s.longitude,
-                            km_marker: parseFloat(s.km_marker),
-                            type: 'bus_stop' // Default to bus_stop so it passes the filter
-                        }));
-                    }
-                } catch (e) {
-                    console.warn("Error parsing cached bus stops", e);
-                }
-            }
-            if (stops.length === 0) {
-                stops = offlineData.stops || [];
-            }
-
-            // Load schedules from cache
-            let schedules = [];
-            const cachedSchedulesRaw = localStorage.getItem('byahero_cached_bus_schedule');
-            if (cachedSchedulesRaw) {
-                try {
-                    const parsed = JSON.parse(cachedSchedulesRaw);
-                    if (Array.isArray(parsed)) {
-                        schedules = parsed;
-                    }
-                } catch (e) {
-                    console.warn("Error parsing cached schedules", e);
-                }
-            }
-            if (schedules.length === 0) {
-                schedules = offlineData.schedules || [];
-            }
             
-            // 1. Render schedules
-            const schedulesList = document.getElementById('schedulesList');
-            if (schedules.length === 0) {
-                schedulesList.innerHTML = `<div class="bg-white rounded-4 p-3 mb-3 border shadow-sm text-center text-muted">No schedule posted.</div>`;
-            } else {
-                schedulesList.innerHTML = schedules.map(row => {
-                    const formatTime = (timeStr) => {
-                        if (!timeStr) return '';
-                        const [h, m] = timeStr.split(':');
-                        const hr = parseInt(h, 10);
-                        const ampm = hr >= 12 ? 'pm' : 'am';
-                        const displayHr = hr % 12 || 12;
-                        return `${displayHr}:${m} ${ampm}`;
-                    };
-                    const open = formatTime(row.time_open);
-                    const close = formatTime(row.time_close);
-                    const timeText = (open && close) ? `${open} - ${close}` : 'Schedule not set';
-                    const isSusp = row.is_suspended === 1;
-
-                    return `
-                        <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
-                            <div>
-                                <span class="fs-6 text-primary fw-semibold">${row.terminal_name}</span>
-                                ${isSusp ? `<div class="small text-danger fw-bold">SUSPENDED${row.suspend_message ? ': ' + row.suspend_message : ''}</div>` : ''}
-                            </div>
-                            <span class="fw-bold small ${isSusp ? 'text-danger' : 'text-secondary'}">
-                                ${isSusp ? 'No Operations' : timeText}
-                            </span>
-                        </div>
-                    `;
-                }).join('');
+            async function safeGet(url) {
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.CapacitorHttp) {
+                    try {
+                        const res = await window.Capacitor.Plugins.CapacitorHttp.get({
+                            url: url,
+                            headers: {
+                                'Accept': 'application/json, text/plain, */*',
+                                'User-Agent': navigator.userAgent,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        });
+                        return typeof res.data === 'string' ? JSON.parse(res.data) : res.data;
+                    } catch (e) {
+                        console.warn("CapacitorHttp get failed:", e);
+                        throw e;
+                    }
+                } else {
+                    const res = await fetch(url, {
+                        headers: {
+                            'Accept': 'application/json, text/plain, */*',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+                    return await res.json();
+                }
             }
 
-            // 2. Render stops dropdowns
-            const pickupMenu = document.getElementById('pickupDropdownMenu');
-            const dropoffMenu = document.getElementById('dropoffDropdownMenu');
+            function loadAndRenderUI() {
+                // Load stops from cache (bus_stops table)
+                const cachedStopsRaw = localStorage.getItem('byahero_cached_bus_stops');
+                
+                stops = [];
+                
+                if (cachedStopsRaw) {
+                    try {
+                        const parsed = JSON.parse(cachedStopsRaw);
+                        if (Array.isArray(parsed)) {
+                            stops = parsed.map(s => ({
+                                id: parseInt(s.stop_id, 10),
+                                name: s.location_name,
+                                location_name: s.location_name,
+                                lat: parseFloat(s.latitude),
+                                lng: parseFloat(s.longitude),
+                                km_marker: parseFloat(s.km_marker || 0),
+                                type: 'bus_stop'
+                            }));
+                        }
+                    } catch (e) {
+                        console.warn("Error parsing cached bus stops", e);
+                    }
+                }
+                
+                if (stops.length === 0) {
+                    stops = offlineData.stops || [];
+                }
 
-            const populateStopsDropdown = (menu, targetId) => {
-                // Filter stops of type bus_stop or terminal
-                const validStops = stops.filter(s => s.type === 'bus_stop' || s.type === 'terminal');
-                menu.innerHTML = validStops.map(s => `
-                    <li>
-                        <a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
-                            href="#"
-                            data-target="${targetId}"
-                            data-value="${s.id}">
-                            ${s.name} (${s.location_name})
-                        </a>
-                    </li>
-                `).join('');
-            };
+                // Load schedules from cache
+                let schedules = [];
+                const cachedSchedulesRaw = localStorage.getItem('byahero_cached_bus_schedule');
+                if (cachedSchedulesRaw) {
+                    try {
+                        const parsed = JSON.parse(cachedSchedulesRaw);
+                        if (Array.isArray(parsed)) {
+                            schedules = parsed;
+                        }
+                    } catch (e) {
+                        console.warn("Error parsing cached schedules", e);
+                    }
+                }
+                if (schedules.length === 0) {
+                    schedules = offlineData.schedules || [];
+                }
+                
+                // 1. Render schedules
+                const schedulesList = document.getElementById('schedulesList');
+                if (schedules.length === 0) {
+                    schedulesList.innerHTML = `<div class="bg-white rounded-4 p-3 mb-3 border shadow-sm text-center text-muted">No schedule posted.</div>`;
+                } else {
+                    schedulesList.innerHTML = schedules.map(row => {
+                        const formatTime = (timeStr) => {
+                            if (!timeStr) return '';
+                            const [h, m] = timeStr.split(':');
+                            const hr = parseInt(h, 10);
+                            const ampm = hr >= 12 ? 'pm' : 'am';
+                            const displayHr = hr % 12 || 12;
+                            return `${displayHr}:${m} ${ampm}`;
+                        };
+                        const open = formatTime(row.time_open);
+                        const close = formatTime(row.time_close);
+                        const timeText = (open && close) ? `${open} - ${close}` : 'Schedule not set';
+                        const isSusp = row.is_suspended === 1;
 
-            populateStopsDropdown(pickupMenu, 'pickupLocation');
-            populateStopsDropdown(dropoffMenu, 'dropoffLocation');
+                        return `
+                            <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="fs-6 text-primary fw-semibold">${row.terminal_name}</span>
+                                    ${isSusp ? `<div class="small text-danger fw-bold">SUSPENDED${row.suspend_message ? ': ' + row.suspend_message : ''}</div>` : ''}
+                                </div>
+                                <span class="fw-bold small ${isSusp ? 'text-danger' : 'text-secondary'}">
+                                    ${isSusp ? 'No Operations' : timeText}
+                                </span>
+                            </div>
+                        `;
+                    }).join('');
+                }
+
+                // 2. Render stops dropdowns
+                const pickupMenu = document.getElementById('pickupDropdownMenu');
+                const dropoffMenu = document.getElementById('dropoffDropdownMenu');
+
+                const populateStopsDropdown = (menu, targetId) => {
+                    // Filter stops of type bus_stop or terminal
+                    const validStops = stops.filter(s => s.type === 'bus_stop' || s.type === 'terminal');
+                    menu.innerHTML = validStops.map(s => `
+                        <li>
+                            <a class="dropdown-item dropdown-item-custom rounded-3 py-2 px-3 fw-medium text-dark transition-all"
+                                href="#"
+                                data-target="${targetId}"
+                                data-value="${s.id}">
+                                ${s.name} (${s.location_name})
+                            </a>
+                        </li>
+                    `).join('');
+                };
+
+                populateStopsDropdown(pickupMenu, 'pickupLocation');
+                populateStopsDropdown(dropoffMenu, 'dropoffLocation');
+            }
+
+            // Initial render
+            loadAndRenderUI();
+
+            // Online live sync
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+            
+            function checkCapacitorReady() {
+                return new Promise((resolve) => {
+                    if (window.Capacitor && window.Capacitor.Plugins) {
+                        resolve();
+                    } else {
+                        let attempts = 0;
+                        const interval = setInterval(() => {
+                            attempts++;
+                            if ((window.Capacitor && window.Capacitor.Plugins) || attempts > 30) {
+                                clearInterval(interval);
+                                resolve();
+                            }
+                        }, 30);
+                    }
+                });
+            }
+
+            checkCapacitorReady().then(() => {
+                safeGet(SERVER_URL + '/public/api.php?action=get_sync_data')
+                    .then(data => {
+                        if (data && data.success) {
+                            if (data.stops_terminal) localStorage.setItem('byahero_cached_stops_terminal', JSON.stringify(data.stops_terminal));
+                            if (data.bus_stops) localStorage.setItem('byahero_cached_bus_stops', JSON.stringify(data.bus_stops));
+                            if (data.bus_fares) localStorage.setItem('byahero_cached_bus_fares', JSON.stringify(data.bus_fares));
+                            if (data.bus_schedule) localStorage.setItem('byahero_cached_bus_schedule', JSON.stringify(data.bus_schedule));
+                            
+                            // Re-render with fresh database values
+                            loadAndRenderUI();
+                        }
+                    })
+                    .catch(err => console.warn("Failed to sync live bus info:", err));
+            });
 
             // 3. Attach click event to all dropdown items
             document.body.addEventListener('click', (e) => {
