@@ -911,7 +911,7 @@
 
       let bubbleHtml = '';
       if (isWaiting) {
-        const bubbleUrl = basePath + 'images/waitingMEG.svg';
+        const bubbleUrl = basePath + 'assets/images/waitingMEG.svg';
         bubbleHtml = `
           <div class="friend-waiting-bubble" style="position: absolute; bottom: 38px; left: calc(50% + 20px); width: 46px; height: 20px; z-index: 1001; pointer-events: none;">
             <img src="${bubbleUrl}" style="width: 100%; height: 100%; display: block;" />
@@ -921,7 +921,7 @@
 
       let busBadgeHtml = '';
       if (isBoarded) {
-        const busIconUrl = basePath + 'images/busonallbuses.svg';
+        const busIconUrl = basePath + 'assets/images/busonallbuses.svg';
         busBadgeHtml = `
           <div class="friend-boarded-badge" style="position: absolute; bottom: -4px; right: -4px; width: 18px; height: 18px; background: #3b82f6; border-radius: 50%; display: flex; align-items: center; justify-content: center; border: 1.5px solid white; box-shadow: 0 1px 4px rgba(0,0,0,0.2); z-index: 1002;">
             <img src="${busIconUrl}" style="width: 11px; height: 11px; filter: brightness(0) invert(1);" />
@@ -1017,10 +1017,10 @@
 
           let avatarBadgeHtml = '';
           if (isWaiting) {
-            const markUrl = basePath + 'images/waitingMark.svg';
+            const markUrl = basePath + 'assets/images/waitingMark.svg';
             avatarBadgeHtml = `<div class="friend-avatar-badge" title="Waiting at ${friend.waiting_location}"><img src="${markUrl}" alt="Waiting"></div>`;
           } else if (isBoarded) {
-            const busUrl = basePath + 'images/busonallbuses.svg';
+            const busUrl = basePath + 'assets/images/busonallbuses.svg';
             avatarBadgeHtml = `<div class="friend-avatar-badge" style="background: #3b82f6; border-color: #3b82f6;" title="Onboard Bus ${friend.boarded_bus_code}"><img src="${busUrl}" alt="Boarded" style="filter: brightness(0) invert(1);"></div>`;
           }
 

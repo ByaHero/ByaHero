@@ -23,9 +23,7 @@ window.safePost = async function safePost(relativeUrl, payload = {}) {
     let url;
     if (window.Capacitor) {
         let cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
-        if (cleanRel.startsWith('api.php')) {
-            cleanRel = 'public/' + cleanRel;
-        } else if (cleanRel.startsWith('map_data.php')) {
+        if (cleanRel.startsWith('api.php') || cleanRel.startsWith('map_data.php') || cleanRel.startsWith('update_geo_location.php') || cleanRel.startsWith('logout.php')) {
             cleanRel = 'public/' + cleanRel;
         }
         url = SERVER_URL + '/' + cleanRel;

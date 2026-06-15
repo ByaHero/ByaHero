@@ -69,7 +69,8 @@ function initStopIcons() {
   if (STOP_ICONS.pickup_point) return;
 
   const base = window.PROJECT_BASE || '';
-  const stopIconUrl = `${base}/assets/images/icons/busStopMarkerFinal1.svg`;
+  const cleanBase = base.endsWith('/') ? base.slice(0, -1) : base;
+  const stopIconUrl = `${cleanBase}/assets/images/icons/busStopMarkerFinal1.svg`;
   
   const defaultAnchor = {
     iconSize: [50, 50],

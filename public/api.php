@@ -520,6 +520,27 @@ function startOperation(): array {
 
     $conn = db();
 
+    // Check if another conductor has already claimed this bus
+    $checkStmt = $conn->prepare("SELECT current_conductor_id FROM busses WHERE Bus_ID = ?");
+    $checkStmt->bind_param("i", $busId);
+    $checkStmt->execute();
+    $resCheck = $checkStmt->get_result();
+    $busOwner = ($resCheck && $resCheck->num_rows > 0) ? $resCheck->fetch_row()[0] : null;
+
+    if ($busOwner !== null && (int)$busOwner !== $userId) {
+        return ['success' => false, 'error' => 'bus_taken'];
+    }
+
+    // Claim the bus / update it
+    $stmtClaim = $conn->prepare("UPDATE busses SET current_conductor_id = ? WHERE Bus_ID = ?");
+    $stmtClaim->bind_param("ii", $userId, $busId);
+    $stmtClaim->execute();
+
+    // Also store on the conductor record
+    $stmtCond = $conn->prepare("UPDATE conductors SET current_bus_id = ? WHERE id = ?");
+    $stmtCond->bind_param("ii", $busId, $userId);
+    $stmtCond->execute();
+
     // Close any stale active operations for this conductor (safety)
     $stClose = $conn->prepare("UPDATE bus_operations SET status='completed', ended_at=NOW() WHERE conductor_id=? AND status='active'");
     $stClose->bind_param("i", $userId);
