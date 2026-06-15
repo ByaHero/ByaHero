@@ -129,11 +129,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         if (window.Capacitor || navigator.userAgent.includes('Capacitor') || navigator.userAgent.includes('ByaHeroCapacitor')) {
                             const platform = window.Capacitor && window.Capacitor.getPlatform ? window.Capacitor.getPlatform() : 'web';
                             const localOrigin = (platform === 'ios') ? 'capacitor://localhost' : 'http://localhost';
-                            const role = "<?= addslashes($userRole) ?>";
-                            const email = "<?= addslashes($userRecord['email']) ?>";
-                            const name = "<?= addslashes($userRecord['name'] ?? $userRecord['email']) ?>";
-                            const contacts = "<?= addslashes(array_key_exists('contacts', $userRecord) ? $userRecord['contacts'] : '') ?>";
-                            const profilePic = "<?= addslashes(array_key_exists('profile_picture', $userRecord) ? $userRecord['profile_picture'] : '') ?>";
+                            const role = <?= json_encode($userRole) ?>;
+                            const email = <?= json_encode($userRecord['email']) ?>;
+                            const name = <?= json_encode($userRecord['name'] ?? $userRecord['email']) ?>;
+                            const contacts = <?= json_encode(array_key_exists('contacts', $userRecord) ? $userRecord['contacts'] : '') ?>;
+                            const profilePic = <?= json_encode(array_key_exists('profile_picture', $userRecord) ? $userRecord['profile_picture'] : '') ?>;
                             
                             window.location.replace(`${localOrigin}/sync.html?role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&contacts=${encodeURIComponent(contacts)}&profile_picture=${encodeURIComponent(profilePic)}&redirect=${encodeURIComponent(target)}`);
                         } else {
@@ -148,7 +148,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $err = 'Invalid email or password.';
             }
         } catch (Exception $e) {
-            $err = 'Server error. Please try again later.';
+            $err = 'Server error: ' . $e->getMessage();
         }
     }
 }
