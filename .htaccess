@@ -1,13 +1,7 @@
 # Block access to .env files
 <Files ".env">
-    Order allow,deny
-    Deny from all
+    Require all denied
 </Files>
-
-# Persist PHP sessions for 30 days (2592000 seconds)
-# This prevents Android Capacitor WebViews from clearing the session when the app is completely closed.
-php_value session.cookie_lifetime 2592000
-php_value session.gc_maxlifetime 2592000
 
 # =========================================================================
 # GZIP COMPRESSION - Reduces transfer size by ~70% for text-based assets
