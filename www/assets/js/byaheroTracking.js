@@ -22,7 +22,12 @@ window.safePost = async function safePost(relativeUrl, payload = {}) {
     // Resolve absolute URL
     let url;
     if (window.Capacitor) {
-        const cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
+        let cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
+        if (cleanRel.startsWith('api.php')) {
+            cleanRel = 'public/' + cleanRel;
+        } else if (cleanRel.startsWith('map_data.php')) {
+            cleanRel = 'public/' + cleanRel;
+        }
         url = SERVER_URL + '/' + cleanRel;
     } else {
         url = new URL(relativeUrl, window.location.href).href;
