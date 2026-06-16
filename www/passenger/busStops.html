@@ -137,7 +137,9 @@
 <script>
     // Initial map setup
     const map = L.map('stopsMap').setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+
+    L.tileLayer(mapTileUrl, {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
     }).addTo(map);

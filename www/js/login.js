@@ -49,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.replace("passenger/index.html");
             } else if (cachedRole === 'conductor') {
                 window.location.replace("conductor/index.html");
+            } else if (cachedRole === 'admin') {
+                window.location.replace("admin/index.html");
             }
         }
     }
@@ -79,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.replace("passenger/index.html");
                     } else if (cachedRole === 'conductor') {
                         window.location.replace("conductor/index.html");
+                    } else if (cachedRole === 'admin') {
+                        window.location.replace("admin/index.html");
                     } else {
                         window.location.replace("error.html");
                     }
@@ -140,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } else if (role === 'conductor') {
                         window.location.replace("conductor/index.html");
+                    } else if (role === 'admin') {
+                        window.location.replace("admin/index.html");
                     } else {
                         window.location.replace("passenger/index.html");
                     }
@@ -231,18 +237,10 @@ window.handleGoogleLogin = function (response) {
                 localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
                 localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
 
-                if (navigator.onLine === true) {
-                    if (!contacts) {
-                        window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
-                    } else {
-                        window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                    }
+                if (!contacts) {
+                    window.location.replace("passenger/completeProfile.html");
                 } else {
-                    if (!contacts) {
-                        window.location.replace("passenger/completeProfile.html");
-                    } else {
-                        window.location.replace("passenger/index.html");
-                    }
+                    window.location.replace("passenger/index.html");
                 }
             } else {
                 alert(`Google login failed: ${data.message}`);

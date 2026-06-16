@@ -9,7 +9,8 @@
 document.addEventListener('DOMContentLoaded', () => {
     let _updateBusMapIntervalId = null;
     const map = L.map('map').setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    L.tileLayer(mapTileUrl, {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
     }).addTo(map);

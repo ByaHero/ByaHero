@@ -619,4 +619,12 @@
         body.appendChild(bridgeScript);
     }
 
+    // 14. Load byaheroTour.js dynamically if tour is active (needed for pages other than index.html in Capacitor)
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('start_tour') === 'true' && !window.ByaheroTour) {
+        const tourScript = document.createElement('script');
+        tourScript.src = `${depth}assets/js/passenger/byaheroTour.js`;
+        body.appendChild(tourScript);
+    }
+
 })();

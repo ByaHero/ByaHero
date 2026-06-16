@@ -418,14 +418,40 @@ var ByaheroTour = window.ByaheroTour || class ByaheroTour {
 
             const nextStep = this.steps[this.currentStep];
             if (nextStep.pagePath) {
-                const currentUrl = window.location.pathname.toLowerCase().replace(/\.php$/, '');
-                const targetPath = nextStep.pagePath.toLowerCase().replace(/\.php$/, '');
+                let currentUrl = window.location.pathname.toLowerCase();
+                let targetPath = nextStep.pagePath.toLowerCase();
+
+                if (window.Capacitor) {
+                    targetPath = targetPath.replace(/^\/public\//, '/').replace(/\.php$/, '.html');
+                    currentUrl = currentUrl.replace(/\.php$/, '.html');
+                } else {
+                    currentUrl = currentUrl.replace(/\.php$/, '');
+                    targetPath = targetPath.replace(/\.php$/, '');
+                }
 
                 // If target path is different from current page, redirect browser to next stage
                 if (!currentUrl.includes(targetPath)) {
                     const basePath = window.PROJECT_BASE || window.APP_BASE_URL || '';
-                    const cleanPagePath = nextStep.pagePath.replace(/\.php$/, '');
-                    const fullUrl = `${basePath}${cleanPagePath}.php?start_tour=true&step=${this.currentStep}`;
+                    let cleanPagePath = nextStep.pagePath;
+                    let ext = '.php';
+
+                    if (window.Capacitor) {
+                        cleanPagePath = cleanPagePath.replace(/^\/public\//, '/');
+                        ext = '.html';
+                    }
+
+                    cleanPagePath = cleanPagePath.replace(/\.php$/, '');
+
+                    // Avoid double slashes if basePath ends with '/' and cleanPagePath starts with '/'
+                    let cleanPathName = cleanPagePath + ext;
+                    let cleanBasePath = basePath;
+                    if (cleanBasePath.endsWith('/') && cleanPathName.startsWith('/')) {
+                        cleanPathName = cleanPathName.substring(1);
+                    } else if (!cleanBasePath.endsWith('/') && !cleanPathName.startsWith('/') && cleanBasePath !== '') {
+                        cleanPathName = '/' + cleanPathName;
+                    }
+
+                    const fullUrl = `${cleanBasePath}${cleanPathName}?start_tour=true&step=${this.currentStep}`;
                     window.location.href = fullUrl;
                     return;
                 }
@@ -476,7 +502,9 @@ if (!window._byaheroTourInitialized) {
             const stepIndex = parseInt(urlParams.get('step') || '0', 10);
 
             // Mock Location for the Tour if we are on the index page and no location is currently available
-            if (window.location.pathname.toLowerCase().includes('/public/passenger/index.php')) {
+            const isIndexPage = window.location.pathname.toLowerCase().includes('/passenger/index.html') || 
+                                window.location.pathname.toLowerCase().includes('/public/passenger/index.php');
+            if (isIndexPage) {
                 const hasLocation = window.userLocation && window.locationPermissionGranted;
 
                 if (!hasLocation) {
@@ -624,7 +652,7 @@ if (!window._byaheroTourInitialized) {
                     }
                 },
                 {
-                    element: '.sos-dome, #desktop-nav-links a[href*="sos.php"]',
+                    element: '.sos-dome, #desktop-nav-links a[href*="sos"]',
                     title: '🚨 Emergency SOS Indicator',
                     description: 'This is the Emergency SOS button. Tap it in case of danger. Let\'s open the Emergency Center to see how it works.',
                     pagePath: '/public/passenger/index.php',
@@ -656,7 +684,7 @@ if (!window._byaheroTourInitialized) {
                     pagePath: '/public/passenger/notifications.php'
                 },
                 {
-                    element: '#nav-info, #desktop-nav-links a[href*="busInfo.php"]',
+                    element: '#nav-info, #desktop-nav-links a[href*="busInfo"]',
                     title: 'ℹ️ Bus Information Tab',
                     description: 'This is the Bus Info tab. It lists scheduled fares, operator numbers, and timetables. Let\'s take a look.',
                     pagePath: '/public/passenger/index.php'
@@ -681,7 +709,7 @@ if (!window._byaheroTourInitialized) {
                     }
                 },
                 {
-                    element: 'a[href*="rideHistory.php"]',
+                    element: 'a[href*="rideHistory"]',
                     title: '📜 Ride History Link',
                     description: 'This is your Ride History link. Tap here to view all your past boarding records, routes taken, and operator details. Let\'s check it out.',
                     pagePath: '/public/passenger/index.php',
@@ -700,7 +728,7 @@ if (!window._byaheroTourInitialized) {
                     pagePath: '/public/passenger/rideHistory.php'
                 },
                 {
-                    element: 'a[href*="feedback.php"]',
+                    element: 'a[href*="feedback"]',
                     title: '💬 Commuter Feedback Link',
                     description: 'This is the Feedback link. Share your ratings and feedback on your commuting experience. Let\'s open it.',
                     pagePath: '/public/passenger/index.php',
@@ -719,7 +747,7 @@ if (!window._byaheroTourInitialized) {
                     pagePath: '/public/passenger/passengerSettings/feedback.php'
                 },
                 {
-                    element: 'a[href*="report.php"]',
+                    element: 'a[href*="report"]',
                     title: '⚠️ Report a Problem Link',
                     description: 'This is the Report a Problem link. Report any transit delays, reckless drivers, or app issues directly. Let\'s open it.',
                     pagePath: '/public/passenger/index.php',
