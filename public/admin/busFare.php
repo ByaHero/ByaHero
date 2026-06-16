@@ -7,6 +7,12 @@ error_reporting(E_ALL);
 require __DIR__ . '/../../config/db.php';
 @session_start();
 
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$isJson = (isset($_GET['json']) || isset($_POST['json']) || !empty($input) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false));
+if (!empty($input)) {
+    $_POST = array_merge($_POST, $input);
+}
+
 $scriptName = $_SERVER['SCRIPT_NAME'] ?? '/public/admin/busFare.php';
 $publicDir  = rtrim(str_replace('\\', '/', dirname($scriptName)), '/');
 $baseUrl    = preg_replace('~/public/.*$~', '', $publicDir) ?: '';
@@ -324,6 +330,23 @@ $snapshots = [];
 $pageDepth = '../../';
 $pageType = 'busFare';
 $backLink = 'admin.php';
+
+if ($isJson) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => empty($error),
+        'message' => $message,
+        'error' => $error,
+        'originsList' => $originsList,
+        'filterOrigin' => $filterOrigin,
+        'q' => $q,
+        'fares' => $fares,
+        'originName' => $originName,
+        'farthestDestName' => $farthestDestName,
+        'snapshots' => $snapshots
+    ]);
+    exit;
+}
 ?>
 <!doctype html>
 <html lang="en">

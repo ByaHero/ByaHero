@@ -1070,11 +1070,74 @@ function getSyncData(): array {
     ];
 }
 
+function getAdminDashboardStats(): array {
+    @session_start();
+    if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
+        http_response_code(403);
+        return ['success' => false, 'error' => 'Admin role required'];
+    }
+
+    $conn = db();
+    $totalBusesCount = 0;
+    $activeBusesCount = 0;
+    $driversCount = 0;
+    $conductorsCount = 0;
+    $stopsCount = 0;
+    $faresCount = 0;
+    $scheduleCount = 0;
+    $lostFoundCount = 0;
+    $reportsCount = 0;
+    $feedbacksCount = 0;
+    $analyticsCount = 0;
+    $waitingPassengersCount = 0;
+
+    try {
+        $totalBusesCount = (int)$conn->query("SELECT COUNT(*) FROM busses")->fetch_row()[0];
+        $activeBusesCount = (int)$conn->query("
+            SELECT COUNT(*)
+            FROM busses
+            WHERE current_conductor_id IS NOT NULL
+              AND status IN ('available','on_stop','full')
+        ")->fetch_row()[0];
+        $driversCount = (int)$conn->query("SELECT COUNT(*) FROM drivers")->fetch_row()[0];
+        $conductorsCount = (int)$conn->query("SELECT COUNT(*) FROM conductors")->fetch_row()[0];
+        $stopsCount = (int)$conn->query("SELECT COUNT(*) FROM busstopsterminal")->fetch_row()[0];
+        $faresCount = (int)$conn->query("SELECT COUNT(*) FROM bus_fares")->fetch_row()[0];
+        $scheduleCount = (int)$conn->query("SELECT COUNT(*) FROM bus_schedule")->fetch_row()[0];
+        $lostFoundCount = (int)$conn->query("SELECT COUNT(*) FROM lost_and_found")->fetch_row()[0];
+        $reportsCount = (int)$conn->query("SELECT COUNT(*) FROM reports WHERE status = 'pending'")->fetch_row()[0];
+        $feedbacksCount = (int)$conn->query("SELECT COUNT(*) FROM feedbacks")->fetch_row()[0];
+        $analyticsCount = (int)$conn->query("SELECT COALESCE(SUM(total_boarded), 0) FROM bus_operations WHERE status = 'completed'")->fetch_row()[0];
+        $waitingPassengersCount = (int)$conn->query("SELECT COUNT(*) FROM waiting_passengers WHERE status='waiting'")->fetch_row()[0];
+    } catch (Throwable $e) {
+        return ['success' => false, 'error' => $e->getMessage()];
+    }
+
+    return [
+        'success' => true,
+        'stats' => [
+            'total_buses' => $totalBusesCount,
+            'active_buses' => $activeBusesCount,
+            'drivers' => $driversCount,
+            'conductors' => $conductorsCount,
+            'stops' => $stopsCount,
+            'fares' => $faresCount,
+            'schedule' => $scheduleCount,
+            'lost_found' => $lostFoundCount,
+            'reports' => $reportsCount,
+            'feedbacks' => $feedbacksCount,
+            'analytics' => $analyticsCount,
+            'waiting_pax' => $waitingPassengersCount
+        ]
+    ];
+}
+
 // Dispatch
 $action = $_GET['action'] ?? $_POST['action'] ?? 'get_buses';
 
 try {
     switch ($action) {
+        case 'get_admin_dashboard_stats':  $response = getAdminDashboardStats(); break;
         case 'get_buses':                 $response = getBuses(); break;
         case 'get_buses_conductor':       $response = getBusesConductor(); break;
         case 'get_bus_stops_terminal':    $response = getBusStopsTerminal(); break;

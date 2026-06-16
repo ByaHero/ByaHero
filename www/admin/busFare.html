@@ -1,0 +1,414 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <title>ByaHero — Manage Bus Fares</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/admin/busFare.css">
+</head>
+
+<body data-page-title="Manage Bus Fares" data-page-type="generic" data-back-link="index.html">
+
+    <div id="navbar-top-placeholder"></div>
+
+    <div class="container py-4">
+        <!-- Live Alert Banner -->
+        <div id="alertBanner" class="alert d-none alert-dismissible fade show shadow-sm" role="alert">
+            <span id="alertIcon" class="material-symbols-rounded align-middle me-2"></span>
+            <span id="alertMessage"></span>
+            <button type="button" class="btn-close" onclick="closeAlert()"></button>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-lg-4">
+
+                <!-- LTFRB Matrix Generator -->
+                <div class="card border border-light-subtle rounded-4 p-4 mb-4 bg-white shadow-sm">
+                    <h5 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+                        <span class="material-symbols-rounded text-primary">calculate</span>
+                        <span>Matrix Generator</span>
+                    </h5>
+                    <form id="matrixForm">
+                        <div class="mb-3">
+                            <label class="form-label small fw-bold text-uppercase">Base Distance (km)</label>
+                            <input class="form-control mono" name="base_km" value="4" required>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Reg. Base (₱)</label>
+                                <input class="form-control mono" name="reg_base" value="14.00" id="regBaseInput" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Disc. Base (₱)</label>
+                                <input class="form-control mono" name="disc_base" value="11.25" id="discBaseInput" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-2 mb-3">
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Reg. Rate / km</label>
+                                <input class="form-control mono" name="reg_rate" value="2.20" id="regRateInput" required>
+                            </div>
+                            <div class="col-6">
+                                <label class="form-label small fw-bold text-uppercase">Disc. Rate / km</label>
+                                <input class="form-control mono" name="disc_rate" value="1.76" id="discRateInput" required>
+                            </div>
+                        </div>
+
+                        <div class="d-grid mt-3">
+                            <button type="submit" class="btn btn-primary rounded-pill fw-bold py-2">Generate Matrix</button>
+                        </div>
+                    </form>
+                    
+                    <hr class="my-4">
+
+                    <form id="resetForm">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-secondary rounded-pill fw-bold py-2">Undo (Reset to Base)</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Snapshots -->
+                <div class="card border border-light-subtle rounded-4 p-4 mb-4 bg-white shadow-sm">
+                    <h5 class="fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+                        <span class="material-symbols-rounded text-primary">backup</span>
+                        <span>Snapshots (Rollback)</span>
+                    </h5>
+
+                    <form id="createSnapshotForm" class="mb-4">
+                        <label class="form-label small fw-bold text-uppercase">Snapshot label</label>
+                        <input class="form-control mb-3" name="snapshot_label" placeholder="e.g. Before April rate change" required>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary rounded-pill fw-bold py-2">Create Snapshot</button>
+                        </div>
+                    </form>
+
+                    <form id="restoreSnapshotForm">
+                        <label class="form-label small fw-bold text-uppercase">Restore snapshot</label>
+                        <select class="form-select mb-3" name="snapshot_id" id="snapshotSelect" disabled>
+                            <option value="">No snapshots found</option>
+                        </select>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-secondary rounded-pill fw-bold py-2" id="restoreBtn" disabled>Restore Snapshot</button>
+                        </div>
+                    </form>
+                </div>
+
+            </div>
+
+            <!-- Fare list -->
+            <div class="col-lg-8">
+                <div class="card border border-light-subtle rounded-4 p-4 bg-white shadow-sm">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+                        <h5 class="fw-bold m-0 text-dark d-flex align-items-center gap-2">
+                            <span class="material-symbols-rounded text-primary">table_chart</span>
+                            <span>Route Fare Matrix</span>
+                        </h5>
+                        <form id="filterForm" class="d-flex flex-wrap gap-2 w-100">
+                            <div class="flex-grow-1" style="min-width: 200px;">
+                                <select class="form-select w-100 fw-bold border-2" id="originSelect" name="origin">
+                                    <option value="">Loading origins...</option>
+                                </select>
+                            </div>
+                            <div class="d-flex gap-2 flex-grow-1" style="min-width: 250px;">
+                                <input class="form-control" id="searchQuery" name="q" placeholder="Search destination...">
+                                <button type="submit" class="btn btn-primary rounded-pill fw-bold px-4">Filter</button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="table-responsive" style="border: 2px solid #000; border-radius: 12px; background: #fff; overflow-hidden: auto;">
+                        <table class="table table-sm table-bordered mb-0 align-middle">
+                            <thead>
+                                <tr>
+                                    <th colspan="4" id="tableHeaderTitle" class="text-center bg-light fs-5 py-3 fw-bold text-primary" style="border-bottom: 2px solid #000;">
+                                        LOADING...
+                                    </th>
+                                </tr>
+                                <tr class="text-center bg-light">
+                                    <th rowspan="2" class="align-middle border-dark fw-bold text-uppercase small" style="width: 70px;">KM</th>
+                                    <th rowspan="2" class="align-middle border-dark text-start px-3 fw-bold text-uppercase small">Particulars</th>
+                                    <th colspan="2" class="border-dark fw-bold text-uppercase small py-2">Fare</th>
+                                </tr>
+                                <tr class="text-center bg-light">
+                                    <th class="border-dark fw-bold text-uppercase small" style="width: 130px;">Regular</th>
+                                    <th class="border-dark fw-bold text-uppercase small" style="width: 130px;">S / E / D</th>
+                                </tr>
+                            </thead>
+                            <tbody id="fareTableBody">
+                                <tr>
+                                    <td colspan="4" class="text-center text-muted py-5">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="navbar-menu-placeholder"></div>
+    <div id="navbar-bottom-placeholder"></div>
+
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/navbarAdmin.js"></script>
+    <script src="../assets/js/admin/busFare.js"></script>
+
+    <script>
+        let currentOrigin = '';
+        let currentQuery = '';
+
+        function showAlert(message, type = 'success') {
+            const banner = document.getElementById('alertBanner');
+            const icon = document.getElementById('alertIcon');
+            const msg = document.getElementById('alertMessage');
+            
+            banner.className = `alert alert-${type} alert-dismissible fade show shadow-sm`;
+            icon.textContent = type === 'success' ? 'check_circle' : 'error';
+            msg.textContent = message;
+            banner.classList.remove('d-none');
+            
+            setTimeout(() => {
+                banner.classList.add('d-none');
+            }, 5000);
+        }
+
+        function closeAlert() {
+            document.getElementById('alertBanner').classList.add('d-none');
+        }
+
+        async function loadData(originId = '', query = '') {
+            try {
+                let url = 'busFare.php?json=1';
+                if (originId) url += '&origin=' + encodeURIComponent(originId);
+                if (query) url += '&q=' + encodeURIComponent(query);
+                
+                const res = await fetch(url);
+                const data = await res.json();
+                
+                if (data.success === false) {
+                    showAlert(data.error || 'Failed to fetch data.', 'danger');
+                    return;
+                }
+
+                // Populate Origin Select
+                const originSelect = document.getElementById('originSelect');
+                const prevValue = originSelect.value || data.filterOrigin;
+                originSelect.innerHTML = '';
+                
+                data.originsList.forEach(orig => {
+                    const opt = document.createElement('option');
+                    opt.value = orig.stop_id;
+                    opt.textContent = `From: ${orig.location_name}`;
+                    if (orig.stop_id == data.filterOrigin) {
+                        opt.selected = true;
+                    }
+                    originSelect.appendChild(opt);
+                });
+
+                currentOrigin = data.filterOrigin;
+
+                // Populate Snapshots
+                const snapshotSelect = document.getElementById('snapshotSelect');
+                const restoreBtn = document.getElementById('restoreBtn');
+                snapshotSelect.innerHTML = '';
+                
+                if (data.snapshots && data.snapshots.length > 0) {
+                    data.snapshots.forEach(snap => {
+                        const opt = document.createElement('option');
+                        opt.value = snap.snapshot_id;
+                        opt.textContent = `#${snap.snapshot_id} — ${snap.label} (${snap.created_at})`;
+                        snapshotSelect.appendChild(opt);
+                    });
+                    snapshotSelect.disabled = false;
+                    restoreBtn.disabled = false;
+                } else {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = 'No snapshots found';
+                    snapshotSelect.appendChild(opt);
+                    snapshotSelect.disabled = true;
+                    restoreBtn.disabled = true;
+                }
+
+                // Header Title
+                document.getElementById('tableHeaderTitle').textContent = `${data.originName.toUpperCase()} - ${data.farthestDestName.toUpperCase()}`;
+
+                // Table Body
+                const tbody = document.getElementById('fareTableBody');
+                tbody.innerHTML = '';
+
+                // Origin (0 KM) Row
+                const zeroRow = document.createElement('tr');
+                zeroRow.innerHTML = `
+                    <td class="text-center border-dark fw-bold">0</td>
+                    <td class="fw-bold border-dark px-3">${data.originName.toUpperCase()}</td>
+                    <td class="border-dark text-center bg-light">-</td>
+                    <td class="border-dark text-center bg-light">-</td>
+                `;
+                tbody.appendChild(zeroRow);
+
+                if (data.fares.length === 0) {
+                    const emptyRow = document.createElement('tr');
+                    emptyRow.innerHTML = `<td colspan="4" class="text-center text-muted py-4 border-dark">No fares found for this search.</td>`;
+                    tbody.appendChild(emptyRow);
+                } else {
+                    data.fares.forEach(f => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="text-center border-dark">${Math.round(parseFloat(f.distance_km))}</td>
+                            <td class="border-dark px-3">${f.dest_name}</td>
+                            <td class="text-end border-dark px-3 py-2 mono fw-bold">₱${parseFloat(f.regular_fare).toFixed(2)}</td>
+                            <td class="text-end border-dark px-3 py-2 mono fw-bold text-success">₱${parseFloat(f.discounted_fare).toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(row);
+                    });
+                }
+
+            } catch (err) {
+                console.error(err);
+                showAlert('Failed to connect to the server.', 'danger');
+            }
+        }
+
+        // On Load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadData();
+
+            // Bind selectors
+            document.getElementById('originSelect').addEventListener('change', (e) => {
+                loadData(e.target.value, currentQuery);
+            });
+
+            document.getElementById('filterForm').addEventListener('submit', (e) => {
+                e.preventDefault();
+                currentQuery = document.getElementById('searchQuery').value;
+                loadData(document.getElementById('originSelect').value, currentQuery);
+            });
+
+            // LTFRB Matrix Form
+            document.getElementById('matrixForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!confirm('WARNING: This will instantly overwrite all 900+ rows with mathematical matrix calculations. Proceed?')) {
+                    return;
+                }
+                const formData = new FormData(e.target);
+                formData.append('action', 'generate_matrix');
+                
+                try {
+                    const res = await fetch('busFare.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showAlert(data.message || 'Matrix generated successfully.');
+                        loadData(currentOrigin, currentQuery);
+                    } else {
+                        showAlert(data.error || 'Failed to generate matrix.', 'danger');
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showAlert('Server connection failed.', 'danger');
+                }
+            });
+
+            // Reset Form
+            document.getElementById('resetForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!confirm('Revoke changes by resetting ALL fares back to their original base values?')) {
+                    return;
+                }
+                const formData = new FormData();
+                formData.append('action', 'reset_to_base');
+                
+                try {
+                    const res = await fetch('busFare.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showAlert(data.message || 'Fares reset successfully.');
+                        loadData(currentOrigin, currentQuery);
+                    } else {
+                        showAlert(data.error || 'Failed to reset fares.', 'danger');
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showAlert('Server connection failed.', 'danger');
+                }
+            });
+
+            // Create Snapshot Form
+            document.getElementById('createSnapshotForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!confirm('Create snapshot of ALL fares now?')) {
+                    return;
+                }
+                const formData = new FormData(e.target);
+                formData.append('action', 'snapshot_create');
+                
+                try {
+                    const res = await fetch('busFare.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showAlert(data.message || 'Snapshot created successfully.');
+                        e.target.reset();
+                        loadData(currentOrigin, currentQuery);
+                    } else {
+                        showAlert(data.error || 'Failed to create snapshot.', 'danger');
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showAlert('Server connection failed.', 'danger');
+                }
+            });
+
+            // Restore Snapshot Form
+            document.getElementById('restoreSnapshotForm').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                if (!confirm('Restore selected snapshot? This overwrites fares + base fares.')) {
+                    return;
+                }
+                const formData = new FormData(e.target);
+                formData.append('action', 'snapshot_restore');
+                
+                try {
+                    const res = await fetch('busFare.php', {
+                        method: 'POST',
+                        body: formData
+                    });
+                    const data = await res.json();
+                    if (data.success) {
+                        showAlert(data.message || 'Snapshot restored successfully.');
+                        loadData(currentOrigin, currentQuery);
+                    } else {
+                        showAlert(data.error || 'Failed to restore snapshot.', 'danger');
+                    }
+                } catch(err) {
+                    console.error(err);
+                    showAlert('Server connection failed.', 'danger');
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

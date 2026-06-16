@@ -8,6 +8,12 @@ require __DIR__ . '/../../config/db.php';
 
 @session_start();
 
+$input = json_decode(file_get_contents('php://input'), true) ?? [];
+$isJson = (isset($_GET['json']) || isset($_POST['json']) || !empty($input) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false));
+if (!empty($input)) {
+    $_POST = array_merge($_POST, $input);
+}
+
 // --- AUTH ---
 if (empty($_SESSION['user_role']) || $_SESSION['user_role'] !== 'admin') {
     header("Location: ../login.php");
@@ -114,6 +120,17 @@ try {
 $pageDepth = '../../';
 $pageType  = 'manageBuses';
 $backLink  = 'admin.php';
+
+if ($isJson) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode([
+        'success' => empty($error),
+        'message' => $message,
+        'error' => $error,
+        'buses' => $buses
+    ]);
+    exit;
+}
 /* === END === */
 ?>
 <!doctype html>
