@@ -49,6 +49,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.replace("passenger/index.html");
             } else if (cachedRole === 'conductor') {
                 window.location.replace("conductor/index.html");
+            } else if (cachedRole === 'admin') {
+                window.location.replace("admin/index.html");
             }
         }
     }
@@ -79,6 +81,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.replace("passenger/index.html");
                     } else if (cachedRole === 'conductor') {
                         window.location.replace("conductor/index.html");
+                    } else if (cachedRole === 'admin') {
+                        window.location.replace("admin/index.html");
                     } else {
                         window.location.replace("error.html");
                     }
@@ -140,6 +144,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         }
                     } else if (role === 'conductor') {
                         window.location.replace("conductor/index.html");
+                    } else if (role === 'admin') {
+                        window.location.replace("admin/index.html");
                     } else {
                         window.location.replace("passenger/index.html");
                     }
