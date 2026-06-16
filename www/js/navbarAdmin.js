@@ -468,11 +468,15 @@
                 isTarget = true;
             }
 
-            // Append email parameter for session hydration on the fly
-            if (isTarget && cachedEmail) {
+            // Append json=1 and email parameter on the fly for backend API redirection
+            if (isTarget) {
                 const separator = fetchUrl.includes('?') ? '&' : '?';
-                if (!fetchUrl.includes('email=')) {
-                    fetchUrl += separator + 'email=' + encodeURIComponent(cachedEmail);
+                if (!fetchUrl.includes('json=')) {
+                    fetchUrl += separator + 'json=1';
+                }
+                if (cachedEmail && !fetchUrl.includes('email=')) {
+                    const nextSep = fetchUrl.includes('?') ? '&' : '?';
+                    fetchUrl += nextSep + 'email=' + encodeURIComponent(cachedEmail);
                 }
             }
         }
