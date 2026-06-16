@@ -142,7 +142,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     if (alertBox) alertBox.innerHTML = '<div class="alert alert-success alert-small">Success! Redirecting...</div>';
                     setTimeout(() => {
-                        window.location.href = data.redirect || 'passenger/showGuide/showGuide.php';
+                        let redirectUrl = data.redirect || 'passenger/showGuide/showGuide.php';
+                        if (window.Capacitor) {
+                            redirectUrl = redirectUrl.replace('.php', '.html');
+                        }
+                        window.location.href = redirectUrl;
                     }, 1000);
                 } else {
                     throw new Error(data.message || 'Verification failed');
@@ -179,7 +183,11 @@ function handleGoogleLogin(response) {
     .then(res => res.json())
     .then(data => {
         if (data.success) {
-            window.location.href = data.redirect || 'passenger/index.php';
+            let redirectUrl = data.redirect || 'passenger/index.php';
+            if (window.Capacitor) {
+                redirectUrl = redirectUrl.replace('.php', '.html');
+            }
+            window.location.href = redirectUrl;
         } else {
             const signupAlert = document.getElementById('signupAlert');
             if (signupAlert) {

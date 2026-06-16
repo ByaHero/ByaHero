@@ -6,7 +6,7 @@
  * ──────────────────────────────────────────────────────────────────────────
  */
 
-document.addEventListener('DOMContentLoaded', () => {
+function init() {
     const config = window.BYAHERO_STOPS_CONFIG || {};
     const BASE_URL = config.baseUrl || '';
     const existingStops = config.existingStops || [];
@@ -14,7 +14,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const ROUTE_REVERSE = config.routeReverse || 'TANAUAN - LAUREL';
 
     const map = L.map('stopMap').setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    L.tileLayer(mapTileUrl, {
         maxZoom: 19,
         attribution: '© OpenStreetMap'
     }).addTo(map);
@@ -114,7 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     let routeGeoJSON = null;
-    fetch(BASE_URL + '/public/routes/laurel-talisay-tanauan.geojson')
+    const geojsonUrl = config.geojsonUrl || (BASE_URL + '/public/routes/laurel-talisay-tanauan.geojson');
+    fetch(geojsonUrl)
         .then(res => res.json())
         .then(data => { routeGeoJSON = data; })
         .catch(err => console.error("Could not load route GeoJSON", err));
@@ -199,4 +201,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     initSortable("route-forward-list", "route-forward-order-input");
     initSortable("route-reverse-list", "route-reverse-order-input");
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

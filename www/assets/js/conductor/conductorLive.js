@@ -68,7 +68,8 @@ function showAlert(message, type = 'info') {
 function initMap() {
     if (map) return;
     map = L.map('mainMap', { zoomControl: false, attributionControl: false }).setView([14.0905, 121.0550], 12);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(map);
+    const mapTileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+    L.tileLayer(mapTileUrl, { maxZoom: 19 }).addTo(map);
 }
 
 /**

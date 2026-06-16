@@ -488,7 +488,8 @@ if ($isJson) {
         baseUrl: <?= json_encode($baseUrl, JSON_UNESCAPED_SLASHES) ?>,
         existingStops: <?= json_encode($stops, JSON_UNESCAPED_SLASHES) ?>,
         routeForward: <?= json_encode(ROUTE_FORWARD) ?>,
-        routeReverse: <?= json_encode(ROUTE_REVERSE) ?>
+        routeReverse: <?= json_encode(ROUTE_REVERSE) ?>,
+        geojsonUrl: <?= json_encode($baseUrl . '/public/routes/laurel-talisay-tanauan.geojson', JSON_UNESCAPED_SLASHES) ?>
     };
 </script>
 <script>
