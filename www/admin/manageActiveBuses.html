@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <link rel="icon" href="../assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+    <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <title>ByaHero — Active Buses</title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link href="../css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@24,400,1,0" rel="stylesheet">
+    <link rel="stylesheet" href="../assets/css/admin/manageActiveBuses.css">
+</head>
+
+<body data-page-title="Active Buses" data-page-type="generic" data-back-link="index.html">
+
+    <div id="navbar-top-placeholder"></div>
+
+    <div class="container py-3 py-lg-4" style="max-width: 1100px;">
+        <!-- Alert Banner -->
+        <div id="alertBanner" class="alert alert-danger d-none alert-dismissible fade show shadow-sm" role="alert" style="border-radius: 14px;">
+            <span id="alertMessage"></span>
+            <button type="button" class="btn-close" onclick="closeAlert()"></button>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold fs-4 mb-0 text-dark">Active Buses</h2>
+                <div class="small text-primary d-flex align-items-center gap-2 mt-1" style="font-weight: 600;">
+                    <span class="status-pulse-green"></span>
+                    <span>Live Updates: <strong class="text-success">Active polling</strong></span>
+                </div>
+            </div>
+        </div>
+
+        <div id="bus-list-container">
+            <div class="text-center py-5">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="navbar-menu-placeholder"></div>
+    <div id="navbar-bottom-placeholder"></div>
+
+    <script src="../js/bootstrap.bundle.min.js"></script>
+    <script src="../js/navbarAdmin.js"></script>
+
+    <script>
+        function closeAlert() {
+            document.getElementById('alertBanner').classList.add('d-none');
+        }
+
+        function showAlert(message) {
+            const banner = document.getElementById('alertBanner');
+            document.getElementById('alertMessage').textContent = message;
+            banner.classList.remove('d-none');
+        }
+
+        async function loadActiveBuses() {
+            try {
+                const res = await fetch('manageActiveBuses.php?json=1');
+                const data = await res.json();
+                
+                if (data.success === false) {
+                    showAlert(data.error || 'Failed to fetch active buses.');
+                    return;
+                }
+
+                const container = document.getElementById('bus-list-container');
+                if (data.activeBuses.length === 0) {
+                    container.innerHTML = `
+                        <div class="text-center text-muted py-5 card border rounded-4 bg-white shadow-sm">
+                            <span class="material-symbols-rounded fs-1 mb-2 opacity-50">directions_bus</span>
+                            <p class="mb-0 fw-bold">No active buses right now.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '<div class="row row-cols-1 row-cols-lg-2 g-3">';
+                data.activeBuses.forEach(bus => {
+                    const s = bus.status || '';
+                    let pillStyle = 'background: #dcfce7; color: #166534;';
+                    let pillText  = 'Available';
+
+                    if (s === 'on_stop') {
+                        pillStyle = 'background: #fef3c7; color: #92400e;';
+                        pillText  = 'On Stop';
+                    } else if (s === 'full') {
+                        pillStyle = 'background: #fee2e2; color: #b91c1c;';
+                        pillText  = 'Full';
+                    }
+
+                    const routeStr = bus.route ? bus.route : '<em class="text-muted">None</em>';
+                    const condStr = bus.conductor_email ? bus.conductor_email : 'Unknown';
+
+                    html += `
+                        <div class="col">
+                            <div class="bg-white rounded-4 shadow-sm border p-3 d-flex align-items-center gap-3" style="border-color: rgba(148, 163, 184, 0.35) !important;">
+                                <div class="d-flex align-items-center justify-content-center flex-shrink-0 bg-light rounded-3" style="width: 56px; height: 56px;">
+                                    <img src="../assets/images/icons/activeBus.png" alt="Bus" style="width: 40px; height: 40px; object-fit: contain;">
+                                </div>
+
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div>
+                                            <p class="fw-bold mb-0 text-dark" style="font-size: 1.05rem;">${bus.code || 'BUS'}</p>
+                                            <p class="mb-0 text-secondary" style="font-size: 0.85rem;">
+                                                Route: ${routeStr}
+                                            </p>
+                                            <p class="mb-0 text-secondary" style="font-size: 0.85rem;">
+                                                Available Seats: ${bus.seat_availability}/${bus.total_seats}
+                                            </p>
+                                            <p class="mb-0 mt-1 text-primary" style="font-size: 0.85rem;">
+                                                Conductor: <span class="fw-bold">${condStr}</span>
+                                            </p>
+                                        </div>
+                                        <span class="badge rounded-pill px-3 py-2 fw-bold text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.3px; ${pillStyle}">${pillText}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+                html += '</div>';
+                container.innerHTML = html;
+
+            } catch (err) {
+                console.error(err);
+                showAlert('Failed to connect to the server.');
+            }
+        }
+
+        // Poll every 5 seconds
+        document.addEventListener('DOMContentLoaded', () => {
+            loadActiveBuses();
+            setInterval(loadActiveBuses, 5000);
+        });
+    </script>
+    
+    <style>
+        .status-pulse-green {
+            width: 8px;
+            height: 8px;
+            background-color: #198754;
+            border-radius: 50%;
+            display: inline-block;
+            animation: pulse-green-animation 1.5s infinite ease-in-out;
+        }
+        @keyframes pulse-green-animation {
+            0% { transform: scale(0.9); opacity: 1; }
+            50% { transform: scale(1.2); opacity: 0.5; }
+            100% { transform: scale(0.9); opacity: 1; }
+        }
+    </style>
+</body>
+
+</html>

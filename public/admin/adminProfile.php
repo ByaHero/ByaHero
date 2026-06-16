@@ -79,9 +79,16 @@ if ($userEmail !== '' && str_contains($userEmail, '@')) {
 }
 
 $message = '';
+$success = false;
 
 // Handle form submissions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $input = json_decode(file_get_contents('php://input'), true) ?? [];
+    $isJson = (isset($_GET['json']) || isset($_POST['json']) || !empty($input) || (isset($_SERVER['HTTP_ACCEPT']) && strpos($_SERVER['HTTP_ACCEPT'], 'application/json') !== false));
+    
+    if (!empty($input)) {
+        $_POST = array_merge($_POST, $input);
+    }
 
     // UPDATE EMAIL
     if (isset($_POST['update_email'])) {
@@ -106,6 +113,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
 
             $message = "Email updated successfully.";
+            $success = true;
         }
     }
 
@@ -146,9 +154,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $up->execute();
 
                     $message = "Password successfully updated!";
+                    $success = true;
                 }
             }
         }
+    }
+
+    if ($isJson) {
+        header('Content-Type: application/json; charset=utf-8');
+        echo json_encode([
+            'success' => $success,
+            'message' => $message,
+            'email' => $userEmail,
+            'name' => $displayName
+        ]);
+        exit;
     }
 }
 

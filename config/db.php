@@ -124,3 +124,45 @@ function db(): mysqli {
 
     return $conn;
 }
+
+// Dynamic Session Hydration for WebView/Capacitor cookie-less cross-origin environments
+(function() {
+    if (session_status() === PHP_SESSION_NONE) {
+        @session_start();
+    }
+    
+    if (!isset($_SESSION['user_id'])) {
+        $input = json_decode(file_get_contents('php://input'), true) ?? [];
+        $email = trim((string)($input['email'] ?? $_POST['email'] ?? $_GET['email'] ?? ''));
+        if (!empty($email)) {
+            try {
+                $conn = db();
+                $cleanEmail = mb_strtolower($email);
+                $roleTables = [
+                    'admin'     => 'admins',
+                    'driver'    => 'drivers',
+                    'conductor' => 'conductors',
+                    'passenger' => 'users',
+                ];
+                foreach ($roleTables as $role => $table) {
+                    $stmt = $conn->prepare("SELECT * FROM {$table} WHERE email = ? LIMIT 1");
+                    if ($stmt) {
+                        $stmt->bind_param("s", $cleanEmail);
+                        $stmt->execute();
+                        $db_user = $stmt->get_result()->fetch_assoc();
+                        $stmt->close();
+                        if ($db_user) {
+                            $_SESSION['user_id'] = (int)$db_user['id'];
+                            $_SESSION['user_email'] = $db_user['email'] ?? '';
+                            $_SESSION['user_role'] = $role;
+                            $_SESSION['user_name'] = $db_user['name'] ?? $db_user['email'] ?? '';
+                            $_SESSION['user_contacts'] = $db_user['contacts'] ?? '';
+                            $_SESSION['user_profile_picture'] = $db_user['profile_picture'] ?? null;
+                            break;
+                        }
+                    }
+                }
+            } catch (\Throwable $ignore) {}
+        }
+    }
+})();
