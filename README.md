@@ -136,6 +136,12 @@ The backend loads these values from `config/firebase_push.php`.
 
 See [LICENSE](LICENSE) file for details.
 
-Run this to terminal
+Post Pre-Oral Defense
 
-php -S localhost:8000 -t public
+Panel Suggestions:
+1. Thermal Scanning/ thermal printer for printing of tickets
+2. More AI/ML model for faster bus speed detection and etc
+3. Route Optimization
+4. Enhanced conductor ticketing system
+5. Add Fare integration 
+6. Native Application
