@@ -190,7 +190,7 @@
           localStorage.removeItem('byahero_cached_phone');
           
           alert('Account deleted successfully.');
-          window.location.href = '../../login.html';
+          window.location.href = '../../accountDeleted.html';
         } else {
           showAlert(data.message || 'Failed to delete account. Please verify credentials.');
           submitBtn.disabled = false;

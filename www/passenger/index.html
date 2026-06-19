@@ -1247,7 +1247,7 @@
         }
       }
 
-      // Start the scanner when the modal animation is fully complete
+      // Set up events first so they are active when modal.show() is called later
       scannerModalEl.addEventListener('shown.bs.modal', function onShown() {
         triggerStart();
       }, { once: true });
@@ -1255,6 +1255,26 @@
       scannerModalEl.addEventListener('hidden.bs.modal', function onHidden() {
         stopScanner();
       }, { once: true });
+
+      if (window.AndroidCamera && !window.AndroidCamera.hasCameraPermission()) {
+        window.AndroidCamera.requestCameraPermission();
+        
+        let attempts = 0;
+        const permissionInterval = setInterval(() => {
+          attempts++;
+          if (window.AndroidCamera.hasCameraPermission()) {
+            clearInterval(permissionInterval);
+            modal.show();
+            // Fallback timeout in case shown.bs.modal does not fire
+            setTimeout(() => {
+              triggerStart();
+            }, 450);
+          } else if (attempts > 120) {
+            clearInterval(permissionInterval);
+          }
+        }, 500);
+        return;
+      }
 
       modal.show();
 
@@ -1282,13 +1302,37 @@
 
         html5QrScanner = new Html5Qrcode("qr-reader");
 
-        const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+        // Dynamic QR box sizing: 70% of the viewport's minimum dimension
+        const qrboxFunction = function(viewfinderWidth, viewfinderHeight) {
+          const minEdgePercentage = 0.7;
+          const minEdgeSize = Math.min(viewfinderWidth, viewfinderHeight);
+          const qrboxSize = Math.floor(minEdgeSize * minEdgePercentage);
+          return {
+            width: qrboxSize,
+            height: qrboxSize
+          };
+        };
+
+        const config = { fps: 15, qrbox: qrboxFunction };
 
         scannerStartPromise = html5QrScanner.start(
           { facingMode: "environment" },
           config,
           (decodedText) => {
-            document.getElementById('join-code-input').value = decodedText;
+            if (stopRequested) return;
+            stopRequested = true;
+
+            console.log("QR Code Decoded:", decodedText);
+            if (navigator.vibrate) navigator.vibrate(100);
+
+            let code = decodedText.trim();
+            // Match 6-digit numeric invite code (e.g. from raw code or from share URL parameter)
+            const codeMatch = code.match(/join_circle=(\d{6})/i) || code.match(/\b(\d{6})\b/);
+            if (codeMatch) {
+              code = codeMatch[1];
+            }
+
+            document.getElementById('join-code-input').value = code;
             stopScanner();
 
             const scannerModalEl = document.getElementById('qrScannerModal');

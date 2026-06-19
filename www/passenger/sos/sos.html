@@ -278,6 +278,9 @@
             <p class="text-secondary small" id="networkStatusText">
                 Alerts will be broadcasted to your Circle.
             </p>
+            <div class="w-100 mt-4">
+                <div id="emergencyContactsList" class="row g-2"></div>
+            </div>
         </div>
     </main>
 
@@ -441,34 +444,36 @@
 
             // 1. Render emergency contacts
             const contactsList = document.getElementById('emergencyContactsList');
-            contactsList.innerHTML = data.emergencyContacts.map(c => {
-                let icon = 'call';
-                let color = 'bg-primary text-primary';
-                if (c.type === 'Fire') { icon = 'fire_truck'; color = 'bg-danger text-danger'; }
-                else if (c.type === 'Medical') { icon = 'medical_services'; color = 'bg-success text-success'; }
-                else if (c.type === 'Disaster') { icon = 'tsunami'; color = 'bg-warning text-warning'; }
+            if (contactsList && data && data.emergencyContacts) {
+                contactsList.innerHTML = data.emergencyContacts.map(c => {
+                    let icon = 'call';
+                    let color = 'bg-primary text-primary';
+                    if (c.type === 'Fire') { icon = 'fire_truck'; color = 'bg-danger text-danger'; }
+                    else if (c.type === 'Medical') { icon = 'medical_services'; color = 'bg-success text-success'; }
+                    else if (c.type === 'Disaster') { icon = 'tsunami'; color = 'bg-warning text-warning'; }
 
-                return `
-                    <div class="col-12 col-md-6">
-                        <a href="tel:${c.phone}" class="text-decoration-none">
-                            <div class="card contact-card border-0 shadow-sm mb-1">
-                                <div class="card-body p-3 d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center overflow-hidden">
-                                        <div class="${color} bg-opacity-10 p-2 rounded-circle me-3 flex-shrink-0">
-                                            <span class="material-symbols-rounded">${icon}</span>
+                    return `
+                        <div class="col-12 col-md-6">
+                            <a href="tel:${c.phone}" class="text-decoration-none">
+                                <div class="card contact-card border-0 shadow-sm mb-1">
+                                    <div class="card-body p-3 d-flex align-items-center justify-content-between">
+                                        <div class="d-flex align-items-center overflow-hidden">
+                                            <div class="${color} bg-opacity-10 p-2 rounded-circle me-3 flex-shrink-0">
+                                                <span class="material-symbols-rounded">${icon}</span>
+                                            </div>
+                                            <div class="text-start overflow-hidden">
+                                                <div class="fw-bold text-dark text-truncate">${c.name}</div>
+                                                <small class="text-muted d-block">${c.phone}</small>
+                                            </div>
                                         </div>
-                                        <div class="text-start overflow-hidden">
-                                            <div class="fw-bold text-dark text-truncate">${c.name}</div>
-                                            <small class="text-muted d-block">${c.phone}</small>
-                                        </div>
+                                        <span class="material-symbols-rounded text-primary">call</span>
                                     </div>
-                                    <span class="material-symbols-rounded text-primary">call</span>
                                 </div>
-                            </div>
-                        </a>
-                    </div>
-                `;
-            }).join('');
+                            </a>
+                        </div>
+                    `;
+                }).join('');
+            }
 
             // 2. Geolocation coordinates & place name
             let currentCoords = { lat: null, lng: null };
@@ -487,26 +492,75 @@
                 return parts.length ? parts.join(", ") : (resJson.display_name || "Unknown");
             }
 
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    async (pos) => {
-                        currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-                        document.getElementById('location-text').innerText = `${currentCoords.lat.toFixed(4)}, ${currentCoords.lng.toFixed(4)}`;
-
-                        try {
-                            const place = await reverseGeocode(currentCoords.lat, currentCoords.lng);
-                            resolvedPlace = place;
-                            document.getElementById('location-text').innerText = place;
-                        } catch (e) {
-                            console.warn("Reverse geocoding fail:", e);
+            async function getDeviceLocation() {
+                // Check if running in Capacitor native app and Geolocation plugin is available
+                if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Geolocation) {
+                    try {
+                        const Geolocation = window.Capacitor.Plugins.Geolocation;
+                        
+                        // Check or request OS-level permission
+                        let perm = await Geolocation.checkPermissions();
+                        if (perm.location !== 'granted') {
+                            perm = await Geolocation.requestPermissions();
                         }
-                    },
-                    () => {
+                        
+                        if (perm.location === 'granted') {
+                            const pos = await Geolocation.getCurrentPosition({
+                                enableHighAccuracy: true,
+                                timeout: 10000
+                            });
+                            
+                            if (pos && pos.coords) {
+                                currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                                document.getElementById('location-text').innerText = `${currentCoords.lat.toFixed(4)}, ${currentCoords.lng.toFixed(4)}`;
+                                
+                                try {
+                                    const place = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                                    resolvedPlace = place;
+                                    document.getElementById('location-text').innerText = place;
+                                } catch (e) {
+                                    console.warn("Reverse geocoding fail:", e);
+                                }
+                                return; // Successfully resolved geolocation natively
+                            }
+                        }
+                    } catch (capGeoErr) {
+                        console.warn("Capacitor Geolocation failed, falling back to Web API:", capGeoErr);
+                    }
+                }
+                
+                // Fallback to standard web Geolocation API
+                if (navigator.geolocation) {
+                    try {
+                        navigator.geolocation.getCurrentPosition(
+                            async (pos) => {
+                                currentCoords = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+                                document.getElementById('location-text').innerText = `${currentCoords.lat.toFixed(4)}, ${currentCoords.lng.toFixed(4)}`;
+
+                                try {
+                                    const place = await reverseGeocode(currentCoords.lat, currentCoords.lng);
+                                    resolvedPlace = place;
+                                    document.getElementById('location-text').innerText = place;
+                                } catch (e) {
+                                    console.warn("Reverse geocoding fail:", e);
+                                }
+                            },
+                            (err) => {
+                                console.warn("Geolocation callback error:", err);
+                                document.getElementById('location-text').innerText = "Unknown Location";
+                            },
+                            { enableHighAccuracy: true, timeout: 8000 }
+                        );
+                    } catch (geoErr) {
+                        console.error("Geolocation sync error:", geoErr);
                         document.getElementById('location-text').innerText = "Unknown Location";
-                    },
-                    { enableHighAccuracy: true, timeout: 8000 }
-                );
+                    }
+                } else {
+                    document.getElementById('location-text').innerText = "Unknown Location";
+                }
             }
+
+            getDeviceLocation();
 
             // 3. SOS Countdown Mechanics
             const sosBtn = document.getElementById('sosTriggerBtn');

@@ -5,6 +5,7 @@ import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.View;
+import android.webkit.JavascriptInterface;
 import android.webkit.PermissionRequest;
 import android.webkit.WebView;
 import androidx.core.app.ActivityCompat;
@@ -29,6 +30,24 @@ public class MainActivity extends BridgeActivity {
         if (webView != null) {
             webView.setOverScrollMode(View.OVER_SCROLL_NEVER);
             
+            // Register a Javascript interface to request/check native camera permission
+            webView.addJavascriptInterface(new Object() {
+                @JavascriptInterface
+                public void requestCameraPermission() {
+                    if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                            != PackageManager.PERMISSION_GRANTED) {
+                        ActivityCompat.requestPermissions(MainActivity.this,
+                                new String[]{ Manifest.permission.CAMERA }, CAMERA_PERMISSION_REQUEST);
+                    }
+                }
+                
+                @JavascriptInterface
+                public boolean hasCameraPermission() {
+                    return ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
+                            == PackageManager.PERMISSION_GRANTED;
+                }
+            }, "AndroidCamera");
+            
             // Set our custom BridgeWebChromeClient that overrides only onPermissionRequest
             webView.setWebChromeClient(new BridgeWebChromeClient(getBridge()) {
                 @Override
@@ -44,7 +63,7 @@ public class MainActivity extends BridgeActivity {
                         
                         if (hasCameraRequest) {
                             if (ContextCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA)
-                                    == PackageManager.PERMISSION_GRANTED) {
+                                     == PackageManager.PERMISSION_GRANTED) {
                                 request.grant(request.getResources());
                             } else {
                                 pendingPermissionRequest = request;
