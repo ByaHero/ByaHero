@@ -32,7 +32,13 @@ jobs:
           server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
           username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
           password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
-          port: 21
-          protocol: ftps
+          port: 990
+          protocol: ftps-legacy
           local-dir: ./
           server-dir: ./www/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/android/**
+            **/.idea/**
