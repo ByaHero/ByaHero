@@ -84,9 +84,11 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
             btn.disabled = true;
 
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
             try {
                 const fd = new FormData(form);
-                const res = await fetch('auth_api.php', { method: 'POST', body: fd });
+                const res = await fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: fd });
                 const data = await res.json();
 
                 if (data.success) {
@@ -127,6 +129,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btn.disabled = true;
             if (alertBox) alertBox.innerHTML = '';
 
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
             try {
                 const emailInput = document.getElementById('signupEmail');
                 const otpInput = document.getElementById('otpInput');
@@ -136,7 +140,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 formData.append('email', emailInput ? emailInput.value : '');
                 formData.append('otp', otpInput ? otpInput.value : '');
 
-                const res = await fetch('auth_api.php', { method: 'POST', body: formData });
+                const res = await fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: formData });
                 const data = await res.json();
 
                 if (data.success) {
@@ -179,7 +183,9 @@ function handleGoogleLogin(response) {
     formData.append('action', 'google_auth');
     formData.append('credential', credential);
     
-    fetch('auth_api.php', { method: 'POST', body: formData })
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
+    fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: formData })
     .then(res => res.json())
     .then(data => {
         if (data.success) {
@@ -236,6 +242,13 @@ function initNativeCapacitorGoogleAuth() {
         
         const nativeBtn = document.getElementById('native-google-btn');
         if (nativeBtn) {
+            // Replace togglePass references with proper local images in Capacitor
+            document.querySelectorAll('.password-wrapper button img').forEach(img => {
+                if (img.src.includes('../assets/images/')) {
+                    img.src = img.src.replace('../assets/images/', 'images/');
+                }
+            });
+
             nativeBtn.addEventListener('click', async () => {
                 try {
                     const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();

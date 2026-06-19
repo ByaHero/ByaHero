@@ -3,6 +3,41 @@
  * Client-side authentication logic for ByaHero Offline Login View.
  */
 
+// Automatically detect and set local developer backend URL if running under localhost/XAMPP
+(function() {
+    const loc = window.location;
+    const isLocal = loc.hostname === 'localhost' || 
+                    loc.hostname === '127.0.0.1' || 
+                    loc.hostname.startsWith('192.168.') || 
+                    loc.hostname.startsWith('10.') || 
+                    loc.hostname.startsWith('172.') || 
+                    loc.hostname.endsWith('.local');
+    
+    const isNative = window.Capacitor && (
+        window.Capacitor.isNative || 
+        (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+        navigator.userAgent.includes('Capacitor') ||
+        loc.href.includes('capacitor://')
+    );
+
+    const storedUrl = localStorage.getItem('byahero_server_url');
+    const isAuto = localStorage.getItem('byahero_server_url_is_auto') === 'true';
+
+    if (isLocal && !isNative) {
+        if (!storedUrl || storedUrl === 'https://byahero.alwaysdata.net') {
+            const match = loc.pathname.match(/\/[Bb]ya[Hh]ero/);
+            const localUrl = loc.origin + (match ? match[0] : '');
+            localStorage.setItem('byahero_server_url', localUrl);
+            localStorage.setItem('byahero_server_url_is_auto', 'true');
+        }
+    } else {
+        if (isAuto) {
+            localStorage.removeItem('byahero_server_url');
+            localStorage.removeItem('byahero_server_url_is_auto');
+        }
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     const pwd = document.getElementById('password');
     const toggle = document.getElementById('togglePwd');
@@ -49,6 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 window.location.replace("passenger/index.html");
             } else if (cachedRole === 'conductor') {
                 window.location.replace("conductor/index.html");
+            } else if (cachedRole === 'admin') {
+                window.location.replace("admin/index.html");
             }
         }
     }
@@ -79,6 +116,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         window.location.replace("passenger/index.html");
                     } else if (cachedRole === 'conductor') {
                         window.location.replace("conductor/index.html");
+                    } else if (cachedRole === 'admin') {
+                        window.location.replace("admin/index.html");
                     } else {
                         window.location.replace("error.html");
                     }
@@ -92,11 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Online flow - Authenticate against live server
             let SERVER_URL = localStorage.getItem('byahero_server_url');
             if (!SERVER_URL) {
-                if (window.Capacitor && window.Capacitor.getPlatform && window.Capacitor.getPlatform() === 'android') {
-                    SERVER_URL = 'http://10.0.2.2/ByaHero';
-                } else {
-                    SERVER_URL = 'https://byahero.app';
-                }
+                SERVER_URL = 'https://byahero.alwaysdata.net';
             }
 
             const formData = new FormData();
@@ -133,42 +168,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('byahero_cached_contacts', contacts);
                     localStorage.setItem('byahero_cached_phone', contacts);
                     localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
-                    localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
-
-                    // Redirect to remote or local app assets based on online status
-                    if (navigator.onLine === true) {
-                        if (role === 'passenger') {
-                            if (!contacts) {
-                                window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
-                            } else {
-                                window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                            }
-                        } else if (role === 'conductor') {
-                            window.location.replace(SERVER_URL + "/public/conductor/conductor.php");
-                        } else if (role === 'admin') {
-                            window.location.replace(SERVER_URL + "/public/admin/admin.php");
-                        } else {
-                            window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                        }
+                    const pic = data.user?.profile_picture;
+                    if (pic && pic !== 'null' && pic !== 'undefined') {
+                        localStorage.setItem('byahero_cached_profile_picture', pic);
                     } else {
-                        if (role === 'passenger') {
-                            if (!contacts) {
-                                window.location.replace("passenger/completeProfile.html");
-                            } else {
-                                window.location.replace("passenger/index.html");
-                            }
-                        } else if (role === 'conductor') {
-                            window.location.replace("conductor/index.html");
+                        localStorage.removeItem('byahero_cached_profile_picture');
+                    }
+
+                    // Always route to local static files to support offline-first operation
+                    if (role === 'passenger') {
+                        if (!contacts) {
+                            window.location.replace("passenger/completeProfile.html");
                         } else {
                             window.location.replace("passenger/index.html");
                         }
+                    } else if (role === 'conductor') {
+                        window.location.replace("conductor/index.html");
+                    } else if (role === 'admin') {
+                        window.location.replace("admin/index.html");
+                    } else {
+                        window.location.replace("passenger/index.html");
                     }
                 } else {
                     showError(data.message || 'Invalid email or password.');
                 }
             } catch (err) {
                 console.error(err);
-                if (SERVER_URL === 'https://byahero.app') {
+                if (SERVER_URL === 'https://byahero.alwaysdata.net') {
                     showError('Network error connecting to the server. Please check your connection, or tap the ByaHero logo 5 times to configure your local developer server URL.');
                 } else {
                     showError(`Network error connecting to ${SERVER_URL}. Please ensure your local server (Apache) is running and accessible. Tap the ByaHero logo 5 times to reconfigure.`);
@@ -199,18 +225,20 @@ document.addEventListener('DOMContentLoaded', () => {
             lastClick = now;
             if (clickCount === 5) {
                 clickCount = 0;
-                const currentUrl = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+                const currentUrl = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
                 const newUrl = prompt(
                     "ByaHero Developer Settings\n\nEnter Backend Base URL (e.g. http://10.0.2.2/ByaHero or http://192.168.18.77/ByaHero):",
                     currentUrl
                 );
                 if (newUrl !== null) {
                     const trimmed = newUrl.trim().replace(/\/$/, ""); // trim and strip trailing slash
-                    if (trimmed === '' || trimmed === 'https://byahero.app') {
+                    if (trimmed === '' || trimmed === 'https://byahero.alwaysdata.net') {
                         localStorage.removeItem('byahero_server_url');
-                        alert("Restored default server: https://byahero.app");
+                        localStorage.removeItem('byahero_server_url_is_auto');
+                        alert("Restored default server: https://byahero.alwaysdata.net");
                     } else {
                         localStorage.setItem('byahero_server_url', trimmed);
+                        localStorage.removeItem('byahero_server_url_is_auto');
                         alert("Server URL set to: " + trimmed);
                     }
                     window.location.reload();
@@ -218,7 +246,75 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Polling watch for Capacitor loading Native SDK
+    let attempts = 0;
+    const pollTimer = setInterval(() => {
+        if (initNativeCapacitorGoogleAuth() || attempts > 300) {
+            clearInterval(pollTimer);
+        }
+        attempts++;
+    }, 100);
 });
+
+/**
+ * Capacitor plugin check & Native Google Login initialization.
+ */
+function initNativeCapacitorGoogleAuth() {
+    if (!window.Capacitor) return false;
+    
+    const isNative = window.Capacitor.isNative || 
+                    (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+                    navigator.userAgent.includes('Capacitor') ||
+                    window.location.href.includes('capacitor://');
+                    
+    if (isNative) {
+        const webContainer = document.getElementById('gsi-web-container');
+        const nativeContainer = document.getElementById('gsi-native-container');
+        
+        if (webContainer) webContainer.style.display = 'none';
+        if (nativeContainer) {
+            nativeContainer.style.setProperty('display', 'flex', 'important');
+            nativeContainer.style.opacity = '1';
+            nativeContainer.style.visibility = 'visible';
+        }
+        
+        if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            try {
+                window.Capacitor.Plugins.GoogleAuth.initialize({
+                    clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true,
+                });
+            } catch (e) {
+                console.warn('GoogleAuth initialize issue:', e);
+            }
+        }
+        
+        const nativeBtn = document.getElementById('native-google-btn');
+        if (nativeBtn) {
+            nativeBtn.addEventListener('click', async () => {
+                if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                    alert('Google Auth plugin not loaded properly.');
+                    return;
+                }
+                try {
+                    const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                    if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                        handleGoogleLogin({ credential: googleUser.authentication.idToken });
+                    } else {
+                        alert('Google login failed: Could not retrieve ID token.');
+                    }
+                } catch (error) {
+                    console.error('Native Google Sign-In error:', error);
+                    alert(`Google Sign-In Error: ${error.message || JSON.stringify(error)}`);
+                }
+            });
+        }
+        return true;
+    }
+    return true;
+}
 
 // Google Login Handler
 window.handleGoogleLogin = function (response) {
@@ -227,7 +323,7 @@ window.handleGoogleLogin = function (response) {
         return;
     }
 
-    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.app';
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
     const credential = response.credential;
     const formData = new FormData();
     formData.append('action', 'google_auth');
@@ -249,20 +345,17 @@ window.handleGoogleLogin = function (response) {
                 localStorage.setItem('byahero_cached_contacts', contacts);
                 localStorage.setItem('byahero_cached_phone', contacts);
                 localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
-                localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
-
-                if (navigator.onLine === true) {
-                    if (!contacts) {
-                        window.location.replace(SERVER_URL + "/public/passenger/completeProfile.php");
-                    } else {
-                        window.location.replace(SERVER_URL + "/public/passenger/index.php");
-                    }
+                const pic = data.user?.profile_picture;
+                if (pic && pic !== 'null' && pic !== 'undefined') {
+                    localStorage.setItem('byahero_cached_profile_picture', pic);
                 } else {
-                    if (!contacts) {
-                        window.location.replace("passenger/completeProfile.html");
-                    } else {
-                        window.location.replace("passenger/index.html");
-                    }
+                    localStorage.removeItem('byahero_cached_profile_picture');
+                }
+
+                if (!contacts) {
+                    window.location.replace("passenger/completeProfile.html");
+                } else {
+                    window.location.replace("passenger/index.html");
                 }
             } else {
                 alert(`Google login failed: ${data.message}`);
