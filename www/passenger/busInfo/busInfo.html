@@ -147,7 +147,6 @@
 
     <script src="../../js/bootstrap.bundle.min.js"></script>
     <script src="../../js/navbarPassenger.js"></script>
-    <script src="../../data/offline_data.js"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -244,7 +243,7 @@
                         const open = formatTime(row.time_open);
                         const close = formatTime(row.time_close);
                         const timeText = (open && close) ? `${open} - ${close}` : 'Schedule not set';
-                        const isSusp = row.is_suspended === 1;
+                        const isSusp = parseInt(row.is_suspended) === 1;
 
                         return `
                             <div class="bg-white rounded-4 p-3 mb-3 border shadow-sm d-flex justify-content-between align-items-center">

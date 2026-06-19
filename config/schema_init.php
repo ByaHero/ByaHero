@@ -435,13 +435,14 @@ function _do_sync_schema(mysqli $conn) {
     // 20. Bus Schedule (Fixed timings)
     $conn->query("CREATE TABLE IF NOT EXISTS bus_schedule (
         id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-        terminal_name VARCHAR(255) NOT NULL,
+        terminal_name VARCHAR(255) NOT NULL UNIQUE,
         time_open TIME NULL,
         time_close TIME NULL,
         is_suspended TINYINT(1) DEFAULT 0,
         suspend_message TEXT NULL,
         day_of_week SET('Mon','Tue','Wed','Thu','Fri','Sat','Sun') DEFAULT 'Mon,Tue,Wed,Thu,Fri',
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
 
     // 21. Waiting Passengers (For Waiting Feature)
@@ -457,6 +458,30 @@ function _do_sync_schema(mysqli $conn) {
         INDEX idx_status (status),
         INDEX idx_loc    (location_name)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+
+    // Ensure updated_at column exists in bus_schedule
+    $checkUpdatedAt = $conn->query("SHOW COLUMNS FROM bus_schedule LIKE 'updated_at'");
+    if ($checkUpdatedAt && $checkUpdatedAt->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_schedule ADD COLUMN updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP");
+    }
+
+    // Clean up duplicate terminal names in bus_schedule, keeping the newest entry
+    $hasId = true;
+    $checkId = $conn->query("SHOW COLUMNS FROM bus_schedule LIKE 'id'");
+    if ($checkId && $checkId->num_rows === 0) {
+        $hasId = false;
+    }
+    if ($hasId) {
+        $conn->query("DELETE t1 FROM bus_schedule t1 INNER JOIN bus_schedule t2 ON t1.id < t2.id AND t1.terminal_name = t2.terminal_name");
+    } else {
+        $conn->query("DELETE t1 FROM bus_schedule t1 INNER JOIN bus_schedule t2 ON t1.schedule_id < t2.schedule_id AND t1.terminal_name = t2.terminal_name");
+    }
+
+    // Add unique key constraint if not exists
+    $checkSchedUnique = $conn->query("SHOW INDEX FROM bus_schedule WHERE Key_name = 'uniq_terminal_name' OR Key_name = 'uq_bus_schedule_terminal' OR Key_name = 'terminal_name'");
+    if ($checkSchedUnique && $checkSchedUnique->num_rows === 0) {
+        $conn->query("ALTER TABLE bus_schedule ADD UNIQUE KEY uniq_terminal_name (terminal_name)");
+    }
 
     // 22. Seed data if tables are empty
     seed_tables($conn);

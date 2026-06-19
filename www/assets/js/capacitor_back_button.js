@@ -75,18 +75,26 @@
     // Main dashboards or login — these are the app's entry points
     var rootPatterns = [
       '/passenger/index.php',
+      '/passenger/index.html',
       '/passenger/',
       '/conductor/conductor.php',
+      '/conductor/index.html',
       '/conductor/conductorlive.php',
       '/admin/admin.php',
+      '/admin/index.html',
       '/login.php',
-      '/signup.php'
+      '/login.html',
+      '/signup.php',
+      '/signup.html',
+      '/signup.html'
     ];
     for (var i = 0; i < rootPatterns.length; i++) {
       if (path.endsWith(rootPatterns[i])) return true;
     }
     // Also check if it ends with just the path base
-    if (path.endsWith('/passenger') || path.endsWith('/passenger/')) return true;
+    if (path.endsWith('/passenger') || path.endsWith('/passenger/') ||
+        path.endsWith('/conductor') || path.endsWith('/conductor/') ||
+        path.endsWith('/admin') || path.endsWith('/admin/')) return true;
     return false;
   }
 

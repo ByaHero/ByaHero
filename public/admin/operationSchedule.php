@@ -89,8 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         time_open = VALUES(time_open),
                         time_close = VALUES(time_close),
                         is_suspended = VALUES(is_suspended),
-                        suspend_message = VALUES(suspend_message),
-                        updated_at = CURRENT_TIMESTAMP
+                        suspend_message = VALUES(suspend_message)
                 ";
                 $stmt = $conn->prepare($sql);
 

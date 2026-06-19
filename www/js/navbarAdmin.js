@@ -436,7 +436,7 @@
                 localStorage.removeItem('byahero_cached_contacts');
                 localStorage.removeItem('byahero_cached_phone');
                 localStorage.removeItem('sos_fcm_active_token');
-                window.location.href = `${depth}login.html`;
+                window.location.replace(`${depth}login.html`);
             }
         });
     }
