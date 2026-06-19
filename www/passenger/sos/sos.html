@@ -279,12 +279,6 @@
                 Alerts will be broadcasted to your Circle.
             </p>
         </div>
-
-        <!-- Emergency Contacts Section -->
-        <h5 class="fw-bold text-dark mb-3 mt-4">Local Emergency Contacts</h5>
-        <div class="row g-3" id="emergencyContactsList">
-            <!-- Loaded dynamically from offline_data.js -->
-        </div>
     </main>
 
     <!-- SOS Countdown Overlay Layer -->
@@ -355,7 +349,7 @@
                 avatarsEl.innerHTML = shown.map(f => {
                     const init = initialsFromFriend(f);
                     const bg = colorFromString(f.email || f.name || init);
-                    if (f.profile_picture) {
+                    if (f.profile_picture && f.profile_picture !== 'null' && f.profile_picture !== 'undefined') {
                         const isAbsolute = /^https?:\/\/|^data:/i.test(f.profile_picture);
                         const safePath = isAbsolute ? f.profile_picture : SERVER_URL + '/' + (f.profile_picture.startsWith('/') ? f.profile_picture.substring(1) : f.profile_picture);
                         return `<div class="stack-avatar" style="background:${bg}"><img src="${safePath}" alt="Friend Avatar" style="width: 100%; height: 100%; object-fit: cover;"></div>`;

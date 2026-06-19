@@ -88,12 +88,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setButtonLoading('btn-1', true, 'Send Recovery Code');
 
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
             try {
                 const fd = new FormData();
                 fd.append('action', 'request_otp');
                 fd.append('email', email);
 
-                const res = await fetch('auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const res = await fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
                 const data = await res.json();
 
                 if (data.success) {
@@ -136,13 +138,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setButtonLoading('btn-2', true, 'Verify Code');
 
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
             try {
                 const fd = new FormData();
                 fd.append('action', 'verify_otp');
                 fd.append('email', userEmail);
                 fd.append('otp', otp);
 
-                const res = await fetch('auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const res = await fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
                 const data = await res.json();
 
                 if (data.success) {
@@ -185,6 +189,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
             setButtonLoading('btn-3', true, 'Reset Password');
 
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+
             try {
                 const fd = new FormData();
                 fd.append('action', 'reset_password');
@@ -192,7 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 fd.append('otp', otp);
                 fd.append('new_password', password);
 
-                const res = await fetch('auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
+                const res = await fetch(SERVER_URL + '/public/auth_api.php', { method: 'POST', body: fd, credentials: 'same-origin' });
                 const data = await res.json();
 
                 if (data.success) {

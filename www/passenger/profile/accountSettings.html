@@ -175,6 +175,9 @@
     const email = localStorage.getItem('byahero_cached_email') || 'guest@byahero.app';
     let cachedName = localStorage.getItem('byahero_cached_name') || email.split('@')[0];
     let cachedPic = localStorage.getItem('byahero_cached_profile_picture') || '';
+    if (cachedPic === 'null' || cachedPic === 'undefined') {
+      cachedPic = '';
+    }
 
     // Elements
     const nameInput = document.getElementById('name');

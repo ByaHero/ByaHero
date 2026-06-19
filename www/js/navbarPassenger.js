@@ -390,9 +390,13 @@
     }
 
     // 7. Assemble Offcanvas Sidebar HTML
-    const avatarHtml = userProfilePic 
-        ? `<img src="${userProfilePic.startsWith('data:') || userProfilePic.startsWith('http') ? userProfilePic : depth + userProfilePic}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`
-        : userInitial;
+    const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
+    let avatarHtml = userInitial;
+    if (userProfilePic && userProfilePic !== 'null' && userProfilePic !== 'undefined') {
+        const isAbsolute = userProfilePic.startsWith('data:') || userProfilePic.startsWith('http');
+        const imgSrc = isAbsolute ? userProfilePic : (SERVER_URL.replace(/\/$/, '') + '/' + userProfilePic.replace(/^\//, ''));
+        avatarHtml = `<img src="${imgSrc}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+    }
 
     const offcanvasHtml = `
       <div class="offcanvas offcanvas-end" tabindex="-1" id="passengerMenu" aria-labelledby="passengerMenuLabel" style="width: 80vw;">
@@ -470,7 +474,7 @@
               <div style="margin-left: 20px; margin-right: 10px;">
                 <img src="${depth}assets/images/logout.svg" alt="Logout" height="30">
               </div>
-              Log out (Offline)
+              Log out
             </button>
           </div>
         </div>

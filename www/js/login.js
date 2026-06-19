@@ -133,7 +133,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('byahero_cached_contacts', contacts);
                     localStorage.setItem('byahero_cached_phone', contacts);
                     localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
-                    localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
+                    const pic = data.user?.profile_picture;
+                    if (pic && pic !== 'null' && pic !== 'undefined') {
+                        localStorage.setItem('byahero_cached_profile_picture', pic);
+                    } else {
+                        localStorage.removeItem('byahero_cached_profile_picture');
+                    }
 
                     // Always route to local static files to support offline-first operation
                     if (role === 'passenger') {
@@ -204,7 +209,75 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // Polling watch for Capacitor loading Native SDK
+    let attempts = 0;
+    const pollTimer = setInterval(() => {
+        if (initNativeCapacitorGoogleAuth() || attempts > 300) {
+            clearInterval(pollTimer);
+        }
+        attempts++;
+    }, 100);
 });
+
+/**
+ * Capacitor plugin check & Native Google Login initialization.
+ */
+function initNativeCapacitorGoogleAuth() {
+    if (!window.Capacitor) return false;
+    
+    const isNative = window.Capacitor.isNative || 
+                    (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+                    navigator.userAgent.includes('Capacitor') ||
+                    window.location.href.includes('capacitor://');
+                    
+    if (isNative) {
+        const webContainer = document.getElementById('gsi-web-container');
+        const nativeContainer = document.getElementById('gsi-native-container');
+        
+        if (webContainer) webContainer.style.display = 'none';
+        if (nativeContainer) {
+            nativeContainer.style.setProperty('display', 'flex', 'important');
+            nativeContainer.style.opacity = '1';
+            nativeContainer.style.visibility = 'visible';
+        }
+        
+        if (window.Capacitor.Plugins && window.Capacitor.Plugins.GoogleAuth) {
+            try {
+                window.Capacitor.Plugins.GoogleAuth.initialize({
+                    clientId: '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com',
+                    scopes: ['profile', 'email'],
+                    grantOfflineAccess: true,
+                });
+            } catch (e) {
+                console.warn('GoogleAuth initialize issue:', e);
+            }
+        }
+        
+        const nativeBtn = document.getElementById('native-google-btn');
+        if (nativeBtn) {
+            nativeBtn.addEventListener('click', async () => {
+                if (!window.Capacitor.Plugins || !window.Capacitor.Plugins.GoogleAuth) {
+                    alert('Google Auth plugin not loaded properly.');
+                    return;
+                }
+                try {
+                    const googleUser = await window.Capacitor.Plugins.GoogleAuth.signIn();
+                    if (googleUser && googleUser.authentication && googleUser.authentication.idToken) {
+                        handleGoogleLogin({ credential: googleUser.authentication.idToken });
+                    } else {
+                        alert('Google login failed: Could not retrieve ID token.');
+                    }
+                } catch (error) {
+                    console.error('Native Google Sign-In error:', error);
+                    alert(`Google Sign-In Error: ${error.message || JSON.stringify(error)}`);
+                }
+            });
+        }
+        return true;
+    }
+    return true;
+}
 
 // Google Login Handler
 window.handleGoogleLogin = function (response) {
@@ -235,7 +308,12 @@ window.handleGoogleLogin = function (response) {
                 localStorage.setItem('byahero_cached_contacts', contacts);
                 localStorage.setItem('byahero_cached_phone', contacts);
                 localStorage.setItem('byahero_cached_name', data.user?.name || email.split('@')[0]);
-                localStorage.setItem('byahero_cached_profile_picture', data.user?.profile_picture || '');
+                const pic = data.user?.profile_picture;
+                if (pic && pic !== 'null' && pic !== 'undefined') {
+                    localStorage.setItem('byahero_cached_profile_picture', pic);
+                } else {
+                    localStorage.removeItem('byahero_cached_profile_picture');
+                }
 
                 if (!contacts) {
                     window.location.replace("passenger/completeProfile.html");

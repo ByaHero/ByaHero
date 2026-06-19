@@ -31,7 +31,11 @@
                     localStorage.setItem('byahero_cached_contacts', contacts);
                     localStorage.setItem('byahero_cached_phone', contacts);
                 }
-                if (profilePic) localStorage.setItem('byahero_cached_profile_picture', profilePic);
+                if (profilePic && profilePic !== 'null' && profilePic !== 'undefined' && profilePic !== '') {
+                    localStorage.setItem('byahero_cached_profile_picture', profilePic);
+                } else {
+                    localStorage.removeItem('byahero_cached_profile_picture');
+                }
             }
 
             // Redirect back to the remote or local destination

@@ -289,13 +289,12 @@
 
     let offcanvasHtml = '';
     if (isDashboard) {
-        let profilePicHtml = '';
-        if (cachedProfilePic) {
+        let profilePicHtml = userInitial;
+        if (cachedProfilePic && cachedProfilePic !== 'null' && cachedProfilePic !== 'undefined') {
+            const SERVER_URL = localStorage.getItem('byahero_server_url') || 'https://byahero.alwaysdata.net';
             const isAbsolute = /^(https?:|data:)/i.test(cachedProfilePic);
-            const imgSrc = isAbsolute ? cachedProfilePic : depth + cachedProfilePic.replace(/^\//, '');
+            const imgSrc = isAbsolute ? cachedProfilePic : (SERVER_URL.replace(/\/$/, '') + '/' + cachedProfilePic.replace(/^\//, ''));
             profilePicHtml = `<img src="${imgSrc}" alt="Profile Picture" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
-        } else {
-            profilePicHtml = userInitial;
         }
 
         const nameLen = displayHeaderName.length;
