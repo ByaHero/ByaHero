@@ -11,26 +11,63 @@ define('BYAHERO_SCHEMA_VERSION', '2026-06-15-v1'); // Bump this after adding new
 define('BYAHERO_SCHEMA_TTL', 86400); // Re-check every 24 hours (seconds)
 
 function sync_schema(mysqli $conn) {
-    // --- File-based caching: skip if already synced recently ---
-    $flagDir = __DIR__;
-    $flagFile = $flagDir . '/.schema_synced';
-
-    if (file_exists($flagFile)) {
-        $content = @file_get_contents($flagFile);
-        $parts = explode('|', $content, 2);
-        $flagVersion = $parts[0] ?? '';
-        $flagTime = (int)($parts[1] ?? 0);
-
-        // Skip if same version and within TTL
-        if ($flagVersion === BYAHERO_SCHEMA_VERSION && (time() - $flagTime) < BYAHERO_SCHEMA_TTL) {
-            return;
+    // 1. Try checking a database-based flag first (extremely reliable and database-independent)
+    $db_version = null;
+    $table_exists = false;
+    
+    // Disable mysqli exception reporting temporarily
+    $driver = new mysqli_driver();
+    $old_report_mode = $driver->report_mode;
+    $driver->report_mode = MYSQLI_REPORT_OFF;
+    
+    try {
+        $res = $conn->query("SELECT version FROM schema_version LIMIT 1");
+        if ($res) {
+            $row = $res->fetch_assoc();
+            if ($row) {
+                $db_version = $row['version'];
+                $table_exists = true;
+            }
+            $res->free();
         }
+    } catch (\Throwable $e) {
+        // Table probably doesn't exist
+    }
+    
+    // Restore original report mode
+    $driver->report_mode = $old_report_mode;
+
+    // If version matches, we skip the sync entirely
+    if ($table_exists && $db_version === BYAHERO_SCHEMA_VERSION) {
+        return;
     }
 
     // --- Run full schema sync ---
     _do_sync_schema($conn);
 
-    // --- Write flag file ---
+    // --- Update schema_version table ---
+    $driver->report_mode = MYSQLI_REPORT_OFF;
+    try {
+        $conn->query("CREATE TABLE IF NOT EXISTS schema_version (
+            version VARCHAR(50) NOT NULL PRIMARY KEY,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB");
+        $conn->query("DELETE FROM schema_version");
+        $stmt = $conn->prepare("INSERT INTO schema_version (version) VALUES (?)");
+        if ($stmt) {
+            $version = BYAHERO_SCHEMA_VERSION;
+            $stmt->bind_param("s", $version);
+            $stmt->execute();
+            $stmt->close();
+        }
+    } catch (\Throwable $e) {
+        // Ignore
+    }
+    $driver->report_mode = $old_report_mode;
+
+    // --- Write flag file as fallback/log ---
+    $flagDir = __DIR__;
+    $flagFile = $flagDir . '/.schema_synced';
     @file_put_contents($flagFile, BYAHERO_SCHEMA_VERSION . '|' . time());
 }
 
