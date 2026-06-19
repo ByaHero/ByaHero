@@ -1,6 +1,41 @@
 (function () {
     'use strict';
 
+    // Automatically detect and set local developer backend URL if running under localhost/XAMPP
+    (function() {
+        const loc = window.location;
+        const isLocal = loc.hostname === 'localhost' || 
+                        loc.hostname === '127.0.0.1' || 
+                        loc.hostname.startsWith('192.168.') || 
+                        loc.hostname.startsWith('10.') || 
+                        loc.hostname.startsWith('172.') || 
+                        loc.hostname.endsWith('.local');
+        
+        const isNative = window.Capacitor && (
+            window.Capacitor.isNative || 
+            (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+            navigator.userAgent.includes('Capacitor') ||
+            loc.href.includes('capacitor://')
+        );
+
+        const storedUrl = localStorage.getItem('byahero_server_url');
+        const isAuto = localStorage.getItem('byahero_server_url_is_auto') === 'true';
+
+        if (isLocal && !isNative) {
+            if (!storedUrl || storedUrl === 'https://byahero.alwaysdata.net') {
+                const match = loc.pathname.match(/\/[Bb]ya[Hh]ero/);
+                const localUrl = loc.origin + (match ? match[0] : '');
+                localStorage.setItem('byahero_server_url', localUrl);
+                localStorage.setItem('byahero_server_url_is_auto', 'true');
+            }
+        } else {
+            if (isAuto) {
+                localStorage.removeItem('byahero_server_url');
+                localStorage.removeItem('byahero_server_url_is_auto');
+            }
+        }
+    })();
+
     // 1. Resolve relative path depth automatically
     const path = window.location.pathname;
     let depth = '../'; // default fallback

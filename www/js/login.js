@@ -3,6 +3,41 @@
  * Client-side authentication logic for ByaHero Offline Login View.
  */
 
+// Automatically detect and set local developer backend URL if running under localhost/XAMPP
+(function() {
+    const loc = window.location;
+    const isLocal = loc.hostname === 'localhost' || 
+                    loc.hostname === '127.0.0.1' || 
+                    loc.hostname.startsWith('192.168.') || 
+                    loc.hostname.startsWith('10.') || 
+                    loc.hostname.startsWith('172.') || 
+                    loc.hostname.endsWith('.local');
+    
+    const isNative = window.Capacitor && (
+        window.Capacitor.isNative || 
+        (window.Capacitor.getPlatform && window.Capacitor.getPlatform() !== 'web') ||
+        navigator.userAgent.includes('Capacitor') ||
+        loc.href.includes('capacitor://')
+    );
+
+    const storedUrl = localStorage.getItem('byahero_server_url');
+    const isAuto = localStorage.getItem('byahero_server_url_is_auto') === 'true';
+
+    if (isLocal && !isNative) {
+        if (!storedUrl || storedUrl === 'https://byahero.alwaysdata.net') {
+            const match = loc.pathname.match(/\/[Bb]ya[Hh]ero/);
+            const localUrl = loc.origin + (match ? match[0] : '');
+            localStorage.setItem('byahero_server_url', localUrl);
+            localStorage.setItem('byahero_server_url_is_auto', 'true');
+        }
+    } else {
+        if (isAuto) {
+            localStorage.removeItem('byahero_server_url');
+            localStorage.removeItem('byahero_server_url_is_auto');
+        }
+    }
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
     const pwd = document.getElementById('password');
     const toggle = document.getElementById('togglePwd');
@@ -199,9 +234,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     const trimmed = newUrl.trim().replace(/\/$/, ""); // trim and strip trailing slash
                     if (trimmed === '' || trimmed === 'https://byahero.alwaysdata.net') {
                         localStorage.removeItem('byahero_server_url');
+                        localStorage.removeItem('byahero_server_url_is_auto');
                         alert("Restored default server: https://byahero.alwaysdata.net");
                     } else {
                         localStorage.setItem('byahero_server_url', trimmed);
+                        localStorage.removeItem('byahero_server_url_is_auto');
                         alert("Server URL set to: " + trimmed);
                     }
                     window.location.reload();
