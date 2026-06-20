@@ -12,6 +12,14 @@
     --card-radius: 20px;
 }
 
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.custom-select-header, .custom-option, .btn-circle-start, .dropdown-item, .btn {
+    touch-action: manipulation;
+}
+
 body {
     background-color: var(--bg-light);
     font-family: 'Segoe UI', sans-serif;

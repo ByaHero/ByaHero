@@ -13,6 +13,14 @@
     --btn-red: #ef4444;
 }
 
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.btn-seat, .btn-stop, .dropdown-item, .btn {
+    touch-action: manipulation;
+}
+
 body {
     background: #fff;
     font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;

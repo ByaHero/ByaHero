@@ -279,3 +279,33 @@ body {
   cursor: not-allowed !important;
   box-shadow: none !important;
 }
+
+/* --- MAP VIEWPORT & BOTTOM NAVIGATION TRANSITIONS --- */
+html, body {
+  overscroll-behavior: none;
+}
+
+.my-location-btn-wrap button {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+  will-change: transform;
+}
+.my-location-btn-wrap button:active {
+  transform: scale(0.92) !important;
+}
+
+.bottom-nav .nav-item-btn {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+.bottom-nav .nav-item-btn:active {
+  transform: scale(0.92) !important;
+}
+
+.bottom-nav .sos-dome {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+  will-change: transform;
+}
+.bottom-nav .sos-dome:active {
+  transform: translateX(-50%) scale(0.94) !important;
+}
+

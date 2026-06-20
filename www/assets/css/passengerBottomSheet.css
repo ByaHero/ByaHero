@@ -12,7 +12,8 @@
   color: #1f2937;
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12); /* Match bus stop card */
-  transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+  will-change: transform;
   user-select: none;
 }
 
@@ -24,7 +25,7 @@
 }
 
 .route-filter-option:active {
-  transform: translateY(1px);
+  transform: scale(0.96) !important;
   background-color: #1e3a8a;
   color: white;
 }
@@ -46,7 +47,17 @@
 }
 
 #bottomSheet.sheet-transition {
-  transition: height 0.25s ease-out, transform 0.25s ease-out;
+  transition: height 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  will-change: height, transform;
+}
+
+#bottomSheet .sheet-tab {
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
+}
+
+#bottomSheet .sheet-tab:active {
+  transform: scale(0.92) !important;
 }
 
 /* =============================
@@ -70,7 +81,12 @@
   display: block;
   box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
   cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.15s ease;
+  will-change: transform;
+}
+
+.bus-stop-card:active {
+  transform: scale(0.96) !important;
 }
 
 .bus-stop-card:focus {

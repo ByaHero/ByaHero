@@ -278,3 +278,22 @@ body.high-contrast-mode .bg-primary .text-white {
 body.high-contrast-mode .bg-primary .material-symbols-rounded {
   color: #ffff00 !important;
 }
+
+/* --- MOBILE & WEBVIEW TOUCH OPTIMIZATIONS FOR NATIVE FEEL --- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body, button, a, .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill, .brand-wrap, header, footer, .form-heading, .form-subheading {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+a, button, .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill {
+  touch-action: manipulation;
+}
