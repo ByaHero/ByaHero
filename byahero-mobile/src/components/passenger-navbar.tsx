@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,6 +8,8 @@ import {
   Alert,
   Dimensions,
   Platform,
+  Animated,
+  TouchableWithoutFeedback,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -31,6 +33,42 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
   const [userInitial, setUserInitial] = useState('?');
   const [userProfilePic, setUserProfilePic] = useState('');
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+
+  const slideAnim = useRef(new Animated.Value(width)).current;
+  const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  const openMenu = () => {
+    setMenuVisible(true);
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0.5,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const closeMenu = () => {
+    Animated.parallel([
+      Animated.timing(backdropOpacity, {
+        toValue: 0,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: width,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setMenuVisible(false);
+    });
+  };
 
   useEffect(() => {
     async function loadUserData() {
@@ -177,7 +215,7 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
                 contentFit="contain"
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={() => setMenuVisible(true)} style={tw`p-1`}>
+            <TouchableOpacity onPress={openMenu} style={tw`p-1`}>
               <Image
                 source={require('../../assets/images/HAMBURGER.svg')}
                 style={tw`w-[18px] h-[18px]`}
@@ -192,17 +230,40 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
  
       {/* Offcanvas Menu Modal */}
       <Modal
-        animationType="slide"
+        animationType="none"
         transparent={true}
         visible={menuVisible}
-        onRequestClose={() => setMenuVisible(false)}
+        onRequestClose={closeMenu}
       >
-        <View style={tw`flex-1 flex-row justify-end bg-black/50`}>
-          <View style={[tw`h-full bg-white shadow-2xl`, { width: width * 0.8 }]}>
+        <View style={tw`flex-1 flex-row justify-end relative`}>
+          {/* Animated Dim Backdrop */}
+          <Animated.View
+            style={[
+              tw`absolute inset-0 bg-black`,
+              {
+                opacity: backdropOpacity,
+              }
+            ]}
+          >
+            <TouchableWithoutFeedback onPress={closeMenu}>
+              <View style={tw`flex-1`} />
+            </TouchableWithoutFeedback>
+          </Animated.View>
+
+          {/* Sliding Menu Panel */}
+          <Animated.View
+            style={[
+              tw`h-full bg-white shadow-2xl`,
+              {
+                width: width * 0.8,
+                transform: [{ translateX: slideAnim }],
+              }
+            ]}
+          >
             {/* Header Block */}
             <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
               <TouchableOpacity
-                onPress={() => setMenuVisible(false)}
+                onPress={closeMenu}
                 style={tw`absolute top-3 right-3 p-1`}
               >
                 <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
@@ -221,8 +282,21 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
                 <TouchableOpacity
                   key={idx}
                   onPress={() => {
-                    setMenuVisible(false);
-                    router.push(item.route as any);
+                    Animated.parallel([
+                      Animated.timing(backdropOpacity, {
+                        toValue: 0,
+                        duration: 200,
+                        useNativeDriver: true,
+                      }),
+                      Animated.timing(slideAnim, {
+                        toValue: width,
+                        duration: 200,
+                        useNativeDriver: true,
+                      }),
+                    ]).start(() => {
+                      setMenuVisible(false);
+                      router.push(item.route as any);
+                    });
                   }}
                   style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
                 >
@@ -240,7 +314,7 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
                 <Text style={tw`text-red-600 font-bold text-sm`}>Log out</Text>
               </TouchableOpacity>
             </ScrollView>
-          </View>
+          </Animated.View>
         </View>
       </Modal>
     </>

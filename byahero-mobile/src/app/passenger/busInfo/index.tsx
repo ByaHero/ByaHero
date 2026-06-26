@@ -13,6 +13,7 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
+import { sendFcmPushes } from '../../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 
 export default function BusInfoScreen() {
@@ -160,7 +161,16 @@ export default function BusInfoScreen() {
               });
               const data = await res.json();
               if (data.success) {
-                Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified.');
+                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+                  try {
+                    await sendFcmPushes(data);
+                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified via Push Notifications.');
+                  } catch (pushErr) {
+                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been registered on the server, but push notification broadcast failed.');
+                  }
+                } else {
+                  Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified on the server.');
+                }
               } else {
                 Alert.alert('SOS Failed', data.message || 'Failed to send SOS.');
               }

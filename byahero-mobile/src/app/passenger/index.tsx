@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
+import { sendFcmPushes } from '../../services/notificationService';
 import * as Location from 'expo-location';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import PassengerBottomSheet from '../../components/passenger-bottomsheet';
@@ -520,7 +521,16 @@ export default function PassengerDashboard() {
               });
               const data = await res.json();
               if (data.success) {
-                Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified.');
+                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+                  try {
+                    await sendFcmPushes(data);
+                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified via Push Notifications.');
+                  } catch (pushErr) {
+                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been registered on the server, but push notification broadcast failed.');
+                  }
+                } else {
+                  Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified on the server.');
+                }
               } else {
                 Alert.alert('SOS Failed', data.message || 'Failed to send SOS.');
               }
@@ -640,7 +650,8 @@ export default function PassengerDashboard() {
                 className: 'user-marker-container',
                 html: '<div style="position: relative; width: 30px; height: 30px;"><div class="waiting-badge">Waiting?</div><div class="user-avatar-circle" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div></div>',
                 iconSize: [30, 45],
-                iconAnchor: [15, 30]
+                iconAnchor: [15, 30],
+                popupAnchor: [0, -30]
               });
 
               if (userMarker) {
@@ -666,7 +677,8 @@ export default function PassengerDashboard() {
                   var busIcon = L.icon({
                     iconUrl: busIconUrl,
                     iconSize: [28, 28],
-                    iconAnchor: [14, 14]
+                    iconAnchor: [14, 14],
+                    popupAnchor: [0, -14]
                   });
                   var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon })
                     .bindPopup('<b>Bus Plate:</b> ' + (bus.plate_number || 'N/A') + '<br/><b>Route:</b> ' + (bus.route || 'N/A'))
@@ -698,7 +710,8 @@ export default function PassengerDashboard() {
                           '</svg>' +
                           '</div>',
                     iconSize: [26, 33],
-                    iconAnchor: [13, 33]
+                    iconAnchor: [13, 33],
+                    popupAnchor: [0, -33]
                   });
                   var labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'Bus Stop' : 'Pickup Point';
                   var popupContent = '<div>' +
@@ -745,7 +758,8 @@ export default function PassengerDashboard() {
                           '<div class="user-avatar-circle" style="background: #10b981; border-color: white; overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div>' +
                           '</div>',
                     iconSize: [30, 30],
-                    iconAnchor: [15, 15]
+                    iconAnchor: [15, 15],
+                    popupAnchor: [0, -15]
                   });
 
                   var popupHtml = '<div><strong>' + (friend.name || friend.email) + '</strong></div>';
