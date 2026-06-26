@@ -1,0 +1,299 @@
+/* --- GLOBAL ICON SHARPNESS FIXES FOR iOS --- */
+img {
+  image-rendering: -webkit-optimize-contrast;
+}
+
+/* Specific fix for blurred SVGs on iOS */
+img[src$=".svg"] {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: perspective(1px) translateZ(0);
+  transform: perspective(1px) translateZ(0);
+}
+
+.material-symbols-rounded {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ✅ ADJUSTED: Global text size classes - ALL SIZES REDUCED to prevent overlaps */
+
+body.text-small {
+  font-size: 0.85rem !important;
+}
+
+body.text-small h1 {
+  font-size: 1.65rem !important;
+}
+
+body.text-small h2 {
+  font-size: 1.45rem !important;
+}
+
+body.text-small h3 {
+  font-size: 1.2rem !important;
+}
+
+body.text-small h4 {
+  font-size: 1.05rem !important;
+}
+
+body.text-small h5 {
+  font-size: 0.95rem !important;
+}
+
+body.text-small h6 {
+  font-size: 0.9rem !important;
+}
+
+body.text-small p,
+body.text-small span,
+body.text-small div,
+body.text-small a,
+body.text-small button {
+  font-size: 0.85rem !important;
+}
+
+body.text-small .badge {
+  font-size: 0.72rem !important;
+}
+
+body.text-small .btn {
+  font-size: 0.85rem !important;
+}
+
+/* Navbar specific - small */
+body.text-small .nav-btn .small {
+  font-size: 0.63rem !important;
+}
+
+body.text-small .nav-btn .material-symbols-rounded {
+  font-size: 1.45rem !important;
+}
+
+body.text-medium {
+  font-size: 0.95rem !important;
+}
+
+body.text-medium h1 {
+  font-size: 1.9rem !important;
+}
+
+body.text-medium h2 {
+  font-size: 1.66rem !important;
+}
+
+body.text-medium h3 {
+  font-size: 1.43rem !important;
+}
+
+body.text-medium h4 {
+  font-size: 1.19rem !important;
+}
+
+body.text-medium h5 {
+  font-size: 1.05rem !important;
+}
+
+body.text-medium h6 {
+  font-size: 0.95rem !important;
+}
+
+body.text-medium p,
+body.text-medium span,
+body.text-medium div,
+body.text-medium a,
+body.text-medium button {
+  font-size: 0.95rem !important;
+}
+
+body.text-medium .badge {
+  font-size: 0.81rem !important;
+}
+
+body.text-medium .btn {
+  font-size: 0.95rem !important;
+}
+
+/* Navbar specific - medium */
+body.text-medium .nav-btn .small {
+  font-size: 0.71rem !important;
+}
+
+body.text-medium .nav-btn .material-symbols-rounded {
+  font-size: 1.9rem !important;
+}
+
+/* ✅ ADJUSTED: Large text size - 7% bigger than medium (0.95rem × 1.07 = 1.0165rem ≈ 1.02rem) */
+body.text-large {
+  font-size: 1.02rem !important;
+  /* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
+}
+
+body.text-large h1 {
+  font-size: 2.03rem !important;
+}
+
+/* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
+body.text-large h2 {
+  font-size: 1.78rem !important;
+}
+
+/* 1.66rem × 1.07 = 1.7762rem ≈ 1.78rem */
+body.text-large h3 {
+  font-size: 1.53rem !important;
+}
+
+/* 1.43rem × 1.07 = 1.5301rem ≈ 1.53rem */
+body.text-large h4 {
+  font-size: 1.27rem !important;
+}
+
+/* 1.19rem × 1.07 = 1.2733rem ≈ 1.27rem */
+body.text-large h5 {
+  font-size: 1.12rem !important;
+}
+
+/* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
+body.text-large h6 {
+  font-size: 1.02rem !important;
+}
+
+/* 0.95rem × 1.07 = 1.0165rem ≈ 1.02rem */
+body.text-large p,
+body.text-large span,
+body.text-large div,
+body.text-large a,
+body.text-large button {
+  font-size: 1.02rem !important;
+  /* Same as body */
+}
+
+body.text-large .badge {
+  font-size: 0.87rem !important;
+}
+
+/* 0.81rem × 1.07 = 0.8667rem ≈ 0.87rem */
+body.text-large .btn {
+  font-size: 1.02rem !important;
+}
+
+/* Same as body */
+
+/* ✅ ADJUSTED: Navbar specific - large (7% bigger than medium) */
+body.text-large .nav-btn .small {
+  font-size: 0.76rem !important;
+}
+
+/* 0.71rem × 1.07 = 0.7597rem ≈ 0.76rem */
+body.text-large .nav-btn .material-symbols-rounded {
+  font-size: 2.03rem !important;
+}
+
+/* 1.9rem × 1.07 = 2.033rem ≈ 2.03rem */
+
+/* Top navbar text */
+body.text-small .bg-primary h6 {
+  font-size: 0.9rem !important;
+}
+
+body.text-medium .bg-primary h6 {
+  font-size: 1.05rem !important;
+}
+
+body.text-large .bg-primary h6 {
+  font-size: 1.12rem !important;
+}
+
+/* 1.05rem × 1.07 = 1.1235rem ≈ 1.12rem */
+
+/* High Contrast Mode */
+body.high-contrast-mode {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+body.high-contrast-mode .card,
+body.high-contrast-mode .settings-item,
+body.high-contrast-mode .notification-item,
+body.high-contrast-mode .accessibility-item {
+  background-color: #1a1a1a !important;
+  color: #ffffff !important;
+  border: 2px solid #ffff00 !important;
+}
+
+body.high-contrast-mode .text-muted {
+  color: #ffff00 !important;
+}
+
+body.high-contrast-mode a {
+  color: #00ffff !important;
+  text-decoration: underline !important;
+}
+
+body.high-contrast-mode .btn-primary {
+  background-color: #ffff00 !important;
+  color: #000000 !important;
+  border-color: #ffff00 !important;
+}
+
+body.high-contrast-mode .btn-outline-primary {
+  border-color: #ffff00 !important;
+  color: #ffff00 !important;
+}
+
+body.high-contrast-mode .accessibility-container {
+  background-color: #000000 !important;
+}
+
+body.high-contrast-mode .accessibility-heading {
+  color: #ffff00 !important;
+}
+
+/* High Contrast - Navbar */
+body.high-contrast-mode .fixed-bottom {
+  background-color: #000000 !important;
+  border-top: 3px solid #ffff00 !important;
+}
+
+body.high-contrast-mode .nav-btn {
+  color: #ffffff !important;
+}
+
+body.high-contrast-mode .nav-btn.active-nav {
+  color: #ffff00 !important;
+}
+
+body.high-contrast-mode .bg-primary {
+  background-color: #000000 !important;
+  border-bottom: 3px solid #ffff00 !important;
+}
+
+body.high-contrast-mode .bg-primary h6,
+body.high-contrast-mode .bg-primary .text-white {
+  color: #ffff00 !important;
+}
+
+body.high-contrast-mode .bg-primary .material-symbols-rounded {
+  color: #ffff00 !important;
+}
+
+/* --- MOBILE & WEBVIEW TOUCH OPTIMIZATIONS FOR NATIVE FEEL --- */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body, button, a, .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill, .brand-wrap, header, footer, .form-heading, .form-subheading {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+input, textarea {
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+a, button, .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill {
+  touch-action: manipulation;
+}
