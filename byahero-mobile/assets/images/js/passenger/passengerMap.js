@@ -611,9 +611,7 @@ window.onLocationUpdate = function onLocationUpdate(pos) {
   }
 
   if (now - _lastNetworkSync > SYNC_INTERVAL) {
-    if (!window.nativeBgActive) {
-      window.uploadMyLocation(lat, lng, acc);
-    }
+    window.uploadMyLocation(lat, lng, acc);
     _lastNetworkSync = now;
   }
 
@@ -650,28 +648,8 @@ window.startUserLocationWatch = async function startUserLocationWatch() {
   }
   if (!navigator.geolocation) return;
 
-  const nativeBgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation;
   const bgPluginAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-  
-  if (nativeBgAvailable) {
-    const NativeBG = window.Capacitor.Plugins.NativeBackgroundLocation;
-    try {
-      const baseUrl = window.location.origin;
-      const updateUrl = new URL('../../backend/updateUserLocation.php', window.location.href).href;
-      const startResult = await NativeBG.start({
-        baseUrl: baseUrl,
-        updateUrl: updateUrl,
-        intervalMs: 5000,
-        cookie: document.cookie,
-        payloadType: "passenger"
-      });
-      console.log("Native background location service started:", startResult);
-      window.nativeBgActive = true;
-    } catch (e) {
-      console.error("Failed to start NativeBackgroundLocation:", e);
-    }
-    window.startWebGeolocation();
-  } else if (bgPluginAvailable) {
+  if (bgPluginAvailable) {
     const BG = window.Capacitor.Plugins.BackgroundGeolocation;
     try {
       const permissions = await BG.requestPermissions();
@@ -1394,12 +1372,6 @@ window.addEventListener('storage', e => {
       window.userMarker = null;
     }
     window.userLocation = null;
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation) {
-      try {
-        window.Capacitor.Plugins.NativeBackgroundLocation.stop();
-        window.nativeBgActive = false;
-      } catch (e) {}
-    }
   }
 });
 

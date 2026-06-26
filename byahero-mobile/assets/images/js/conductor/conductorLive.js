@@ -108,32 +108,6 @@ function autoComputeStatus(currentLat, currentLng) {
 }
 
 /**
- * Updates parameters of the Native Foreground Location Service dynamically.
- */
-async function updateNativeBgParams() {
-    if (window.nativeBgActive && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation) {
-        const NativeBG = window.Capacitor.Plugins.NativeBackgroundLocation;
-        try {
-            const baseUrl = window.location.origin;
-            const updateUrl = new URL('../update_geo_location.php', window.location.href).href;
-            await NativeBG.start({
-                baseUrl: baseUrl,
-                updateUrl: updateUrl,
-                intervalMs: 5000,
-                cookie: document.cookie,
-                payloadType: "conductor",
-                busId: busId,
-                route: busRoute,
-                seatsAvailable: seats,
-                status: lastComputedStatus || 'available'
-            });
-        } catch (e) {
-            console.error("Failed to update NativeBackgroundLocation parameters:", e);
-        }
-    }
-}
-
-/**
  * Submits geofenced coordinates, status, and seat metrics to server.
  */
 async function sendDataToServer(lat, lng, locName) {
@@ -146,9 +120,6 @@ async function sendDataToServer(lat, lng, locName) {
     const status = autoComputeStatus(lat, lng) || (statusSelect?.value || 'available');
     if (statusSelect) statusSelect.value = status;
     lastComputedStatus = status;
-
-    // Dynamically update foreground service parameters
-    await updateNativeBgParams();
 
     const payload = {
         bus_id: busId,
@@ -265,33 +236,8 @@ async function startGeolocation() {
 
     setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
 
-    const nativeBgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation;
     const bgAvailable = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation;
-    if (nativeBgAvailable) {
-        const NativeBG = window.Capacitor.Plugins.NativeBackgroundLocation;
-        try {
-            const baseUrl = window.location.origin;
-            const updateUrl = new URL('../update_geo_location.php', window.location.href).href;
-            
-            await NativeBG.start({
-                baseUrl: baseUrl,
-                updateUrl: updateUrl,
-                intervalMs: 5000,
-                cookie: document.cookie,
-                payloadType: "conductor",
-                busId: busId,
-                route: busRoute,
-                seatsAvailable: seats,
-                status: lastComputedStatus || 'available'
-            });
-            window.nativeBgActive = true;
-            showAlert('Native Background Tracking Started', 'primary');
-        } catch (e) {
-            console.error("Failed to start NativeBackgroundLocation:", e);
-            showAlert('Native Plugin Error, falling back to Web GPS', 'danger');
-        }
-        startWebGeolocation();
-    } else if (bgAvailable) {
+    if (bgAvailable) {
         const BackgroundGeolocation = window.Capacitor.Plugins.BackgroundGeolocation;
         try {
             const permissions = await BackgroundGeolocation.requestPermissions();
@@ -446,12 +392,6 @@ async function stopTracking() {
     if (bgWatcherId !== null && window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.BackgroundGeolocation) {
         try { await window.Capacitor.Plugins.BackgroundGeolocation.removeWatcher({ id: bgWatcherId }); } catch (e) {}
         bgWatcherId = null;
-    }
-    if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.NativeBackgroundLocation) {
-        try {
-            await window.Capacitor.Plugins.NativeBackgroundLocation.stop();
-            window.nativeBgActive = false;
-        } catch (e) {}
     }
 
     const endLocName = lastKnownLocation ? lastKnownLocation.locName : null;
