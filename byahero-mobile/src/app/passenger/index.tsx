@@ -8,14 +8,19 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Dimensions,
+  Animated,
 } from 'react-native';
 import { router } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
+import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
 import * as Location from 'expo-location';
+import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
+import PassengerBottomSheet from '../../components/passenger-bottomsheet';
 
 export default function PassengerDashboard() {
   const [activeTab, setActiveTab] = useState<'location' | 'sos' | 'info'>('location');
@@ -32,6 +37,43 @@ export default function PassengerDashboard() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
   const webViewRef = useRef<any>(null);
+
+  const SCREEN_HEIGHT = Dimensions.get('window').height;
+  const translateY = useRef(new Animated.Value(SCREEN_HEIGHT * 0.3)).current;
+
+  const [userProfilePic, setUserProfilePic] = useState<string>('');
+  const [userInitial, setUserInitial] = useState<string>('P');
+
+  // Load user profile picture and name initial
+  useEffect(() => {
+    async function loadUserProfile() {
+      try {
+        const cachedPic = await AsyncStorage.getItem('byahero_cached_profile_picture') || '';
+        setUserProfilePic(cachedPic);
+
+        const cachedName = await AsyncStorage.getItem('byahero_cached_name') || 'Guest';
+        let name = cachedName;
+        if (name.includes('@')) {
+          name = name.split('@')[0];
+        }
+        const initial = name.charAt(0).toUpperCase() || 'P';
+        setUserInitial(initial);
+      } catch (e) {
+        console.error('Error loading user profile details for map:', e);
+      }
+    }
+    loadUserProfile();
+  }, []);
+
+  const getFullProfilePicUrl = () => {
+    if (!userProfilePic || userProfilePic === 'null' || userProfilePic === 'undefined') {
+      return '';
+    }
+    if (userProfilePic.startsWith('data:') || userProfilePic.startsWith('http')) {
+      return userProfilePic;
+    }
+    return baseUrl.replace(/\/$/, '') + '/' + userProfilePic.replace(/^\//, '');
+  };
 
   // Watch device location and update state + backend
   useEffect(() => {
@@ -59,7 +101,8 @@ export default function PassengerDashboard() {
             type: 'UPDATE_USER_LOCATION',
             lat,
             lng,
-            initial: 'P',
+            initial: userInitial,
+            profilePic: getFullProfilePicUrl(),
             center: true
           });
 
@@ -83,7 +126,8 @@ export default function PassengerDashboard() {
               type: 'UPDATE_USER_LOCATION',
               lat,
               lng,
-              initial: 'P',
+              initial: userInitial,
+              profilePic: getFullProfilePicUrl(),
               center: false
             });
 
@@ -146,6 +190,28 @@ export default function PassengerDashboard() {
     });
   }, [filteredStops, sheetTab]);
 
+  // Sync filtered buses to map whenever buses or selectedRoute changes
+  useEffect(() => {
+    postToMap({
+      type: 'UPDATE_BUSES',
+      buses: filteredBuses
+    });
+  }, [buses, selectedRoute]);
+
+  // Sync user location marker to map whenever location or profile details update
+  useEffect(() => {
+    if (userLocation) {
+      postToMap({
+        type: 'UPDATE_USER_LOCATION',
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        initial: userInitial,
+        profilePic: getFullProfilePicUrl(),
+        center: false
+      });
+    }
+  }, [userLocation, userInitial, userProfilePic]);
+
   const fetchInviteCode = async (reset = false) => {
     try {
       const url = reset
@@ -200,15 +266,11 @@ export default function PassengerDashboard() {
           if (busesData && busesData.success && Array.isArray(busesData.buses)) {
             // Filter only available/active buses with valid coordinates
             const activeBuses = busesData.buses.filter((bus: any) =>
-              (bus.status === 'available' || bus.status === 'active') &&
+              bus.status !== 'unavailable' &&
               bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
               bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
             );
             setBuses(activeBuses);
-            postToMap({
-              type: 'UPDATE_BUSES',
-              buses: activeBuses
-            });
           }
         }
 
@@ -274,7 +336,8 @@ export default function PassengerDashboard() {
                 type: 'UPDATE_USER_LOCATION',
                 lat: userLocation.lat,
                 lng: userLocation.lng,
-                initial: 'P',
+                initial: userInitial,
+                profilePic: getFullProfilePicUrl(),
                 center: true
               });
             }
@@ -307,7 +370,8 @@ export default function PassengerDashboard() {
             type: 'UPDATE_USER_LOCATION',
             lat: userLocation.lat,
             lng: userLocation.lng,
-            initial: 'P',
+            initial: userInitial,
+            profilePic: getFullProfilePicUrl(),
             center: true
           });
         }
@@ -338,18 +402,6 @@ export default function PassengerDashboard() {
         zoom: 16
       });
     }
-  };
-
-  const getDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // km
-    const dLat = (lat2 - lat1) * Math.PI / 180;
-    const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c; // km
   };
 
   const handleStopPress = (stop: any) => {
@@ -395,6 +447,50 @@ export default function PassengerDashboard() {
     } catch (err) {
       console.error('Error joining circle:', err);
       Alert.alert('Error', 'Network error joining circle.');
+    }
+  };
+
+  const handleRemoveCircleMember = async (friendId: number, friendName: string) => {
+    const performRemove = async () => {
+      try {
+        const currentBaseUrl = await getServerUrl();
+        const res = await fetch(`${currentBaseUrl}/backend/removeFriend.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ friend_id: friendId }),
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            Alert.alert('Success', data.message || `Successfully removed ${friendName} from circle.`);
+            fetchGroupMembers();
+          } else {
+            Alert.alert('Error', data.message || 'Failed to remove member.');
+          }
+        } else {
+          Alert.alert('Error', 'Server error removing member.');
+        }
+      } catch (err) {
+        console.error('Error removing member:', err);
+        Alert.alert('Error', 'Network error removing member.');
+      }
+    };
+
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(`Are you sure you want to remove ${friendName} from your circle?`);
+      if (confirm) {
+        performRemove();
+      }
+    } else {
+      Alert.alert(
+        'Remove Member',
+        `Are you sure you want to remove ${friendName} from your circle?`,
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Remove', style: 'destructive', onPress: performRemove }
+        ]
+      );
     }
   };
 
@@ -536,15 +632,21 @@ export default function PassengerDashboard() {
               }
             }
             else if (data.type === 'UPDATE_USER_LOCATION') {
+              var avatarHtml = (data.profilePic && data.profilePic !== '') 
+                ? '<img src="' + data.profilePic + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
+                : data.initial;
+
+              var userIcon = L.divIcon({
+                className: 'user-marker-container',
+                html: '<div style="position: relative; width: 30px; height: 30px;"><div class="waiting-badge">Waiting?</div><div class="user-avatar-circle" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div></div>',
+                iconSize: [30, 45],
+                iconAnchor: [15, 30]
+              });
+
               if (userMarker) {
                 userMarker.setLatLng([data.lat, data.lng]);
+                userMarker.setIcon(userIcon);
               } else {
-                var userIcon = L.divIcon({
-                  className: 'user-marker-container',
-                  html: '<div style="position: relative; width: 30px; height: 30px;"><div class="waiting-badge">Waiting?</div><div class="user-avatar-circle">' + data.initial + '</div></div>',
-                  iconSize: [30, 45],
-                  iconAnchor: [15, 30]
-                });
                 userMarker = L.marker([data.lat, data.lng], { icon: userIcon }).addTo(map);
               }
               if (data.center) {
@@ -556,7 +658,7 @@ export default function PassengerDashboard() {
                 map.removeLayer(busMarkers[key]);
               });
               busMarkers = {};
-              var busIconUrl = "${baseUrl}/assets/images/icons/busActive.svg";
+              var busIconUrl = "${baseUrl}/assets/images/icons/marker.svg";
               data.buses.forEach(function(bus) {
                 var lat = bus.lat || bus.latitude;
                 var lng = bus.lng || bus.longitude;
@@ -626,10 +728,21 @@ export default function PassengerDashboard() {
                   var isWaiting = friend.waiting_status === 'waiting';
                   var isBoarded = friend.ride_status === 'active';
                   
+                  var profilePicUrl = '';
+                  if (friend.profile_picture) {
+                    profilePicUrl = friend.profile_picture.indexOf('http') === 0 
+                      ? friend.profile_picture 
+                      : '${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/' + friend.profile_picture.replace(/^\\//, '');
+                  }
+
+                  var avatarHtml = (profilePicUrl && profilePicUrl !== '')
+                    ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
+                    : initials;
+
                   var friendIcon = L.divIcon({
                     className: 'friend-marker-container',
                     html: '<div style="position: relative; width: 30px; height: 30px;">' +
-                          '<div class="user-avatar-circle" style="background: #10b981; border-color: white;">' + initials + '</div>' +
+                          '<div class="user-avatar-circle" style="background: #10b981; border-color: white; overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div>' +
                           '</div>',
                     iconSize: [30, 30],
                     iconAnchor: [15, 15]
@@ -670,46 +783,10 @@ export default function PassengerDashboard() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
-      {/* Top Header Bar */}
-      <View style={tw`h-14 bg-[#103d7c] flex-row items-center justify-between px-4 rounded-b-2xl shadow-sm`}>
-        <View style={tw`w-15`}>
-          <Image
-            source={require('../../../assets/images/topBarLogo.svg')}
-            style={tw`w-8 h-8`}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={tw`absolute left-1/2 -translate-x-1/2`}>
-          <Image
-            source={require('../../../assets/images/ByaHero.svg')}
-            style={tw`w-[100px] h-[30px]`}
-            contentFit="contain"
-          />
-        </View>
-
-        <View style={tw`flex-row items-center gap-3`}>
-          <TouchableOpacity style={tw`p-1`}>
-            <Image
-              source={require('../../../assets/images/notification bell.svg')}
-              style={tw`w-[22px] h-[22px]`}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace('/')} style={tw`p-1`}>
-            <Image
-              source={require('../../../assets/images/HAMBURGER.svg')}
-              style={tw`w-[18px] h-[18px]`}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
-
       {/* Main Content Area */}
       <View style={tw`flex-1 relative`}>
         {activeTab === 'location' && (
-          <View style={tw`flex-1`}>
+          <View style={tw`flex-1 relative`}>
             {/* Conditional Map rendering (iframe for Web, WebView for Mobile) */}
             {Platform.OS === 'web' ? (
               <iframe
@@ -729,360 +806,54 @@ export default function PassengerDashboard() {
               />
             )}
 
-            {/* GPS locate button */}
-            <TouchableOpacity style={tw`absolute right-4 bottom-[42%] bg-white w-12 h-12 rounded-full justify-center items-center shadow-lg z-[1060]`} onPress={centerToMyLocation}>
-              <Image
-                source={require('../../../assets/images/icons/my_location.svg')}
-                style={tw`w-6 h-6`}
-                contentFit="contain"
-              />
-            </TouchableOpacity>
-
-            {/* Draggable bottom panel / Bottom Sheet */}
-            <View style={tw`absolute left-0 right-0 bottom-0 h-[40%] bg-white rounded-t-2xl shadow-2xl z-[1050]`}>
-              {/* Drag Handle indicator */}
-              <View style={tw`w-20 h-1.5 bg-[#e2e8f0] rounded-full self-center mt-2.5`} />
-
-              {/* Bottom Sheet Header Quick Filter Tabs */}
-              <View style={tw`flex-row justify-around px-4 py-3.5 border-b border-[#f1f5f9]`}>
-                <TouchableOpacity
-                  onPress={() => setSheetTab('location')}
-                  style={[tw`w-12 h-9 rounded-full bg-[#f1f5f9] justify-center items-center`, sheetTab === 'location' && tw`bg-[#103d7c]`]}
-                >
-                  <Image
-                    source={sheetTab === 'location'
-                      ? require('../../../assets/images/icons/busStopWhiteIcon.png')
-                      : require('../../../assets/images/icons/busStopBlueIcon.png')
-                    }
-                    style={tw`w-5 h-5`}
-                    contentFit="contain"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setSheetTab('routes')}
-                  style={[tw`w-12 h-9 rounded-full bg-[#f1f5f9] justify-center items-center`, sheetTab === 'routes' && tw`bg-[#103d7c]`]}
-                >
-                  <Image
-                    source={sheetTab === 'routes'
-                      ? require('../../../assets/images/icons/routes active.svg')
-                      : require('../../../assets/images/icons/routes idle.svg')
-                    }
-                    style={tw`w-5 h-5`}
-                    contentFit="contain"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setSheetTab('groups')}
-                  style={[tw`w-12 h-9 rounded-full bg-[#f1f5f9] justify-center items-center`, sheetTab === 'groups' && tw`bg-[#103d7c]`]}
-                >
-                  <Image
-                    source={sheetTab === 'groups'
-                      ? require('../../../assets/images/icons/groupsActive.svg')
-                      : require('../../../assets/images/icons/groupsIdle.svg')
-                    }
-                    style={tw`w-5 h-5`}
-                    contentFit="contain"
-                  />
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => setSheetTab('busstops')}
-                  style={[tw`w-12 h-9 rounded-full bg-[#f1f5f9] justify-center items-center`, sheetTab === 'busstops' && tw`bg-[#103d7c]`]}
-                >
-                  <Image
-                    source={sheetTab === 'busstops'
-                      ? require('../../../assets/images/icons/busStopMarkerFinalWhite.svg')
-                      : require('../../../assets/images/icons/busStopMarkerFinalBlue.svg')
-                    }
-                    style={tw`w-5 h-5`}
-                    contentFit="contain"
-                  />
-                </TouchableOpacity>
-              </View>
-
-              {/* Bottom Sheet Body Content */}
-              <ScrollView style={tw`flex-1 px-4`} contentContainerStyle={{ paddingBottom: 24 }}>
-                {sheetTab === 'location' && (
-                  <View>
-                    <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>BUS LOCATION</Text>
-                    {filteredBuses.length === 0 ? (
-                      <View style={tw`items-center justify-center py-8`}>
-                        <Image
-                          source={require('../../../assets/images/icons/noBusBig.svg')}
-                          style={tw`w-[72px] h-[72px]`}
-                          contentFit="contain"
-                        />
-                        <Text style={tw`text-sm text-[#64748b] font-semibold mt-3`}>No Available Bus</Text>
-                      </View>
-                    ) : (
-                      filteredBuses.map((bus, idx) => (
-                        <View key={idx} style={tw`flex-row items-center bg-[#f8fafc] p-3 rounded-2xl mb-2`}>
-                          <View style={tw`w-10 h-10 rounded-full bg-[#e0f2fe] justify-center items-center mr-3`}>
-                            <Image
-                              source={require('../../../assets/images/icons/busActive.svg')}
-                              style={tw`w-6 h-6`}
-                              contentFit="contain"
-                            />
-                          </View>
-                          <View style={tw`flex-1`}>
-                            <Text style={tw`text-sm font-bold text-[#1e293b]`}>Plate: {bus.plate_number || 'N/A'}</Text>
-                            <Text style={tw`text-xs text-[#64748b]`}>{bus.route || 'All Routes'}</Text>
-                          </View>
-                          <View style={tw`px-2 py-1 rounded-xl bg-[#dcfce7]`}>
-                            <Text style={tw`text-[10px] text-[#15803d] font-bold`}>Active</Text>
-                          </View>
-                        </View>
-                      ))
-                    )}
-                  </View>
-                )}
-
-                {sheetTab === 'routes' && (
-                  <View>
-                    <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>FILTER ROUTES</Text>
-                    <TouchableOpacity
-                      onPress={() => setSelectedRoute('TANAUAN - LAUREL')}
-                      style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === 'TANAUAN - LAUREL' && tw`bg-[#103d7c]`]}
-                    >
-                      <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === 'TANAUAN - LAUREL' && tw`text-white`]}>
-                        Tanauan - Laurel
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setSelectedRoute('LAUREL - TANAUAN')}
-                      style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === 'LAUREL - TANAUAN' && tw`bg-[#103d7c]`]}
-                    >
-                      <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === 'LAUREL - TANAUAN' && tw`text-white`]}>
-                        Laurel - Tanauan
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => setSelectedRoute('')}
-                      style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === '' && tw`bg-[#103d7c]`]}
-                    >
-                      <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === '' && tw`text-white`]}>
-                        All Routes
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {sheetTab === 'groups' && (
-                  <View>
-                    <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>CIRCLES</Text>
-                    <View style={tw`bg-[#f8fafc] p-4 rounded-2xl mb-3`}>
-                      <Text style={tw`text-xs text-[#64748b] font-bold`}>Your Invite Code</Text>
-                      <View style={tw`flex-row items-center my-2`}>
-                        <Text style={tw`text-2xl font-extrabold text-[#1856b0] tracking-widest`}>{inviteCode}</Text>
-                        <TouchableOpacity onPress={generateInviteCode} style={tw`ml-auto p-2`}>
-                          <Image
-                            source={require('../../../assets/images/REFRESH.svg')}
-                            style={tw`w-7 h-7`}
-                            contentFit="contain"
-                          />
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    <View style={tw`bg-[#f8fafc] p-4 rounded-2xl mb-4`}>
-                      <Text style={tw`text-xs text-[#64748b] font-bold`}>Join a Circle</Text>
-                      <View style={tw`flex-row gap-2 mt-2`}>
-                        <TextInput
-                          value={joinCode}
-                          onChangeText={setJoinCode}
-                          placeholder="Enter 6-digit code"
-                          placeholderTextColor="#9ca3af"
-                          maxLength={6}
-                          style={tw`flex-grow bg-white border border-[#cbd5e1] rounded-2xl px-4 py-2 text-sm text-[#333333]`}
-                        />
-                        <TouchableOpacity onPress={handleJoinCircle} style={tw`bg-[#1856b0] rounded-2xl justify-center px-5`}>
-                          <Text style={tw`color-white font-bold`}>Join</Text>
-                        </TouchableOpacity>
-                      </View>
-                    </View>
-
-                    {circles.length === 0 ? (
-                      <View style={tw`py-4 items-center`}>
-                        <Text style={tw`text-xs text-[#64748b] italic`}>No circle members yet.</Text>
-                      </View>
-                    ) : (
-                      circles.map(friend => {
-                        const isWaiting = friend.waiting_status === 'waiting';
-                        const isBoarded = friend.ride_status === 'active';
-                        let statusText = 'Location unavailable';
-                        if (isWaiting) {
-                          statusText = `Waiting at ${friend.waiting_location}`;
-                        } else if (isBoarded) {
-                          statusText = `Onboard Bus ${friend.boarded_bus_code || ''}`;
-                        } else if (friend.latitude && friend.longitude) {
-                          statusText = 'Live location available';
-                        }
-                        const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
-
-                        return (
-                          <View key={friend.id || friend.email} style={tw`flex-row items-center py-3 border-b border-[#f1f5f9]`}>
-                            {friend.profile_picture ? (
-                              <Image
-                                source={{ uri: friend.profile_picture.startsWith('http') ? friend.profile_picture : `${baseUrl}/${friend.profile_picture}` }}
-                                style={tw`w-9 h-9 rounded-full mr-3`}
-                                contentFit="cover"
-                              />
-                            ) : (
-                              <View style={tw`w-9 h-9 rounded-full bg-[#1856b0] justify-center items-center mr-3`}>
-                                <Text style={tw`text-white font-bold text-xs`}>{initials}</Text>
-                              </View>
-                            )}
-                            <View style={tw`flex-1`}>
-                              <Text style={tw`text-sm font-bold text-[#1e293b]`}>{friend.name || friend.email}</Text>
-                              <Text style={tw`text-xs text-[#64748b]`}>{statusText}</Text>
-                            </View>
-                            {(isWaiting || isBoarded) && (
-                              <View style={[tw`px-2 py-0.5 rounded-xl ml-2`, isWaiting ? tw`bg-[#fef3c7]` : tw`bg-[#dcfce7]`]}>
-                                <Text style={[tw`text-[9px] font-bold`, isWaiting ? tw`text-[#d97706]` : tw`text-[#15803d]`]}>
-                                  {isWaiting ? 'Waiting' : 'Boarded'}
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-                        );
-                      })
-                    )}
-                  </View>
-                )}
-
-                {sheetTab === 'busstops' && (
-                  <View>
-                    <View style={tw`flex-row justify-between items-center mb-2`}>
-                      <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>BUS PICK UP POINTS</Text>
-                      <TouchableOpacity
-                        onPress={() => setStopsRoute(prev => prev === 'LAUREL - TANAUAN' ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN')}
-                        style={tw`flex-row items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1`}
-                      >
-                        <Text style={tw`text-[10px] font-bold text-black`}>{stopsRoute}</Text>
-                        <Image
-                          source={require('../../../assets/images/swap.svg')}
-                          style={tw`w-4 h-4`}
-                          contentFit="contain"
-                        />
-                      </TouchableOpacity>
-                    </View>
-
-                    {filteredStops.length === 0 ? (
-                      <View style={tw`items-center justify-center py-8`}>
-                        <Image
-                          source={require('../../../assets/images/icons/busStopMarkerFinalBlue.svg')}
-                          style={tw`w-9 h-9`}
-                          contentFit="contain"
-                        />
-                        <Text style={tw`text-sm text-[#64748b] font-semibold mt-3`}>No stops defined</Text>
-                      </View>
-                    ) : (
-                      filteredStops.map((stop, idx) => {
-                        const lat = parseFloat(stop.lat || stop.latitude);
-                        const lng = parseFloat(stop.lng || stop.longitude);
-                        let distanceStr = '';
-                        if (lat && lng && userLocation) {
-                          const dist = getDistance(userLocation.lat, userLocation.lng, lat, lng);
-                          distanceStr = `${dist.toFixed(1)} km away`;
-                        }
-
-                        const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
-
-                        return (
-                          <TouchableOpacity
-                            key={idx}
-                            onPress={() => handleStopPress(stop)}
-                            style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-center shadow-sm`}
-                          >
-                            <View style={tw`flex-1 mr-2`}>
-                              <Text style={tw`text-sm font-extrabold text-[#1e293b]`}>{stop.name}</Text>
-                              <Text style={tw`text-xs text-[#64748b] mt-1`}>
-                                {stop.location_name || 'No location name'}{stop.location_landmark ? ` • ${stop.location_landmark}` : ''}
-                              </Text>
-                            </View>
-                            <View style={tw`items-end`}>
-                              <View style={tw`bg-[#e2e8f0] px-2.5 py-1 rounded-full mb-1`}>
-                                <Text style={tw`text-[9px] text-[#475569] font-black`}>{labelType}</Text>
-                              </View>
-                              {distanceStr ? (
-                                <Text style={tw`text-[11px] text-[#475569] font-bold mt-1`}>🚶 {distanceStr}</Text>
-                              ) : null}
-                            </View>
-                          </TouchableOpacity>
-                        );
-                      })
-                    )}
-                  </View>
-                )}
-              </ScrollView>
+            {/* Floating absolute header so map shows behind bottom rounded corners */}
+            <View style={tw`absolute top-0 left-0 right-0 z-[2002]`}>
+              <PassengerHeader onTriggerSOS={handleTriggerSOS} />
             </View>
+
+            {/* GPS locate button (Rides alongside the bottom sheet using translateY) */}
+            <Animated.View
+              style={[
+                tw`absolute right-4 bg-white w-12 h-12 rounded-full justify-center items-center shadow-lg z-[1060]`,
+                {
+                  bottom: (SCREEN_HEIGHT * 0.7) + 12,
+                  transform: [{ translateY }],
+                }
+              ]}
+            >
+              <TouchableOpacity
+                onPress={centerToMyLocation}
+                style={tw`w-full h-full justify-center items-center`}
+              >
+                <MaterialIcons name="my-location" size={24} color="#103d7c" />
+              </TouchableOpacity>
+            </Animated.View>
+
+            <PassengerBottomSheet
+              sheetTab={sheetTab}
+              setSheetTab={setSheetTab}
+              filteredBuses={filteredBuses}
+              selectedRoute={selectedRoute}
+              setSelectedRoute={setSelectedRoute}
+              inviteCode={inviteCode}
+              generateInviteCode={fetchInviteCode}
+              joinCode={joinCode}
+              setJoinCode={setJoinCode}
+              handleJoinCircle={handleJoinCircle}
+              circles={circles}
+              stopsRoute={stopsRoute}
+              setStopsRoute={setStopsRoute}
+              filteredStops={filteredStops}
+              handleStopPress={handleStopPress}
+              userLocation={userLocation}
+              baseUrl={baseUrl}
+              translateY={translateY}
+              handleRemoveCircleMember={handleRemoveCircleMember}
+            />
           </View>
         )}
 
-        {/* SOS Center Screen Tab view */}
-        {activeTab === 'sos' && (
-          <View style={tw`flex-1 justify-center items-center px-8 bg-white`}>
-            <Image
-              source={require('../../../assets/images/icons/SOS.svg')}
-              style={tw`w-30 h-30`}
-              contentFit="contain"
-            />
-            <Text style={tw`text-2xl font-bold text-[#103d7c] mt-4 text-center`}>Emergency Center</Text>
-            <Text style={tw`text-sm text-[#64748b] text-center mt-2 mb-8 leading-5`}>
-              By triggering SOS, you will alert your circle and share your live tracking location for faster dispatch.
-            </Text>
-            <TouchableOpacity style={tw`bg-[#ef4444] py-4 px-8 rounded-full shadow-lg`} onPress={handleTriggerSOS}>
-              <Text style={tw`text-white font-extrabold text-base tracking-wider`}>TRIGGER PANIC ALERT</Text>
-            </TouchableOpacity>
-          </View>
-        )}
- 
-       {/* Premium Bottom Navigation Bar */}
-       <View style={tw`h-[75px] border-t border-[#e2e8f0] flex-row items-center bg-white relative`}>
-         <TouchableOpacity
-           onPress={() => setActiveTab('location')}
-           style={tw`flex-grow items-center justify-center h-full`}
-         >
-           <Image
-             source={activeTab === 'location'
-               ? require('../../../assets/images/icons/locationBlack.svg')
-               : require('../../../assets/images/icons/locationIdle.svg')
-             }
-             style={tw`w-6 h-6`}
-             contentFit="contain"
-           />
-           <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'location' && tw`text-[#1856b0]`]}>LOCATION</Text>
-         </TouchableOpacity>
- 
-         {/* Central Rising SOS Button */}
-         <View style={tw`w-[100px] items-center justify-center h-full relative`}>
-           <TouchableOpacity 
-             style={tw`w-[100px] h-[76px] rounded-t-[50px] bg-[#2563eb] absolute bottom-0 justify-start items-center pt-3.5 shadow-lg`} 
-             onPress={handleTriggerSOS}
-           >
-             <Image
-               source={require('../../../assets/images/icons/SOS.svg')}
-               style={tw`w-8 h-8`}
-               contentFit="contain"
-             />
-             <Text style={tw`text-white text-[10px] font-extrabold mt-0.5 tracking-wider`}>SOS</Text>
-           </TouchableOpacity>
-         </View>
- 
-         <TouchableOpacity
-           onPress={() => router.replace('/passenger/busInfo' as any)}
-           style={tw`flex-grow items-center justify-center h-full`}
-         >
-           <Image
-             source={require('../../../assets/images/icons/busIdle.svg')}
-             style={tw`w-6 h-6`}
-             contentFit="contain"
-           />
-           <Text style={tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`}>BUS INFO</Text>
-         </TouchableOpacity>
-       </View>
+        <PassengerFooter activeTab={activeTab} setActiveTab={setActiveTab} onTriggerSOS={handleTriggerSOS} />
       </View>
     </SafeAreaView>
   );
