@@ -13,6 +13,7 @@ import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
+import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 
 export default function BusInfoScreen() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
@@ -38,14 +39,38 @@ export default function BusInfoScreen() {
         const currentBaseUrl = await getServerUrl();
         setBaseUrl(currentBaseUrl);
 
-        const syncRes = await fetch(`${currentBaseUrl}/public/api.php?action=get_sync_data`);
-        if (syncRes.ok && active) {
-          const syncData = await syncRes.json();
-          if (syncData && syncData.success) {
-            setSchedules(syncData.bus_schedule || []);
-            setFareStops(syncData.bus_stops || []);
-            setFareRules(syncData.bus_fares || []);
+        let responseData: any = null;
+        try {
+          const syncRes = await fetch(`${currentBaseUrl}/public/api.php?action=get_sync_data`);
+          if (syncRes.ok) {
+            const data = await syncRes.json();
+            if (data && data.success) {
+              responseData = data;
+            }
           }
+        } catch (e) {
+          console.warn(`Failed to fetch sync data from configured server URL: ${currentBaseUrl}`, e);
+        }
+
+        // Fallback to alwaysdata if configured URL failed or was offline
+        if (!responseData && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
+          try {
+            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/public/api.php?action=get_sync_data`);
+            if (fallbackRes.ok) {
+              const data = await fallbackRes.json();
+              if (data && data.success) {
+                responseData = data;
+              }
+            }
+          } catch (e) {
+            console.error('Fallback to alwaysdata failed:', e);
+          }
+        }
+
+        if (responseData && active) {
+          setSchedules(responseData.bus_schedule || []);
+          setFareStops(responseData.bus_stops || []);
+          setFareRules(responseData.bus_fares || []);
         }
       } catch (err) {
         console.error('Error fetching sync data:', err);
@@ -76,11 +101,15 @@ export default function BusInfoScreen() {
     let regularFare: number | null = null;
     let discountedFare: number | null = null;
 
-    // Check direct fares first
-    const match = fareRules.find(f => 
-      (parseInt(f.origin_stop_id, 10) === pickup.stop_id && parseInt(f.destination_stop_id, 10) === dropoff.stop_id) ||
-      (parseInt(f.origin_stop_id, 10) === dropoff.stop_id && parseInt(f.destination_stop_id, 10) === pickup.stop_id)
-    );
+    const pId = parseInt(pickup.stop_id, 10);
+    const dId = parseInt(dropoff.stop_id, 10);
+
+    // Check direct fares first with consistent integer comparisons
+    const match = fareRules.find(f => {
+      const originId = parseInt(f.origin_stop_id, 10);
+      const destId = parseInt(f.destination_stop_id, 10);
+      return (originId === pId && destId === dId) || (originId === dId && destId === pId);
+    });
 
     if (match) {
       regularFare = parseFloat(match.regular_fare);
@@ -146,256 +175,185 @@ export default function BusInfoScreen() {
   };
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-white`}>
-      {/* Top Header Bar */}
-      <View style={tw`h-14 bg-[#103d7c] flex-row items-center justify-between px-4 rounded-b-2xl shadow-sm`}>
-        <View style={tw`w-15`}>
-          <Image
-            source={require('../../../../assets/images/topBarLogo.svg')}
-            style={tw`w-8 h-8`}
-            contentFit="contain"
-          />
-        </View>
-        
-        <View style={tw`absolute left-1/2 -translate-x-1/2`}>
-          <Image
-            source={require('../../../../assets/images/ByaHero.svg')}
-            style={tw`w-[100px] h-[30px]`}
-            contentFit="contain"
-          />
-        </View>
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', height: '100%', width: '100%' }}>
+      <PassengerHeader onTriggerSOS={handleTriggerSOS} pageTitle="Bus Info" />
 
-        <View style={tw`flex-row items-center gap-3`}>
-          <TouchableOpacity style={tw`p-1`}>
-            <Image
-              source={require('../../../../assets/images/notification bell.svg')}
-              style={tw`w-[22px] h-[22px]`}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-          <TouchableOpacity onPress={() => router.replace('/')} style={tw`p-1`}>
-            <Image
-              source={require('../../../../assets/images/HAMBURGER.svg')}
-              style={tw`w-[18px] h-[18px]`}
-              contentFit="contain"
-            />
-          </TouchableOpacity>
-        </View>
-      </View>
+      <View style={{ flex: 1, height: '100%' }}>
+        {/* Main Content Area */}
+        <ScrollView style={{ flex: 1, backgroundColor: '#ffffff' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+          <Text style={tw`text-2xl font-bold text-[#103d7c] mt-2 text-center`}>Bus Information</Text>
+          <Text style={tw`text-xs text-[#64748b] text-center mt-1 mb-6`}>Check schedules, terminal locations, and calculate fares.</Text>
 
-      {/* Main Content Area */}
-      <ScrollView style={tw`flex-1 bg-white`} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-        <Text style={tw`text-2xl font-bold text-[#103d7c] mt-2 text-center`}>Bus Information</Text>
-        <Text style={tw`text-xs text-[#64748b] text-center mt-1 mb-6`}>Check schedules, terminal locations, and calculate fares.</Text>
+          {/* Schedules Section */}
+          <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mb-3`}>BUS OPERATION SCHEDULE</Text>
+          {schedules.length === 0 ? (
+            <View style={tw`bg-[#f8fafc] rounded-2xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
+              <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
+            </View>
+          ) : (
+            schedules.map((row, idx) => {
+              const formatTime = (timeStr: string) => {
+                if (!timeStr) return '';
+                const [h, m] = timeStr.split(':');
+                const hr = parseInt(h, 10);
+                const ampm = hr >= 12 ? 'PM' : 'AM';
+                const displayHr = hr % 12 || 12;
+                return `${displayHr}:${m} ${ampm}`;
+              };
+              const open = formatTime(row.time_open);
+              const close = formatTime(row.time_close);
+              const timeText = (open && close) ? `${open} - ${close}` : 'Schedule not set';
+              const isSusp = parseInt(row.is_suspended) === 1;
 
-        {/* Schedules Section */}
-        <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mb-3`}>BUS OPERATION SCHEDULE</Text>
-        {schedules.length === 0 ? (
-          <View style={tw`bg-[#f8fafc] rounded-2xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
-            <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
-          </View>
-        ) : (
-          schedules.map((row, idx) => {
-            const formatTime = (timeStr: string) => {
-              if (!timeStr) return '';
-              const [h, m] = timeStr.split(':');
-              const hr = parseInt(h, 10);
-              const ampm = hr >= 12 ? 'PM' : 'AM';
-              const displayHr = hr % 12 || 12;
-              return `${displayHr}:${m} ${ampm}`;
-            };
-            const open = formatTime(row.time_open);
-            const close = formatTime(row.time_close);
-            const timeText = (open && close) ? `${open} - ${close}` : 'Schedule not set';
-            const isSusp = parseInt(row.is_suspended) === 1;
-
-            return (
-              <View key={idx} style={tw`bg-[#f8fafc] p-4 rounded-2xl mb-3 border border-[#e2e8f0] flex-row justify-between items-center shadow-sm`}>
-                <View style={tw`flex-1 mr-2`}>
-                  <Text style={tw`text-sm font-extrabold text-[#103d7c]`}>{row.terminal_name}</Text>
-                  {isSusp ? (
-                    <Text style={tw`text-xs text-red-500 font-bold mt-1`}>SUSPENDED{row.suspend_message ? `: ${row.suspend_message}` : ''}</Text>
-                  ) : null}
+              return (
+                <View key={idx} style={tw`bg-[#f8fafc] p-4 rounded-2xl mb-3 border border-[#e2e8f0] flex-row justify-between items-center shadow-sm`}>
+                  <View style={tw`flex-1 mr-2`}>
+                    <Text style={tw`text-sm font-extrabold text-[#103d7c]`}>{row.terminal_name}</Text>
+                    {isSusp ? (
+                      <Text style={tw`text-xs text-red-500 font-bold mt-1`}>SUSPENDED{row.suspend_message ? `: ${row.suspend_message}` : ''}</Text>
+                    ) : null}
+                  </View>
+                  <Text style={[tw`text-xs font-black`, isSusp ? tw`text-red-500` : tw`text-[#475569]`]}>
+                    {isSusp ? 'No Operations' : timeText}
+                  </Text>
                 </View>
-                <Text style={[tw`text-xs font-black`, isSusp ? tw`text-red-500` : tw`text-[#475569]`]}>
-                  {isSusp ? 'No Operations' : timeText}
-                </Text>
+              );
+            })
+          )}
+
+          {/* Fare Check Section */}
+          <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mt-4 mb-3`}>BUS FARE CHECK</Text>
+          
+          <View style={tw`bg-[#f8fafc] p-4 rounded-2xl border border-[#e2e8f0] mb-5`}>
+            {/* Pick Up Stop Picker */}
+            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Pick Up Location</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowPickupDropdown(!showPickupDropdown);
+                setShowDropoffDropdown(false);
+                setShowDiscountDropdown(false);
+              }}
+              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
+            >
+              <Text style={[tw`text-sm`, pickupStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
+                {pickupStop ? `${pickupStop.location_name}` : 'Select pick up stop'}
+              </Text>
+              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
+            </TouchableOpacity>
+
+            {showPickupDropdown && (
+              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
+                <ScrollView nestedScrollEnabled={true}>
+                  {fareStops.map((stop) => (
+                    <TouchableOpacity
+                      key={stop.stop_id}
+                      onPress={() => {
+                        setPickupStop(stop);
+                        setShowPickupDropdown(false);
+                        calculateFare(stop, dropoffStop, discountType);
+                      }}
+                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                    >
+                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
-            );
-          })
-        )}
+            )}
 
-        {/* Fare Check Section */}
-        <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mt-4 mb-3`}>BUS FARE CHECK</Text>
-        
-        <View style={tw`bg-[#f8fafc] p-4 rounded-2xl border border-[#e2e8f0] mb-5`}>
-          {/* Pick Up Stop Picker */}
-          <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Pick Up Location</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setShowPickupDropdown(!showPickupDropdown);
-              setShowDropoffDropdown(false);
-              setShowDiscountDropdown(false);
-            }}
-            style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-          >
-            <Text style={[tw`text-sm`, pickupStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
-              {pickupStop ? `${pickupStop.location_name}` : 'Select pick up stop'}
-            </Text>
-            <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-          </TouchableOpacity>
+            {/* Drop Off Stop Picker */}
+            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Drop Off Location</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowDropoffDropdown(!showDropoffDropdown);
+                setShowPickupDropdown(false);
+                setShowDiscountDropdown(false);
+              }}
+              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
+            >
+              <Text style={[tw`text-sm`, dropoffStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
+                {dropoffStop ? `${dropoffStop.location_name}` : 'Select drop off stop'}
+              </Text>
+              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
+            </TouchableOpacity>
 
-          {showPickupDropdown && (
-            <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
-              <ScrollView nestedScrollEnabled={true}>
-                {fareStops.map((stop) => (
-                  <TouchableOpacity
-                    key={stop.stop_id}
-                    onPress={() => {
-                      setPickupStop(stop);
-                      setShowPickupDropdown(false);
-                      calculateFare(stop, dropoffStop, discountType);
-                    }}
-                    style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                  >
-                    <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+            {showDropoffDropdown && (
+              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
+                <ScrollView nestedScrollEnabled={true}>
+                  {fareStops.map((stop) => (
+                    <TouchableOpacity
+                      key={stop.stop_id}
+                      onPress={() => {
+                        setDropoffStop(stop);
+                        setShowDropoffDropdown(false);
+                        calculateFare(pickupStop, stop, discountType);
+                      }}
+                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                    >
+                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
 
-          {/* Drop Off Stop Picker */}
-          <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Drop Off Location</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setShowDropoffDropdown(!showDropoffDropdown);
-              setShowPickupDropdown(false);
-              setShowDiscountDropdown(false);
-            }}
-            style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-          >
-            <Text style={[tw`text-sm`, dropoffStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
-              {dropoffStop ? `${dropoffStop.location_name}` : 'Select drop off stop'}
-            </Text>
-            <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-          </TouchableOpacity>
+            {/* Discount Selector */}
+            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Passenger Class</Text>
+            <TouchableOpacity
+              onPress={() => {
+                setShowDiscountDropdown(!showDiscountDropdown);
+                setShowPickupDropdown(false);
+                setShowDropoffDropdown(false);
+              }}
+              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
+            >
+              <Text style={tw`text-sm text-[#1e293b] font-semibold`}>
+                {discountType === 'regular' ? 'Regular Passenger' : 'Discounted (Student/Senior/PWD)'}
+              </Text>
+              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
+            </TouchableOpacity>
 
-          {showDropoffDropdown && (
-            <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
-              <ScrollView nestedScrollEnabled={true}>
-                {fareStops.map((stop) => (
-                  <TouchableOpacity
-                    key={stop.stop_id}
-                    onPress={() => {
-                      setDropoffStop(stop);
-                      setShowDropoffDropdown(false);
-                      calculateFare(pickupStop, stop, discountType);
-                    }}
-                    style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                  >
-                    <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            </View>
-          )}
+            {showDiscountDropdown && (
+              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-1 mb-3`}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDiscountType('regular');
+                    setShowDiscountDropdown(false);
+                    calculateFare(pickupStop, dropoffStop, 'regular');
+                  }}
+                  style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                >
+                  <Text style={tw`text-xs text-[#334155] font-semibold`}>Regular Passenger</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => {
+                    setDiscountType('discounted');
+                    setShowDiscountDropdown(false);
+                    calculateFare(pickupStop, dropoffStop, 'discounted');
+                  }}
+                  style={tw`py-2.5 px-3`}
+                    >
+                  <Text style={tw`text-xs text-[#334155] font-semibold`}>Discounted (Student/Senior/PWD)</Text>
+                </TouchableOpacity>
+              </View>
+            )}
 
-          {/* Discount Selector */}
-          <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Passenger Class</Text>
-          <TouchableOpacity
-            onPress={() => {
-              setShowDiscountDropdown(!showDiscountDropdown);
-              setShowPickupDropdown(false);
-              setShowDropoffDropdown(false);
-            }}
-            style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-          >
-            <Text style={tw`text-sm text-[#1e293b] font-semibold`}>
-              {discountType === 'regular' ? 'Regular Passenger' : 'Discounted (Student/Senior/PWD)'}
-            </Text>
-            <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-          </TouchableOpacity>
+            {/* Error / Result Display */}
+            {fareError ? (
+              <Text style={tw`text-xs font-bold text-red-500 text-center my-2`}>{fareError}</Text>
+            ) : null}
 
-          {showDiscountDropdown && (
-            <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-1 mb-3`}>
-              <TouchableOpacity
-                onPress={() => {
-                  setDiscountType('regular');
-                  setShowDiscountDropdown(false);
-                  calculateFare(pickupStop, dropoffStop, 'regular');
-                }}
-                style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-              >
-                <Text style={tw`text-xs text-[#334155] font-semibold`}>Regular Passenger</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => {
-                  setDiscountType('discounted');
-                  setShowDiscountDropdown(false);
-                  calculateFare(pickupStop, dropoffStop, 'discounted');
-                }}
-                style={tw`py-2.5 px-3`}
-                  >
-                <Text style={tw`text-xs text-[#334155] font-semibold`}>Discounted (Student/Senior/PWD)</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          {/* Error / Result Display */}
-          {fareError ? (
-            <Text style={tw`text-xs font-bold text-red-500 text-center my-2`}>{fareError}</Text>
-          ) : null}
-
-          <View style={tw`items-center mt-3 pt-3 border-t border-[#e2e8f0]`}>
-            <Text style={tw`text-xs font-bold text-[#64748b]`}>CALCULATED FARE</Text>
-            <View style={tw`flex-row items-baseline mt-1`}>
-              <Text style={tw`text-lg font-bold text-[#103d7c] mr-1`}>Php</Text>
-              <Text style={tw`text-3xl font-extrabold text-[#103d7c]`}>{calculatedFare}</Text>
+            <View style={tw`items-center mt-3 pt-3 border-t border-[#e2e8f0]`}>
+              <Text style={tw`text-xs font-bold text-[#64748b]`}>CALCULATED FARE</Text>
+              <View style={tw`flex-row items-baseline mt-1`}>
+                <Text style={tw`text-lg font-bold text-[#103d7c] mr-1`}>Php</Text>
+                <Text style={tw`text-3xl font-extrabold text-[#103d7c]`}>{calculatedFare}</Text>
+              </View>
             </View>
           </View>
-        </View>
-      </ScrollView>
+        </ScrollView>
 
-      {/* Premium Bottom Navigation Bar */}
-      <View style={tw`h-[75px] border-t border-[#e2e8f0] flex-row items-center bg-white relative`}>
-        <TouchableOpacity
-          onPress={() => router.replace('/passenger')}
-          style={tw`flex-grow items-center justify-center h-full`}
-        >
-          <Image
-            source={require('../../../../assets/images/icons/locationIdle.svg')}
-            style={tw`w-6 h-6`}
-            contentFit="contain"
-          />
-          <Text style={tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`}>LOCATION</Text>
-        </TouchableOpacity>
-
-        {/* Central Rising SOS Button */}
-        <View style={tw`w-[100px] items-center justify-center h-full relative`}>
-          <TouchableOpacity 
-            style={tw`w-[100px] h-[76px] rounded-t-[50px] bg-[#2563eb] absolute bottom-0 justify-start items-center pt-3.5 shadow-lg`} 
-            onPress={handleTriggerSOS}
-          >
-            <Image
-              source={require('../../../../assets/images/icons/SOS.svg')}
-              style={tw`w-8 h-8`}
-              contentFit="contain"
-            />
-            <Text style={tw`text-white text-[10px] font-extrabold mt-0.5 tracking-wider`}>SOS</Text>
-          </TouchableOpacity>
-        </View>
-
-        <TouchableOpacity
-          style={tw`flex-grow items-center justify-center h-full`}
-        >
-          <Image
-            source={require('../../../../assets/images/icons/busActive.svg')}
-            style={tw`w-6 h-6`}
-            contentFit="contain"
-          />
-          <Text style={tw`text-[9px] font-extrabold text-[#1856b0] mt-1 tracking-widest`}>BUS INFO</Text>
-        </TouchableOpacity>
+        <PassengerFooter activeTab="info" onTriggerSOS={handleTriggerSOS} />
       </View>
     </SafeAreaView>
   );

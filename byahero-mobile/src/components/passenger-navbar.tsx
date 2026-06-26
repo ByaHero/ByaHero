@@ -1,0 +1,319 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
+  Alert,
+  Dimensions,
+  Platform,
+} from 'react-native';
+import { Image } from 'expo-image';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import tw from 'twrnc';
+import { MaterialIcons } from '@expo/vector-icons';
+import { getServerUrl } from '../services/authService';
+
+const { width } = Dimensions.get('window');
+
+interface PassengerHeaderProps {
+  onTriggerSOS?: () => void;
+  pageTitle?: string;
+  showBackButton?: boolean;
+  showCloseButton?: boolean;
+}
+
+export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showCloseButton }: PassengerHeaderProps) {
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [userName, setUserName] = useState('Guest');
+  const [userInitial, setUserInitial] = useState('?');
+  const [userProfilePic, setUserProfilePic] = useState('');
+  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+
+  useEffect(() => {
+    async function loadUserData() {
+      try {
+        const cachedName = await AsyncStorage.getItem('byahero_cached_name') || 'Guest';
+        let displayHeaderName = cachedName;
+        if (displayHeaderName.includes('@')) {
+          displayHeaderName = displayHeaderName.split('@')[0];
+        }
+        displayHeaderName = displayHeaderName.charAt(0).toUpperCase() + displayHeaderName.slice(1);
+        setUserName(displayHeaderName);
+        setUserInitial(displayHeaderName.charAt(0).toUpperCase() || '?');
+
+        const cachedPic = await AsyncStorage.getItem('byahero_cached_profile_picture') || '';
+        setUserProfilePic(cachedPic);
+
+        const currentBaseUrl = await getServerUrl();
+        setBaseUrl(currentBaseUrl);
+      } catch (err) {
+        console.error('Error loading header user data:', err);
+      }
+    }
+    if (menuVisible) {
+      loadUserData();
+    }
+  }, [menuVisible]);
+
+  const handleLogout = () => {
+    const performLogout = async () => {
+      try {
+        const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
+        const currentBaseUrl = await getServerUrl();
+        if (token) {
+          await fetch(`${currentBaseUrl}/public/logout.php`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'fcm_token=' + encodeURIComponent(token)
+          }).catch(() => {});
+        }
+      } catch (e) {}
+
+      await AsyncStorage.removeItem('byahero_cached_email');
+      await AsyncStorage.removeItem('byahero_cached_role');
+      await AsyncStorage.removeItem('byahero_cached_name');
+      await AsyncStorage.removeItem('byahero_cached_profile_picture');
+      await AsyncStorage.removeItem('byahero_cached_contacts');
+      await AsyncStorage.removeItem('byahero_cached_phone');
+      await AsyncStorage.removeItem('sos_fcm_active_token');
+      setMenuVisible(false);
+      router.replace('/');
+    };
+
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm('Are you sure you want to log out?');
+      if (confirm) {
+        performLogout();
+      }
+    } else {
+      Alert.alert(
+        'Log Out',
+        'Are you sure you want to log out?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Log out',
+            style: 'destructive',
+            onPress: performLogout
+          }
+        ]
+      );
+    }
+  };
+
+  const menuItems = [
+    { title: 'Profile', icon: require('../../assets/images/person.svg'), route: '/passenger/profile' },
+    { title: 'User Guide', icon: require('../../assets/images/icons/USER GUIDE.svg'), route: '/passenger/showGuide' },
+    { title: 'Privacy and Security', icon: require('../../assets/images/privacy.svg'), route: '/passenger/passengerSettings/privacySecurity' },
+    { title: 'Lost and Found', icon: require('../../assets/images/lostandfound.svg'), route: '/passenger/lostAndFound' },
+    { title: 'About', icon: require('../../assets/images/about.svg'), route: '/passenger/passengerSettings/about' },
+    { title: 'Feedback', icon: require('../../assets/images/feedback.svg'), route: '/passenger/passengerSettings/feedback' },
+    { title: 'Report a Problem', icon: require('../../assets/images/report.svg'), route: '/passenger/report' },
+    { title: 'Share ByaHero', icon: require('../../assets/images/share.svg'), route: '/passenger/passengerSettings/share' },
+    { title: 'Ride History', icon: require('../../assets/images/HISTORY.svg'), route: '/passenger/rideHistory' },
+  ];
+
+  const renderAvatar = () => {
+    if (userProfilePic && userProfilePic !== 'null' && userProfilePic !== 'undefined') {
+      const isAbsolute = userProfilePic.startsWith('data:') || userProfilePic.startsWith('http');
+      const imgSrc = isAbsolute ? userProfilePic : (baseUrl.replace(/\/$/, '') + '/' + userProfilePic.replace(/^\//, ''));
+      return (
+        <Image
+          source={{ uri: imgSrc }}
+          style={tw`w-20 h-20 rounded-full`}
+          contentFit="cover"
+        />
+      );
+    }
+    return (
+      <View style={tw`w-20 h-20 rounded-full bg-white items-center justify-center`}>
+        <Text style={tw`text-[#103d7c] text-3xl font-bold`}>{userInitial}</Text>
+      </View>
+    );
+  };
+
+  return (
+    <>
+      <View style={[tw`h-14 bg-[#103d7c] flex-row items-center justify-between px-4 rounded-b-2xl shadow-sm`, { zIndex: 2002 }]}>
+        <View style={tw`w-15 justify-center`}>
+          {showBackButton || showCloseButton ? (
+            <TouchableOpacity onPress={() => router.back()} style={tw`p-1`}>
+              <MaterialIcons 
+                name={showCloseButton ? "close" : "arrow-back"} 
+                size={24} 
+                color="white" 
+              />
+            </TouchableOpacity>
+          ) : (
+            <Image
+              source={require('../../assets/images/topBarLogo.svg')}
+              style={tw`w-15 h-15`}
+              contentFit="contain"
+            />
+          )}
+        </View>
+        
+        <View style={tw`absolute left-1/2 -translate-x-1/2`}>
+          {pageTitle ? (
+            <Text style={tw`text-white font-bold text-base`}>{pageTitle}</Text>
+          ) : (
+            <Image
+              source={require('../../assets/images/ByaHero.svg')}
+              style={tw`w-[100px] h-[30px]`}
+              contentFit="contain"
+            />
+          )}
+        </View>
+ 
+        {!(showBackButton || showCloseButton) ? (
+          <View style={tw`flex-row items-center gap-3`}>
+            <TouchableOpacity style={tw`p-1`} onPress={() => router.push('/passenger/notifications' as any)}>
+              <Image
+                source={require('../../assets/images/notification bell.svg')}
+                style={tw`w-[22px] h-[22px]`}
+                contentFit="contain"
+              />
+            </TouchableOpacity>
+            <TouchableOpacity onPress={() => setMenuVisible(true)} style={tw`p-1`}>
+              <Image
+                source={require('../../assets/images/HAMBURGER.svg')}
+                style={tw`w-[18px] h-[18px]`}
+                contentFit="contain"
+              />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={tw`w-15`} />
+        )}
+      </View>
+ 
+      {/* Offcanvas Menu Modal */}
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={menuVisible}
+        onRequestClose={() => setMenuVisible(false)}
+      >
+        <View style={tw`flex-1 flex-row justify-end bg-black/50`}>
+          <View style={[tw`h-full bg-white shadow-2xl`, { width: width * 0.8 }]}>
+            {/* Header Block */}
+            <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
+              <TouchableOpacity
+                onPress={() => setMenuVisible(false)}
+                style={tw`absolute top-3 right-3 p-1`}
+              >
+                <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
+              </TouchableOpacity>
+              <View style={tw`flex-row items-center gap-3 mt-4 mb-2`}>
+                {renderAvatar()}
+                <Text style={tw`text-white font-bold text-xl flex-1 text-wrap`} numberOfLines={2}>
+                  {userName}
+                </Text>
+              </View>
+            </View>
+ 
+            {/* Menu Items List */}
+            <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+              {menuItems.map((item, idx) => (
+                <TouchableOpacity
+                  key={idx}
+                  onPress={() => {
+                    setMenuVisible(false);
+                    router.push(item.route as any);
+                  }}
+                  style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
+                >
+                  <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
+                  <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
+                </TouchableOpacity>
+              ))}
+ 
+              {/* Logout Button */}
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4 mt-2`}
+              >
+                <Image source={require('../../assets/images/logout.svg')} style={tw`w-7 h-7`} contentFit="contain" />
+                <Text style={tw`text-red-600 font-bold text-sm`}>Log out</Text>
+              </TouchableOpacity>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
+}
+ 
+interface PassengerFooterProps {
+  activeTab: 'location' | 'sos' | 'info';
+  setActiveTab?: (tab: 'location' | 'sos' | 'info') => void;
+  onTriggerSOS?: () => void;
+}
+ 
+export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: PassengerFooterProps) {
+  const handleTabPress = (tab: 'location' | 'sos' | 'info') => {
+    if (tab === 'location') {
+      if (setActiveTab) {
+        setActiveTab('location');
+      } else {
+        router.replace('/passenger');
+      }
+    } else if (tab === 'sos') {
+      router.replace('/passenger/sos' as any);
+    } else if (tab === 'info') {
+      router.replace('/passenger/busInfo' as any);
+    }
+  };
+ 
+  return (
+    <View style={[tw`h-[75px] border-t border-[#e2e8f0] flex-row items-center bg-white relative`, { zIndex: 1060 }]}>
+      <TouchableOpacity
+        onPress={() => handleTabPress('location')}
+        style={tw`flex-grow items-center justify-center h-full`}
+      >
+        <Image
+          source={activeTab === 'location'
+            ? require('../../assets/images/icons/locationBlack.svg')
+            : require('../../assets/images/icons/locationIdle.svg')
+          }
+          style={tw`w-6 h-6`}
+          contentFit="contain"
+        />
+        <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'location' && tw`text-[#1856b0]`]}>LOCATION</Text>
+      </TouchableOpacity>
+
+      {/* Central Rising SOS Button */}
+      <View style={tw`w-[100px] items-center justify-center h-full relative`}>
+        <TouchableOpacity
+          style={tw`w-[100px] h-[76px] rounded-t-[50px] bg-[#2563eb] absolute bottom-0 justify-start items-center pt-3.5 shadow-lg`}
+          onPress={() => handleTabPress('sos')}
+        >
+          <Image
+            source={require('../../assets/images/icons/SOS.svg')}
+            style={tw`w-8 h-8`}
+            contentFit="contain"
+          />
+          <Text style={tw`text-white text-[10px] font-extrabold mt-0.5 tracking-wider`}>SOS</Text>
+        </TouchableOpacity>
+      </View>
+
+      <TouchableOpacity
+        onPress={() => handleTabPress('info')}
+        style={tw`flex-grow items-center justify-center h-full`}
+      >
+        <Image
+          source={activeTab === 'info'
+            ? require('../../assets/images/icons/busActive.svg')
+            : require('../../assets/images/icons/busIdle.svg')
+          }
+          style={tw`w-6 h-6`}
+          contentFit="contain"
+        />
+        <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'info' && tw`text-[#1856b0]`]}>BUS INFO</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
