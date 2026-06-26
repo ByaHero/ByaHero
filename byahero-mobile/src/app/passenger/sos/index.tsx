@@ -19,6 +19,7 @@ import tw from 'twrnc';
 import * as Location from 'expo-location';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../../services/authService';
+import { sendFcmPushes } from '../../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
@@ -136,7 +137,16 @@ export default function SOSScreen() {
       });
       const data = await res.json();
       if (data.success) {
-        Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified.');
+        if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
+          try {
+            await sendFcmPushes(data);
+            Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified via Push Notifications.');
+          } catch (pushErr) {
+            Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been registered on the server, but push notification broadcast failed.');
+          }
+        } else {
+          Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified on the server.');
+        }
       } else {
         Alert.alert('SOS Failed', data.message || 'Failed to send SOS.');
       }
