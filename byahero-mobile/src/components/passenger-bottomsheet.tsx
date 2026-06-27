@@ -16,6 +16,7 @@ import {
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import { handleTourLayout } from './TourRegistry';
 
 interface PassengerBottomSheetProps {
   sheetTab: 'location' | 'routes' | 'groups' | 'busstops';
@@ -37,6 +38,7 @@ interface PassengerBottomSheetProps {
   baseUrl: string;
   translateY: Animated.Value;
   handleRemoveCircleMember: (friendId: number, name: string) => void;
+  activeStep?: number | null;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -80,12 +82,18 @@ export default function PassengerBottomSheet({
   baseUrl,
   translateY,
   handleRemoveCircleMember,
+  activeStep,
 }: PassengerBottomSheetProps) {
 
   const lastTranslatedY = useRef(MED_UP);
   const scrollOffset = useRef(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+
+  const tabLocationRef = useRef<any>(null);
+  const tabRoutesRef = useRef<any>(null);
+  const tabGroupsRef = useRef<any>(null);
+  const tabBusstopsRef = useRef<any>(null);
 
   const panResponder = useRef(
     PanResponder.create({
@@ -171,8 +179,13 @@ export default function PassengerBottomSheet({
       {/* Bottom Sheet Header Quick Filter Tabs */}
       <View style={tw`flex-row justify-between px-4 py-3 bg-white`}>
         <TouchableOpacity
+          ref={tabLocationRef}
+          onLayout={() => handleTourLayout('tab-location', tabLocationRef)}
           onPress={() => setSheetTab('location')}
-          style={[tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, sheetTab === 'location' && tw`bg-[#1e3a8a]`]}
+          style={[
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            sheetTab === 'location' && tw`bg-[#1e3a8a]`
+          ]}
         >
           <Image
             source={sheetTab === 'location'
@@ -185,8 +198,13 @@ export default function PassengerBottomSheet({
         </TouchableOpacity>
 
         <TouchableOpacity
+          ref={tabRoutesRef}
+          onLayout={() => handleTourLayout('tab-routes', tabRoutesRef)}
           onPress={() => setSheetTab('routes')}
-          style={[tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, sheetTab === 'routes' && tw`bg-[#1e3a8a]`]}
+          style={[
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            sheetTab === 'routes' && tw`bg-[#1e3a8a]`
+          ]}
         >
           <Image
             source={sheetTab === 'routes'
@@ -199,8 +217,13 @@ export default function PassengerBottomSheet({
         </TouchableOpacity>
 
         <TouchableOpacity
+          ref={tabGroupsRef}
+          onLayout={() => handleTourLayout('tab-groups', tabGroupsRef)}
           onPress={() => setSheetTab('groups')}
-          style={[tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, sheetTab === 'groups' && tw`bg-[#1e3a8a]`]}
+          style={[
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            sheetTab === 'groups' && tw`bg-[#1e3a8a]`
+          ]}
         >
           <Image
             source={sheetTab === 'groups'
@@ -213,8 +236,13 @@ export default function PassengerBottomSheet({
         </TouchableOpacity>
 
         <TouchableOpacity
+          ref={tabBusstopsRef}
+          onLayout={() => handleTourLayout('tab-busstops', tabBusstopsRef)}
           onPress={() => setSheetTab('busstops')}
-          style={[tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, sheetTab === 'busstops' && tw`bg-[#1e3a8a]`]}
+          style={[
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
+          ]}
         >
           <Image
             source={sheetTab === 'busstops'
@@ -588,7 +616,7 @@ export default function PassengerBottomSheet({
                       <View style={tw`relative mr-3.5`}>
                         {friend.profile_picture ? (
                           <Image
-                            source={{ uri: friend.profile_picture.startsWith('http') ? friend.profile_picture : `${baseUrl}/${friend.profile_picture}` }}
+                            source={{ uri: (friend.profile_picture.startsWith('http') || friend.profile_picture.startsWith('data:')) ? friend.profile_picture : `${baseUrl}/${friend.profile_picture}` }}
                             style={tw`w-12 h-12 rounded-full border border-slate-200`}
                             contentFit="cover"
                           />

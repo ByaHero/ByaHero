@@ -11,7 +11,7 @@ import {
   Dimensions,
   Animated,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,10 +22,56 @@ import { sendFcmPushes } from '../../services/notificationService';
 import * as Location from 'expo-location';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import PassengerBottomSheet from '../../components/passenger-bottomsheet';
+import TourOverlay, { tourSteps } from '../../components/TourOverlay';
+import { handleTourLayout } from '../../components/TourRegistry';
 
 export default function PassengerDashboard() {
+  const [activeStep, setActiveStep] = useState<number | null>(null);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      async function checkTour() {
+        const stepVal = await AsyncStorage.getItem('byahero_active_tour_step');
+        if (stepVal !== null) {
+          const stepIdx = parseInt(stepVal, 10);
+          
+          // Verify that this step actually belongs to the dashboard screen
+          const stepInfo = tourSteps[stepIdx];
+          if (stepInfo && stepInfo.screen === '/passenger') {
+            setActiveStep(stepIdx);
+            
+            // Adjust sheetTab dynamically based on target step highlight
+            if (stepInfo.highlight === 'tab-location') setSheetTab('location');
+            else if (stepInfo.highlight === 'tab-routes') setSheetTab('routes');
+            else if (stepInfo.highlight === 'tab-groups') setSheetTab('groups');
+            else if (stepInfo.highlight === 'tab-busstops') setSheetTab('busstops');
+          } else {
+            setActiveStep(null);
+          }
+        } else {
+          setActiveStep(null);
+        }
+      }
+      checkTour();
+      return () => {
+        setActiveStep(null);
+      };
+    }, [])
+  );
+
   const [activeTab, setActiveTab] = useState<'location' | 'sos' | 'info'>('location');
   const [sheetTab, setSheetTab] = useState<'location' | 'routes' | 'groups' | 'busstops'>('location');
+
+  // Sync the bottom sheet tab whenever the active tour step changes
+  useEffect(() => {
+    if (activeStep === null) return;
+    const stepInfo = tourSteps[activeStep];
+    if (!stepInfo) return;
+    if (stepInfo.highlight === 'tab-location') setSheetTab('location');
+    else if (stepInfo.highlight === 'tab-routes') setSheetTab('routes');
+    else if (stepInfo.highlight === 'tab-groups') setSheetTab('groups');
+    else if (stepInfo.highlight === 'tab-busstops') setSheetTab('busstops');
+  }, [activeStep]);
   const [isLoading, setIsLoading] = useState(true);
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
@@ -38,6 +84,7 @@ export default function PassengerDashboard() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
   const webViewRef = useRef<any>(null);
+  const recenterRef = useRef<any>(null);
 
   const SCREEN_HEIGHT = Dimensions.get('window').height;
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT * 0.3)).current;
@@ -749,7 +796,7 @@ export default function PassengerDashboard() {
                   
                   var profilePicUrl = '';
                   if (friend.profile_picture) {
-                    profilePicUrl = friend.profile_picture.indexOf('http') === 0 
+                    profilePicUrl = (friend.profile_picture.indexOf('http') === 0 || friend.profile_picture.indexOf('data:') === 0)
                       ? friend.profile_picture 
                       : '${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/' + friend.profile_picture.replace(/^\\//, '');
                   }
@@ -828,11 +875,13 @@ export default function PassengerDashboard() {
 
             {/* Floating absolute header so map shows behind bottom rounded corners */}
             <View style={tw`absolute top-0 left-0 right-0 z-[2002]`}>
-              <PassengerHeader onTriggerSOS={handleTriggerSOS} />
+              <PassengerHeader onTriggerSOS={handleTriggerSOS} activeStep={activeStep} />
             </View>
 
             {/* GPS locate button (Rides alongside the bottom sheet using translateY) */}
             <Animated.View
+              ref={recenterRef}
+              onLayout={() => handleTourLayout('recenter', recenterRef)}
               style={[
                 tw`absolute right-4 bg-white w-12 h-12 rounded-full justify-center items-center shadow-lg z-[1060]`,
                 {
@@ -869,11 +918,20 @@ export default function PassengerDashboard() {
               baseUrl={baseUrl}
               translateY={translateY}
               handleRemoveCircleMember={handleRemoveCircleMember}
+              activeStep={activeStep}
             />
           </View>
         )}
 
         <PassengerFooter activeTab={activeTab} setActiveTab={setActiveTab} onTriggerSOS={handleTriggerSOS} />
+
+        {activeStep !== null && (
+          <TourOverlay 
+            currentStep={activeStep} 
+            onStepChange={setActiveStep} 
+            onClose={() => setActiveStep(null)} 
+          />
+        )}
       </View>
     </SafeAreaView>
   );

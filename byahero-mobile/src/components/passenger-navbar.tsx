@@ -15,6 +15,7 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
+import { handleTourLayout } from './TourRegistry';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../services/authService';
 
@@ -25,9 +26,10 @@ interface PassengerHeaderProps {
   pageTitle?: string;
   showBackButton?: boolean;
   showCloseButton?: boolean;
+  activeStep?: number | null;
 }
 
-export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showCloseButton }: PassengerHeaderProps) {
+export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showCloseButton, activeStep }: PassengerHeaderProps) {
   const [menuVisible, setMenuVisible] = useState(false);
   const [userName, setUserName] = useState('Guest');
   const [userInitial, setUserInitial] = useState('?');
@@ -36,6 +38,34 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
 
   const slideAnim = useRef(new Animated.Value(width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
+
+  const menuHistoryRef = useRef<any>(null);
+  const menuFeedbackRef = useRef<any>(null);
+  const menuReportRef = useRef<any>(null);
+
+  const notificationsRef = useRef<any>(null);
+  const hamburgerRef = useRef<any>(null);
+
+  // Auto-open menu drawer if we are on step 10, 12, or 14 to showcase menu options!
+  useEffect(() => {
+    if (activeStep === 10 || activeStep === 12 || activeStep === 14) {
+      setMenuVisible(true);
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 0.5,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }),
+      ]).start();
+    } else {
+      closeMenu();
+    }
+  }, [activeStep]);
 
   const openMenu = () => {
     setMenuVisible(true);
@@ -141,16 +171,22 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
     }
   };
 
+  const getRef = (key: string | null) => {
+    if (key === 'menu-history') return menuHistoryRef;
+    if (key === 'menu-feedback') return menuFeedbackRef;
+    if (key === 'menu-report') return menuReportRef;
+    return null;
+  };
+
   const menuItems = [
-    { title: 'Profile', icon: require('../../assets/images/person.svg'), route: '/passenger/profile' },
-    { title: 'User Guide', icon: require('../../assets/images/icons/USER GUIDE.svg'), route: '/passenger/showGuide' },
-    { title: 'Privacy and Security', icon: require('../../assets/images/privacy.svg'), route: '/passenger/passengerSettings/privacySecurity' },
-    { title: 'Lost and Found', icon: require('../../assets/images/lostandfound.svg'), route: '/passenger/lostAndFound' },
-    { title: 'About', icon: require('../../assets/images/about.svg'), route: '/passenger/passengerSettings/about' },
-    { title: 'Feedback', icon: require('../../assets/images/feedback.svg'), route: '/passenger/passengerSettings/feedback' },
-    { title: 'Report a Problem', icon: require('../../assets/images/report.svg'), route: '/passenger/report' },
-    { title: 'Share ByaHero', icon: require('../../assets/images/share.svg'), route: '/passenger/passengerSettings/share' },
-    { title: 'Ride History', icon: require('../../assets/images/HISTORY.svg'), route: '/passenger/rideHistory' },
+    { title: 'Profile', icon: require('../../assets/images/person.svg'), route: '/passenger/profile', highlightKey: null },
+    { title: 'User Guide', icon: require('../../assets/images/icons/USER GUIDE.svg'), route: '/passenger/showGuide', highlightKey: null },
+    { title: 'Settings', icon: require('../../assets/images/privacy.svg'), route: '/passenger/settings', highlightKey: null },
+    { title: 'Lost and Found', icon: require('../../assets/images/lostandfound.svg'), route: '/passenger/lostAndFound', highlightKey: null },
+    { title: 'About ByaHero', icon: require('../../assets/images/about.svg'), route: '/passenger/settings/staticPages?page=about', highlightKey: null },
+    { title: 'Feedback', icon: require('../../assets/images/feedback.svg'), route: '/passenger/settings/feedback', highlightKey: 'menu-feedback' },
+    { title: 'Report a Problem', icon: require('../../assets/images/report.svg'), route: '/passenger/report', highlightKey: 'menu-report' },
+    { title: 'Ride History', icon: require('../../assets/images/HISTORY.svg'), route: '/passenger/rideHistory', highlightKey: 'menu-history' },
   ];
 
   const renderAvatar = () => {
@@ -207,14 +243,25 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
  
         {!(showBackButton || showCloseButton) ? (
           <View style={tw`flex-row items-center gap-3`}>
-            <TouchableOpacity style={tw`p-1`} onPress={() => router.push('/passenger/notifications' as any)}>
+            <TouchableOpacity 
+              ref={notificationsRef}
+              onLayout={() => handleTourLayout('notifications', notificationsRef)}
+              style={tw`p-1 rounded-xl`} 
+              onPress={() => router.push('/passenger/notifications' as any)}
+            >
               <Image
                 source={require('../../assets/images/notification bell.svg')}
                 style={tw`w-[22px] h-[22px]`}
                 contentFit="contain"
               />
             </TouchableOpacity>
-            <TouchableOpacity onPress={openMenu} style={tw`p-1`}>
+            
+            <TouchableOpacity 
+              ref={hamburgerRef}
+              onLayout={() => handleTourLayout('hamburger', hamburgerRef)}
+              onPress={openMenu} 
+              style={tw`p-1 rounded-xl`}
+            >
               <Image
                 source={require('../../assets/images/HAMBURGER.svg')}
                 style={tw`w-[18px] h-[18px]`}
@@ -277,32 +324,44 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
  
             {/* Menu Items List */}
             <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-              {menuItems.map((item, idx) => (
-                <TouchableOpacity
-                  key={idx}
-                  onPress={() => {
-                    Animated.parallel([
-                      Animated.timing(backdropOpacity, {
-                        toValue: 0,
-                        duration: 200,
-                        useNativeDriver: true,
-                      }),
-                      Animated.timing(slideAnim, {
-                        toValue: width,
-                        duration: 200,
-                        useNativeDriver: true,
-                      }),
-                    ]).start(() => {
-                      setMenuVisible(false);
-                      router.push(item.route as any);
-                    });
-                  }}
-                  style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
-                >
-                  <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
-                  <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
-                </TouchableOpacity>
-              ))}
+              {menuItems.map((item, idx) => {
+                const isItemHighlighted = activeStep === 10 && item.highlightKey === 'menu-history' ||
+                                        activeStep === 12 && item.highlightKey === 'menu-feedback' ||
+                                        activeStep === 14 && item.highlightKey === 'menu-report';
+                const itemRef = getRef(item.highlightKey);
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    ref={itemRef}
+                    onLayout={() => {
+                      if (item.highlightKey && itemRef) {
+                        handleTourLayout(item.highlightKey, itemRef);
+                      }
+                    }}
+                    onPress={() => {
+                      Animated.parallel([
+                        Animated.timing(backdropOpacity, {
+                          toValue: 0,
+                          duration: 200,
+                          useNativeDriver: true,
+                        }),
+                        Animated.timing(slideAnim, {
+                          toValue: width,
+                          duration: 200,
+                          useNativeDriver: true,
+                        }),
+                      ]).start(() => {
+                        setMenuVisible(false);
+                        router.push(item.route as any);
+                      });
+                    }}
+                    style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
+                  >
+                    <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
+                    <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
+                  </TouchableOpacity>
+                );
+              })}
  
               {/* Logout Button */}
               <TouchableOpacity
@@ -319,6 +378,8 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
     </>
   );
 }
+
+
  
 interface PassengerFooterProps {
   activeTab: 'location' | 'sos' | 'info';
@@ -327,6 +388,8 @@ interface PassengerFooterProps {
 }
  
 export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: PassengerFooterProps) {
+  const sosRef = useRef<any>(null);
+
   const handleTabPress = (tab: 'location' | 'sos' | 'info') => {
     if (tab === 'location') {
       if (setActiveTab) {
@@ -361,6 +424,8 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
       {/* Central Rising SOS Button */}
       <View style={tw`w-[100px] items-center justify-center h-full relative`}>
         <TouchableOpacity
+          ref={sosRef}
+          onLayout={() => handleTourLayout('sos-btn', sosRef)}
           style={tw`w-[100px] h-[76px] rounded-t-[50px] bg-[#2563eb] absolute bottom-0 justify-start items-center pt-3.5 shadow-lg`}
           onPress={() => handleTabPress('sos')}
         >
