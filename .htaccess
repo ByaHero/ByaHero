@@ -12,7 +12,7 @@
     # Only redirect standard browser requests expecting HTML (web/PC users)
     RewriteCond %{HTTP:Accept} text/html [NC]
     # Do not redirect core API endpoints to avoid breaking Capacitor apps
-    RewriteCond %{REQUEST_URI} !/(api\.php|auth_api\.php|update_geo_location\.php|map_data\.php|stream_buses\.php|api_pins\.php)$ [NC]
+    RewriteCond %{REQUEST_URI} !/(api\.php|auth_api\.php|update_geo_location\.php|map_data\.php|stream_buses\.php|api_pins\.php|login.php)$ [NC]
     RewriteRule ^(.*)$ https://byahero.app/$1 [R=301,L]
 </IfModule>
 
