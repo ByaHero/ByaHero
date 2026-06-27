@@ -138,3 +138,64 @@ The backend has been fully migrated to Laravel. To connect the new React Native 
 *   **Get Dashboard Metrics**: `GET /api/admin/analytics?period=today`
     *   *Query Parameters*: `period` (`today` / `week` / `month` / `custom`), plus `start` (YYYY-MM-DD) and `end` (YYYY-MM-DD) if `period=custom`.
     *   *Response*: Returns summary metrics, route breakdown, bus performances (with hotspots), conductor statistics, and detailed hourly boarding flow charts.
+
+### 7. Active Buses Monitoring
+*   **List Active Buses**: `GET /api/admin/active-buses`
+    *   *Response*: `{"success": true, "activeBuses": [...]}`
+
+### 8. Waiting Passengers Signals
+*   **List Signals**: `GET /api/admin/waiting-passengers`
+    *   *Response*: `{"success": true, "waitingList": [...]}`
+*   **Cancel Single Passenger**: `POST /api/admin/waiting-passengers`
+    *   *Body (JSON)*: `{"action": "cancel_waiting", "id": 4}`
+*   **Cancel All Location Signals**: `POST /api/admin/waiting-passengers`
+    *   *Body (JSON)*: `{"action": "cancel_location", "location": "J. Leviste, Laurel"}`
+
+### 9. Admin Profile Management
+*   **Get Profile details**: `GET /api/admin/profile`
+    *   *Response*: `{"success": true, "user": {"name": "Admin Name", "email": "admin@gmail.com"}}`
+*   **Update Profile**: `POST /api/admin/profile`
+    *   *Body (JSON)*: `{"name": "New Name", "email": "new@gmail.com", "current_password": "old_password", "new_password": "new_password123", "confirm_password": "new_password123"}`
+    *   *Response*: `{"success": true, "message": "Profile and password updated successfully!", "user": {...}}`
+
+---
+
+## Conductor Laravel APIs Integration Guide
+
+The conductor-specific operations use session-scoped cookies and require `credentials: 'include'`.
+
+### 1. Conductor Status
+*   **Get Status / Auto-Resume**: `GET /api/conductor/status`
+    *   *Query Parameters*: `stopped=1` (optional, clears active bus session cache).
+    *   *Response*: `{"success": true, "user_id": 4, "user_name": "Juan", "current_bus_id": 3, "auto_resume": true}`
+
+### 2. Claim Bus Assignment
+*   **Claim Bus**: `POST /api/conductor/claim`
+    *   *Body (JSON)*: `{"bus_id": 3, "code": "BUS-03", "route": "LAUREL - TANAUAN", "seats_total": 25, "initial_available_seats": 25, "pre_departure_count": 0}`
+    *   *Response*: `{"success": true, "current_bus": {...}}` (or returns `{"success": false, "error": "bus_taken"}` if already owned by someone else).
+
+### 3. List Assigned / Available Buses
+*   **List Buses**: `GET /api/conductor/buses`
+    *   *Response*: Returns a list of all buses that are not currently claimed, or are already claimed by the logged-in conductor.
+
+### 4. Start Operation Tracking
+*   **Start Operation**: `POST /api/conductor/start`
+    *   *Body (JSON)*: `{"bus_id": 3, "route": "LAUREL - TANAUAN", "pre_departure_count": 5, "start_location": "Terminal Laurel"}`
+    *   *Response*: `{"success": true, "operation_id": 42}`
+
+### 5. Update Bus Live Location
+*   **Update Location**: `POST /api/conductor/update-location`
+    *   *Body (JSON)*: `{"bus_id": 3, "lat": 14.11, "lng": 121.22, "current_location_name": "Malarayat Stop", "seats_available": 18, "status": "on_stop"}`
+    *   *Response*: `{"success": true, "message": "Location updated successfully"}`
+
+### 6. Stop Operation Tracking
+*   **Stop Tracking**: `POST /api/conductor/stop`
+    *   *Body (JSON)*: `{"bus_id": 3, "end_location": "Tanauan Terminal"}`
+    *   *Response*: `{"success": true, "message": "Stopped tracking for bus"}`
+
+### 7. Profile Settings Management
+*   **Get Profile details**: `GET /api/conductor/profile`
+    *   *Response*: `{"success": true, "user": {"name": "Juan", "email": "juan@gmail.com"}}`
+*   **Update Profile / Password**: `POST /api/conductor/profile`
+    *   *Body (JSON)*: `{"name": "New Name", "email": "new@gmail.com", "current_password": "old_password", "new_password": "new_password123", "confirm_password": "new_password123"}`
+    *   *Response*: `{"success": true, "message": "Profile and password updated successfully!", "user": {...}}`

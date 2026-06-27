@@ -121,4 +121,31 @@ class SettingsController extends Controller
             'share_location' => (int)($settings->share_location ?? 0)
         ]);
     }
+
+    public function submitFeedback(Request $request)
+    {
+        $userId = Session::get('user_id');
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
+        }
+
+        $rating = $request->input('rating');
+        $feedbackText = $request->input('feedback');
+
+        if (empty($rating) || (int)$rating < 1) {
+            return response()->json(['success' => false, 'message' => 'Please select at least 1 star rating']);
+        }
+
+        try {
+            \App\Models\Feedback::create([
+                'user_id' => $userId,
+                'rating' => $rating,
+                'feedback_text' => $feedbackText,
+            ]);
+
+            return response()->json(['success' => true, 'message' => 'Feedback submitted successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to submit feedback: ' . $e->getMessage()]);
+        }
+    }
 }

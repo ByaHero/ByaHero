@@ -29,7 +29,7 @@ export default function ChangePasswordScreen() {
     async function checkPasswordStatus() {
       try {
         const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/passenger/profile/changePassword.php?json=1`, {
+        const res = await fetch(`${serverUrl}/api/passenger/profile/change-password`, {
           credentials: 'include'
         });
         const data = await res.json();
@@ -68,7 +68,7 @@ export default function ChangePasswordScreen() {
         payload.current_password = currentPassword;
       }
 
-      const res = await fetch(`${serverUrl}/passenger/profile/changePassword.php?json=1`, {
+      const res = await fetch(`${serverUrl}/api/passenger/profile/change-password`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

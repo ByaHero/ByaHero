@@ -21,12 +21,13 @@ export default function LoginActivityScreen() {
     async function loadActivity() {
       try {
         const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/passenger/profile/loginActivity.php?json=1`, {
+        const res = await fetch(`${serverUrl}/api/passenger/profile/login-activity`, {
           credentials: 'include'
         });
         const data = await res.json();
-        if (data && data.success && Array.isArray(data.activity)) {
-          setActivities(data.activity);
+        const list = data.activity || data.activities;
+        if (data && data.success && Array.isArray(list)) {
+          setActivities(list);
         }
       } catch (err) {
         console.warn('Failed to load online login activity:', err);

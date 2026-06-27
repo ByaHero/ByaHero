@@ -77,7 +77,7 @@ export default function FeedbackScreen() {
       formData.append('rating', rating.toString());
       formData.append('feedback', feedback.trim());
 
-      const res = await fetch(`${serverUrl}/backend/submitFeedback.php`, {
+      const res = await fetch(`${serverUrl}/api/settings/feedback`, {
         method: 'POST',
         body: formData,
         credentials: 'include'

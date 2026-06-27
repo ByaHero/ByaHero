@@ -42,7 +42,7 @@ export default function AccountSettingsScreen() {
         setAvatarInitial(cachedName.charAt(0).toUpperCase());
 
         const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/passenger/profile/accountSettings.php?json=1`, {
+        const res = await fetch(`${serverUrl}/api/passenger/profile/account-settings`, {
           credentials: 'include'
         });
         const data = await res.json();
@@ -130,7 +130,7 @@ export default function AccountSettingsScreen() {
         formData.append('remove_image', '1');
       }
 
-      const res = await fetch(`${serverUrl}/passenger/profile/accountSettings.php?json=1`, {
+      const res = await fetch(`${serverUrl}/api/passenger/profile/account-settings`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

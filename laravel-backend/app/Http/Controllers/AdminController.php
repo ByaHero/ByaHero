@@ -13,6 +13,7 @@ use App\Models\Bus;
 use App\Models\BusStopsTerminal;
 use App\Models\BusSchedule;
 use App\Models\Feedback;
+use App\Models\Admin;
 
 class AdminController extends Controller
 {
@@ -380,6 +381,158 @@ class AdminController extends Controller
             'boarding_locations' => $boardings,
             'recent_operations' => $recent,
             'location_logs' => $locationLogs
+        ]);
+    }
+
+    // --- ACTIVE BUSES MONITORING ---
+    public function listActiveBuses(Request $request)
+    {
+        $this->checkAuth();
+
+        $activeBuses = DB::select("
+            SELECT b.*, c.email AS conductor_email
+            FROM busses b
+            LEFT JOIN conductors c ON b.current_conductor_id = c.id
+            WHERE b.current_conductor_id IS NOT NULL
+              AND b.status IN ('available', 'on_stop', 'full')
+            ORDER BY b.code ASC
+        ");
+
+        return response()->json([
+            'success' => true,
+            'activeBuses' => $activeBuses
+        ]);
+    }
+
+    // --- WAITING PASSENGERS MONITORING ---
+    public function listWaitingPassengers(Request $request)
+    {
+        $this->checkAuth();
+
+        $waitingList = DB::select("
+            SELECT wp.id, wp.user_id, wp.user_name, wp.location_name, wp.created_at, wp.status,
+                   u.name as registered_name, u.email as registered_email
+            FROM waiting_passengers wp
+            LEFT JOIN users u ON wp.user_id = u.id
+            WHERE wp.status = 'waiting'
+            ORDER BY wp.created_at DESC
+        ");
+
+        return response()->json([
+            'success' => true,
+            'waitingList' => $waitingList
+        ]);
+    }
+
+    public function manageWaitingPassengers(Request $request)
+    {
+        $this->checkAuth();
+        $action = $request->input('action');
+
+        if ($action === 'cancel_waiting') {
+            $id = $request->input('id');
+            if (!$id) {
+                return response()->json(['success' => false, 'error' => 'ID is required.']);
+            }
+
+            DB::table('waiting_passengers')
+                ->where('id', $id)
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+            return response()->json(['success' => true, 'message' => 'Passenger waiting status cancelled successfully.']);
+        } elseif ($action === 'cancel_location') {
+            $location = $request->input('location');
+            if (!$location) {
+                return response()->json(['success' => false, 'error' => 'Location name is required.']);
+            }
+
+            DB::table('waiting_passengers')
+                ->where('location_name', $location)
+                ->where('status', 'waiting')
+                ->update(['status' => 'cancelled', 'updated_at' => now()]);
+
+            return response()->json(['success' => true, 'message' => 'All waiting signals for location cancelled successfully.']);
+        }
+
+        return response()->json(['success' => false, 'error' => 'Unknown action.']);
+    }
+
+    // --- ADMIN PROFILE SETTINGS ---
+    public function getProfile(Request $request)
+    {
+        $this->checkAuth();
+        $id = Session::get('user_id');
+        
+        $admin = Admin::find($id);
+        if (!$admin) {
+            return response()->json(['success' => false, 'error' => 'Admin not found'], 404);
+        }
+
+        return response()->json([
+            'success' => true,
+            'user' => [
+                'name' => $admin->name ?? $admin->email,
+                'email' => $admin->email ?? ''
+            ]
+        ]);
+    }
+
+    public function updateProfile(Request $request)
+    {
+        $this->checkAuth();
+        $id = Session::get('user_id');
+        
+        $admin = Admin::find($id);
+        if (!$admin) {
+            return response()->json(['success' => false, 'error' => 'Admin not found'], 404);
+        }
+
+        $name = trim((string)$request->input('name', ''));
+        $email = trim((string)$request->input('email', ''));
+        $currentPassword = $request->input('current_password');
+        $newPassword = $request->input('new_password');
+        $confirmPassword = $request->input('confirm_password');
+
+        $message = '';
+        $error = '';
+
+        if (!empty($newPassword)) {
+            if (empty($currentPassword)) {
+                $error = "Current password is required to change password.";
+            } elseif (!Hash::check($currentPassword, $admin->password)) {
+                $error = "Current password is incorrect.";
+            } elseif ($newPassword !== $confirmPassword) {
+                $error = "New passwords do not match.";
+            } elseif (strlen($newPassword) < 6) {
+                $error = "Password must be at least 6 characters.";
+            } else {
+                $admin->password = Hash::make($newPassword);
+                $admin->name = $name;
+                $admin->email = $email;
+                if ($admin->save()) {
+                    $message = "Profile and password updated successfully!";
+                } else {
+                    $error = "Failed to update profile.";
+                }
+            }
+        } else {
+            $admin->name = $name;
+            $admin->email = $email;
+            if ($admin->save()) {
+                $message = "Profile updated successfully!";
+            } else {
+                $error = "Failed to update profile.";
+            }
+        }
+
+        return response()->json([
+            'success' => empty($error),
+            'message' => $message,
+            'error' => $error,
+            'user' => [
+                'name' => $admin->name ?? $admin->email,
+                'email' => $admin->email ?? ''
+            ]
         ]);
     }
 }

@@ -11,6 +11,8 @@ use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BusController;
 use App\Http\Controllers\LostAndFoundController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\ConductorController;
+use App\Http\Controllers\ProfileController;
 
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
@@ -35,6 +37,7 @@ Route::middleware([
     Route::post('/settings/update', [SettingsController::class, 'update']);
     Route::get('/settings/privacy', [SettingsController::class, 'getPrivacy']);
     Route::get('/settings/share-location', [SettingsController::class, 'getShareLocation']);
+    Route::post('/settings/feedback', [SettingsController::class, 'submitFeedback']);
 
     Route::post('/fcm/register', [NotificationController::class, 'registerFcmToken']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount']);
@@ -65,4 +68,22 @@ Route::middleware([
     Route::get('/admin/feedbacks', [AdminController::class, 'listFeedbacks']);
     Route::post('/admin/feedbacks/delete', [AdminController::class, 'deleteFeedback']);
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
+    Route::get('/admin/active-buses', [AdminController::class, 'listActiveBuses']);
+    Route::get('/admin/waiting-passengers', [AdminController::class, 'listWaitingPassengers']);
+    Route::post('/admin/waiting-passengers', [AdminController::class, 'manageWaitingPassengers']);
+    Route::match(['get', 'post'], '/admin/profile', [AdminController::class, 'updateProfile']);
+
+    // Conductor routes
+    Route::match(['get', 'post'], '/conductor/status', [ConductorController::class, 'getStatus']);
+    Route::post('/conductor/claim', [ConductorController::class, 'claimBus']);
+    Route::get('/conductor/buses', [ConductorController::class, 'getBuses']);
+    Route::post('/conductor/start', [ConductorController::class, 'start']);
+    Route::post('/conductor/update-location', [ConductorController::class, 'updateLocation']);
+    Route::post('/conductor/stop', [ConductorController::class, 'stop']);
+    Route::match(['get', 'post'], '/conductor/profile', [ConductorController::class, 'updateProfile']);
+
+    // Passenger profile routes
+    Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);
+    Route::get('/passenger/profile/login-activity', [ProfileController::class, 'getLoginActivity']);
+    Route::match(['get', 'post'], '/passenger/profile/change-password', [ProfileController::class, 'changePassword']);
 });
