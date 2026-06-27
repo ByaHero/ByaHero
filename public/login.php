@@ -1,4 +1,16 @@
 <?php
+// If we have hash parameters from Google Sign-In, redirect back to the app scheme
+?>
+<script>
+    if (window.location.hash) {
+        const hash = window.location.hash;
+        if (hash.includes('access_token=') || hash.includes('id_token=') || hash.includes('credential=')) {
+            const queryStr = hash.startsWith('#') ? hash.substring(1) : hash;
+            window.location.replace('byaheromobile://?' + queryStr);
+        }
+    }
+</script>
+<?php
 
 require __DIR__ . '/../config/db.php';
 
