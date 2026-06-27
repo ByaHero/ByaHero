@@ -9,6 +9,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BusController;
+use App\Http\Controllers\LostAndFoundController;
 
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
@@ -47,8 +48,6 @@ Route::middleware([
     Route::get('/buses/sync', [BusController::class, 'getSyncData']);
     Route::get('/buses/history', [BusController::class, 'getRideHistory']);
     Route::post('/location/update', [BusController::class, 'updateUserLocation']);
-
-    use App\Http\Controllers\LostAndFoundController;
 
     Route::post('/lost-and-found/create', [LostAndFoundController::class, 'create']);
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);

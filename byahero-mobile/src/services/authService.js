@@ -8,16 +8,6 @@ const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 export async function getServerUrl() {
   try {
     const url = await AsyncStorage.getItem('byahero_server_url');
-    if (url === 'https://byahero.alwaysdata.net') {
-      return DEFAULT_SERVER_URL;
-    }
-    // Auto-align hostname to match localhost vs 127.0.0.1 and prevent SameSite cookie discard
-    if (typeof window !== 'undefined' && window.location) {
-      const currentHost = window.location.hostname;
-      if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
-        return `http://${currentHost}:8000`;
-      }
-    }
     return url || DEFAULT_SERVER_URL;
   } catch (e) {
     return DEFAULT_SERVER_URL;
