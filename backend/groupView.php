@@ -66,12 +66,12 @@ $sql = "
     LEFT JOIN user_locations ul ON ul.user_id = u.id
     LEFT JOIN waiting_passengers wp ON wp.user_id = u.id AND wp.status = 'waiting'
     $joinSql
-    WHERE cm.circle_id = ?
+    WHERE cm.circle_id = ? AND u.id != ?
     ORDER BY u.name ASC
 ";
 
 $stmt = $conn->prepare($sql);
-$stmt->bind_param("i", $circleId);
+$stmt->bind_param("ii", $circleId, $userId);
 $stmt->execute();
 $result = $stmt->get_result();
 

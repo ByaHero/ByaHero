@@ -239,10 +239,13 @@ export default function PassengerDashboard() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.friends)) {
-          setCircles(data.friends);
+          const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
+          const friendsOnly = data.friends.filter((friend: any) => friend.email?.toLowerCase() !== loggedInEmail.toLowerCase());
+
+          setCircles(friendsOnly);
           postToMap({
             type: 'UPDATE_FRIENDS',
-            friends: data.friends
+            friends: friendsOnly
           });
         }
       }
@@ -293,10 +296,13 @@ export default function PassengerDashboard() {
         if (groupRes.ok && active) {
           const groupData = await groupRes.json();
           if (groupData.success && Array.isArray(groupData.friends)) {
-            setCircles(groupData.friends);
+            const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
+            const friendsOnly = groupData.friends.filter((friend: any) => friend.email?.toLowerCase() !== loggedInEmail.toLowerCase());
+
+            setCircles(friendsOnly);
             postToMap({
               type: 'UPDATE_FRIENDS',
-              friends: groupData.friends
+              friends: friendsOnly
             });
           }
         }

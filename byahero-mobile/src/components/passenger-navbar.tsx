@@ -99,15 +99,14 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
   const handleLogout = () => {
     const performLogout = async () => {
       try {
-        const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
         const currentBaseUrl = await getServerUrl();
-        if (token) {
-          await fetch(`${currentBaseUrl}/public/logout.php`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: 'fcm_token=' + encodeURIComponent(token)
-          }).catch(() => {});
-        }
+        const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
+        await fetch(`${currentBaseUrl}/public/logout.php`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: 'fcm_token=' + encodeURIComponent(token),
+          credentials: 'include'
+        }).catch(() => {});
       } catch (e) {}
 
       await AsyncStorage.removeItem('byahero_cached_email');

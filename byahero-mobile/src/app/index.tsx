@@ -20,13 +20,15 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { login, googleAuth, getServerUrl, setServerUrl, cacheSession } from '../services/authService';
 
+WebBrowser.maybeCompleteAuthSession();
+
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [serverUrl, setServerUrlState] = useState('');
-  
+
   // Developer URL configuration modal state
   const [logoTapCount, setLogoTapCount] = useState(0);
   const [lastTapTime, setLastTapTime] = useState(0);
@@ -77,9 +79,9 @@ export default function LoginScreen() {
     try {
       const result = await login(email, password, true); // true = online
       setIsLoading(false);
-      
+
       Alert.alert('Login Successful', `Logged in as ${result.role}`);
-      
+
       // Navigate to matched roles:
       if (result.role === 'conductor') {
         router.replace('/conductor');
@@ -104,10 +106,10 @@ export default function LoginScreen() {
 
       // Request response_type=id_token and supply a nonce to get a JWT ID token verified by backend
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=id_token&nonce=byaheromobile123&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&state=${encodeURIComponent(appRedirectUrl)}`;
-      
+
       // Use openAuthSessionAsync to detect browser dismissals or cancellations
       const result = await WebBrowser.openAuthSessionAsync(googleAuthUrl, appRedirectUrl);
-      
+
       if (result.type === 'success' && result.url) {
         const url = result.url;
         let idToken = '';
@@ -143,8 +145,8 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={tw`flex-1`}
       >
-        <ScrollView 
-          contentContainerStyle={tw`flex-grow justify-center items-center py-10`} 
+        <ScrollView
+          contentContainerStyle={tw`flex-grow justify-center items-center py-10`}
           style={tw`px-6 bg-slate-100`}
           bounces={false}
           alwaysBounceVertical={false}
