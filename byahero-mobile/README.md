@@ -87,3 +87,54 @@ import tw from 'twrnc';
 </View>
 ```
 Do not install or use standard NativeWind configurations unless explicitly requested by the project requirements.
+
+---
+
+## Admin Laravel APIs Integration Guide
+
+The backend has been fully migrated to Laravel. To connect the new React Native admin screens, query the following endpoints. 
+
+> [!IMPORTANT]
+> All admin endpoints require `credentials: 'include'` in your `fetch` calls so the browser/native client passes the authenticated cookie session (`laravel_session`).
+
+### 1. Staff Management (Conductors & Drivers)
+*   **List Staff**: `GET /api/admin/staff`
+    *   *Response*: `{"success": true, "staff": [{"id": 1, "email": "tim@gmail.com", "role": "conductor"}, ...]}`
+*   **Add Conductor/Driver**: `POST /api/admin/staff`
+    *   *Body (JSON)*: `{"action": "add_user", "email": "new@gmail.com", "password": "password123", "role": "driver"}`
+*   **Delete Staff**: `POST /api/admin/staff`
+    *   *Body (JSON)*: `{"action": "delete_user", "id": 12, "role": "conductor"}`
+
+### 2. Bus Fleet Management
+*   **List Buses**: `GET /api/admin/buses`
+    *   *Response*: `{"success": true, "buses": [{"Bus_ID": 3, "code": "B-03", "status": "available"}, ...]}`
+*   **Add Bus**: `POST /api/admin/buses`
+    *   *Body (JSON)*: `{"action": "add_bus", "code": "B-99"}`
+*   **Update Bus Status**: `POST /api/admin/buses`
+    *   *Body (JSON)*: `{"action": "update_bus", "id": 3, "status": "unavailable"}`
+*   **Delete Bus**: `POST /api/admin/buses`
+    *   *Body (JSON)*: `{"action": "delete_bus", "id": 3}`
+
+### 3. Bus Stops & Terminals CRUD
+*   **List Stops**: `GET /api/admin/stops`
+*   **Add Stop**: `POST /api/admin/stops`
+    *   *Body (JSON)*: `{"action": "add_stop", "name": "Stop Name", "type": "bus_stop", "location_name": "Location", "location_landmark": "Landmark", "lat": 14.12, "lng": 121.11, "route": "LAUREL - TANAUAN", "sort_order": 1}`
+*   **Update Stop**: `POST /api/admin/stops`
+    *   *Body (JSON)*: `{"action": "update_stop", "id": 5, ...}` (send all fields)
+*   **Delete Stop**: `POST /api/admin/stops`
+    *   *Body (JSON)*: `{"action": "delete_stop", "id": 5}`
+
+### 4. Schedules & Routes
+*   **List Schedules**: `GET /api/admin/schedules`
+*   **Update Schedules**: `POST /api/admin/schedules`
+    *   *Body (JSON)*: `{"action": "save_routes", "lt_open": "05:00", "lt_close": "19:00", "lt_suspended": false, "lt_message": "", "tl_open": "06:00", "tl_close": "20:00", "tl_suspended": true, "tl_message": "Suspended due to rain"}`
+
+### 5. Passenger Feedback Log
+*   **List Feedbacks**: `GET /api/admin/feedbacks`
+*   **Delete Feedback**: `POST /api/admin/feedbacks/delete`
+    *   *Body (JSON)*: `{"id": 4}`
+
+### 6. Analytics & Logs
+*   **Get Dashboard Metrics**: `GET /api/admin/analytics?period=today`
+    *   *Query Parameters*: `period` (`today` / `week` / `month` / `custom`), plus `start` (YYYY-MM-DD) and `end` (YYYY-MM-DD) if `period=custom`.
+    *   *Response*: Returns summary metrics, route breakdown, bus performances (with hotspots), conductor statistics, and detailed hourly boarding flow charts.
