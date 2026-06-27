@@ -346,7 +346,7 @@ class AuthController extends Controller
             $user = User::create([
                 'email' => $email,
                 'name' => $name,
-                'password' => Hash::make(str_random(16)),
+                'password' => Hash::make(\Illuminate\Support\Str::random(16)),
                 'google_id' => $googleId,
                 'auth_provider' => 'google',
             ]);

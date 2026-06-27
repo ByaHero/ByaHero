@@ -10,6 +10,7 @@ use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\BusController;
 use App\Http\Controllers\LostAndFoundController;
+use App\Http\Controllers\AdminController;
 
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
@@ -51,4 +52,17 @@ Route::middleware([
 
     Route::post('/lost-and-found/create', [LostAndFoundController::class, 'create']);
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);
+
+    // Admin routes
+    Route::get('/admin/staff', [AdminController::class, 'listStaff']);
+    Route::post('/admin/staff', [AdminController::class, 'manageStaff']);
+    Route::get('/admin/buses', [AdminController::class, 'listBuses']);
+    Route::post('/admin/buses', [AdminController::class, 'manageBuses']);
+    Route::get('/admin/stops', [AdminController::class, 'listStops']);
+    Route::post('/admin/stops', [AdminController::class, 'manageStops']);
+    Route::get('/admin/schedules', [AdminController::class, 'listSchedules']);
+    Route::post('/admin/schedules', [AdminController::class, 'manageSchedules']);
+    Route::get('/admin/feedbacks', [AdminController::class, 'listFeedbacks']);
+    Route::post('/admin/feedbacks/delete', [AdminController::class, 'deleteFeedback']);
+    Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
 });
