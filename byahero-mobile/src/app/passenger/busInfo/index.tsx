@@ -42,7 +42,7 @@ export default function BusInfoScreen() {
 
         let responseData: any = null;
         try {
-          const syncRes = await fetch(`${currentBaseUrl}/public/api.php?action=get_sync_data`);
+          const syncRes = await fetch(`${currentBaseUrl}/api/buses/sync`);
           if (syncRes.ok) {
             const data = await syncRes.json();
             if (data && data.success) {
@@ -56,7 +56,7 @@ export default function BusInfoScreen() {
         // Fallback to alwaysdata if configured URL failed or was offline
         if (!responseData && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
           try {
-            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/public/api.php?action=get_sync_data`);
+            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/buses/sync`);
             if (fallbackRes.ok) {
               const data = await fallbackRes.json();
               if (data && data.success) {
@@ -147,7 +147,7 @@ export default function BusInfoScreen() {
           onPress: async () => {
             try {
               const email = await AsyncStorage.getItem('byahero_cached_email') || 'Guest';
-              const res = await fetch(`${baseUrl}/backend/sendSosAlert.php`, {
+              const res = await fetch(`${baseUrl}/api/sos/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

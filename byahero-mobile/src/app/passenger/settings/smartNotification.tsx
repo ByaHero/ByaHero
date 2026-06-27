@@ -45,7 +45,7 @@ export default function SmartNotificationScreen() {
 
         if (loggedIn) {
           const serverUrl = await getServerUrl();
-          const res = await fetch(`${serverUrl}/backend/fetchSettings.php`, { credentials: 'include' });
+          const res = await fetch(`${serverUrl}/api/settings/fetch`, { credentials: 'include' });
           const data = await res.json();
           if (data && data.success && data.settings) {
             const s = data.settings;
@@ -80,7 +80,7 @@ export default function SmartNotificationScreen() {
         formData.append('setting_name', settingName);
         formData.append('setting_value', valStr);
 
-        const res = await fetch(`${serverUrl}/backend/updateSettings.php`, {
+        const res = await fetch(`${serverUrl}/api/settings/update`, {
           method: 'POST',
           body: formData,
           credentials: 'include',
@@ -120,7 +120,7 @@ export default function SmartNotificationScreen() {
       const formData = new FormData();
       formData.append('fcm_token', token);
 
-      const res = await fetch(`${serverUrl}/backend/registerFcmToken.php`, {
+      const res = await fetch(`${serverUrl}/api/fcm/register`, {
         method: 'POST',
         body: formData,
         credentials: 'include',

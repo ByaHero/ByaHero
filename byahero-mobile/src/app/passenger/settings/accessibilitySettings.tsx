@@ -37,7 +37,7 @@ export default function AccessibilitySettingsScreen() {
 
         if (loggedIn) {
           const serverUrl = await getServerUrl();
-          const res = await fetch(`${serverUrl}/backend/fetchSettings.php`, { credentials: 'include' });
+          const res = await fetch(`${serverUrl}/api/settings/fetch`, { credentials: 'include' });
           const data = await res.json();
           if (data && data.success && data.settings) {
             const s = data.settings;
@@ -80,7 +80,7 @@ export default function AccessibilitySettingsScreen() {
         formData.append('setting_name', backendName);
         formData.append('setting_value', value);
 
-        const res = await fetch(`${serverUrl}/backend/updateSettings.php`, {
+        const res = await fetch(`${serverUrl}/api/settings/update`, {
           method: 'POST',
           body: formData,
           credentials: 'include',

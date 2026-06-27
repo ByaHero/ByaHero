@@ -79,7 +79,7 @@ export default function ReportProblemScreen() {
         let parsedBuses = JSON.parse(cachedBuses);
         
         const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/api.php?action=get_buses`);
+        const res = await fetch(`${serverUrl}/api/buses`);
         const data = await res.json();
         if (data && data.buses) {
           parsedBuses = data.buses;

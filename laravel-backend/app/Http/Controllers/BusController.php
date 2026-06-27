@@ -1,0 +1,181 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use Illuminate\Http\Request;
+use App\Models\Bus;
+use App\Models\BusStopsTerminal;
+use App\Models\BusStop;
+use App\Models\UserLocation;
+use App\Models\UserSetting;
+use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Exception;
+
+class BusController extends Controller
+{
+    private function loadGeojsonFileForBus(int $busId): ?array
+    {
+        $file = base_path('../data/current_locations/bus_' . $busId . '.geojson');
+        if (!is_file($file)) return null;
+        $txt = @file_get_contents($file);
+        if ($txt === false) return null;
+        $j = json_decode($txt, true);
+        if (!is_array($j)) return null;
+        return $j;
+    }
+
+    private function extractFriendlyNameFromGeojson(array $geojson): ?string
+    {
+        if (isset($geojson['properties']) && is_array($geojson['properties'])) {
+            $p = $geojson['properties'];
+            if (!empty($p['current_location_name']) && is_string($p['current_location_name'])) return trim($p['current_location_name']);
+            if (!empty($p['Current Location']) && is_string($p['Current Location'])) return trim($p['Current Location']);
+            if (!empty($p['name']) && is_string($p['name'])) return trim($p['name']);
+            foreach ($p as $k => $v) {
+                if (is_string($v) && trim($v) !== '') return trim($v);
+                if ($v === '') return $k;
+            }
+        }
+        if (!empty($geojson['type']) && $geojson['type'] === 'FeatureCollection' && !empty($geojson['features']) && is_array($geojson['features'])) {
+            $f = $geojson['features'][0];
+            if (isset($f['properties']) && is_array($f['properties'])) {
+                return $this->extractFriendlyNameFromGeojson(['properties' => $f['properties']]);
+            }
+        }
+        return null;
+    }
+
+    public function getBuses(Request $request)
+    {
+        $buses = Bus::orderBy('code')->get();
+
+        $out = [];
+        foreach ($buses as $bus) {
+            $r = $bus->toArray();
+            $busId = (int)$bus->Bus_ID;
+
+            $geo = $this->loadGeojsonFileForBus($busId);
+            if ($geo !== null) {
+                $r['current_location'] = json_encode($geo, JSON_UNESCAPED_SLASHES);
+                $friendly = $this->extractFriendlyNameFromGeojson($geo);
+                if ($friendly) {
+                    $r['current_location_name'] = $friendly;
+                }
+            } else {
+                $r['current_location'] = null;
+            }
+
+            if (isset($r['seat_availability']) && (int)$r['seat_availability'] < 0) {
+                $r['seat_availability'] = 0;
+            }
+
+            // Map keys to match legacy API casing/naming expectations
+            $r['current_operation_id'] = DB::table('bus_operations')
+                ->where('bus_id', $busId)
+                ->where('status', 'active')
+                ->orderBy('id', 'desc')
+                ->value('id');
+
+            $out[] = $r;
+        }
+
+        return response()->json(['success' => true, 'buses' => $out]);
+    }
+
+    public function getBusStopsTerminal(Request $request)
+    {
+        $stops = BusStopsTerminal::orderBy('name')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $stops
+        ]);
+    }
+
+    public function getSyncData(Request $request)
+    {
+        $stopsTerminal = BusStopsTerminal::orderBy('name')->get();
+        $busStops = BusStop::where('is_active', 1)->orderBy('km_marker')->get();
+        $busFares = DB::table('bus_fares')->get();
+        $busSchedule = DB::table('bus_schedule')->orderBy('terminal_name')->get();
+
+        return response()->json([
+            'success' => true,
+            'stops_terminal' => $stopsTerminal,
+            'bus_stops' => $busStops,
+            'bus_fares' => $busFares,
+            'bus_schedule' => $busSchedule
+        ]);
+    }
+
+    public function getRideHistory(Request $request)
+    {
+        $userId = Session::get('user_id');
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
+        }
+
+        $hasOperationId = Schema::hasColumn('passenger_rides', 'operation_id');
+
+        if ($hasOperationId) {
+            $history = DB::table('passenger_rides as pr')
+                ->join('bus_operations as bo', 'pr.operation_id', '=', 'bo.id')
+                ->join('busses as b', 'bo.bus_id', '=', 'b.Bus_ID')
+                ->select('pr.id', 'pr.boarded_at', 'pr.departed_at', 'pr.status', 'bo.route', 'b.code as bus_code')
+                ->where('pr.user_id', $userId)
+                ->orderBy('pr.boarded_at', 'desc')
+                ->get();
+        } else {
+            $history = DB::table('passenger_rides as pr')
+                ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
+                ->select('pr.id', 'pr.boarded_at', 'pr.departed_at', 'pr.status', 'pr.route', 'b.code as bus_code')
+                ->where('pr.user_id', $userId)
+                ->orderBy('pr.boarded_at', 'desc')
+                ->get();
+        }
+
+        return response()->json(['success' => true, 'history' => $history]);
+    }
+
+    public function updateUserLocation(Request $request)
+    {
+        $userId = Session::get('user_id');
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
+        }
+
+        $lat = $request->input('latitude');
+        $lng = $request->input('longitude');
+        $accuracy = $request->input('accuracy');
+
+        if ($lat === null || $lng === null) {
+            return response()->json(['success' => false, 'message' => 'Latitude/longitude required']);
+        }
+
+        $setting = UserSetting::where('user_id', $userId)->first();
+        $isLocationEnabled = true; // Default if settings row doesn't exist
+        if ($setting) {
+            $isLocationEnabled = ((int)$setting->location_services === 1 || (int)$setting->share_location === 1);
+        }
+
+        if (!$isLocationEnabled) {
+            return response()->json(['success' => false, 'message' => 'Location services disabled']);
+        }
+
+        try {
+            UserLocation::updateOrCreate(
+                ['user_id' => $userId],
+                [
+                    'latitude' => $lat,
+                    'longitude' => $lng,
+                    'accuracy' => $accuracy,
+                ]
+            );
+
+            return response()->json(['success' => true]);
+        } catch (Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to update location']);
+        }
+    }
+}

@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { login, googleAuth, getServerUrl, setServerUrl, cacheSession } from '../services/authService';
+import { login, googleAuth, getServerUrl, setServerUrl, cacheSession, preWarmServer } from '../services/authService';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -27,6 +27,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [showWarmingUpMsg, setShowWarmingUpMsg] = useState(false);
   const [serverUrl, setServerUrlState] = useState('');
 
   // Developer URL configuration modal state
@@ -39,6 +40,8 @@ export default function LoginScreen() {
     getServerUrl().then(url => {
       setServerUrlState(url);
       setInputServerUrl(url);
+      // Trigger backend pre-warm immediately on mount
+      preWarmServer();
     });
   }, []);
 
@@ -76,9 +79,16 @@ export default function LoginScreen() {
     }
 
     setIsLoading(true);
+    setShowWarmingUpMsg(false);
+    const timer = setTimeout(() => {
+      setShowWarmingUpMsg(true);
+    }, 3500);
+
     try {
       const result = await login(email, password, true); // true = online
+      clearTimeout(timer);
       setIsLoading(false);
+      setShowWarmingUpMsg(false);
 
       Alert.alert('Login Successful', `Logged in as ${result.role}`);
 
@@ -91,7 +101,9 @@ export default function LoginScreen() {
         router.replace('/passenger');
       }
     } catch (error) {
+      clearTimeout(timer);
       setIsLoading(false);
+      setShowWarmingUpMsg(false);
       Alert.alert('Authentication Failed', (error as any).message || 'Check network connection or configuration.');
     }
   };
@@ -99,9 +111,14 @@ export default function LoginScreen() {
   // Google Login Handler
   const handleGoogleMockLogin = async () => {
     setIsLoading(true);
+    setShowWarmingUpMsg(false);
+    const timer = setTimeout(() => {
+      setShowWarmingUpMsg(true);
+    }, 3500);
+
     try {
       const baseUrl = await getServerUrl();
-      const redirectUri = `${baseUrl}/public/login.php`;
+      const redirectUri = 'https://byahero.alwaysdata.net/public/login.php';
       const appRedirectUrl = Linking.createURL('/'); // Resolves exp://... for Expo Go or byaheromobile:// for production
 
       // Request response_type=id_token and supply a nonce to get a JWT ID token verified by backend
@@ -123,18 +140,26 @@ export default function LoginScreen() {
 
         if (idToken) {
           const authResult = await googleAuth(idToken);
+          clearTimeout(timer);
           setIsLoading(false);
+          setShowWarmingUpMsg(false);
           router.replace('/passenger');
         } else {
+          clearTimeout(timer);
           setIsLoading(false);
+          setShowWarmingUpMsg(false);
           Alert.alert('Authentication Error', 'Google authentication succeeded but no verification token was returned.');
         }
       } else {
+        clearTimeout(timer);
         setIsLoading(false);
+        setShowWarmingUpMsg(false);
         Alert.alert('Authentication Failed', 'Google authentication was cancelled, blocked, or failed to complete.');
       }
     } catch (error) {
+      clearTimeout(timer);
       setIsLoading(false);
+      setShowWarmingUpMsg(false);
       Alert.alert('Authentication Error', (error as any).message || 'Failed to authenticate via Google.');
     }
   };
@@ -219,7 +244,7 @@ export default function LoginScreen() {
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={isLoading}
-                style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-5`}
+                style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm ${isLoading && showWarmingUpMsg ? 'mb-2' : 'mb-5'}`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#fff" />
@@ -227,6 +252,12 @@ export default function LoginScreen() {
                   <Text style={tw`text-white text-sm font-bold tracking-wider`}>LOGIN</Text>
                 )}
               </TouchableOpacity>
+
+              {isLoading && showWarmingUpMsg && (
+                <Text style={tw`text-amber-600 text-xs font-semibold text-center mb-4 px-2`}>
+                  Waking up Alwaysdata database server... This may take up to a minute if it was asleep.
+                </Text>
+              )}
 
               {/* Divider */}
               <View style={tw`flex-row items-center w-full mb-5`}>

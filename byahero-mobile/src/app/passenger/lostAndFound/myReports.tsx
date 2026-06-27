@@ -41,7 +41,7 @@ export default function MyReportsScreen() {
 
       if (loggedIn) {
         try {
-          const res = await fetch(`${serverUrl}/passenger/lostAndFound/myReports.php?json=1`, {
+          const res = await fetch(`${serverUrl}/api/lost-and-found/my-reports`, {
             credentials: 'include'
           });
           const data = await res.json();
@@ -79,7 +79,7 @@ export default function MyReportsScreen() {
             setIsLoading(true);
             try {
               const serverUrl = await getServerUrl();
-              const res = await fetch(`${serverUrl}/passenger/lostAndFound/myReports.php?json=1`, {
+              const res = await fetch(`${serverUrl}/api/lost-and-found/my-reports`, {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

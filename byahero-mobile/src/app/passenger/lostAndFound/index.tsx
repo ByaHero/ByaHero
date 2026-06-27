@@ -79,7 +79,7 @@ export default function LostAndFoundFormScreen() {
         } as any);
       });
 
-      const res = await fetch(`${serverUrl}/public/passenger/lostAndFound/lostAndFoundDone.php`, {
+      const res = await fetch(`${serverUrl}/api/lost-and-found/create`, {
         method: 'POST',
         body: formData,
         headers: {

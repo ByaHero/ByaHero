@@ -81,7 +81,7 @@ export default function PassengerDashboard() {
   const [joinCode, setJoinCode] = useState('');
   const [circles, setCircles] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('');
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -191,7 +191,7 @@ export default function PassengerDashboard() {
       try {
         const email = await AsyncStorage.getItem('byahero_cached_email') || '';
         const currentBaseUrl = await getServerUrl();
-        await fetch(`${currentBaseUrl}/backend/updateUserLocation.php`, {
+        await fetch(`${currentBaseUrl}/api/location/update`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -263,8 +263,8 @@ export default function PassengerDashboard() {
   const fetchInviteCode = async (reset = false) => {
     try {
       const url = reset
-        ? `${baseUrl}/backend/getInviteCode.php?reset=1`
-        : `${baseUrl}/backend/getInviteCode.php`;
+        ? `${baseUrl}/api/group/invite-code?reset=1`
+        : `${baseUrl}/api/group/invite-code`;
       const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
@@ -282,7 +282,7 @@ export default function PassengerDashboard() {
 
   const fetchGroupMembers = async () => {
     try {
-      const res = await fetch(`${baseUrl}/backend/groupView.php`, { credentials: 'include', cache: 'no-store' });
+      const res = await fetch(`${baseUrl}/api/group/view`, { credentials: 'include', cache: 'no-store' });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.friends)) {
@@ -311,7 +311,7 @@ export default function PassengerDashboard() {
         setBaseUrl(currentBaseUrl);
 
         // Fetch live buses
-        const busesRes = await fetch(`${currentBaseUrl}/public/api.php?action=get_buses`);
+        const busesRes = await fetch(`${currentBaseUrl}/api/buses`);
         if (busesRes.ok && active) {
           const busesData = await busesRes.json();
           if (busesData && busesData.success && Array.isArray(busesData.buses)) {
@@ -326,7 +326,7 @@ export default function PassengerDashboard() {
         }
 
         // Fetch bus stops
-        const stopsRes = await fetch(`${currentBaseUrl}/public/api.php?action=get_bus_stops_terminal`);
+        const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
         if (stopsRes.ok && active) {
           const stopsData = await stopsRes.json();
           if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
@@ -339,7 +339,7 @@ export default function PassengerDashboard() {
         }
 
         // Fetch group members
-        const groupRes = await fetch(`${currentBaseUrl}/backend/groupView.php`, { credentials: 'include', cache: 'no-store' });
+        const groupRes = await fetch(`${currentBaseUrl}/api/group/view`, { credentials: 'include', cache: 'no-store' });
         if (groupRes.ok && active) {
           const groupData = await groupRes.json();
           if (groupData.success && Array.isArray(groupData.friends)) {
@@ -480,7 +480,7 @@ export default function PassengerDashboard() {
       return;
     }
     try {
-      const res = await fetch(`${baseUrl}/backend/joinCircleByCode.php`, {
+      const res = await fetch(`${baseUrl}/api/group/join`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ invite_code: joinCode }),
@@ -508,7 +508,7 @@ export default function PassengerDashboard() {
     const performRemove = async () => {
       try {
         const currentBaseUrl = await getServerUrl();
-        const res = await fetch(`${currentBaseUrl}/backend/removeFriend.php`, {
+        const res = await fetch(`${currentBaseUrl}/api/group/remove`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ friend_id: friendId }),
@@ -560,7 +560,7 @@ export default function PassengerDashboard() {
           onPress: async () => {
             try {
               const email = await AsyncStorage.getItem('byahero_cached_email') || 'Guest';
-              const res = await fetch(`${baseUrl}/backend/sendSosAlert.php`, {
+              const res = await fetch(`${baseUrl}/api/sos/send`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

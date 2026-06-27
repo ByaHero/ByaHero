@@ -92,7 +92,7 @@ export default function SOSScreen() {
 
         // Fetch group/friends count
         try {
-          const res = await fetch(`${url}/backend/groupView.php`, { credentials: 'include' });
+          const res = await fetch(`${url}/api/group/view`, { credentials: 'include' });
           if (res.ok) {
             const groupData = await res.json();
             if (groupData.success && Array.isArray(groupData.friends)) {
@@ -123,7 +123,7 @@ export default function SOSScreen() {
 
     try {
       const email = await AsyncStorage.getItem('byahero_cached_email') || 'Guest';
-      const res = await fetch(`${baseUrl}/backend/sendSosAlert.php`, {
+      const res = await fetch(`${baseUrl}/api/sos/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

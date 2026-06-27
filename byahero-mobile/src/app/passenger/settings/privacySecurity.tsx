@@ -33,7 +33,7 @@ export default function PrivacySecurityScreen() {
 
         if (loggedIn) {
           const serverUrl = await getServerUrl();
-          const res = await fetch(`${serverUrl}/backend/getPrivacySettings.php`, { credentials: 'include' });
+          const res = await fetch(`${serverUrl}/api/settings/privacy`, { credentials: 'include' });
           const data = await res.json();
           if (data && data.success && data.settings) {
             const locVal = parseInt(data.settings.location_services) === 1;
@@ -59,7 +59,7 @@ export default function PrivacySecurityScreen() {
         formData.append('setting_name', 'location_services');
         formData.append('setting_value', value ? '1' : '0');
 
-        const res = await fetch(`${serverUrl}/backend/updatePrivacySettings.php`, {
+        const res = await fetch(`${serverUrl}/api/settings/update`, {
           method: 'POST',
           body: formData,
           credentials: 'include',

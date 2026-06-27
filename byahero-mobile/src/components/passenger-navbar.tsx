@@ -131,7 +131,7 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
       try {
         const currentBaseUrl = await getServerUrl();
         const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
-        await fetch(`${currentBaseUrl}/public/logout.php`, {
+        await fetch(`${currentBaseUrl}/api/logout`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: 'fcm_token=' + encodeURIComponent(token),

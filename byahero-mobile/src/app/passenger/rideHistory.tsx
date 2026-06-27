@@ -54,7 +54,7 @@ export default function RideHistoryScreen() {
     async function loadHistory() {
       try {
         const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/public/api.php?action=get_ride_history`, {
+        const res = await fetch(`${serverUrl}/api/buses/history`, {
           credentials: 'include'
         });
         const data = await res.json();

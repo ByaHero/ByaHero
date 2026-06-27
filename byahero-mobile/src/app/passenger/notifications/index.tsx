@@ -38,7 +38,7 @@ export default function NotificationsScreen() {
 
         let data: any = null;
         try {
-          const res = await fetch(`${currentBaseUrl}/public/passenger/notifications.php?json=1`, {
+          const res = await fetch(`${currentBaseUrl}/api/notifications`, {
             credentials: 'include',
             cache: 'no-store'
           });
@@ -52,7 +52,7 @@ export default function NotificationsScreen() {
         // Fallback to alwaysdata if configured URL fails
         if (!data && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
           try {
-            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/public/passenger/notifications.php?json=1`, {
+            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/notifications`, {
               credentials: 'include',
               cache: 'no-store'
             });

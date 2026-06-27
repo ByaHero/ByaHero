@@ -8,9 +8,43 @@ const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 export async function getServerUrl() {
   try {
     const url = await AsyncStorage.getItem('byahero_server_url');
+    if (url === 'https://byahero.alwaysdata.net') {
+      return DEFAULT_SERVER_URL;
+    }
+    // Auto-align hostname to match localhost vs 127.0.0.1 and prevent SameSite cookie discard
+    if (typeof window !== 'undefined' && window.location) {
+      const currentHost = window.location.hostname;
+      if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+        return `http://${currentHost}:8000`;
+      }
+    }
     return url || DEFAULT_SERVER_URL;
   } catch (e) {
     return DEFAULT_SERVER_URL;
+  }
+}
+
+/**
+ * Asynchronously pings the server to wake it up from idle sleep.
+ */
+export async function preWarmServer() {
+  try {
+    const baseUrl = await getServerUrl();
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    
+    fetch(`${baseUrl}/api/ping`, { signal: controller.signal })
+      .then(res => res.json())
+      .then(data => {
+        console.log('Pre-warm response:', data);
+        clearTimeout(timeoutId);
+      })
+      .catch(err => {
+        console.log('Pre-warm ping status (ignored/timed out):', err.message);
+        clearTimeout(timeoutId);
+      });
+  } catch (e) {
+    // Ignore error
   }
 }
 
@@ -31,11 +65,11 @@ export async function setServerUrl(url) {
 }
 
 /**
- * Helper to make POST form-data requests to public/auth_api.php
+ * Helper to make POST form-data requests to Laravel API /api/auth
  */
 async function apiRequest(action, dataObj) {
   const baseUrl = await getServerUrl();
-  const endpoint = `${baseUrl}/public/auth_api.php`;
+  const endpoint = `${baseUrl}/api/auth`;
 
   const formData = new FormData();
   formData.append('action', action);
