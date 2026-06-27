@@ -17,6 +17,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { login, googleAuth, getServerUrl, setServerUrl, cacheSession } from '../services/authService';
 
 export default function LoginScreen() {
@@ -99,11 +100,13 @@ export default function LoginScreen() {
     try {
       const baseUrl = await getServerUrl();
       const redirectUri = `${baseUrl}/public/login.php`;
+      const appRedirectUrl = Linking.createURL('/'); // Resolves exp://... for Expo Go or byaheromobile:// for production
 
-      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile`;
+      // Request response_type=id_token and supply a nonce to get a JWT ID token verified by backend
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=id_token&nonce=byaheromobile123&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&state=${encodeURIComponent(appRedirectUrl)}`;
       
       // Use openAuthSessionAsync to detect browser dismissals or cancellations
-      const result = await WebBrowser.openAuthSessionAsync(googleAuthUrl, 'byaheromobile://');
+      const result = await WebBrowser.openAuthSessionAsync(googleAuthUrl, appRedirectUrl);
       
       if (result.type === 'success' && result.url) {
         const url = result.url;

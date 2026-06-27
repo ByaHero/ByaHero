@@ -4,9 +4,20 @@
 <script>
     if (window.location.hash) {
         const hash = window.location.hash;
-        if (hash.includes('access_token=') || hash.includes('id_token=') || hash.includes('credential=')) {
-            const queryStr = hash.startsWith('#') ? hash.substring(1) : hash;
-            window.location.replace('byaheromobile://?' + queryStr);
+        const fragment = hash.startsWith('#') ? hash.substring(1) : hash;
+        const params = new URLSearchParams(fragment);
+        const tokenKeys = ['access_token', 'id_token', 'credential'];
+        const hasToken = tokenKeys.some(key => params.has(key));
+        
+        if (hasToken) {
+            let appRedirect = params.get('state');
+            if (appRedirect) {
+                appRedirect = decodeURIComponent(appRedirect);
+            } else {
+                appRedirect = 'byaheromobile://';
+            }
+            const separator = appRedirect.includes('?') ? '&' : '?';
+            window.location.replace(appRedirect + separator + fragment);
         }
     }
 </script>
