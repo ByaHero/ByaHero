@@ -11,9 +11,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router, Link } from 'expo-router';
+import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
+import tw from 'twrnc';
 import { signupRequestOtp, signupVerifyOtp } from '../services/authService';
 
 export default function SignUpScreen() {
@@ -99,14 +100,14 @@ export default function SignUpScreen() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', overflow: 'hidden' }}>
+    <SafeAreaView style={tw`flex-1 bg-slate-100`}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        style={{ flex: 1 }}
+        style={tw`flex-1`}
       >
         <ScrollView 
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }} 
-          style={{ paddingHorizontal: 24, backgroundColor: '#ffffff' }}
+          contentContainerStyle={tw`flex-grow justify-center items-center py-10`} 
+          style={tw`px-6 bg-slate-100`}
           bounces={false}
           alwaysBounceVertical={false}
           alwaysBounceHorizontal={false}
@@ -114,154 +115,94 @@ export default function SignUpScreen() {
           showsVerticalScrollIndicator={false}
           overScrollMode="never"
         >
-          <View style={{ width: '100%', maxWidth: 400, paddingVertical: 24 }}>
-            <View style={{ alignItems: 'center', marginBottom: 30 }}>
+          <View style={tw`w-full max-w-[400px] items-center`}>
+            <View style={tw`items-center mb-7`}>
               <Image
                 source={require('../../assets/images/byaheroLogo.png')}
-                style={{ width: 100, height: 100 }}
+                style={tw`w-[105px] h-[105px]`}
                 contentFit="contain"
               />
               <Image
                 source={require('../../assets/images/ByaHero_rext_.svg')}
-                style={{ width: 180, height: 40, marginTop: 12 }}
+                style={tw`w-[180px] h-[40px] mt-2`}
                 contentFit="contain"
               />
             </View>
 
-            <View style={{ backgroundColor: '#ffffff' }}>
+            <View style={tw`bg-white rounded-[28px] px-7 py-8 w-full shadow-md`}>
               {step === 1 ? (
                 // STEP 1: Registration Form
                 <View>
-                  <Text style={{ color: '#103d7c', fontSize: 13, fontWeight: '800', letterSpacing: 0.5, marginBottom: 16 }}>
+                  <Text style={tw`text-[#1d72f8] text-sm font-extrabold tracking-wider mb-6 text-center`}>
                     CREATE NEW ACCOUNT
                   </Text>
 
                   {/* Name Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 16,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
                     <TextInput
                       value={name}
                       onChangeText={setName}
                       placeholder="Full Name (optional)"
-                      placeholderTextColor="#9ca3af"
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, paddingHorizontal: 4, fontSize: 14, fontWeight: '500' }}
+                      placeholderTextColor="#7a98c8"
+                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
                     />
                   </View>
 
                   {/* Email Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 16,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
                     <TextInput
                       value={email}
                       onChangeText={setEmail}
                       placeholder="Email Address"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor="#7a98c8"
                       keyboardType="email-address"
                       autoCapitalize="none"
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, paddingHorizontal: 4, fontSize: 14, fontWeight: '500' }}
+                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
                     />
                   </View>
 
                   {/* Contacts Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 16,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
                     <TextInput
                       value={contacts}
                       onChangeText={txt => setContacts(txt.replace(/[^0-9]/g, ''))}
                       placeholder="Contact Number (e.g. 09123456789)"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor="#7a98c8"
                       keyboardType="numeric"
                       maxLength={11}
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, paddingHorizontal: 4, fontSize: 14, fontWeight: '500' }}
+                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
                     />
                   </View>
 
                   {/* Password Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 16,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
                     <TextInput
                       value={password}
                       onChangeText={setPassword}
                       secureTextEntry={securePass}
                       placeholder="Password"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor="#7a98c8"
                       autoCapitalize="none"
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, paddingHorizontal: 4, fontSize: 14, fontWeight: '500' }}
+                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
                     />
                     <TouchableOpacity onPress={() => setSecurePass(!securePass)}>
-                      <Ionicons name={securePass ? "eye-off" : "eye"} size={20} color="#000000" style={{ opacity: 0.8 }} />
+                      <Ionicons name={securePass ? "eye-off" : "eye"} size={18} color="#7a98c8" />
                     </TouchableOpacity>
                   </View>
 
                   {/* Confirm Password Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 24,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-6`}>
                     <TextInput
                       value={confirmPassword}
                       onChangeText={setConfirmPassword}
                       secureTextEntry={secureConfirm}
                       placeholder="Confirm Password"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor="#7a98c8"
                       autoCapitalize="none"
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, paddingHorizontal: 4, fontSize: 14, fontWeight: '500' }}
+                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
                     />
                     <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
-                      <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={20} color="#000000" style={{ opacity: 0.8 }} />
+                      <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={18} color="#7a98c8" />
                     </TouchableOpacity>
                   </View>
 
@@ -269,71 +210,44 @@ export default function SignUpScreen() {
                   <TouchableOpacity
                     onPress={handleSignUpSubmit}
                     disabled={isLoading}
-                    style={{ 
-                      alignSelf: 'center', 
-                      backgroundColor: '#1856b0', 
-                      borderRadius: 25, 
-                      paddingVertical: 12, 
-                      paddingHorizontal: 40, 
-                      marginTop: 12, 
-                      minWidth: 140, 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      elevation: 2
-                    }}
+                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
                   >
                     {isLoading ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold', letterSpacing: 0.5 }}>SIGN UP</Text>
+                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>SIGN UP</Text>
                     )}
                   </TouchableOpacity>
                 </View>
               ) : (
                 // STEP 2: OTP Verification
                 <View>
-                  <Text style={{ color: '#103d7c', fontSize: 13, fontWeight: '800', letterSpacing: 0.5, marginBottom: 8, textAlign: 'center' }}>
+                  <Text style={tw`text-[#1d72f8] text-sm font-extrabold tracking-wider mb-2 text-center`}>
                     VERIFY EMAIL
                   </Text>
-                  <Text style={{ color: '#64748b', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
-                    We sent a 6-digit code to <Text style={{ color: '#1856b0', fontWeight: 'bold' }}>{email}</Text>
+                  <Text style={tw`text-slate-500 text-xs text-center mb-4`}>
+                    We sent a 6-digit code to <Text style={tw`text-[#1d72f8] font-bold`}>{email}</Text>
                   </Text>
 
                   {/* Dev Mode Code Display */}
                   {devOtp !== '' && (
-                    <View style={{ backgroundColor: '#f1f5f9', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 12, padding: 12, marginBottom: 16, alignItems: 'center' }}>
-                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: 'bold' }}>Dev Mode Intercept</Text>
-                      <Text style={{ color: '#103d7c', fontSize: 18, fontWeight: '800', letterSpacing: 4 }}>{devOtp}</Text>
+                    <View style={tw`bg-slate-100 border border-slate-200 rounded-2xl p-3 mb-4 items-center`}>
+                      <Text style={tw`text-slate-400 text-[10px] font-bold`}>Dev Mode Intercept</Text>
+                      <Text style={[tw`text-[#1d72f8] text-lg font-extrabold`, { letterSpacing: 4 }]}>{devOtp}</Text>
                     </View>
                   )}
 
                   {/* OTP Input */}
-                  <View style={{ 
-                    flexDirection: 'row', 
-                    alignItems: 'center', 
-                    backgroundColor: '#f5f6f8', 
-                    borderRadius: 25, 
-                    paddingHorizontal: 16, 
-                    marginBottom: 24,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.08,
-                    shadowRadius: 4,
-                    elevation: 3
-                  }}>
+                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-5`}>
                     <TextInput
                       value={otp}
                       onChangeText={txt => setOtp(txt.replace(/[^0-9]/g, ''))}
                       placeholder="000000"
-                      placeholderTextColor="#9ca3af"
+                      placeholderTextColor="#7a98c8"
                       keyboardType="numeric"
                       maxLength={6}
                       textAlign="center"
-                      style={{ flex: 1, color: '#333333', paddingVertical: 12, fontSize: 18, fontWeight: 'bold', letterSpacing: 6 }}
+                      style={[tw`flex-1 color-[#0f172a] py-3 text-lg font-bold`, { letterSpacing: 6 }]}
                     />
                   </View>
 
@@ -341,47 +255,32 @@ export default function SignUpScreen() {
                   <TouchableOpacity
                     onPress={handleOtpVerify}
                     disabled={isLoading}
-                    style={{ 
-                      alignSelf: 'center', 
-                      backgroundColor: '#1856b0', 
-                      borderRadius: 25, 
-                      paddingVertical: 12, 
-                      paddingHorizontal: 40, 
-                      marginTop: 12, 
-                      minWidth: 140, 
-                      alignItems: 'center', 
-                      justifyContent: 'center',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      elevation: 2
-                    }}
+                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
                   >
                     {isLoading ? (
                       <ActivityIndicator color="#fff" />
                     ) : (
-                      <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold', letterSpacing: 0.5 }}>VERIFY</Text>
+                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>VERIFY</Text>
                     )}
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => setStep(1)}
-                    style={{ paddingVertical: 12, alignItems: 'center', marginTop: 12 }}
+                    style={tw`self-center py-2`}
                   >
-                    <Text style={{ color: '#2563eb', fontSize: 12, fontWeight: '600', textDecorationLine: 'underline' }}>Change email</Text>
+                    <Text style={tw`text-slate-500 text-[13px] font-semibold underline`}>Change email</Text>
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Back to Login link */}
-              <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 48 }}>
-                <TouchableOpacity 
-                  onPress={() => router.push('/')}
-                  style={{ borderBottomWidth: 1.5, borderBottomColor: '#2563eb', paddingBottom: 1 }}
-                >
-                  <Text style={{ color: '#2563eb', fontSize: 12, fontWeight: '600' }}>
-                    Already have an account? <Text style={{ fontWeight: 'bold' }}>Login</Text>
+              <View style={tw`flex-row justify-center items-center mt-6`}>
+                <Text style={tw`text-slate-500 text-[13px] font-medium`}>
+                  Already have an account?{' '}
+                </Text>
+                <TouchableOpacity onPress={() => router.push('/')}>
+                  <Text style={tw`text-[#1d72f8] text-[13px] font-bold`}>
+                    Login
                   </Text>
                 </TouchableOpacity>
               </View>
