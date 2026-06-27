@@ -98,10 +98,7 @@ export default function LoginScreen() {
     setIsLoading(true);
     try {
       const baseUrl = await getServerUrl();
-      // Handle document root difference: byahero.app document root is /public, so /public/login.php gives 404.
-      const redirectUri = baseUrl.includes('byahero.app') 
-        ? `${baseUrl}/login.php` 
-        : `${baseUrl}/public/login.php`;
+      const redirectUri = `${baseUrl}/public/login.php`;
 
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=token&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile`;
       
