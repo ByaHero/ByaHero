@@ -184,4 +184,124 @@ class ProfileController extends Controller
             'hasPassword' => $hasPassword
         ]);
     }
+
+    public function updatePhone(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = User::where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        $phone = $request->input('phone');
+        if (empty($phone)) {
+            return response()->json(['success' => false, 'message' => 'Phone number is required.'], 400);
+        }
+
+        try {
+            User::where('id', $userId)->update([
+                'contacts' => $phone,
+                'updated_at' => now()
+            ]);
+
+            Session::put('user_contacts', $phone);
+
+            return response()->json(['success' => true, 'message' => 'Phone number updated successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to update phone number.']);
+        }
+    }
+
+    public function deleteAccount(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = User::where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        $confirmText = $request->input('confirmText');
+        if (strtolower(trim((string)$confirmText)) !== 'delete') {
+            return response()->json(['success' => false, 'message' => 'Confirmation text does not match.'], 400);
+        }
+
+        try {
+            DB::beginTransaction();
+
+            // Delete associated user data first to respect foreign keys if any
+            DB::table('user_locations')->where('user_id', $userId)->delete();
+            DB::table('user_settings')->where('user_id', $userId)->delete();
+            DB::table('waiting_passengers')->where('user_id', $userId)->delete();
+            DB::table('circle_members')->where('user_id', $userId)->delete();
+            DB::table('circles')->where('owner_user_id', $userId)->delete();
+            
+            // Delete user
+            User::where('id', $userId)->delete();
+
+            DB::commit();
+
+            Session::flush();
+
+            return response()->json(['success' => true, 'message' => 'Account permanently deleted.']);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['success' => false, 'message' => 'Failed to delete account: ' . $e->getMessage()]);
+        }
+    }
+
+    public function submitReport(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = User::where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        $busNumber = $request->input('bus_number');
+        $reportReason = $request->input('report_reason');
+        $othersDetails = $request->input('others_details');
+        $contactNumber = $request->input('contact_number');
+
+        if (empty($busNumber)) {
+            return response()->json(['success' => false, 'message' => 'Bus number is required.'], 400);
+        }
+
+        if (empty($reportReason) && !empty($othersDetails)) {
+            $reportReason = 'Others';
+        }
+
+        if (empty($reportReason)) {
+            return response()->json(['success' => false, 'message' => 'Please select a reason for your report.'], 400);
+        }
+
+        try {
+            \App\Models\Report::create([
+                'user_id' => $userId,
+                'bus_number' => $busNumber,
+                'report_reason' => $reportReason,
+                'others_details' => $othersDetails,
+                'contact_number' => $contactNumber,
+                'status' => 'pending'
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Thank you for letting us know! Your report has been submitted and will be reviewed by our team.'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to submit report: ' . $e->getMessage()]);
+        }
+    }
 }

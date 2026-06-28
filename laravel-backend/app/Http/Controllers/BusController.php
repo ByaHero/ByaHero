@@ -178,4 +178,115 @@ class BusController extends Controller
             return response()->json(['success' => false, 'message' => 'Failed to update location']);
         }
     }
+
+    public function getMyWaitingStatus(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        $waiting = DB::table('waiting_passengers')
+            ->where('user_id', $userId)
+            ->where('status', 'waiting')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($waiting) {
+            return response()->json([
+                'success' => true,
+                'is_waiting' => true,
+                'location_name' => $waiting->location_name
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'is_waiting' => false,
+            'location_name' => null
+        ]);
+    }
+
+    public function setWaitingStatus(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        $locationName = $request->input('location_name');
+        if (empty($locationName)) {
+            return response()->json(['success' => false, 'message' => 'Location name is required'], 400);
+        }
+
+        // Get user name
+        $userName = DB::table('users')->where('id', $userId)->value('name') ?? 'Passenger';
+
+        // Check if there is already an active waiting entry
+        $existing = DB::table('waiting_passengers')
+            ->where('user_id', $userId)
+            ->where('status', 'waiting')
+            ->first();
+
+        if ($existing) {
+            DB::table('waiting_passengers')
+                ->where('id', $existing->id)
+                ->update([
+                    'location_name' => $locationName,
+                    'updated_at' => now()
+                ]);
+        } else {
+            DB::table('waiting_passengers')->insert([
+                'user_id' => $userId,
+                'user_name' => $userName,
+                'location_name' => $locationName,
+                'status' => 'waiting',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Waiting status updated',
+            'location_name' => $locationName,
+            'status' => 'waiting'
+        ]);
+    }
+
+    public function cancelWaitingStatus(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        DB::table('waiting_passengers')
+            ->where('user_id', $userId)
+            ->where('status', 'waiting')
+            ->update([
+                'status' => 'cancelled',
+                'updated_at' => now()
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Waiting status cancelled'
+        ]);
+    }
 }

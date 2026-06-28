@@ -15,12 +15,15 @@ import tw from 'twrnc';
 import { router } from 'expo-router';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import { Image } from 'expo-image';
 
 export default function PassengerProfileScreen() {
   const [email, setEmail] = useState('guest@byahero.app');
   const [name, setName] = useState('Guest User');
   const [phone, setPhone] = useState('');
   const [avatarInitial, setAvatarInitial] = useState('G');
+  const [profilePicture, setProfilePicture] = useState('');
+  const [baseUrl, setBaseUrl] = useState('');
   
   // Edit Phone Modal State
   const [phoneModalVisible, setPhoneModalVisible] = useState(false);
@@ -38,6 +41,12 @@ export default function PassengerProfileScreen() {
         setName(cachedName);
         setPhone(cachedPhone);
         setAvatarInitial(cachedName.charAt(0).toUpperCase());
+
+        const cachedPic = await AsyncStorage.getItem('byahero_cached_profile_picture') || '';
+        setProfilePicture(cachedPic);
+
+        const currentBaseUrl = await getServerUrl();
+        setBaseUrl(currentBaseUrl);
         
         if (cachedPhone) {
           // Extract remaining 10 digits
@@ -71,10 +80,11 @@ export default function PassengerProfileScreen() {
       setPhone(fullPhone);
 
       const serverUrl = await getServerUrl();
-      const res = await fetch(`${serverUrl}/backend/updatePhone.php`, {
+      const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+      const res = await fetch(`${serverUrl}/api/passenger/profile/update-phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: fullPhone }),
+        body: JSON.stringify({ phone: fullPhone, email: email }),
       });
       const data = await res.json();
       setIsSaving(false);
@@ -99,15 +109,23 @@ export default function PassengerProfileScreen() {
       <ScrollView contentContainerStyle={tw`pb-8`}>
         {/* Profile Card Header */}
         <View style={tw`items-center py-8 bg-white`}>
-          <View style={tw`w-24 h-24 rounded-full border border-blue-900 justify-center items-center mb-3`}>
-            <Text style={tw`text-3xl font-light text-blue-900`}>{avatarInitial}</Text>
+          <View style={tw`w-24 h-24 rounded-full border border-slate-300 justify-center items-center mb-3 bg-slate-50 overflow-hidden`}>
+            {profilePicture && profilePicture !== 'null' && profilePicture !== 'undefined' ? (
+              <Image
+                source={{ uri: (profilePicture.startsWith('http') || profilePicture.startsWith('data:')) ? profilePicture : `${baseUrl.replace(/\/$/, '')}/${profilePicture.replace(/^\//, '')}` }}
+                style={tw`w-full h-full`}
+                contentFit="cover"
+              />
+            ) : (
+              <Text style={tw`text-3xl font-black text-slate-800`}>{avatarInitial}</Text>
+            )}
           </View>
-          <Text style={tw`text-2xl font-bold text-blue-900`}>{name}</Text>
+          <Text style={tw`text-2xl font-black text-slate-800`}>{name}</Text>
         </View>
 
         {/* Profile Details Sheet */}
-        <View style={[tw`px-4 pt-5 bg-slate-100/70 min-h-120`, { borderTopLeftRadius: 32, borderTopRightRadius: 32 }]}>
-          <Text style={tw`text-xs font-bold text-slate-500 uppercase mb-3 tracking-wider`}>Account Details</Text>
+        <View style={[tw`px-4 pt-6 bg-slate-100/70 min-h-120`, { borderTopLeftRadius: 32, borderTopRightRadius: 32 }]}>
+          <Text style={tw`text-xs font-black text-slate-400 uppercase mb-3 tracking-widest px-1`}>Account Details</Text>
 
           {/* Phone Card */}
           <TouchableOpacity 
@@ -115,25 +133,25 @@ export default function PassengerProfileScreen() {
             style={tw`flex-row items-center justify-between p-4 mb-3.5 bg-white rounded-2xl shadow-sm`}
           >
             <View style={tw`flex-row items-center flex-1`}>
-              <MaterialIcons name="phone" size={24} color="#000" style={tw`mr-3.5`} />
+              <MaterialIcons name="phone" size={24} color="#103d7c" style={tw`mr-3.5`} />
               <View>
-                <Text style={tw`text-xs text-slate-400 font-medium`}>Phone Number</Text>
-                <Text style={tw`text-sm font-semibold text-slate-700 mt-0.5`}>{phone || 'Not set'}</Text>
+                <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest`}>Phone Number</Text>
+                <Text style={tw`text-[15px] font-black text-slate-800 mt-1`}>{phone || 'Not set'}</Text>
               </View>
             </View>
-            <MaterialIcons name="edit" size={20} color="#1e3a8a" />
+            <MaterialIcons name="edit" size={20} color="#103d7c" />
           </TouchableOpacity>
 
           {/* Email Card */}
           <View style={tw`flex-row items-center p-4 mb-5 bg-white rounded-2xl shadow-sm`}>
-            <MaterialIcons name="email" size={24} color="#000" style={tw`mr-3.5`} />
+            <MaterialIcons name="email" size={24} color="#103d7c" style={tw`mr-3.5`} />
             <View style={tw`flex-1`}>
-              <Text style={tw`text-xs text-slate-400 font-medium`}>Email Address</Text>
-              <Text style={tw`text-sm font-semibold text-slate-700 mt-0.5`} numberOfLines={1}>{email}</Text>
+              <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest`}>Email Address</Text>
+              <Text style={tw`text-[15px] font-black text-slate-800 mt-1`} numberOfLines={1}>{email}</Text>
             </View>
           </View>
 
-          <Text style={tw`text-xs font-bold text-slate-500 uppercase mb-3 tracking-wider`}>Account Management</Text>
+          <Text style={tw`text-xs font-black text-slate-400 uppercase mb-3 tracking-widest px-1`}>Account Management</Text>
 
           {/* Account Settings */}
           <TouchableOpacity 
@@ -141,8 +159,8 @@ export default function PassengerProfileScreen() {
             style={tw`flex-row items-center justify-between p-4 bg-white rounded-2xl shadow-sm`}
           >
             <View style={tw`flex-row items-center`}>
-              <MaterialIcons name="settings" size={24} color="#000" style={tw`mr-3.5`} />
-              <Text style={tw`text-sm font-semibold text-slate-700`}>Account Settings</Text>
+              <MaterialIcons name="settings" size={24} color="#103d7c" style={tw`mr-3.5`} />
+              <Text style={tw`text-[15px] font-black text-slate-800`}>Account Settings</Text>
             </View>
             <MaterialIcons name="chevron-right" size={24} color="#94a3b8" />
           </TouchableOpacity>

@@ -10,6 +10,7 @@ import {
   Alert,
   Dimensions,
   Animated,
+  Modal,
 } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -82,6 +83,12 @@ export default function PassengerDashboard() {
   const [circles, setCircles] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
+  
+  // Waiting Status States
+  const [isWaiting, setIsWaiting] = useState(false);
+  const [waitingLocation, setWaitingLocation] = useState('');
+  const [waitingModalVisible, setWaitingModalVisible] = useState(false);
+  const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -222,7 +229,11 @@ export default function PassengerDashboard() {
 
   // Cross-platform helper to send messages to the Leaflet map (WebView or iframe)
   const postToMap = (message: any) => {
-    const payload = JSON.stringify(message);
+    let finalMessage = message;
+    if (message && message.type === 'UPDATE_USER_LOCATION') {
+      finalMessage = { ...message, isWaiting: isWaiting };
+    }
+    const payload = JSON.stringify(finalMessage);
     if (Platform.OS === 'web') {
       webViewRef.current?.contentWindow?.postMessage(payload, '*');
     } else {
@@ -246,7 +257,7 @@ export default function PassengerDashboard() {
     });
   }, [buses, selectedRoute]);
 
-  // Sync user location marker to map whenever location or profile details update
+  // Sync user location marker to map whenever location, profile details or waiting status update
   useEffect(() => {
     if (userLocation) {
       postToMap({
@@ -258,7 +269,7 @@ export default function PassengerDashboard() {
         center: false
       });
     }
-  }, [userLocation, userInitial, userProfilePic]);
+  }, [userLocation, userInitial, userProfilePic, isWaiting]);
 
   const fetchInviteCode = async (reset = false) => {
     try {
@@ -353,6 +364,19 @@ export default function PassengerDashboard() {
             });
           }
         }
+
+        // Fetch my waiting status
+        const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
+        if (loggedInEmail && active) {
+          const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
+          if (waitStatusRes.ok) {
+            const waitData = await waitStatusRes.json();
+            if (waitData.success) {
+              setIsWaiting(!!waitData.is_waiting);
+              setWaitingLocation(waitData.location_name || '');
+            }
+          }
+        }
       } catch (err) {
         console.error('Error fetching tracking data:', err);
       } finally {
@@ -442,8 +466,105 @@ export default function PassengerDashboard() {
           friends: circles
         });
       }
+      else if (data.type === 'USER_MARKER_CLICKED') {
+        setWaitingModalVisible(true);
+      }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // Helper to resolve nearest stop within 150m geofence
+  const resolveNearestStop = () => {
+    if (!userLocation || busStops.length === 0) return null;
+    
+    let nearestStop: any = null;
+    let minDistance = 0.15; // recognized within 150 meters (0.15 km)
+    
+    busStops.forEach(stop => {
+      const stopLat = parseFloat(stop.latitude || stop.lat);
+      const stopLng = parseFloat(stop.longitude || stop.lng);
+      if (!isNaN(stopLat) && !isNaN(stopLng)) {
+        const R = 6371; // km
+        const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
+        const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(stopLat * Math.PI / 180) *
+          Math.cos(userLocation.lat * Math.PI / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          nearestStop = stop;
+        }
+      }
+    });
+    
+    return nearestStop;
+  };
+
+  const handleSetWaiting = async (stopName: string) => {
+    setIsUpdatingWaiting(true);
+    try {
+      const currentBaseUrl = await getServerUrl();
+      const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+      
+      const res = await fetch(`${currentBaseUrl}/api/waiting/set`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email,
+          location_name: stopName
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setIsWaiting(true);
+        setWaitingLocation(stopName);
+        setWaitingModalVisible(false);
+        Alert.alert('Waiting Status Set', `🚌 You are now marked as waiting at ${stopName}!`);
+      } else {
+        Alert.alert('Error', data.message || 'Failed to update waiting status.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error. Failed to set waiting status.');
+    } finally {
+      setIsUpdatingWaiting(false);
+    }
+  };
+
+  const handleCancelWaiting = async () => {
+    setIsUpdatingWaiting(true);
+    try {
+      const currentBaseUrl = await getServerUrl();
+      const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+      
+      const res = await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email
+        })
+      });
+      
+      const data = await res.json();
+      if (data.success) {
+        setIsWaiting(false);
+        setWaitingLocation('');
+        setWaitingModalVisible(false);
+        Alert.alert('Success', 'Waiting status cancelled successfully.');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to cancel waiting status.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error. Failed to cancel waiting status.');
+    } finally {
+      setIsUpdatingWaiting(false);
     }
   };
 
@@ -699,9 +820,13 @@ export default function PassengerDashboard() {
                 ? '<img src="' + data.profilePic + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
                 : data.initial;
 
+              var badgeText = data.isWaiting ? 'Waiting!' : 'Waiting?';
+              var badgeBg = data.isWaiting ? 'background: #10b981; border-color: #10b981; color: white;' : 'background: #ffffff; border-color: #10b981; color: #10b981;';
+              var avatarBorder = data.isWaiting ? 'border-color: #10b981; box-shadow: 0 0 0 2px #10b981, 0 3px 8px rgba(0,0,0,0.3);' : '';
+
               var userIcon = L.divIcon({
                 className: 'user-marker-container',
-                html: '<div style="position: relative; width: 30px; height: 30px;"><div class="waiting-badge">Waiting?</div><div class="user-avatar-circle" style="overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div></div>',
+                html: '<div style="position: relative; width: 30px; height: 30px;"><div class="waiting-badge" style="' + badgeBg + '">' + badgeText + '</div><div class="user-avatar-circle" style="overflow: hidden; display: flex; align-items: center; justify-content: center; ' + avatarBorder + '">' + avatarHtml + '</div></div>',
                 iconSize: [30, 45],
                 iconAnchor: [15, 30],
                 popupAnchor: [0, -30]
@@ -712,6 +837,11 @@ export default function PassengerDashboard() {
                 userMarker.setIcon(userIcon);
               } else {
                 userMarker = L.marker([data.lat, data.lng], { icon: userIcon }).addTo(map);
+                userMarker.on('click', function() {
+                  if (postMessageFn) {
+                    postMessageFn(JSON.stringify({ type: 'USER_MARKER_CLICKED' }));
+                  }
+                });
               }
               if (data.center) {
                 map.setView([data.lat, data.lng], 14);
@@ -932,6 +1062,114 @@ export default function PassengerDashboard() {
             onClose={() => setActiveStep(null)} 
           />
         )}
+
+        {/* Native Waiting Status Modal */}
+        <Modal
+          visible={waitingModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setWaitingModalVisible(false)}
+        >
+          <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+            <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+              {/* Close Button */}
+              <TouchableOpacity 
+                onPress={() => setWaitingModalVisible(false)}
+                style={tw`absolute top-4 right-4 p-1 z-10`}
+              >
+                <MaterialIcons name="close" size={22} color="#94a3b8" />
+              </TouchableOpacity>
+
+              {/* Waiting Icon */}
+              <Image
+                source={require('../../../assets/images/waitingMark.svg')}
+                style={tw`w-[80px] h-[80px] mb-4`}
+                contentFit="contain"
+              />
+
+              <Text style={[tw`text-lg font-black text-slate-800 text-center mb-1.5`, { fontFamily: 'Inter_900Black' }]}>
+                Are you waiting for a bus?
+              </Text>
+
+              {isWaiting ? (
+                <>
+                  {/* Status Indicator: Waiting */}
+                  <View style={tw`bg-emerald-50 border border-emerald-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                    <Text style={[tw`text-xs font-black text-emerald-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                      STATUS: WAITING
+                    </Text>
+                    <Text style={[tw`text-[13px] text-emerald-600 font-semibold text-center`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
+                      At {waitingLocation}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={handleCancelWaiting}
+                    disabled={isUpdatingWaiting}
+                    style={tw`w-full bg-red-500 py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
+                  >
+                    <Image
+                      source={require('../../../assets/images/EKS.svg')}
+                      style={tw`w-4 h-4`}
+                      contentFit="contain"
+                    />
+                    <Text style={[tw`text-white font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
+                      {isUpdatingWaiting ? 'Cancelling...' : 'Cancel Waiting'}
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : (
+                <>
+                  {/* Status Indicator: Not Waiting */}
+                  {resolveNearestStop() ? (
+                    <>
+                      <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                        <Text style={[tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                          RECOGNIZED LOCATION
+                        </Text>
+                        <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center`, { fontFamily: 'Inter_900Black' }]} numberOfLines={2}>
+                          {resolveNearestStop()?.name}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => handleSetWaiting(resolveNearestStop()?.name)}
+                        disabled={isUpdatingWaiting}
+                        style={tw`w-full bg-[#103d7c] py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
+                      >
+                        <Image
+                          source={require('../../../assets/images/waitingButton.svg')}
+                          style={tw`w-[120px] h-[22px]`}
+                          contentFit="contain"
+                        />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      <View style={tw`bg-red-50 border border-red-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                        <Text style={[tw`text-[10px] font-black text-red-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                          UNRECOGNIZED LOCATION
+                        </Text>
+                        <Text style={[tw`text-xs text-red-500 font-semibold text-center leading-relaxed`, { fontFamily: 'Inter_500Medium' }]}>
+                          Waiting can only be activated at designated pickup points or stops.
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => setWaitingModalVisible(false)}
+                        style={tw`w-full bg-slate-100 py-3 rounded-full justify-center items-center mb-2`}
+                      >
+                        <Text style={[tw`text-slate-500 font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
+                          Close
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+                </>
+              )}
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );

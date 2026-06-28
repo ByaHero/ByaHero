@@ -52,6 +52,9 @@ Route::middleware([
     Route::get('/buses/sync', [BusController::class, 'getSyncData']);
     Route::get('/buses/history', [BusController::class, 'getRideHistory']);
     Route::post('/location/update', [BusController::class, 'updateUserLocation']);
+    Route::get('/waiting/status', [BusController::class, 'getMyWaitingStatus']);
+    Route::post('/waiting/set', [BusController::class, 'setWaitingStatus']);
+    Route::post('/waiting/cancel', [BusController::class, 'cancelWaitingStatus']);
 
     Route::post('/lost-and-found/create', [LostAndFoundController::class, 'create']);
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);
@@ -86,4 +89,7 @@ Route::middleware([
     Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);
     Route::get('/passenger/profile/login-activity', [ProfileController::class, 'getLoginActivity']);
     Route::match(['get', 'post'], '/passenger/profile/change-password', [ProfileController::class, 'changePassword']);
+    Route::post('/passenger/profile/update-phone', [ProfileController::class, 'updatePhone']);
+    Route::post('/passenger/profile/delete-account', [ProfileController::class, 'deleteAccount']);
+    Route::post('/passenger/report/submit', [ProfileController::class, 'submitReport']);
 });

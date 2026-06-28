@@ -183,7 +183,7 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-location', tabLocationRef)}
           onPress={() => setSheetTab('location')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'location' && tw`bg-[#1e3a8a]`
           ]}
         >
@@ -202,7 +202,7 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-routes', tabRoutesRef)}
           onPress={() => setSheetTab('routes')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'routes' && tw`bg-[#1e3a8a]`
           ]}
         >
@@ -221,7 +221,7 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-groups', tabGroupsRef)}
           onPress={() => setSheetTab('groups')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'groups' && tw`bg-[#1e3a8a]`
           ]}
         >
@@ -240,7 +240,7 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-busstops', tabBusstopsRef)}
           onPress={() => setSheetTab('busstops')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`, 
+            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
           ]}
         >
@@ -267,7 +267,7 @@ export default function PassengerBottomSheet({
       >
         {sheetTab === 'location' && (
           <View>
-            <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>BUS LOCATION</Text>
+            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>BUS LOCATION</Text>
             {filteredBuses.length === 0 ? (
               <View style={tw`items-center justify-center py-8`}>
                 <Image
@@ -275,7 +275,7 @@ export default function PassengerBottomSheet({
                   style={tw`w-[72px] h-[72px]`}
                   contentFit="contain"
                 />
-                <Text style={tw`text-sm text-[#64748b] font-semibold mt-3`}>No Available Bus</Text>
+                <Text style={tw`text-sm text-slate-500 font-bold mt-3`}>No Available Bus</Text>
               </View>
             ) : (
               filteredBuses.map((bus, idx) => {
@@ -357,12 +357,12 @@ export default function PassengerBottomSheet({
                     {/* Top Row: Code & Status Badge */}
                     <View style={tw`flex-row justify-between items-center mb-1.5`}>
                       <View style={[tw`px-2.5 py-1 rounded-[6px]`, { backgroundColor: '#103d7c' }]}>
-                        <Text style={tw`text-white text-xs font-black tracking-wide`}>
+                        <Text style={tw`text-white text-[11px] font-black tracking-widest uppercase`}>
                           {bus.code || bus.plate_number || 'T-00002'}
                         </Text>
                       </View>
                       <View style={[tw`px-3 py-0.5 rounded-full`, { backgroundColor: statusColor }]}>
-                        <Text style={[tw`text-[10px] font-black tracking-wider`, { color: '#000000' }]}>
+                        <Text style={[tw`text-[9px] font-black tracking-widest`, { color: '#000000' }]}>
                           {statusLabel}
                         </Text>
                       </View>
@@ -370,16 +370,16 @@ export default function PassengerBottomSheet({
 
                     {/* Middle Row: Location & Availability */}
                     <View style={tw`flex-row justify-between items-start mb-0.5`}>
-                      <Text style={tw`text-[13px] font-semibold text-[#475569] flex-1 mr-2`}>
+                      <Text style={tw`text-sm font-semibold text-slate-700 flex-1 mr-2`}>
                         {bus.current_location_name || 'Looc, Calamba'}
                       </Text>
-                      <Text style={tw`text-[11px] text-[#64748b] font-medium`}>
+                      <Text style={tw`text-xs text-slate-400 font-bold`}>
                         {seatsText}
                       </Text>
                     </View>
 
                     {/* ETA Row */}
-                    <Text style={tw`text-[11px] text-[#64748b] mb-4`}>
+                    <Text style={tw`text-xs text-slate-400 mb-4`}>
                       {etaText}
                     </Text>
 
@@ -438,12 +438,12 @@ export default function PassengerBottomSheet({
 
         {sheetTab === 'routes' && (
           <View>
-            <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>FILTER ROUTES</Text>
+            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>FILTER ROUTES</Text>
             <TouchableOpacity
               onPress={() => setSelectedRoute('TANAUAN - LAUREL')}
               style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === 'TANAUAN - LAUREL' && tw`bg-[#103d7c]`]}
             >
-              <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === 'TANAUAN - LAUREL' && tw`text-white`]}>
+              <Text style={[tw`text-sm font-black text-slate-700`, selectedRoute === 'TANAUAN - LAUREL' && tw`text-white`]}>
                 Tanauan - Laurel
               </Text>
             </TouchableOpacity>
@@ -451,7 +451,7 @@ export default function PassengerBottomSheet({
               onPress={() => setSelectedRoute('LAUREL - TANAUAN')}
               style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === 'LAUREL - TANAUAN' && tw`bg-[#103d7c]`]}
             >
-              <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === 'LAUREL - TANAUAN' && tw`text-white`]}>
+              <Text style={[tw`text-sm font-black text-slate-700`, selectedRoute === 'LAUREL - TANAUAN' && tw`text-white`]}>
                 Laurel - Tanauan
               </Text>
             </TouchableOpacity>
@@ -459,7 +459,7 @@ export default function PassengerBottomSheet({
               onPress={() => setSelectedRoute('')}
               style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === '' && tw`bg-[#103d7c]`]}
             >
-              <Text style={[tw`text-sm font-semibold text-[#1e293b]`, selectedRoute === '' && tw`text-white`]}>
+              <Text style={[tw`text-sm font-black text-slate-700`, selectedRoute === '' && tw`text-white`]}>
                 All Routes
               </Text>
             </TouchableOpacity>
@@ -468,8 +468,8 @@ export default function PassengerBottomSheet({
 
         {sheetTab === 'groups' && (
           <View>
-            <Text style={tw`text-sm font-black text-black tracking-wider mt-4 mb-3`}>CIRCLES</Text>
-            
+            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-3.5 px-1`}>CIRCLES</Text>
+
             {/* Your Invite Code Container */}
             <View style={tw`bg-[#f8fafc] p-4 rounded-3xl mb-4 border border-[#e2e8f0]/40 shadow-sm`}>
               <View style={tw`flex-row justify-between items-start`}>
@@ -486,7 +486,7 @@ export default function PassengerBottomSheet({
                 <View style={tw`flex-grow bg-white border border-[#e2e8f0] rounded-2xl py-3 px-4 justify-center items-center mr-2.5 shadow-sm`}>
                   <Text style={tw`text-lg font-black text-[#1e3a8a] tracking-widest font-mono`}>{inviteCode}</Text>
                 </View>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     Clipboard.setString(inviteCode);
                     Alert.alert('Copied', 'Invite code copied to clipboard!');
@@ -498,17 +498,17 @@ export default function PassengerBottomSheet({
               </View>
 
               <View style={tw`flex-row gap-2 mt-1.5`}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     setQrModalVisible(true);
                   }}
                   style={tw`flex-row flex-1 bg-[#1d72f8] rounded-full py-3 justify-center items-center gap-2 shadow-sm`}
                 >
                   <MaterialIcons name="qr-code" size={16} color="white" />
-                  <Text style={tw`text-white font-extrabold text-xs`}>QR Code</Text>
+                  <Text style={tw`text-white font-black text-xs`}>QR Code</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={async () => {
                     try {
                       await Share.share({
@@ -521,7 +521,7 @@ export default function PassengerBottomSheet({
                   style={tw`flex-row flex-1 bg-white border border-[#1d72f8] rounded-full py-3 justify-center items-center gap-2`}
                 >
                   <MaterialIcons name="share" size={16} color="#1d72f8" />
-                  <Text style={tw`text-[#1d72f8] font-extrabold text-xs`}>Share Link</Text>
+                  <Text style={tw`text-[#1d72f8] font-black text-xs`}>Share Link</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -530,7 +530,7 @@ export default function PassengerBottomSheet({
             <View style={tw`bg-[#f8fafc] p-4 rounded-3xl mb-4 border border-[#e2e8f0]/40 shadow-sm`}>
               <View style={tw`flex-row justify-between items-center mb-3`}>
                 <Text style={tw`text-[15px] font-black text-slate-800`}>Join a Circle</Text>
-                <TouchableOpacity 
+                <TouchableOpacity
                   onPress={() => {
                     Alert.alert('Scan QR Code', 'Camera QR code scanner is currently available on native devices.');
                   }}
@@ -558,17 +558,17 @@ export default function PassengerBottomSheet({
             {/* Circle Members List Container */}
             {circles.length === 0 ? (
               <View style={tw`bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/40 items-center justify-center`}>
-                <Text style={tw`text-xs text-[#64748b] italic`}>No circle members yet.</Text>
+                <Text style={tw`text-xs text-slate-400 font-medium italic`}>No circle members yet.</Text>
               </View>
             ) : (
               <View style={tw`bg-[#f8fafc] rounded-3xl p-4 border border-[#e2e8f0]/40 shadow-sm mb-6`}>
                 {circles.map((friend, index) => {
                   const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
-                  
+
                   // Compute live online status from updated_at timestamp
                   let isOnline = false;
                   let relativeSeenText = 'Location unavailable';
-                  
+
                   if (friend.updated_at) {
                     const date = new Date(friend.updated_at.replace(/-/g, "/"));
                     if (!isNaN(date.getTime())) {
@@ -576,7 +576,7 @@ export default function PassengerBottomSheet({
                       const diffMin = Math.floor(diffMs / 60000);
                       const diffHrs = Math.floor(diffMin / 60);
                       const diffDays = Math.floor(diffHrs / 24);
-                      
+
                       if (diffMin < 5) {
                         isOnline = true;
                         relativeSeenText = 'Active now';
@@ -605,8 +605,8 @@ export default function PassengerBottomSheet({
                   }
 
                   return (
-                    <View 
-                      key={friend.id || friend.email} 
+                    <View
+                      key={friend.id || friend.email}
                       style={[
                         tw`flex-row items-center py-3.5`,
                         index < circles.length - 1 && tw`border-b border-[#e2e8f0]/50`
@@ -625,24 +625,24 @@ export default function PassengerBottomSheet({
                             <Text style={tw`text-[#1e3a8a] font-bold text-sm`}>{initials}</Text>
                           </View>
                         )}
-                        <View 
+                        <View
                           style={[
-                            tw`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white`, 
+                            tw`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white`,
                             { backgroundColor: isOnline ? '#10b981' : '#94a3b8' }
-                          ]} 
+                          ]}
                         />
                       </View>
 
                       {/* Details: Name and Status Badge / Info */}
                       <View style={tw`flex-1`}>
-                        <Text style={tw`text-sm font-black text-slate-800`}>{friend.name || friend.email}</Text>
+                        <Text style={tw`text-[15px] font-black text-slate-800`}>{friend.name || friend.email}</Text>
                         <View style={tw`flex-row items-center mt-1`}>
                           <View style={[
-                            tw`px-2 py-0.5 rounded-md`, 
+                            tw`px-2 py-0.5 rounded-md`,
                             { backgroundColor: isOnline ? '#dcfce7' : '#f1f5f9' }
                           ]}>
                             <Text style={[
-                              tw`text-[9px] font-black tracking-wider`, 
+                              tw`text-[9px] font-black tracking-wider`,
                               { color: isOnline ? '#15803d' : '#64748b' }
                             ]}>
                               {isOnline ? 'ONLINE' : 'OFFLINE'}
@@ -655,8 +655,8 @@ export default function PassengerBottomSheet({
                       </View>
 
                       {/* Action: Unlink/Remove circle member button */}
-                      <TouchableOpacity 
-                        onPress={() => handleRemoveCircleMember(friend.id, friend.name || friend.email)} 
+                      <TouchableOpacity
+                        onPress={() => handleRemoveCircleMember(friend.id, friend.name || friend.email)}
                         style={tw`p-2`}
                       >
                         <MaterialIcons name="person-remove-alt-1" size={22} color="#103d7c" />
@@ -672,12 +672,12 @@ export default function PassengerBottomSheet({
         {sheetTab === 'busstops' && (
           <View>
             <View style={tw`flex-row justify-between items-center mb-2`}>
-              <Text style={tw`text-[13px] font-extrabold text-black tracking-wider my-3`}>BUS PICK UP POINTS</Text>
+              <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>BUS PICK UP POINTS</Text>
               <TouchableOpacity
                 onPress={() => setStopsRoute(stopsRoute === 'LAUREL - TANAUAN' ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN')}
                 style={tw`flex-row items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1`}
               >
-                <Text style={tw`text-[10px] font-bold text-black`}>{stopsRoute}</Text>
+                <Text style={tw`text-[10px] font-black text-slate-700 uppercase tracking-wider`}>{stopsRoute}</Text>
                 <Image
                   source={require('../../assets/images/swap.svg')}
                   style={tw`w-4 h-4`}
@@ -693,7 +693,7 @@ export default function PassengerBottomSheet({
                   style={tw`w-9 h-9`}
                   contentFit="contain"
                 />
-                <Text style={tw`text-sm text-[#64748b] font-semibold mt-3`}>No stops defined</Text>
+                <Text style={tw`text-sm text-slate-500 font-bold mt-3`}>No stops defined</Text>
               </View>
             ) : (
               filteredStops.map((stop, idx) => {
@@ -714,17 +714,17 @@ export default function PassengerBottomSheet({
                     style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-center shadow-sm`}
                   >
                     <View style={tw`flex-1 mr-2`}>
-                      <Text style={tw`text-sm font-extrabold text-[#1e293b]`}>{stop.name}</Text>
-                      <Text style={tw`text-xs text-[#64748b] mt-1`}>
+                      <Text style={tw`text-[15px] font-black text-slate-800`}>{stop.name}</Text>
+                      <Text style={tw`text-xs text-slate-400 font-semibold mt-1`}>
                         {stop.location_name || 'No location name'}{stop.location_landmark ? ` • ${stop.location_landmark}` : ''}
                       </Text>
                     </View>
                     <View style={tw`items-end`}>
                       <View style={tw`bg-[#e2e8f0] px-2.5 py-1 rounded-full mb-1`}>
-                        <Text style={tw`text-[9px] text-[#475569] font-black`}>{labelType}</Text>
+                        <Text style={tw`text-[9px] text-slate-500 font-black tracking-widest`}>{labelType}</Text>
                       </View>
                       {distanceStr ? (
-                        <Text style={tw`text-[11px] text-[#475569] font-bold mt-1`}>🚶 {distanceStr}</Text>
+                        <Text style={tw`text-xs text-slate-400 font-bold mt-1`}>🚶 {distanceStr}</Text>
                       ) : null}
                     </View>
                   </TouchableOpacity>
@@ -744,17 +744,17 @@ export default function PassengerBottomSheet({
       >
         <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
           <View style={tw`w-full max-w-[320px] bg-white rounded-3xl p-6 items-center shadow-2xl`}>
-            <Text style={tw`text-xs font-black text-slate-400 tracking-wider mb-2`}>SCAN TO JOIN</Text>
-            <Text style={tw`text-base font-black text-slate-800 mb-4`}>Circle Invite Code</Text>
-            
+            <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5`}>SCAN TO JOIN</Text>
+            <Text style={tw`text-lg font-black text-slate-800 mb-4`}>Circle Invite Code</Text>
+
             <Image
               source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${inviteCode}` }}
               style={tw`w-[200px] h-[200px] border border-slate-200 rounded-2xl p-2 bg-white`}
               contentFit="contain"
             />
-            
+
             <Text style={tw`text-xl font-black text-[#1e3a8a] tracking-widest font-mono mt-4`}>{inviteCode}</Text>
-            <Text style={tw`text-xs text-slate-500 font-semibold text-center mt-2 px-2 leading-4`}>
+            <Text style={tw`text-xs text-slate-400 font-semibold text-center mt-2 px-2 leading-relaxed`}>
               Have your friend scan this QR code or enter the code manually to join your circle.
             </Text>
 

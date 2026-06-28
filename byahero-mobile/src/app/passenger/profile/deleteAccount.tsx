@@ -52,13 +52,15 @@ export default function DeleteAccountScreen() {
             setIsLoading(true);
             try {
               const serverUrl = await getServerUrl();
-              const formData = new FormData();
-              formData.append('action', 'delete_account');
-              formData.append('confirmText', inputText.trim());
-
-              const response = await fetch(`${serverUrl}/public/auth_api.php`, {
+              const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+              
+              const response = await fetch(`${serverUrl}/api/passenger/profile/delete-account`, {
                 method: 'POST',
-                body: formData,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  confirmText: inputText.trim(),
+                  email: email
+                }),
                 credentials: 'include',
               });
               

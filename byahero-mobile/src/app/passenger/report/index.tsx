@@ -117,15 +117,15 @@ export default function ReportProblemScreen() {
 
     try {
       const serverUrl = await getServerUrl();
-      const formData = new FormData();
-      formData.append('bus_number', payload.bus_number);
-      formData.append('report_reason', payload.report_reason);
-      formData.append('contact_number', payload.contact_number);
-      formData.append('others_details', payload.others_details);
-
-      const res = await fetch(`${serverUrl}/passenger/report/submitReport.php?json=1`, {
+      const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+      
+      const res = await fetch(`${serverUrl}/api/passenger/report/submit`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          email: email
+        }),
         credentials: 'include',
       });
       const data = await res.json();

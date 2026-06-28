@@ -297,15 +297,15 @@ export default function SOSScreen() {
 
       <View style={{ flex: 1, height: '100%' }}>
         <ScrollView style={{ flex: 1, backgroundColor: '#ffffff' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-          
+
           {/* Location status bar */}
           <View style={tw`bg-[#f8fafc] rounded-2xl p-4 mb-6 border border-[#e2e8f0] flex-row items-center gap-4`}>
             <View style={tw`bg-[#103d7c]/10 w-10 h-10 rounded-full justify-center items-center`}>
               <Image source={require('../../../../assets/images/icons/my_location.svg')} style={tw`w-5 h-5`} contentFit="contain" />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-[10px] font-extrabold text-[#64748b] tracking-wider`}>YOUR CURRENT LOCATION</Text>
-              <Text style={tw`text-sm font-bold text-[#1e293b] mt-0.5`} numberOfLines={1}>{locationText}</Text>
+              <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest`}>YOUR CURRENT LOCATION</Text>
+              <Text style={tw`text-[15px] font-black text-slate-800 mt-0.5`} numberOfLines={1}>{locationText}</Text>
             </View>
           </View>
 
@@ -343,7 +343,7 @@ export default function SOSScreen() {
                 ]}
               >
                 <Text style={tw`text-white text-5xl font-black tracking-widest`}>SOS</Text>
-                <Text style={tw`text-white text-[11px] font-extrabold mt-1 tracking-wider`}>ALERT CIRCLE</Text>
+                <Text style={tw`text-white text-[12px] font-black mt-1.5 tracking-widest`}>ALERT CIRCLE</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -353,19 +353,59 @@ export default function SOSScreen() {
             {loadingFriends ? (
               <Text style={tw`text-xs text-[#64748b] italic`}>Checking circle contacts...</Text>
             ) : friends.length > 0 ? (
-              <Text style={tw`text-xs text-[#64748b] font-bold`}>
-                Your SOS will be sent to {friends.length} people in your circle.
-              </Text>
+              <>
+                {/* Facepile of circle members */}
+                <View style={tw`flex-row justify-center items-center mb-3.5`}>
+                  {friends.slice(0, 5).map((friend, idx) => {
+                    const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
+                    const profilePicUrl = friend.profile_picture
+                      ? ((friend.profile_picture.startsWith('http') || friend.profile_picture.startsWith('data:'))
+                        ? friend.profile_picture
+                        : `${baseUrl}/${friend.profile_picture}`)
+                      : null;
+
+                    return (
+                      <View
+                        key={friend.id || idx}
+                        style={[
+                          tw`w-10 h-10 rounded-full border-2 border-white justify-center items-center bg-[#dbeafe] overflow-hidden shadow-sm`,
+                          idx > 0 && tw`-ml-3`,
+                          { zIndex: 10 - idx }
+                        ]}
+                      >
+                        {profilePicUrl ? (
+                          <Image
+                            source={{ uri: profilePicUrl }}
+                            style={tw`w-full h-full`}
+                            contentFit="cover"
+                          />
+                        ) : (
+                          <Text style={tw`text-[#1e3a8a] font-bold text-xs`}>{initials}</Text>
+                        )}
+                      </View>
+                    );
+                  })}
+                  {friends.length > 5 && (
+                    <View style={[tw`w-10 h-10 rounded-full border-2 border-white justify-center items-center bg-slate-200 -ml-3 shadow-sm`, { zIndex: 5 }]}>
+                      <Text style={tw`text-slate-600 font-extrabold text-xs`}>+{friends.length - 5}</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={tw`text-sm font-black text-slate-700 text-center mt-1`}>
+                  Your SOS will be sent to {friends.length} people in your circle.
+                </Text>
+              </>
             ) : (
-              <Text style={tw`text-xs text-[#64748b] italic`}>No friends in your circle yet.</Text>
+              <Text style={tw`text-xs text-slate-400 font-medium italic`}>No friends in your circle yet.</Text>
             )}
-            <Text style={tw`text-[10px] text-[#94a3b8] text-center mt-2 px-6`}>
+            <Text style={tw`text-[11px] text-slate-400 font-semibold text-center mt-2 leading-relaxed px-8`}>
               Alerts will broadcast your live coordinates immediately to your circle members.
             </Text>
           </View>
 
           {/* Emergency Municipal Hotlines */}
-          <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mb-3`}>MUNICIPAL EMERGENCY HOTLINES</Text>
+          <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest mb-3.5 px-1`}>MUNICIPAL EMERGENCY HOTLINES</Text>
 
           <View style={tw`gap-2.5`}>
             {EMERGENCY_CONTACTS.map((contact, idx) => (
@@ -379,8 +419,8 @@ export default function SOSScreen() {
                     <MaterialIcons name={renderContactIcon(contact.type) as any} size={20} color="#103d7c" />
                   </View>
                   <View style={tw`flex-1`}>
-                    <Text style={tw`text-sm font-extrabold text-[#1e293b]`}>{contact.name}</Text>
-                    <Text style={tw`text-xs text-[#64748b] font-semibold mt-0.5`}>{contact.phone}</Text>
+                    <Text style={tw`text-[15px] font-black text-slate-800`}>{contact.name}</Text>
+                    <Text style={tw`text-xs text-slate-400 font-semibold mt-0.5`}>{contact.phone}</Text>
                   </View>
                 </View>
                 <View style={tw`bg-[#103d7c]/10 w-9 h-9 rounded-full justify-center items-center`}>
@@ -398,8 +438,8 @@ export default function SOSScreen() {
       {/* Countdown Overlay */}
       {showCountdown && (
         <View style={[tw`absolute inset-0 bg-white items-center justify-center z-[5000] px-6`, { width: SCREEN_WIDTH, height: SCREEN_HEIGHT }]}>
-          <Text style={tw`text-red-500 font-extrabold text-2xl mb-1`}>Slide to cancel</Text>
-          <Text style={tw`text-xs text-[#64748b] text-center mb-10 px-8`}>{countdownStatus}</Text>
+          <Text style={tw`text-red-500 font-black text-[26px] mb-1.5 tracking-wide`}>Slide to cancel</Text>
+          <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-10 leading-relaxed px-10`}>{countdownStatus}</Text>
 
           {/* Circle Timer */}
           <View style={tw`w-[170px] h-[170px] bg-red-500 rounded-full justify-center items-center shadow-2xl mb-12`}>
@@ -408,7 +448,7 @@ export default function SOSScreen() {
 
           {/* Slider Cancel Track */}
           <View style={[tw`bg-slate-100 border border-[#e2e8f0] relative justify-center`, { width: sliderWidth, height: 76, borderRadius: 38 }]}>
-            <Text style={tw`absolute w-full text-center text-red-500 font-extrabold text-xs pl-8`}>
+            <Text style={tw`absolute w-full text-center text-red-500 font-black text-xs tracking-wider pl-8`}>
               Slide right to cancel SOS
             </Text>
 
