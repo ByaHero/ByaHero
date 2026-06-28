@@ -22,7 +22,7 @@ export async function preWarmServer() {
     const baseUrl = await getServerUrl();
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
-    
+
     fetch(`${baseUrl}/api/ping`, { signal: controller.signal })
       .then(res => res.json())
       .then(data => {
@@ -96,7 +96,7 @@ export async function cacheSession(email, role, userDetails = {}) {
   try {
     await AsyncStorage.setItem('byahero_cached_email', email);
     await AsyncStorage.setItem('byahero_cached_role', role);
-    
+
     const contacts = userDetails.contacts || '';
     await AsyncStorage.setItem('byahero_cached_contacts', contacts);
     await AsyncStorage.setItem('byahero_cached_phone', contacts);
@@ -117,11 +117,11 @@ export async function cacheSession(email, role, userDetails = {}) {
  */
 export async function login(email, password, isOnline = true) {
   const cleanEmail = email.trim();
-  
+
   if (!isOnline) {
     const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
     const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
-    
+
     if (cachedEmail && cachedEmail.toLowerCase() === cleanEmail.toLowerCase()) {
       return { success: true, offline: true, role: cachedRole };
     } else {
@@ -130,7 +130,7 @@ export async function login(email, password, isOnline = true) {
   }
 
   const data = await apiRequest('login', { email: cleanEmail, password });
-  
+
   if (data.success) {
     let role = 'passenger';
     if (data.redirect?.includes('conductor')) role = 'conductor';
@@ -149,7 +149,7 @@ const decodeBase64 = (input) => {
   let str = input.replace(/=+$/, '');
   let output = '';
   if (str.length % 4 === 1) return null;
-  for (let bc = 0, bs = 0, buffer, idx = 0; (buffer = str.charAt(idx++)); ) {
+  for (let bc = 0, bs = 0, buffer, idx = 0; (buffer = str.charAt(idx++));) {
     buffer = chars.indexOf(buffer);
     if (~buffer) {
       bs = bc % 4 ? bs * 64 + buffer : buffer;
@@ -166,12 +166,12 @@ const decodeJwtPayload = (token) => {
     const parts = token.split('.');
     if (parts.length !== 3) return null;
     let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
-    
+
     // Add standard base64 padding if missing
     while (base64.length % 4) {
       base64 += '=';
     }
-    
+
     let decoded;
     if (typeof atob === 'function') {
       decoded = atob(base64);
@@ -190,18 +190,18 @@ const decodeJwtPayload = (token) => {
  */
 export async function googleAuth(idToken) {
   const data = await apiRequest('google_auth', { credential: idToken });
-  
+
   if (data.success) {
     const email = data.user?.email || 'Guest';
     let role = 'passenger';
-    
+
     // Decode ID Token to retrieve Google Profile Picture URL
     const payload = decodeJwtPayload(idToken);
     if (payload && payload.picture) {
       if (!data.user) data.user = {};
       data.user.profile_picture = payload.picture;
     }
-    
+
     await cacheSession(email, role, data.user);
     return { success: true, role, redirect: data.redirect, user: data.user };
   } else {
@@ -249,7 +249,7 @@ export async function signupVerifyOtp(email, otp) {
  */
 export async function forgotRequestOtp(email) {
   const data = await apiRequest('request_otp', { email: email.trim() });
-  
+
   if (data.success) {
     return { success: true, devOtp: data.dev_otp };
   } else {
