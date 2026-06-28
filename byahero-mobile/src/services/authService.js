@@ -1,17 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
+const DEFAULT_SERVER_URL = 'http://192.168.1.12/ByaHero/laravel-backend/public';
 
 /**
  * Gets the configured backend base URL from storage.
  */
 export async function getServerUrl() {
-  try {
-    const url = await AsyncStorage.getItem('byahero_server_url');
-    return url || DEFAULT_SERVER_URL;
-  } catch (e) {
-    return DEFAULT_SERVER_URL;
-  }
+  // Temporarily bypass AsyncStorage because it's caching the production URL
+  return DEFAULT_SERVER_URL;
 }
 
 /**
