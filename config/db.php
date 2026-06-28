@@ -88,7 +88,7 @@ function db(): mysqli {
     $host_addr = $_SERVER['REMOTE_ADDR'] ?? '';
     
     // Use localhost fallback ONLY if running locally, and database host is not defined in environments
-    $is_localhost = ($is_cli || $host_addr === '127.0.0.1' || $host_addr === '::1');
+    $is_localhost = ($is_cli || $host_addr === '127.0.0.1' || $host_addr === '::1' || strpos($host_addr, '192.168.') === 0 || strpos($host_addr, '10.') === 0);
 
     if ($is_localhost && empty($env_host)) {
         $host = '127.0.0.1';

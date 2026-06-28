@@ -208,16 +208,21 @@ class AdminController extends Controller
         $action = $request->input('action');
 
         if ($action === 'save_routes') {
+            $parseTime = function($timeStr) {
+                if (!$timeStr) return null;
+                return date('H:i:s', strtotime($timeStr));
+            };
+
             $schedules = [
                 'LAUREL - TANAUAN' => [
-                    'time_open' => $request->input('lt_open'),
-                    'time_close' => $request->input('lt_close'),
+                    'time_open' => $parseTime($request->input('lt_open')),
+                    'time_close' => $parseTime($request->input('lt_close')),
                     'is_suspended' => $request->input('lt_suspended') ? 1 : 0,
                     'suspend_message' => $request->input('lt_message'),
                 ],
                 'TANAUAN - LAUREL' => [
-                    'time_open' => $request->input('tl_open'),
-                    'time_close' => $request->input('tl_close'),
+                    'time_open' => $parseTime($request->input('tl_open')),
+                    'time_close' => $parseTime($request->input('tl_close')),
                     'is_suspended' => $request->input('tl_suspended') ? 1 : 0,
                     'suspend_message' => $request->input('tl_message'),
                 ]
