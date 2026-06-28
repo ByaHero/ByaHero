@@ -73,7 +73,7 @@ export default function StaticPagesScreen() {
           body: (
             <View style={tw`items-center`}>
               <Image 
-                source={require('../../../../assets/images/logo-glow.png')} 
+                source={require('../../../../assets/images/byaheroLogoBlue.svg')} 
                 style={tw`w-36 h-36 mb-6`} 
                 contentFit="contain" 
               />

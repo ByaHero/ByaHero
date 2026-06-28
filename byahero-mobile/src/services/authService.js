@@ -144,6 +144,47 @@ export async function login(email, password, isOnline = true) {
   }
 }
 
+const decodeBase64 = (input) => {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
+  let str = input.replace(/=+$/, '');
+  let output = '';
+  if (str.length % 4 === 1) return null;
+  for (let bc = 0, bs = 0, buffer, idx = 0; (buffer = str.charAt(idx++)); ) {
+    buffer = chars.indexOf(buffer);
+    if (~buffer) {
+      bs = bc % 4 ? bs * 64 + buffer : buffer;
+      if (bc++ % 4) {
+        output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6)));
+      }
+    }
+  }
+  return output;
+};
+
+const decodeJwtPayload = (token) => {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    
+    // Add standard base64 padding if missing
+    while (base64.length % 4) {
+      base64 += '=';
+    }
+    
+    let decoded;
+    if (typeof atob === 'function') {
+      decoded = atob(base64);
+    } else {
+      decoded = decodeBase64(base64);
+    }
+    return decoded ? JSON.parse(decoded) : null;
+  } catch (e) {
+    console.error('Failed decoding JWT payload:', e);
+    return null;
+  }
+};
+
 /**
  * Google Sign-In backend verification.
  */
@@ -153,6 +194,14 @@ export async function googleAuth(idToken) {
   if (data.success) {
     const email = data.user?.email || 'Guest';
     let role = 'passenger';
+    
+    // Decode ID Token to retrieve Google Profile Picture URL
+    const payload = decodeJwtPayload(idToken);
+    if (payload && payload.picture) {
+      if (!data.user) data.user = {};
+      data.user.profile_picture = payload.picture;
+    }
+    
     await cacheSession(email, role, data.user);
     return { success: true, role, redirect: data.redirect, user: data.user };
   } else {

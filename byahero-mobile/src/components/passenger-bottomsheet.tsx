@@ -39,12 +39,13 @@ interface PassengerBottomSheetProps {
   translateY: Animated.Value;
   handleRemoveCircleMember: (friendId: number, name: string) => void;
   activeStep?: number | null;
+  menuVisible: boolean;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
 const MAX_UP = 0; // Fully expanded (70% of screen height)
 const MED_UP = SCREEN_HEIGHT * 0.3; // Half-expanded (40% of screen height)
-const MIN_UP = SCREEN_HEIGHT * 0.58; // Collapsed (12% of screen height)
+const MIN_UP = (SCREEN_HEIGHT * 0.7) - 120; // Collapsed (exactly 120px visible height)
 
 // Haversine formula to compute distance in km
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -83,6 +84,7 @@ export default function PassengerBottomSheet({
   translateY,
   handleRemoveCircleMember,
   activeStep,
+  menuVisible,
 }: PassengerBottomSheetProps) {
 
   const lastTranslatedY = useRef(MED_UP);
@@ -171,7 +173,8 @@ export default function PassengerBottomSheet({
         }
       ]}
     >
-      {/* Drag Handle indicator */}
+      <View style={tw`flex-1 rounded-t-2xl overflow-hidden`}>
+        {/* Drag Handle indicator */}
       <View style={tw`w-full py-3.5 items-center bg-white rounded-t-3xl`}>
         <View style={tw`w-20 h-1.5 bg-[#e2e8f0] rounded-full`} />
       </View>
@@ -779,6 +782,7 @@ export default function PassengerBottomSheet({
           </View>
         </View>
       </Modal>
+      </View>
     </Animated.View>
   );
 }

@@ -20,7 +20,7 @@ import { handleTourLayout } from './TourRegistry';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../services/authService';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 interface PassengerHeaderProps {
   onTriggerSOS?: () => void;
@@ -28,10 +28,23 @@ interface PassengerHeaderProps {
   showBackButton?: boolean;
   showCloseButton?: boolean;
   activeStep?: number | null;
+  menuVisible?: boolean;
+  setMenuVisible?: (visible: boolean) => void;
 }
 
-export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showCloseButton, activeStep }: PassengerHeaderProps) {
-  const [menuVisible, setMenuVisible] = useState(false);
+export function PassengerHeader({
+  onTriggerSOS,
+  pageTitle,
+  showBackButton,
+  showCloseButton,
+  activeStep,
+  menuVisible: menuVisibleProp,
+  setMenuVisible: setMenuVisibleProp,
+}: PassengerHeaderProps) {
+  const [localMenuVisible, setLocalMenuVisible] = useState(false);
+  const menuVisible = menuVisibleProp !== undefined ? menuVisibleProp : localMenuVisible;
+  const setMenuVisible = setMenuVisibleProp !== undefined ? setMenuVisibleProp : setLocalMenuVisible;
+
   const [userName, setUserName] = useState('Guest');
   const [userInitial, setUserInitial] = useState('?');
   const [userProfilePic, setUserProfilePic] = useState('');
@@ -49,6 +62,8 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
 
   // Auto-open menu drawer if we are on step 10, 12, or 14 to showcase menu options!
   useEffect(() => {
+    if (activeStep === null || activeStep === undefined) return;
+
     if (activeStep === 10 || activeStep === 12 || activeStep === 14) {
       setMenuVisible(true);
       Animated.parallel([
@@ -218,7 +233,8 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
         {
           paddingTop: insets.top,
           height: 56 + insets.top,
-          zIndex: 2002
+          zIndex: menuVisible ? 0 : 2002,
+          elevation: menuVisible ? 0 : undefined,
         }
       ]}>
         <View style={tw`h-14 flex-row items-center justify-between px-4`}>
@@ -292,107 +308,106 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
         </View>
       </View>
 
-      {/* Offcanvas Menu Modal */}
-      <Modal
-        animationType="none"
-        transparent={true}
-        visible={menuVisible}
-        onRequestClose={closeMenu}
-      >
-        <View style={tw`flex-1 flex-row justify-end relative`}>
-          {/* Animated Dim Backdrop */}
-          <Animated.View
-            style={[
-              tw`absolute inset-0 bg-black`,
-              {
-                opacity: backdropOpacity,
-              }
-            ]}
-          >
-            <TouchableWithoutFeedback onPress={closeMenu}>
-              <View style={tw`flex-1`} />
-            </TouchableWithoutFeedback>
-          </Animated.View>
+      {/* Offcanvas Menu View */}
+      {menuVisible && (
+        <View style={[tw`absolute z-[3000]`, { width, height, top: 0, left: 0, elevation: 20 }]}>
+          <View style={[tw`flex-row justify-end relative`, { width, height }]}>
+            {/* Animated Dim Backdrop */}
+            <Animated.View
+              style={[
+                tw`absolute inset-0 bg-black`,
+                {
+                  opacity: backdropOpacity,
+                  height,
+                }
+              ]}
+            >
+              <TouchableWithoutFeedback onPress={closeMenu}>
+                <View style={{ width, height }} />
+              </TouchableWithoutFeedback>
+            </Animated.View>
 
-          {/* Sliding Menu Panel */}
-          <Animated.View
-            style={[
-              tw`h-full bg-white shadow-2xl`,
-              {
-                width: width * 0.8,
-                transform: [{ translateX: slideAnim }],
-              }
-            ]}
-          >
-            {/* Header Block */}
-            <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
-              <TouchableOpacity
-                onPress={closeMenu}
-                style={tw`absolute top-3 right-3 p-1`}
-              >
-                <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
-              </TouchableOpacity>
-              <View style={tw`flex-row items-center gap-3 mt-4 mb-2`}>
-                {renderAvatar()}
-                <Text style={tw`text-white font-bold text-xl flex-1 text-wrap`} numberOfLines={2}>
-                  {userName}
-                </Text>
+            {/* Sliding Menu Panel */}
+            <Animated.View
+              style={[
+                tw`bg-white shadow-2xl`,
+                {
+                  width: width * 0.8,
+                  height,
+                  transform: [{ translateX: slideAnim }],
+                }
+              ]}
+            >
+              {/* Header Block */}
+              <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
+                <TouchableOpacity
+                  onPress={closeMenu}
+                  style={tw`absolute top-3 right-3 p-1`}
+                >
+                  <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
+                </TouchableOpacity>
+                <View style={tw`flex-row items-center gap-3 mt-4 mb-2`}>
+                  {renderAvatar()}
+                  <Text style={tw`text-white font-bold text-xl flex-1 text-wrap`} numberOfLines={2}>
+                    {userName}
+                  </Text>
+                </View>
               </View>
-            </View>
 
-            {/* Menu Items List */}
-            <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
-              {menuItems.map((item, idx) => {
-                const isItemHighlighted = activeStep === 10 && item.highlightKey === 'menu-history' ||
-                  activeStep === 12 && item.highlightKey === 'menu-feedback' ||
-                  activeStep === 14 && item.highlightKey === 'menu-report';
-                const itemRef = getRef(item.highlightKey);
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    ref={itemRef}
-                    onLayout={() => {
-                      if (item.highlightKey && itemRef) {
-                        handleTourLayout(item.highlightKey, itemRef);
-                      }
-                    }}
-                    onPress={() => {
-                      Animated.parallel([
-                        Animated.timing(backdropOpacity, {
-                          toValue: 0,
-                          duration: 200,
-                          useNativeDriver: true,
-                        }),
-                        Animated.timing(slideAnim, {
-                          toValue: width,
-                          duration: 200,
-                          useNativeDriver: true,
-                        }),
-                      ]).start(() => {
-                        setMenuVisible(false);
-                        router.push(item.route as any);
-                      });
-                    }}
-                    style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
-                  >
-                    <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
-                    <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
-                  </TouchableOpacity>
-                );
-              })}
+              {/* Menu Items List */}
+              <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+                {menuItems.map((item, idx) => {
+                  const isItemHighlighted = activeStep === 10 && item.highlightKey === 'menu-history' ||
+                    activeStep === 12 && item.highlightKey === 'menu-feedback' ||
+                    activeStep === 14 && item.highlightKey === 'menu-report';
+                  const itemRef = getRef(item.highlightKey);
+                  return (
+                    <TouchableOpacity
+                      key={idx}
+                      ref={itemRef}
+                      onLayout={() => {
+                        if (item.highlightKey && itemRef) {
+                          handleTourLayout(item.highlightKey, itemRef);
+                        }
+                      }}
+                      onPress={() => {
+                        Animated.parallel([
+                          Animated.timing(backdropOpacity, {
+                            toValue: 0,
+                            duration: 200,
+                            useNativeDriver: true,
+                          }),
+                          Animated.timing(slideAnim, {
+                            toValue: width,
+                            duration: 200,
+                            useNativeDriver: true,
+                          }),
+                        ]).start(() => {
+                          setMenuVisible(false);
+                          router.push(item.route as any);
+                        });
+                      }}
+                      style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
+                    >
+                      <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
+                      <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
 
-              {/* Logout Button */}
-              <TouchableOpacity
-                onPress={handleLogout}
-                style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4 mt-2`}
-              >
-                <Image source={require('../../assets/images/logout.svg')} style={tw`w-7 h-7`} contentFit="contain" />
-                <Text style={tw`text-red-600 font-bold text-sm`}>Log out</Text>
-              </TouchableOpacity>
-            </ScrollView>
-          </Animated.View>
+                {/* Logout Button */}
+                <TouchableOpacity
+                  onPress={handleLogout}
+                  style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4 mt-2`}
+                >
+                  <Image source={require('../../assets/images/logout.svg')} style={tw`w-7 h-7`} contentFit="contain" />
+                  <Text style={tw`text-red-600 font-bold text-sm`}>Log out</Text>
+                </TouchableOpacity>
+              </ScrollView>
+            </Animated.View>
+          </View>
         </View>
-      </Modal>
+      )}
     </>
   );
 }
@@ -467,7 +482,7 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           onLayout={() => handleTourLayout('sos-btn', sosRef)}
           style={[
             tw`w-[100px] rounded-t-[50px] bg-[#2563eb] absolute justify-start items-center pt-3.5 shadow-lg`,
-            { top: -1, height: 76 + insets.bottom }
+            { top: -1, height: 76 }
           ]}
           onPress={() => handleTabPress('sos')}
         >

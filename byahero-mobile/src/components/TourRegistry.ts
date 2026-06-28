@@ -11,6 +11,7 @@ type RegistryListener = (layouts: Record<string, LayoutRect>) => void;
 
 class TourRegistry {
   private layouts: Record<string, LayoutRect> = {};
+  private refs: Record<string, any> = {};
   private listeners = new Set<RegistryListener>();
 
   setLayout(key: string, rect: LayoutRect) {
@@ -30,6 +31,14 @@ class TourRegistry {
 
   getLayout(key: string): LayoutRect | undefined {
     return this.layouts[key];
+  }
+
+  registerRef(key: string, ref: any) {
+    this.refs[key] = ref;
+  }
+
+  getRef(key: string): any {
+    return this.refs[key];
   }
 
   subscribe(listener: RegistryListener) {
@@ -54,6 +63,7 @@ export function useTourLayouts() {
 }
 
 export const handleTourLayout = (key: string, ref: any) => {
+  tourRegistry.registerRef(key, ref);
   ref?.current?.measureInWindow((x: number, y: number, width: number, height: number) => {
     if (width > 0 && height > 0) {
       tourRegistry.setLayout(key, { x, y, width, height });

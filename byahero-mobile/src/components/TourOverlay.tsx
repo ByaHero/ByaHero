@@ -7,11 +7,12 @@ import {
   Modal,
   Animated,
   Dimensions,
+  StatusBar,
 } from 'react-native';
 import { router, usePathname } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
-import { useTourLayouts } from './TourRegistry';
+import { useTourLayouts, tourRegistry, LayoutRect } from './TourRegistry';
 
 export interface TourStep {
   title: string;
@@ -149,9 +150,10 @@ interface TourOverlayProps {
   currentStep: number;
   onStepChange: (step: number) => void;
   onClose: () => void;
+  translateY?: Animated.Value;
 }
 
-export default function TourOverlay({ currentStep, onStepChange, onClose }: TourOverlayProps) {
+export default function TourOverlay({ currentStep, onStepChange, onClose, translateY }: TourOverlayProps) {
   const pathname = usePathname();
   const layouts = useTourLayouts();
   const step = tourSteps[currentStep];
@@ -167,26 +169,93 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
     ).start();
   }, [currentStep]);
 
+  const isHighlightInMenu = 
+    step?.highlight === 'menu-history' ||
+    step?.highlight === 'menu-feedback' ||
+    step?.highlight === 'menu-report';
+
+  const isBottomSheetTab = 
+    step?.highlight === 'tab-location' ||
+    step?.highlight === 'tab-routes' ||
+    step?.highlight === 'tab-groups' ||
+    step?.highlight === 'tab-busstops';
+
+  const SCREEN_WIDTH = Dimensions.get('window').width;
+  const SCREEN_HEIGHT = Dimensions.get('window').height;
+
+  const [activeLayout, setActiveLayout] = useState<LayoutRect | null>(null);
+  const [translateYVal, setTranslateYVal] = useState(0);
+
+  useEffect(() => {
+    if (!translateY) return;
+    
+    const listenerId = translateY.addListener(({ value }) => {
+      setTranslateYVal(value);
+    });
+    
+    if ((translateY as any)._value !== undefined) {
+      setTranslateYVal((translateY as any)._value);
+    }
+
+    return () => {
+      translateY.removeListener(listenerId);
+    };
+  }, [translateY]);
+
+  useEffect(() => {
+    if (!step) return;
+    let active = true;
+    const key = step.highlight;
+    if (!key) {
+      setActiveLayout(null);
+      return;
+    }
+
+    const measure = () => {
+      const ref = tourRegistry.getRef(key);
+      if (ref?.current) {
+        ref.current.measureInWindow((x: number, y: number, width: number, height: number) => {
+          if (active && width > 0 && height > 0) {
+            const statusBarOffset = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+            const adjustedY = y + statusBarOffset;
+            setActiveLayout({ x, y: adjustedY, width, height });
+          }
+        });
+      } else {
+        const cached = layouts[key];
+        if (cached) {
+          const statusBarOffset = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
+          const adjustedY = cached.y + statusBarOffset;
+          setActiveLayout({ ...cached, y: adjustedY });
+        } else if (key === 'user-marker') {
+          setActiveLayout({
+            x: SCREEN_WIDTH / 2 - 25,
+            y: SCREEN_HEIGHT / 2 - 80,
+            width: 50,
+            height: 50,
+          });
+        } else {
+          setActiveLayout(null);
+        }
+      }
+    };
+
+    measure();
+    const timer1 = setTimeout(measure, 100);
+    const timer2 = setTimeout(measure, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [currentStep, step?.highlight, layouts, SCREEN_WIDTH, SCREEN_HEIGHT, translateYVal, isBottomSheetTab]);
+
   if (!step) return null;
 
   const cleanPath = (p: string) => p.replace(/\/$/, '').replace(/\/index$/, '');
   if (cleanPath(pathname) !== cleanPath(step.screen)) {
     return null;
-  }
-
-  const SCREEN_WIDTH = Dimensions.get('window').width;
-  const SCREEN_HEIGHT = Dimensions.get('window').height;
-
-  let activeLayout = step.highlight ? layouts[step.highlight] : null;
-
-  // Approximate user-marker (centered on screen)
-  if (step.highlight === 'user-marker' && !activeLayout) {
-    activeLayout = {
-      x: SCREEN_WIDTH / 2 - 25,
-      y: SCREEN_HEIGHT / 2 - 80,
-      width: 50,
-      height: 50,
-    };
   }
 
   const handleNext = async () => {
@@ -230,25 +299,20 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
     router.replace('/passenger');
   };
 
-  const isHighlightInMenu = 
-    step.highlight === 'menu-history' ||
-    step.highlight === 'menu-feedback' ||
-    step.highlight === 'menu-report';
-
   return (
-    <Modal transparent={true} animationType="none" visible={true}>
+    <Modal transparent={true} statusBarTranslucent={true} animationType="none" visible={true}>
       <View style={tw`flex-1 relative`}>
         {activeLayout ? (
           <>
-            {/* 4 dark background panels surrounding the cutout */}
-            {/* Top panel — extend 1px into cutout row to eliminate seam */}
-            <View style={[tw`absolute left-0 right-0 top-0 bg-slate-950/60`, { height: activeLayout.y + 1 }]} />
-            {/* Bottom panel — start 1px earlier to eliminate seam */}
-            <View style={[tw`absolute left-0 right-0 bottom-0 bg-slate-950/60`, { top: activeLayout.y + activeLayout.height - 1 }]} />
-            {/* Left panel */}
-            <View style={[tw`absolute left-0 bg-slate-950/60`, { top: activeLayout.y, height: activeLayout.height, width: activeLayout.x }]} />
-            {/* Right panel */}
-            <View style={[tw`absolute right-0 bg-slate-950/60`, { top: activeLayout.y, height: activeLayout.height, left: activeLayout.x + activeLayout.width }]} />
+            {/* 4 dark background panels surrounding the cutout (adjacent columns layout to eliminate horizontal overlap seams) */}
+            {/* Left column */}
+            <View style={[tw`absolute left-0 top-0 bottom-0 bg-slate-950/60`, { width: activeLayout.x }]} />
+            {/* Right column */}
+            <View style={[tw`absolute right-0 top-0 bottom-0 bg-slate-950/60`, { left: activeLayout.x + activeLayout.width }]} />
+            {/* Top panel (middle column) */}
+            <View style={[tw`absolute bg-slate-950/60`, { left: activeLayout.x, width: activeLayout.width, top: 0, height: activeLayout.y }]} />
+            {/* Bottom panel (middle column) */}
+            <View style={[tw`absolute bg-slate-950/60`, { left: activeLayout.x, width: activeLayout.width, top: activeLayout.y + activeLayout.height, bottom: 0 }]} />
 
             {/* Pulsing highlight border */}
             <Animated.View
@@ -279,7 +343,7 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
                   const spaceAbove = activeLayout.y;
                   const spaceBelow = SCREEN_HEIGHT - (activeLayout.y + activeLayout.height);
                   const CARD_SAFE = 220; // approx popover height + padding
-                  if (spaceAbove >= spaceBelow) {
+                  if (isBottomSheetTab || spaceAbove >= spaceBelow) {
                     // Place above, but clamp so card doesn't go off top
                     const bottomVal = SCREEN_HEIGHT - activeLayout.y + 12;
                     return { bottom: Math.min(bottomVal, SCREEN_HEIGHT - CARD_SAFE) };
@@ -294,7 +358,7 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
           ]}
         >
           {/* Arrow BEFORE card — when target is above (card below target, arrow points up) */}
-          {activeLayout && activeLayout.y < (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
+          {activeLayout && !isBottomSheetTab && activeLayout.y < (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
             <View
               style={[
                 tw`w-0 h-0 border-8 border-transparent`,
@@ -344,7 +408,7 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
           </View>
 
           {/* Arrow AFTER card — when target is below (card above target, arrow points down) */}
-          {activeLayout && activeLayout.y >= (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
+          {activeLayout && (isBottomSheetTab || activeLayout.y >= (SCREEN_HEIGHT - activeLayout.y - activeLayout.height)) && (
             <View
               style={[
                 tw`w-0 h-0 border-8 border-transparent`,

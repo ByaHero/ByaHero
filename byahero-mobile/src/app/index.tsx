@@ -19,6 +19,7 @@ import tw from 'twrnc';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { login, googleAuth, getServerUrl, setServerUrl, cacheSession, preWarmServer } from '../services/authService';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -43,6 +44,32 @@ export default function LoginScreen() {
       // Trigger backend pre-warm immediately on mount
       preWarmServer();
     });
+
+    // Check for existing user session to auto-login
+    const checkAutoLogin = async () => {
+      try {
+        const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
+        const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
+        const cachedContacts = await AsyncStorage.getItem('byahero_cached_contacts') || '';
+
+        if (cachedEmail && cachedRole) {
+          if (cachedRole === 'conductor') {
+            router.replace('/conductor');
+          } else if (cachedRole === 'admin') {
+            router.replace('/admin');
+          } else {
+            if (!cachedContacts) {
+              router.replace('/passenger/completeProfile' as any);
+            } else {
+              router.replace('/passenger');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Auto-login session restoration failed:', err);
+      }
+    };
+    checkAutoLogin();
   }, []);
 
   const handleLogoTap = () => {
@@ -98,7 +125,12 @@ export default function LoginScreen() {
       } else if (result.role === 'admin') {
         router.replace('/admin');
       } else {
-        router.replace('/passenger');
+        const hasContacts = result.user?.contacts || '';
+        if (!hasContacts) {
+          router.replace('/passenger/completeProfile' as any);
+        } else {
+          router.replace('/passenger');
+        }
       }
     } catch (error) {
       clearTimeout(timer);
@@ -143,7 +175,13 @@ export default function LoginScreen() {
           clearTimeout(timer);
           setIsLoading(false);
           setShowWarmingUpMsg(false);
-          router.replace('/passenger');
+
+          const hasContacts = authResult.user?.contacts || '';
+          if (!hasContacts) {
+            router.replace('/passenger/completeProfile' as any);
+          } else {
+            router.replace('/passenger');
+          }
         } else {
           clearTimeout(timer);
           setIsLoading(false);
