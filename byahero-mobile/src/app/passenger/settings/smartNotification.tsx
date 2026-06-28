@@ -110,7 +110,7 @@ export default function SmartNotificationScreen() {
         return;
       }
 
-      const tokenData = await Notifications.getExpoPushTokenAsync();
+      const tokenData = await Notifications.getDevicePushTokenAsync();
       const token = tokenData.data;
       
       await AsyncStorage.setItem('sos_fcm_active_token', token);
@@ -135,7 +135,8 @@ export default function SmartNotificationScreen() {
       }
     } catch (e) {
       setIsSubscribing(false);
-      Alert.alert('Error', 'Failed to register push token.');
+      console.error('[FCM Registration Error]', e);
+      Alert.alert('Error', `Failed to register push token: ${(e as any).message || e}`);
     }
   };
 

@@ -31,8 +31,8 @@ export default function DeleteAccountScreen() {
   }, []);
 
   const handleDeleteAccount = async () => {
-    if (inputText.trim() !== 'delete my account') {
-      Alert.alert('Validation Error', 'Please type exactly "delete my account" to confirm.');
+    if (inputText.trim().toLowerCase() !== 'delete') {
+      Alert.alert('Validation Error', 'Please type exactly "delete" to confirm.');
       return;
     }
     if (!understandCheck) {
@@ -53,7 +53,7 @@ export default function DeleteAccountScreen() {
             try {
               const serverUrl = await getServerUrl();
               const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-              
+
               const response = await fetch(`${serverUrl}/api/passenger/profile/delete-account`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -63,10 +63,10 @@ export default function DeleteAccountScreen() {
                 }),
                 credentials: 'include',
               });
-              
+
               const data = await response.json();
               setIsLoading(false);
-              
+
               if (data && data.success) {
                 await AsyncStorage.removeItem('byahero_cached_email');
                 await AsyncStorage.removeItem('byahero_cached_role');
@@ -127,11 +127,11 @@ export default function DeleteAccountScreen() {
             {/* Text Input Confirmation */}
             <View style={tw`mb-4`}>
               <Text style={tw`text-xs font-bold text-slate-400 mb-1.5`}>
-                Type "delete my account" to Confirm
+                Type "delete" to Confirm
               </Text>
               <TextInput
                 style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700`}
-                placeholder="delete my account"
+                placeholder="delete"
                 autoCapitalize="none"
                 value={inputText}
                 onChangeText={setInputText}
@@ -152,7 +152,7 @@ export default function DeleteAccountScreen() {
             </View>
 
             {/* Action Buttons */}
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={handleDeleteAccount}
               disabled={isLoading}
               style={tw`bg-[#dc2626] py-3.5 rounded-2xl items-center mb-3 shadow-md`}
@@ -162,7 +162,7 @@ export default function DeleteAccountScreen() {
               </Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => router.back()}
               style={tw`bg-slate-100 py-3.5 rounded-2xl items-center border border-slate-200`}
             >

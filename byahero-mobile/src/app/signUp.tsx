@@ -89,7 +89,7 @@ export default function SignUpScreen() {
         Alert.alert('Success', 'Verification complete!', [
           {
             text: 'OK',
-            onPress: () => router.replace('/passenger'),
+            onPress: () => router.replace('/passenger/completeProfile' as any),
           },
         ]);
       }
