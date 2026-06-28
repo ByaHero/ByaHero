@@ -72,11 +72,16 @@ class BusController extends Controller
             }
 
             // Map keys to match legacy API casing/naming expectations
-            $r['current_operation_id'] = DB::table('bus_operations')
+            $currentOpId = DB::table('bus_operations')
                 ->where('bus_id', $busId)
                 ->where('status', 'active')
                 ->orderBy('id', 'desc')
                 ->value('id');
+
+            if (empty($currentOpId)) {
+                continue;
+            }
+            $r['current_operation_id'] = $currentOpId;
 
             $out[] = $r;
         }

@@ -75,6 +75,14 @@ Route::middleware([
     Route::get('/admin/waiting-passengers', [AdminController::class, 'listWaitingPassengers']);
     Route::post('/admin/waiting-passengers', [AdminController::class, 'manageWaitingPassengers']);
     Route::match(['get', 'post'], '/admin/profile', [AdminController::class, 'updateProfile']);
+    
+    // Missing Admin Modules
+    Route::get('/admin/fares', [AdminController::class, 'listFares']);
+    Route::post('/admin/fares', [AdminController::class, 'manageFares']);
+    Route::get('/admin/lost-and-found', [AdminController::class, 'listLostAndFound']);
+    Route::post('/admin/lost-and-found', [AdminController::class, 'manageLostAndFound']);
+    Route::get('/admin/reports', [AdminController::class, 'listReports']);
+    Route::post('/admin/reports', [AdminController::class, 'manageReports']);
 
     // Conductor routes
     Route::match(['get', 'post'], '/conductor/status', [ConductorController::class, 'getStatus']);

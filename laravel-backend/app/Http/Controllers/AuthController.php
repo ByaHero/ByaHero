@@ -335,11 +335,25 @@ class AuthController extends Controller
         if (empty($credential)) {
             return response()->json(['success' => false, 'message' => 'Credential token missing']);
         }
+        // Parse and decode Google ID Token (JWT)
+        $parts = explode('.', $credential);
+        if (count($parts) !== 3) {
+            return response()->json(['success' => false, 'message' => 'Invalid credential format']);
+        }
 
-        // Mock Google Verification (corresponds to legacy google auth check)
-        $email = 'timothybibat654@gmail.com';
-        $name = 'Timothy Irwin';
-        $googleId = 'google-id-123456';
+        $payloadJson = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1]));
+        if (!$payloadJson) {
+            return response()->json(['success' => false, 'message' => 'Failed to decode credential payload']);
+        }
+
+        $payload = json_decode($payloadJson, true);
+        if (!is_array($payload) || empty($payload['email'])) {
+            return response()->json(['success' => false, 'message' => 'Invalid credential payload']);
+        }
+
+        $email = $payload['email'];
+        $name = $payload['name'] ?? explode('@', $email)[0];
+        $googleId = $payload['sub'] ?? null;
 
         $user = User::where('email', $email)->first();
         if (!$user) {

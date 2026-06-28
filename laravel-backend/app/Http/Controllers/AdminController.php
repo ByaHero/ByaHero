@@ -535,4 +535,322 @@ class AdminController extends Controller
             ]
         ]);
     }
+
+    // --- BUS FARE MANAGEMENT ---
+    public function listFares(Request $request)
+    {
+        $this->checkAuth();
+        $fares = DB::table('bus_fares')->get();
+        
+        $snapshots = [];
+        try {
+            $snapshots = DB::table('bus_fare_snapshots')->orderBy('created_at', 'desc')->get();
+        } catch (\Exception $e) {}
+
+        return response()->json([
+            'success' => true,
+            'fares' => $fares,
+            'snapshots' => $snapshots
+        ]);
+    }
+
+    public function manageFares(Request $request)
+    {
+        $this->checkAuth();
+        $action = $request->input('action');
+
+        try {
+            if ($action === 'update_fare') {
+                $fareId = (int)$request->input('fare_id');
+                $regular = $request->input('regular_fare');
+                $discounted = $request->input('discounted_fare');
+
+                if ($fareId <= 0) {
+                    return response()->json(['success' => false, 'error' => 'Invalid fare selected.']);
+                }
+                if ($regular === null || $discounted === null || $regular < 0 || $discounted < 0) {
+                    return response()->json(['success' => false, 'error' => 'Valid, non-negative fares are required.']);
+                }
+                if ($discounted > $regular) {
+                    return response()->json(['success' => false, 'error' => 'Discounted fare cannot be higher than regular fare.']);
+                }
+
+                DB::table('bus_fares')
+                    ->where('fare_id', $fareId)
+                    ->update([
+                        'regular_fare' => round((float)$regular, 2),
+                        'discounted_fare' => round((float)$discounted, 2),
+                        'updated_at' => now()
+                    ]);
+
+                return response()->json(['success' => true, 'message' => 'Fare updated successfully.']);
+            } 
+            
+            elseif ($action === 'update_multiple_fares') {
+                $regFares = $request->input('regular_fare', []);
+                $discFares = $request->input('discounted_fare', []);
+
+                $affected = 0;
+                foreach ($regFares as $id => $reg) {
+                    $id = (int)$id;
+                    $regVal = $reg !== null ? round((float)$reg, 2) : null;
+                    $discVal = isset($discFares[$id]) && $discFares[$id] !== null ? round((float)$discFares[$id], 2) : null;
+
+                    if ($regVal !== null && $discVal !== null && $regVal >= 0 && $discVal >= 0 && $discVal <= $regVal) {
+                        $upd = DB::table('bus_fares')
+                            ->where('fare_id', $id)
+                            ->update([
+                                'regular_fare' => $regVal,
+                                'discounted_fare' => $discVal,
+                                'updated_at' => now()
+                            ]);
+                        if ($upd) $affected++;
+                    }
+                }
+                return response()->json(['success' => true, 'message' => "Saved successfully. Fares updated: $affected"]);
+            } 
+            
+            elseif ($action === 'generate_matrix') {
+                $baseKm = (float)$request->input('base_km', 4.0);
+                $regBase = (float)$request->input('reg_base', 14.00);
+                $discBase = (float)$request->input('disc_base', 11.25);
+                $regRate = (float)$request->input('reg_rate', 2.20);
+                $discRate = (float)$request->input('disc_rate', 1.76);
+
+                if ($baseKm < 0 || $regBase < 0 || $discBase < 0 || $regRate < 0 || $discRate < 0) {
+                    return response()->json(['success' => false, 'error' => 'Values cannot be negative.']);
+                }
+
+                // Backup to base_* columns if null
+                DB::table('bus_fares')
+                    ->whereNull('base_regular_fare')
+                    ->orWhereNull('base_discounted_fare')
+                    ->update([
+                        'base_regular_fare' => DB::raw('regular_fare'),
+                        'base_discounted_fare' => DB::raw('discounted_fare')
+                    ]);
+
+                // Run formula
+                DB::statement("
+                    UPDATE bus_fares 
+                    SET 
+                        regular_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
+                        discounted_fare = ROUND((? + GREATEST(0, distance_km - ?) * ?) * 4) / 4,
+                        updated_at = NOW()
+                ", [
+                    $regBase, $baseKm, $regRate,
+                    $discBase, $baseKm, $discRate
+                ]);
+
+                // Ensure discounted <= regular
+                DB::table('bus_fares')
+                    ->whereRaw('discounted_fare > regular_fare')
+                    ->update(['discounted_fare' => DB::raw('regular_fare')]);
+
+                return response()->json(['success' => true, 'message' => 'LTFRB Matrix applied successfully.']);
+            } 
+            
+            elseif ($action === 'reset_to_base') {
+                DB::table('bus_fares')->update([
+                    'regular_fare' => DB::raw('base_regular_fare'),
+                    'discounted_fare' => DB::raw('LEAST(base_discounted_fare, base_regular_fare)'),
+                    'updated_at' => now()
+                ]);
+                return response()->json(['success' => true, 'message' => 'Reverted to base fares.']);
+            } 
+            
+            elseif ($action === 'snapshot_create') {
+                $label = trim((string)$request->input('snapshot_label', ''));
+                if ($label === '') {
+                    $label = 'Snapshot ' . date('Y-m-d H:i:s');
+                }
+
+                DB::transaction(function () use ($label) {
+                    $snapshotId = DB::table('bus_fare_snapshots')->insertGetId([
+                        'label' => $label,
+                        'created_at' => now()
+                    ]);
+
+                    $fares = DB::table('bus_fares')->get();
+                    foreach ($fares as $fare) {
+                        DB::table('bus_fare_snapshot_rows')->insert([
+                            'snapshot_id' => $snapshotId,
+                            'fare_id' => $fare->fare_id,
+                            'regular_fare' => $fare->regular_fare,
+                            'discounted_fare' => $fare->discounted_fare,
+                            'base_regular_fare' => $fare->base_regular_fare,
+                            'base_discounted_fare' => $fare->base_discounted_fare
+                        ]);
+                    }
+                });
+
+                return response()->json(['success' => true, 'message' => 'Snapshot created successfully.']);
+            } 
+            
+            elseif ($action === 'snapshot_restore') {
+                $snapshotId = (int)$request->input('snapshot_id');
+                if ($snapshotId <= 0) {
+                    return response()->json(['success' => false, 'error' => 'Invalid snapshot ID.']);
+                }
+
+                $rows = DB::table('bus_fare_snapshot_rows')->where('snapshot_id', $snapshotId)->get();
+                if ($rows->isEmpty()) {
+                    return response()->json(['success' => false, 'error' => 'Snapshot is empty or does not exist.']);
+                }
+
+                DB::transaction(function () use ($rows) {
+                    foreach ($rows as $row) {
+                        DB::table('bus_fares')
+                            ->where('fare_id', $row->fare_id)
+                            ->update([
+                                'regular_fare' => $row->regular_fare,
+                                'discounted_fare' => $row->discounted_fare,
+                                'base_regular_fare' => $row->base_regular_fare,
+                                'base_discounted_fare' => $row->base_discounted_fare,
+                                'updated_at' => now()
+                            ]);
+                    }
+                });
+
+                return response()->json(['success' => true, 'message' => 'Snapshot restored successfully.']);
+            } 
+            
+            elseif ($action === 'snapshot_delete') {
+                $snapshotId = (int)$request->input('snapshot_id');
+                if ($snapshotId <= 0) {
+                    return response()->json(['success' => false, 'error' => 'Invalid snapshot ID.']);
+                }
+
+                DB::transaction(function () use ($snapshotId) {
+                    DB::table('bus_fare_snapshot_rows')->where('snapshot_id', $snapshotId)->delete();
+                    DB::table('bus_fare_snapshots')->where('id', $snapshotId)->delete();
+                });
+
+                return response()->json(['success' => true, 'message' => 'Snapshot deleted.']);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        }
+
+        return response()->json(['success' => false, 'error' => 'Unknown action.']);
+    }
+
+    // --- LOST & FOUND MANAGEMENT ---
+    public function listLostAndFound(Request $request)
+    {
+        $this->checkAuth();
+        $tickets = DB::table('lost_and_found as lf')
+            ->leftJoin('users as u', 'lf.user_id', '=', 'u.id')
+            ->select('lf.*', 'u.name as reporter_name', 'u.contacts as reporter_contact')
+            ->orderBy('lf.created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'tickets' => $tickets
+        ]);
+    }
+
+    public function manageLostAndFound(Request $request)
+    {
+        $this->checkAuth();
+        $action = $request->input('action');
+
+        try {
+            if ($action === 'update_status') {
+                $id = $request->input('id');
+                $status = $request->input('status', 'open');
+
+                if (!in_array($status, ['open', 'resolved', 'closed'])) {
+                    $status = 'open';
+                }
+
+                if (!$id) {
+                    return response()->json(['success' => false, 'error' => 'Invalid update request (empty ID).']);
+                }
+
+                DB::table('lost_and_found')->where('id', $id)->update(['status' => $status]);
+                return response()->json(['success' => true, 'message' => 'Ticket updated successfully.']);
+            } 
+            
+            elseif ($action === 'delete_ticket') {
+                $id = $request->input('id');
+                if (!$id) {
+                    return response()->json(['success' => false, 'error' => 'Invalid delete request (empty ID).']);
+                }
+
+                DB::table('lost_and_found')->where('id', $id)->delete();
+                return response()->json(['success' => true, 'message' => 'Ticket deleted forever.']);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        }
+
+        return response()->json(['success' => false, 'error' => 'Unknown action.']);
+    }
+
+    // --- REPORT MANAGEMENT ---
+    public function listReports(Request $request)
+    {
+        $this->checkAuth();
+        
+        // Self-healing check (make sure bus_number exists)
+        try {
+            $hasBusNumber = \Illuminate\Support\Facades\Schema::hasColumn('reports', 'bus_number');
+            if (!$hasBusNumber) {
+                \Illuminate\Support\Facades\Schema::table('reports', function ($table) {
+                    $table->string('bus_number', 50)->nullable()->after('user_id');
+                });
+            }
+        } catch (\Exception $e) {}
+
+        $reports = DB::table('reports as r')
+            ->leftJoin('users as u', 'r.user_id', '=', 'u.id')
+            ->select('r.*', 'u.name as reporter_name', 'u.email as reporter_email')
+            ->orderBy('r.created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'reports' => $reports
+        ]);
+    }
+
+    public function manageReports(Request $request)
+    {
+        $this->checkAuth();
+        $action = $request->input('action');
+
+        try {
+            if ($action === 'update_status') {
+                $id = $request->input('id');
+                $status = $request->input('status', 'pending');
+
+                if (!in_array($status, ['pending', 'resolved'])) {
+                    $status = 'pending';
+                }
+
+                if (!$id) {
+                    return response()->json(['success' => false, 'error' => 'Invalid update request (empty ID).']);
+                }
+
+                DB::table('reports')->where('id', $id)->update(['status' => $status]);
+                return response()->json(['success' => true, 'message' => 'Report status updated successfully.']);
+            } 
+            
+            elseif ($action === 'delete_report') {
+                $id = $request->input('id');
+                if (!$id) {
+                    return response()->json(['success' => false, 'error' => 'Invalid delete request (empty ID).']);
+                }
+
+                DB::table('reports')->where('id', $id)->delete();
+                return response()->json(['success' => true, 'message' => 'Report deleted permanently.']);
+            }
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'error' => 'Database error: ' . $e->getMessage()]);
+        }
+
+        return response()->json(['success' => false, 'error' => 'Unknown action.']);
+    }
 }

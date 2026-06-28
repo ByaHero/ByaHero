@@ -310,7 +310,15 @@ export function PassengerHeader({
 
       {/* Offcanvas Menu View */}
       {menuVisible && (
-        <View style={[tw`absolute z-[3000]`, { width, height, top: 0, left: 0, elevation: 20 }]}>
+        <View
+          style={[
+            tw`absolute z-[3000]`,
+            { width, height, top: 0, left: 0, elevation: 20 },
+            Platform.OS === 'web' && ({
+              overscrollBehavior: 'none',
+            } as any),
+          ]}
+        >
           <View style={[tw`flex-row justify-end relative`, { width, height }]}>
             {/* Animated Dim Backdrop */}
             <Animated.View
@@ -319,7 +327,10 @@ export function PassengerHeader({
                 {
                   opacity: backdropOpacity,
                   height,
-                }
+                },
+                Platform.OS === 'web' && ({
+                  overscrollBehavior: 'none',
+                } as any),
               ]}
             >
               <TouchableWithoutFeedback onPress={closeMenu}>
@@ -335,7 +346,10 @@ export function PassengerHeader({
                   width: width * 0.8,
                   height,
                   transform: [{ translateX: slideAnim }],
-                }
+                },
+                Platform.OS === 'web' && ({
+                  overscrollBehavior: 'none',
+                } as any),
               ]}
             >
               {/* Header Block */}
@@ -355,7 +369,12 @@ export function PassengerHeader({
               </View>
 
               {/* Menu Items List */}
-              <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
+              <ScrollView
+                contentContainerStyle={{ padding: 16, gap: 12 }}
+                bounces={false}
+                overScrollMode="never"
+                style={Platform.OS === 'web' ? ({ overscrollBehavior: 'none' } as any) : undefined}
+              >
                 {menuItems.map((item, idx) => {
                   const isItemHighlighted = activeStep === 10 && item.highlightKey === 'menu-history' ||
                     activeStep === 12 && item.highlightKey === 'menu-feedback' ||
