@@ -5,12 +5,42 @@ import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { getServerUrl } from '../../services/authService';
 
 export default function AdminDashboard() {
   const insets = useSafeAreaInsets();
   const [pulseAnim] = useState(new Animated.Value(1));
+  const [stats, setStats] = useState({
+    total_buses: 0,
+    active_buses: 0,
+    schedules: 0,
+    waiting_pax: 0,
+    drivers: 0,
+    conductors: 0,
+    bus_stops: 0,
+    lost_and_found: 0,
+    reports: 0,
+    feedbacks: 0,
+    bus_fares: 0,
+  });
+
+  const fetchStats = async () => {
+    try {
+      const baseUrl = await getServerUrl();
+      const response = await fetch(`${baseUrl}/api/admin/dashboard-stats`, {
+        credentials: 'include'
+      });
+      const data = await response.json();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (e) {
+      console.error('Failed to fetch dashboard stats', e);
+    }
+  };
 
   useEffect(() => {
+    fetchStats();
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.3, duration: 800, useNativeDriver: true }),
@@ -23,32 +53,32 @@ export default function AdminDashboard() {
     {
       title: 'Fleet & Operations',
       items: [
-        { label: 'Total Buses', count: 0, route: '/admin/buses', action: 'Manage' },
-        { label: 'Active Buses', count: 0, route: '/admin/active-buses', action: 'Manage' },
-        { label: 'Schedules', count: 0, route: '/admin/operation-schedule', action: 'Manage' },
-        { label: 'Waiting Pax', count: 0, route: '/admin/waiting-passengers', action: 'Manage' },
+        { label: 'Total Buses', count: stats.total_buses, route: '/admin/buses', action: 'Manage' },
+        { label: 'Active Buses', count: stats.active_buses, route: '/admin/active-buses', action: 'Manage' },
+        { label: 'Schedules', count: stats.schedules, route: '/admin/operation-schedule', action: 'Manage' },
+        { label: 'Waiting Pax', count: stats.waiting_pax, route: '/admin/waiting-passengers', action: 'Manage' },
       ],
     },
     {
       title: 'Personnel & Infrastructure',
       items: [
-        { label: 'Drivers', count: 0, route: '/admin/conductors', action: 'Manage' },
-        { label: 'Conductors', count: 0, route: '/admin/conductors', action: 'Manage' },
-        { label: 'Bus Stops', count: 0, route: '/admin/stops', action: 'Manage' },
+        { label: 'Drivers', count: stats.drivers, route: '/admin/conductors', action: 'Manage' },
+        { label: 'Conductors', count: stats.conductors, route: '/admin/conductors', action: 'Manage' },
+        { label: 'Bus Stops', count: stats.bus_stops, route: '/admin/stops', action: 'Manage' },
       ],
     },
     {
       title: 'Passenger Experience',
       items: [
-        { label: 'Lost & Found', count: 0, route: '/admin/lost-and-found', action: 'Manage' },
-        { label: 'Reports', count: 0, route: '/admin/reports', action: 'Manage' },
-        { label: 'Feedbacks', count: 0, route: '/admin/feedbacks', action: 'Manage' },
+        { label: 'Lost & Found', count: stats.lost_and_found, route: '/admin/lost-and-found', action: 'Manage' },
+        { label: 'Reports', count: stats.reports, route: '/admin/reports', action: 'Manage' },
+        { label: 'Feedbacks', count: stats.feedbacks, route: '/admin/feedbacks', action: 'Manage' },
       ],
     },
     {
       title: 'Revenue & Insights',
       items: [
-        { label: 'Bus Fares', count: 0, route: '/admin/bus-fare', action: 'Manage' },
+        { label: 'Bus Fares', count: stats.bus_fares, route: '/admin/bus-fare', action: 'Manage' },
         { label: 'Analytics (Boarded)', count: 0, route: '/admin/analytics', action: 'View' },
       ],
     }
