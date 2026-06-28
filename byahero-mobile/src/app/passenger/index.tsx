@@ -262,7 +262,11 @@ export default function PassengerDashboard() {
       return () => {
         isMounted = false;
         if (subscription) {
-          subscription.remove();
+          try {
+            subscription.remove();
+          } catch (err) {
+            console.warn('Failed to remove location subscription:', err);
+          }
         }
       };
     }, [])
