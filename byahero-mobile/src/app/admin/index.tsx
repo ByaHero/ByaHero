@@ -79,25 +79,27 @@ export default function AdminDashboard() {
 
         {/* Sections */}
         {sections.map((sec, sIdx) => (
-          <View key={sIdx} style={tw`mb-5`}>
-            <Text style={tw`text-sm font-bold text-[#0f3878] mb-3 border-l-4 border-[#0f3878] pl-2 uppercase tracking-widest`}>
+          <View key={sIdx} style={tw`mb-6`}>
+            <Text style={tw`text-sm font-bold text-[#0f3878] mb-4 border-l-[3px] border-[#4C85C5] pl-3 uppercase tracking-wider`}>
               {sec.title}
             </Text>
             <View style={tw`flex-row flex-wrap justify-between`}>
               {sec.items.map((item, iIdx) => (
-                <View key={iIdx} style={tw`w-[48%] bg-white p-4 rounded-2xl shadow-sm border border-gray-100 mb-3`}>
-                  <Text style={tw`text-gray-500 text-[10px] font-bold mb-2 uppercase tracking-wider`}>
+                <View key={iIdx} style={tw`w-[48%] bg-[#4C85C5] p-4 rounded-2xl mb-4 flex-col justify-between min-h-[130px]`}>
+                  <Text style={tw`text-white text-[15px] font-bold leading-tight`}>
                     {item.label}
                   </Text>
-                  <Text style={tw`text-3xl font-extrabold text-gray-800 mb-3`}>
-                    {item.count}
-                  </Text>
-                  <TouchableOpacity
-                    onPress={() => router.push(item.route as any)}
-                    style={tw`bg-slate-100 py-2 rounded-full items-center border border-slate-200`}
-                  >
-                    <Text style={tw`text-slate-700 text-xs font-bold`}>{item.action}</Text>
-                  </TouchableOpacity>
+                  <View style={tw`flex-row justify-between items-end mt-2`}>
+                    <Text style={tw`text-[40px] font-extrabold text-white`}>
+                      {item.count}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => router.push(item.route as any)}
+                      style={tw`bg-white/20 px-3.5 py-1.5 rounded-full border border-white/20 mb-1`}
+                    >
+                      <Text style={tw`text-white text-[12px] font-medium`}>{item.action}</Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
               ))}
             </View>

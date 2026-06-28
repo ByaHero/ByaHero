@@ -8,7 +8,8 @@ import {
   Animated,
   TouchableWithoutFeedback,
   Platform,
-  Alert
+  Alert,
+  useWindowDimensions
 } from 'react-native';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
@@ -17,26 +18,25 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const { width } = Dimensions.get('window');
-
 interface AdminHeaderProps {
   options?: any;
   route?: any;
 }
 
 export function AdminHeader({ options, route }: AdminHeaderProps) {
+  const { width } = useWindowDimensions();
   const [menuVisible, setMenuVisible] = useState(false);
   const [userName, setUserName] = useState('Admin');
   const [userEmail, setUserEmail] = useState('admin@byahero.com');
   const [userInitial, setUserInitial] = useState('A');
-  
+
   const slideAnim = React.useRef(new Animated.Value(width)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
 
   const isDashboard = route?.name === 'index';
   const isAdminProfile = route?.name === 'profile';
-  
+
   const title = options?.title || 'Admin';
 
   useEffect(() => {
@@ -51,12 +51,18 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
         if (email) {
           setUserEmail(email);
         }
-      } catch (err) {}
+      } catch (err) { }
     }
     if (menuVisible) {
       loadUser();
     }
   }, [menuVisible]);
+
+  useEffect(() => {
+    if (!menuVisible) {
+      slideAnim.setValue(width);
+    }
+  }, [width, menuVisible, slideAnim]);
 
   const openMenu = () => {
     setMenuVisible(true);
@@ -97,16 +103,16 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
   return (
     <>
       <View style={[
-        tw`bg-[#0f3878] flex-row items-center px-4 shadow-md`, 
-        { 
+        tw`bg-[#0f3878] flex-row items-center px-4 shadow-md`,
+        {
           paddingTop: insets.top,
-          height: 54 + insets.top, 
-          borderBottomLeftRadius: 18, 
-          borderBottomRightRadius: 18, 
-          zIndex: 2000 
+          height: 54 + insets.top,
+          borderBottomLeftRadius: 18,
+          borderBottomRightRadius: 18,
+          zIndex: 2000
         }
       ]}>
-        
+
         {isAdminProfile ? (
           <View style={tw`flex-row items-center flex-1 gap-3`}>
             <TouchableOpacity onPress={() => router.back()} style={tw`w-11 h-11 rounded-full items-center justify-center bg-white/10`}>
@@ -119,7 +125,7 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
             <View style={tw`flex-1 flex-row items-center z-10`}>
               <Image
                 source={require('../../assets/images/topBarLogo.svg')}
-                style={tw`w-[48px] h-[48px]`}
+                style={tw`w-[70px] h-[70px]`}
                 contentFit="contain"
               />
             </View>
@@ -178,7 +184,7 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
             </View>
 
             <View style={tw`p-4 gap-3`}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={tw`bg-white rounded-2xl flex-row items-center p-3.5 shadow-sm`}
                 onPress={() => { closeMenu(); router.push('/admin/profile'); }}
               >
@@ -188,7 +194,7 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
                 <Text style={tw`text-[#111827] font-extrabold text-base`}>Profile</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={tw`bg-white rounded-2xl flex-row items-center p-3.5 shadow-sm mt-1`}
                 onPress={handleLogout}
               >
