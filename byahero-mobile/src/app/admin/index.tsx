@@ -4,8 +4,10 @@ import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function AdminDashboard() {
+  const insets = useSafeAreaInsets();
   const [pulseAnim] = useState(new Animated.Value(1));
 
   useEffect(() => {
@@ -56,23 +58,8 @@ export default function AdminDashboard() {
     <SafeAreaView style={tw`flex-1 bg-[#f8f9fa]`}>
       <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
       
-      {/* Top Navbar */}
-      <View style={tw`flex-row justify-between items-center bg-white px-4 py-3 shadow-sm border-b border-gray-200 z-10`}>
-        <View style={tw`flex-row items-center`}>
-          <Image
-            source={require('../../../assets/images/byaheroLogo.png')}
-            style={tw`w-8 h-8 mr-2`}
-            contentFit="contain"
-          />
-          <Text style={tw`text-lg font-extrabold text-[#0f3878]`}>ByaHero Admin</Text>
-        </View>
-        <TouchableOpacity onPress={() => router.replace('/')} style={tw`flex-row items-center px-3 py-1.5 rounded-full border border-red-200 bg-red-50`}>
-          <Ionicons name="log-out-outline" size={16} color="#ef4444" style={tw`mr-1`} />
-          <Text style={tw`text-red-500 text-xs font-bold`}>Logout</Text>
-        </TouchableOpacity>
-      </View>
 
-      <ScrollView contentContainerStyle={tw`p-4`} showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[tw`p-4`, { paddingTop: insets.top + 54 + 16 }]} showsVerticalScrollIndicator={false}>
 
         {/* Control Center Header */}
         <View style={tw`flex-col mb-4 border-b border-gray-200 pb-4 mt-2`}>
