@@ -60,6 +60,7 @@ Route::middleware([
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);
 
     // Admin routes
+    Route::get('/admin/dashboard-stats', [AdminController::class, 'getDashboardStats']);
     Route::get('/admin/staff', [AdminController::class, 'listStaff']);
     Route::post('/admin/staff', [AdminController::class, 'manageStaff']);
     Route::get('/admin/buses', [AdminController::class, 'listBuses']);
