@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import tw from 'twrnc';
 import { FontAwesome5, Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -195,7 +196,11 @@ export default function BusesPage() {
           return (
             <View key={bus.Bus_ID || bus.id} style={tw`bg-white rounded-2xl p-4 pb-5 mb-4 shadow-sm border border-slate-100 flex-row`}>
               <View style={tw`w-[25%] justify-center items-center`}>
-                <FontAwesome5 name="bus" size={54} color="#0f3878" />
+                <Image 
+                  source={require('../../../assets/images/images/busonallbuses.svg')} 
+                  style={tw`w-[54px] h-[54px]`} 
+                  contentFit="contain" 
+                />
               </View>
               <View style={tw`w-[75%] pl-2`}>
                 

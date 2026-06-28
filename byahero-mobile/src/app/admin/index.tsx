@@ -90,7 +90,7 @@ export default function AdminDashboard() {
                     {item.label}
                   </Text>
                   <View style={tw`flex-row justify-between items-end mt-2`}>
-                    <Text style={tw`text-[40px] font-light text-white`}>
+                    <Text style={tw`text-[40px] font-bold text-white`}>
                       {item.count}
                     </Text>
                     <TouchableOpacity
