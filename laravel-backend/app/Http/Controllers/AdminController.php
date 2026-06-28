@@ -25,6 +25,32 @@ class AdminController extends Controller
         }
     }
 
+    public function getDashboardStats(Request $request)
+    {
+        $this->checkAuth();
+
+        $stats = [
+            'total_buses' => Bus::count(),
+            'active_buses' => Bus::whereNotNull('current_conductor_id')
+                                 ->whereIn('status', ['available', 'on_stop', 'full'])
+                                 ->count(),
+            'schedules' => BusSchedule::count(),
+            'waiting_pax' => DB::table('waiting_passengers')->where('status', 'waiting')->count(),
+            'drivers' => Driver::count(),
+            'conductors' => Conductor::count(),
+            'bus_stops' => BusStopsTerminal::count(),
+            'lost_and_found' => DB::table('lost_and_found')->count(),
+            'feedbacks' => Feedback::count(),
+            'bus_fares' => DB::table('bus_fares')->count(),
+            'reports' => \Illuminate\Support\Facades\Schema::hasTable('reports') ? DB::table('reports')->count() : 0,
+        ];
+
+        return response()->json([
+            'success' => true,
+            'stats' => $stats
+        ]);
+    }
+
     // --- STAFF MANAGEMENT ---
     public function listStaff(Request $request)
     {
