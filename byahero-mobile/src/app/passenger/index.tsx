@@ -35,12 +35,12 @@ export default function PassengerDashboard() {
         const stepVal = await AsyncStorage.getItem('byahero_active_tour_step');
         if (stepVal !== null) {
           const stepIdx = parseInt(stepVal, 10);
-          
+
           // Verify that this step actually belongs to the dashboard screen
           const stepInfo = tourSteps[stepIdx];
           if (stepInfo && stepInfo.screen === '/passenger') {
             setActiveStep(stepIdx);
-            
+
             // Adjust sheetTab dynamically based on target step highlight
             if (stepInfo.highlight === 'tab-location') setSheetTab('location');
             else if (stepInfo.highlight === 'tab-routes') setSheetTab('routes');
@@ -83,7 +83,7 @@ export default function PassengerDashboard() {
   const [circles, setCircles] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [baseUrl, setBaseUrl] = useState('');
-  
+
   // Waiting Status States
   const [isWaiting, setIsWaiting] = useState(false);
   const [waitingLocation, setWaitingLocation] = useState('');
@@ -130,6 +130,23 @@ export default function PassengerDashboard() {
     return baseUrl.replace(/\/$/, '') + '/' + userProfilePic.replace(/^\//, '');
   };
 
+  // Use refs to prevent stale closures in location tracking callbacks
+  const userInitialRef = useRef(userInitial);
+  const userProfilePicRef = useRef(userProfilePic);
+  const baseUrlRef = useRef(baseUrl);
+
+  useEffect(() => {
+    userInitialRef.current = userInitial;
+  }, [userInitial]);
+
+  useEffect(() => {
+    userProfilePicRef.current = userProfilePic;
+  }, [userProfilePic]);
+
+  useEffect(() => {
+    baseUrlRef.current = baseUrl;
+  }, [baseUrl]);
+
   // Watch device location and update state + backend
   useEffect(() => {
     let subscription: Location.LocationSubscription | null = null;
@@ -150,13 +167,14 @@ export default function PassengerDashboard() {
         if (initialLoc && isMounted) {
           const lat = initialLoc.coords.latitude;
           const lng = initialLoc.coords.longitude;
+          console.log(`[Location GPS] Initial coordinates acquired: Lat ${lat}, Lng ${lng} (Accuracy: ${initialLoc.coords.accuracy}m)`);
           setUserLocation({ lat, lng });
 
           postToMap({
             type: 'UPDATE_USER_LOCATION',
             lat,
             lng,
-            initial: userInitial,
+            initial: userInitialRef.current,
             profilePic: getFullProfilePicUrl(),
             center: true
           });
@@ -175,13 +193,14 @@ export default function PassengerDashboard() {
             if (!isMounted) return;
             const lat = location.coords.latitude;
             const lng = location.coords.longitude;
+            console.log(`[Location GPS] Watched coordinates updated: Lat ${lat}, Lng ${lng}`);
             setUserLocation({ lat, lng });
 
             postToMap({
               type: 'UPDATE_USER_LOCATION',
               lat,
               lng,
-              initial: userInitial,
+              initial: userInitialRef.current,
               profilePic: getFullProfilePicUrl(),
               center: false
             });
@@ -241,13 +260,13 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Sync stops to map whenever filteredStops or sheetTab changes (only show stops when busstops tab is active)
+  // Sync stops to map whenever busStops, filteredStops or sheetTab changes
   useEffect(() => {
     postToMap({
       type: 'UPDATE_STOPS',
-      stops: sheetTab === 'busstops' ? filteredStops : []
+      stops: sheetTab === 'busstops' ? filteredStops : busStops
     });
-  }, [filteredStops, sheetTab]);
+  }, [busStops, filteredStops, sheetTab]);
 
   // Sync filtered buses to map whenever buses or selectedRoute changes
   useEffect(() => {
@@ -459,7 +478,7 @@ export default function PassengerDashboard() {
         });
         postToMap({
           type: 'UPDATE_STOPS',
-          stops: sheetTab === 'busstops' ? filteredStops : []
+          stops: sheetTab === 'busstops' ? filteredStops : busStops
         });
         postToMap({
           type: 'UPDATE_FRIENDS',
@@ -477,10 +496,10 @@ export default function PassengerDashboard() {
   // Helper to resolve nearest stop within 150m geofence
   const resolveNearestStop = () => {
     if (!userLocation || busStops.length === 0) return null;
-    
+
     let nearestStop: any = null;
     let minDistance = 0.15; // recognized within 150 meters (0.15 km)
-    
+
     busStops.forEach(stop => {
       const stopLat = parseFloat(stop.latitude || stop.lat);
       const stopLng = parseFloat(stop.longitude || stop.lng);
@@ -496,14 +515,14 @@ export default function PassengerDashboard() {
           Math.sin(dLon / 2);
         const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
         const distance = R * c;
-        
+
         if (distance < minDistance) {
           minDistance = distance;
           nearestStop = stop;
         }
       }
     });
-    
+
     return nearestStop;
   };
 
@@ -512,7 +531,7 @@ export default function PassengerDashboard() {
     try {
       const currentBaseUrl = await getServerUrl();
       const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-      
+
       const res = await fetch(`${currentBaseUrl}/api/waiting/set`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -521,7 +540,7 @@ export default function PassengerDashboard() {
           location_name: stopName
         })
       });
-      
+
       const data = await res.json();
       if (data.success) {
         setIsWaiting(true);
@@ -543,7 +562,7 @@ export default function PassengerDashboard() {
     try {
       const currentBaseUrl = await getServerUrl();
       const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-      
+
       const res = await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -551,7 +570,7 @@ export default function PassengerDashboard() {
           email: email
         })
       });
-      
+
       const data = await res.json();
       if (data.success) {
         setIsWaiting(false);
@@ -801,8 +820,8 @@ export default function PassengerDashboard() {
         var stopMarkers = {};
         window.groupMarkers = [];
 
-        // Custom listener for RN postMessage
-        window.addEventListener('message', function(event) {
+        // Custom listener for RN postMessage (supporting both Android document and iOS/Web window listeners)
+        function handleIncomingMessage(event) {
           try {
             var data = JSON.parse(event.data);
             if (data.type === 'SET_CENTER') {
@@ -964,7 +983,9 @@ export default function PassengerDashboard() {
           } catch(e) {
             // fail silently
           }
-        });
+        }
+        window.addEventListener('message', handleIncomingMessage);
+        document.addEventListener('message', handleIncomingMessage);
 
         var postMessageFn = (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) 
           ? window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView) 
@@ -1056,10 +1077,10 @@ export default function PassengerDashboard() {
         <PassengerFooter activeTab={activeTab} setActiveTab={setActiveTab} onTriggerSOS={handleTriggerSOS} />
 
         {activeStep !== null && (
-          <TourOverlay 
-            currentStep={activeStep} 
-            onStepChange={setActiveStep} 
-            onClose={() => setActiveStep(null)} 
+          <TourOverlay
+            currentStep={activeStep}
+            onStepChange={setActiveStep}
+            onClose={() => setActiveStep(null)}
           />
         )}
 
@@ -1073,7 +1094,7 @@ export default function PassengerDashboard() {
           <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
             <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
               {/* Close Button */}
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setWaitingModalVisible(false)}
                 style={tw`absolute top-4 right-4 p-1 z-10`}
               >

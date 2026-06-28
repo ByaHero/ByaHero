@@ -206,14 +206,18 @@ export default function PassengerBottomSheet({
             sheetTab === 'routes' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <Image
-            source={sheetTab === 'routes'
-              ? require('../../assets/images/icons/routes active.svg')
-              : require('../../assets/images/icons/routes idle.svg')
-            }
-            style={tw`w-6 h-6`}
-            contentFit="contain"
-          />
+          <View style={tw`w-6 h-6 justify-center items-center`}>
+            <Image
+              source={require('../../assets/images/icons/routes active.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'routes' ? 1 : 0 }]}
+              contentFit="contain"
+            />
+            <Image
+              source={require('../../assets/images/icons/routes idle.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'routes' ? 0 : 1 }]}
+              contentFit="contain"
+            />
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -225,14 +229,18 @@ export default function PassengerBottomSheet({
             sheetTab === 'groups' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <Image
-            source={sheetTab === 'groups'
-              ? require('../../assets/images/icons/groupsActive.svg')
-              : require('../../assets/images/icons/groupsIdle.svg')
-            }
-            style={tw`w-6 h-6`}
-            contentFit="contain"
-          />
+          <View style={tw`w-6 h-6 justify-center items-center`}>
+            <Image
+              source={require('../../assets/images/icons/groupsActive.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'groups' ? 1 : 0 }]}
+              contentFit="contain"
+            />
+            <Image
+              source={require('../../assets/images/icons/groupsIdle.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'groups' ? 0 : 1 }]}
+              contentFit="contain"
+            />
+          </View>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -244,14 +252,18 @@ export default function PassengerBottomSheet({
             sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <Image
-            source={sheetTab === 'busstops'
-              ? require('../../assets/images/icons/busStopMarkerFinalWhite.svg')
-              : require('../../assets/images/icons/busStopMarkerFinalBlue.svg')
-            }
-            style={tw`w-6 h-6`}
-            contentFit="contain"
-          />
+          <View style={tw`w-6 h-6 justify-center items-center`}>
+            <Image
+              source={require('../../assets/images/icons/busStopMarkerFinalWhite.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'busstops' ? 1 : 0 }]}
+              contentFit="contain"
+            />
+            <Image
+              source={require('../../assets/images/icons/busStopMarkerFinalBlue.svg')}
+              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'busstops' ? 0 : 1 }]}
+              contentFit="contain"
+            />
+          </View>
         </TouchableOpacity>
       </View>
 

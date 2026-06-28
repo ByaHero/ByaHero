@@ -12,6 +12,7 @@ import {
   TouchableWithoutFeedback,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
@@ -136,8 +137,8 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
           body: 'fcm_token=' + encodeURIComponent(token),
           credentials: 'include'
-        }).catch(() => {});
-      } catch (e) {}
+        }).catch(() => { });
+      } catch (e) { }
 
       await AsyncStorage.removeItem('byahero_cached_email');
       await AsyncStorage.removeItem('byahero_cached_role');
@@ -208,72 +209,89 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
     );
   };
 
+  const insets = useSafeAreaInsets();
+
   return (
     <>
-      <View style={[tw`h-14 bg-[#103d7c] flex-row items-center justify-between px-4 rounded-b-2xl shadow-sm`, { zIndex: 2002 }]}>
-        <View style={tw`w-15 justify-center`}>
-          {showBackButton || showCloseButton ? (
-            <TouchableOpacity onPress={() => router.back()} style={tw`p-1`}>
-              <MaterialIcons 
-                name={showCloseButton ? "close" : "arrow-back"} 
-                size={24} 
-                color="white" 
-              />
-            </TouchableOpacity>
-          ) : (
-            <Image
-              source={require('../../assets/images/topBarLogo.svg')}
-              style={tw`w-15 h-15`}
-              contentFit="contain"
-            />
-          )}
-        </View>
-        
-        <View style={tw`absolute left-1/2 -translate-x-1/2`}>
-          {pageTitle ? (
-            <Text style={tw`text-white font-bold text-base`}>{pageTitle}</Text>
-          ) : (
-            <Image
-              source={require('../../assets/images/ByaHero.svg')}
-              style={tw`w-[100px] h-[30px]`}
-              contentFit="contain"
-            />
-          )}
-        </View>
- 
-        {!(showBackButton || showCloseButton) ? (
-          <View style={tw`flex-row items-center gap-3`}>
-            <TouchableOpacity 
-              ref={notificationsRef}
-              onLayout={() => handleTourLayout('notifications', notificationsRef)}
-              style={tw`p-1 rounded-xl`} 
-              onPress={() => router.push('/passenger/notifications' as any)}
-            >
+      <View style={[
+        tw`bg-[#103d7c] rounded-b-2xl shadow-sm`,
+        {
+          paddingTop: insets.top,
+          height: 56 + insets.top,
+          zIndex: 2002
+        }
+      ]}>
+        <View style={tw`h-14 flex-row items-center justify-between px-4`}>
+          <View style={tw`w-15 justify-center`}>
+            {showBackButton || showCloseButton ? (
+              <TouchableOpacity onPress={() => router.back()} style={tw`p-1`}>
+                <MaterialIcons
+                  name={showCloseButton ? "close" : "arrow-back"}
+                  size={24}
+                  color="white"
+                />
+              </TouchableOpacity>
+            ) : (
               <Image
-                source={require('../../assets/images/notification bell.svg')}
-                style={tw`w-[22px] h-[22px]`}
+                source={require('../../assets/images/topBarLogo.svg')}
+                style={tw`w-15 h-15`}
                 contentFit="contain"
               />
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              ref={hamburgerRef}
-              onLayout={() => handleTourLayout('hamburger', hamburgerRef)}
-              onPress={openMenu} 
-              style={tw`p-1 rounded-xl`}
-            >
-              <Image
-                source={require('../../assets/images/HAMBURGER.svg')}
-                style={tw`w-[18px] h-[18px]`}
-                contentFit="contain"
-              />
-            </TouchableOpacity>
+            )}
           </View>
-        ) : (
-          <View style={tw`w-15`} />
-        )}
+
+          <View style={[tw`absolute justify-center items-center`, { left: 0, right: 0, top: 0, bottom: 0, zIndex: -1 }]}>
+            {pageTitle ? (
+              <Text style={tw`text-white font-bold text-base`}>{pageTitle}</Text>
+            ) : (
+              <Image
+                source={require('../../assets/images/ByaHero.svg')}
+                style={tw`w-[100px] h-[30px]`}
+                contentFit="contain"
+              />
+            )}
+          </View>
+
+          {!(showBackButton || showCloseButton) ? (
+            <View style={tw`flex-row items-center gap-3`}>
+              <TouchableOpacity
+                ref={notificationsRef}
+                onLayout={() => handleTourLayout('notifications', notificationsRef)}
+                style={tw`p-1 rounded-xl`}
+                onPress={() => router.push('/passenger/notifications' as any)}
+              >
+                <Image
+                  source={require('../../assets/images/notification bell.svg')}
+                  style={tw`w-[22px] h-[22px]`}
+                  contentFit="contain"
+                  priority="high"
+                  cachePolicy="memory"
+                  transition={0}
+                />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                ref={hamburgerRef}
+                onLayout={() => handleTourLayout('hamburger', hamburgerRef)}
+                onPress={openMenu}
+                style={tw`p-1 rounded-xl`}
+              >
+                <Image
+                  source={require('../../assets/images/HAMBURGER.svg')}
+                  style={tw`w-[18px] h-[18px]`}
+                  contentFit="contain"
+                  priority="high"
+                  cachePolicy="memory"
+                  transition={0}
+                />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={tw`w-15`} />
+          )}
+        </View>
       </View>
- 
+
       {/* Offcanvas Menu Modal */}
       <Modal
         animationType="none"
@@ -321,13 +339,13 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
                 </Text>
               </View>
             </View>
- 
+
             {/* Menu Items List */}
             <ScrollView contentContainerStyle={{ padding: 16, gap: 12 }}>
               {menuItems.map((item, idx) => {
                 const isItemHighlighted = activeStep === 10 && item.highlightKey === 'menu-history' ||
-                                        activeStep === 12 && item.highlightKey === 'menu-feedback' ||
-                                        activeStep === 14 && item.highlightKey === 'menu-report';
+                  activeStep === 12 && item.highlightKey === 'menu-feedback' ||
+                  activeStep === 14 && item.highlightKey === 'menu-report';
                 const itemRef = getRef(item.highlightKey);
                 return (
                   <TouchableOpacity
@@ -362,7 +380,7 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
                   </TouchableOpacity>
                 );
               })}
- 
+
               {/* Logout Button */}
               <TouchableOpacity
                 onPress={handleLogout}
@@ -380,13 +398,13 @@ export function PassengerHeader({ onTriggerSOS, pageTitle, showBackButton, showC
 }
 
 
- 
+
 interface PassengerFooterProps {
   activeTab: 'location' | 'sos' | 'info';
   setActiveTab?: (tab: 'location' | 'sos' | 'info') => void;
   onTriggerSOS?: () => void;
 }
- 
+
 export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: PassengerFooterProps) {
   const sosRef = useRef<any>(null);
 
@@ -403,21 +421,42 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
       router.replace('/passenger/busInfo' as any);
     }
   };
- 
+
+  const insets = useSafeAreaInsets();
+
   return (
-    <View style={[tw`h-[75px] border-t border-[#e2e8f0] flex-row items-center bg-white relative`, { zIndex: 1060 }]}>
+    <View style={[
+      tw`border-t border-[#e2e8f0] flex-row items-center bg-white relative`,
+      {
+        height: 75 + insets.bottom,
+        zIndex: 1060
+      }
+    ]}>
       <TouchableOpacity
         onPress={() => handleTabPress('location')}
-        style={tw`flex-grow items-center justify-center h-full`}
+        style={[
+          tw`flex-grow items-center justify-center h-full`,
+          { paddingBottom: insets.bottom }
+        ]}
       >
-        <Image
-          source={activeTab === 'location'
-            ? require('../../assets/images/icons/locationBlack.svg')
-            : require('../../assets/images/icons/locationIdle.svg')
-          }
-          style={tw`w-6 h-6`}
-          contentFit="contain"
-        />
+        <View style={tw`w-6 h-6 justify-center items-center`}>
+          <Image
+            source={require('../../assets/images/icons/locationBlack.svg')}
+            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'location' ? 1 : 0 }]}
+            contentFit="contain"
+            priority="high"
+            cachePolicy="memory"
+            transition={0}
+          />
+          <Image
+            source={require('../../assets/images/icons/locationIdle.svg')}
+            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'location' ? 0 : 1 }]}
+            contentFit="contain"
+            priority="high"
+            cachePolicy="memory"
+            transition={0}
+          />
+        </View>
         <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'location' && tw`text-[#1856b0]`]}>LOCATION</Text>
       </TouchableOpacity>
 
@@ -426,13 +465,19 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
         <TouchableOpacity
           ref={sosRef}
           onLayout={() => handleTourLayout('sos-btn', sosRef)}
-          style={tw`w-[100px] h-[76px] rounded-t-[50px] bg-[#2563eb] absolute bottom-0 justify-start items-center pt-3.5 shadow-lg`}
+          style={[
+            tw`w-[100px] rounded-t-[50px] bg-[#2563eb] absolute justify-start items-center pt-3.5 shadow-lg`,
+            { top: -1, height: 76 + insets.bottom }
+          ]}
           onPress={() => handleTabPress('sos')}
         >
           <Image
             source={require('../../assets/images/icons/SOS.svg')}
             style={tw`w-8 h-8`}
             contentFit="contain"
+            priority="high"
+            cachePolicy="memory"
+            transition={0}
           />
           <Text style={tw`text-white text-[10px] font-extrabold mt-0.5 tracking-wider`}>SOS</Text>
         </TouchableOpacity>
@@ -440,16 +485,29 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
 
       <TouchableOpacity
         onPress={() => handleTabPress('info')}
-        style={tw`flex-grow items-center justify-center h-full`}
+        style={[
+          tw`flex-grow items-center justify-center h-full`,
+          { paddingBottom: insets.bottom }
+        ]}
       >
-        <Image
-          source={activeTab === 'info'
-            ? require('../../assets/images/icons/busActive.svg')
-            : require('../../assets/images/icons/busIdle.svg')
-          }
-          style={tw`w-6 h-6`}
-          contentFit="contain"
-        />
+        <View style={tw`w-6 h-6 justify-center items-center`}>
+          <Image
+            source={require('../../assets/images/icons/busActive.svg')}
+            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'info' ? 1 : 0 }]}
+            contentFit="contain"
+            priority="high"
+            cachePolicy="memory"
+            transition={0}
+          />
+          <Image
+            source={require('../../assets/images/icons/busIdle.svg')}
+            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'info' ? 0 : 1 }]}
+            contentFit="contain"
+            priority="high"
+            cachePolicy="memory"
+            transition={0}
+          />
+        </View>
         <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'info' && tw`text-[#1856b0]`]}>BUS INFO</Text>
       </TouchableOpacity>
     </View>

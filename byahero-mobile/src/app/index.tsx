@@ -266,32 +266,20 @@ export default function LoginScreen() {
                 <View style={tw`flex-1 h-[1px] bg-slate-300`} />
               </View>
 
-              {/* Google account widget chooser */}
+              {/* Google sign-in button */}
               <TouchableOpacity
                 onPress={handleGoogleMockLogin}
-                activeOpacity={0.8}
-                style={tw`flex-row items-center border border-slate-300 rounded-full px-3.5 py-2 w-full bg-white mb-7`}
+                activeOpacity={0.85}
+                style={tw`flex-row items-center justify-center border border-slate-300 rounded-full py-3 px-4 w-full bg-white mb-7 shadow-sm`}
               >
                 <Image
-                  source={require('../../assets/images/profilepic.png')}
-                  style={tw`w-8 h-8 rounded-full`}
-                />
-                <View style={tw`flex-1 ml-3`}>
-                  <Text style={tw`text-slate-800 text-[11px] font-bold`}>
-                    Sign in as Timothy Irwin
-                  </Text>
-                  <View style={tw`flex-row items-center`}>
-                    <Text style={tw`text-slate-500 text-[9px] font-medium mr-0.5`}>
-                      timothybibat654@gmail.com
-                    </Text>
-                    <Ionicons name="chevron-down" size={10} color="#64748b" />
-                  </View>
-                </View>
-                <Image
                   source={{ uri: 'https://developers.google.com/static/identity/images/g-logo.png' }}
-                  style={tw`w-[18px] h-[18px]`}
+                  style={tw`w-5 h-5 mr-3`}
                   contentFit="contain"
                 />
+                <Text style={tw`text-slate-700 text-sm font-semibold`}>
+                  Continue with Google
+                </Text>
               </TouchableOpacity>
 
               {/* Sign Up Navigation link */}
