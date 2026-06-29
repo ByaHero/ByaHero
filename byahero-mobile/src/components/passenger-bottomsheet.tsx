@@ -386,7 +386,7 @@ export default function PassengerBottomSheet({
                     {/* Middle Row: Location & Availability */}
                     <View style={tw`flex-row justify-between items-start mb-0.5`}>
                       <Text style={tw`text-sm font-semibold text-slate-700 flex-1 mr-2`}>
-                        {bus.current_location_name || 'Looc, Calamba'}
+                        {bus.current_location_name || 'Unknown Location'}
                       </Text>
                       <Text style={tw`text-xs text-slate-400 font-bold`}>
                         {seatsText}
