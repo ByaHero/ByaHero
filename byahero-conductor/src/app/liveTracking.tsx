@@ -7,7 +7,8 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Platform
+  Platform,
+  DeviceEventEmitter
 } from 'react-native';
 import { router } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -15,6 +16,8 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import notifee, { AndroidImportance, AndroidVisibility, AndroidCategory } from '@notifee/react-native';
+import TrackPlayer, { Capability } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
@@ -67,14 +70,49 @@ export default function LiveTrackingScreen() {
   const lastMoveCheck = useRef<{ time: number; lat: number; lng: number } | null>(null);
   const lastResolvedLocation = useRef<{ lat: number; lng: number; name: string } | null>(null);
 
-  // Sync seats count to ref to avoid effect recreation churn
+  // Sync seats count to ref to avoid effect recreation churn and update notification
   const seatsRef = useRef(seats);
+  const playerReady = useRef(false);
   useEffect(() => {
     seatsRef.current = seats;
+    AsyncStorage.setItem('byahero_seats_available', String(seats));
+    if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
+      TrackPlayer.updateMetadataForTrack(0, {
+        title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
+        artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
+      }).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+    }
   }, [seats]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
+
+    const incSub = DeviceEventEmitter.addListener('remoteIncrement', () => {
+      incrementPassengers();
+    });
+
+    const decSub = DeviceEventEmitter.addListener('remoteDecrement', () => {
+      decrementPassengers();
+    });
+
+    const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
+      setSeats(newSeats);
+      try {
+        const boardsStr = await AsyncStorage.getItem('byahero_pending_boards') || '0';
+        const departsStr = await AsyncStorage.getItem('byahero_pending_departs') || '0';
+        if (parseInt(boardsStr, 10) > 0) {
+          pendingBoards.current += parseInt(boardsStr, 10);
+          await AsyncStorage.setItem('byahero_pending_boards', '0');
+        }
+        if (parseInt(departsStr, 10) > 0) {
+          pendingDeparts.current += parseInt(departsStr, 10);
+          await AsyncStorage.setItem('byahero_pending_departs', '0');
+        }
+        scheduleSync();
+      } catch (err) {
+        console.warn('Failed to sync pending counts on event:', err);
+      }
+    });
     
     initSession().then(() => {
       if (Platform.OS === 'web') {
@@ -122,10 +160,19 @@ export default function LiveTrackingScreen() {
         window.addEventListener('message', handleWebMessage);
         return () => {
           window.removeEventListener('message', handleWebMessage);
+          sub.remove();
+          incSub.remove();
+          decSub.remove();
           cleanup();
         };
       } else {
         startLocationTracking();
+        return () => {
+          sub.remove();
+          incSub.remove();
+          decSub.remove();
+          cleanup();
+        };
       }
     });
   }, []);
@@ -142,6 +189,15 @@ export default function LiveTrackingScreen() {
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
     }
+    if (Platform.OS !== 'web') {
+      notifee.cancelNotification('conductor-capacity').catch(err => {
+        console.warn('Failed to cancel notification:', err);
+      });
+      TrackPlayer.reset().catch(err => {
+        console.warn('Failed to reset TrackPlayer:', err);
+      });
+      playerReady.current = false;
+    }
   };
 
   const initSession = async () => {
@@ -153,7 +209,60 @@ export default function LiveTrackingScreen() {
     const payload = JSON.parse(payloadStr);
     setSession(payload);
     sessionRef.current = payload;
-    setSeats(payload.seats_total - payload.pre_departure_count);
+    const initialSeats = payload.seats_total - payload.pre_departure_count;
+    setSeats(initialSeats);
+    await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
+    await AsyncStorage.setItem('byahero_pending_boards', '0');
+    await AsyncStorage.setItem('byahero_pending_departs', '0');
+
+    // Create persistent notification for Android lock screen controls
+    if (Platform.OS !== 'web') {
+      try {
+        await notifee.requestPermission();
+        await notifee.cancelNotification('conductor-capacity').catch(() => {});
+        const channelId = await notifee.createChannel({
+          id: 'conductor-controls',
+          name: 'Conductor Live Controls',
+          importance: AndroidImportance.HIGH,
+        });
+
+        // Initialize TrackPlayer for lock screen MediaSession controls
+        try {
+          try {
+            await TrackPlayer.setupPlayer();
+          } catch (e) {
+            // Already initialized
+          }
+          await TrackPlayer.updateOptions({
+            capabilities: [
+              Capability.Play,
+              Capability.Pause,
+              Capability.SkipToNext,
+              Capability.SkipToPrevious,
+            ],
+            compactCapabilities: [
+              Capability.Play,
+              Capability.Pause,
+              Capability.SkipToNext,
+              Capability.SkipToPrevious,
+            ],
+          });
+          await TrackPlayer.add({
+            id: 'conductor-controls',
+            url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
+            title: `Bus ${payload.code} - ${payload.route}`,
+            artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
+            artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
+          });
+          await TrackPlayer.play();
+          playerReady.current = true;
+        } catch (tpErr) {
+          console.warn('Failed to setup TrackPlayer:', tpErr);
+        }
+      } catch (err) {
+        console.warn('Failed to initialize Notifee notification:', err);
+      }
+    }
 
     // Load route features for geofenced location parsing
     try {
@@ -259,6 +368,15 @@ export default function LiveTrackingScreen() {
     setLastUpdate(nowTimeStr);
 
     const computedStatus = autoComputeStatus(lat, lng, seats);
+    
+    // Save last location to AsyncStorage so background tasks can retrieve it
+    AsyncStorage.setItem('byahero_last_location', JSON.stringify({
+      lat,
+      lng,
+      resolvedName: resolved,
+      status: computedStatus
+    })).catch(err => console.warn('Failed to save last location:', err));
+
     postToMap({
       type: 'UPDATE_MY_LOCATION',
       lat,
