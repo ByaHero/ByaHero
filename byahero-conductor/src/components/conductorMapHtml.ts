@@ -36,6 +36,18 @@ export function getConductorLeafletHTML(baseUrl: string): string {
           maxZoom: 19
         }).addTo(map);
 
+        var routeGeoJSON = ${JSON.stringify(require('../../assets/data/laurel-talisay-tanauan.json'))};
+        if (routeGeoJSON) {
+          L.geoJSON(routeGeoJSON, {
+            style: function (feature) {
+              return { color: '#3b82f6', weight: 4, opacity: 0.7 };
+            },
+            filter: function(feature) {
+              return feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString';
+            }
+          }).addTo(map);
+        }
+
         var busMarkers = {};
         var currentMarker = null;
 

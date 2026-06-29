@@ -303,17 +303,63 @@ class BusController extends Controller
 
     public function getMapData(Request $request)
     {
+        $files = [];
+
+        // 1. public/routes
+        $publicRoutes = public_path('routes');
+        if (is_dir($publicRoutes)) {
+            foreach (glob($publicRoutes . '/*.geojson') as $f) {
+                $files[] = $f;
+            }
+        }
+
+        // 2. data/routes (project data folder)
+        $dataRoutes = base_path('../data/routes');
+        if (is_dir($dataRoutes)) {
+            foreach (glob($dataRoutes . '/*.geojson') as $f) {
+                $files[] = $f;
+            }
+        }
+
+        // 3. resources/routes
+        $resourceRoutes = resource_path('routes');
+        if (is_dir($resourceRoutes)) {
+            foreach (glob($resourceRoutes . '/*.geojson') as $f) {
+                $files[] = $f;
+            }
+        }
+
+        // 4. storage/app/routes
+        $storageRoutes = storage_path('app/routes');
+        if (is_dir($storageRoutes)) {
+            foreach (glob($storageRoutes . '/*.geojson') as $f) {
+                $files[] = $f;
+            }
+        }
+
+        $files = array_unique($files);
         $features = [];
-        $file = storage_path('app/routes/laurel-talisay-tanauan.geojson');
-        if (is_file($file)) {
+
+        foreach ($files as $file) {
             $txt = @file_get_contents($file);
-            if ($txt !== false) {
-                $json = json_decode($txt, true);
-                if ($json && isset($json['features']) && is_array($json['features'])) {
-                    $features = $json['features'];
+            if ($txt === false) continue;
+            $json = json_decode($txt, true);
+            if (!$json) continue;
+            if (isset($json['type']) && $json['type'] === 'FeatureCollection' && !empty($json['features']) && is_array($json['features'])) {
+                foreach ($json['features'] as $f) {
+                    $features[] = $f;
+                }
+            } elseif (isset($json['type']) && $json['type'] === 'Feature') {
+                $features[] = $json;
+            } elseif (isset($json[0]) && is_array($json)) {
+                foreach ($json as $f) {
+                    if (isset($f['type']) && $f['type'] === 'Feature') {
+                        $features[] = $f;
+                    }
                 }
             }
         }
+
         return response()->json([
             'type' => 'FeatureCollection',
             'features' => $features

@@ -85,7 +85,7 @@ export default function PassengerDashboard() {
   const [joinCode, setJoinCode] = useState('');
   const [circles, setCircles] = useState<any[]>([]);
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [baseUrl, setBaseUrl] = useState('');
+  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
   // Waiting Status States
   const [isWaiting, setIsWaiting] = useState(false);

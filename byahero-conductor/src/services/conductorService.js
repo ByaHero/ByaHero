@@ -107,15 +107,17 @@ export async function stopTracking(payload) {
 export async function getMapFeatures() {
   try {
     const baseUrl = await getServerUrl();
-    const response = await fetch(`${baseUrl}/api/buses/stops-terminal`, { cache: 'no-store' });
-    const json = await response.json();
-    // Re-format stops data if needed to match features geometry format,
-    // or fall back to map_data.geojson from public.
+    const response = await fetch(`${baseUrl}/api/map-data`, { cache: 'no-store' });
+    if (response.ok) {
+      return await response.json();
+    }
+    // Fallback to stops list if map-data is unavailable
+    const fallbackRes = await fetch(`${baseUrl}/api/buses/stops-terminal`, { cache: 'no-store' });
+    const json = await fallbackRes.json();
     if (json.success && json.data) {
       return { features: json.data };
     }
-    const backupRes = await fetch(`${baseUrl}/public/map_data.php`, { cache: 'no-store' });
-    return await backupRes.json();
+    return null;
   } catch (e) {
     console.error('getMapFeatures error:', e);
     return null;
