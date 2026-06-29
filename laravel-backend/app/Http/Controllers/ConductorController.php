@@ -224,6 +224,10 @@ class ConductorController extends Controller
             return response()->json(['success' => false, 'error' => 'bus_taken'], 403);
         }
 
+        // Automatically assign conductor to this bus in the database
+        Bus::where('Bus_ID', $busId)->update(['current_conductor_id' => $userId]);
+        Conductor::where('id', $userId)->update(['current_bus_id' => $busId]);
+
         // Close any dangling operations for this bus or conductor
         BusOperation::where('bus_id', $busId)
             ->where('status', 'active')
