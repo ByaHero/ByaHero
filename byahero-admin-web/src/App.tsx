@@ -5,16 +5,16 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Buses from './pages/Buses';
 import ActiveBuses from './pages/ActiveBuses';
-import Conductors from './pages/Conductors';
 import Schedules from './pages/Schedules';
-import Fares from './pages/Fares';
 import WaitingPassengers from './pages/WaitingPassengers';
 import Stops from './pages/Stops';
-import FeedbackPage from './pages/Feedback';
+import Conductors from './pages/Conductors';
 import LostFound from './pages/LostFound';
 import Reports from './pages/Reports';
+import FeedbackPage from './pages/FeedbackPage';
+import Fares from './pages/Fares';
 import Analytics from './pages/Analytics';
-import Profile from './pages/Profile';
+// import Profile from './pages/Profile';
 
 export default function App() {
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
@@ -69,14 +69,14 @@ export default function App() {
           <Route path="active-buses" element={<ActiveBuses />} />
           <Route path="schedules" element={<Schedules />} />
           <Route path="waiting-passengers" element={<WaitingPassengers />} />
-          <Route path="conductors" element={<Conductors />} />
           <Route path="stops" element={<Stops />} />
+          <Route path="conductors" element={<Conductors />} />
           <Route path="lost-and-found" element={<LostFound />} />
           <Route path="reports" element={<Reports />} />
           <Route path="feedbacks" element={<FeedbackPage />} />
           <Route path="fares" element={<Fares />} />
           <Route path="analytics" element={<Analytics />} />
-          <Route path="profile" element={<Profile adminEmail={adminEmail || ''} />} />
+          {/* <Route path="profile" element={<Profile adminEmail={adminEmail || ''} />} /> */}
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -84,3 +84,4 @@ export default function App() {
     </BrowserRouter>
   );
 }
+
