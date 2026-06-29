@@ -16,7 +16,6 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import notifee, { AndroidImportance, AndroidVisibility, AndroidCategory } from '@notifee/react-native';
 import TrackPlayer, { Capability } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
@@ -190,9 +189,6 @@ export default function LiveTrackingScreen() {
       clearTimeout(syncTimer.current);
     }
     if (Platform.OS !== 'web') {
-      notifee.cancelNotification('conductor-capacity').catch(err => {
-        console.warn('Failed to cancel notification:', err);
-      });
       TrackPlayer.reset().catch(err => {
         console.warn('Failed to reset TrackPlayer:', err);
       });
@@ -215,52 +211,39 @@ export default function LiveTrackingScreen() {
     await AsyncStorage.setItem('byahero_pending_boards', '0');
     await AsyncStorage.setItem('byahero_pending_departs', '0');
 
-    // Create persistent notification for Android lock screen controls
+    // Initialize TrackPlayer for lock screen MediaSession controls
     if (Platform.OS !== 'web') {
       try {
-        await notifee.requestPermission();
-        await notifee.cancelNotification('conductor-capacity').catch(() => {});
-        const channelId = await notifee.createChannel({
-          id: 'conductor-controls',
-          name: 'Conductor Live Controls',
-          importance: AndroidImportance.HIGH,
-        });
-
-        // Initialize TrackPlayer for lock screen MediaSession controls
         try {
-          try {
-            await TrackPlayer.setupPlayer();
-          } catch (e) {
-            // Already initialized
-          }
-          await TrackPlayer.updateOptions({
-            capabilities: [
-              Capability.Play,
-              Capability.Pause,
-              Capability.SkipToNext,
-              Capability.SkipToPrevious,
-            ],
-            compactCapabilities: [
-              Capability.Play,
-              Capability.Pause,
-              Capability.SkipToNext,
-              Capability.SkipToPrevious,
-            ],
-          });
-          await TrackPlayer.add({
-            id: 'conductor-controls',
-            url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
-            title: `Bus ${payload.code} - ${payload.route}`,
-            artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
-            artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
-          });
-          await TrackPlayer.play();
-          playerReady.current = true;
-        } catch (tpErr) {
-          console.warn('Failed to setup TrackPlayer:', tpErr);
+          await TrackPlayer.setupPlayer();
+        } catch (e) {
+          // Already initialized
         }
-      } catch (err) {
-        console.warn('Failed to initialize Notifee notification:', err);
+        await TrackPlayer.updateOptions({
+          capabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+          ],
+          compactCapabilities: [
+            Capability.Play,
+            Capability.Pause,
+            Capability.SkipToNext,
+            Capability.SkipToPrevious,
+          ],
+        });
+        await TrackPlayer.add({
+          id: 'conductor-controls',
+          url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
+          title: `Bus ${payload.code} - ${payload.route}`,
+          artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
+          artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
+        });
+        await TrackPlayer.play();
+        playerReady.current = true;
+      } catch (tpErr) {
+        console.warn('Failed to setup TrackPlayer:', tpErr);
       }
     }
 
