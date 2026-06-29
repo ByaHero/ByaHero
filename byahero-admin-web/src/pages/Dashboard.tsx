@@ -1,12 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { MapPin } from 'lucide-react';
-import byaheroLogo from '../../assets/images/byaheroLogo.png';
+import { Link } from 'react-router-dom';
+import { 
+  Bus, 
+  Activity, 
+  Calendar, 
+  Users, 
+  UserCheck, 
+  MapPin, 
+  HelpCircle, 
+  AlertTriangle, 
+  MessageSquare, 
+  DollarSign, 
+  BarChart3, 
+  RefreshCw, 
+  Navigation 
+} from 'lucide-react';
+import { adminService } from '../services/admin';
 
 export default function Dashboard() {
-  const navigate = useNavigate();
-  const [pulse, setPulse] = useState(true);
-  
+  const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState({
     total_buses: 0,
     active_buses: 0,
@@ -21,134 +33,126 @@ export default function Dashboard() {
     bus_fares: 0,
   });
 
-  useEffect(() => {
-    // Pulse animation simulation
-    const interval = setInterval(() => {
-      setPulse(p => !p);
-    }, 800);
-    return () => clearInterval(interval);
-  }, []);
-
   const fetchStats = async () => {
-    // Placeholder for actual API call
-    // Example:
-    // const response = await fetch('/api/admin/dashboard-stats');
-    // const data = await response.json();
-    // setStats(data.stats);
+    setLoading(true);
+    try {
+      const data = await adminService.getDashboardStats();
+      if (data.success && data.stats) {
+        setStats(data.stats);
+      }
+    } catch (e) {
+      console.error('Failed to fetch dashboard stats', e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     fetchStats();
+    const interval = setInterval(fetchStats, 30000); // refresh every 30s
+    return () => clearInterval(interval);
   }, []);
 
   const sections = [
     {
       title: 'Fleet & Operations',
       items: [
-        { label: 'Total Buses', count: stats.total_buses, route: '/buses', action: 'Manage' },
-        { label: 'Active Buses', count: stats.active_buses, route: '/active-buses', action: 'Manage' },
-        { label: 'Schedules', count: stats.schedules, route: '/schedules', action: 'Manage' },
-        { label: 'Waiting Pax', count: stats.waiting_pax, route: '/waiting-passengers', action: 'Manage' },
+        { label: 'Total Buses', count: stats.total_buses, route: '/buses', action: 'Manage', icon: Bus },
+        { label: 'Active Buses', count: stats.active_buses, route: '/active-buses', action: 'Manage', icon: Activity },
+        { label: 'Schedules', count: stats.schedules, route: '/schedules', action: 'Manage', icon: Calendar },
+        { label: 'Waiting Pax', count: stats.waiting_pax, route: '/waiting-passengers', action: 'Manage', icon: Users },
       ],
     },
     {
       title: 'Personnel & Infrastructure',
       items: [
-        { label: 'Drivers', count: stats.drivers, route: '/conductors', action: 'Manage' },
-        { label: 'Conductors', count: stats.conductors, route: '/conductors', action: 'Manage' },
-        { label: 'Bus Stops', count: stats.bus_stops, route: '/stops', action: 'Manage' },
+        { label: 'Drivers & Conductors', count: stats.drivers + stats.conductors, route: '/conductors', action: 'Manage', icon: UserCheck },
+        { label: 'Bus Stops', count: stats.bus_stops, route: '/stops', action: 'Manage', icon: MapPin },
       ],
     },
     {
       title: 'Passenger Experience',
       items: [
-        { label: 'Lost & Found', count: stats.lost_and_found, route: '/lost-and-found', action: 'Manage' },
-        { label: 'Reports', count: stats.reports, route: '/reports', action: 'Manage' },
-        { label: 'Feedbacks', count: stats.feedbacks, route: '/feedbacks', action: 'Manage' },
+        { label: 'Lost & Found', count: stats.lost_and_found, route: '/lost-and-found', action: 'Manage', icon: HelpCircle },
+        { label: 'Reports', count: stats.reports, route: '/reports', action: 'Manage', icon: AlertTriangle },
+        { label: 'Feedbacks', count: stats.feedbacks, route: '/feedbacks', action: 'Manage', icon: MessageSquare },
       ],
     },
     {
       title: 'Revenue & Insights',
       items: [
-        { label: 'Bus Fares', count: stats.bus_fares, route: '/fares', action: 'Manage' },
-        { label: 'Analytics (Boarded)', count: 0, route: '/analytics', action: 'View' },
+        { label: 'Bus Fares', count: stats.bus_fares, route: '/fares', action: 'Manage', icon: DollarSign },
+        { label: 'Analytics (Boarded)', count: 0, route: '/analytics', action: 'View', icon: BarChart3 },
       ],
     }
   ];
 
   return (
-    <div className="p-4 pt-6 max-w-7xl mx-auto w-full pb-10">
-      {/* Control Center Header */}
-      <div className="flex flex-col mb-4 border-b border-gray-200 pb-4 mt-2">
-        <div className="mb-3">
-          <h1 className="text-2xl font-extrabold text-gray-900 mb-1 tracking-tight">Control Center</h1>
-          <p className="text-gray-500 text-sm leading-relaxed">
-            Monitor and manage real-time transport fleet, personnel, and passenger analytics.
-          </p>
-        </div>
-        <div className="self-start flex items-center bg-white px-3 py-2 rounded-full border border-gray-200 shadow-sm">
-          <div className={`w-2 h-2 rounded-full bg-green-500 mr-2 transition-opacity duration-500 ${pulse ? 'opacity-100' : 'opacity-30'}`}></div>
-          <span className="text-xs text-gray-600 font-semibold">
-            Live System: <span className="text-green-600">Operational</span>
-          </span>
-        </div>
+    <div>
+      <div className="page-header-actions">
+        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)' }}>
+          System Monitor
+        </h2>
+        <button className="btn btn-secondary" onClick={fetchStats} disabled={loading}>
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          Refresh Stats
+        </button>
       </div>
 
-      {/* Sections */}
-      {sections.map((sec, sIdx) => (
-        <div key={sIdx} className="mb-6">
-          <h2 className="text-sm font-bold text-[#0f3878] mb-4 border-l-[3px] border-[#4C85C5] pl-3 uppercase tracking-wider">
-            {sec.title}
-          </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            {sec.items.map((item, iIdx) => (
-              <div 
-                key={iIdx} 
-                className="bg-[#4C85C5] p-4 rounded-2xl flex flex-col justify-between min-h-[130px] hover:-translate-y-1 transition-transform duration-200 shadow-sm hover:shadow-md cursor-pointer"
-                onClick={() => navigate(item.route)}
-              >
-                <h3 className="text-white text-[15px] font-bold leading-tight">
-                  {item.label}
-                </h3>
-                <div className="flex justify-between items-end mt-2">
-                  <span className="text-[40px] font-bold text-white leading-none">
-                    {item.count}
-                  </span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(item.route);
-                    }}
-                    className="bg-white/20 px-3.5 py-1.5 rounded-full border border-white/20 hover:bg-white/30 transition-colors"
-                  >
-                    <span className="text-white text-[12px] font-medium">{item.action}</span>
-                  </button>
-                </div>
+      <div className="dashboard-grid">
+        <div className="dashboard-left">
+          {sections.map((sec, sIdx) => (
+            <div key={sIdx}>
+              <h3 className="dashboard-section-title">{sec.title}</h3>
+              <div className="stats-grid">
+                {sec.items.map((item, iIdx) => {
+                  const Icon = item.icon;
+                  return (
+                    <div key={iIdx} className="stat-card">
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <span className="stat-label">{item.label}</span>
+                        <Icon size={20} style={{ opacity: 0.8 }} />
+                      </div>
+                      <div className="stat-row">
+                        <span className="stat-count">{item.count}</span>
+                        <Link to={item.route} className="stat-action">
+                          {item.action}
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
-      ))}
 
-      {/* Map Tracker UI Placeholder */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden">
-        <div className="flex justify-between items-center bg-white border-b border-gray-100 p-4">
-          <div className="flex items-center">
-            <img
-              src={byaheroLogo}
-              alt="Logo"
-              className="w-5 h-5 mr-2 object-contain"
-            />
-            <span className="text-[#0f3878] font-bold text-sm tracking-wide">BUS TRACKER</span>
+        <div className="dashboard-right" style={{ marginTop: '32px' }}>
+          <div className="map-tracker-container">
+            <div className="map-header">
+              <div className="map-logo-area">
+                <div style={{
+                  width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--primary-color)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'white', fontWeight: 900
+                }}>
+                  B
+                </div>
+                <span className="map-logo-text">BUS TRACKER</span>
+              </div>
+              <div className="map-updates">
+                <span className="status-dot" style={{ backgroundColor: 'var(--success)', width: '6px', height: '6px' }}></span>
+                <span>Live Feed</span>
+              </div>
+            </div>
+
+            <div className="map-viewport">
+              <Navigation size={48} color="#94a3b8" className="animate-pulse" />
+              <span className="map-viewport-text">Live Dispatch Operations Map</span>
+              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0 24px' }}>
+                Active bus fleets coordinates and real-time transit telemetry are visualized here.
+              </p>
+            </div>
           </div>
-          <div className="flex items-center">
-            <div className={`w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5 transition-opacity duration-500 ${pulse ? 'opacity-100' : 'opacity-30'}`}></div>
-            <span className="text-gray-500 text-[10px] uppercase font-bold tracking-wider">Live Updates</span>
-          </div>
-        </div>
-        <div className="h-64 bg-slate-100 flex flex-col items-center justify-center">
-          <MapPin size={48} className="text-slate-400" />
-          <span className="text-slate-400 mt-2 font-medium text-sm">Interactive Map Loading...</span>
         </div>
       </div>
     </div>
