@@ -144,26 +144,40 @@ export function PassengerHeader({
 
   const handleLogout = () => {
     const performLogout = async () => {
-      try {
-        const currentBaseUrl = await getServerUrl();
-        const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
-        await fetch(`${currentBaseUrl}/api/logout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'fcm_token=' + encodeURIComponent(token),
-          credentials: 'include'
-        }).catch(() => { });
-      } catch (e) { }
+      // First close the drawer animatedly to avoid unmounting race conditions
+      Animated.parallel([
+        Animated.timing(backdropOpacity, {
+          toValue: 0,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+        Animated.timing(slideAnim, {
+          toValue: width,
+          duration: 200,
+          useNativeDriver: true,
+        }),
+      ]).start(async () => {
+        setMenuVisible(false);
+        try {
+          const currentBaseUrl = await getServerUrl();
+          const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
+          await fetch(`${currentBaseUrl}/api/logout`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: 'fcm_token=' + encodeURIComponent(token),
+            credentials: 'include'
+          }).catch(() => { });
+        } catch (e) { }
 
-      await AsyncStorage.removeItem('byahero_cached_email');
-      await AsyncStorage.removeItem('byahero_cached_role');
-      await AsyncStorage.removeItem('byahero_cached_name');
-      await AsyncStorage.removeItem('byahero_cached_profile_picture');
-      await AsyncStorage.removeItem('byahero_cached_contacts');
-      await AsyncStorage.removeItem('byahero_cached_phone');
-      await AsyncStorage.removeItem('sos_fcm_active_token');
-      setMenuVisible(false);
-      router.replace('/');
+        await AsyncStorage.removeItem('byahero_cached_email');
+        await AsyncStorage.removeItem('byahero_cached_role');
+        await AsyncStorage.removeItem('byahero_cached_name');
+        await AsyncStorage.removeItem('byahero_cached_profile_picture');
+        await AsyncStorage.removeItem('byahero_cached_contacts');
+        await AsyncStorage.removeItem('byahero_cached_phone');
+        await AsyncStorage.removeItem('sos_fcm_active_token');
+        router.replace('/');
+      });
     };
 
     if (Platform.OS === 'web') {

@@ -356,6 +356,7 @@ class AuthController extends Controller
         $googleId = $payload['sub'] ?? null;
 
         $user = User::where('email', $email)->first();
+        $googlePicture = $payload['picture'] ?? null;
         if (!$user) {
             $user = User::create([
                 'email' => $email,
@@ -363,7 +364,26 @@ class AuthController extends Controller
                 'password' => Hash::make(\Illuminate\Support\Str::random(16)),
                 'google_id' => $googleId,
                 'auth_provider' => 'google',
+                'profile_picture' => $googlePicture,
             ]);
+        } else {
+            // Update Google ID, provider, and profile picture if not set or updated
+            $updated = false;
+            if (empty($user->google_id) && !empty($googleId)) {
+                $user->google_id = $googleId;
+                $updated = true;
+            }
+            if ($user->auth_provider !== 'google') {
+                $user->auth_provider = 'google';
+                $updated = true;
+            }
+            if (!empty($googlePicture) && $user->profile_picture !== $googlePicture) {
+                $user->profile_picture = $googlePicture;
+                $updated = true;
+            }
+            if ($updated) {
+                $user->save();
+            }
         }
 
         Session::put('user_id', (int)$user->id);

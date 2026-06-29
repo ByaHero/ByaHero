@@ -81,11 +81,17 @@ export function AdminHeader({ options, route }: AdminHeaderProps) {
 
   const handleLogout = () => {
     const performLogout = async () => {
-      await AsyncStorage.removeItem('byahero_cached_email');
-      await AsyncStorage.removeItem('byahero_cached_role');
-      await AsyncStorage.removeItem('byahero_cached_name');
-      setMenuVisible(false);
-      router.replace('/');
+      // First close the drawer animatedly to avoid unmounting race conditions
+      Animated.parallel([
+        Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+        Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
+      ]).start(async () => {
+        setMenuVisible(false);
+        await AsyncStorage.removeItem('byahero_cached_email');
+        await AsyncStorage.removeItem('byahero_cached_role');
+        await AsyncStorage.removeItem('byahero_cached_name');
+        router.replace('/');
+      });
     };
 
     if (Platform.OS === 'web') {
