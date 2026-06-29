@@ -37,8 +37,8 @@ function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number):
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -52,15 +52,16 @@ export default function LiveTrackingScreen() {
 
   // References & Tracking states
   const webViewRef = useRef<WebView>(null);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('http://localhost:8000');
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const routeFeatures = useRef<any[]>([]);
-  
+  const sessionRef = useRef<any>(null);
+
   // Passenger event accumulation
   const pendingBoards = useRef(0);
   const pendingDeparts = useRef(0);
   const syncTimer = useRef<any>(null);
-  
+
   // Last known coordinate caches for status computation
   const lastCoords = useRef<{ lat: number; lng: number } | null>(null);
   const lastMoveCheck = useRef<{ time: number; lat: number; lng: number } | null>(null);
@@ -74,39 +75,59 @@ export default function LiveTrackingScreen() {
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
-    initSession();
-    startLocationTracking();
-
-    if (Platform.OS === 'web') {
-      const handleWebMessage = (event: MessageEvent) => {
-        try {
-          const data = JSON.parse(event.data);
-          if (data.type === 'MAP_READY') {
-            if (lastCoords.current) {
-              const lat = lastCoords.current.lat;
-              const lng = lastCoords.current.lng;
-              const computedStatus = autoComputeStatus(lat, lng, seatsRef.current);
-              postToMap({
-                type: 'UPDATE_MY_LOCATION',
-                lat,
-                lng,
-                status: computedStatus,
-                pan: true
-              });
+    
+    initSession().then(() => {
+      if (Platform.OS === 'web') {
+        if (navigator.geolocation) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              onLocationUpdate({
+                coords: {
+                  latitude: position.coords.latitude,
+                  longitude: position.coords.longitude,
+                  altitude: null,
+                  accuracy: position.coords.accuracy,
+                  altitudeAccuracy: null,
+                  heading: null,
+                  speed: null,
+                },
+                timestamp: position.timestamp,
+              } as any);
+            },
+            (error) => {
+              console.warn('Browser geolocation failed:', error);
             }
-          }
-        } catch (e) {}
-      };
-      window.addEventListener('message', handleWebMessage);
-      return () => {
-        window.removeEventListener('message', handleWebMessage);
-        cleanup();
-      };
-    }
+          );
+        }
 
-    return () => {
-      cleanup();
-    };
+        const handleWebMessage = (e: MessageEvent) => {
+          try {
+            const data = JSON.parse(e.data);
+            if (data.type === 'MAP_CLICK') {
+              onLocationUpdate({
+                coords: {
+                  latitude: data.lat,
+                  longitude: data.lng,
+                  altitude: null,
+                  accuracy: 1,
+                  altitudeAccuracy: null,
+                  heading: null,
+                  speed: null,
+                },
+                timestamp: Date.now(),
+              } as any);
+            }
+          } catch (err) {}
+        };
+        window.addEventListener('message', handleWebMessage);
+        return () => {
+          window.removeEventListener('message', handleWebMessage);
+          cleanup();
+        };
+      } else {
+        startLocationTracking();
+      }
+    });
   }, []);
 
   const cleanup = () => {
@@ -131,8 +152,9 @@ export default function LiveTrackingScreen() {
     }
     const payload = JSON.parse(payloadStr);
     setSession(payload);
+    sessionRef.current = payload;
     setSeats(payload.seats_total - payload.pre_departure_count);
-    
+
     // Load route features for geofenced location parsing
     try {
       const res = await getMapFeatures();
@@ -166,7 +188,7 @@ export default function LiveTrackingScreen() {
 
   const autoComputeStatus = (currentLat: number, currentLng: number, currentSeats: number): string => {
     if (currentSeats <= 0) return 'full';
-    
+
     const now = Date.now();
     if (!lastMoveCheck.current) {
       lastMoveCheck.current = { time: now, lat: currentLat, lng: currentLng };
@@ -190,6 +212,16 @@ export default function LiveTrackingScreen() {
     if (status !== 'granted') {
       Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
       return;
+    }
+
+    // Get current position immediately to show the bus on the map on start
+    try {
+      const initialLocation = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.High,
+      });
+      onLocationUpdate(initialLocation);
+    } catch (e) {
+      console.warn('Failed to get initial location:', e);
     }
 
     locationSubscription.current = await Location.watchPositionAsync(
@@ -251,25 +283,26 @@ export default function LiveTrackingScreen() {
   };
 
   const sendDataToServer = async (lat: number, lng: number, locName: string, status: string) => {
-    if (!session) return;
+    const activeSession = sessionRef.current || session;
+    if (!activeSession) return;
     setNetStatus('Saving...');
 
     const payload = {
-      bus_id: parseInt(session.bus_id),
+      bus_id: parseInt(activeSession.bus_id),
       geojson: {
         type: "Feature",
         geometry: { type: "Point", coordinates: [lng, lat] },
         properties: {
-          bus_id: session.bus_id,
-          code: session.code,
-          route: session.route,
+          bus_id: activeSession.bus_id,
+          code: activeSession.code,
+          route: activeSession.route,
           seats_available: seats,
           status: status,
           timestamp: new Date().toISOString(),
           current_location_name: locName
         }
       },
-      route: session.route,
+      route: activeSession.route,
       seats_available: seats,
       status: status,
       current_location_name: locName
@@ -284,7 +317,8 @@ export default function LiveTrackingScreen() {
   };
 
   const triggerManualUpdate = () => {
-    if (lastCoords.current && session) {
+    const activeSession = sessionRef.current || session;
+    if (lastCoords.current && activeSession) {
       const lat = lastCoords.current.lat;
       const lng = lastCoords.current.lng;
       const resolved = lastResolvedLocation.current?.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
@@ -411,7 +445,7 @@ export default function LiveTrackingScreen() {
             originWhitelist={['*']}
             source={{ html: getConductorLeafletHTML(baseUrl) }}
             style={StyleSheet.absoluteFillObject}
-            onMessage={() => {}}
+            onMessage={() => { }}
           />
         )}
       </View>

@@ -10,7 +10,9 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET') {
   // Resolve absolute URL
   let cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
   if (cleanRel.startsWith('api.php') || cleanRel.startsWith('map_data.php') || cleanRel.startsWith('update_geo_location.php') || cleanRel.startsWith('logout.php')) {
-    cleanRel = 'public/' + cleanRel;
+    if (!baseUrl.includes('alwaysdata.net')) {
+      cleanRel = 'public/' + cleanRel;
+    }
   }
   
   const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
@@ -88,9 +90,7 @@ export async function updateGeoLocation(payload) {
  * Logs historical passenger boarding/departing events.
  */
 export async function logPassengerEvent(payload) {
-  // Currently Laravel does not have a dedicated logPassengerEvent conductor endpoint.
-  // We fall back to the legacy action or standard auth handler if necessary.
-  return safeRequest('public/api.php?action=log_passenger_event', payload, 'POST');
+  return safeRequest('api/conductor/log-passenger-event', payload, 'POST');
 }
 
 /**

@@ -27,13 +27,13 @@ export default function DashboardScreen() {
   const [selectedRoute, setSelectedRoute] = useState<string>('');
   const [paxCount, setPaxCount] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
-  
+
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBusDropdownOpen, setIsBusDropdownOpen] = useState(false);
   const [isRouteDropdownOpen, setIsRouteDropdownOpen] = useState(false);
-  
+
   // Map filter
   const [currentFilter, setCurrentFilter] = useState('ALL ROUTES');
   const [rawBusesList, setRawBusesList] = useState<any[]>([]);
@@ -54,7 +54,7 @@ export default function DashboardScreen() {
           if (data.type === 'MAP_READY') {
             fetchLiveBusesForMap();
           }
-        } catch (e) {}
+        } catch (e) { }
       };
       window.addEventListener('message', handleWebMessage);
       return () => {
@@ -117,7 +117,7 @@ export default function DashboardScreen() {
         try {
           const geo = JSON.parse(bus.current_location);
           if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
-        } catch (e) {}
+        } catch (e) { }
       }
       if (!coords && bus.lat && bus.lng) coords = [parseFloat(bus.lat), parseFloat(bus.lng)];
 
@@ -131,7 +131,7 @@ export default function DashboardScreen() {
       };
     });
 
-    const filtered = normalized.filter(b => 
+    const filtered = normalized.filter(b =>
       (filter === 'ALL ROUTES' || b.route === filter) &&
       b.status !== 'unavailable' &&
       b.coords !== null
@@ -163,7 +163,7 @@ export default function DashboardScreen() {
   const handleConfirmStart = async () => {
     const boardingCount = parseInt(paxCount) || 0;
     const seatsTotal = selectedBus.total_seats || 25;
-    
+
     if (boardingCount > seatsTotal) {
       Alert.alert('Error', `Passenger count cannot exceed maximum seats (${seatsTotal})`);
       return;
@@ -205,17 +205,25 @@ export default function DashboardScreen() {
   };
 
   const handleLogout = async () => {
-    Alert.alert('Logout', 'Are you sure you want to log out?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Logout',
-        style: 'destructive',
-        onPress: async () => {
-          await logout();
-          router.replace('/');
-        }
+    if (Platform.OS === 'web') {
+      const confirmLogout = window.confirm('Are you sure you want to log out?');
+      if (confirmLogout) {
+        await logout();
+        router.replace('/');
       }
-    ]);
+    } else {
+      Alert.alert('Logout', 'Are you sure you want to log out?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Logout',
+          style: 'destructive',
+          onPress: async () => {
+            await logout();
+            router.replace('/');
+          }
+        }
+      ]);
+    }
   };
 
   return (
@@ -258,7 +266,7 @@ export default function DashboardScreen() {
               ))}
             </View>
           </View>
-          
+
           <View style={{ height: 260 }}>
             {Platform.OS === 'web' ? (
               <iframe
@@ -272,7 +280,7 @@ export default function DashboardScreen() {
                 originWhitelist={['*']}
                 source={{ html: getConductorLeafletHTML(baseUrl) }}
                 style={StyleSheet.absoluteFillObject}
-                onMessage={() => {}}
+                onMessage={() => { }}
               />
             )}
           </View>

@@ -406,4 +406,32 @@ class ConductorController extends Controller
             'message' => 'Stopped tracking for bus'
         ]);
     }
+
+    public function logPassengerEvent(Request $request)
+    {
+        $userId = $this->checkAuth();
+        $opId = (int)$request->input('operation_id');
+        $eventType = $request->input('event_type'); // 'board' or 'depart'
+        $count = (int)$request->input('count', 1);
+
+        if (!$opId || !in_array($eventType, ['board', 'depart'])) {
+            return response()->json(['success' => false, 'error' => 'Invalid parameters'], 400);
+        }
+
+        $op = BusOperation::find($opId);
+        if (!$op || (int)$op->conductor_id !== $userId) {
+            return response()->json(['success' => false, 'error' => 'Operation not found or unauthorized'], 403);
+        }
+
+        if ($eventType === 'board') {
+            $op->increment('total_boarded', $count);
+        } else {
+            $op->increment('total_departed', $count);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Passenger event logged successfully'
+        ]);
+    }
 }

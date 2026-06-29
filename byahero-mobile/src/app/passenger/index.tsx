@@ -447,7 +447,7 @@ export default function PassengerDashboard() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 10000); // refresh every 10s
+    const interval = setInterval(fetchData, 3000); // refresh every 3s
 
     return () => {
       active = false;

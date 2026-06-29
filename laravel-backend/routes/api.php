@@ -92,6 +92,7 @@ Route::middleware([
     Route::get('/conductor/buses', [ConductorController::class, 'getBuses']);
     Route::post('/conductor/start', [ConductorController::class, 'start']);
     Route::post('/conductor/update-location', [ConductorController::class, 'updateLocation']);
+    Route::post('/conductor/log-passenger-event', [ConductorController::class, 'logPassengerEvent']);
     Route::post('/conductor/stop', [ConductorController::class, 'stop']);
     Route::match(['get', 'post'], '/conductor/profile', [ConductorController::class, 'updateProfile']);
 
