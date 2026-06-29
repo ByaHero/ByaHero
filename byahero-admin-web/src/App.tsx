@@ -14,7 +14,7 @@ import Reports from './pages/Reports';
 import FeedbackPage from './pages/FeedbackPage';
 import Fares from './pages/Fares';
 import Analytics from './pages/Analytics';
-// import Profile from './pages/Profile';
+import Profile from './pages/Profile';
 
 export default function App() {
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
@@ -51,15 +51,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             adminEmail ? <Navigate to="/" replace /> : <Login onLoginSuccess={(email) => setAdminEmail(email)} />
-          } 
+          }
         />
-        
-        <Route 
-          path="/" 
+
+        <Route
+          path="/"
           element={
             adminEmail ? <Layout adminEmail={adminEmail} onLogout={handleLogout} /> : <Navigate to="/login" replace />
           }
@@ -76,7 +76,7 @@ export default function App() {
           <Route path="feedbacks" element={<FeedbackPage />} />
           <Route path="fares" element={<Fares />} />
           <Route path="analytics" element={<Analytics />} />
-          {/* <Route path="profile" element={<Profile adminEmail={adminEmail || ''} />} /> */}
+          <Route path="profile" element={<Profile adminEmail={adminEmail || ''} />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
