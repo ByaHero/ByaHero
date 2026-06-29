@@ -1,5 +1,6 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 
 interface LayoutProps {
@@ -9,9 +10,10 @@ interface LayoutProps {
 
 export default function Layout({ adminEmail, onLogout }: LayoutProps) {
   return (
-    <div className="min-h-screen bg-[#f8f9fa] flex flex-col font-sans">
-      <Navbar adminEmail={adminEmail} onLogout={onLogout} />
-      <main className="flex-1 relative w-full">
+    <div className="app-container">
+      <Sidebar onLogout={onLogout} />
+      <main className="main-content">
+        <Navbar adminEmail={adminEmail} />
         <Outlet />
       </main>
     </div>
