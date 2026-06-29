@@ -83,15 +83,30 @@ export default function OperationSchedulePage() {
       const data = await response.json();
       if (data.success && data.schedules) {
         data.schedules.forEach((sch: any) => {
+          const formatTime = (timeStr: string) => {
+            if (!timeStr) return '';
+            if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
+            const parts = timeStr.split(':');
+            if (parts.length < 2) return timeStr;
+            const [h, m] = parts;
+            let hour = parseInt(h, 10);
+            const ampm = hour >= 12 ? 'PM' : 'AM';
+            hour = hour % 12;
+            hour = hour ? hour : 12;
+            const hourStr = hour < 10 ? `0${hour}` : hour;
+            return `${hourStr}:${m} ${ampm}`;
+          };
+
           const mappedData = {
-            time_open: sch.time_open || '',
-            time_close: sch.time_close || '',
-            is_suspended: sch.is_suspended === 1,
+            time_open: formatTime(sch.time_open) || '',
+            time_close: formatTime(sch.time_close) || '',
+            is_suspended: sch.is_suspended === 1 || sch.is_suspended === true,
             suspend_message: sch.suspend_message || ''
           };
-          if (sch.terminal_name === 'LAUREL - TANAUAN') {
+          const tName = sch.terminal_name ? sch.terminal_name.toUpperCase() : '';
+          if (tName === 'LAUREL - TANAUAN') {
             setLtSchedule(mappedData);
-          } else if (sch.terminal_name === 'TANAUAN - LAUREL') {
+          } else if (tName === 'TANAUAN - LAUREL') {
             setTlSchedule(mappedData);
           }
         });
