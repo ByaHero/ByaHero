@@ -84,7 +84,7 @@ export default function ActiveBusesPage() {
             <View key={bus.Bus_ID} style={tw`bg-white rounded-2xl p-4 pb-5 mb-4 shadow-sm border border-slate-100 flex-row`}>
               <View style={tw`w-[25%] justify-center items-center`}>
                 <Image 
-                  source={require('../../../assets/images/images/busonallbuses.svg')} 
+                  source={require('../../../assets/images/busonallbuses.svg')} 
                   style={tw`w-[54px] h-[54px]`} 
                   contentFit="contain" 
                 />

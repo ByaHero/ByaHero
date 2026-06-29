@@ -159,6 +159,19 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
   const step = tourSteps[currentStep];
 
   const pulseAnim = useRef(new Animated.Value(1)).current;
+  const [modalVisible, setModalVisible] = useState(false);
+
+  useEffect(() => {
+    if (currentStep === 10 || currentStep === 12 || currentStep === 14) {
+      setModalVisible(false);
+      const timer = setTimeout(() => {
+        setModalVisible(true);
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setModalVisible(true);
+    }
+  }, [currentStep]);
 
   useEffect(() => {
     Animated.loop(
@@ -298,6 +311,8 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
     onClose();
     router.replace('/passenger');
   };
+
+  if (!modalVisible) return null;
 
   return (
     <Modal transparent={true} statusBarTranslucent={true} animationType="none" visible={true}>

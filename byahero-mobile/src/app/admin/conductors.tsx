@@ -188,7 +188,7 @@ export default function ConductorsPage() {
               />
               <TouchableOpacity onPress={() => setShowPassword(!showPassword)} style={tw`p-2`}>
                 <Image 
-                  source={showPassword ? require('../../../assets/images/images/pass.svg') : require('../../../assets/images/images/hash.svg')}
+                  source={showPassword ? require('../../../assets/images/pass.svg') : require('../../../assets/images/hash.svg')}
                   style={{ width: 22, height: 22 }}
                   contentFit="contain"
                 />

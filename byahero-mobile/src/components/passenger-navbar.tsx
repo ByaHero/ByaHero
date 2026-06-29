@@ -323,7 +323,13 @@ export function PassengerHeader({
       </View>
 
       {/* Offcanvas Menu View */}
-      {menuVisible && (
+      <Modal
+        visible={menuVisible}
+        transparent={true}
+        animationType="none"
+        statusBarTranslucent={true}
+        onRequestClose={closeMenu}
+      >
         <View
           style={[
             tw`absolute z-[3000]`,
@@ -440,7 +446,7 @@ export function PassengerHeader({
             </Animated.View>
           </View>
         </View>
-      )}
+      </Modal>
     </>
   );
 }

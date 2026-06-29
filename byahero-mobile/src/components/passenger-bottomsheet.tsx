@@ -565,7 +565,7 @@ export default function PassengerBottomSheet({
                   style={tw`flex-grow bg-white border border-[#cbd5e1] rounded-2xl px-4 py-2.5 text-sm text-[#333333] shadow-sm`}
                 />
                 <TouchableOpacity onPress={handleJoinCircle} style={tw`bg-[#1d72f8] rounded-full justify-center px-6 shadow-sm`}>
-                  <Text style={tw`color-white font-black text-sm`}>Join</Text>
+                  <Text style={tw`text-white font-black text-sm`}>Join</Text>
                 </TouchableOpacity>
               </View>
             </View>
