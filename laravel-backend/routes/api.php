@@ -51,6 +51,7 @@ Route::middleware([
     Route::get('/buses/stops-terminal', [BusController::class, 'getBusStopsTerminal']);
     Route::get('/buses/sync', [BusController::class, 'getSyncData']);
     Route::get('/buses/history', [BusController::class, 'getRideHistory']);
+    Route::get('/map-data', [BusController::class, 'getMapData']);
     Route::post('/location/update', [BusController::class, 'updateUserLocation']);
     Route::get('/waiting/status', [BusController::class, 'getMyWaitingStatus']);
     Route::post('/waiting/set', [BusController::class, 'setWaitingStatus']);

@@ -300,4 +300,23 @@ class BusController extends Controller
             'message' => 'Waiting status cancelled'
         ]);
     }
+
+    public function getMapData(Request $request)
+    {
+        $features = [];
+        $file = storage_path('app/routes/laurel-talisay-tanauan.geojson');
+        if (is_file($file)) {
+            $txt = @file_get_contents($file);
+            if ($txt !== false) {
+                $json = json_decode($txt, true);
+                if ($json && isset($json['features']) && is_array($json['features'])) {
+                    $features = $json['features'];
+                }
+            }
+        }
+        return response()->json([
+            'type' => 'FeatureCollection',
+            'features' => $features
+        ]);
+    }
 }

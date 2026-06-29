@@ -46,11 +46,7 @@ export const getMapHtml = (baseUrl: string, existingStops: any[]) => `
               .bindPopup('<b>' + s.name + '</b><br><small>' + s.type + '</small>');
         });
 
-        let routeGeoJSON = null;
-        fetch(BASE_URL + '/public/routes/laurel-talisay-tanauan.geojson')
-            .then(res => res.json())
-            .then(data => { routeGeoJSON = data; })
-            .catch(err => console.error(err));
+        const routeGeoJSON = ${JSON.stringify(require('../../../assets/data/laurel-talisay-tanauan.json'))};
 
         let pickMarker = null;
         map.on('click', (e) => {
