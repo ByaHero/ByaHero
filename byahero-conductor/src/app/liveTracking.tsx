@@ -306,6 +306,17 @@ export default function LiveTrackingScreen() {
       return;
     }
 
+    if (Platform.OS !== 'web') {
+      try {
+        const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+        if (bgStatus !== 'granted') {
+          console.warn('Background location permission was not granted. Location tracking might pause when screen is closed.');
+        }
+      } catch (err) {
+        console.warn('Failed to request background location permission:', err);
+      }
+    }
+
     // Get current position immediately to show the bus on the map on start
     try {
       const initialLocation = await Location.getCurrentPositionAsync({
@@ -469,20 +480,30 @@ export default function LiveTrackingScreen() {
   };
 
   const incrementPassengers = () => {
-    if (session && seats > 0) {
-      const newSeats = seats - 1;
-      setSeats(newSeats);
-      pendingBoards.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats > 0) {
+          pendingBoards.current++;
+          scheduleSync();
+          return prevSeats - 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
   const decrementPassengers = () => {
-    if (session && seats < session.seats_total) {
-      const newSeats = seats + 1;
-      setSeats(newSeats);
-      pendingDeparts.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats < activeSession.seats_total) {
+          pendingDeparts.current++;
+          scheduleSync();
+          return prevSeats + 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
