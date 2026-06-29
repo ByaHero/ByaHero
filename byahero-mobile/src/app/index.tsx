@@ -224,12 +224,12 @@ export default function LoginScreen() {
               <TouchableOpacity activeOpacity={0.8} onPress={handleLogoTap} style={tw`items-center`}>
                 <Image
                   source={require('../../assets/images/byaheroLogo.png')}
-                  style={tw`w-[105px] h-[105px]`}
+                  style={tw`w-[120px] h-[120px]`}
                   contentFit="contain"
                 />
                 <Image
                   source={require('../../assets/images/ByaHero_rext_.svg')}
-                  style={tw`w-[180px] h-[40px] mt-2`}
+                  style={tw`w-[150px] h-[36px] mt-1`}
                   contentFit="contain"
                 />
               </TouchableOpacity>
@@ -242,47 +242,47 @@ export default function LoginScreen() {
               </Text>
 
               {/* Email Input */}
-              <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
+              <View style={tw`flex-row items-center bg-white rounded-full px-6 mb-4 border border-slate-100 shadow-sm`}>
                 <TextInput
                   value={email}
                   onChangeText={setEmail}
                   placeholder="Email"
-                  placeholderTextColor="#7a98c8"
+                  placeholderTextColor="#94a3b8"
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
+                  style={tw`flex-1 text-slate-800 py-3 text-sm font-semibold`}
                 />
               </View>
 
               {/* Password Input */}
-              <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-3`}>
+              <View style={tw`flex-row items-center bg-white rounded-full px-6 mb-3 border border-slate-100 shadow-sm`}>
                 <TextInput
                   value={password}
                   onChangeText={setPassword}
                   secureTextEntry={secureTextEntry}
                   placeholder="Password"
-                  placeholderTextColor="#7a98c8"
+                  placeholderTextColor="#94a3b8"
                   autoCapitalize="none"
-                  style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
+                  style={tw`flex-1 text-slate-800 py-3 text-sm font-semibold`}
                 />
                 <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={18} color="#7a98c8" />
+                  <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={18} color="#94a3b8" />
                 </TouchableOpacity>
               </View>
 
               {/* Forgot Password Link */}
               <TouchableOpacity
                 onPress={() => router.push('/forgotPassword')}
-                style={tw`self-start mb-6 ml-1.5`}
+                style={tw`self-start mb-6 ml-3`}
               >
-                <Text style={tw`text-slate-500 text-[13px] font-medium`}>Forgot Password?</Text>
+                <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>
               </TouchableOpacity>
 
               {/* Submit Button */}
               <TouchableOpacity
                 onPress={handleLogin}
                 disabled={isLoading}
-                style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm ${isLoading && showWarmingUpMsg ? 'mb-2' : 'mb-5'}`}
+                style={tw`bg-[#1d72f8] rounded-full py-3 px-12 self-center justify-center shadow-md ${isLoading && showWarmingUpMsg ? 'mb-2' : 'mb-5'}`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="#fff" />
@@ -299,34 +299,34 @@ export default function LoginScreen() {
 
               {/* Divider */}
               <View style={tw`flex-row items-center w-full mb-5`}>
-                <View style={tw`flex-1 h-[1px] bg-slate-300`} />
-                <Text style={tw`text-slate-500 text-[11px] font-bold mx-3`}>OR</Text>
-                <View style={tw`flex-1 h-[1px] bg-slate-300`} />
+                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
+                <Text style={tw`text-slate-400 text-[10px] font-bold mx-3`}>OR</Text>
+                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
               </View>
 
               {/* Google sign-in button */}
               <TouchableOpacity
                 onPress={handleGoogleMockLogin}
                 activeOpacity={0.85}
-                style={tw`flex-row items-center justify-center border border-slate-300 rounded-full py-3 px-4 w-full bg-white mb-7 shadow-sm`}
+                style={tw`flex-row items-center justify-center border border-slate-200 rounded-full py-2.5 px-4 w-full bg-white mb-6 shadow-sm`}
               >
                 <Image
                   source={{ uri: 'https://developers.google.com/static/identity/images/g-logo.png' }}
-                  style={tw`w-5 h-5 mr-3`}
+                  style={tw`w-4 h-4 mr-3`}
                   contentFit="contain"
                 />
-                <Text style={tw`text-slate-700 text-sm font-semibold`}>
+                <Text style={tw`text-slate-700 text-xs font-semibold`}>
                   Continue with Google
                 </Text>
               </TouchableOpacity>
 
               {/* Sign Up Navigation link */}
               <View style={tw`flex-row justify-center items-center`}>
-                <Text style={tw`text-slate-500 text-[13px] font-medium`}>
+                <Text style={tw`text-slate-500 text-xs font-medium`}>
                   Don't have an account?{' '}
                 </Text>
                 <TouchableOpacity onPress={() => router.push('/signUp')}>
-                  <Text style={tw`text-[#1d72f8] text-[13px] font-bold`}>
+                  <Text style={tw`text-[#1d72f8] text-xs font-bold`}>
                     Sign up
                   </Text>
                 </TouchableOpacity>

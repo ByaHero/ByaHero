@@ -252,72 +252,71 @@ export function PassengerHeader({
         }
       ]}>
         <View style={tw`h-14 flex-row items-center justify-between px-4`}>
-          <View style={tw`w-15 justify-center`}>
-            {showBackButton || showCloseButton ? (
-              <TouchableOpacity onPress={() => router.back()} style={tw`p-1`}>
+          {pageTitle || showBackButton || showCloseButton ? (
+            <View style={tw`flex-row items-center flex-1`}>
+              <TouchableOpacity onPress={() => router.back()} style={tw`p-1 mr-2`}>
                 <MaterialIcons
                   name={showCloseButton ? "close" : "arrow-back"}
                   size={24}
                   color="white"
                 />
               </TouchableOpacity>
-            ) : (
-              <Image
-                source={require('../../assets/images/topBarLogo.svg')}
-                style={tw`w-15 h-15`}
-                contentFit="contain"
-              />
-            )}
-          </View>
-
-          <View style={[tw`absolute justify-center items-center`, { left: 0, right: 0, top: 0, bottom: 0, zIndex: -1 }]}>
-            {pageTitle ? (
-              <Text style={tw`text-white font-bold text-base`}>{pageTitle}</Text>
-            ) : (
-              <Image
-                source={require('../../assets/images/ByaHero.svg')}
-                style={tw`w-[100px] h-[30px]`}
-                contentFit="contain"
-              />
-            )}
-          </View>
-
-          {!(showBackButton || showCloseButton) ? (
-            <View style={tw`flex-row items-center gap-3`}>
-              <TouchableOpacity
-                ref={notificationsRef}
-                onLayout={() => handleTourLayout('notifications', notificationsRef)}
-                style={tw`p-1 rounded-xl`}
-                onPress={() => router.push('/passenger/notifications' as any)}
-              >
-                <Image
-                  source={require('../../assets/images/notification bell.svg')}
-                  style={tw`w-[22px] h-[22px]`}
-                  contentFit="contain"
-                  priority="high"
-                  cachePolicy="memory"
-                  transition={0}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                ref={hamburgerRef}
-                onLayout={() => handleTourLayout('hamburger', hamburgerRef)}
-                onPress={openMenu}
-                style={tw`p-1 rounded-xl`}
-              >
-                <Image
-                  source={require('../../assets/images/HAMBURGER.svg')}
-                  style={tw`w-[18px] h-[18px]`}
-                  contentFit="contain"
-                  priority="high"
-                  cachePolicy="memory"
-                  transition={0}
-                />
-              </TouchableOpacity>
+              {pageTitle ? (
+                <Text style={tw`text-white font-bold text-[15px]`}>{pageTitle}</Text>
+              ) : null}
             </View>
           ) : (
-            <View style={tw`w-15`} />
+            <>
+              <View style={tw`w-15 justify-center`}>
+                <Image
+                  source={require('../../assets/images/topBarLogo.svg')}
+                  style={tw`w-15 h-15`}
+                  contentFit="contain"
+                />
+              </View>
+
+              <View style={[tw`absolute justify-center items-center`, { left: 0, right: 0, top: 0, bottom: 0, zIndex: -1 }]}>
+                <Image
+                  source={require('../../assets/images/ByaHero.svg')}
+                  style={tw`w-[100px] h-[30px]`}
+                  contentFit="contain"
+                />
+              </View>
+
+              <View style={tw`flex-row items-center gap-3`}>
+                <TouchableOpacity
+                  ref={notificationsRef}
+                  onLayout={() => handleTourLayout('notifications', notificationsRef)}
+                  style={tw`p-1 rounded-xl`}
+                  onPress={() => router.push('/passenger/notifications' as any)}
+                >
+                  <Image
+                    source={require('../../assets/images/notification bell.svg')}
+                    style={tw`w-[22px] h-[22px]`}
+                    contentFit="contain"
+                    priority="high"
+                    cachePolicy="memory"
+                    transition={0}
+                  />
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  ref={hamburgerRef}
+                  onLayout={() => handleTourLayout('hamburger', hamburgerRef)}
+                  onPress={openMenu}
+                  style={tw`p-1 rounded-xl`}
+                >
+                  <Image
+                    source={require('../../assets/images/HAMBURGER.svg')}
+                    style={tw`w-[18px] h-[18px]`}
+                    contentFit="contain"
+                    priority="high"
+                    cachePolicy="memory"
+                    transition={0}
+                  />
+                </TouchableOpacity>
+              </View>
+            </>
           )}
         </View>
       </View>
