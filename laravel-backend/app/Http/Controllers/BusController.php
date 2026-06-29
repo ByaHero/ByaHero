@@ -63,6 +63,12 @@ class BusController extends Controller
                 if ($friendly) {
                     $r['current_location_name'] = $friendly;
                 }
+                if (isset($geo['geometry']['coordinates']) && is_array($geo['geometry']['coordinates']) && count($geo['geometry']['coordinates']) >= 2) {
+                    $r['lng'] = $geo['geometry']['coordinates'][0];
+                    $r['lat'] = $geo['geometry']['coordinates'][1];
+                    $r['longitude'] = $geo['geometry']['coordinates'][0];
+                    $r['latitude'] = $geo['geometry']['coordinates'][1];
+                }
             } else {
                 $r['current_location'] = null;
             }
