@@ -178,8 +178,25 @@ class AdminController extends Controller
     public function listStops(Request $request)
     {
         $this->checkAuth();
-        $stops = BusStopsTerminal::orderBy('type', 'desc')->orderBy('name', 'asc')->get();
-        return response()->json(['success' => true, 'stops' => $stops]);
+        
+        $stops = BusStopsTerminal::orderBy('id', 'desc')->get();
+        
+        $stopsForward = BusStopsTerminal::where('route', 'LAUREL - TANAUAN')
+                            ->orderBy('sort_order', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+                            
+        $stopsReverse = BusStopsTerminal::where('route', 'TANAUAN - LAUREL')
+                            ->orderBy('sort_order', 'asc')
+                            ->orderBy('id', 'asc')
+                            ->get();
+
+        return response()->json([
+            'success' => true, 
+            'stops' => $stops,
+            'stopsForward' => $stopsForward,
+            'stopsReverse' => $stopsReverse
+        ]);
     }
 
     public function manageStops(Request $request)
@@ -189,6 +206,17 @@ class AdminController extends Controller
 
         if ($action === 'add_stop' || $action === 'update_stop') {
             $id = $request->input('id');
+            $route = $request->input('route', 'LAUREL - TANAUAN');
+            
+            // Auto calculate sort_order to be at the end if adding
+            $sort_order = $request->input('sort_order');
+            if ($action === 'add_stop' && $sort_order === null) {
+                $maxSort = BusStopsTerminal::where('route', $route)->max('sort_order');
+                $sort_order = $maxSort ? $maxSort + 1 : 1;
+            } else {
+                $sort_order = $sort_order ?? 0;
+            }
+
             $data = [
                 'name' => $request->input('name'),
                 'type' => $request->input('type'),
@@ -196,13 +224,13 @@ class AdminController extends Controller
                 'location_landmark' => $request->input('location_landmark'),
                 'lat' => $request->input('lat'),
                 'lng' => $request->input('lng'),
-                'route' => $request->input('route', 'LAUREL - TANAUAN'),
-                'sort_order' => $request->input('sort_order', 0),
+                'route' => $route,
+                'sort_order' => $sort_order,
             ];
 
             if ($action === 'add_stop') {
                 BusStopsTerminal::create($data);
-                return response()->json(['success' => true, 'message' => 'Stop added successfully.']);
+                return response()->json(['success' => true, 'message' => 'Stop saved successfully.']);
             } else {
                 BusStopsTerminal::where('id', $id)->update($data);
                 return response()->json(['success' => true, 'message' => 'Stop updated successfully.']);
@@ -214,7 +242,29 @@ class AdminController extends Controller
             }
 
             BusStopsTerminal::where('id', $id)->delete();
-            return response()->json(['success' => true, 'message' => 'Stop deleted successfully.']);
+            return response()->json(['success' => true, 'message' => 'Stop deleted.']);
+        } elseif ($action === 'save_forward_order' || $action === 'save_reverse_order') {
+            $routeName = ($action === 'save_forward_order') ? 'LAUREL - TANAUAN' : 'TANAUAN - LAUREL';
+            $orderStr = $request->input('order');
+            
+            if (!$orderStr) {
+                return response()->json(['success' => false, 'error' => 'No order data received.']);
+            }
+            
+            $ids = array_filter(array_map('intval', explode(',', $orderStr)));
+            
+            if (!empty($ids)) {
+                // Reset all
+                BusStopsTerminal::where('route', $routeName)->update(['sort_order' => 0]);
+                
+                foreach ($ids as $index => $stopId) {
+                    BusStopsTerminal::where('id', $stopId)
+                        ->where('route', $routeName)
+                        ->update(['sort_order' => $index + 1]);
+                }
+                return response()->json(['success' => true, 'message' => "Order saved for {$routeName}."]);
+            }
+            return response()->json(['success' => false, 'error' => 'Could not parse order.']);
         }
 
         return response()->json(['success' => false, 'error' => 'Unknown action.']);

@@ -21,10 +21,13 @@
           </targets>
         </DialogSelection>
       </SelectionState>
+<<<<<<< Updated upstream
       <SelectionState runConfigName="app">
         <option name="selectionMode" value="DROPDOWN" />
         <DialogSelection />
       </SelectionState>
+=======
+>>>>>>> Stashed changes
     </selectionStates>
   </component>
 </project>
