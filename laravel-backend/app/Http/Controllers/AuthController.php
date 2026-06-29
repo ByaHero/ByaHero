@@ -172,12 +172,19 @@ class AuthController extends Controller
             'role' => 'signup_otp',
         ]);
 
-        // Simulating standard local developer mode or mail send
-        return response()->json([
-            'success' => true,
-            'message' => 'Dev mode: OTP created.',
-            'dev_otp' => $otp,
-        ]);
+        require_once app_path('Helpers/mail.php');
+        $mailResult = sendOTPEmail($email, $otp, 'signup');
+        if ($mailResult['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Verification code sent to your email.'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => $mailResult['message']
+            ]);
+        }
     }
 
     public function signupVerifyOtp(Request $request)
@@ -257,11 +264,19 @@ class AuthController extends Controller
             'role' => 'password_reset',
         ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Dev mode: OTP created.',
-            'dev_otp' => $otp,
-        ]);
+        require_once app_path('Helpers/mail.php');
+        $mailResult = sendOTPEmail($email, $otp, 'recovery');
+        if ($mailResult['success']) {
+            return response()->json([
+                'success' => true,
+                'message' => 'OTP sent to your email.'
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => $mailResult['message']
+            ]);
+        }
     }
 
     public function verifyOtp(Request $request)
