@@ -1,0 +1,16 @@
+- [x] Configure Tailwind CSS and add base directives
+- [x] Create web layout wrapper (`src/components/Layout.tsx`)
+- [x] Create web navbar component (`src/components/Navbar.tsx`) with sticky top
+- [x] Port `index.tsx` to `src/pages/Dashboard.tsx`
+- [x] Create routing structure in `src/App.tsx`
+- [x] Port `buses.tsx` to `src/pages/Buses.tsx` and integrate custom Modal
+- [x] Port `active-buses.tsx` to `src/pages/ActiveBuses.tsx`
+- [x] Port `waiting-passengers.tsx` to `src/pages/WaitingPassengers.tsx`
+- [x] Port `stops.tsx` to `src/pages/Stops.tsx`
+- [x] Port `operation-schedule.tsx` to `src/pages/Schedules.tsx`
+- [x] Port `conductors.tsx` to `src/pages/Conductors.tsx`
+- [x] Port `manageLostAndFound.js` to `src/pages/LostFound.tsx`
+- [x] Port `manageReports.js` to `src/pages/Reports.tsx`
+- [x] Port `manageFeedbacks.js` to `src/pages/FeedbackPage.tsx`
+- [x] Port `busFare.js` to `src/pages/Fares.tsx`
+- [x] Port `analytics.js` to `src/pages/Analytics.tsx`

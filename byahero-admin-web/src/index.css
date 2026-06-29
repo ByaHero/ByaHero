@@ -1,3 +1,3 @@
-@import './styles/variables.css';
-@import './styles/layout.css';
-@import './styles/pages.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;

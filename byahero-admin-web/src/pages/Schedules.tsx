@@ -1,85 +1,74 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, Calendar, Save, ShieldAlert, CheckCircle } from 'lucide-react';
-import { adminService } from '../services/admin';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Loader2, Clock } from 'lucide-react';
+import { apiRequest } from '../services/api';
+import Modal from '../components/Modal';
 
-interface RouteSchedule {
+interface ScheduleData {
   time_open: string;
   time_close: string;
   is_suspended: boolean;
   suspend_message: string;
 }
 
-// Generate 30-minute interval times matching the mobile app
-const generateTimeOptions = () => {
-  const formattedTimes: string[] = [];
-  
-  // Morning times (12:00 AM to 11:30 AM)
-  formattedTimes.push('12:00 AM', '12:30 AM');
-  for (let h = 1; h <= 11; h++) {
-    const hourStr = h < 10 ? `0${h}` : h;
-    formattedTimes.push(`${hourStr}:00 AM`, `${hourStr}:30 AM`);
-  }
-
-  // Afternoon times (12:00 PM to 11:30 PM)
-  formattedTimes.push('12:00 PM', '12:30 PM');
-  for (let h = 1; h <= 11; h++) {
-    const hourStr = h < 10 ? `0${h}` : h;
-    formattedTimes.push(`${hourStr}:00 PM`, `${hourStr}:30 PM`);
-  }
-  
-  return formattedTimes;
+// Convert "04:00 AM" to "04:00" for input[type="time"]
+const toInputTime = (timeStr: string) => {
+  if (!timeStr) return '';
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return timeStr;
+  let [, h, m, ampm] = match;
+  let hours = parseInt(h, 10);
+  if (ampm.toUpperCase() === 'PM' && hours < 12) hours += 12;
+  if (ampm.toUpperCase() === 'AM' && hours === 12) hours = 0;
+  const hoursStr = hours < 10 ? `0${hours}` : hours.toString();
+  return `${hoursStr}:${m}`;
 };
 
-const TIME_OPTIONS = generateTimeOptions();
+// Convert "04:00" to "04:00 AM" for API
+const fromInputTime = (timeStr: string) => {
+  if (!timeStr) return '';
+  const match = timeStr.match(/(\d+):(\d+)/);
+  if (!match) return timeStr;
+  let [, h, m] = match;
+  let hours = parseInt(h, 10);
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const hoursStr = hours < 10 ? `0${hours}` : hours.toString();
+  return `${hoursStr}:${m} ${ampm}`;
+};
 
 export default function Schedules() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const [ltSchedule, setLtSchedule] = useState<RouteSchedule>({
-    time_open: '04:00 AM',
-    time_close: '08:00 PM',
+  const [ltSchedule, setLtSchedule] = useState<ScheduleData>({
+    time_open: '04:00',
+    time_close: '20:00',
     is_suspended: false,
     suspend_message: ''
   });
 
-  const [tlSchedule, setTlSchedule] = useState<RouteSchedule>({
-    time_open: '05:00 AM',
-    time_close: '10:00 PM',
+  const [tlSchedule, setTlSchedule] = useState<ScheduleData>({
+    time_open: '05:00',
+    time_close: '22:00',
     is_suspended: false,
     suspend_message: ''
   });
 
-  const fetchSchedules = async () => {
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [errorModal, setErrorModal] = useState({ isOpen: false, message: '' });
+
+  const fetchSchedules = useCallback(async () => {
     try {
-      setLoading(true);
-      const data = await adminService.listSchedules();
-      
+      const data = await apiRequest('/api/admin/schedules');
       if (data.success && data.schedules) {
         data.schedules.forEach((sch: any) => {
-          // Helper to convert time format to standard AM/PM if raw 24h
-          const formatTime = (timeStr: string) => {
-            if (!timeStr) return '';
-            if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
-            const parts = timeStr.split(':');
-            if (parts.length < 2) return timeStr;
-            const [h, m] = parts;
-            let hour = parseInt(h, 10);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            hour = hour % 12;
-            hour = hour ? hour : 12;
-            const hourStr = hour < 10 ? `0${hour}` : hour;
-            return `${hourStr}:${m} ${ampm}`;
-          };
-
           const mappedData = {
-            time_open: formatTime(sch.time_open) || '05:00 AM',
-            time_close: formatTime(sch.time_close) || '09:00 PM',
+            time_open: toInputTime(sch.time_open) || '',
+            time_close: toInputTime(sch.time_close) || '',
             is_suspended: sch.is_suspended === 1 || sch.is_suspended === true,
             suspend_message: sch.suspend_message || ''
           };
-
           const tName = sch.terminal_name ? sch.terminal_name.toUpperCase() : '';
           if (tName === 'LAUREL - TANAUAN') {
             setLtSchedule(mappedData);
@@ -88,126 +77,103 @@ export default function Schedules() {
           }
         });
       }
-    } catch (e) {
-      console.error(e);
-      alert('Failed to load schedules from the server.');
+    } catch (error) {
+      console.error('Error fetching schedules:', error);
+      setErrorModal({ isOpen: true, message: 'Failed to load schedules from the server.' });
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchSchedules();
-  }, []);
+  }, [fetchSchedules]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     setSaving(true);
-    setSavedSuccess(false);
-
     try {
-      const data = await adminService.saveRoutes({
-        lt_open: ltSchedule.time_open,
-        lt_close: ltSchedule.time_close,
-        lt_suspended: ltSchedule.is_suspended,
-        lt_message: ltSchedule.suspend_message,
-        tl_open: tlSchedule.time_open,
-        tl_close: tlSchedule.time_close,
-        tl_suspended: tlSchedule.is_suspended,
-        tl_message: tlSchedule.suspend_message
+      const data = await apiRequest('/api/admin/schedules', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'save_routes',
+          lt_open: fromInputTime(ltSchedule.time_open),
+          lt_close: fromInputTime(ltSchedule.time_close),
+          lt_suspended: ltSchedule.is_suspended,
+          lt_message: ltSchedule.suspend_message,
+          tl_open: fromInputTime(tlSchedule.time_open),
+          tl_close: fromInputTime(tlSchedule.time_close),
+          tl_suspended: tlSchedule.is_suspended,
+          tl_message: tlSchedule.suspend_message
+        })
       });
-
+      
       if (data.success) {
-        setSavedSuccess(true);
-        setTimeout(() => setSavedSuccess(false), 3000);
+        setSuccessModalVisible(true);
       } else {
-        alert(data.message || 'Failed to update schedules.');
+        setErrorModal({ isOpen: true, message: data.message || 'Failed to update schedules.' });
       }
-    } catch (err) {
-      console.error(err);
-      alert('Network error occurred while saving schedules.');
+    } catch (error) {
+      console.error('Error saving schedules:', error);
+      setErrorModal({ isOpen: true, message: 'Network error occurred while saving schedules.' });
     } finally {
       setSaving(false);
     }
   };
 
-  const renderScheduleCard = (
-    title: string,
-    data: RouteSchedule,
-    setter: React.Dispatch<React.SetStateAction<RouteSchedule>>
-  ) => {
+  const renderScheduleCard = (title: string, data: ScheduleData, setter: React.Dispatch<React.SetStateAction<ScheduleData>>) => {
     return (
-      <div className="card" style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 className="card-title" style={{ border: 'none', padding: 0, margin: 0 }}>{title}</h3>
+      <div className="bg-white rounded-3xl p-6 mb-6 shadow-sm border border-slate-200 hover:shadow-md transition-shadow">
+        <div className="flex justify-between items-center mb-6 pb-4 border-b border-slate-100">
+          <h2 className="text-slate-900 font-extrabold text-[16px] uppercase tracking-wider">{title}</h2>
           
-          {/* Suspension Checkbox Toggle */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
-            <input 
-              type="checkbox" 
-              checked={data.is_suspended}
-              onChange={(e) => setter({ ...data, is_suspended: e.target.checked })}
-              style={{
-                width: '18px',
-                height: '18px',
-                accentColor: 'var(--error)',
-                cursor: 'pointer'
-              }}
-            />
-            <span style={{ color: data.is_suspended ? 'var(--error)' : 'var(--text-main)' }}>
-              Suspend Route
-            </span>
+          <label className="flex items-center cursor-pointer group">
+            <span className="text-slate-700 text-[13px] font-bold mr-3 group-hover:text-slate-900 transition-colors">Suspend</span>
+            <div className="relative">
+              <input 
+                type="checkbox" 
+                className="sr-only" 
+                checked={data.is_suspended}
+                onChange={(e) => setter({ ...data, is_suspended: e.target.checked })}
+              />
+              <div className={`block w-14 h-8 rounded-full transition-colors ${data.is_suspended ? 'bg-red-200' : 'bg-slate-200'}`}></div>
+              <div className={`absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition-transform transform ${data.is_suspended ? 'translate-x-6 bg-red-600' : 'bg-slate-400'}`}></div>
+            </div>
           </label>
         </div>
 
-        {data.is_suspended && (
-          <div style={{
-            display: 'flex', gap: '8px', alignItems: 'center',
-            backgroundColor: 'var(--error-light)', color: 'var(--error)',
-            padding: '10px 14px', borderRadius: 'var(--radius-md)',
-            fontSize: '0.75rem', fontWeight: 600, marginBottom: '16px'
-          }}>
-            <ShieldAlert size={16} />
-            <span>This route operations are currently suspended. Passengers will be notified.</span>
+        <div className="grid grid-cols-2 gap-5 mb-6">
+          <div>
+            <label className="block text-slate-500 text-xs font-bold uppercase mb-2 tracking-wider">OPEN</label>
+            <div className="relative">
+              <input 
+                type="time" 
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 h-[46px] text-slate-900 text-[15px] font-bold bg-white focus:ring-2 focus:ring-blue-500/30 outline-none transition-shadow shadow-sm cursor-pointer"
+                value={data.time_open}
+                onChange={(e) => setter({ ...data, time_open: e.target.value })}
+              />
+            </div>
           </div>
-        )}
-
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Opening Time</label>
-            <select 
-              className="form-input" 
-              value={data.time_open} 
-              onChange={(e) => setter({ ...data, time_open: e.target.value })}
-            >
-              {TIME_OPTIONS.map((time, idx) => (
-                <option key={idx} value={time}>{time}</option>
-              ))}
-            </select>
-          </div>
-          <div className="form-group">
-            <label className="form-label">Closing Time</label>
-            <select 
-              className="form-input" 
-              value={data.time_close} 
-              onChange={(e) => setter({ ...data, time_close: e.target.value })}
-            >
-              {TIME_OPTIONS.map((time, idx) => (
-                <option key={idx} value={time}>{time}</option>
-              ))}
-            </select>
+          <div>
+            <label className="block text-slate-500 text-xs font-bold uppercase mb-2 tracking-wider">CLOSE</label>
+            <div className="relative">
+              <input 
+                type="time" 
+                className="w-full border border-slate-300 rounded-xl px-4 py-3 h-[46px] text-slate-900 text-[15px] font-bold bg-white focus:ring-2 focus:ring-blue-500/30 outline-none transition-shadow shadow-sm cursor-pointer"
+                value={data.time_close}
+                onChange={(e) => setter({ ...data, time_close: e.target.value })}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="form-group" style={{ marginTop: '8px' }}>
-          <label className="form-label">Suspension Message (If Suspended)</label>
-          <textarea 
-            className="form-input" 
-            rows={3} 
-            placeholder="e.g. Operation suspended due to heavy rain and road blockage." 
+        <div>
+          <label className="block text-slate-500 text-xs font-bold uppercase mb-2 tracking-wider">SUSPEND MESSAGE (OPTIONAL)</label>
+          <input 
+            type="text"
+            className="w-full border border-slate-300 rounded-xl p-4 text-slate-900 bg-slate-50 focus:bg-white text-[15px] font-medium focus:ring-2 focus:ring-blue-500/30 outline-none transition-all shadow-sm"
             value={data.suspend_message}
             onChange={(e) => setter({ ...data, suspend_message: e.target.value })}
-            disabled={!data.is_suspended}
+            placeholder="e.g. Suspended due to bad weather"
           />
         </div>
       </div>
@@ -215,52 +181,61 @@ export default function Schedules() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div className="page-header-actions">
-        <h2 className="page-title">Operations schedules & suspensions</h2>
+    <div className="p-4 pt-6 max-w-3xl mx-auto w-full pb-16 font-sans bg-slate-50 min-h-screen">
+      
+      <div className="mb-6 flex items-center">
+        <Clock size={28} className="text-[#0f3878] mr-3" />
+        <h1 className="text-2xl font-extrabold text-[#0f3878] tracking-tight">Operation Schedule</h1>
       </div>
 
       {loading ? (
-        <div className="card" style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+        <div className="flex justify-center mt-12">
+          <Loader2 size={32} className="text-[#0f3878] animate-spin" />
         </div>
       ) : (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <>
+          {renderScheduleCard('LAUREL - TANAUAN', ltSchedule, setLtSchedule)}
+          {renderScheduleCard('TANAUAN - LAUREL', tlSchedule, setTlSchedule)}
           
-          {savedSuccess && (
-            <div style={{
-              display: 'flex', gap: '8px', alignItems: 'center',
-              backgroundColor: 'var(--success-light)', color: 'var(--success)',
-              padding: '12px 16px', borderRadius: 'var(--radius-md)',
-              fontSize: '0.85rem', fontWeight: 600, border: '1px solid rgba(16, 185, 129, 0.15)'
-            }}>
-              <CheckCircle size={18} />
-              <span>Operating route schedules updated successfully!</span>
-            </div>
-          )}
-
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
-            {renderScheduleCard('Laurel - Tanauan Route', ltSchedule, setLtSchedule)}
-            {renderScheduleCard('Tanauan - Laurel Route', tlSchedule, setTlSchedule)}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', minWidth: '160px' }} disabled={saving}>
-              {saving ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} />
-                  Saving schedules...
-                </>
-              ) : (
-                <>
-                  <Save size={16} style={{ marginRight: '6px' }} />
-                  Save Settings
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+          <button 
+            className="bg-[#1d4ed8] hover:bg-[#1e40af] mt-4 w-full py-4 rounded-full shadow-md flex justify-center items-center transition-colors disabled:opacity-70"
+            onClick={handleSave}
+            disabled={saving}
+          >
+            {saving && <Loader2 size={18} className="text-white mr-2 animate-spin" />}
+            <span className="text-white font-bold text-[16px] tracking-wide">Save Schedules</span>
+          </button>
+        </>
       )}
+
+      {/* Success Modal */}
+      <Modal
+        isOpen={successModalVisible}
+        onClose={() => setSuccessModalVisible(false)}
+        title="Schedule Updated!"
+        type="success"
+        primaryAction={{
+          label: 'Okay',
+          onClick: () => setSuccessModalVisible(false)
+        }}
+      >
+        <p>The operation schedule has been successfully saved to the database and is now active.</p>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        isOpen={errorModal.isOpen}
+        onClose={() => setErrorModal({ isOpen: false, message: '' })}
+        title="Action Failed"
+        type="error"
+        primaryAction={{
+          label: 'Okay',
+          onClick: () => setErrorModal({ isOpen: false, message: '' })
+        }}
+      >
+        <p>{errorModal.message}</p>
+      </Modal>
+
     </div>
   );
 }
