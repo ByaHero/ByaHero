@@ -128,7 +128,7 @@ export default function NotificationsScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', height: '100%', width: '100%' }}>
-      <PassengerHeader pageTitle="Notifications" showCloseButton={true} />
+      <PassengerHeader pageTitle="Notifications" />
 
       <View style={{ flex: 1 }}>
         {loading ? (
