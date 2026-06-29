@@ -108,10 +108,14 @@ export function getConductorLeafletHTML(baseUrl: string): string {
         window.addEventListener('message', handleIncomingMessage);
         document.addEventListener('message', handleIncomingMessage);
 
-        // Notify React Native that map is ready
-        var postMessageFn = (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) 
-          ? window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView) 
-          : null;
+        // Notify React Native or Web parent that map is ready
+        var postMessageFn = null;
+        if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          postMessageFn = function(msg) { window.ReactNativeWebView.postMessage(msg); };
+        } else if (window.parent && window.parent !== window) {
+          postMessageFn = function(msg) { window.parent.postMessage(msg, '*'); };
+        }
+        
         if (postMessageFn) {
           postMessageFn(JSON.stringify({ type: 'MAP_READY' }));
         }

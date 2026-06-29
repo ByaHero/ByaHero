@@ -28,7 +28,17 @@ window.safePost = async function safePost(relativeUrl, payload = {}) {
         }
         url = SERVER_URL + '/' + cleanRel;
     } else {
-        url = new URL(relativeUrl, window.location.href).href;
+        if (window.location.pathname.includes('/www/')) {
+            let cleanRel = relativeUrl;
+            if (relativeUrl.startsWith('../api.php')) {
+                cleanRel = '../../public/api.php' + relativeUrl.substring(10);
+            } else if (relativeUrl.startsWith('../../backend/')) {
+                cleanRel = '../../backend/' + relativeUrl.substring(14);
+            }
+            url = new URL(cleanRel, window.location.href).href;
+        } else {
+            url = new URL(relativeUrl, window.location.href).href;
+        }
     }
 
     try {
@@ -124,7 +134,11 @@ window.resolveLocationName = function resolveLocationName(lat, lng) {
  */
 window.loadRouteFeatures = async function loadRouteFeatures() {
     try {
-        const res = await fetch('../map_data.php', { cache: 'no-store' });
+        let fetchUrl = '../map_data.php';
+        if (!window.Capacitor && window.location.pathname.includes('/www/')) {
+            fetchUrl = '../../public/map_data.php';
+        }
+        const res = await fetch(fetchUrl, { cache: 'no-store' });
         const json = await res.json();
         if (json && Array.isArray(json.features)) {
             window.routeFeatures = json.features.filter(f => f.geometry && (f.geometry.type === 'Polygon' || f.geometry.type === 'MultiPolygon'));

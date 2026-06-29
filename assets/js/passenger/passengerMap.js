@@ -796,9 +796,13 @@ window.updateBuses = async function updateBuses() {
   if (_updateBusesInProgress) return;
   _updateBusesInProgress = true;
   
-  try {
-    const res = await fetch('../api.php?action=get_buses');
-    const json = await res.json();
+    try {
+      let fetchUrl = '../api.php?action=get_buses';
+      if (window.location.pathname.includes('/www/')) {
+        fetchUrl = '../../public/api.php?action=get_buses';
+      }
+      const res = await fetch(fetchUrl);
+      const json = await res.json();
     if (json.success && json.buses) {
       const buses = json.buses.map(window.normalizeBus);
       window.allBuses = buses;
@@ -898,7 +902,11 @@ window.loadStops = async function loadStops() {
   }
 
   try {
-    const res = await fetch('../api.php?action=get_bus_stops_terminal', { cache: 'no-store' });
+    let fetchUrl = '../api.php?action=get_bus_stops_terminal';
+    if (window.location.pathname.includes('/www/')) {
+      fetchUrl = '../../public/api.php?action=get_bus_stops_terminal';
+    }
+    const res = await fetch(fetchUrl, { cache: 'no-store' });
     const json = await res.json();
     if (!json || !json.success || !Array.isArray(json.data)) {
       const msg = json?.error || 'Failed to load stops';

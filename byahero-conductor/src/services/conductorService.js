@@ -13,7 +13,13 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET') {
     cleanRel = 'public/' + cleanRel;
   }
   
-  const url = `${baseUrl}/${cleanRel}`;
+  const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
+  
+  let url = `${baseUrl}/${cleanRel}`;
+  if (method === 'GET' && cachedEmail) {
+    const separator = url.includes('?') ? '&' : '?';
+    url = `${url}${separator}email=${encodeURIComponent(cachedEmail)}`;
+  }
   
   const headers = {
     'Accept': 'application/json, text/plain, */*',
@@ -29,7 +35,6 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET') {
 
   if (payload) {
     headers['Content-Type'] = 'application/json';
-    const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
     if (cachedEmail && !payload.email) {
       payload.email = cachedEmail;
     }

@@ -66,6 +66,12 @@ export default function LiveTrackingScreen() {
   const lastMoveCheck = useRef<{ time: number; lat: number; lng: number } | null>(null);
   const lastResolvedLocation = useRef<{ lat: number; lng: number; name: string } | null>(null);
 
+  // Sync seats count to ref to avoid effect recreation churn
+  const seatsRef = useRef(seats);
+  useEffect(() => {
+    seatsRef.current = seats;
+  }, [seats]);
+
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
     initSession();
@@ -79,7 +85,7 @@ export default function LiveTrackingScreen() {
             if (lastCoords.current) {
               const lat = lastCoords.current.lat;
               const lng = lastCoords.current.lng;
-              const computedStatus = autoComputeStatus(lat, lng, seats);
+              const computedStatus = autoComputeStatus(lat, lng, seatsRef.current);
               postToMap({
                 type: 'UPDATE_MY_LOCATION',
                 lat,
@@ -101,11 +107,15 @@ export default function LiveTrackingScreen() {
     return () => {
       cleanup();
     };
-  }, [seats]);
+  }, []);
 
   const cleanup = () => {
     if (locationSubscription.current) {
-      locationSubscription.current.remove();
+      try {
+        locationSubscription.current.remove();
+      } catch (err) {
+        console.warn('Failed to remove location subscription:', err);
+      }
       locationSubscription.current = null;
     }
     if (syncTimer.current) {
@@ -341,31 +351,40 @@ export default function LiveTrackingScreen() {
     }
   };
 
+  const performStopTracking = async () => {
+    setIsLoading(true);
+    cleanup();
+    flushPendingEvents();
+
+    if (session) {
+      const endLocName = lastResolvedLocation.current?.name || null;
+      await stopTracking({
+        bus_id: session.bus_id,
+        end_location: endLocName
+      });
+    }
+
+    await AsyncStorage.removeItem('byahero_conductor_payload');
+    setIsLoading(false);
+    router.replace('/dashboard');
+  };
+
   const handleStopTracking = () => {
-    Alert.alert('Stop Tracking', 'Are you sure you want to end this transit tracking session?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Stop Tracking',
-        style: 'destructive',
-        onPress: async () => {
-          setIsLoading(true);
-          cleanup();
-          flushPendingEvents();
-
-          if (session) {
-            const endLocName = lastResolvedLocation.current?.name || null;
-            await stopTracking({
-              bus_id: session.bus_id,
-              end_location: endLocName
-            });
-          }
-
-          await AsyncStorage.removeItem('byahero_conductor_payload');
-          setIsLoading(false);
-          router.replace('/dashboard');
-        }
+    if (Platform.OS === 'web') {
+      const confirmStop = window.confirm('Are you sure you want to end this transit tracking session?');
+      if (confirmStop) {
+        performStopTracking();
       }
-    ]);
+    } else {
+      Alert.alert('Stop Tracking', 'Are you sure you want to end this transit tracking session?', [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Stop Tracking',
+          style: 'destructive',
+          onPress: performStopTracking
+        }
+      ]);
+    }
   };
 
   return (

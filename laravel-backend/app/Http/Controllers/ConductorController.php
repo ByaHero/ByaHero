@@ -18,6 +18,35 @@ class ConductorController extends Controller
     {
         $userId = Session::get('user_id');
         $role = Session::get('user_role');
+
+        if (empty($userId)) {
+            $email = request()->input('email');
+            if (!empty($email)) {
+                $cleanEmail = strtolower(trim($email));
+                $conductor = Conductor::where('email', $cleanEmail)->first();
+                if ($conductor) {
+                    $userId = $conductor->id;
+                    $role = 'conductor';
+                    Session::put('user_id', (int)$userId);
+                    Session::put('user_role', $role);
+                    Session::put('user_name', $conductor->name ?? $conductor->email);
+                    Session::put('user_contacts', $conductor->contacts);
+                    Session::put('user_profile_picture', $conductor->profile_picture);
+                } else {
+                    $driver = Driver::where('email', $cleanEmail)->first();
+                    if ($driver) {
+                        $userId = $driver->id;
+                        $role = 'driver';
+                        Session::put('user_id', (int)$userId);
+                        Session::put('user_role', $role);
+                        Session::put('user_name', $driver->name ?? $driver->email);
+                        Session::put('user_contacts', $driver->contacts);
+                        Session::put('user_profile_picture', $driver->profile_picture);
+                    }
+                }
+            }
+        }
+
         if (empty($userId) || !in_array($role, ['conductor', 'driver'])) {
             abort(response()->json(['success' => false, 'error' => 'Unauthorized'], 401));
         }
