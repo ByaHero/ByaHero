@@ -5,14 +5,14 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Buses from './pages/Buses';
 import ActiveBuses from './pages/ActiveBuses';
+import Conductors from './pages/Conductors';
 import Schedules from './pages/Schedules';
+import Fares from './pages/Fares';
 import WaitingPassengers from './pages/WaitingPassengers';
 import Stops from './pages/Stops';
-import Conductors from './pages/Conductors';
+import FeedbackPage from './pages/Feedback';
 import LostFound from './pages/LostFound';
 import Reports from './pages/Reports';
-import FeedbackPage from './pages/FeedbackPage';
-import Fares from './pages/Fares';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
 
@@ -51,15 +51,15 @@ export default function App() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route
-          path="/login"
+        <Route 
+          path="/login" 
           element={
             adminEmail ? <Navigate to="/" replace /> : <Login onLoginSuccess={(email) => setAdminEmail(email)} />
-          }
+          } 
         />
-
-        <Route
-          path="/"
+        
+        <Route 
+          path="/" 
           element={
             adminEmail ? <Layout adminEmail={adminEmail} onLogout={handleLogout} /> : <Navigate to="/login" replace />
           }
@@ -69,8 +69,8 @@ export default function App() {
           <Route path="active-buses" element={<ActiveBuses />} />
           <Route path="schedules" element={<Schedules />} />
           <Route path="waiting-passengers" element={<WaitingPassengers />} />
-          <Route path="stops" element={<Stops />} />
           <Route path="conductors" element={<Conductors />} />
+          <Route path="stops" element={<Stops />} />
           <Route path="lost-and-found" element={<LostFound />} />
           <Route path="reports" element={<Reports />} />
           <Route path="feedbacks" element={<FeedbackPage />} />
@@ -84,5 +84,3 @@ export default function App() {
     </BrowserRouter>
   );
 }
-
-
