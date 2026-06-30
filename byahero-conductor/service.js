@@ -11,10 +11,12 @@ module.exports = async function () {
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
-    DeviceEventEmitter.emit('remoteIncrement');
+    DeviceEventEmitter.emit('remoteDecrement');
+    TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
   });
 
   TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-    DeviceEventEmitter.emit('remoteDecrement');
+    DeviceEventEmitter.emit('remoteIncrement');
+    TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
   });
 };
