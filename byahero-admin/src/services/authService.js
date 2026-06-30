@@ -1,13 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const DEFAULT_SERVER_URL = Platform.OS === 'web' && __DEV__ 
-  ? `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}:3000` 
-  : 'https://byahero.alwaysdata.net';
+const DEFAULT_SERVER_URL = Platform.OS === 'web' 
+  ? `http://${typeof window !== 'undefined' ? window.location.hostname : 'localhost'}/ByaHero/laravel-backend/public`
+  : 'http://192.168.1.6/ByaHero/laravel-backend/public'; // Fallback for physical devices connecting to local server
 
 export async function getServerUrl() {
-  const url = await AsyncStorage.getItem('byahero_server_url');
-  return url || DEFAULT_SERVER_URL;
+  // Use the local server URL to fetch from local database and avoid production CORS issues
+  return DEFAULT_SERVER_URL;
 }
 
 export async function setServerUrl(url) {

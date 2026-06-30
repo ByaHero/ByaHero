@@ -16,6 +16,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { login } from '../services/authService';
 
 export default function AdminLoginScreen() {
   const [email, setEmail] = useState('');
@@ -48,20 +49,24 @@ export default function AdminLoginScreen() {
 
     setIsLoading(true);
 
-    // Simulating API delay and successful login for now
-    setTimeout(async () => {
-      try {
+    try {
+      const response = await login(email, password);
+      
+      if (response.success && response.role === 'admin') {
         await AsyncStorage.setItem('byahero_admin_user', JSON.stringify({ email }));
-        await AsyncStorage.setItem('byahero_cached_email', email);
-        await AsyncStorage.setItem('byahero_cached_role', 'admin');
-        
         setIsLoading(false);
         router.replace('/admin');
-      } catch (err) {
+      } else {
         setIsLoading(false);
-        Alert.alert('Error', 'Failed to save login session.');
+        // Log out immediately if they are not an admin
+        await AsyncStorage.removeItem('byahero_cached_email');
+        await AsyncStorage.removeItem('byahero_cached_role');
+        Alert.alert('Access Denied', 'Only administrators can access this portal.');
       }
-    }, 1000);
+    } catch (err: any) {
+      setIsLoading(false);
+      Alert.alert('Login Error', err.message || 'Failed to authenticate with server.');
+    }
   };
 
   return (

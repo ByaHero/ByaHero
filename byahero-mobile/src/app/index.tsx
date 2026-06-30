@@ -53,10 +53,17 @@ export default function LoginScreen() {
         const cachedContacts = await AsyncStorage.getItem('byahero_cached_contacts') || '';
 
         if (cachedEmail && cachedRole) {
-          if (cachedRole === 'conductor') {
-            router.replace('/conductor');
-          } else if (cachedRole === 'admin') {
-            router.replace('/admin');
+          if (cachedRole === 'conductor' || cachedRole === 'admin') {
+            await AsyncStorage.multiRemove([
+              'byahero_cached_email',
+              'byahero_cached_role',
+              'byahero_cached_contacts',
+              'byahero_cached_phone',
+              'byahero_cached_name',
+              'byahero_cached_profile_picture'
+            ]);
+            const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
+            Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
           } else {
             if (!cachedContacts) {
               router.replace('/passenger/completeProfile' as any);
@@ -120,10 +127,17 @@ export default function LoginScreen() {
       Alert.alert('Login Successful', `Logged in as ${result.role}`);
 
       // Navigate to matched roles:
-      if (result.role === 'conductor') {
-        router.replace('/conductor');
-      } else if (result.role === 'admin') {
-        router.replace('/admin');
+      if (result.role === 'conductor' || result.role === 'admin') {
+        await AsyncStorage.multiRemove([
+          'byahero_cached_email',
+          'byahero_cached_role',
+          'byahero_cached_contacts',
+          'byahero_cached_phone',
+          'byahero_cached_name',
+          'byahero_cached_profile_picture'
+        ]);
+        const targetApp = result.role === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
+        Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
       } else {
         const hasContacts = result.user?.contacts || '';
         if (!hasContacts) {

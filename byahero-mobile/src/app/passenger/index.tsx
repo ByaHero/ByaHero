@@ -293,7 +293,7 @@ export default function PassengerDashboard() {
   useEffect(() => {
     postToMap({
       type: 'UPDATE_STOPS',
-      stops: sheetTab === 'busstops' ? filteredStops : busStops
+      stops: sheetTab === 'busstops' ? filteredStops : []
     });
   }, [busStops, filteredStops, sheetTab]);
 
@@ -398,7 +398,7 @@ export default function PassengerDashboard() {
             setBusStops(stopsData.data);
             postToMap({
               type: 'UPDATE_STOPS',
-              stops: stopsData.data
+              stops: sheetTab === 'busstops' ? stopsData.data.filter((stop: any) => stop.route === stopsRoute) : []
             });
           }
         }
@@ -525,7 +525,7 @@ export default function PassengerDashboard() {
         });
         postToMap({
           type: 'UPDATE_STOPS',
-          stops: sheetTab === 'busstops' ? filteredStops : busStops
+          stops: sheetTab === 'busstops' ? filteredStops : []
         });
         postToMap({
           type: 'UPDATE_FRIENDS',
