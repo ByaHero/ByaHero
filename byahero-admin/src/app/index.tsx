@@ -130,7 +130,7 @@ export default function AdminLoginScreen() {
                   style={tw`flex-1 text-slate-800 py-3 text-sm font-semibold`}
                 />
                 <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
-                  <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={18} color="#94a3b8" />
+                  <Image source={!secureTextEntry ? require('../../assets/images/pass.svg') : require('../../assets/images/hash.svg')} style={[tw`w-[18px] h-[18px]`, { tintColor: '#94a3b8' }]} />
                 </TouchableOpacity>
               </View>
 
