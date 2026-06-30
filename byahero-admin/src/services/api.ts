@@ -24,8 +24,9 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    if (response.status === 419 || response.status === 401) {
+    if (response.status === 419 || response.status === 401 || response.status === 403) {
       // CSRF token mismatch or unauthorized, remove local cached session
+      await AsyncStorage.removeItem('byahero_cached_email');
       await AsyncStorage.removeItem('byahero_admin_user');
       await AsyncStorage.removeItem('byahero_cached_role');
     }
