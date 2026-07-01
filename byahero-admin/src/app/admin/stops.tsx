@@ -236,7 +236,7 @@ export default function AdminStops() {
   };
 
   const renderRouteList = (routeName: 'LAUREL - TANAUAN' | 'TANAUAN - LAUREL', listData: BusStop[], setListData: React.Dispatch<React.SetStateAction<BusStop[]>>) => (
-    <View style={tw`bg-white mt-6`}>
+    <View style={tw`bg-white pt-2`}>
       <Text style={tw`text-[#1d4ed8] font-bold text-[13px] px-5`}>{routeName} (Bus Stops & Pick up Points)</Text>
       <View style={tw`px-5 mt-2`}>
         {listData.length === 0 ? (
@@ -476,10 +476,14 @@ export default function AdminStops() {
           </View>
         </View>
 
-          <View style={tw`lg:flex-row flex-col gap-4 mx-5`}>
+          <View style={tw`lg:flex-row flex-col gap-2 mx-5 bg-white border border-slate-200 rounded-[14px] shadow-sm py-4 mt-4`}>
             <View style={tw`flex-1`}>
               {renderRouteList('LAUREL - TANAUAN', stopsForward, setStopsForward)}
             </View>
+            
+            {/* Divider */}
+            <View style={tw`h-[1px] lg:h-auto lg:w-[1px] bg-slate-200 my-4 lg:my-0`} />
+
             <View style={tw`flex-1`}>
               {renderRouteList('TANAUAN - LAUREL', stopsReverse, setStopsReverse)}
             </View>

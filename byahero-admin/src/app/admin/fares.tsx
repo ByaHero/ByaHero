@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { apiRequest } from '@/services/api';
 import AdminNavbar from '@/components/AdminNavbar';
 
-interface Origin {
+interface Destination {
   stop_id: string;
   location_name: string;
 }
@@ -18,17 +18,17 @@ interface Snapshot {
 
 interface FareRow {
   distance_km: number;
-  dest_name: string;
+  origin_name: string;
   regular_fare: number;
   discounted_fare: number;
 }
 
 interface FareData {
-  originsList: Origin[];
-  filterOrigin: string;
+  destinationsList: Destination[];
+  filterDestination: string;
   snapshots: Snapshot[];
-  originName: string;
-  farthestDestName: string;
+  destName: string;
+  farthestOriginName: string;
   fares: FareRow[];
 }
 
@@ -37,7 +37,7 @@ export default function AdminFares() {
   const [data, setData] = useState<FareData | null>(null);
   
   // Filters
-  const [currentOrigin, setCurrentOrigin] = useState('');
+  const [currentDestination, setCurrentDestination] = useState('');
   const [currentQuery, setCurrentQuery] = useState('');
 
   // Matrix Generator form
@@ -51,19 +51,20 @@ export default function AdminFares() {
   const [snapshotLabel, setSnapshotLabel] = useState('');
   const [selectedSnapshot, setSelectedSnapshot] = useState('');
   const [isSnapshotDropdownOpen, setIsSnapshotDropdownOpen] = useState(false);
+  const [isDestinationModalVisible, setIsDestinationModalVisible] = useState(false);
 
-  const fetchData = useCallback(async (originId = '', query = '') => {
+  const fetchData = useCallback(async (destinationId = '', query = '') => {
     setLoading(true);
     try {
       let url = '/api/admin/fares';
       const params = new URLSearchParams();
-      if (originId) params.append('origin', originId);
+      if (destinationId) params.append('destination', destinationId);
       if (query) params.append('q', query);
       
       const resData = await apiRequest(`${url}?${params.toString()}`);
       if (resData.success !== false) {
         setData(resData as FareData);
-        if (!currentOrigin) setCurrentOrigin(resData.filterOrigin);
+        if (!currentDestination) setCurrentDestination(resData.filterDestination);
       } else {
         Alert.alert('Error', resData.error || 'Failed to fetch data.');
       }
@@ -73,14 +74,14 @@ export default function AdminFares() {
     } finally {
       setLoading(false);
     }
-  }, [currentOrigin]);
+  }, [currentDestination]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const handleFilterSubmit = () => {
-    fetchData(currentOrigin, currentQuery);
+    fetchData(currentDestination, currentQuery);
   };
 
   const handleAction = async (actionName: string, bodyData: any) => {
@@ -91,7 +92,7 @@ export default function AdminFares() {
       });
       if (res.success) {
         Alert.alert('Success', res.message || 'Action successful.');
-        fetchData(currentOrigin, currentQuery);
+        fetchData(currentDestination, currentQuery);
       } else {
         Alert.alert('Error', res.error || 'Action failed.');
       }
@@ -308,23 +309,54 @@ export default function AdminFares() {
 
             {/* Filter Inputs */}
             <View style={tw`mb-3`}>
-              <View style={tw`bg-white border border-slate-200 rounded-xl overflow-hidden mb-3`}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={tw`flex-row`}>
-                  {data?.originsList?.map(o => (
-                    <TouchableOpacity 
-                      key={o.stop_id} 
-                      onPress={() => {
-                        setCurrentOrigin(o.stop_id);
-                        fetchData(o.stop_id, currentQuery);
-                      }}
-                      style={tw`px-4 py-3 border-r border-slate-100 ${currentOrigin === o.stop_id ? 'bg-[#1d4ed8]' : 'bg-white'}`}
-                    >
-                      <Text style={tw`font-bold text-[12px] ${currentOrigin === o.stop_id ? 'text-white' : 'text-slate-600'}`}>
-                        From: {o.location_name}
-                      </Text>
+              <View style={tw`mb-3 relative`}>
+                <Text style={tw`text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1.5`}>Destination</Text>
+                <TouchableOpacity 
+                  onPress={() => setIsDestinationModalVisible(true)}
+                  style={tw`bg-white border border-slate-200 rounded-xl px-4 py-3 flex-row justify-between items-center`}
+                >
+                  <Text style={tw`font-bold text-[13px] text-slate-800`}>
+                    {data?.destinationsList?.find(d => String(d.stop_id) === String(currentDestination))?.location_name || 'Select Destination...'}
+                  </Text>
+                  <Ionicons name="chevron-down" size={16} color="#64748b" />
+                </TouchableOpacity>
+
+                <Modal visible={isDestinationModalVisible} transparent={true} animationType="fade">
+                  <TouchableOpacity 
+                    style={tw`flex-1 bg-black/50 justify-center items-center p-5`} 
+                    activeOpacity={1} 
+                    onPress={() => setIsDestinationModalVisible(false)}
+                  >
+                    <TouchableOpacity activeOpacity={1} style={tw`bg-white w-full rounded-2xl overflow-hidden max-h-[80%]`}>
+                      <View style={tw`p-4 border-b border-slate-100 flex-row justify-between items-center bg-slate-50`}>
+                        <Text style={tw`font-bold text-slate-800 text-[15px]`}>Select Destination</Text>
+                        <TouchableOpacity onPress={() => setIsDestinationModalVisible(false)}>
+                          <Ionicons name="close-circle" size={24} color="#94a3b8" />
+                        </TouchableOpacity>
+                      </View>
+                      <ScrollView>
+                        {data?.destinationsList?.map(d => (
+                          <TouchableOpacity 
+                            key={d.stop_id} 
+                            onPress={() => {
+                              setCurrentDestination(d.stop_id);
+                              fetchData(d.stop_id, currentQuery);
+                              setIsDestinationModalVisible(false);
+                            }}
+                            style={tw`px-5 py-4 border-b border-slate-100 flex-row justify-between items-center ${String(currentDestination) === String(d.stop_id) ? 'bg-blue-50' : 'bg-white'}`}
+                          >
+                            <Text style={tw`font-bold text-[14px] ${String(currentDestination) === String(d.stop_id) ? 'text-[#1d4ed8]' : 'text-slate-700'}`}>
+                              {d.location_name}
+                            </Text>
+                            {String(currentDestination) === String(d.stop_id) && (
+                              <Ionicons name="checkmark-circle" size={20} color="#1d4ed8" />
+                            )}
+                          </TouchableOpacity>
+                        ))}
+                      </ScrollView>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                  </TouchableOpacity>
+                </Modal>
               </View>
 
               <View style={tw`flex-row gap-2`}>
@@ -332,7 +364,7 @@ export default function AdminFares() {
                   <Ionicons name="search" size={16} color="#94a3b8" style={tw`absolute left-3 z-10`} />
                   <TextInput 
                     style={tw`bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[13px] text-slate-800 w-full h-full`}
-                    placeholder="Search destination..."
+                    placeholder="Search origin..."
                     value={currentQuery} onChangeText={setCurrentQuery}
                   />
                 </View>
@@ -343,78 +375,78 @@ export default function AdminFares() {
             </View>
           </View>
 
-          {/* Table (ScrollView horizontal inside ScrollView vertical) */}
-          <ScrollView horizontal style={tw`bg-white`}>
+          {/* Table */}
+          <View style={tw`bg-white`}>
             <View>
               {/* Header Row 1 */}
-              <View style={tw`bg-slate-800 py-3 px-4 w-full items-center justify-center border-b border-slate-700 min-w-[500px]`}>
+              <View style={tw`bg-slate-800 py-3 px-4 w-full items-center justify-center border-b border-slate-700`}>
                 <Text style={tw`text-white font-black uppercase tracking-widest text-[14px]`}>
-                  {loading ? 'LOADING...' : data ? `${data.originName} - ${data.farthestDestName}` : 'SELECT ORIGIN'}
+                  {loading ? 'LOADING...' : data ? `${data.farthestOriginName} - ${data.destName}` : 'SELECT DESTINATION'}
                 </Text>
               </View>
               {/* Header Row 2 */}
-              <View style={tw`flex-row bg-slate-100 border-b border-slate-300 min-w-[500px]`}>
-                <View style={tw`w-[50px] p-2 justify-center items-center border-r border-slate-300`}>
+              <View style={tw`flex-row bg-slate-100 border-b border-slate-300 w-full`}>
+                <View style={tw`w-[12%] p-2 justify-center items-center border-r border-slate-300`}>
                   <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>KM</Text>
                 </View>
-                <View style={tw`w-[200px] p-2 justify-center border-r border-slate-300`}>
-                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>Particulars</Text>
+                <View style={tw`flex-1 p-2 justify-center border-r border-slate-300`}>
+                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>Origin</Text>
                 </View>
-                <View style={tw`w-[125px] p-2 justify-center items-center border-r border-slate-300`}>
-                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>Regular (₱)</Text>
+                <View style={tw`w-[22%] p-2 justify-center items-center border-r border-slate-300`}>
+                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>Reg. (₱)</Text>
                 </View>
-                <View style={tw`w-[125px] p-2 justify-center items-center`}>
-                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>S / E / D (₱)</Text>
+                <View style={tw`w-[22%] p-2 justify-center items-center`}>
+                  <Text style={tw`text-[10px] font-bold text-slate-600 uppercase`}>Disc. (₱)</Text>
                 </View>
               </View>
 
               {/* Rows */}
               {loading ? (
-                <View style={tw`py-10 items-center justify-center min-w-[500px]`}>
+                <View style={tw`py-10 items-center justify-center w-full`}>
                   <ActivityIndicator size="small" color="#1d4ed8" />
                 </View>
               ) : !data || data.fares.length === 0 ? (
-                <View style={tw`py-10 items-center justify-center min-w-[500px] bg-slate-50`}>
+                <View style={tw`py-10 items-center justify-center w-full bg-slate-50`}>
                   <Text style={tw`text-slate-500 font-medium text-[13px]`}>
                     {data ? 'No fares found for this search.' : 'Waiting for data...'}
                   </Text>
                 </View>
               ) : (
                 <>
-                  <View style={tw`flex-row border-b border-slate-200 min-w-[500px]`}>
-                    <View style={tw`w-[50px] p-3 justify-center items-center border-r border-slate-200`}>
+                  <View style={tw`flex-row border-b border-slate-200 w-full`}>
+                    <View style={tw`w-[12%] p-3 justify-center items-center border-r border-slate-200`}>
                       <Text style={tw`font-bold text-slate-600 text-[12px]`}>0</Text>
                     </View>
-                    <View style={tw`w-[200px] p-3 justify-center border-r border-slate-200`}>
-                      <Text style={tw`font-bold text-slate-800 text-[12px] uppercase`}>{data.originName}</Text>
+                    <View style={tw`flex-1 p-3 justify-center border-r border-slate-200`}>
+                      <Text style={tw`font-bold text-slate-800 text-[12px] uppercase`} numberOfLines={1}>{data.destName}</Text>
                     </View>
-                    <View style={tw`w-[125px] p-3 items-end border-r border-slate-200`}>
+                    <View style={tw`w-[22%] p-3 items-end justify-center border-r border-slate-200`}>
                       <Text style={tw`font-bold text-slate-400 text-[12px]`}>-</Text>
                     </View>
-                    <View style={tw`w-[125px] p-3 items-end`}>
+                    <View style={tw`w-[22%] p-3 items-end justify-center`}>
                       <Text style={tw`font-bold text-slate-400 text-[12px]`}>-</Text>
                     </View>
                   </View>
                   {data.fares.map((f, i) => (
-                    <View key={i} style={tw`flex-row border-b border-slate-100 min-w-[500px]`}>
-                      <View style={tw`w-[50px] p-3 justify-center items-center border-r border-slate-100`}>
+                    <View key={i} style={tw`flex-row border-b border-slate-100 w-full`}>
+                      <View style={tw`w-[12%] p-3 justify-center items-center border-r border-slate-100`}>
                         <Text style={tw`font-medium text-slate-600 text-[12px]`}>{Math.round(f.distance_km)}</Text>
                       </View>
-                      <View style={tw`w-[200px] p-3 justify-center border-r border-slate-100`}>
-                        <Text style={tw`font-bold text-slate-700 text-[12px] uppercase`}>{f.dest_name}</Text>
+                      <View style={tw`flex-1 p-3 justify-center border-r border-slate-100`}>
+                        <Text style={tw`font-bold text-slate-700 text-[12px] uppercase`} numberOfLines={1}>{f.origin_name}</Text>
                       </View>
-                      <View style={tw`w-[125px] p-3 items-end border-r border-slate-100 bg-slate-50/50`}>
-                        <Text style={tw`font-mono font-bold text-slate-800 text-[13px]`}>{Number(f.regular_fare).toFixed(2)}</Text>
+                      <View style={tw`w-[22%] p-3 items-end justify-center border-r border-slate-100 bg-slate-50/50`}>
+                        <Text style={tw`font-mono font-bold text-slate-800 text-[12px]`} numberOfLines={1}>{Number(f.regular_fare).toFixed(2)}</Text>
                       </View>
-                      <View style={tw`w-[125px] p-3 items-end bg-green-50/30`}>
-                        <Text style={tw`font-mono font-bold text-green-700 text-[13px]`}>{Number(f.discounted_fare).toFixed(2)}</Text>
+                      <View style={tw`w-[22%] p-3 items-end justify-center bg-green-50/30`}>
+                        <Text style={tw`font-mono font-bold text-green-700 text-[12px]`} numberOfLines={1}>{Number(f.discounted_fare).toFixed(2)}</Text>
                       </View>
                     </View>
                   ))}
                 </>
               )}
             </View>
-          </ScrollView>
+          </View>
         </View>
       </ScrollView>
     </SafeAreaView>
