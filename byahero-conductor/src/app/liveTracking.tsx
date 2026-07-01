@@ -76,10 +76,15 @@ export default function LiveTrackingScreen() {
     seatsRef.current = seats;
     AsyncStorage.setItem('byahero_seats_available', String(seats));
     if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
-      TrackPlayer.updateMetadataForTrack(0, {
+      const metadata = {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
         artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
-      }).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+      };
+      Promise.all([
+        TrackPlayer.updateMetadataForTrack(0, metadata),
+        TrackPlayer.updateMetadataForTrack(1, metadata),
+        TrackPlayer.updateMetadataForTrack(2, metadata),
+      ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
     }
   }, [seats]);
 
@@ -233,13 +238,18 @@ export default function LiveTrackingScreen() {
             Capability.SkipToPrevious,
           ],
         });
-        await TrackPlayer.add({
-          id: 'conductor-controls',
+        const dummyTrack = {
           url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
           title: `Bus ${payload.code} - ${payload.route}`,
           artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
-        });
+        };
+        await TrackPlayer.add([
+          { ...dummyTrack, id: 'conductor-prev' },
+          { ...dummyTrack, id: 'conductor-controls' },
+          { ...dummyTrack, id: 'conductor-next' },
+        ]);
+        await TrackPlayer.skip(1);
         await TrackPlayer.play();
         playerReady.current = true;
       } catch (tpErr) {
@@ -304,6 +314,17 @@ export default function LiveTrackingScreen() {
     if (status !== 'granted') {
       Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
       return;
+    }
+
+    if (Platform.OS !== 'web') {
+      try {
+        const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+        if (bgStatus !== 'granted') {
+          console.warn('Background location permission was not granted. Location tracking might pause when screen is closed.');
+        }
+      } catch (err) {
+        console.warn('Failed to request background location permission:', err);
+      }
     }
 
     // Get current position immediately to show the bus on the map on start
@@ -469,20 +490,30 @@ export default function LiveTrackingScreen() {
   };
 
   const incrementPassengers = () => {
-    if (session && seats > 0) {
-      const newSeats = seats - 1;
-      setSeats(newSeats);
-      pendingBoards.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats > 0) {
+          pendingBoards.current++;
+          scheduleSync();
+          return prevSeats - 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
   const decrementPassengers = () => {
-    if (session && seats < session.seats_total) {
-      const newSeats = seats + 1;
-      setSeats(newSeats);
-      pendingDeparts.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats < activeSession.seats_total) {
+          pendingDeparts.current++;
+          scheduleSync();
+          return prevSeats + 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
