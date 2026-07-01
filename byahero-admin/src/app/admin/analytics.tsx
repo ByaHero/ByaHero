@@ -143,6 +143,18 @@ export default function AdminAnalytics() {
               <tr><th>Bus</th><th>Route</th><th>Conductor</th><th>Boarded</th><th>Status</th></tr>
               ${data.recent_operations?.map(o => `<tr><td>${o.bus_code}</td><td>${o.route}</td><td>${(o.conductor_email || '').split('@')[0]}</td><td>${Number(o.total_boarded || 0)}</td><td>${o.status}</td></tr>`).join('') || '<tr><td colspan="5">No operations recorded yet</td></tr>'}
             </table>
+
+            <div class="section-title">Passenger Flow (Hourly)</div>
+            <table>
+              <tr><th>Hour</th><th>Passengers Boarded</th></tr>
+              ${data.hourly_flow?.map(f => `<tr><td>${f.hr}:00</td><td>${Number(f.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2">No hourly data</td></tr>'}
+            </table>
+
+            <div class="section-title">Location Activity Log</div>
+            <table>
+              <tr><th>Location</th><th>Time</th><th>Bus</th><th>Route</th><th>Boarded</th><th>Departed</th></tr>
+              ${data.location_logs?.map(l => `<tr><td>${l.location_name}</td><td>${new Date(l.recorded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td><td>${l.bus_code}</td><td>${l.route}</td><td>${l.boarded}</td><td>${l.departed}</td></tr>`).join('') || '<tr><td colspan="6">No location logs recorded</td></tr>'}
+            </table>
           </body>
         </html>
       `;
@@ -247,7 +259,7 @@ export default function AdminAnalytics() {
             )}
           </View>
 
-          <TouchableOpacity onPress={generatePDF} style={tw`flex-row items-center bg-emerald-500 px-4 py-2 rounded-xl shadow-sm h-[36px]`}>
+          <TouchableOpacity onPress={generatePDF} style={tw`flex-row items-center bg-emerald-500 px-4 py-2 rounded-xl shadow-sm h-[36px] ml-auto`}>
             <Ionicons name="download" size={16} color="white" style={tw`mr-2`} />
             <Text style={tw`text-white font-bold text-[13px]`}>Export PDF</Text>
           </TouchableOpacity>
@@ -462,6 +474,71 @@ export default function AdminAnalytics() {
               >
                 <Text style={tw`text-[#1d4ed8] font-bold text-[11px] uppercase tracking-wider`}>
                   {seeMoreOps ? 'Show Less' : `See More (${data.recent_operations.length - 10})`}
+                </Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* Passenger Flow */}
+          <View style={tw`bg-white rounded-3xl p-5 mx-5 mb-6 shadow-sm border border-slate-200`}>
+            <View style={tw`flex-row items-center mb-4`}>
+               <Ionicons name="stats-chart" size={18} color="#1d4ed8" style={tw`mr-2`} />
+               <Text style={tw`font-bold text-slate-800 text-[13px] uppercase tracking-wider`}>Passenger Flow (Hourly)</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={tw`flex-row items-end h-[150px] pt-5`}>
+                {data.hourly_flow?.map((f, i) => {
+                  const maxVal = Math.max(...data.hourly_flow.map(hl => Number(hl.total)));
+                  const hPct = maxVal > 0 ? (Number(f.total) / maxVal * 100) : 0;
+                  return (
+                    <View key={i} style={tw`items-center mx-2 w-[30px]`}>
+                      <Text style={tw`text-[#1d4ed8] font-black text-[10px] mb-1`}>{f.total}</Text>
+                      <View style={[tw`w-[20px] bg-[#1d4ed8] rounded-t-sm`, { height: `${hPct}%`, minHeight: 4 }]} />
+                      <Text style={tw`text-slate-400 font-bold text-[9px] mt-2`}>{f.hr}:00</Text>
+                    </View>
+                  );
+                })}
+                {!data.hourly_flow?.length && <Text style={tw`text-center py-4 text-slate-400 italic text-[12px]`}>No hourly data yet</Text>}
+              </View>
+            </ScrollView>
+          </View>
+
+          {/* Location Activity Log */}
+          <View style={tw`bg-white rounded-3xl p-5 mx-5 mb-6 shadow-sm border border-slate-200`}>
+            <View style={tw`flex-row items-center mb-4`}>
+              <Ionicons name="list" size={18} color="#1d4ed8" style={tw`mr-2`} />
+              <Text style={tw`font-bold text-slate-800 text-[13px] uppercase tracking-wider`}>Location Activity Log</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <View style={tw`min-w-[500px]`}>
+                <View style={tw`flex-row border-b border-slate-200 pb-2`}>
+                  <Text style={tw`w-[100px] text-slate-400 text-[10px] font-bold uppercase tracking-wider`}>Time</Text>
+                  <Text style={tw`w-[120px] text-slate-400 text-[10px] font-bold uppercase tracking-wider`}>Location</Text>
+                  <Text style={tw`w-[80px] text-slate-400 text-[10px] font-bold uppercase tracking-wider`}>Bus</Text>
+                  <Text style={tw`w-[120px] text-slate-400 text-[10px] font-bold uppercase tracking-wider`}>Route</Text>
+                  <Text style={tw`w-[60px] text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center`}>Boarded</Text>
+                  <Text style={tw`w-[60px] text-slate-400 text-[10px] font-bold uppercase tracking-wider text-center`}>Departed</Text>
+                </View>
+                {(seeMoreLogs ? data.location_logs : data.location_logs?.slice(0, 10))?.map((l, i) => (
+                  <View key={i} style={tw`flex-row border-b border-slate-100 py-3 items-center`}>
+                    <Text style={tw`w-[100px] font-bold text-slate-600 text-[11px]`}>{new Date(l.recorded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</Text>
+                    <Text style={tw`w-[120px] font-bold text-slate-700 text-[12px]`} numberOfLines={1}>{l.location_name}</Text>
+                    <Text style={tw`w-[80px] text-[#1d4ed8] font-bold text-[12px]`}>{l.bus_code}</Text>
+                    <Text style={tw`w-[120px] text-slate-600 font-medium text-[11px]`} numberOfLines={1}>{l.route}</Text>
+                    <Text style={tw`w-[60px] text-emerald-500 font-black text-[12px] text-center`}>+{Number(l.boarded || 0)}</Text>
+                    <Text style={tw`w-[60px] text-rose-500 font-black text-[12px] text-center`}>-{Number(l.departed || 0)}</Text>
+                  </View>
+                ))}
+                {!data.location_logs?.length && <Text style={tw`text-center py-4 text-slate-400 italic text-[12px]`}>No location logs yet</Text>}
+              </View>
+            </ScrollView>
+            {data.location_logs?.length > 10 && (
+              <TouchableOpacity 
+                onPress={() => setSeeMoreLogs(!seeMoreLogs)}
+                style={tw`mt-4 py-2 bg-slate-50 items-center rounded-xl`}
+              >
+                <Text style={tw`text-[#1d4ed8] font-bold text-[11px] uppercase tracking-wider`}>
+                  {seeMoreLogs ? 'Show Less' : `See More (${data.location_logs.length - 10})`}
                 </Text>
               </TouchableOpacity>
             )}
