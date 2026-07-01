@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, RefreshControl, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { apiRequest } from '@/services/api';
 import AdminNavbar from '@/components/AdminNavbar';
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
 
 interface AnalyticsData {
   summary: {
@@ -26,6 +28,8 @@ export default function AdminAnalytics() {
   const [refreshing, setRefreshing] = useState(false);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [period, setPeriod] = useState('today');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
 
   const [expandedBuses, setExpandedBuses] = useState<Record<string, boolean>>({});
   const [seeMoreOps, setSeeMoreOps] = useState(false);
@@ -33,7 +37,12 @@ export default function AdminAnalytics() {
 
   const fetchAnalytics = useCallback(async () => {
     try {
-      const resData = await apiRequest(`/api/admin/analytics?period=${period}`);
+      let url = `/api/admin/analytics?period=${period}`;
+      if (period === 'custom') {
+        if (customStart) url += `&start=${customStart}`;
+        if (customEnd) url += `&end=${customEnd}`;
+      }
+      const resData = await apiRequest(url);
       if (resData.success !== false) {
         setData(resData as AnalyticsData);
       }
@@ -43,7 +52,7 @@ export default function AdminAnalytics() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   useEffect(() => {
     setLoading(true);
@@ -59,6 +68,120 @@ export default function AdminAnalytics() {
     setExpandedBuses(prev => ({ ...prev, [code]: !prev[code] }));
   };
 
+  const generatePDF = async () => {
+    if (!data) return;
+    try {
+      const html = `
+        <html>
+          <head>
+            <style>
+              body { font-family: 'Helvetica', 'Arial', sans-serif; color: #333; padding: 20px; }
+              h1 { color: #0f3878; margin-bottom: 5px; }
+              .header { border-bottom: 2px solid #0f3878; padding-bottom: 10px; margin-bottom: 20px; }
+              .period { color: #666; font-size: 14px; }
+              .grid { display: flex; flex-wrap: wrap; margin-bottom: 30px; }
+              .stat-box { width: 45%; padding: 15px; margin: 5px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center; }
+              .stat-val { font-size: 24px; font-weight: bold; color: #1d4ed8; }
+              .stat-lbl { font-size: 10px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 5px; }
+              table { width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 12px; }
+              th { background: #f1f5f9; padding: 10px; text-align: left; border-bottom: 2px solid #cbd5e1; }
+              td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+              .section-title { font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 10px; border-left: 4px solid #1d4ed8; padding-left: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h1>ByaHero Analytics Report</h1>
+              <div class="period">Period: ${period === 'custom' ? `${customStart} to ${customEnd}` : period.toUpperCase()}</div>
+            </div>
+            
+            <div class="grid">
+              <div class="stat-box">
+                <div class="stat-val">${Number(data.summary?.total_trips || 0).toLocaleString()}</div>
+                <div class="stat-lbl">Total Trips</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val">${Number(data.summary?.total_passengers || 0).toLocaleString()}</div>
+                <div class="stat-lbl">Pax Boarded</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val">${Number(data.summary?.total_departed || 0).toLocaleString()}</div>
+                <div class="stat-lbl">Pax Departed</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-val">${Math.round(Number(data.summary?.avg_trip_minutes || 0))}m</div>
+                <div class="stat-lbl">Avg Trip Time</div>
+              </div>
+            </div>
+
+            <div class="section-title">Boarding Locations</div>
+            <table>
+              <tr><th>Location</th><th>Passengers Boarded</th></tr>
+              ${data.boarding_locations?.map(l => `<tr><td>${l.location_name}</td><td>${Number(l.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2">No data</td></tr>'}
+            </table>
+
+            <div class="section-title">Route Breakdown</div>
+            <table>
+              <tr><th>Route</th><th>Trips</th><th>Passengers</th></tr>
+              ${data.routes?.map(r => `<tr><td>${r.route}</td><td>${r.trips}</td><td>${Number(r.passengers).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3">No data</td></tr>'}
+            </table>
+
+            <div class="section-title">Bus Performance</div>
+            <table>
+              <tr><th>Bus Code</th><th>Trips</th><th>Passengers</th><th>Conductors</th></tr>
+              ${data.buses?.map(b => `<tr><td>${b.code}</td><td>${b.trips}</td><td>${Number(b.passengers).toLocaleString()}</td><td>${(b.conductors || '').substring(0, 30)}${(b.conductors && b.conductors.length > 30) ? '...' : ''}</td></tr>`).join('') || '<tr><td colspan="4">No data</td></tr>'}
+            </table>
+
+            <div class="section-title">Conductor Activity</div>
+            <table>
+              <tr><th>Conductor</th><th>Trips</th><th>Passengers</th></tr>
+              ${data.conductors?.map(c => `<tr><td>${c.email}</td><td>${c.trips}</td><td>${Number(c.passengers).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3">No conductor data yet</td></tr>'}
+            </table>
+
+            <div class="section-title">Recent Operations</div>
+            <table>
+              <tr><th>Bus</th><th>Route</th><th>Conductor</th><th>Boarded</th><th>Status</th></tr>
+              ${data.recent_operations?.map(o => `<tr><td>${o.bus_code}</td><td>${o.route}</td><td>${(o.conductor_email || '').split('@')[0]}</td><td>${Number(o.total_boarded || 0)}</td><td>${o.status}</td></tr>`).join('') || '<tr><td colspan="5">No operations recorded yet</td></tr>'}
+            </table>
+          </body>
+        </html>
+      `;
+
+      if (Platform.OS === 'web') {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.right = '0';
+        iframe.style.bottom = '0';
+        iframe.style.width = '0';
+        iframe.style.height = '0';
+        iframe.style.border = '0';
+        document.body.appendChild(iframe);
+        
+        iframe.contentDocument?.open();
+        iframe.contentDocument?.write(html);
+        iframe.contentDocument?.close();
+        
+        setTimeout(() => {
+          iframe.contentWindow?.focus();
+          iframe.contentWindow?.print();
+          setTimeout(() => {
+            if (document.body.contains(iframe)) {
+              document.body.removeChild(iframe);
+            }
+          }, 1000);
+        }, 500);
+      } else {
+        const { uri } = await Print.printToFileAsync({ html, base64: false });
+        if (await Sharing.isAvailableAsync()) {
+          await Sharing.shareAsync(uri, { UTI: '.pdf', mimeType: 'application/pdf' });
+        }
+      }
+    } catch (err) {
+      console.warn('PDF Error:', err);
+      Alert.alert('Error', 'Failed to generate PDF');
+    }
+  };
+
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <AdminNavbar title="ANALYTICS" />
@@ -66,18 +189,68 @@ export default function AdminAnalytics() {
       <View style={tw`p-5 pb-3`}>
         <Text style={tw`text-2xl font-extrabold text-[#0f3878] tracking-tight`}>Analytics Dashboard</Text>
         
-        <View style={tw`flex-row mt-3 bg-slate-200/60 p-1 rounded-xl self-start`}>
-          {['today', 'week', 'month'].map(p => (
-            <TouchableOpacity 
-              key={p}
-              onPress={() => setPeriod(p)}
-              style={tw`px-4 py-2 rounded-lg ${period === p ? 'bg-white shadow-sm' : ''}`}
-            >
-              <Text style={tw`font-bold text-[13px] capitalize ${period === p ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>
-                {p === 'today' ? 'Today' : `This ${p}`}
-              </Text>
-            </TouchableOpacity>
-          ))}
+        <View style={tw`flex-row flex-wrap justify-between items-start mt-3 gap-y-3`}>
+          <View style={tw`flex-1 min-w-[250px]`}>
+            <View style={tw`flex-row flex-wrap bg-slate-200/60 p-1 rounded-xl self-start gap-1`}>
+              {['today', 'week', 'month', 'custom'].map(p => (
+                <TouchableOpacity 
+                  key={p}
+                  onPress={() => setPeriod(p)}
+                  style={tw`px-4 py-2 rounded-lg ${period === p ? 'bg-white shadow-sm' : ''}`}
+                >
+                  <Text style={tw`font-bold text-[13px] capitalize ${period === p ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>
+                    {p === 'today' ? 'Today' : (p === 'custom' ? 'Custom' : `This ${p}`)}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {period === 'custom' && (
+              <View style={tw`flex-row flex-wrap items-center mt-3 gap-2`}>
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    value={customStart}
+                    onChange={(e: any) => setCustomStart(e.target.value)}
+                    style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', minWidth: '130px', outline: 'none' }}
+                  />
+                ) : (
+                  <TextInput
+                    style={tw`bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] flex-1 min-w-[100px] max-w-[140px]`}
+                    placeholder="YYYY-MM-DD"
+                    value={customStart}
+                    onChangeText={setCustomStart}
+                  />
+                )}
+                
+                <Text style={tw`text-slate-500 font-bold text-[12px]`}>to</Text>
+                
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    value={customEnd}
+                    onChange={(e: any) => setCustomEnd(e.target.value)}
+                    style={{ backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px 12px', fontSize: '13px', minWidth: '130px', outline: 'none' }}
+                  />
+                ) : (
+                  <TextInput
+                    style={tw`bg-white border border-slate-200 rounded-lg px-3 py-2 text-[13px] flex-1 min-w-[100px] max-w-[140px]`}
+                    placeholder="YYYY-MM-DD"
+                    value={customEnd}
+                    onChangeText={setCustomEnd}
+                  />
+                )}
+                <TouchableOpacity onPress={fetchAnalytics} style={tw`bg-[#1d4ed8] px-4 py-2 rounded-lg`}>
+                  <Text style={tw`text-white font-bold text-[13px]`}>Apply</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+
+          <TouchableOpacity onPress={generatePDF} style={tw`flex-row items-center bg-emerald-500 px-4 py-2 rounded-xl shadow-sm h-[36px]`}>
+            <Ionicons name="download" size={16} color="white" style={tw`mr-2`} />
+            <Text style={tw`text-white font-bold text-[13px]`}>Export PDF</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
