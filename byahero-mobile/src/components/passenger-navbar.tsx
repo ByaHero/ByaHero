@@ -379,17 +379,18 @@ export function PassengerHeader({
                 >
                   <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
                 </TouchableOpacity>
-                <View style={tw`flex-row items-center gap-3 mt-4 mb-2`}>
+                <View style={tw`flex-row items-center gap-3 mt-4 mb-4`}>
                   {renderAvatar()}
                   <Text style={tw`text-white font-bold text-xl flex-1 text-wrap`} numberOfLines={2}>
                     {userName}
                   </Text>
                 </View>
+                <View style={tw`h-[3px] bg-white/100 w-full`} />
               </View>
 
               {/* Menu Items List */}
               <ScrollView
-                contentContainerStyle={{ padding: 16, gap: 12 }}
+                contentContainerStyle={{ padding: 16, gap: 14 }}
                 bounces={false}
                 overScrollMode="never"
                 style={Platform.OS === 'web' ? ({ overscrollBehavior: 'none' } as any) : undefined}
@@ -425,7 +426,7 @@ export function PassengerHeader({
                           router.push(item.route as any);
                         });
                       }}
-                      style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4`}
+                      style={tw`bg-[#ececec] shadow-lg rounded-2xl py-4 px-4 flex-row items-center gap-4`}
                     >
                       <Image source={item.icon} style={tw`w-7 h-7`} contentFit="contain" />
                       <Text style={tw`text-dark font-bold text-sm`}>{item.title}</Text>
@@ -436,7 +437,7 @@ export function PassengerHeader({
                 {/* Logout Button */}
                 <TouchableOpacity
                   onPress={handleLogout}
-                  style={tw`bg-[#ececec] rounded-2xl py-3 px-4 flex-row items-center gap-4 mt-2`}
+                  style={tw`bg-[#ececec] shadow-lg rounded-2xl py-4 px-4 flex-row items-center gap-4 mt-2.5`}
                 >
                   <Image source={require('../../assets/images/logout.svg')} style={tw`w-7 h-7`} contentFit="contain" />
                   <Text style={tw`text-red-600 font-bold text-sm`}>Log out</Text>
@@ -466,12 +467,12 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
       if (setActiveTab) {
         setActiveTab('location');
       } else {
-        router.replace('/passenger');
+        router.push('/passenger');
       }
     } else if (tab === 'sos') {
-      router.replace('/passenger/sos' as any);
+      router.push('/passenger/sos' as any);
     } else if (tab === 'info') {
-      router.replace('/passenger/busInfo' as any);
+      router.push('/passenger/busInfo' as any);
     }
   };
 
@@ -492,10 +493,10 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           { paddingBottom: insets.bottom }
         ]}
       >
-        <View style={tw`w-6 h-6 justify-center items-center`}>
+        <View style={tw`w-[30px] h-[30px] justify-center items-center`}>
           <Image
             source={require('../../assets/images/icons/locationBlack.svg')}
-            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'location' ? 1 : 0 }]}
+            style={[tw`w-[30px] h-[30px] absolute`, { opacity: activeTab === 'location' ? 1 : 0 }]}
             contentFit="contain"
             priority="high"
             cachePolicy="memory"
@@ -503,14 +504,14 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           />
           <Image
             source={require('../../assets/images/icons/locationIdle.svg')}
-            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'location' ? 0 : 1 }]}
+            style={[tw`w-[30px] h-[30px] absolute`, { opacity: activeTab === 'location' ? 0 : 1 }]}
             contentFit="contain"
             priority="high"
             cachePolicy="memory"
             transition={0}
           />
         </View>
-        <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'location' && tw`text-[#1856b0]`]}>LOCATION</Text>
+        <Text style={[tw`text-[13px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'location' && tw`text-[#1856b0]`]}>LOCATION</Text>
       </TouchableOpacity>
 
       {/* Central Rising SOS Button */}
@@ -519,20 +520,20 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           ref={sosRef}
           onLayout={() => handleTourLayout('sos-btn', sosRef)}
           style={[
-            tw`w-[100px] rounded-t-[50px] bg-[#2563eb] absolute justify-start items-center pt-3.5 shadow-lg`,
-            { top: -1, height: 76 }
+            tw`w-[110px] rounded-t-[55px] bg-[#2563eb] absolute justify-start items-center pt-4`,
+            { top: -20, height: 95, shadowColor: '#2563eb', shadowOffset: { width: 0, height: -4 }, shadowOpacity: 0.3, shadowRadius: 10, elevation: 10 }
           ]}
           onPress={() => handleTabPress('sos')}
         >
           <Image
             source={require('../../assets/images/icons/SOS.svg')}
-            style={tw`w-8 h-8`}
+            style={tw`w-[38px] h-[38px]`}
             contentFit="contain"
             priority="high"
             cachePolicy="memory"
             transition={0}
           />
-          <Text style={tw`text-white text-[10px] font-extrabold mt-0.5 tracking-wider`}>SOS</Text>
+          <Text style={tw`text-white text-[13px] font-black mt-1 tracking-wider uppercase`}>SOS</Text>
         </TouchableOpacity>
       </View>
 
@@ -543,10 +544,10 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           { paddingBottom: insets.bottom }
         ]}
       >
-        <View style={tw`w-6 h-6 justify-center items-center`}>
+        <View style={tw`w-[30px] h-[30px] justify-center items-center`}>
           <Image
             source={require('../../assets/images/icons/busActive.svg')}
-            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'info' ? 1 : 0 }]}
+            style={[tw`w-[30px] h-[30px] absolute`, { opacity: activeTab === 'info' ? 1 : 0 }]}
             contentFit="contain"
             priority="high"
             cachePolicy="memory"
@@ -554,14 +555,14 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
           />
           <Image
             source={require('../../assets/images/icons/busIdle.svg')}
-            style={[tw`w-6 h-6 absolute`, { opacity: activeTab === 'info' ? 0 : 1 }]}
+            style={[tw`w-[30px] h-[30px] absolute`, { opacity: activeTab === 'info' ? 0 : 1 }]}
             contentFit="contain"
             priority="high"
             cachePolicy="memory"
             transition={0}
           />
         </View>
-        <Text style={[tw`text-[9px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'info' && tw`text-[#1856b0]`]}>BUS INFO</Text>
+        <Text style={[tw`text-[13px] font-extrabold text-[#64748b] mt-1 tracking-widest`, activeTab === 'info' && tw`text-[#1856b0]`]}>BUS INFO</Text>
       </TouchableOpacity>
     </View>
   );

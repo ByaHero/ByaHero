@@ -186,18 +186,15 @@ export default function BusInfoScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', height: '100%', width: '100%' }}>
-      <PassengerHeader onTriggerSOS={handleTriggerSOS} pageTitle="Bus Info" />
+      <PassengerHeader onTriggerSOS={handleTriggerSOS} pageTitle="Bus Information" />
 
       <View style={{ flex: 1, height: '100%' }}>
         {/* Main Content Area */}
         <ScrollView style={{ flex: 1, backgroundColor: '#ffffff' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
-          <Text style={tw`text-2xl font-bold text-[#103d7c] mt-2 text-center`}>Bus Information</Text>
-          <Text style={tw`text-xs text-[#64748b] text-center mt-1 mb-6`}>Check schedules, terminal locations, and calculate fares.</Text>
-
           {/* Schedules Section */}
-          <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mb-3`}>BUS OPERATION SCHEDULE</Text>
+          <Text style={tw`text-[15px] font-bold text-[#103d7c] mb-3 ml-1`}>Bus Operation Schedule</Text>
           {schedules.length === 0 ? (
-            <View style={tw`bg-[#f8fafc] rounded-2xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
+            <View style={tw`bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
               <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
             </View>
           ) : (
@@ -216,7 +213,7 @@ export default function BusInfoScreen() {
               const isSusp = parseInt(row.is_suspended) === 1;
 
               return (
-                <View key={idx} style={tw`bg-[#f8fafc] p-4 rounded-2xl mb-3 border border-[#e2e8f0] flex-row justify-between items-center shadow-sm`}>
+                <View key={idx} style={tw`bg-white p-4 rounded-xl mb-3 border border-[#e2e8f0] flex-row justify-between items-center`}>
                   <View style={tw`flex-1 mr-2`}>
                     <Text style={tw`text-sm font-extrabold text-[#103d7c]`}>{row.terminal_name}</Text>
                     {isSusp ? (
@@ -232,135 +229,140 @@ export default function BusInfoScreen() {
           )}
 
           {/* Fare Check Section */}
-          <Text style={tw`text-[13px] font-extrabold text-black tracking-wider mt-4 mb-3`}>BUS FARE CHECK</Text>
+          <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-4 mb-3 ml-1`}>Bus Fare Check</Text>
           
-          <View style={tw`bg-[#f8fafc] p-4 rounded-2xl border border-[#e2e8f0] mb-5`}>
+          <View style={[tw`flex-row justify-between mb-4`, { zIndex: 9999, elevation: 9999 }]}>
             {/* Pick Up Stop Picker */}
-            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Pick Up Location</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowPickupDropdown(!showPickupDropdown);
-                setShowDropoffDropdown(false);
-                setShowDiscountDropdown(false);
-              }}
-              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-            >
-              <Text style={[tw`text-sm`, pickupStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
-                {pickupStop ? `${pickupStop.location_name}` : 'Select pick up stop'}
-              </Text>
-              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-            </TouchableOpacity>
+            <View style={[tw`flex-1 mr-2 relative`, { zIndex: 100, elevation: 100 }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowPickupDropdown(!showPickupDropdown);
+                  setShowDropoffDropdown(false);
+                  setShowDiscountDropdown(false);
+                }}
+                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showPickupDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#e2e8f0]`]}
+              >
+                <Text style={[tw`text-sm`, pickupStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#64748b]`]} numberOfLines={1}>
+                  {pickupStop ? pickupStop.location_name : 'Pick up'}
+                </Text>
+                <Text style={tw`text-[#64748b] text-xs font-bold`}>▼</Text>
+              </TouchableOpacity>
 
-            {showPickupDropdown && (
-              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
-                <ScrollView nestedScrollEnabled={true}>
-                  {fareStops.map((stop) => (
-                    <TouchableOpacity
-                      key={stop.stop_id}
-                      onPress={() => {
-                        setPickupStop(stop);
-                        setShowPickupDropdown(false);
-                        calculateFare(stop, dropoffStop, discountType);
-                      }}
-                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                    >
-                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
+              {showPickupDropdown && (
+                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg max-h-48 overflow-hidden`, { zIndex: 1000, elevation: 1000 }]}>
+                  <ScrollView nestedScrollEnabled={true}>
+                    {fareStops.map((stop) => (
+                      <TouchableOpacity
+                        key={stop.stop_id}
+                        onPress={() => {
+                          setPickupStop(stop);
+                          setShowPickupDropdown(false);
+                          calculateFare(stop, dropoffStop, discountType);
+                        }}
+                        style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                      >
+                        <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
 
             {/* Drop Off Stop Picker */}
-            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Drop Off Location</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowDropoffDropdown(!showDropoffDropdown);
-                setShowPickupDropdown(false);
-                setShowDiscountDropdown(false);
-              }}
-              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-            >
-              <Text style={[tw`text-sm`, dropoffStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#9ca3af]`]}>
-                {dropoffStop ? `${dropoffStop.location_name}` : 'Select drop off stop'}
-              </Text>
-              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-            </TouchableOpacity>
+            <View style={[tw`flex-1 ml-2 relative`, { zIndex: 90, elevation: 90 }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDropoffDropdown(!showDropoffDropdown);
+                  setShowPickupDropdown(false);
+                  setShowDiscountDropdown(false);
+                }}
+                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showDropoffDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#e2e8f0]`]}
+              >
+                <Text style={[tw`text-sm`, dropoffStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#64748b]`]} numberOfLines={1}>
+                  {dropoffStop ? dropoffStop.location_name : 'Drop off'}
+                </Text>
+                <Text style={tw`text-[#64748b] text-xs font-bold`}>▼</Text>
+              </TouchableOpacity>
 
-            {showDropoffDropdown && (
-              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-2 mb-3 max-h-40 overflow-hidden`}>
-                <ScrollView nestedScrollEnabled={true}>
-                  {fareStops.map((stop) => (
-                    <TouchableOpacity
-                      key={stop.stop_id}
-                      onPress={() => {
-                        setDropoffStop(stop);
-                        setShowDropoffDropdown(false);
-                        calculateFare(pickupStop, stop, discountType);
-                      }}
-                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                    >
-                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Discount Selector */}
-            <Text style={tw`text-xs font-bold text-[#64748b] mb-1.5`}>Passenger Class</Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowDiscountDropdown(!showDiscountDropdown);
-                setShowPickupDropdown(false);
-                setShowDropoffDropdown(false);
-              }}
-              style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center mb-3`}
-            >
-              <Text style={tw`text-sm text-[#1e293b] font-semibold`}>
-                {discountType === 'regular' ? 'Regular Passenger' : 'Discounted (Student/Senior/PWD)'}
-              </Text>
-              <Text style={tw`text-[#64748b] font-bold`}>▼</Text>
-            </TouchableOpacity>
-
-            {showDiscountDropdown && (
-              <View style={tw`bg-white border border-[#e2e8f0] rounded-xl p-1 mb-3`}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setDiscountType('regular');
-                    setShowDiscountDropdown(false);
-                    calculateFare(pickupStop, dropoffStop, 'regular');
-                  }}
-                  style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                >
-                  <Text style={tw`text-xs text-[#334155] font-semibold`}>Regular Passenger</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => {
-                    setDiscountType('discounted');
-                    setShowDiscountDropdown(false);
-                    calculateFare(pickupStop, dropoffStop, 'discounted');
-                  }}
-                  style={tw`py-2.5 px-3`}
-                    >
-                  <Text style={tw`text-xs text-[#334155] font-semibold`}>Discounted (Student/Senior/PWD)</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* Error / Result Display */}
-            {fareError ? (
-              <Text style={tw`text-xs font-bold text-red-500 text-center my-2`}>{fareError}</Text>
-            ) : null}
-
-            <View style={tw`items-center mt-3 pt-3 border-t border-[#e2e8f0]`}>
-              <Text style={tw`text-xs font-bold text-[#64748b]`}>CALCULATED FARE</Text>
-              <View style={tw`flex-row items-baseline mt-1`}>
-                <Text style={tw`text-lg font-bold text-[#103d7c] mr-1`}>Php</Text>
-                <Text style={tw`text-3xl font-extrabold text-[#103d7c]`}>{calculatedFare}</Text>
-              </View>
+              {showDropoffDropdown && (
+                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg max-h-48 overflow-hidden`, { zIndex: 1000, elevation: 1000 }]}>
+                  <ScrollView nestedScrollEnabled={true}>
+                    {fareStops.map((stop) => (
+                      <TouchableOpacity
+                        key={stop.stop_id}
+                        onPress={() => {
+                          setDropoffStop(stop);
+                          setShowDropoffDropdown(false);
+                          calculateFare(pickupStop, stop, discountType);
+                        }}
+                        style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                      >
+                        <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
             </View>
           </View>
+
+          {/* Passenger Class Row */}
+          <View style={[tw`mt-3 items-center`, { zIndex: 999, elevation: 999 }]}>
+            <View style={[tw`w-1/2 relative`, { zIndex: 999, elevation: 999 }]}>
+              <TouchableOpacity
+                onPress={() => {
+                  setShowDiscountDropdown(!showDiscountDropdown);
+                  setShowPickupDropdown(false);
+                  setShowDropoffDropdown(false);
+                }}
+                style={tw`bg-white border border-[#cbd5e1] rounded-xl p-3 flex-row justify-between items-center`}
+              >
+                <Text style={tw`text-sm text-[#1e293b] font-semibold`} numberOfLines={1}>
+                  {discountType === 'regular' ? 'Regular' : 'S/E/D'}
+                </Text>
+                <Text style={tw`text-[#64748b] text-xs font-bold ml-2`}>▼</Text>
+              </TouchableOpacity>
+
+              {showDiscountDropdown && (
+                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg`, { zIndex: 1000, elevation: 1000 }]}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setDiscountType('regular');
+                      setShowDiscountDropdown(false);
+                      calculateFare(pickupStop, dropoffStop, 'regular');
+                    }}
+                    style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                  >
+                    <Text style={tw`text-sm text-[#334155] font-semibold`}>Regular</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setDiscountType('discounted');
+                      setShowDiscountDropdown(false);
+                      calculateFare(pickupStop, dropoffStop, 'discounted');
+                    }}
+                    style={tw`py-2.5 px-3`}
+                  >
+                    <Text style={tw`text-sm text-[#334155] font-semibold`}>S/E/D</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+
+          {/* Calculated Fare Row */}
+          <View style={[tw`items-center justify-center mt-8 mb-4`, { zIndex: 1, elevation: 1 }]}>
+            <Text style={tw`text-xs font-bold text-[#64748b] mb-1`}>CALCULATED FARE</Text>
+            <View style={tw`flex-row items-baseline`}>
+              <Text style={tw`text-xl font-bold text-[#103d7c] mr-1`}>Php</Text>
+              <Text style={tw`text-6xl font-black text-[#103d7c]`}>{calculatedFare}</Text>
+            </View>
+          </View>
+
+          {fareError ? (
+            <Text style={tw`text-xs font-bold text-red-500 text-center my-4`}>{fareError}</Text>
+          ) : null}
         </ScrollView>
 
         <PassengerFooter activeTab="info" onTriggerSOS={handleTriggerSOS} />
