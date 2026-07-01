@@ -45,12 +45,12 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
         if (email) {
           setUserEmail(email);
         } else {
-            // fallback since admin uses byahero_admin_user
-            const adminUserStr = await AsyncStorage.getItem('byahero_admin_user');
-            if(adminUserStr) {
-                const adminUser = JSON.parse(adminUserStr);
-                setUserEmail(adminUser.email);
-            }
+          // fallback since admin uses byahero_admin_user
+          const adminUserStr = await AsyncStorage.getItem('byahero_admin_user');
+          if (adminUserStr) {
+            const adminUser = JSON.parse(adminUserStr);
+            setUserEmail(adminUser.email);
+          }
         }
       } catch (err) { }
     }
@@ -215,6 +215,15 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
           </Animated.View>
         </View>
       </Modal>
+
+      {/* Bottom Nav Decorative Bar */}
+      <View
+        style={[
+          tw`absolute left-0 right-0 bg-[#0f3878] z-50 shadow-md`,
+          { bottom: 0, height: 40, elevation: 10 }
+        ]}
+        pointerEvents="none"
+      />
     </>
   );
 }

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
@@ -19,6 +19,10 @@ export default function AdminBuses() {
   const [newBusCode, setNewBusCode] = useState('');
   const [saving, setSaving] = useState(false);
   const [updatingId, setUpdatingId] = useState<string | number | null>(null);
+
+  // Modal states
+  const [successModal, setSuccessModal] = useState({ visible: false, message: '', type: 'add' });
+  const [deleteConfirmModal, setDeleteConfirmModal] = useState({ visible: false, busId: '', busCode: '' });
 
   // Local state for dropdown edits
   const [editedStatuses, setEditedStatuses] = useState<Record<string, string>>({});
@@ -68,7 +72,7 @@ export default function AdminBuses() {
         code: newBusCode.trim()
       });
       if (data.success) {
-        Alert.alert('Success', `Bus ${newBusCode.trim()} added successfully.`);
+        setSuccessModal({ visible: true, message: `Bus ${newBusCode.trim()} has been added.`, type: 'add' });
         setNewBusCode('');
         fetchBuses();
       } else {
@@ -82,80 +86,110 @@ export default function AdminBuses() {
   };
 
   const executeDelete = (id: string | number, code: string) => {
-    Alert.alert(
-      'Delete Bus',
-      `Are you sure you want to permanently delete ${code}? This action cannot be undone.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const data = await adminService.deleteBus(Number(id));
-              if (data.success) {
-                Alert.alert('Success', 'Bus deleted successfully.');
-                fetchBuses();
-              } else {
-                Alert.alert('Error', data.error || data.message || 'Failed to delete bus.');
-              }
-            } catch (e) {
-              Alert.alert('Error', 'Network error while deleting bus.');
-            }
-          }
-        }
-      ]
-    );
+    setDeleteConfirmModal({ visible: true, busId: id.toString(), busCode: code });
   };
 
-  const handleSaveStatus = async (id: string | number) => {
-    const stringId = id.toString();
-    const newStatus = editedStatuses[stringId];
-    
-    const bus = buses.find(b => (b.Bus_ID || b.id)?.toString() === stringId);
-    const originalStatus = bus?.status?.toLowerCase() === 'unavailable' ? 'unavailable' : 'available';
-    
-    if (newStatus === originalStatus) return; // No change
+  const confirmDelete = async () => {
+    const { busId, busCode } = deleteConfirmModal;
+    setDeleteConfirmModal({ visible: false, busId: '', busCode: '' });
+    try {
+      const data = await adminService.deleteBus(Number(busId));
+      if (data.success) {
+        setSuccessModal({ visible: true, message: `Bus ${busCode} has been deleted.`, type: 'delete' });
+        fetchBuses();
+      } else {
+        Alert.alert('Error', data.error || data.message || 'Failed to delete bus.');
+      }
+    } catch (e) {
+      Alert.alert('Error', 'Network error while deleting bus.');
+    }
+  };
 
-    setUpdatingId(id);
+  const handleToggleStatus = async (busId: string, currentStatus: string) => {
+    if (updatingId === busId) return;
+    
+    const newStatus = currentStatus === 'unavailable' ? 'available' : 'unavailable';
+    
+    // Optimistically update the UI
+    setEditedStatuses(prev => ({ ...prev, [busId]: newStatus }));
+    setUpdatingId(busId);
+    
     try {
       const data = await adminService.updateBus({
-        id,
+        id: Number(busId),
         status: newStatus
       });
       if (data.success) {
-        fetchBuses();
-        Alert.alert('Success', 'Bus status updated.');
+        // Refetch to sync if needed, but UI is already updated
+        // fetchBuses();
       } else {
+        // Revert on failure
+        setEditedStatuses(prev => ({ ...prev, [busId]: currentStatus }));
         Alert.alert('Error', data.message || data.error || 'Failed to update status.');
       }
     } catch (e) {
+      setEditedStatuses(prev => ({ ...prev, [busId]: currentStatus }));
       Alert.alert('Error', 'Network error while updating status.');
     } finally {
       setUpdatingId(null);
     }
   };
 
-  const promptStatusUpdate = (busId: string, currentStatus: string) => {
-    if (updatingId === busId) return;
-    Alert.alert(
-      'Change Status',
-      'Select new status:',
-      [
-        { text: 'Available', onPress: () => {
-          setEditedStatuses(prev => ({ ...prev, [busId]: 'available' }));
-        }},
-        { text: 'Unavailable', onPress: () => {
-          setEditedStatuses(prev => ({ ...prev, [busId]: 'unavailable' }));
-        }},
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
-  };
-
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      <AdminNavbar title="BUS FLEET" />
+      <AdminNavbar title="Total Buses" />
+
+      {/* Success Modal */}
+      <Modal visible={successModal.visible} transparent animationType="fade">
+        <View style={tw`flex-1 bg-black/50 justify-center items-center px-5`}>
+          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[320px] items-center shadow-lg`}>
+            <View style={tw`w-16 h-16 ${successModal.type === 'delete' ? 'bg-red-100' : 'bg-green-100'} rounded-full items-center justify-center mb-4`}>
+              <Ionicons name={successModal.type === 'delete' ? 'trash' : 'checkmark-circle'} size={40} color={successModal.type === 'delete' ? '#dc2626' : '#16a34a'} />
+            </View>
+            <Text style={tw`text-[#0f3878] text-xl font-black mb-2 text-center`}>
+              {successModal.type === 'delete' ? 'Bus Deleted' : 'Bus Added'}
+            </Text>
+            <Text style={tw`text-slate-500 text-sm text-center font-medium mb-6`}>
+              {successModal.message}
+            </Text>
+            <TouchableOpacity 
+              onPress={() => setSuccessModal({ ...successModal, visible: false })} 
+              style={tw`bg-[#1d4ed8] w-full py-3.5 rounded-full items-center shadow-sm`}
+            >
+              <Text style={tw`text-white font-bold tracking-wide`}>Okay</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Delete Confirm Modal */}
+      <Modal visible={deleteConfirmModal.visible} transparent animationType="fade">
+        <View style={tw`flex-1 bg-black/50 justify-center items-center px-5`}>
+          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[320px] items-center shadow-lg`}>
+            <View style={tw`w-16 h-16 bg-orange-100 rounded-full items-center justify-center mb-4`}>
+              <Ionicons name="warning" size={40} color="#ea580c" />
+            </View>
+            <Text style={tw`text-[#0f3878] text-xl font-black mb-2 text-center`}>Delete Bus?</Text>
+            <Text style={tw`text-slate-500 text-sm text-center font-medium mb-6`}>
+              Are you sure you want to permanently delete {deleteConfirmModal.busCode}? This action cannot be undone.
+            </Text>
+            <View style={tw`flex-row w-full gap-3`}>
+              <TouchableOpacity 
+                onPress={() => setDeleteConfirmModal({ visible: false, busId: '', busCode: '' })} 
+                style={tw`flex-1 py-3.5 bg-slate-200 rounded-full items-center shadow-sm`}
+              >
+                <Text style={tw`text-slate-700 font-bold tracking-wide`}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                onPress={confirmDelete} 
+                style={tw`flex-1 py-3.5 bg-red-600 rounded-full items-center shadow-sm`}
+              >
+                <Text style={tw`text-white font-bold tracking-wide`}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Add Bus Card */}
       <View style={tw`bg-white rounded-3xl p-5 mx-5 mt-5 mb-6 shadow-sm border border-slate-100`}>
@@ -200,8 +234,6 @@ export default function AdminBuses() {
               const currentEditedStatus = editedStatuses[busId] || 'available';
               const isUnavailable = currentEditedStatus === 'unavailable';
               const isUpdating = updatingId === busId;
-              const originalStatus = bus.status?.toLowerCase() === 'unavailable' ? 'unavailable' : 'available';
-              const hasChanges = currentEditedStatus !== originalStatus;
 
               return (
                 <View key={busId} style={tw`bg-white rounded-3xl p-4 shadow-sm border border-slate-200 mb-4 flex-row items-center`}>
@@ -218,30 +250,22 @@ export default function AdminBuses() {
                     <View style={tw`flex-row justify-between items-center mb-3`}>
                       <Text style={tw`text-slate-500 text-[11px] font-bold uppercase tracking-wider`}>Status</Text>
                       <TouchableOpacity 
-                        onPress={() => promptStatusUpdate(busId, currentEditedStatus)}
+                        onPress={() => handleToggleStatus(busId, currentEditedStatus)}
                         disabled={isUpdating}
-                        style={tw`flex-row items-center px-3 py-1 rounded-full border ${isUnavailable ? 'bg-[#ffccd5] border-[#ffb3c1]' : 'bg-green-100 border-green-200'}`}
+                        style={tw`flex-row items-center px-3 py-1 rounded-full border ${isUnavailable ? 'bg-[#ffccd5] border-[#ffb3c1]' : 'bg-green-100 border-green-200'} ${isUpdating ? 'opacity-50' : ''}`}
                       >
                         <Text style={tw`text-[10px] font-bold uppercase mr-1 ${isUnavailable ? 'text-[#c1121f]' : 'text-green-700'}`}>
                           {currentEditedStatus}
                         </Text>
-                        <Ionicons name="chevron-down" size={12} color={isUnavailable ? '#c1121f' : '#15803d'} />
+                        {/* We use Image here to import swap.svg, applying tintColor if supported or just the default SVG colors */}
+                        <Image source={require('../../../assets/images/swap.svg')} style={[tw`w-3 h-3`, { tintColor: isUnavailable ? '#c1121f' : '#15803d' }]} />
                       </TouchableOpacity>
                     </View>
 
                     <View style={tw`flex-row justify-between items-center mt-1`}>
                       <Text style={tw`text-slate-500 text-[11px] font-bold uppercase tracking-wider`}>Actions</Text>
                       <View style={tw`flex-row gap-2`}>
-                        {hasChanges && (
-                          <TouchableOpacity 
-                            onPress={() => handleSaveStatus(busId)}
-                            disabled={isUpdating}
-                            style={tw`bg-[#1d4ed8] px-4 py-1.5 rounded-full flex-row items-center shadow-sm`}
-                          >
-                            {isUpdating ? <ActivityIndicator size="small" color="white" style={tw`mr-1`} /> : null}
-                            <Text style={tw`text-white font-bold text-[11px]`}>Save</Text>
-                          </TouchableOpacity>
-                        )}
+                        {isUpdating && <ActivityIndicator size="small" color="#1d4ed8" style={tw`mr-2`} />}
                         <TouchableOpacity 
                           onPress={() => executeDelete(busId, bus.code || '')}
                           disabled={isUpdating}
