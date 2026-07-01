@@ -467,12 +467,12 @@ export function PassengerFooter({ activeTab, setActiveTab, onTriggerSOS }: Passe
       if (setActiveTab) {
         setActiveTab('location');
       } else {
-        router.replace('/passenger');
+        router.push('/passenger');
       }
     } else if (tab === 'sos') {
-      router.replace('/passenger/sos' as any);
+      router.push('/passenger/sos' as any);
     } else if (tab === 'info') {
-      router.replace('/passenger/busInfo' as any);
+      router.push('/passenger/busInfo' as any);
     }
   };
 
