@@ -110,12 +110,7 @@ export default function PassengerBottomSheet({
           return true;
         }
 
-        // If sheet is NOT fully expanded, we drag the sheet
-        if (lastTranslatedY.current > MAX_UP) {
-          return true;
-        }
-
-        // If sheet IS fully expanded, we drag down ONLY if ScrollView is scrolled to top
+        // If dragging down and the scroll view is at the top, we drag the sheet
         if (gestureState.dy > 0 && scrollOffset.current <= 0) {
           return true;
         }
@@ -180,13 +175,13 @@ export default function PassengerBottomSheet({
       </View>
 
       {/* Bottom Sheet Header Quick Filter Tabs */}
-      <View style={tw`flex-row justify-between px-4 py-3 bg-white`}>
+      <View style={tw`flex-row justify-center px-4 py-3 bg-white`}>
         <TouchableOpacity
           ref={tabLocationRef}
           onLayout={() => handleTourLayout('tab-location', tabLocationRef)}
           onPress={() => setSheetTab('location')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'location' && tw`bg-[#1e3a8a]`
           ]}
         >
@@ -195,7 +190,7 @@ export default function PassengerBottomSheet({
               ? require('../../assets/images/icons/busStopWhiteIcon.png')
               : require('../../assets/images/icons/busStopBlueIcon.png')
             }
-            style={tw`w-6 h-6`}
+            style={tw`w-[26px] h-[26px]`}
             contentFit="contain"
           />
         </TouchableOpacity>
@@ -205,19 +200,19 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-routes', tabRoutesRef)}
           onPress={() => setSheetTab('routes')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'routes' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <View style={tw`w-6 h-6 justify-center items-center`}>
+          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
             <Image
               source={require('../../assets/images/icons/routes active.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'routes' ? 1 : 0 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 1 : 0 }]}
               contentFit="contain"
             />
             <Image
               source={require('../../assets/images/icons/routes idle.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'routes' ? 0 : 1 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 0 : 1 }]}
               contentFit="contain"
             />
           </View>
@@ -228,19 +223,19 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-groups', tabGroupsRef)}
           onPress={() => setSheetTab('groups')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'groups' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <View style={tw`w-6 h-6 justify-center items-center`}>
+          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
             <Image
               source={require('../../assets/images/icons/groupsActive.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'groups' ? 1 : 0 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 1 : 0 }]}
               contentFit="contain"
             />
             <Image
               source={require('../../assets/images/icons/groupsIdle.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'groups' ? 0 : 1 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 0 : 1 }]}
               contentFit="contain"
             />
           </View>
@@ -251,19 +246,19 @@ export default function PassengerBottomSheet({
           onLayout={() => handleTourLayout('tab-busstops', tabBusstopsRef)}
           onPress={() => setSheetTab('busstops')}
           style={[
-            tw`w-[74px] h-[44px] rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
             sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
           ]}
         >
-          <View style={tw`w-6 h-6 justify-center items-center`}>
+          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
             <Image
               source={require('../../assets/images/icons/busStopMarkerFinalWhite.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'busstops' ? 1 : 0 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 1 : 0 }]}
               contentFit="contain"
             />
             <Image
               source={require('../../assets/images/icons/busStopMarkerFinalBlue.svg')}
-              style={[tw`w-6 h-6 absolute`, { opacity: sheetTab === 'busstops' ? 0 : 1 }]}
+              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 0 : 1 }]}
               contentFit="contain"
             />
           </View>
@@ -272,7 +267,6 @@ export default function PassengerBottomSheet({
 
       {/* Bottom Sheet Body Content */}
       <ScrollView
-        scrollEnabled={isExpanded}
         onScroll={(e) => {
           scrollOffset.current = e.nativeEvent.contentOffset.y;
         }}
@@ -282,7 +276,7 @@ export default function PassengerBottomSheet({
       >
         {sheetTab === 'location' && (
           <View>
-            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>BUS LOCATION</Text>
+            <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1`}>BUS LOCATION</Text>
             {filteredBuses.length === 0 ? (
               <View style={tw`items-center justify-center py-8`}>
                 <Image
@@ -453,7 +447,7 @@ export default function PassengerBottomSheet({
 
         {sheetTab === 'routes' && (
           <View>
-            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>FILTER ROUTES</Text>
+            <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1`}>FILTER ROUTES</Text>
             <TouchableOpacity
               onPress={() => setSelectedRoute('TANAUAN - LAUREL')}
               style={[tw`bg-[#f1f5f9] py-3 px-4 rounded-full mb-2`, selectedRoute === 'TANAUAN - LAUREL' && tw`bg-[#103d7c]`]}
@@ -483,7 +477,7 @@ export default function PassengerBottomSheet({
 
         {sheetTab === 'groups' && (
           <View>
-            <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest mt-4 mb-3.5 px-1`}>CIRCLES</Text>
+            <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest mt-4 mb-3.5 px-1`}>CIRCLES</Text>
 
             {/* Your Invite Code Container */}
             <View style={tw`bg-[#f8fafc] p-4 rounded-3xl mb-4 border border-[#e2e8f0]/40 shadow-sm`}>
@@ -687,7 +681,7 @@ export default function PassengerBottomSheet({
         {sheetTab === 'busstops' && (
           <View>
             <View style={tw`flex-row justify-between items-center mb-2`}>
-              <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest my-3 px-1`}>BUS PICK UP POINTS</Text>
+              <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1`}>BUS PICK UP POINTS</Text>
               <TouchableOpacity
                 onPress={() => setStopsRoute(stopsRoute === 'LAUREL - TANAUAN' ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN')}
                 style={tw`flex-row items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1`}
@@ -714,10 +708,14 @@ export default function PassengerBottomSheet({
               filteredStops.map((stop, idx) => {
                 const lat = parseFloat(stop.lat || stop.latitude);
                 const lng = parseFloat(stop.lng || stop.longitude);
-                let distanceStr = '';
+                let distanceStr = '-- m away';
                 if (lat && lng && userLocation) {
                   const dist = getDistance(userLocation.lat, userLocation.lng, lat, lng);
-                  distanceStr = `${dist.toFixed(1)} km away`;
+                  if (dist < 1) {
+                    distanceStr = `${Math.round(dist * 1000)} m away`;
+                  } else {
+                    distanceStr = `${dist.toFixed(1)} km away`;
+                  }
                 }
 
                 const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
@@ -726,21 +724,26 @@ export default function PassengerBottomSheet({
                   <TouchableOpacity
                     key={idx}
                     onPress={() => handleStopPress(stop)}
-                    style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-center shadow-sm`}
+                    style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-start shadow-sm`}
                   >
                     <View style={tw`flex-1 mr-2`}>
-                      <Text style={tw`text-[15px] font-black text-slate-800`}>{stop.name}</Text>
+                      <Text style={tw`text-[15px] font-black text-slate-800 uppercase`}>{stop.name}</Text>
                       <Text style={tw`text-xs text-slate-400 font-semibold mt-1`}>
                         {stop.location_name || 'No location name'}{stop.location_landmark ? ` • ${stop.location_landmark}` : ''}
                       </Text>
                     </View>
                     <View style={tw`items-end`}>
-                      <View style={tw`bg-[#e2e8f0] px-2.5 py-1 rounded-full mb-1`}>
-                        <Text style={tw`text-[9px] text-slate-500 font-black tracking-widest`}>{labelType}</Text>
+                      <View style={tw`bg-[#e2e8f0] px-2.5 py-1 rounded-full mb-1.5`}>
+                        <Text style={tw`text-[9px] text-black font-black tracking-widest`}>{labelType}</Text>
                       </View>
-                      {distanceStr ? (
-                        <Text style={tw`text-xs text-slate-400 font-bold mt-1`}>🚶 {distanceStr}</Text>
-                      ) : null}
+                      <View style={tw`flex-row items-center`}>
+                        <Image
+                          source={require('../../assets/images/KM_AWAY.svg')}
+                          style={tw`w-3.5 h-3.5 mr-1`}
+                          contentFit="contain"
+                        />
+                        <Text style={tw`text-[11px] text-[#1e3a8a] font-bold`}>{distanceStr}</Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
                 );

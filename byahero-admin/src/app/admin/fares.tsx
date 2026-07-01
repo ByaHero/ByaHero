@@ -363,12 +363,12 @@ export default function AdminFares() {
                 <View style={tw`flex-1 relative justify-center`}>
                   <Ionicons name="search" size={16} color="#94a3b8" style={tw`absolute left-3 z-10`} />
                   <TextInput 
-                    style={tw`bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[13px] text-slate-800 w-full h-full`}
+                    style={tw`bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-[13px] text-slate-800 w-full`}
                     placeholder="Search origin..."
                     value={currentQuery} onChangeText={setCurrentQuery}
                   />
                 </View>
-                <TouchableOpacity onPress={handleFilterSubmit} style={tw`bg-[#1d4ed8] px-5 rounded-xl justify-center items-center`}>
+                <TouchableOpacity onPress={handleFilterSubmit} style={tw`bg-[#1d4ed8] px-5 py-3 rounded-xl justify-center items-center`}>
                   <Text style={tw`text-white font-bold text-[13px]`}>Filter</Text>
                 </TouchableOpacity>
               </View>
