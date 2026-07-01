@@ -447,7 +447,7 @@ class AdminController extends Controller
             JOIN busses b ON b.Bus_ID = o.bus_id
             JOIN conductors c ON c.id = o.conductor_id
             WHERE 1=1 {$dateFilter}
-            GROUP BY pe.operation_id, pe.location_name, pe.recorded_at
+            GROUP BY pe.operation_id, pe.location_name, pe.recorded_at, b.code, c.email, o.route
             ORDER BY pe.recorded_at DESC LIMIT 50");
 
         return response()->json([
