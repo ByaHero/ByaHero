@@ -179,7 +179,7 @@ export default function AdminFares() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      <AdminNavbar title="FARE MATRIX" />
+      <AdminNavbar title="Bus Fares" />
 
       <View style={tw`p-5 pb-2`}>
         <Text style={tw`text-2xl font-extrabold text-[#0f3878] tracking-tight`}>Manage Bus Fares</Text>
