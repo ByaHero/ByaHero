@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Image } from 'react-native';
+import React, { useEffect, useState, useRef } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
@@ -42,11 +43,32 @@ export default function AdminDashboard() {
     setRefreshing(false);
   };
 
+  const [activeBuses, setActiveBuses] = useState<any[]>([]);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const fetchActiveBuses = async () => {
+    try {
+      const data = await adminService.listActiveBuses();
+      if (data.success && data.buses) {
+        setActiveBuses(data.buses);
+        if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
+          iframeRef.current.contentWindow.postMessage(JSON.stringify(data.buses), '*');
+        }
+      }
+    } catch (e) {
+      console.error('Failed to fetch active buses', e);
+    }
+  };
+
   useEffect(() => {
     setLoading(true);
     fetchStats().finally(() => setLoading(false));
+    fetchActiveBuses();
     
-    const statsInterval = setInterval(fetchStats, 30000); // refresh every 30s
+    const statsInterval = setInterval(() => {
+      fetchStats();
+      fetchActiveBuses();
+    }, 10000); // refresh every 10s
     return () => clearInterval(statsInterval);
   }, []);
 
@@ -92,6 +114,69 @@ export default function AdminDashboard() {
       ],
     }
   ];
+
+  const mapHtmlTemplate = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+      body { padding: 0; margin: 0; font-family: sans-serif; }
+      #map { height: 100vh; width: 100vw; background: #e2e8f0; }
+      .leaflet-popup-content { margin: 10px; font-size: 13px; }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+    <script>
+      const map = L.map('map', { zoomControl: false }).setView([14.0905, 121.0550], 12);
+      L.control.zoom({ position: 'topleft' }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          maxZoom: 19
+      }).addTo(map);
+
+      const busIcon = L.icon({
+          iconUrl: 'https://cdn-icons-png.flaticon.com/512/3448/3448339.png',
+          iconSize: [34, 34],
+          iconAnchor: [17, 17],
+          popupAnchor: [0, -17]
+      });
+
+      let markers = {};
+
+      window.addEventListener('message', function(event) {
+        try {
+          const buses = JSON.parse(event.data);
+          const currentIds = new Set();
+          
+          buses.forEach(b => {
+            currentIds.add(b.id);
+            const coords = [b.latitude || 14.0905, b.longitude || 121.0550];
+            
+            if (markers[b.id]) {
+              markers[b.id].setLatLng(coords);
+              markers[b.id].setPopupContent('<b>Bus ' + b.bus_code + '</b><br>' + b.route);
+            } else {
+              const marker = L.marker(coords, { icon: busIcon }).addTo(map);
+              marker.bindPopup('<b>Bus ' + b.bus_code + '</b><br>' + b.route);
+              markers[b.id] = marker;
+            }
+          });
+
+          Object.keys(markers).forEach(id => {
+            if (!currentIds.has(Number(id))) {
+              map.removeLayer(markers[id]);
+              delete markers[id];
+            }
+          });
+        } catch (e) {}
+      });
+    </script>
+  </body>
+  </html>
+  `;
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
@@ -155,7 +240,7 @@ export default function AdminDashboard() {
           <View style={tw`bg-white rounded-2xl shadow-sm border border-gray-200 mb-6 overflow-hidden`}>
             <View style={tw`flex-row justify-between items-center bg-white border-b border-gray-100 p-4`}>
               <View style={tw`flex-row items-center`}>
-                <Ionicons name="map-outline" size={18} color="#0f3878" style={tw`mr-2`} />
+                <Image source={require('../../../assets/images/byaheroLogoBlue.svg')} style={tw`w-5 h-5 mr-2`} contentFit="contain" />
                 <Text style={tw`text-[#0f3878] font-bold text-sm tracking-wide`}>BUS TRACKER</Text>
               </View>
               <View style={tw`flex-row items-center`}>
@@ -163,9 +248,23 @@ export default function AdminDashboard() {
                 <Text style={tw`text-gray-500 text-[10px] uppercase font-bold tracking-wider`}>Live Updates</Text>
               </View>
             </View>
-            <View style={tw`h-64 bg-slate-100 flex-col items-center justify-center`}>
-              <Ionicons name="location-outline" size={48} color="#94a3b8" />
-              <Text style={tw`text-slate-400 mt-2 font-medium text-sm`}>Interactive Map Loading...</Text>
+            <View style={tw`h-80 bg-slate-100 flex-col`}>
+              {Platform.OS === 'web' ? (
+                <iframe 
+                  ref={iframeRef}
+                  srcDoc={mapHtmlTemplate}
+                  style={{ width: '100%', height: '100%', border: 0 }} 
+                  onLoad={() => {
+                    if (iframeRef.current?.contentWindow && activeBuses.length > 0) {
+                      iframeRef.current.contentWindow.postMessage(JSON.stringify(activeBuses), '*');
+                    }
+                  }}
+                />
+              ) : (
+                <View style={tw`flex-1 items-center justify-center`}>
+                  <Text style={tw`text-slate-400 font-medium text-sm`}>Map only supported on Web version.</Text>
+                </View>
+              )}
             </View>
           </View>
         </ScrollView>
