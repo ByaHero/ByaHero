@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Modal, Image } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Modal } from 'react-native';
+import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
@@ -222,7 +223,7 @@ export default function AdminConductors() {
                 style={tw`absolute right-4 p-1`}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Image source={showPassword ? require('../../../assets/images/pass.svg') : require('../../../assets/images/hash.svg')} style={[tw`w-4 h-4`, { tintColor: '#94a3b8' }]} />
+                <Image source={showPassword ? require('../../../assets/images/pass.svg') : require('../../../assets/images/hash.svg')} style={tw`w-4 h-4`} contentFit="contain" />
               </TouchableOpacity>
             </View>
           </View>

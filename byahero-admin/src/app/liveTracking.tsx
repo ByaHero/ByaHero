@@ -16,7 +16,6 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer, { Capability } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
@@ -71,16 +70,9 @@ export default function LiveTrackingScreen() {
 
   // Sync seats count to ref to avoid effect recreation churn and update notification
   const seatsRef = useRef(seats);
-  const playerReady = useRef(false);
   useEffect(() => {
     seatsRef.current = seats;
     AsyncStorage.setItem('byahero_seats_available', String(seats));
-    if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
-      TrackPlayer.updateMetadataForTrack(0, {
-        title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
-        artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
-      }).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
-    }
   }, [seats]);
 
   useEffect(() => {
@@ -188,12 +180,6 @@ export default function LiveTrackingScreen() {
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
     }
-    if (Platform.OS !== 'web') {
-      TrackPlayer.reset().catch(err => {
-        console.warn('Failed to reset TrackPlayer:', err);
-      });
-      playerReady.current = false;
-    }
   };
 
   const initSession = async () => {
@@ -210,42 +196,6 @@ export default function LiveTrackingScreen() {
     await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
     await AsyncStorage.setItem('byahero_pending_boards', '0');
     await AsyncStorage.setItem('byahero_pending_departs', '0');
-
-    // Initialize TrackPlayer for lock screen MediaSession controls
-    if (Platform.OS !== 'web') {
-      try {
-        try {
-          await TrackPlayer.setupPlayer();
-        } catch (e) {
-          // Already initialized
-        }
-        await TrackPlayer.updateOptions({
-          capabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-          ],
-          compactCapabilities: [
-            Capability.Play,
-            Capability.Pause,
-            Capability.SkipToNext,
-            Capability.SkipToPrevious,
-          ],
-        });
-        await TrackPlayer.add({
-          id: 'conductor-controls',
-          url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
-          title: `Bus ${payload.code} - ${payload.route}`,
-          artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
-          artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
-        });
-        await TrackPlayer.play();
-        playerReady.current = true;
-      } catch (tpErr) {
-        console.warn('Failed to setup TrackPlayer:', tpErr);
-      }
-    }
 
     // Load route features for geofenced location parsing
     try {
