@@ -81,10 +81,14 @@ export default function LiveTrackingScreen() {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
         artist: `Passengers: ${sessionRef.current.seats_total - seats} | Available: ${seats}`,
       };
-      Promise.all([
-        TrackPlayer.updateMetadataForTrack(0, metadata),
-        TrackPlayer.updateNowPlayingMetadata(metadata),
-      ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+      TrackPlayer.getQueue().then(queue => {
+        if (queue && queue.length > 0) {
+          Promise.all([
+            TrackPlayer.updateMetadataForTrack(0, metadata),
+            TrackPlayer.updateNowPlayingMetadata(metadata),
+          ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+        }
+      }).catch(() => {});
     }
   }, [seats]);
 
