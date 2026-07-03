@@ -59,8 +59,7 @@
           "isAndroidBackgroundLocationEnabled": true,
           "isAndroidForegroundServiceEnabled": true
         }
-      ],
-      "react-native-track-player"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
