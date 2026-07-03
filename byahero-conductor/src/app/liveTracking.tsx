@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer, { Capability, Event } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, RepeatMode } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
@@ -273,11 +273,13 @@ export default function LiveTrackingScreen() {
         });
         console.log('liveTracking.tsx: updateOptions completed');
         const dummyTrack = {
-          url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
+          url: require('../../assets/silence.mp3'),
           title: `Bus ${payload.code} - ${payload.route}`,
           artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
         };
+        console.log('liveTracking.tsx: Resetting TrackPlayer queue...');
+        await TrackPlayer.reset();
         console.log('liveTracking.tsx: Adding tracks to TrackPlayer queue...');
         await TrackPlayer.add([
           { ...dummyTrack, id: 'conductor-prev' },
@@ -287,6 +289,8 @@ export default function LiveTrackingScreen() {
         console.log('liveTracking.tsx: Tracks added successfully');
         await TrackPlayer.skip(1);
         console.log('liveTracking.tsx: Skipped to track 1');
+        await TrackPlayer.setRepeatMode(RepeatMode.Track);
+        console.log('liveTracking.tsx: Set repeat mode to Track');
         await TrackPlayer.play();
         console.log('liveTracking.tsx: TrackPlayer.play() called successfully');
         playerReady.current = true;
