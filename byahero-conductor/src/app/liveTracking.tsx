@@ -78,7 +78,7 @@ export default function LiveTrackingScreen() {
     if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
       const metadata = {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
-        artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
+        artist: `Passengers: ${sessionRef.current.seats_total - seats} | Available: ${seats}`,
       };
       TrackPlayer.updateMetadataForTrack(0, metadata)
         .catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
@@ -284,7 +284,7 @@ export default function LiveTrackingScreen() {
         const dummyTrack = {
           url: require('../../assets/silence.wav'),
           title: `Bus ${payload.code} - ${payload.route}`,
-          artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
+          artist: `Passengers: ${payload.pre_departure_count} | Available: ${initialSeats}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
         };
         console.log('liveTracking.tsx: Resetting TrackPlayer queue...');
