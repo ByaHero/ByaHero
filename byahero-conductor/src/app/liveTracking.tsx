@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer, { Capability } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
@@ -101,6 +101,18 @@ export default function LiveTrackingScreen() {
       decrementPassengers();
     });
 
+    const nextSub = TrackPlayer.addEventListener(Event.RemoteNext, () => {
+      console.log('liveTracking.tsx: RemoteNext received directly');
+      decrementPassengers();
+      TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
+    });
+
+    const prevSub = TrackPlayer.addEventListener(Event.RemotePrevious, () => {
+      console.log('liveTracking.tsx: RemotePrevious received directly');
+      incrementPassengers();
+      TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
+    });
+
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
       setSeats(newSeats);
       try {
@@ -169,6 +181,8 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
+          nextSub.remove();
+          prevSub.remove();
           cleanup();
         };
       } else {
@@ -177,6 +191,8 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
+          nextSub.remove();
+          prevSub.remove();
           cleanup();
         };
       }
