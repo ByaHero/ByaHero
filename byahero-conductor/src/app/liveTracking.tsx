@@ -92,10 +92,12 @@ export default function LiveTrackingScreen() {
     getServerUrl().then(url => setBaseUrl(url));
 
     const incSub = DeviceEventEmitter.addListener('remoteIncrement', () => {
+      console.log('liveTracking.tsx: remoteIncrement event received');
       incrementPassengers();
     });
 
     const decSub = DeviceEventEmitter.addListener('remoteDecrement', () => {
+      console.log('liveTracking.tsx: remoteDecrement event received');
       decrementPassengers();
     });
 

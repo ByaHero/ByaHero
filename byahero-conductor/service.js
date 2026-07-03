@@ -11,11 +11,13 @@ module.exports = async function () {
   });
 
   TrackPlayer.addEventListener(Event.RemoteNext, () => {
+    console.log('service.js: RemoteNext triggered');
     DeviceEventEmitter.emit('remoteDecrement');
     TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
   });
 
   TrackPlayer.addEventListener(Event.RemotePrevious, () => {
+    console.log('service.js: RemotePrevious triggered');
     DeviceEventEmitter.emit('remoteIncrement');
     TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
   });
