@@ -255,7 +255,14 @@ class ConductorController extends Controller
         }
 
         // Automatically assign conductor to this bus in the database
-        Bus::where('Bus_ID', $busId)->update(['current_conductor_id' => $userId]);
+        $initialSeats = $bus ? (int)$bus->total_seats - $preDep : 25 - $preDep;
+        if ($initialSeats < 0) $initialSeats = 0;
+
+        Bus::where('Bus_ID', $busId)->update([
+            'current_conductor_id' => $userId,
+            'seat_availability' => $initialSeats,
+            'status' => 'available',
+        ]);
         Conductor::where('id', $userId)->update(['current_bus_id' => $busId]);
 
         // Close any dangling operations for this bus or conductor

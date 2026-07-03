@@ -336,7 +336,8 @@ export default function LiveTrackingScreen() {
     const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     setLastUpdate(nowTimeStr);
 
-    const computedStatus = autoComputeStatus(lat, lng, seats);
+    const currentSeats = seatsRef.current;
+    const computedStatus = autoComputeStatus(lat, lng, currentSeats);
     postToMap({
       type: 'UPDATE_MY_LOCATION',
       lat,
@@ -365,6 +366,7 @@ export default function LiveTrackingScreen() {
     if (!activeSession) return;
     setNetStatus('Saving...');
 
+    const currentSeats = seatsRef.current;
     const payload = {
       bus_id: parseInt(activeSession.bus_id),
       geojson: {
@@ -374,14 +376,14 @@ export default function LiveTrackingScreen() {
           bus_id: activeSession.bus_id,
           code: activeSession.code,
           route: activeSession.route,
-          seats_available: seats,
+          seats_available: currentSeats,
           status: status,
           timestamp: new Date().toISOString(),
           current_location_name: locName
         }
       },
       route: activeSession.route,
-      seats_available: seats,
+      seats_available: currentSeats,
       status: status,
       current_location_name: locName
     };
@@ -400,7 +402,7 @@ export default function LiveTrackingScreen() {
       const lat = lastCoords.current.lat;
       const lng = lastCoords.current.lng;
       const resolved = lastResolvedLocation.current?.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-      const computedStatus = autoComputeStatus(lat, lng, seats);
+      const computedStatus = autoComputeStatus(lat, lng, seatsRef.current);
       sendDataToServer(lat, lng, resolved, computedStatus);
     }
   };
