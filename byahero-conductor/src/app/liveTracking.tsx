@@ -122,6 +122,17 @@ export default function LiveTrackingScreen() {
       console.error('liveTracking.tsx: PlaybackError occurred', event.message);
     });
 
+    const debugTimer = setInterval(async () => {
+      if (Platform.OS !== 'web') {
+        try {
+          const s = await TrackPlayer.getPlaybackState();
+          console.log('liveTracking.tsx: Periodic state check:', JSON.stringify(s));
+        } catch (err) {
+          console.warn('liveTracking.tsx: Periodic state check failed:', err);
+        }
+      }
+    }, 3000);
+
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
       setSeats(newSeats);
       try {
@@ -193,6 +204,7 @@ export default function LiveTrackingScreen() {
           trackChangeSub.remove();
           stateSub.remove();
           errorSub.remove();
+          clearInterval(debugTimer);
           cleanup();
         };
       } else {
@@ -204,6 +216,7 @@ export default function LiveTrackingScreen() {
           trackChangeSub.remove();
           stateSub.remove();
           errorSub.remove();
+          clearInterval(debugTimer);
           cleanup();
         };
       }
