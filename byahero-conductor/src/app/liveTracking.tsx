@@ -256,7 +256,9 @@ export default function LiveTrackingScreen() {
     setSession(payload);
     sessionRef.current = payload;
     const savedSeatsStr = await AsyncStorage.getItem('byahero_seats_available');
-    const initialSeats = savedSeatsStr ? parseInt(savedSeatsStr, 10) : (payload.seats_total - payload.pre_departure_count);
+    const defaultSeats = payload.seats_total - payload.pre_departure_count;
+    console.log('liveTracking.tsx: initSession loaded savedSeatsStr =', savedSeatsStr, 'defaultSeats =', defaultSeats);
+    const initialSeats = savedSeatsStr ? parseInt(savedSeatsStr, 10) : defaultSeats;
     setSeats(initialSeats);
     await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
     await AsyncStorage.setItem('byahero_pending_boards', '0');
