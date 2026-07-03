@@ -247,12 +247,16 @@ export default function LiveTrackingScreen() {
 
     // Initialize TrackPlayer for lock screen MediaSession controls
     if (Platform.OS !== 'web') {
+      console.log('liveTracking.tsx: Starting TrackPlayer initialization...');
       try {
         try {
+          console.log('liveTracking.tsx: Calling TrackPlayer.setupPlayer()...');
           await TrackPlayer.setupPlayer();
+          console.log('liveTracking.tsx: TrackPlayer.setupPlayer() completed');
         } catch (e) {
-          // Already initialized
+          console.log('liveTracking.tsx: TrackPlayer setupPlayer caught expected already initialized:', e);
         }
+        console.log('liveTracking.tsx: Calling updateOptions...');
         await TrackPlayer.updateOptions({
           capabilities: [
             Capability.Play,
@@ -267,22 +271,27 @@ export default function LiveTrackingScreen() {
             Capability.SkipToPrevious,
           ],
         });
+        console.log('liveTracking.tsx: updateOptions completed');
         const dummyTrack = {
           url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
           title: `Bus ${payload.code} - ${payload.route}`,
           artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
         };
+        console.log('liveTracking.tsx: Adding tracks to TrackPlayer queue...');
         await TrackPlayer.add([
           { ...dummyTrack, id: 'conductor-prev' },
           { ...dummyTrack, id: 'conductor-controls' },
           { ...dummyTrack, id: 'conductor-next' },
         ]);
+        console.log('liveTracking.tsx: Tracks added successfully');
         await TrackPlayer.skip(1);
+        console.log('liveTracking.tsx: Skipped to track 1');
         await TrackPlayer.play();
+        console.log('liveTracking.tsx: TrackPlayer.play() called successfully');
         playerReady.current = true;
       } catch (tpErr) {
-        console.warn('Failed to setup TrackPlayer:', tpErr);
+        console.error('liveTracking.tsx: Failed to setup TrackPlayer:', tpErr);
       }
     }
 
