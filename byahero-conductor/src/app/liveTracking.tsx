@@ -126,12 +126,21 @@ export default function LiveTrackingScreen() {
     });
 
     const queueEndedSub = TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
-      console.log('liveTracking.tsx: PlaybackQueueEnded, looping/replaying');
+      console.log('liveTracking.tsx: PlaybackQueueEnded, restoring track');
       try {
-        await TrackPlayer.seekTo(0);
+        const currentSeats = seatsRef.current;
+        const activeSession = sessionRef.current;
+        if (!activeSession) return;
+        const metadata = {
+          title: `Bus ${activeSession.code} - ${activeSession.route}`,
+          artist: `Passengers: ${activeSession.seats_total - currentSeats} | Available: ${currentSeats}`,
+          artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
+        };
+        await TrackPlayer.add({ ...metadata, url: require('../../assets/silence.wav'), id: 'conductor-controls' });
+        await TrackPlayer.setRepeatMode(RepeatMode.Track);
         await TrackPlayer.play();
       } catch (err) {
-        console.warn('liveTracking.tsx: Failed to loop play on queue ended:', err);
+        console.warn('liveTracking.tsx: Failed to restore track on queue ended:', err);
       }
     });
 
