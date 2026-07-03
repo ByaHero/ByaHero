@@ -114,6 +114,14 @@ export default function LiveTrackingScreen() {
       }
     });
 
+    const stateSub = TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
+      console.log('liveTracking.tsx: PlaybackState changed to', event.state);
+    });
+
+    const errorSub = TrackPlayer.addEventListener(Event.PlaybackError, (event) => {
+      console.error('liveTracking.tsx: PlaybackError occurred', event.message);
+    });
+
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
       setSeats(newSeats);
       try {
@@ -183,6 +191,8 @@ export default function LiveTrackingScreen() {
           incSub.remove();
           decSub.remove();
           trackChangeSub.remove();
+          stateSub.remove();
+          errorSub.remove();
           cleanup();
         };
       } else {
@@ -192,6 +202,8 @@ export default function LiveTrackingScreen() {
           incSub.remove();
           decSub.remove();
           trackChangeSub.remove();
+          stateSub.remove();
+          errorSub.remove();
           cleanup();
         };
       }
