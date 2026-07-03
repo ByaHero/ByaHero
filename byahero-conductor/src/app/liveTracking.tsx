@@ -273,7 +273,7 @@ export default function LiveTrackingScreen() {
         });
         console.log('liveTracking.tsx: updateOptions completed');
         const dummyTrack = {
-          url: require('../../assets/silence.mp3'),
+          url: 'https://raw.githubusercontent.com/anars/blank-audio/master/10-minutes-of-silence.mp3',
           title: `Bus ${payload.code} - ${payload.route}`,
           artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
