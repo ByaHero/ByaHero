@@ -255,7 +255,8 @@ export default function LiveTrackingScreen() {
     const payload = JSON.parse(payloadStr);
     setSession(payload);
     sessionRef.current = payload;
-    const initialSeats = payload.seats_total - payload.pre_departure_count;
+    const savedSeatsStr = await AsyncStorage.getItem('byahero_seats_available');
+    const initialSeats = savedSeatsStr ? parseInt(savedSeatsStr, 10) : (payload.seats_total - payload.pre_departure_count);
     setSeats(initialSeats);
     await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
     await AsyncStorage.setItem('byahero_pending_boards', '0');
@@ -589,6 +590,7 @@ export default function LiveTrackingScreen() {
     }
 
     await AsyncStorage.removeItem('byahero_conductor_payload');
+    await AsyncStorage.removeItem('byahero_seats_available');
     setIsLoading(false);
     router.replace('/dashboard');
   };
