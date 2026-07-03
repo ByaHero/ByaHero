@@ -73,6 +73,7 @@ export default function LiveTrackingScreen() {
   const seatsRef = useRef(seats);
   const playerReady = useRef(false);
   useEffect(() => {
+    console.log('liveTracking.tsx: seats state changed to', seats);
     seatsRef.current = seats;
     AsyncStorage.setItem('byahero_seats_available', String(seats));
     if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
@@ -80,8 +81,10 @@ export default function LiveTrackingScreen() {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
         artist: `Passengers: ${sessionRef.current.seats_total - seats} | Available: ${seats}`,
       };
-      TrackPlayer.updateMetadataForTrack(0, metadata)
-        .catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+      Promise.all([
+        TrackPlayer.updateMetadataForTrack(0, metadata),
+        TrackPlayer.updateNowPlayingMetadata(metadata),
+      ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
     }
   }, [seats]);
 
