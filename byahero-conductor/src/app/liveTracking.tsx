@@ -294,7 +294,7 @@ export default function LiveTrackingScreen() {
         const dummyTrack = {
           url: require('../../assets/silence.wav'),
           title: `Bus ${payload.code} - ${payload.route}`,
-          artist: `Passengers: ${payload.pre_departure_count} | Available: ${initialSeats}`,
+          artist: `Passengers: ${payload.seats_total - initialSeats} | Available: ${initialSeats}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
         };
         console.log('liveTracking.tsx: Resetting TrackPlayer queue...');
@@ -307,6 +307,16 @@ export default function LiveTrackingScreen() {
         await TrackPlayer.play();
         console.log('liveTracking.tsx: TrackPlayer.play() called successfully');
         playerReady.current = true;
+
+        // Force initial metadata sync to ensure lock screen matches current state immediately
+        const initMetadata = {
+          title: `Bus ${payload.code} - ${payload.route}`,
+          artist: `Passengers: ${payload.seats_total - initialSeats} | Available: ${initialSeats}`,
+        };
+        await Promise.all([
+          TrackPlayer.updateMetadataForTrack(0, initMetadata),
+          TrackPlayer.updateNowPlayingMetadata(initMetadata)
+        ]).catch(err => console.warn('Failed initial TrackPlayer metadata sync:', err));
 
         // Verify player state
         const state = await TrackPlayer.getPlaybackState();
