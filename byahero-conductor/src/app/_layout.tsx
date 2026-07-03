@@ -1,8 +1,23 @@
 import { Stack } from 'expo-router';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
+import { Linking, type LinkingEvent } from 'react-native';
 
 export default function RootLayout() {
+  useEffect(() => {
+    const handleDeepLink = (event: LinkingEvent) => {
+      const url = event.url;
+      if (url?.startsWith('byaheroconductor://')) {
+        console.log('Deep link received, ignoring to prevent Unmatched Route:', url);
+      }
+    };
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
   return (
     <ThemeProvider value={DefaultTheme}>
       <StatusBar style="light" backgroundColor="#0f3878" />
@@ -16,4 +31,3 @@ export default function RootLayout() {
     </ThemeProvider>
   );
 }
-

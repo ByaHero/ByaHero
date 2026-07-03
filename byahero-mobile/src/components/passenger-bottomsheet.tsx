@@ -308,9 +308,9 @@ export default function PassengerBottomSheet({
                 }
 
                 // Format seats
-                const seatAvail = bus.seat_availability !== null && bus.seat_availability !== undefined ? bus.seat_availability : 25;
-                const totalSeats = bus.total_seats || 25;
-                const seatsText = `${seatAvail}/${totalSeats} Available`;
+                const seatAvail = (bus.seat_availability !== null && bus.seat_availability !== undefined) ? Number(bus.seat_availability) : null;
+                const totalSeats = (bus.total_seats !== null && bus.total_seats !== undefined) ? Number(bus.total_seats) : 25;
+                const seatsText = seatAvail !== null ? `${seatAvail}/${totalSeats} Available` : `${totalSeats} seats`;
 
                 // Calculate a real dynamic ETA based on current coordinates & user coordinates
                 const getCalculatedETA = () => {

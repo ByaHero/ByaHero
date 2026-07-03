@@ -1,10 +1,7 @@
-import '@expo/metro-runtime';
-import TrackPlayer from 'react-native-track-player';
-import { App } from 'expo-router/build/qualified-entry';
-import { renderRootComponent } from 'expo-router/build/renderRootComponent';
+import { registerRootComponent } from 'expo';
+import { ExpoRoot } from 'expo-router';
+export function App() {
+  return <ExpoRoot context={require.context('./src/app')} />;
+}
 
-// Register the playback service
-TrackPlayer.registerPlaybackService(() => require('./service.js'));
-
-// Render the Expo Router app
-renderRootComponent(App);
+registerRootComponent(App);

@@ -69,6 +69,13 @@ class BusController extends Controller
                     $r['longitude'] = $geo['geometry']['coordinates'][0];
                     $r['latitude'] = $geo['geometry']['coordinates'][1];
                 }
+                // Prefer live seats_available from geojson properties over potentially stale DB value
+                if (isset($geo['properties']['seats_available']) && is_numeric($geo['properties']['seats_available'])) {
+                    $r['seat_availability'] = (int)$geo['properties']['seats_available'];
+                }
+                if (isset($geo['properties']['status']) && !empty($geo['properties']['status'])) {
+                    $r['status'] = $geo['properties']['status'];
+                }
             } else {
                 $r['current_location'] = null;
             }
