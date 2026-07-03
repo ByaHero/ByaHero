@@ -101,16 +101,14 @@ export default function LiveTrackingScreen() {
       decrementPassengers();
     });
 
-    const nextSub = TrackPlayer.addEventListener(Event.RemoteNext, () => {
-      console.log('liveTracking.tsx: RemoteNext received directly');
+    const nextSub = DeviceEventEmitter.addListener('remote-next', () => {
+      console.log('liveTracking.tsx: remote-next received from native');
       decrementPassengers();
-      TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
     });
 
-    const prevSub = TrackPlayer.addEventListener(Event.RemotePrevious, () => {
-      console.log('liveTracking.tsx: RemotePrevious received directly');
+    const prevSub = DeviceEventEmitter.addListener('remote-previous', () => {
+      console.log('liveTracking.tsx: remote-previous received from native');
       incrementPassengers();
-      TrackPlayer.skip(1).catch(err => console.warn('Failed to skip to 1:', err));
     });
 
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
