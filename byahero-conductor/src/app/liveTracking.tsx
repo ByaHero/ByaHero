@@ -101,17 +101,14 @@ export default function LiveTrackingScreen() {
       decrementPassengers();
     });
 
-    const trackChangeSub = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
-      console.log('liveTracking.tsx: PlaybackActiveTrackChanged', event);
-      if (event.index === 2) {
-        console.log('Skipped to track 2: Incrementing passengers (reducing seats)');
-        incrementPassengers();
-        TrackPlayer.skip(1).catch(err => console.warn('Failed to skip back to 1:', err));
-      } else if (event.index === 0) {
-        console.log('Skipped to track 0: Decrementing passengers (increasing seats)');
-        decrementPassengers();
-        TrackPlayer.skip(1).catch(err => console.warn('Failed to skip back to 1:', err));
-      }
+    const nextSub = DeviceEventEmitter.addListener('remote-next', () => {
+      console.log('liveTracking.tsx: remote-next received from native');
+      incrementPassengers();
+    });
+
+    const prevSub = DeviceEventEmitter.addListener('remote-previous', () => {
+      console.log('liveTracking.tsx: remote-previous received from native');
+      decrementPassengers();
     });
 
     const stateSub = TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
@@ -201,7 +198,8 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
-          trackChangeSub.remove();
+          nextSub.remove();
+          prevSub.remove();
           stateSub.remove();
           errorSub.remove();
           clearInterval(debugTimer);
@@ -213,7 +211,8 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
-          trackChangeSub.remove();
+          nextSub.remove();
+          prevSub.remove();
           stateSub.remove();
           errorSub.remove();
           clearInterval(debugTimer);
