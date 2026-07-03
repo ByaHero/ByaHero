@@ -290,6 +290,12 @@ export default function LiveTrackingScreen() {
         await TrackPlayer.play();
         console.log('liveTracking.tsx: TrackPlayer.play() called successfully');
         playerReady.current = true;
+
+        // Verify player state
+        const state = await TrackPlayer.getPlaybackState();
+        console.log('liveTracking.tsx: Verified playback state is:', state);
+        const queue = await TrackPlayer.getQueue();
+        console.log('liveTracking.tsx: Verified queue size is:', queue.length, 'tracks:', queue.map(t => t.id));
       } catch (tpErr) {
         console.error('liveTracking.tsx: Failed to setup TrackPlayer:', tpErr);
       }
