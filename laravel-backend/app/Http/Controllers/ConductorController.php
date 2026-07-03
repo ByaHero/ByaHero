@@ -10,6 +10,7 @@ use App\Models\Conductor;
 use App\Models\Driver;
 use App\Models\Bus;
 use App\Models\BusOperation;
+use App\Models\PassengerEvent;
 use App\Models\PassengerRide;
 
 class ConductorController extends Controller
@@ -413,6 +414,9 @@ class ConductorController extends Controller
         $opId = (int)$request->input('operation_id');
         $eventType = $request->input('event_type'); // 'board' or 'depart'
         $count = (int)$request->input('count', 1);
+        $locationName = $request->input('location_name');
+        $lat = $request->input('lat');
+        $lng = $request->input('lng');
 
         if (!$opId || !in_array($eventType, ['board', 'depart'])) {
             return response()->json(['success' => false, 'error' => 'Invalid parameters'], 400);
@@ -428,6 +432,16 @@ class ConductorController extends Controller
         } else {
             $op->increment('total_departed', $count);
         }
+
+        PassengerEvent::create([
+            'operation_id' => $opId,
+            'event_type' => $eventType,
+            'count' => $count,
+            'location_name' => $locationName,
+            'lat' => $lat,
+            'lng' => $lng,
+            'recorded_at' => now(),
+        ]);
 
         return response()->json([
             'success' => true,

@@ -849,7 +849,7 @@ export default function PassengerDashboard() {
               style={[
                 tw`absolute right-4 bg-white w-12 h-12 rounded-full justify-center items-center shadow-lg z-[1080]`,
                 {
-                  bottom: 110 + insets.bottom + 12,
+                  bottom: 110 + insets.bottom + 30,
                   transform: [{ translateY: translateY.interpolate({ inputRange: [0, (SCREEN_HEIGHT * 0.7) - 120], outputRange: [-((SCREEN_HEIGHT * 0.7) - 120), 0] }) }],
                   elevation: 30,
                 }

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import { WaitingPassenger } from '@/types';
+import AdminNavbar from '@/components/AdminNavbar';
 
 const LOCATION_WHITELIST = [
   "All Stop Locations",
@@ -106,11 +107,8 @@ export default function AdminWaitingPax() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+      <AdminNavbar title="Waiting Passengers" />
       <View style={tw`p-4 pt-2`}>
-        <Text style={tw`text-[#0f3878] text-lg font-extrabold tracking-wide mb-4 ml-1`}>
-          Waiting Passengers
-        </Text>
-
         {loading && !refreshing ? (
           <View style={tw`flex-1 mt-10 justify-center items-center`}>
             <ActivityIndicator size="large" color="#0f3878" />

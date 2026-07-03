@@ -97,7 +97,16 @@ export const adminService = {
   }),
 
   // Analytics
-  getAnalytics: () => apiRequest('/api/admin/analytics'),
+  getAnalytics: (params?: { period?: string; start?: string; end?: string }) => {
+    const query = new URLSearchParams();
+
+    if (params?.period) query.set('period', params.period);
+    if (params?.start) query.set('start', params.start);
+    if (params?.end) query.set('end', params.end);
+
+    const suffix = query.toString() ? `?${query.toString()}` : '';
+    return apiRequest(`/api/admin/analytics${suffix}`);
+  },
 
   // Lost & Found
   listLostAndFound: () => apiRequest('/api/admin/lost-and-found'),

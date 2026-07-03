@@ -447,7 +447,7 @@ class AdminController extends Controller
             JOIN busses b ON b.Bus_ID = o.bus_id
             JOIN conductors c ON c.id = o.conductor_id
             WHERE 1=1 {$dateFilter}
-            GROUP BY pe.operation_id, pe.location_name, pe.recorded_at
+            GROUP BY pe.operation_id, pe.location_name, pe.recorded_at, b.code, c.email, o.route
             ORDER BY pe.recorded_at DESC LIMIT 50");
 
         return response()->json([
@@ -621,8 +621,61 @@ class AdminController extends Controller
     public function listFares(Request $request)
     {
         $this->checkAuth();
-        $fares = DB::table('bus_fares')->get();
-        
+        $destination = $request->input('destination');
+        $query = $request->input('q', '');
+
+        // Fetch destinations that exist in bus_fares
+        $destinationsList = DB::table('bus_stops')
+            ->select('stop_id', 'location_name')
+            ->whereIn('stop_id', function($q) {
+                $q->select('destination_stop_id')->from('bus_fares');
+            })
+            ->get();
+
+        if ($destinationsList->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'destinationsList' => [],
+                'filterDestination' => '',
+                'snapshots' => [],
+                'destName' => 'UNDEFINED',
+                'farthestOriginName' => 'UNDEFINED',
+                'fares' => []
+            ]);
+        }
+
+        if (empty($destination)) {
+            $destination = $destinationsList->first()->stop_id;
+        }
+
+        $destModel = DB::table('bus_stops')->where('stop_id', $destination)->first();
+        $destName = $destModel ? $destModel->location_name : 'UNDEFINED';
+
+        // Get fares for this destination
+        $faresQuery = DB::table('bus_fares as bf')
+            ->join('bus_stops as origin', 'bf.origin_stop_id', '=', 'origin.stop_id')
+            ->select(
+                'bf.fare_id',
+                'bf.distance_km',
+                'origin.location_name as origin_name',
+                'bf.regular_fare',
+                'bf.discounted_fare'
+            )
+            ->where('bf.destination_stop_id', $destination)
+            ->orderBy('bf.distance_km', 'desc'); // Show farthest origins first
+
+        if (!empty($query)) {
+            $faresQuery->where('origin.location_name', 'like', '%' . $query . '%');
+        }
+
+        $fares = $faresQuery->get();
+
+        $farthestOriginName = 'UNDEFINED';
+        if ($fares->isNotEmpty()) {
+            $farthest = $fares->sortByDesc('distance_km')->first();
+            $farthestOriginName = $farthest->origin_name;
+        }
+
         $snapshots = [];
         try {
             $snapshots = DB::table('bus_fare_snapshots')->orderBy('created_at', 'desc')->get();
@@ -630,8 +683,12 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'fares' => $fares,
-            'snapshots' => $snapshots
+            'destinationsList' => $destinationsList,
+            'filterDestination' => (string)$destination,
+            'snapshots' => $snapshots,
+            'destName' => $destName,
+            'farthestOriginName' => $farthestOriginName,
+            'fares' => $fares
         ]);
     }
 

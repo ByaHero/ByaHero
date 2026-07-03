@@ -4,3 +4,6 @@ backend/serviceAccountKey.json
 .claude/
 scratch/
 config/.schema_synced
+
+/android
+/byahero-conductor-reserve
