@@ -2,6 +2,8 @@ import TrackPlayer, { Event } from 'react-native-track-player';
 import { DeviceEventEmitter } from 'react-native';
 
 module.exports = async function () {
+  console.log('service.js: Playback service initialized!');
+
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
     TrackPlayer.play();
   });
