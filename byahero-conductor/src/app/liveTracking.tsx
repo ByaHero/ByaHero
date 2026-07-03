@@ -16,7 +16,7 @@ import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import TrackPlayer, { Capability } from 'react-native-track-player';
+import TrackPlayer, { Capability, Event, RepeatMode } from 'react-native-track-player';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
@@ -72,14 +72,25 @@ export default function LiveTrackingScreen() {
   // Sync seats count to ref to avoid effect recreation churn and update notification
   const seatsRef = useRef(seats);
   const playerReady = useRef(false);
+  const isInitialized = useRef(false);
   useEffect(() => {
+    if (!isInitialized.current) return;
+    console.log('liveTracking.tsx: seats state changed to', seats);
     seatsRef.current = seats;
     AsyncStorage.setItem('byahero_seats_available', String(seats));
     if (Platform.OS !== 'web' && sessionRef.current && playerReady.current) {
-      TrackPlayer.updateMetadataForTrack(0, {
+      const metadata = {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
-        artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
-      }).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+        artist: `Passengers: ${sessionRef.current.seats_total - seats} | Available: ${seats}`,
+      };
+      TrackPlayer.getQueue().then(queue => {
+        if (queue && queue.length > 0) {
+          Promise.all([
+            TrackPlayer.updateMetadataForTrack(0, metadata),
+            TrackPlayer.updateNowPlayingMetadata(metadata),
+          ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+        }
+      }).catch(() => {});
     }
   }, [seats]);
 
@@ -87,12 +98,53 @@ export default function LiveTrackingScreen() {
     getServerUrl().then(url => setBaseUrl(url));
 
     const incSub = DeviceEventEmitter.addListener('remoteIncrement', () => {
+      console.log('liveTracking.tsx: remoteIncrement event received');
       incrementPassengers();
     });
 
     const decSub = DeviceEventEmitter.addListener('remoteDecrement', () => {
+      console.log('liveTracking.tsx: remoteDecrement event received');
       decrementPassengers();
     });
+
+    const nextSub = DeviceEventEmitter.addListener('remote-next', () => {
+      console.log('liveTracking.tsx: remote-next received from native');
+      incrementPassengers();
+    });
+
+    const prevSub = DeviceEventEmitter.addListener('remote-previous', () => {
+      console.log('liveTracking.tsx: remote-previous received from native');
+      decrementPassengers();
+    });
+
+    const stateSub = TrackPlayer.addEventListener(Event.PlaybackState, (event) => {
+      console.log('liveTracking.tsx: PlaybackState changed to', event.state);
+    });
+
+    const errorSub = TrackPlayer.addEventListener(Event.PlaybackError, (event) => {
+      console.error('liveTracking.tsx: PlaybackError occurred', event.message);
+    });
+
+    const queueEndedSub = TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+      console.log('liveTracking.tsx: PlaybackQueueEnded, looping/replaying');
+      try {
+        await TrackPlayer.seekTo(0);
+        await TrackPlayer.play();
+      } catch (err) {
+        console.warn('liveTracking.tsx: Failed to loop play on queue ended:', err);
+      }
+    });
+
+    const debugTimer = setInterval(async () => {
+      if (Platform.OS !== 'web') {
+        try {
+          const s = await TrackPlayer.getPlaybackState();
+          console.log('liveTracking.tsx: Periodic state check:', JSON.stringify(s));
+        } catch (err) {
+          console.warn('liveTracking.tsx: Periodic state check failed:', err);
+        }
+      }
+    }, 3000);
 
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
       setSeats(newSeats);
@@ -162,6 +214,12 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
+          nextSub.remove();
+          prevSub.remove();
+          stateSub.remove();
+          errorSub.remove();
+          queueEndedSub.remove();
+          clearInterval(debugTimer);
           cleanup();
         };
       } else {
@@ -170,6 +228,12 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
+          nextSub.remove();
+          prevSub.remove();
+          stateSub.remove();
+          errorSub.remove();
+          queueEndedSub.remove();
+          clearInterval(debugTimer);
           cleanup();
         };
       }
@@ -205,20 +269,28 @@ export default function LiveTrackingScreen() {
     const payload = JSON.parse(payloadStr);
     setSession(payload);
     sessionRef.current = payload;
-    const initialSeats = payload.seats_total - payload.pre_departure_count;
+    const savedSeatsStr = await AsyncStorage.getItem('byahero_seats_available');
+    const defaultSeats = payload.seats_total - payload.pre_departure_count;
+    console.log('liveTracking.tsx: initSession loaded savedSeatsStr =', savedSeatsStr, 'defaultSeats =', defaultSeats);
+    const initialSeats = savedSeatsStr ? parseInt(savedSeatsStr, 10) : defaultSeats;
     setSeats(initialSeats);
     await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
+    isInitialized.current = true;
     await AsyncStorage.setItem('byahero_pending_boards', '0');
     await AsyncStorage.setItem('byahero_pending_departs', '0');
 
     // Initialize TrackPlayer for lock screen MediaSession controls
     if (Platform.OS !== 'web') {
+      console.log('liveTracking.tsx: Starting TrackPlayer initialization...');
       try {
         try {
+          console.log('liveTracking.tsx: Calling TrackPlayer.setupPlayer()...');
           await TrackPlayer.setupPlayer();
+          console.log('liveTracking.tsx: TrackPlayer.setupPlayer() completed');
         } catch (e) {
-          // Already initialized
+          console.log('liveTracking.tsx: TrackPlayer setupPlayer caught expected already initialized:', e);
         }
+        console.log('liveTracking.tsx: Calling updateOptions...');
         await TrackPlayer.updateOptions({
           capabilities: [
             Capability.Play,
@@ -233,17 +305,41 @@ export default function LiveTrackingScreen() {
             Capability.SkipToPrevious,
           ],
         });
-        await TrackPlayer.add({
-          id: 'conductor-controls',
-          url: 'https://github.com/anars/blank-audio/raw/master/10-minutes-of-silence.mp3',
+        console.log('liveTracking.tsx: updateOptions completed');
+        const dummyTrack = {
+          url: require('../../assets/silence.wav'),
           title: `Bus ${payload.code} - ${payload.route}`,
-          artist: `Available Seats: ${initialSeats} / ${payload.seats_total}`,
+          artist: `Passengers: ${payload.seats_total - initialSeats} | Available: ${initialSeats}`,
           artwork: 'https://placehold.co/150x150/007bff/ffffff.png?text=ByaHero',
-        });
+        };
+        console.log('liveTracking.tsx: Resetting TrackPlayer queue...');
+        await TrackPlayer.reset();
+        console.log('liveTracking.tsx: Adding track to TrackPlayer queue...');
+        await TrackPlayer.add({ ...dummyTrack, id: 'conductor-controls' });
+        console.log('liveTracking.tsx: Track added successfully');
+        await TrackPlayer.setRepeatMode(RepeatMode.Track);
+        console.log('liveTracking.tsx: Set repeat mode to Track');
         await TrackPlayer.play();
+        console.log('liveTracking.tsx: TrackPlayer.play() called successfully');
         playerReady.current = true;
+
+        // Force initial metadata sync to ensure lock screen matches current state immediately
+        const initMetadata = {
+          title: `Bus ${payload.code} - ${payload.route}`,
+          artist: `Passengers: ${payload.seats_total - initialSeats} | Available: ${initialSeats}`,
+        };
+        await Promise.all([
+          TrackPlayer.updateMetadataForTrack(0, initMetadata),
+          TrackPlayer.updateNowPlayingMetadata(initMetadata)
+        ]).catch(err => console.warn('Failed initial TrackPlayer metadata sync:', err));
+
+        // Verify player state
+        const state = await TrackPlayer.getPlaybackState();
+        console.log('liveTracking.tsx: Verified playback state is:', state);
+        const queue = await TrackPlayer.getQueue();
+        console.log('liveTracking.tsx: Verified queue size is:', queue.length, 'tracks:', queue.map(t => t.id));
       } catch (tpErr) {
-        console.warn('Failed to setup TrackPlayer:', tpErr);
+        console.error('liveTracking.tsx: Failed to setup TrackPlayer:', tpErr);
       }
     }
 
@@ -304,6 +400,17 @@ export default function LiveTrackingScreen() {
     if (status !== 'granted') {
       Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
       return;
+    }
+
+    if (Platform.OS !== 'web') {
+      try {
+        const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+        if (bgStatus !== 'granted') {
+          console.warn('Background location permission was not granted. Location tracking might pause when screen is closed.');
+        }
+      } catch (err) {
+        console.warn('Failed to request background location permission:', err);
+      }
     }
 
     // Get current position immediately to show the bus on the map on start
@@ -469,20 +576,30 @@ export default function LiveTrackingScreen() {
   };
 
   const incrementPassengers = () => {
-    if (session && seats > 0) {
-      const newSeats = seats - 1;
-      setSeats(newSeats);
-      pendingBoards.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats > 0) {
+          pendingBoards.current++;
+          scheduleSync();
+          return prevSeats - 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
   const decrementPassengers = () => {
-    if (session && seats < session.seats_total) {
-      const newSeats = seats + 1;
-      setSeats(newSeats);
-      pendingDeparts.current++;
-      scheduleSync();
+    const activeSession = sessionRef.current || session;
+    if (activeSession) {
+      setSeats((prevSeats) => {
+        if (prevSeats < activeSession.seats_total) {
+          pendingDeparts.current++;
+          scheduleSync();
+          return prevSeats + 1;
+        }
+        return prevSeats;
+      });
     }
   };
 
@@ -500,6 +617,7 @@ export default function LiveTrackingScreen() {
     }
 
     await AsyncStorage.removeItem('byahero_conductor_payload');
+    await AsyncStorage.removeItem('byahero_seats_available');
     setIsLoading(false);
     router.replace('/dashboard');
   };
