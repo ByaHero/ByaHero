@@ -8,7 +8,8 @@ import {
   Alert,
   ActivityIndicator,
   Platform,
-  DeviceEventEmitter
+  DeviceEventEmitter,
+  AppState
 } from 'react-native';
 import { router } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -20,7 +21,7 @@ import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
 import { NativeModules } from 'react-native';
-const { MediaSessionModule, LocationServiceModule } = NativeModules;
+const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
 function pointInRing(x: number, y: number, ring: number[][]): boolean {
@@ -74,6 +75,14 @@ export default function LiveTrackingScreen() {
   const seatsRef = useRef(seats);
   useEffect(() => {
     seatsRef.current = seats;
+    AsyncStorage.getItem('byahero_conductor_payload').then(str => {
+      if (!str) return;
+      try {
+        const p = JSON.parse(str);
+        p.current_seats = seats;
+        AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
+      } catch (_) {}
+    });
   }, [seats]);
 
   useEffect(() => {
@@ -133,40 +142,36 @@ export default function LiveTrackingScreen() {
     });
   }, []);
 
-  // Update media session metadata
-  const updateMediaSession = async () => {
-    if (Platform.OS === 'web' || !session || !MediaSessionModule) return;
-    try {
-      await MediaSessionModule.updateMetadata(
-        `Bus ${session.code} | Seats: ${seats}`,
-        `Route: ${session.route}`
-      );
-    } catch (err) {
-      console.warn('Failed to update media metadata:', err);
-    }
-  };
-
-  // Native MediaSession initialization
+  // Restore full media session when app comes back to foreground after being swiped
   useEffect(() => {
-    if (Platform.OS === 'web' || !MediaSessionModule) return;
+    if (Platform.OS !== 'android' || !LocationServiceModule) return;
+    const sub = AppState.addEventListener('change', state => {
+      if (state === 'active') LocationServiceModule.notifyAppForeground();
+    });
+    return () => sub.remove();
+  }, []);
 
-    if (session) {
-      MediaSessionModule.setup().catch((err: any) => console.warn('MediaSession setup failed:', err));
-    }
+  // Stable refs so media button listeners never hold stale closures
+  const incrementRef = useRef(incrementPassengers);
+  const decrementRef = useRef(decrementPassengers);
+  useEffect(() => { incrementRef.current = incrementPassengers; });
+  useEffect(() => { decrementRef.current = decrementPassengers; });
 
-    const nextListener = DeviceEventEmitter.addListener('media-session-next', incrementPassengers);
-    const prevListener = DeviceEventEmitter.addListener('media-session-prev', decrementPassengers);
-
-    return () => {
-      nextListener.remove();
-      prevListener.remove();
-      MediaSessionModule.destroy().catch(() => {});
-    };
-  }, [session]);
-
-  // Update media session whenever session or seats change
+  // Wire media button events — registered once, never stale
   useEffect(() => {
-    if (session) updateMediaSession();
+    if (Platform.OS === 'web') return;
+    const nextListener = DeviceEventEmitter.addListener('media-session-next', () => incrementRef.current());
+    const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current());
+    return () => { nextListener.remove(); prevListener.remove(); };
+  }, []);
+
+  // Update service notification metadata whenever session or seats change
+  useEffect(() => {
+    if (!session || Platform.OS !== 'android' || !LocationServiceModule) return;
+    LocationServiceModule.updateMetadata(
+      `Bus ${session.code} | Seats: ${seatsRef.current}`,
+      `Route: ${session.route}`
+    );
   }, [session, seats]);
 
   const cleanup = () => {
@@ -196,7 +201,20 @@ export default function LiveTrackingScreen() {
     const payload = JSON.parse(payloadStr);
     setSession(payload);
     sessionRef.current = payload;
-    setSeats(payload.seats_total - payload.pre_departure_count);
+
+    // Check if service mutated seats while JS was dead (app was swiped)
+    let restoredSeats = payload.current_seats !== undefined
+      ? payload.current_seats
+      : payload.seats_total - payload.pre_departure_count;
+
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      try {
+        const persisted = await LocationServiceModule.getPersistedSeats();
+        if (persisted !== -1) restoredSeats = persisted;
+      } catch (_) {}
+    }
+
+    setSeats(restoredSeats);
 
     // Load route features for geofenced location parsing
     try {
@@ -270,6 +288,11 @@ export default function LiveTrackingScreen() {
     // Start the Android foreground service to keep GPS alive when backgrounded
     if (Platform.OS === 'android' && LocationServiceModule) {
       LocationServiceModule.startService();
+      const s = sessionRef.current;
+      if (s) LocationServiceModule.updateMetadata(
+        `Bus ${s.code} | Seats: ${seatsRef.current}`,
+        `Route: ${s.route}`
+      );
     }
 
     // Get current position immediately to show the bus on the map on start
