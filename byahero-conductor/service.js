@@ -19,4 +19,14 @@ module.exports = async function () {
   TrackPlayer.addEventListener('remote-previous', () => {
     console.log('service.js: RemotePrevious triggered');
   });
+
+  TrackPlayer.addEventListener('playback-queue-ended', async () => {
+    console.log('service.js: PlaybackQueueEnded triggered, looping/restarting');
+    try {
+      await TrackPlayer.seekTo(0);
+      await TrackPlayer.play();
+    } catch (err) {
+      console.warn('Failed to replay track on queue ended:', err);
+    }
+  });
 };

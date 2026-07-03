@@ -72,7 +72,9 @@ export default function LiveTrackingScreen() {
   // Sync seats count to ref to avoid effect recreation churn and update notification
   const seatsRef = useRef(seats);
   const playerReady = useRef(false);
+  const isInitialized = useRef(false);
   useEffect(() => {
+    if (!isInitialized.current) return;
     console.log('liveTracking.tsx: seats state changed to', seats);
     seatsRef.current = seats;
     AsyncStorage.setItem('byahero_seats_available', String(seats));
@@ -121,6 +123,16 @@ export default function LiveTrackingScreen() {
 
     const errorSub = TrackPlayer.addEventListener(Event.PlaybackError, (event) => {
       console.error('liveTracking.tsx: PlaybackError occurred', event.message);
+    });
+
+    const queueEndedSub = TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+      console.log('liveTracking.tsx: PlaybackQueueEnded, looping/replaying');
+      try {
+        await TrackPlayer.seekTo(0);
+        await TrackPlayer.play();
+      } catch (err) {
+        console.warn('liveTracking.tsx: Failed to loop play on queue ended:', err);
+      }
     });
 
     const debugTimer = setInterval(async () => {
@@ -206,6 +218,7 @@ export default function LiveTrackingScreen() {
           prevSub.remove();
           stateSub.remove();
           errorSub.remove();
+          queueEndedSub.remove();
           clearInterval(debugTimer);
           cleanup();
         };
@@ -219,6 +232,7 @@ export default function LiveTrackingScreen() {
           prevSub.remove();
           stateSub.remove();
           errorSub.remove();
+          queueEndedSub.remove();
           clearInterval(debugTimer);
           cleanup();
         };
@@ -261,6 +275,7 @@ export default function LiveTrackingScreen() {
     const initialSeats = savedSeatsStr ? parseInt(savedSeatsStr, 10) : defaultSeats;
     setSeats(initialSeats);
     await AsyncStorage.setItem('byahero_seats_available', String(initialSeats));
+    isInitialized.current = true;
     await AsyncStorage.setItem('byahero_pending_boards', '0');
     await AsyncStorage.setItem('byahero_pending_departs', '0');
 
