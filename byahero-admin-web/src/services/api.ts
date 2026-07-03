@@ -1,6 +1,6 @@
 import { User } from '../types';
 
-export const API_BASE_URL = '';
+export const API_BASE_URL = 'https://byahero.alwaysdata.net';
 
 // Helper to construct full API endpoints
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
