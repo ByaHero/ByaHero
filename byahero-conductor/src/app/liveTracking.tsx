@@ -101,14 +101,17 @@ export default function LiveTrackingScreen() {
       decrementPassengers();
     });
 
-    const nextSub = DeviceEventEmitter.addListener('remote-next', () => {
-      console.log('liveTracking.tsx: remote-next received from native');
-      decrementPassengers();
-    });
-
-    const prevSub = DeviceEventEmitter.addListener('remote-previous', () => {
-      console.log('liveTracking.tsx: remote-previous received from native');
-      incrementPassengers();
+    const trackChangeSub = TrackPlayer.addEventListener(Event.PlaybackActiveTrackChanged, async (event) => {
+      console.log('liveTracking.tsx: PlaybackActiveTrackChanged', event);
+      if (event.index === 2) {
+        console.log('Skipped to track 2: Incrementing passengers (reducing seats)');
+        incrementPassengers();
+        TrackPlayer.skip(1).catch(err => console.warn('Failed to skip back to 1:', err));
+      } else if (event.index === 0) {
+        console.log('Skipped to track 0: Decrementing passengers (increasing seats)');
+        decrementPassengers();
+        TrackPlayer.skip(1).catch(err => console.warn('Failed to skip back to 1:', err));
+      }
     });
 
     const sub = DeviceEventEmitter.addListener('seatsUpdated', async (newSeats: number) => {
@@ -179,8 +182,7 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
-          nextSub.remove();
-          prevSub.remove();
+          trackChangeSub.remove();
           cleanup();
         };
       } else {
@@ -189,8 +191,7 @@ export default function LiveTrackingScreen() {
           sub.remove();
           incSub.remove();
           decSub.remove();
-          nextSub.remove();
-          prevSub.remove();
+          trackChangeSub.remove();
           cleanup();
         };
       }
