@@ -14,11 +14,9 @@ module.exports = async function () {
 
   TrackPlayer.addEventListener('remote-next', () => {
     console.log('service.js: RemoteNext triggered');
-    TrackPlayer.skip(2).catch(err => console.warn('Failed to skip to 2:', err));
   });
 
   TrackPlayer.addEventListener('remote-previous', () => {
     console.log('service.js: RemotePrevious triggered');
-    TrackPlayer.skip(0).catch(err => console.warn('Failed to skip to 0:', err));
   });
 };

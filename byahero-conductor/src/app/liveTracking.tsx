@@ -80,11 +80,8 @@ export default function LiveTrackingScreen() {
         title: `Bus ${sessionRef.current.code} - ${sessionRef.current.route}`,
         artist: `Available Seats: ${seats} / ${sessionRef.current.seats_total}`,
       };
-      Promise.all([
-        TrackPlayer.updateMetadataForTrack(0, metadata),
-        TrackPlayer.updateMetadataForTrack(1, metadata),
-        TrackPlayer.updateMetadataForTrack(2, metadata),
-      ]).catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
+      TrackPlayer.updateMetadataForTrack(0, metadata)
+        .catch(err => console.warn('Failed to update TrackPlayer metadata:', err));
     }
   }, [seats]);
 
@@ -292,15 +289,9 @@ export default function LiveTrackingScreen() {
         };
         console.log('liveTracking.tsx: Resetting TrackPlayer queue...');
         await TrackPlayer.reset();
-        console.log('liveTracking.tsx: Adding tracks to TrackPlayer queue...');
-        await TrackPlayer.add([
-          { ...dummyTrack, id: 'conductor-prev' },
-          { ...dummyTrack, id: 'conductor-controls' },
-          { ...dummyTrack, id: 'conductor-next' },
-        ]);
-        console.log('liveTracking.tsx: Tracks added successfully');
-        await TrackPlayer.skip(1);
-        console.log('liveTracking.tsx: Skipped to track 1');
+        console.log('liveTracking.tsx: Adding track to TrackPlayer queue...');
+        await TrackPlayer.add({ ...dummyTrack, id: 'conductor-controls' });
+        console.log('liveTracking.tsx: Track added successfully');
         await TrackPlayer.setRepeatMode(RepeatMode.Track);
         console.log('liveTracking.tsx: Set repeat mode to Track');
         await TrackPlayer.play();
