@@ -104,9 +104,14 @@ export default function PassengerBottomSheet({
         const isVerticalDrag = Math.abs(gestureState.dy) > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
         if (!isVerticalDrag) return false;
 
-        // If the touch started in the header area (top 100px of the sheet), we ALWAYS allow dragging
-        const touchY = e.nativeEvent.locationY;
-        if (touchY < 100) {
+        // If the touch started in the header area (top 50px of the sheet), we ALWAYS allow dragging
+        const sheetTop = (SCREEN_HEIGHT * 0.3) + lastTranslatedY.current;
+        if (gestureState.y0 - sheetTop < 50) {
+          return true;
+        }
+
+        // If the sheet is not fully expanded and user drags UP, drag the sheet instead of scrolling
+        if (gestureState.dy < 0 && lastTranslatedY.current > MAX_UP) {
           return true;
         }
 
@@ -272,7 +277,7 @@ export default function PassengerBottomSheet({
         }}
         scrollEventThrottle={16}
         style={tw`flex-1 px-4`}
-        contentContainerStyle={{ paddingBottom: 24 }}
+        contentContainerStyle={{ paddingBottom: 250 }}
       >
         {sheetTab === 'location' && (
           <View>

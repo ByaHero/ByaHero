@@ -15,11 +15,12 @@ interface BusStop {
 
 interface StopsMapProps {
   stops: BusStop[];
-  onMapClick: (lat: string, lng: string, locationName: string) => void;
+  onMapClick?: (lat: string, lng: string, locationName: string) => void;
 }
 
 export default function StopsMap({ stops, onMapClick }: StopsMapProps) {
   useEffect(() => {
+    if (!onMapClick) return;
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
@@ -82,32 +83,35 @@ export default function StopsMap({ stops, onMapClick }: StopsMapProps) {
         });
 
         const routeGeoJSON = ${JSON.stringify(routeData)};
+        const enablePinning = ${!!onMapClick};
 
-        let pickMarker = null;
-        map.on('click', (e) => {
-            const lat = e.latlng.lat;
-            const lng = e.latlng.lng;
+        if (enablePinning) {
+            let pickMarker = null;
+            map.on('click', (e) => {
+                const lat = e.latlng.lat;
+                const lng = e.latlng.lng;
 
-            if (pickMarker) map.removeLayer(pickMarker);
-            pickMarker = L.marker([lat, lng], { icon: stopIcon }).addTo(map).bindPopup('Selected location').openPopup();
+                if (pickMarker) map.removeLayer(pickMarker);
+                pickMarker = L.marker([lat, lng], { icon: stopIcon }).addTo(map).bindPopup('Selected location').openPopup();
 
-            let location_name = '';
-            if (routeGeoJSON && typeof turf !== 'undefined') {
-                const pt = turf.point([lng, lat]);
-                for (const feature of routeGeoJSON.features) {
-                    if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
-                        if (turf.booleanPointInPolygon(pt, feature)) {
-                            location_name = feature.properties['Current Location'] || '';
-                            break;
+                let location_name = '';
+                if (routeGeoJSON && typeof turf !== 'undefined') {
+                    const pt = turf.point([lng, lat]);
+                    for (const feature of routeGeoJSON.features) {
+                        if (feature.geometry.type === 'Polygon' || feature.geometry.type === 'MultiPolygon') {
+                            if (turf.booleanPointInPolygon(pt, feature)) {
+                                location_name = feature.properties['Current Location'] || '';
+                                break;
+                            }
                         }
                     }
                 }
-            }
 
-            window.parent.postMessage({
-                type: 'map_click', lat: lat.toFixed(7), lng: lng.toFixed(7), location_name
-            }, '*');
-        });
+                window.parent.postMessage({
+                    type: 'map_click', lat: lat.toFixed(7), lng: lng.toFixed(7), location_name
+                }, '*');
+            });
+        }
     </script>
 </body>
 </html>

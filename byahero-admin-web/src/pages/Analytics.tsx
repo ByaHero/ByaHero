@@ -9,6 +9,7 @@ import {
   Loader2,
   MapPinned,
   Route,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 import { adminService } from '../services/admin';
@@ -132,313 +133,28 @@ const periodLabels: Record<PeriodKey, string> = {
   month: 'This Month',
 };
 
-const fallbackAnalytics: Record<PeriodKey, AnalyticsView> = {
-  today: {
-    totalTrips: 42,
-    totalPassengers: 1420,
-    totalDeparted: 1378,
-    averageTripMinutes: 38,
-    averageFare: 28.5,
-    estimatedRevenue: 40470,
-    hourlyFlow: [
-      { hr: 5, total: 4 },
-      { hr: 6, total: 18 },
-      { hr: 7, total: 31 },
-      { hr: 8, total: 45 },
-      { hr: 9, total: 28 },
-      { hr: 10, total: 19 },
-      { hr: 11, total: 22 },
-      { hr: 12, total: 25 },
-      { hr: 13, total: 29 },
-      { hr: 14, total: 27 },
-      { hr: 15, total: 33 },
-      { hr: 16, total: 39 },
-      { hr: 17, total: 47 },
-      { hr: 18, total: 36 },
-      { hr: 19, total: 20 },
-      { hr: 20, total: 11 },
-    ],
-    routes: [
-      { name: 'EDSA Aircon Line', count: 680, percentage: 80 },
-      { name: 'Commonwealth Commuter', count: 420, percentage: 65 },
-      { name: 'Quezon Ave Link', count: 210, percentage: 45 },
-      { name: 'España Express', count: 110, percentage: 30 },
-    ],
-    boardingLocations: [
-      { location_name: 'North Avenue', total: 348 },
-      { location_name: 'Philcoa', total: 261 },
-      { location_name: 'España', total: 190 },
-      { location_name: 'Morayta', total: 168 },
-    ],
-    buses: [
-      {
-        code: 'BUS-104',
-        trips: 11,
-        passengers: 390,
-        routes: 'EDSA Aircon Line, Quezon Ave Link',
-        conductors: 'm.delacruz@byahero.com, r.santos@byahero.com',
-        hotspots: [
-          { location_name: 'North Avenue', total: 148 },
-          { location_name: 'Philcoa', total: 102 },
-          { location_name: 'Q.Ave', total: 76 },
-          { location_name: 'España', total: 48 },
-        ],
-      },
-      {
-        code: 'BUS-212',
-        trips: 9,
-        passengers: 328,
-        routes: 'Commonwealth Commuter',
-        conductors: 'j.cruz@byahero.com, l.garcia@byahero.com',
-        hotspots: [
-          { location_name: 'Commonwealth', total: 138 },
-          { location_name: 'Philcoa', total: 91 },
-          { location_name: 'Q.C. Hall', total: 59 },
-        ],
-      },
-      {
-        code: 'BUS-330',
-        trips: 7,
-        passengers: 228,
-        routes: 'España Express',
-        conductors: 't.reyes@byahero.com',
-        hotspots: [
-          { location_name: 'España', total: 114 },
-          { location_name: 'Morayta', total: 74 },
-          { location_name: 'Legarda', total: 40 },
-        ],
-      },
-    ],
-    conductors: [
-      { email: 'm.delacruz@byahero.com', trips: 11, passengers: 390 },
-      { email: 'r.santos@byahero.com', trips: 10, passengers: 362 },
-      { email: 'j.cruz@byahero.com', trips: 9, passengers: 328 },
-      { email: 'l.garcia@byahero.com', trips: 8, passengers: 271 },
-    ],
-    locationLogs: [
-      { recorded_at: new Date().toISOString(), location_name: 'North Avenue', bus_code: 'BUS-104', conductor_email: 'm.delacruz@byahero.com', route: 'EDSA Aircon Line', boarded: 14, departed: 2 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 12).toISOString(), location_name: 'Philcoa', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 11, departed: 1 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 26).toISOString(), location_name: 'España', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 9, departed: 0 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 44).toISOString(), location_name: 'Morayta', bus_code: 'BUS-104', conductor_email: 'r.santos@byahero.com', route: 'EDSA Aircon Line', boarded: 8, departed: 3 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 61).toISOString(), location_name: 'Commonwealth', bus_code: 'BUS-212', conductor_email: 'l.garcia@byahero.com', route: 'Commonwealth Commuter', boarded: 16, departed: 4 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 77).toISOString(), location_name: 'Legarda', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 6, departed: 2 },
-    ],
-    recentOperations: [
-      { bus_code: 'BUS-104', route: 'EDSA Aircon Line', conductor_email: 'm.delacruz@byahero.com', total_boarded: 104, duration_min: 41, status: 'active' },
-      { bus_code: 'BUS-212', route: 'Commonwealth Commuter', conductor_email: 'j.cruz@byahero.com', total_boarded: 96, duration_min: 36, status: 'completed' },
-      { bus_code: 'BUS-330', route: 'España Express', conductor_email: 't.reyes@byahero.com', total_boarded: 88, duration_min: 29, status: 'active' },
-      { bus_code: 'BUS-145', route: 'EDSA Aircon Line', conductor_email: 'r.santos@byahero.com', total_boarded: 72, duration_min: 34, status: 'completed' },
-      { bus_code: 'BUS-220', route: 'Commonwealth Commuter', conductor_email: 'l.garcia@byahero.com', total_boarded: 69, duration_min: 27, status: 'pending' },
-    ],
-  },
-  week: {
-    totalTrips: 255,
-    totalPassengers: 8950,
-    totalDeparted: 8720,
-    averageTripMinutes: 39,
-    averageFare: 28.5,
-    estimatedRevenue: 255075,
-    hourlyFlow: [
-      { hr: 5, total: 15 },
-      { hr: 6, total: 58 },
-      { hr: 7, total: 91 },
-      { hr: 8, total: 128 },
-      { hr: 9, total: 103 },
-      { hr: 10, total: 79 },
-      { hr: 11, total: 87 },
-      { hr: 12, total: 94 },
-      { hr: 13, total: 102 },
-      { hr: 14, total: 98 },
-      { hr: 15, total: 118 },
-      { hr: 16, total: 126 },
-      { hr: 17, total: 149 },
-      { hr: 18, total: 111 },
-      { hr: 19, total: 74 },
-      { hr: 20, total: 38 },
-    ],
-    routes: [
-      { name: 'EDSA Aircon Line', count: 3120, percentage: 82 },
-      { name: 'Commonwealth Commuter', count: 2280, percentage: 69 },
-      { name: 'Quezon Ave Link', count: 1690, percentage: 52 },
-      { name: 'España Express', count: 860, percentage: 32 },
-    ],
-    boardingLocations: [
-      { location_name: 'North Avenue', total: 2010 },
-      { location_name: 'Philcoa', total: 1772 },
-      { location_name: 'España', total: 1198 },
-      { location_name: 'Morayta', total: 1018 },
-    ],
-    buses: [
-      {
-        code: 'BUS-104',
-        trips: 38,
-        passengers: 1310,
-        routes: 'EDSA Aircon Line, Quezon Ave Link',
-        conductors: 'm.delacruz@byahero.com, r.santos@byahero.com',
-        hotspots: [
-          { location_name: 'North Avenue', total: 512 },
-          { location_name: 'Philcoa', total: 330 },
-          { location_name: 'Q.Ave', total: 248 },
-          { location_name: 'España', total: 220 },
-        ],
-      },
-      {
-        code: 'BUS-212',
-        trips: 31,
-        passengers: 1094,
-        routes: 'Commonwealth Commuter',
-        conductors: 'j.cruz@byahero.com, l.garcia@byahero.com',
-        hotspots: [
-          { location_name: 'Commonwealth', total: 476 },
-          { location_name: 'Philcoa', total: 314 },
-          { location_name: 'Q.C. Hall', total: 213 },
-        ],
-      },
-      {
-        code: 'BUS-330',
-        trips: 28,
-        passengers: 934,
-        routes: 'España Express',
-        conductors: 't.reyes@byahero.com',
-        hotspots: [
-          { location_name: 'España', total: 430 },
-          { location_name: 'Morayta', total: 308 },
-          { location_name: 'Legarda', total: 196 },
-        ],
-      },
-    ],
-    conductors: [
-      { email: 'm.delacruz@byahero.com', trips: 41, passengers: 1465 },
-      { email: 'r.santos@byahero.com', trips: 39, passengers: 1388 },
-      { email: 'j.cruz@byahero.com', trips: 36, passengers: 1230 },
-      { email: 'l.garcia@byahero.com', trips: 35, passengers: 1174 },
-    ],
-    locationLogs: [
-      { recorded_at: new Date().toISOString(), location_name: 'North Avenue', bus_code: 'BUS-104', conductor_email: 'm.delacruz@byahero.com', route: 'EDSA Aircon Line', boarded: 21, departed: 4 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 12).toISOString(), location_name: 'Philcoa', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 18, departed: 2 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 26).toISOString(), location_name: 'España', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 16, departed: 1 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 44).toISOString(), location_name: 'Morayta', bus_code: 'BUS-104', conductor_email: 'r.santos@byahero.com', route: 'EDSA Aircon Line', boarded: 14, departed: 5 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 61).toISOString(), location_name: 'Commonwealth', bus_code: 'BUS-212', conductor_email: 'l.garcia@byahero.com', route: 'Commonwealth Commuter', boarded: 23, departed: 4 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 77).toISOString(), location_name: 'Legarda', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 12, departed: 3 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 92).toISOString(), location_name: 'Philcoa', bus_code: 'BUS-104', conductor_email: 'm.delacruz@byahero.com', route: 'EDSA Aircon Line', boarded: 20, departed: 7 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 111).toISOString(), location_name: 'North Avenue', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 17, departed: 5 },
-    ],
-    recentOperations: [
-      { bus_code: 'BUS-104', route: 'EDSA Aircon Line', conductor_email: 'm.delacruz@byahero.com', total_boarded: 418, duration_min: 41, status: 'active' },
-      { bus_code: 'BUS-212', route: 'Commonwealth Commuter', conductor_email: 'j.cruz@byahero.com', total_boarded: 389, duration_min: 36, status: 'completed' },
-      { bus_code: 'BUS-330', route: 'España Express', conductor_email: 't.reyes@byahero.com', total_boarded: 342, duration_min: 29, status: 'active' },
-      { bus_code: 'BUS-145', route: 'EDSA Aircon Line', conductor_email: 'r.santos@byahero.com', total_boarded: 311, duration_min: 34, status: 'completed' },
-      { bus_code: 'BUS-220', route: 'Commonwealth Commuter', conductor_email: 'l.garcia@byahero.com', total_boarded: 286, duration_min: 27, status: 'pending' },
-      { bus_code: 'BUS-411', route: 'España Express', conductor_email: 'm.delacruz@byahero.com', total_boarded: 258, duration_min: 32, status: 'completed' },
-    ],
-  },
-  month: {
-    totalTrips: 1080,
-    totalPassengers: 36780,
-    totalDeparted: 35920,
-    averageTripMinutes: 40,
-    averageFare: 28.5,
-    estimatedRevenue: 1049130,
-    hourlyFlow: [
-      { hr: 5, total: 64 },
-      { hr: 6, total: 202 },
-      { hr: 7, total: 311 },
-      { hr: 8, total: 406 },
-      { hr: 9, total: 350 },
-      { hr: 10, total: 297 },
-      { hr: 11, total: 322 },
-      { hr: 12, total: 338 },
-      { hr: 13, total: 344 },
-      { hr: 14, total: 339 },
-      { hr: 15, total: 382 },
-      { hr: 16, total: 407 },
-      { hr: 17, total: 461 },
-      { hr: 18, total: 401 },
-      { hr: 19, total: 266 },
-      { hr: 20, total: 148 },
-    ],
-    routes: [
-      { name: 'EDSA Aircon Line', count: 12890, percentage: 84 },
-      { name: 'Commonwealth Commuter', count: 9640, percentage: 71 },
-      { name: 'Quezon Ave Link', count: 7440, percentage: 58 },
-      { name: 'España Express', count: 4810, percentage: 36 },
-    ],
-    boardingLocations: [
-      { location_name: 'North Avenue', total: 8430 },
-      { location_name: 'Philcoa', total: 7610 },
-      { location_name: 'España', total: 5990 },
-      { location_name: 'Morayta', total: 4820 },
-    ],
-    buses: [
-      {
-        code: 'BUS-104',
-        trips: 158,
-        passengers: 5230,
-        routes: 'EDSA Aircon Line, Quezon Ave Link',
-        conductors: 'm.delacruz@byahero.com, r.santos@byahero.com',
-        hotspots: [
-          { location_name: 'North Avenue', total: 2012 },
-          { location_name: 'Philcoa', total: 1530 },
-          { location_name: 'Q.Ave', total: 942 },
-          { location_name: 'España', total: 746 },
-        ],
-      },
-      {
-        code: 'BUS-212',
-        trips: 139,
-        passengers: 4728,
-        routes: 'Commonwealth Commuter',
-        conductors: 'j.cruz@byahero.com, l.garcia@byahero.com',
-        hotspots: [
-          { location_name: 'Commonwealth', total: 1920 },
-          { location_name: 'Philcoa', total: 1454 },
-          { location_name: 'Q.C. Hall', total: 1109 },
-        ],
-      },
-      {
-        code: 'BUS-330',
-        trips: 124,
-        passengers: 3569,
-        routes: 'España Express',
-        conductors: 't.reyes@byahero.com',
-        hotspots: [
-          { location_name: 'España', total: 1478 },
-          { location_name: 'Morayta', total: 1186 },
-          { location_name: 'Legarda', total: 905 },
-        ],
-      },
-    ],
-    conductors: [
-      { email: 'm.delacruz@byahero.com', trips: 168, passengers: 5620 },
-      { email: 'r.santos@byahero.com', trips: 159, passengers: 5411 },
-      { email: 'j.cruz@byahero.com', trips: 152, passengers: 4986 },
-      { email: 'l.garcia@byahero.com', trips: 147, passengers: 4742 },
-    ],
-    locationLogs: [
-      { recorded_at: new Date().toISOString(), location_name: 'North Avenue', bus_code: 'BUS-104', conductor_email: 'm.delacruz@byahero.com', route: 'EDSA Aircon Line', boarded: 28, departed: 5 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 12).toISOString(), location_name: 'Philcoa', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 24, departed: 3 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 26).toISOString(), location_name: 'España', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 19, departed: 2 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 44).toISOString(), location_name: 'Morayta', bus_code: 'BUS-104', conductor_email: 'r.santos@byahero.com', route: 'EDSA Aircon Line', boarded: 21, departed: 5 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 61).toISOString(), location_name: 'Commonwealth', bus_code: 'BUS-212', conductor_email: 'l.garcia@byahero.com', route: 'Commonwealth Commuter', boarded: 27, departed: 4 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 77).toISOString(), location_name: 'Legarda', bus_code: 'BUS-330', conductor_email: 't.reyes@byahero.com', route: 'España Express', boarded: 17, departed: 2 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 92).toISOString(), location_name: 'Philcoa', bus_code: 'BUS-104', conductor_email: 'm.delacruz@byahero.com', route: 'EDSA Aircon Line', boarded: 22, departed: 6 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 111).toISOString(), location_name: 'North Avenue', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 20, departed: 5 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 132).toISOString(), location_name: 'Q.C. Hall', bus_code: 'BUS-330', conductor_email: 'l.garcia@byahero.com', route: 'España Express', boarded: 14, departed: 1 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 153).toISOString(), location_name: 'Morayta', bus_code: 'BUS-104', conductor_email: 'r.santos@byahero.com', route: 'EDSA Aircon Line', boarded: 18, departed: 3 },
-      { recorded_at: new Date(Date.now() - 1000 * 60 * 177).toISOString(), location_name: 'España', bus_code: 'BUS-212', conductor_email: 'j.cruz@byahero.com', route: 'Commonwealth Commuter', boarded: 25, departed: 7 },
-    ],
-    recentOperations: [
-      { bus_code: 'BUS-104', route: 'EDSA Aircon Line', conductor_email: 'm.delacruz@byahero.com', total_boarded: 1432, duration_min: 41, status: 'active' },
-      { bus_code: 'BUS-212', route: 'Commonwealth Commuter', conductor_email: 'j.cruz@byahero.com', total_boarded: 1365, duration_min: 36, status: 'completed' },
-      { bus_code: 'BUS-330', route: 'España Express', conductor_email: 't.reyes@byahero.com', total_boarded: 1194, duration_min: 29, status: 'active' },
-      { bus_code: 'BUS-145', route: 'EDSA Aircon Line', conductor_email: 'r.santos@byahero.com', total_boarded: 1138, duration_min: 34, status: 'completed' },
-      { bus_code: 'BUS-220', route: 'Commonwealth Commuter', conductor_email: 'l.garcia@byahero.com', total_boarded: 1094, duration_min: 27, status: 'pending' },
-      { bus_code: 'BUS-411', route: 'España Express', conductor_email: 'm.delacruz@byahero.com', total_boarded: 978, duration_min: 32, status: 'completed' },
-      { bus_code: 'BUS-532', route: 'EDSA Aircon Line', conductor_email: 'r.santos@byahero.com', total_boarded: 943, duration_min: 38, status: 'active' },
-      { bus_code: 'BUS-609', route: 'Commonwealth Commuter', conductor_email: 'j.cruz@byahero.com', total_boarded: 894, duration_min: 31, status: 'completed' },
-    ],
-  },
+const emptyAnalytics: AnalyticsView = {
+  totalTrips: 0,
+  totalPassengers: 0,
+  totalDeparted: 0,
+  averageTripMinutes: 0,
+  averageFare: 0,
+  estimatedRevenue: 0,
+  hourlyFlow: [],
+  routes: [],
+  boardingLocations: [],
+  buses: [],
+  conductors: [],
+  locationLogs: [],
+  recentOperations: [],
 };
+
+const fallbackAnalytics: Record<PeriodKey, AnalyticsView> = {
+  today: emptyAnalytics,
+  week: emptyAnalytics,
+  month: emptyAnalytics,
+};
+
 
 export default function Analytics() {
   const [apiData, setApiData] = useState<ApiAnalytics | null>(null);
@@ -565,25 +281,37 @@ export default function Analytics() {
   const routeChartMax = Math.max(...data.routes.map((route) => route.count), 1);
   const hourlyMax = Math.max(...data.hourlyFlow.map((entry) => entry.total), 1);
 
-  const hourlyPoints = data.hourlyFlow
-    .map((entry, index) => {
+  const points = useMemo(() => {
+    if (!data.hourlyFlow.length) return [];
+    return data.hourlyFlow.map((entry, index) => {
       const width = 100 / Math.max(data.hourlyFlow.length - 1, 1);
       const x = index * width;
-      const y = 100 - (entry.total / hourlyMax) * 100;
-      return `${x},${y}`;
-    })
-    .join(' ');
+      const y = 90 - (entry.total / hourlyMax) * 80;
+      return { x, y };
+    });
+  }, [data.hourlyFlow, hourlyMax]);
 
-  const hourlyArea = [
-    '0,100',
-    ...data.hourlyFlow.map((entry, index) => {
-      const width = 100 / Math.max(data.hourlyFlow.length - 1, 1);
-      const x = index * width;
-      const y = 100 - (entry.total / hourlyMax) * 100;
-      return `${x},${y}`;
-    }),
-    '100,100',
-  ].join(' ');
+  const curvePath = useMemo(() => {
+    if (points.length === 0) return '';
+    if (points.length === 1) return `M ${points[0].x} ${points[0].y}`;
+
+    let d = `M ${points[0].x} ${points[0].y}`;
+    for (let i = 0; i < points.length - 1; i++) {
+      const curr = points[i];
+      const next = points[i + 1];
+      const cp1x = curr.x + (next.x - curr.x) / 3;
+      const cp1y = curr.y;
+      const cp2x = curr.x + 2 * (next.x - curr.x) / 3;
+      const cp2y = next.y;
+      d += ` C ${cp1x} ${cp1y}, ${cp2x} ${cp2y}, ${next.x} ${next.y}`;
+    }
+    return d;
+  }, [points]);
+
+  const areaPath = useMemo(() => {
+    if (points.length === 0) return '';
+    return `${curvePath} L ${points[points.length - 1].x} 100 L ${points[0].x} 100 Z`;
+  }, [points, curvePath]);
 
   const formatTimestamp = (value: string) => {
     const date = new Date(value);
@@ -701,14 +429,14 @@ export default function Analytics() {
           </div>
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <div className="d-flex align-items-center justify-content-center flex-column text-center py-2">
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px 0' }}>
               <div className="text-uppercase text-muted fw-bold small tracking-wider" style={{ fontSize: '0.7rem', marginBottom: '8px' }}>Total Boarded Passengers</div>
               <div className="display-5 fw-bold text-success lh-sm">{data.totalPassengers.toLocaleString()}</div>
               <div className="text-muted fw-semibold small mt-2">Activity across all tracked terminals &amp; stops</div>
             </div>
             <div className="text-center mt-3 pt-3 border-top">
               <div className="text-uppercase text-muted fw-bold small tracking-wider" style={{ fontSize: '0.7rem', marginBottom: '8px' }}>Boarding Locations</div>
-              <div className="d-flex flex-wrap justify-content-center gap-2 mt-2">
+              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
                 {data.boardingLocations.map((location) => (
                   <span key={location.location_name} className="badge bg-light text-dark border py-2 px-3 rounded-pill fw-bold">
                     {location.location_name} — <span className="text-success">{location.total}</span> <span className="text-muted" style={{ fontSize: '0.65rem' }}>Boarded</span>
@@ -719,35 +447,68 @@ export default function Analytics() {
           </div>
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">show_chart</span>
-              Passenger Flow
+            <h5 className="fw-bold mb-3 text-dark fs-6 text-uppercase tracking-wider" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <TrendingUp size={18} className="text-primary" />
+              <span>Passenger Flow</span>
             </h5>
-            <div className="chart-wrap" style={{ width: '100%' }}>
+            <div className="analytics-chart-wrap" style={{ width: '100%', position: 'relative' }}>
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }} aria-label="Passenger flow chart">
                 <defs>
                   <linearGradient id="analyticsArea" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(29, 78, 216, 0.32)" />
-                    <stop offset="100%" stopColor="rgba(29, 78, 216, 0.02)" />
+                    <stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
+                    <stop offset="100%" stopColor="rgba(29, 78, 216, 0.00)" />
                   </linearGradient>
                 </defs>
                 {[0, 25, 50, 75, 100].map((line) => (
-                  <line key={line} x1="0" x2="100" y1={line} y2={line} stroke="rgba(148,163,184,0.15)" strokeWidth="0.6" />
+                  <line key={line} x1="0" x2="100" y1={line} y2={line} stroke="rgba(148,163,184,0.1)" strokeWidth="0.5" />
                 ))}
-                <polygon points={hourlyArea} fill="url(#analyticsArea)" />
-                <polyline points={hourlyPoints} fill="none" stroke="#1d4ed8" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                {data.hourlyFlow.map((entry, index) => {
-                  const width = 100 / Math.max(data.hourlyFlow.length - 1, 1);
-                  const x = index * width;
-                  const y = 100 - (entry.total / hourlyMax) * 100;
-                  return <circle key={`${entry.hr}-${entry.total}`} cx={x} cy={y} r="1.3" fill="#1d4ed8" />;
-                })}
+                {points.length > 0 && (
+                  <>
+                    <path d={areaPath} fill="url(#analyticsArea)" />
+                    <path d={curvePath} fill="none" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </>
+                )}
               </svg>
+              {points.map((pt, idx) => (
+                <div 
+                  key={idx}
+                  style={{
+                    position: 'absolute',
+                    left: `${pt.x}%`,
+                    top: `${pt.y}%`,
+                    width: '14px',
+                    height: '14px',
+                    transform: 'translate(-50%, -50%)',
+                    pointerEvents: 'none',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  <div style={{
+                    position: 'absolute',
+                    width: '12px',
+                    height: '12px',
+                    borderRadius: '50%',
+                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
+                    border: '1px solid rgba(37, 99, 235, 0.3)'
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    width: '6px',
+                    height: '6px',
+                    borderRadius: '50%',
+                    backgroundColor: '#ffffff',
+                    border: '2px solid #2563eb',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
+                  }} />
+                </div>
+              ))}
             </div>
-            <div className="d-flex flex-wrap gap-2 mt-3 justify-content-between align-items-center">
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
               {data.hourlyFlow.slice(0, 6).map((entry) => (
-                <div key={entry.hr} className="small text-muted fw-semibold">
-                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'} <span className="text-primary fw-bold">{entry.total}</span>
+                <div key={entry.hr} className="small text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>
+                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'}: <span className="text-primary fw-bold">{entry.total}</span>
                 </div>
               ))}
             </div>
@@ -755,7 +516,7 @@ export default function Analytics() {
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">route</span>
+              <Route size={18} className="text-primary" />
               Route Breakdown
             </h5>
             <div className="table-responsive">
@@ -782,7 +543,7 @@ export default function Analytics() {
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">directions_bus</span>
+              <BusFront size={18} className="text-primary" />
               Bus Performance
             </h5>
             <p style={{ fontSize: '.75rem', color: '#64748b', marginBottom: '12px', fontWeight: 600 }}>Click on a bus to view its specific departure hotspots.</p>
@@ -857,7 +618,7 @@ export default function Analytics() {
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">badge</span>
+              <BadgeInfo size={18} className="text-primary" />
               Conductor Activity
             </h5>
             <div className="table-responsive">
@@ -886,7 +647,7 @@ export default function Analytics() {
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">list_alt</span>
+              <MapPinned size={18} className="text-primary" />
               Location Activity Log
             </h5>
             <div style={{ overflowX: 'auto' }}>
@@ -930,7 +691,7 @@ export default function Analytics() {
 
           <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
             <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <span className="material-icons-round text-primary fs-5">history</span>
+              <History size={18} className="text-primary" />
               Recent Operations
             </h5>
             <div style={{ overflowX: 'auto' }}>

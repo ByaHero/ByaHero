@@ -194,35 +194,14 @@ export default function ReportProblemScreen() {
                 {/* Bus Selector */}
                 <View style={tw`mb-4`}>
                   <Text style={tw`text-xs font-bold text-slate-400 mb-2`}>Bus Number</Text>
-                  {bus_number ? (
-                    <TextInput
-                      style={tw`w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-400`}
-                      value={selectedBus}
-                      editable={false}
-                    />
-                  ) : (
-                    <View style={tw`flex-row flex-wrap gap-2`}>
-                      {buses.map((bus, idx) => (
-                        <TouchableOpacity
-                          key={idx}
-                          onPress={() => setSelectedBus(bus.code)}
-                          style={[
-                            tw`px-3.5 py-2 rounded-xl border`,
-                            selectedBus === bus.code 
-                              ? tw`bg-blue-50 border-[#1e3a8a]` 
-                              : tw`bg-slate-50 border-slate-200`
-                          ]}
-                        >
-                          <Text style={[
-                            tw`text-xs font-bold`,
-                            selectedBus === bus.code ? tw`text-[#1e3a8a]` : tw`text-slate-500`
-                          ]}>
-                            {bus.code}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+                  <TextInput
+                    style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700`}
+                    placeholder="Enter bus number"
+                    placeholderTextColor="#9ca3af"
+                    value={selectedBus}
+                    onChangeText={setSelectedBus}
+                    editable={!bus_number}
+                  />
                 </View>
 
                 {/* Reasons Selection */}

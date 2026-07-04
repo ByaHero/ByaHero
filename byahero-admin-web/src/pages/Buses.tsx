@@ -27,7 +27,15 @@ export default function Buses() {
       setLoading(true);
       const data = await adminService.listBuses();
       if (data.success) {
-        setBuses(data.buses || []);
+        const mapped = (data.buses || []).map((b: any) => ({
+          ...b,
+          id: b.Bus_ID || b.id,
+          bus_no: b.code || b.bus_no || '',
+          plate_no: b.plate_no || b.code || 'N/A',
+          capacity: b.total_seats || b.capacity || 25,
+          status: b.status || 'inactive'
+        }));
+        setBuses(mapped);
       }
     } catch (e) {
       setError('Failed to load buses.');
@@ -44,7 +52,7 @@ export default function Buses() {
     setCurrentBus(null);
     setBusNo('');
     setPlateNo('');
-    setCapacity(50);
+    setCapacity(25);
     setStatus('active');
     setDescription('');
     setIsFormOpen(true);
@@ -78,17 +86,17 @@ export default function Buses() {
       if (currentBus) {
         data = await adminService.updateBus({
           id: currentBus.id,
-          bus_no: busNo,
+          code: busNo,
           plate_no: plateNo,
-          capacity,
+          total_seats: capacity,
           status,
           description
         });
       } else {
         data = await adminService.addBus({
-          bus_no: busNo,
+          code: busNo,
           plate_no: plateNo,
-          capacity,
+          total_seats: capacity,
           status,
           description
         });

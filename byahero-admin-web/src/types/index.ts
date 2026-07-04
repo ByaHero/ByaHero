@@ -51,13 +51,18 @@ export interface Schedule {
 }
 
 export interface Fare {
-  id: number;
-  route_name: string;
-  base_fare: number;
-  per_km_rate: number;
-  discounted_base: number;
-  discounted_per_km: number;
+  fare_id: number;
+  origin_stop_id: number;
+  destination_stop_id: number;
+  origin_stop_name?: string;
+  destination_stop_name?: string;
+  regular_fare: number;
+  discounted_fare: number;
+  distance_km?: number;
+  base_regular_fare?: number;
+  base_discounted_fare?: number;
   created_at?: string;
+  updated_at?: string;
 }
 
 export interface WaitingPassenger {
@@ -74,8 +79,9 @@ export interface Stop {
   name: string;
   latitude: number;
   longitude: number;
-  type: 'terminal' | 'regular';
+  type: string;
   status: 'active' | 'inactive';
+  route?: string;
 }
 
 export interface Feedback {

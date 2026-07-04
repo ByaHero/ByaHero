@@ -79,7 +79,7 @@ export const adminService = {
   }),
   deleteFare: (id: number) => apiRequest('/api/admin/fares', {
     method: 'POST',
-    body: JSON.stringify({ action: 'delete_fare', id })
+    body: JSON.stringify({ action: 'delete_fare', fare_id: id })
   }),
 
   // Waiting Passengers
@@ -107,6 +107,7 @@ export const adminService = {
     const suffix = query.toString() ? `?${query.toString()}` : '';
     return apiRequest(`/api/admin/analytics${suffix}`);
   },
+
 
   // Lost & Found
   listLostAndFound: () => apiRequest('/api/admin/lost-and-found'),

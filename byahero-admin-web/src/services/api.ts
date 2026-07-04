@@ -27,9 +27,10 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
   });
 
   if (!response.ok) {
-    if (response.status === 419 || response.status === 401) {
-      // CSRF token mismatch or unauthorized, remove local cached session
+    if (response.status === 419 || response.status === 401 || response.status === 403) {
+      // CSRF token mismatch, unauthorized, or forbidden (expired session), remove local cached session
       localStorage.removeItem('byahero_admin_user');
+      window.location.href = '/login';
     }
     throw new Error(`HTTP Error: ${response.status}`);
   }
