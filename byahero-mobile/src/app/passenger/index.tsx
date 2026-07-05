@@ -11,6 +11,8 @@ import {
   Dimensions,
   Animated,
   Modal,
+  NativeModules,
+  DeviceEventEmitter,
 } from 'react-native';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
@@ -19,6 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
+import CookieManager from '@react-native-cookies/cookies';
 import { sendFcmPushes } from '../../services/notificationService';
 import * as Location from 'expo-location';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
@@ -28,6 +31,10 @@ import TourOverlay, { tourSteps } from '../../components/TourOverlay';
 import { handleTourLayout } from '../../components/TourRegistry';
 import { getLeafletHTML } from '../../components/passengerMapHtml';
 import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
+
+const { LocationServiceModule } = NativeModules;
+
+const LOCATION_TASK_NAME = 'background-location-task';
 
 export default function PassengerDashboard() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -165,6 +172,26 @@ export default function PassengerDashboard() {
     React.useCallback(() => {
       let subscription: Location.LocationSubscription | null = null;
       let isMounted = true;
+      let nativeLocationListener: any = null;
+
+      if (Platform.OS === 'android' && LocationServiceModule) {
+        nativeLocationListener = DeviceEventEmitter.addListener('onBackgroundLocation', (loc) => {
+          if (!isMounted) return;
+          console.log(`[Native Location] Background coords updated: Lat ${loc.lat}, Lng ${loc.lng}`);
+          setUserLocation({ lat: loc.lat, lng: loc.lng });
+
+          postToMap({
+            type: 'UPDATE_USER_LOCATION',
+            lat: loc.lat,
+            lng: loc.lng,
+            initial: userInitialRef.current,
+            profilePic: getFullProfilePicUrl(),
+            center: false
+          });
+
+          sendLocationToBackend(loc.lat, loc.lng, loc.accuracy || 0);
+        });
+      }
 
       async function startTracking() {
         try {
@@ -172,6 +199,11 @@ export default function PassengerDashboard() {
           if (status !== 'granted') {
             console.warn('Foreground location permission denied.');
             return;
+          }
+
+          const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
+          if (bgStatus !== 'granted') {
+            console.warn('Background location permission denied.');
           }
 
           // 1. Get quick last known location instantly
@@ -216,31 +248,44 @@ export default function PassengerDashboard() {
           }
 
           // Start watching position
-          subscription = await Location.watchPositionAsync(
-            {
-              accuracy: Location.Accuracy.High,
-              timeInterval: 10000, // every 10s
-              distanceInterval: 5, // or 5 meters
-            },
-            (location) => {
-              if (!isMounted) return;
-              const lat = location.coords.latitude;
-              const lng = location.coords.longitude;
-              console.log(`[Location GPS] Watched coordinates updated: Lat ${lat}, Lng ${lng}`);
-              setUserLocation({ lat, lng });
-
-              postToMap({
-                type: 'UPDATE_USER_LOCATION',
-                lat,
-                lng,
-                initial: userInitialRef.current,
-                profilePic: getFullProfilePicUrl(),
-                center: false
-              });
-
-              sendLocationToBackend(lat, lng, location.coords.accuracy || 0);
+          if (Platform.OS === 'android' && LocationServiceModule) {
+            const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+            const currentBaseUrl = await getServerUrl();
+            let cookieString = '';
+            try {
+              const cookies = await CookieManager.get(currentBaseUrl);
+              cookieString = Object.keys(cookies).map(key => `${key}=${cookies[key].value}`).join('; ');
+            } catch (e) {
+              console.warn('Failed to extract cookies:', e);
             }
-          );
+            LocationServiceModule.startService(email, currentBaseUrl, cookieString);
+          } else {
+            subscription = await Location.watchPositionAsync(
+              {
+                accuracy: Location.Accuracy.High,
+                timeInterval: 3000, // every 3s
+                distanceInterval: 3, // or 3 meters
+              },
+              (location) => {
+                if (!isMounted) return;
+                const lat = location.coords.latitude;
+                const lng = location.coords.longitude;
+                console.log(`[Location GPS] Watched coordinates updated: Lat ${lat}, Lng ${lng}`);
+                setUserLocation({ lat, lng });
+
+                postToMap({
+                  type: 'UPDATE_USER_LOCATION',
+                  lat,
+                  lng,
+                  initial: userInitialRef.current,
+                  profilePic: getFullProfilePicUrl(),
+                  center: false
+                });
+
+                sendLocationToBackend(lat, lng, location.coords.accuracy || 0);
+              }
+            );
+          }
         } catch (err) {
           console.error('Error starting location tracking:', err);
         }
@@ -276,6 +321,9 @@ export default function PassengerDashboard() {
           } catch (err) {
             console.warn('Failed to remove location subscription:', err);
           }
+        }
+        if (nativeLocationListener) {
+          nativeLocationListener.remove();
         }
       };
     }, [])
@@ -822,8 +870,6 @@ export default function PassengerDashboard() {
     const checkProximity = async () => {
       if (!userLocation || buses.length === 0) return;
 
-      console.log(`[Proximity] Checking... isWaiting: ${isWaiting}, isBoarded: ${isBoarded}, buses: ${buses.length}`);
-
       if (!isBoarded) {
         // Auto-board logic
         let nearestBus: any = null;
@@ -852,11 +898,8 @@ export default function PassengerDashboard() {
           }
         });
 
-        console.log(`[Proximity] nearestBus:`, nearestBus?.code, `distance:`, minDistance);
-
         if (nearestBus && isMounted) {
           try {
-            console.log(`[Proximity] Auto-boarding bus ${nearestBus.code}...`);
             const currentBaseUrl = await getServerUrl();
             const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
@@ -871,15 +914,12 @@ export default function PassengerDashboard() {
             });
 
             const data = await res.json();
-            console.log(`[Proximity] Auto-board response:`, data);
             if (data.success && isMounted) {
               setIsWaiting(false);
               setWaitingLocation('');
               setIsBoarded(true);
               setBoardedBus(nearestBus.code || '');
               Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
-            } else {
-              console.warn('[Proximity] Auto-board API failed:', data.message);
             }
           } catch (e) {
             console.warn('Auto-boarding failed:', e);

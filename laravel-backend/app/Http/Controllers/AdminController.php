@@ -35,13 +35,13 @@ class AdminController extends Controller
                                  ->whereIn('status', ['available', 'on_stop', 'full'])
                                  ->count(),
             'schedules' => BusSchedule::count(),
-            'waiting_pax' => DB::table('waiting_passengers')->where('status', 'waiting')->count(),
+            'waiting_pax' => \Illuminate\Support\Facades\Schema::hasTable('waiting_passengers') ? DB::table('waiting_passengers')->where('status', 'waiting')->count() : 0,
             'drivers' => Driver::count(),
             'conductors' => Conductor::count(),
             'bus_stops' => BusStopsTerminal::count(),
-            'lost_and_found' => DB::table('lost_and_found')->count(),
-            'feedbacks' => Feedback::count(),
-            'bus_fares' => DB::table('bus_fares')->count(),
+            'lost_and_found' => \Illuminate\Support\Facades\Schema::hasTable('lost_and_found') ? DB::table('lost_and_found')->count() : 0,
+            'feedbacks' => \Illuminate\Support\Facades\Schema::hasTable('feedbacks') ? Feedback::count() : 0,
+            'bus_fares' => \Illuminate\Support\Facades\Schema::hasTable('bus_fares') ? DB::table('bus_fares')->count() : 0,
             'reports' => \Illuminate\Support\Facades\Schema::hasTable('reports') ? DB::table('reports')->count() : 0,
         ];
 
