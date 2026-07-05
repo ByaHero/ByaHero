@@ -389,7 +389,8 @@ class BusController extends Controller
                 'message' => 'Boarded successfully',
                 'ride_id' => $rideId
             ]);
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('autoBoard crash: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
             return response()->json([
                 'success' => false,
                 'message' => $e->getMessage()
