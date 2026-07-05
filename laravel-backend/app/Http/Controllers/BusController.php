@@ -368,6 +368,7 @@ class BusController extends Controller
             if (Schema::hasColumn('passenger_rides', 'operation_id')) {
                 $rideData['operation_id'] = $operationId;
             } else {
+                $rideData['bus_id'] = $busId;
                 // If operation_id doesn't exist on passenger_rides, grab the route from the bus or operation
                 $opRoute = DB::table('bus_operations')->where('id', $operationId)->value('route');
                 if ($opRoute && Schema::hasColumn('passenger_rides', 'route')) {
