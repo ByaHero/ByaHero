@@ -270,64 +270,6 @@ class AdminController extends Controller
         return response()->json(['success' => false, 'error' => 'Unknown action.']);
     }
 
-    // --- FARES ---
-    public function listFares(Request $request)
-    {
-        $this->checkAuth();
-        $fares = \Illuminate\Support\Facades\DB::table('bus_fares')
-            ->join('bus_stops as origin', 'bus_fares.origin_stop_id', '=', 'origin.stop_id')
-            ->join('bus_stops as dest', 'bus_fares.destination_stop_id', '=', 'dest.stop_id')
-            ->select(
-                'bus_fares.*', 
-                'origin.location_name as origin_stop_name', 
-                'dest.location_name as destination_stop_name'
-            )
-            ->orderBy('bus_fares.fare_id', 'desc')
-            ->get();
-            
-        return response()->json(['success' => true, 'fares' => $fares]);
-    }
-
-    public function manageFares(Request $request)
-    {
-        $this->checkAuth();
-        $action = $request->input('action');
-
-        if ($action === 'add_fare' || $action === 'update_fare') {
-            $fare_id = $request->input('fare_id');
-            $data = [
-                'origin_stop_id' => $request->input('origin_stop_id'),
-                'destination_stop_id' => $request->input('destination_stop_id'),
-                'regular_fare' => $request->input('regular_fare'),
-                'discounted_fare' => $request->input('discounted_fare'),
-                'distance_km' => $request->input('distance_km'),
-                'base_regular_fare' => $request->input('base_regular_fare'),
-                'base_discounted_fare' => $request->input('base_discounted_fare'),
-                'updated_at' => now(),
-            ];
-
-            try {
-                if ($action === 'add_fare') {
-                    $data['created_at'] = now();
-                    \Illuminate\Support\Facades\DB::table('bus_fares')->insert($data);
-                    return response()->json(['success' => true, 'message' => 'Fare saved successfully.']);
-                } else {
-                    if (!$fare_id) return response()->json(['success' => false, 'error' => 'Fare ID is required.']);
-                    \Illuminate\Support\Facades\DB::table('bus_fares')->where('fare_id', $fare_id)->update($data);
-                    return response()->json(['success' => true, 'message' => 'Fare updated successfully.']);
-                }
-            } catch (\Exception $e) {
-                return response()->json(['success' => false, 'error' => 'Failed to save: ' . $e->getMessage()]);
-            }
-        } elseif ($action === 'delete_fare') {
-            $fare_id = $request->input('fare_id');
-            if (!$fare_id) return response()->json(['success' => false, 'error' => 'Fare ID is required.']);
-            \Illuminate\Support\Facades\DB::table('bus_fares')->where('fare_id', $fare_id)->delete();
-            return response()->json(['success' => true, 'message' => 'Fare deleted.']);
-        }
-
-        return response()->json(['success' => false, 'error' => 'Unknown action.']);
-    }
 
     // --- SCHEDULES & ASSIGNMENTS ---
     public function listSchedules(Request $request)
