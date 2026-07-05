@@ -373,10 +373,10 @@ class BusController extends Controller
                 $rideData['bus_id'] = $busId;
             }
 
-            if (!Schema::hasColumn('passenger_rides', 'operation_id')) {
-                // If operation_id doesn't exist on passenger_rides, grab the route from the bus or operation
+            if (Schema::hasColumn('passenger_rides', 'route')) {
+                // Always populate route if the column exists
                 $opRoute = DB::table('bus_operations')->where('id', $operationId)->value('route');
-                if ($opRoute && Schema::hasColumn('passenger_rides', 'route')) {
+                if ($opRoute) {
                     $rideData['route'] = $opRoute;
                 }
             }
