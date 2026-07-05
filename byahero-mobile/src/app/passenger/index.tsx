@@ -822,10 +822,12 @@ export default function PassengerDashboard() {
     const checkProximity = async () => {
       if (!userLocation || buses.length === 0) return;
 
-      if (isWaiting && !isBoarded) {
+      console.log(`[Proximity] Checking... isWaiting: ${isWaiting}, isBoarded: ${isBoarded}, buses: ${buses.length}`);
+
+      if (!isBoarded) {
         // Auto-board logic
         let nearestBus: any = null;
-        let minDistance = 0.02; // 20 meters threshold
+        let minDistance = 0.05; // 50 meters threshold
 
         buses.forEach(bus => {
           const busLat = parseFloat(bus.lat || bus.latitude);
@@ -850,8 +852,11 @@ export default function PassengerDashboard() {
           }
         });
 
+        console.log(`[Proximity] nearestBus:`, nearestBus?.code, `distance:`, minDistance);
+
         if (nearestBus && isMounted) {
           try {
+            console.log(`[Proximity] Auto-boarding bus ${nearestBus.code}...`);
             const currentBaseUrl = await getServerUrl();
             const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
@@ -866,12 +871,15 @@ export default function PassengerDashboard() {
             });
 
             const data = await res.json();
+            console.log(`[Proximity] Auto-board response:`, data);
             if (data.success && isMounted) {
               setIsWaiting(false);
               setWaitingLocation('');
               setIsBoarded(true);
               setBoardedBus(nearestBus.code || '');
               Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
+            } else {
+              console.warn('[Proximity] Auto-board API failed:', data.message);
             }
           } catch (e) {
             console.warn('Auto-boarding failed:', e);
@@ -897,8 +905,8 @@ export default function PassengerDashboard() {
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             const distance = R * c;
 
-            // If user is more than 150 meters away from the bus, auto depart
-            if (distance > 0.15 && isMounted) {
+            // If user is more than 200 meters away from the bus, auto depart
+            if (distance > 0.2 && isMounted) {
               try {
                 const currentBaseUrl = await getServerUrl();
                 const email = await AsyncStorage.getItem('byahero_cached_email') || '';
