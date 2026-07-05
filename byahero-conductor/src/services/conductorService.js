@@ -128,7 +128,7 @@ export async function getMapFeatures() {
  * Retrieves the count of waiting passengers per stop.
  */
 export async function getWaitingPassengerCount() {
-  return safeRequest('backend/waiting_api.php?action=get_wait_count');
+  return safeRequest('api/conductor/waiting-passengers');
 }
 
 /**

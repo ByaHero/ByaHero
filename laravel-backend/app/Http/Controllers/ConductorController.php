@@ -455,4 +455,23 @@ class ConductorController extends Controller
             'message' => 'Passenger event logged successfully'
         ]);
     }
+    public function getWaitingPassengers(Request $request)
+    {
+        $this->checkAuth();
+
+        $locations = DB::table('waiting_passengers')
+            ->select('location_name', DB::raw('count(*) as count'))
+            ->where('status', 'waiting')
+            ->groupBy('location_name')
+            ->orderBy('count', 'desc')
+            ->get();
+
+        $total = $locations->sum('count');
+
+        return response()->json([
+            'success' => true,
+            'total' => $total,
+            'locations' => $locations
+        ]);
+    }
 }

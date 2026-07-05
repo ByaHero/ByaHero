@@ -209,6 +209,26 @@ class BusController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
         }
 
+        // Check if boarded
+        $activeRide = DB::table('passenger_rides as pr')
+            ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
+            ->where('pr.user_id', $userId)
+            ->where('pr.status', 'active')
+            ->select('pr.id', 'b.code as bus_code', 'b.route')
+            ->orderBy('pr.id', 'desc')
+            ->first();
+
+        if ($activeRide) {
+            return response()->json([
+                'success' => true,
+                'is_waiting' => false,
+                'is_boarded' => true,
+                'bus_code' => $activeRide->bus_code,
+                'route' => $activeRide->route,
+                'location_name' => null
+            ]);
+        }
+
         $waiting = DB::table('waiting_passengers')
             ->where('user_id', $userId)
             ->where('status', 'waiting')
@@ -219,6 +239,7 @@ class BusController extends Controller
             return response()->json([
                 'success' => true,
                 'is_waiting' => true,
+                'is_boarded' => false,
                 'location_name' => $waiting->location_name
             ]);
         }
@@ -226,6 +247,7 @@ class BusController extends Controller
         return response()->json([
             'success' => true,
             'is_waiting' => false,
+            'is_boarded' => false,
             'location_name' => null
         ]);
     }
@@ -354,6 +376,43 @@ class BusController extends Controller
             'success' => true,
             'message' => 'Boarded successfully',
             'ride_id' => $rideId
+        ]);
+    }
+
+    public function autoDepart(Request $request)
+    {
+        $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        }
+
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+        }
+
+        // Find active ride
+        $activeRide = DB::table('passenger_rides')
+            ->where('user_id', $userId)
+            ->where('status', 'active')
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if (!$activeRide) {
+            return response()->json(['success' => false, 'message' => 'No active ride found'], 404);
+        }
+
+        // Update ride status to completed
+        DB::table('passenger_rides')
+            ->where('id', $activeRide->id)
+            ->update([
+                'status' => 'completed',
+                'dropped_off_at' => now()
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Departed successfully'
         ]);
     }
 

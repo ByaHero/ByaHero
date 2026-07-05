@@ -57,7 +57,7 @@ Route::middleware([
     Route::post('/waiting/set', [BusController::class, 'setWaitingStatus']);
     Route::post('/waiting/cancel', [BusController::class, 'cancelWaitingStatus']);
     Route::post('/passenger/board', [BusController::class, 'autoBoard']);
-
+    Route::post('/passenger/depart', [BusController::class, 'autoDepart']);
     Route::post('/lost-and-found/create', [LostAndFoundController::class, 'create']);
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);
 
@@ -96,6 +96,7 @@ Route::middleware([
     Route::post('/conductor/log-passenger-event', [ConductorController::class, 'logPassengerEvent']);
     Route::post('/conductor/stop', [ConductorController::class, 'stop']);
     Route::match(['get', 'post'], '/conductor/profile', [ConductorController::class, 'updateProfile']);
+    Route::get('/conductor/waiting-passengers', [ConductorController::class, 'getWaitingPassengers']);
 
     // Passenger profile routes
     Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);

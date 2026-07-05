@@ -27,6 +27,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TourOverlay, { tourSteps } from '../../components/TourOverlay';
 import { handleTourLayout } from '../../components/TourRegistry';
 import { getLeafletHTML } from '../../components/passengerMapHtml';
+import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
 
 export default function PassengerDashboard() {
   const [activeStep, setActiveStep] = useState<number | null>(null);
@@ -92,6 +93,11 @@ export default function PassengerDashboard() {
   const [waitingLocation, setWaitingLocation] = useState('');
   const [waitingModalVisible, setWaitingModalVisible] = useState(false);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
+  
+  // Boarding Status States
+  const [isBoarded, setIsBoarded] = useState(false);
+  const [boardedBus, setBoardedBus] = useState('');
+  const [boardedRoute, setBoardedRoute] = useState('');
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -434,6 +440,9 @@ export default function PassengerDashboard() {
             if (waitData.success) {
               setIsWaiting(!!waitData.is_waiting);
               setWaitingLocation(waitData.location_name || '');
+              setIsBoarded(!!waitData.is_boarded);
+              setBoardedBus(waitData.bus_code || '');
+              setBoardedRoute(waitData.route || '');
             }
           }
         }
@@ -546,40 +555,37 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Helper to resolve nearest stop within 150m geofence
+  // Helper to resolve recognized location from GeoJSON polygons
   const resolveNearestStop = () => {
-    if (!userLocation || busStops.length === 0) return null;
+    if (!userLocation || !routeGeoJSON || !routeGeoJSON.features) return null;
 
-    let nearestStop: any = null;
-    let minDistance = 0.15; // recognized within 150 meters (0.15 km)
+    const x = userLocation.lng;
+    const y = userLocation.lat;
 
-    busStops.forEach(stop => {
-      const stopLat = parseFloat(stop.latitude || stop.lat);
-      const stopLng = parseFloat(stop.longitude || stop.lng);
-      if (!isNaN(stopLat) && !isNaN(stopLng)) {
-        const R = 6371; // km
-        const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
-        const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(stopLat * Math.PI / 180) *
-          Math.cos(userLocation.lat * Math.PI / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
+    for (let feature of routeGeoJSON.features) {
+      if (feature.geometry && feature.geometry.type === 'Polygon') {
+        const polygon = feature.geometry.coordinates;
+        let inside = false;
+        // Check exterior ring (polygon[0])
+        const ring = polygon[0];
+        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+          let xi = ring[i][0], yi = ring[i][1];
+          let xj = ring[j][0], yj = ring[j][1];
+          
+          let intersect = ((yi > y) !== (yj > y)) &&
+              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+          if (intersect) inside = !inside;
+        }
 
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestStop = stop;
+        if (inside) {
+          return { name: feature.properties['Current Location'] || 'Route Polygon' };
         }
       }
-    });
-
-    return nearestStop;
+    }
+    return null;
   };
 
-  const handleSetWaiting = async (stopName: string) => {
+  const handleSetWaiting = async (stopName: string, silent: boolean = false) => {
     setIsUpdatingWaiting(true);
     try {
       const currentBaseUrl = await getServerUrl();
@@ -599,18 +605,24 @@ export default function PassengerDashboard() {
         setIsWaiting(true);
         setWaitingLocation(stopName);
         setWaitingModalVisible(false);
-        Alert.alert('Waiting Status Set', `🚌 You are now marked as waiting at ${stopName}!`);
+        if (!silent) {
+          Alert.alert('Waiting Status Set', `🚌 You are now marked as waiting at ${stopName}!`);
+        }
       } else {
-        Alert.alert('Error', data.message || 'Failed to update waiting status.');
+        if (!silent) {
+          Alert.alert('Error', data.message || 'Failed to update waiting status.');
+        }
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error. Failed to set waiting status.');
+      if (!silent) {
+        Alert.alert('Error', 'Network error. Failed to set waiting status.');
+      }
     } finally {
       setIsUpdatingWaiting(false);
     }
   };
 
-  const handleCancelWaiting = async () => {
+  const handleCancelWaiting = async (silent: boolean = false) => {
     setIsUpdatingWaiting(true);
     try {
       const currentBaseUrl = await getServerUrl();
@@ -629,12 +641,18 @@ export default function PassengerDashboard() {
         setIsWaiting(false);
         setWaitingLocation('');
         setWaitingModalVisible(false);
-        Alert.alert('Success', 'Waiting status cancelled successfully.');
+        if (!silent) {
+          Alert.alert('Success', 'Waiting status cancelled successfully.');
+        }
       } else {
-        Alert.alert('Error', data.message || 'Failed to cancel waiting status.');
+        if (!silent) {
+          Alert.alert('Error', data.message || 'Failed to cancel waiting status.');
+        }
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error. Failed to cancel waiting status.');
+      if (!silent) {
+        Alert.alert('Error', 'Network error. Failed to cancel waiting status.');
+      }
     } finally {
       setIsUpdatingWaiting(false);
     }
@@ -790,63 +808,114 @@ export default function PassengerDashboard() {
     );
   };
 
-  // Auto-boarding logic
+  // Auto-boarding and Auto-departing logic
   useEffect(() => {
     let isMounted = true;
-    
+
     const checkProximity = async () => {
-      if (!isWaiting || !userLocation || buses.length === 0) return;
+      if (!userLocation || buses.length === 0) return;
 
-      let nearestBus: any = null;
-      let minDistance = 0.02; // 20 meters threshold
+      if (isWaiting && !isBoarded) {
+        // Auto-board logic
+        let nearestBus: any = null;
+        let minDistance = 0.02; // 20 meters threshold
 
-      buses.forEach(bus => {
-        const busLat = parseFloat(bus.lat || bus.latitude);
-        const busLng = parseFloat(bus.lng || bus.longitude);
-        if (!isNaN(busLat) && !isNaN(busLng)) {
-          const R = 6371; // km
-          const dLat = (userLocation.lat - busLat) * Math.PI / 180;
-          const dLon = (userLocation.lng - busLng) * Math.PI / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(busLat * Math.PI / 180) *
-            Math.cos(userLocation.lat * Math.PI / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const distance = R * c;
+        buses.forEach(bus => {
+          const busLat = parseFloat(bus.lat || bus.latitude);
+          const busLng = parseFloat(bus.lng || bus.longitude);
+          if (!isNaN(busLat) && !isNaN(busLng)) {
+            const R = 6371; // km
+            const dLat = (userLocation.lat - busLat) * Math.PI / 180;
+            const dLon = (userLocation.lng - busLng) * Math.PI / 180;
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(busLat * Math.PI / 180) *
+              Math.cos(userLocation.lat * Math.PI / 180) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c;
 
-          if (distance < minDistance) {
-            minDistance = distance;
-            nearestBus = bus;
+            if (distance < minDistance) {
+              minDistance = distance;
+              nearestBus = bus;
+            }
+          }
+        });
+
+        if (nearestBus && isMounted) {
+          try {
+            const currentBaseUrl = await getServerUrl();
+            const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+
+            const res = await fetch(`${currentBaseUrl}/api/passenger/board`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                email: email,
+                bus_id: nearestBus.Bus_ID,
+                operation_id: nearestBus.current_operation_id
+              })
+            });
+
+            const data = await res.json();
+            if (data.success && isMounted) {
+              setIsWaiting(false);
+              setWaitingLocation('');
+              setIsBoarded(true);
+              setBoardedBus(nearestBus.code || '');
+              Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
+            }
+          } catch (e) {
+            console.warn('Auto-boarding failed:', e);
           }
         }
-      });
+      } else if (isBoarded && boardedBus) {
+        // Auto-depart logic
+        const currentBus = buses.find(b => b.code === boardedBus);
+        if (currentBus) {
+          const busLat = parseFloat(currentBus.lat || currentBus.latitude);
+          const busLng = parseFloat(currentBus.lng || currentBus.longitude);
+          
+          if (!isNaN(busLat) && !isNaN(busLng)) {
+            const R = 6371; // km
+            const dLat = (userLocation.lat - busLat) * Math.PI / 180;
+            const dLon = (userLocation.lng - busLng) * Math.PI / 180;
+            const a =
+              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(busLat * Math.PI / 180) *
+              Math.cos(userLocation.lat * Math.PI / 180) *
+              Math.sin(dLon / 2) *
+              Math.sin(dLon / 2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            const distance = R * c;
 
-      if (nearestBus && isMounted) {
-        // Auto-board logic
-        try {
-          const currentBaseUrl = await getServerUrl();
-          const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+            // If user is more than 150 meters away from the bus, auto depart
+            if (distance > 0.15 && isMounted) {
+              try {
+                const currentBaseUrl = await getServerUrl();
+                const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
-          const res = await fetch(`${currentBaseUrl}/api/passenger/board`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              email: email,
-              bus_id: nearestBus.Bus_ID,
-              operation_id: nearestBus.current_operation_id
-            })
-          });
+                const res = await fetch(`${currentBaseUrl}/api/passenger/depart`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    email: email
+                  })
+                });
 
-          const data = await res.json();
-          if (data.success && isMounted) {
-            setIsWaiting(false);
-            setWaitingLocation('');
-            Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
+                const data = await res.json();
+                if (data.success && isMounted) {
+                  setIsBoarded(false);
+                  setBoardedBus('');
+                  setBoardedRoute('');
+                  Alert.alert('Departed Successfully', `👋 You have successfully alighted from Bus ${boardedBus}.`);
+                }
+              } catch (e) {
+                console.warn('Auto-depart failed:', e);
+              }
+            }
           }
-        } catch (e) {
-          console.warn('Auto-boarding failed:', e);
         }
       }
     };
@@ -859,7 +928,26 @@ export default function PassengerDashboard() {
       isMounted = false;
       clearInterval(interval);
     };
-  }, [isWaiting, userLocation, buses]);
+  }, [isWaiting, isBoarded, userLocation, buses, boardedBus]);
+
+  // Geolocation-based waiting status automatic toggle
+  useEffect(() => {
+    if (!userLocation || isUpdatingWaiting || isBoarded) return;
+
+    const nearestStop = resolveNearestStop();
+
+    if (nearestStop) {
+      // If we are not already waiting at this exact stop, set it
+      if (!isWaiting || waitingLocation !== nearestStop.name) {
+        handleSetWaiting(nearestStop.name, true); // true for silent
+      }
+    } else {
+      // If we moved away from any stop and we are waiting, cancel it
+      if (isWaiting) {
+        handleCancelWaiting(true); // true for silent
+      }
+    }
+  }, [userLocation, isBoarded, isWaiting, waitingLocation]);
 
   // Map HTML using LeafletJS loaded via CDN
   const leafletHTML = getLeafletHTML(baseUrl);
@@ -986,7 +1074,31 @@ export default function PassengerDashboard() {
                 Are you waiting for a bus?
               </Text>
 
-              {isWaiting ? (
+              {isBoarded ? (
+                <>
+                  {/* Status Indicator: Boarded */}
+                  <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                    <Text style={[tw`text-xs font-black text-blue-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                      STATUS: BOARDED
+                    </Text>
+                    <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center mb-1`, { fontFamily: 'Inter_900Black' }]}>
+                      Bus {boardedBus}
+                    </Text>
+                    <Text style={[tw`text-[11px] text-blue-600 font-semibold text-center uppercase tracking-wider`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
+                      Route: {boardedRoute}
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    onPress={() => setWaitingModalVisible(false)}
+                    style={tw`w-full bg-slate-100 py-3 rounded-full justify-center items-center mb-2`}
+                  >
+                    <Text style={[tw`text-slate-500 font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
+                      Close
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              ) : isWaiting ? (
                 <>
                   {/* Status Indicator: Waiting */}
                   <View style={tw`bg-emerald-50 border border-emerald-100 rounded-2xl p-4 w-full mb-6 items-center`}>
@@ -999,7 +1111,7 @@ export default function PassengerDashboard() {
                   </View>
 
                   <TouchableOpacity
-                    onPress={handleCancelWaiting}
+                    onPress={() => handleCancelWaiting()}
                     disabled={isUpdatingWaiting}
                     style={tw`w-full bg-red-500 py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
                   >
@@ -1028,7 +1140,7 @@ export default function PassengerDashboard() {
                       </View>
 
                       <TouchableOpacity
-                        onPress={() => handleSetWaiting(resolveNearestStop()?.name)}
+                        onPress={() => handleSetWaiting(resolveNearestStop()?.name || '')}
                         disabled={isUpdatingWaiting}
                         style={tw`w-full bg-[#103d7c] py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
                       >
