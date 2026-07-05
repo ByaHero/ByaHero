@@ -332,51 +332,68 @@ class BusController extends Controller
 
     public function autoBoard(Request $request)
     {
-        $userId = Session::get('user_id');
-        $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
-        }
+        try {
+            $userId = Session::get('user_id');
+            $email = $request->input('email');
+            if (empty($userId) && !empty($email)) {
+                $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+            }
 
-        if (empty($userId)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
-        }
+            if (empty($userId)) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
+            }
 
-        $busId = $request->input('bus_id');
-        $operationId = $request->input('operation_id');
+            $busId = $request->input('bus_id');
+            $operationId = $request->input('operation_id');
 
-        if (empty($busId) || empty($operationId)) {
-            return response()->json(['success' => false, 'message' => 'bus_id and operation_id are required'], 400);
-        }
+            if (empty($busId) || empty($operationId)) {
+                return response()->json(['success' => false, 'message' => 'bus_id and operation_id are required'], 400);
+            }
 
-        // Cancel waiting status
-        DB::table('waiting_passengers')
-            ->where('user_id', $userId)
-            ->where('status', 'waiting')
-            ->update([
-                'status' => 'boarded',
-                'updated_at' => now()
+            // Cancel waiting status
+            DB::table('waiting_passengers')
+                ->where('user_id', $userId)
+                ->where('status', 'waiting')
+                ->update([
+                    'status' => 'boarded',
+                    'updated_at' => now()
+                ]);
+
+            $rideData = [
+                'user_id' => $userId,
+                'status' => 'active',
+                'boarded_at' => now()
+            ];
+
+            if (Schema::hasColumn('passenger_rides', 'operation_id')) {
+                $rideData['operation_id'] = $operationId;
+            } else {
+                // If operation_id doesn't exist on passenger_rides, grab the route from the bus or operation
+                $opRoute = DB::table('bus_operations')->where('id', $operationId)->value('route');
+                if ($opRoute && Schema::hasColumn('passenger_rides', 'route')) {
+                    $rideData['route'] = $opRoute;
+                }
+            }
+
+            // Create passenger ride
+            $rideId = DB::table('passenger_rides')->insertGetId($rideData);
+
+            // Increment boarded count in bus_operations
+            DB::table('bus_operations')
+                ->where('id', $operationId)
+                ->increment('total_boarded');
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Boarded successfully',
+                'ride_id' => $rideId
             ]);
-
-        // Create passenger ride
-        $rideId = DB::table('passenger_rides')->insertGetId([
-            'user_id' => $userId,
-            'operation_id' => $operationId,
-            'bus_id' => $busId,
-            'status' => 'active',
-            'boarded_at' => now()
-        ]);
-
-        // Increment boarded count in bus_operations
-        DB::table('bus_operations')
-            ->where('id', $operationId)
-            ->increment('total_boarded');
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Boarded successfully',
-            'ride_id' => $rideId
-        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ]);
+        }
     }
 
     public function autoDepart(Request $request)
@@ -407,7 +424,7 @@ class BusController extends Controller
             ->where('id', $activeRide->id)
             ->update([
                 'status' => 'completed',
-                'dropped_off_at' => now()
+                'departed_at' => now()
             ]);
 
         return response()->json([

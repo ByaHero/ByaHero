@@ -93,11 +93,14 @@ export default function PassengerDashboard() {
   const [waitingLocation, setWaitingLocation] = useState('');
   const [waitingModalVisible, setWaitingModalVisible] = useState(false);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
-  
+
   // Boarding Status States
   const [isBoarded, setIsBoarded] = useState(false);
   const [boardedBus, setBoardedBus] = useState('');
   const [boardedRoute, setBoardedRoute] = useState('');
+
+  // Prevent auto-rejoin immediately after manual cancel
+  const [cancelledStopName, setCancelledStopName] = useState<string | null>(null);
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -571,9 +574,9 @@ export default function PassengerDashboard() {
         for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
           let xi = ring[i][0], yi = ring[i][1];
           let xj = ring[j][0], yj = ring[j][1];
-          
+
           let intersect = ((yi > y) !== (yj > y)) &&
-              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
           if (intersect) inside = !inside;
         }
 
@@ -604,6 +607,7 @@ export default function PassengerDashboard() {
       if (data.success) {
         setIsWaiting(true);
         setWaitingLocation(stopName);
+        setCancelledStopName(null); // clear if they manually set it again
         setWaitingModalVisible(false);
         if (!silent) {
           Alert.alert('Waiting Status Set', `🚌 You are now marked as waiting at ${stopName}!`);
@@ -638,6 +642,9 @@ export default function PassengerDashboard() {
 
       const data = await res.json();
       if (data.success) {
+        if (!silent) {
+          setCancelledStopName(waitingLocation);
+        }
         setIsWaiting(false);
         setWaitingLocation('');
         setWaitingModalVisible(false);
@@ -876,7 +883,7 @@ export default function PassengerDashboard() {
         if (currentBus) {
           const busLat = parseFloat(currentBus.lat || currentBus.latitude);
           const busLng = parseFloat(currentBus.lng || currentBus.longitude);
-          
+
           if (!isNaN(busLat) && !isNaN(busLng)) {
             const R = 6371; // km
             const dLat = (userLocation.lat - busLat) * Math.PI / 180;
@@ -939,15 +946,19 @@ export default function PassengerDashboard() {
     if (nearestStop) {
       // If we are not already waiting at this exact stop, set it
       if (!isWaiting || waitingLocation !== nearestStop.name) {
-        handleSetWaiting(nearestStop.name, true); // true for silent
+        // Prevent auto-waiting if they just explicitly cancelled this stop
+        if (nearestStop.name !== cancelledStopName) {
+          handleSetWaiting(nearestStop.name, true); // true for silent
+        }
       }
     } else {
       // If we moved away from any stop and we are waiting, cancel it
+      if (cancelledStopName) setCancelledStopName(null);
       if (isWaiting) {
         handleCancelWaiting(true); // true for silent
       }
     }
-  }, [userLocation, isBoarded, isWaiting, waitingLocation]);
+  }, [userLocation, isBoarded, isWaiting, waitingLocation, cancelledStopName]);
 
   // Map HTML using LeafletJS loaded via CDN
   const leafletHTML = getLeafletHTML(baseUrl);
@@ -1034,6 +1045,13 @@ export default function PassengerDashboard() {
             menuVisible={menuVisible}
             setMenuVisible={setMenuVisible}
           />
+          {isBoarded && !menuVisible && (
+            <View style={[tw`bg-blue-600 px-4 py-1.5 flex-row items-center justify-center rounded-b-2xl shadow-sm`, { marginTop: -15, paddingTop: 18, zIndex: -1 }]}>
+              <Text style={tw`text-white text-[11px] font-black tracking-widest uppercase`}>
+                BOARDED: BUS {boardedBus}
+              </Text>
+            </View>
+          )}
         </View>
 
         {activeStep !== null && (
