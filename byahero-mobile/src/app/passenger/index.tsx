@@ -21,7 +21,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
-import CookieManager from '@react-native-cookies/cookies';
 import { sendFcmPushes } from '../../services/notificationService';
 import * as Location from 'expo-location';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
@@ -253,6 +252,7 @@ export default function PassengerDashboard() {
             const currentBaseUrl = await getServerUrl();
             let cookieString = '';
             try {
+              const CookieManager = require('@react-native-cookies/cookies');
               const cookies = await CookieManager.get(currentBaseUrl);
               cookieString = Object.keys(cookies).map(key => `${key}=${cookies[key].value}`).join('; ');
             } catch (e) {

@@ -584,7 +584,9 @@ export default function PassengerBottomSheet({
                   let relativeSeenText = 'Location unavailable';
 
                   if (friend.updated_at) {
-                    const date = new Date(friend.updated_at.replace(/-/g, "/"));
+                    // Ensure the date string is treated as UTC if it doesn't already have a timezone indicator
+                    const dateString = friend.updated_at.includes('T') ? friend.updated_at : friend.updated_at.replace(' ', 'T') + 'Z';
+                    const date = new Date(dateString);
                     if (!isNaN(date.getTime())) {
                       const diffMs = new Date().getTime() - date.getTime();
                       const diffMin = Math.floor(diffMs / 60000);
