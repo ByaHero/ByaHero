@@ -709,11 +709,11 @@ export default function Analytics() {
                       </tr>
                     </thead>
                     <tbody>
-                      {data.recentOperations.slice(0, recentLimit).map((operation) => {
+                      {data.recentOperations.slice(0, recentLimit).map((operation, index) => {
                         const statusBadge = operation.status === 'active' ? 'bg-success-subtle text-success' : operation.status === 'pending' ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary';
                         const duration = operation.duration_min != null ? `${operation.duration_min} min` : '-';
                         return (
-                          <tr key={`${operation.bus_code}-${operation.route}-${operation.conductor_email}`}>
+                          <tr key={`${operation.bus_code}-${operation.route}-${operation.conductor_email}-${index}`}>
                             <td className="text-dark fw-bold py-2">{operation.bus_code}</td>
                             <td className="py-2">{operation.route}</td>
                             <td className="py-2">{conductorName(operation.conductor_email)}</td>

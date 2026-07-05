@@ -31,14 +31,27 @@ export default function Dashboard() {
     reports: 0,
     feedbacks: 0,
     bus_fares: 0,
+    analytics_boarded: 0,
   });
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const data = await adminService.getDashboardStats();
+      const [data, analyticsData] = await Promise.all([
+        adminService.getDashboardStats(),
+        adminService.getAnalytics({ period: 'today' }).catch(() => null)
+      ]);
+      
+      let analyticsBoarded = 0;
+      if (analyticsData && analyticsData.success && analyticsData.summary) {
+        analyticsBoarded = analyticsData.summary.total_passengers ?? 0;
+      }
+
       if (data.success && data.stats) {
-        setStats(data.stats);
+        setStats({
+          ...data.stats,
+          analytics_boarded: analyticsBoarded
+        });
       }
     } catch (e) {
       console.error('Failed to fetch dashboard stats', e);
@@ -82,7 +95,7 @@ export default function Dashboard() {
       title: 'Revenue & Insights',
       items: [
         { label: 'Bus Fares', count: stats.bus_fares, route: '/fares', action: 'Manage', icon: DollarSign },
-        { label: 'Analytics (Boarded)', count: 0, route: '/analytics', action: 'View', icon: BarChart3 },
+        { label: 'Analytics (Boarded)', count: stats.analytics_boarded ?? 0, route: '/analytics', action: 'View', icon: BarChart3 },
       ],
     }
   ];
