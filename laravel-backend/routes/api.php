@@ -56,6 +56,7 @@ Route::middleware([
     Route::get('/waiting/status', [BusController::class, 'getMyWaitingStatus']);
     Route::post('/waiting/set', [BusController::class, 'setWaitingStatus']);
     Route::post('/waiting/cancel', [BusController::class, 'cancelWaitingStatus']);
+    Route::post('/passenger/board', [BusController::class, 'autoBoard']);
 
     Route::post('/lost-and-found/create', [LostAndFoundController::class, 'create']);
     Route::match(['get', 'post'], '/lost-and-found/my-reports', [LostAndFoundController::class, 'myReports']);

@@ -790,6 +790,77 @@ export default function PassengerDashboard() {
     );
   };
 
+  // Auto-boarding logic
+  useEffect(() => {
+    let isMounted = true;
+    
+    const checkProximity = async () => {
+      if (!isWaiting || !userLocation || buses.length === 0) return;
+
+      let nearestBus: any = null;
+      let minDistance = 0.02; // 20 meters threshold
+
+      buses.forEach(bus => {
+        const busLat = parseFloat(bus.lat || bus.latitude);
+        const busLng = parseFloat(bus.lng || bus.longitude);
+        if (!isNaN(busLat) && !isNaN(busLng)) {
+          const R = 6371; // km
+          const dLat = (userLocation.lat - busLat) * Math.PI / 180;
+          const dLon = (userLocation.lng - busLng) * Math.PI / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(busLat * Math.PI / 180) *
+            Math.cos(userLocation.lat * Math.PI / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distance = R * c;
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            nearestBus = bus;
+          }
+        }
+      });
+
+      if (nearestBus && isMounted) {
+        // Auto-board logic
+        try {
+          const currentBaseUrl = await getServerUrl();
+          const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+
+          const res = await fetch(`${currentBaseUrl}/api/passenger/board`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              email: email,
+              bus_id: nearestBus.Bus_ID,
+              operation_id: nearestBus.current_operation_id
+            })
+          });
+
+          const data = await res.json();
+          if (data.success && isMounted) {
+            setIsWaiting(false);
+            setWaitingLocation('');
+            Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
+          }
+        } catch (e) {
+          console.warn('Auto-boarding failed:', e);
+        }
+      }
+    };
+
+    // Check periodically
+    const interval = setInterval(checkProximity, 5000);
+    checkProximity();
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isWaiting, userLocation, buses]);
+
   // Map HTML using LeafletJS loaded via CDN
   const leafletHTML = getLeafletHTML(baseUrl);
 
