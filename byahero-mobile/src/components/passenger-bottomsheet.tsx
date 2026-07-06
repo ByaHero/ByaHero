@@ -34,6 +34,7 @@ interface PassengerBottomSheetProps {
   setStopsRoute: (route: 'LAUREL - TANAUAN' | 'TANAUAN - LAUREL') => void;
   filteredStops: any[];
   handleStopPress: (stop: any) => void;
+  handleBusPress?: (bus: any) => void;
   userLocation: { lat: number; lng: number } | null;
   baseUrl: string;
   translateY: Animated.Value;
@@ -79,6 +80,7 @@ export default function PassengerBottomSheet({
   setStopsRoute,
   filteredStops,
   handleStopPress,
+  handleBusPress,
   userLocation,
   baseUrl,
   translateY,
@@ -367,7 +369,12 @@ export default function PassengerBottomSheet({
                 const progress = bus.progress || 90;
 
                 return (
-                  <View key={idx} style={tw`border-b border-[#e2e8f0] py-4`}>
+                  <TouchableOpacity
+                    key={idx}
+                    onPress={() => handleBusPress?.(bus)}
+                    style={tw`border-b border-[#e2e8f0] py-4`}
+                    activeOpacity={0.7}
+                  >
                     {/* Top Row: Code & Status Badge */}
                     <View style={tw`flex-row justify-between items-center mb-1.5`}>
                       <View style={[tw`px-2.5 py-1 rounded-[6px]`, { backgroundColor: '#103d7c' }]}>
@@ -443,7 +450,7 @@ export default function PassengerBottomSheet({
                         <MaterialIcons name="place" size={11} color="#ef4444" />
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })
             )}

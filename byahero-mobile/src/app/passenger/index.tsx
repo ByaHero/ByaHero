@@ -606,33 +606,70 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Helper to resolve recognized location from GeoJSON polygons
+  // Helper to resolve recognized location from GeoJSON polygons or proximity to database stops
   const resolveNearestStop = () => {
-    if (!userLocation || !routeGeoJSON || !routeGeoJSON.features) return null;
+    if (!userLocation) return null;
 
-    const x = userLocation.lng;
-    const y = userLocation.lat;
+    // 1. Check polygons first
+    if (routeGeoJSON && routeGeoJSON.features) {
+      const x = userLocation.lng;
+      const y = userLocation.lat;
 
-    for (let feature of routeGeoJSON.features) {
-      if (feature.geometry && feature.geometry.type === 'Polygon') {
-        const polygon = feature.geometry.coordinates;
-        let inside = false;
-        // Check exterior ring (polygon[0])
-        const ring = polygon[0];
-        for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-          let xi = ring[i][0], yi = ring[i][1];
-          let xj = ring[j][0], yj = ring[j][1];
+      for (let feature of routeGeoJSON.features) {
+        if (feature.geometry && feature.geometry.type === 'Polygon') {
+          const polygon = feature.geometry.coordinates;
+          let inside = false;
+          // Check exterior ring (polygon[0])
+          const ring = polygon[0];
+          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+            let xi = ring[i][0], yi = ring[i][1];
+            let xj = ring[j][0], yj = ring[j][1];
 
-          let intersect = ((yi > y) !== (yj > y)) &&
-            (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-          if (intersect) inside = !inside;
-        }
+            let intersect = ((yi > y) !== (yj > y)) &&
+              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+            if (intersect) inside = !inside;
+          }
 
-        if (inside) {
-          return { name: feature.properties['Current Location'] || 'Route Polygon' };
+          if (inside) {
+            return { name: feature.properties['Current Location'] || 'Route Polygon' };
+          }
         }
       }
     }
+
+    // 2. Proximity fallback: check if user is within 150m of any bus stop/terminal
+    if (busStops && busStops.length > 0) {
+      let closestStop = null;
+      let minDistance = 0.15; // 150 meters threshold in km
+
+      for (let stop of busStops) {
+        const stopLat = parseFloat(stop.lat || stop.latitude);
+        const stopLng = parseFloat(stop.lng || stop.longitude);
+        if (!isNaN(stopLat) && !isNaN(stopLng)) {
+          const R = 6371; // Earth radius in km
+          const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
+          const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(stopLat * Math.PI / 180) *
+            Math.cos(userLocation.lat * Math.PI / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distance = R * c;
+
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestStop = stop;
+          }
+        }
+      }
+
+      if (closestStop) {
+        return { name: closestStop.name || closestStop.location_name };
+      }
+    }
+
     return null;
   };
 
@@ -732,6 +769,18 @@ export default function PassengerDashboard() {
         type: 'FOCUS_STOP',
         stop_id: stop.id,
         name: stop.name
+      });
+    }
+  };
+
+  const handleBusPress = (bus: any) => {
+    const lat = parseFloat(bus.lat || bus.latitude);
+    const lng = parseFloat(bus.lng || bus.longitude);
+    if (lat && lng) {
+      postToMap({
+        type: 'FOCUS_BUS',
+        bus_id: bus.Bus_ID || bus.bus_id || bus.plate_number,
+        plate_number: bus.plate_number
       });
     }
   };
@@ -1000,13 +1049,62 @@ export default function PassengerDashboard() {
         }
       }
     } else {
-      // If we moved away from any stop and we are waiting, cancel it
+      // If we moved away from the stop and we are waiting, check distance before cancelling
       if (cancelledStopName) setCancelledStopName(null);
-      if (isWaiting) {
-        handleCancelWaiting(true); // true for silent
+      if (isWaiting && waitingLocation) {
+        let stopLat = NaN;
+        let stopLng = NaN;
+
+        // Try to find matching stop coordinates in the database list
+        const currentWaitingStop = busStops.find(s => s.name === waitingLocation || s.location_name === waitingLocation);
+        if (currentWaitingStop) {
+          stopLat = parseFloat(currentWaitingStop.lat || currentWaitingStop.latitude);
+          stopLng = parseFloat(currentWaitingStop.lng || currentWaitingStop.longitude);
+        } else if (routeGeoJSON && routeGeoJSON.features) {
+          // Fallback: find centroid of matching polygon location from GeoJSON
+          const feature = routeGeoJSON.features.find(f => {
+            const props = f.properties as any;
+            return props && (props['Current Location'] === waitingLocation || props['name'] === waitingLocation);
+          });
+          if (feature && feature.geometry && feature.geometry.type === 'Polygon' && feature.geometry.coordinates[0]) {
+            const ring = feature.geometry.coordinates[0];
+            let sumLat = 0;
+            let sumLng = 0;
+            ring.forEach((coord: number[]) => {
+              sumLng += coord[0];
+              sumLat += coord[1];
+            });
+            stopLat = sumLat / ring.length;
+            stopLng = sumLng / ring.length;
+          }
+        }
+
+        let shouldCancel = true;
+        if (!isNaN(stopLat) && !isNaN(stopLng)) {
+          const R = 6371; // km
+          const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
+          const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
+          const a =
+            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(stopLat * Math.PI / 180) *
+            Math.cos(userLocation.lat * Math.PI / 180) *
+            Math.sin(dLon / 2) *
+            Math.sin(dLon / 2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+          const distance = R * c;
+
+          // Only auto-cancel if they walk more than 300 meters away
+          if (distance < 0.3) {
+            shouldCancel = false;
+          }
+        }
+
+        if (shouldCancel) {
+          handleCancelWaiting(true); // true for silent
+        }
       }
     }
-  }, [userLocation, isBoarded, isWaiting, waitingLocation, cancelledStopName]);
+  }, [userLocation, isBoarded, isWaiting, waitingLocation, cancelledStopName, busStops]);
 
   // Map HTML using LeafletJS loaded via CDN
   const leafletHTML = getLeafletHTML(baseUrl);
@@ -1052,6 +1150,7 @@ export default function PassengerDashboard() {
               setStopsRoute={setStopsRoute}
               filteredStops={filteredStops}
               handleStopPress={handleStopPress}
+              handleBusPress={handleBusPress}
               userLocation={userLocation}
               baseUrl={baseUrl}
               translateY={translateY}

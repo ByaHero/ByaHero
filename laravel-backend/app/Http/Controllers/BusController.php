@@ -159,6 +159,11 @@ class BusController extends Controller
     public function updateUserLocation(Request $request)
     {
         $userId = Session::get('user_id');
+        $email = $request->input('email');
+        if (empty($userId) && !empty($email)) {
+            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        }
+
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }

@@ -114,6 +114,17 @@ export function getLeafletHTML(baseUrl: string): string {
                 m.openPopup();
               }
             }
+            else if (data.type === 'FOCUS_BUS') {
+              var busKey = data.bus_id || data.Bus_ID || data.plate_number;
+              var m = busMarkers[busKey];
+              if (!m && data.plate_number) {
+                m = busMarkers[data.plate_number];
+              }
+              if (m) {
+                map.setView(m.getLatLng(), 16);
+                m.openPopup();
+              }
+            }
             else if (data.type === 'UPDATE_USER_LOCATION') {
               window.userLastData = data;
               var avatarHtml = (data.profilePic && data.profilePic !== '') 
@@ -176,7 +187,8 @@ export function getLeafletHTML(baseUrl: string): string {
                   var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon })
                     .bindPopup('<b>Bus Plate:</b> ' + (bus.plate_number || 'N/A') + '<br/><b>Route:</b> ' + (bus.route || 'N/A'))
                     .addTo(map);
-                  busMarkers[bus.bus_id || bus.plate_number] = m;
+                  var busKey = bus.Bus_ID || bus.bus_id || bus.plate_number;
+                  busMarkers[busKey] = m;
                 }
               });
             }
