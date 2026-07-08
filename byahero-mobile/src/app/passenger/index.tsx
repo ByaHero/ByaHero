@@ -33,6 +33,43 @@ import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
 
 const { LocationServiceModule } = NativeModules;
 
+// ── GeoJSON point-in-polygon helper ──────────────────────────────────────────
+function pointInRing(x: number, y: number, ring: number[][]): boolean {
+  let inside = false;
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const xi = ring[i][0], yi = ring[i][1];
+    const xj = ring[j][0], yj = ring[j][1];
+    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
+/**
+ * Resolves a human-readable location name for a lat/lng by checking which
+ * GeoJSON polygon the point falls inside. Returns null if outside all polygons.
+ */
+function resolveBusLocationName(lat: number, lng: number): string | null {
+  if (!routeGeoJSON || !Array.isArray((routeGeoJSON as any).features)) return null;
+  for (const feature of (routeGeoJSON as any).features) {
+    if (!feature.geometry) continue;
+    if (feature.geometry.type === 'Polygon' && Array.isArray(feature.geometry.coordinates[0])) {
+      if (pointInRing(lng, lat, feature.geometry.coordinates[0])) {
+        return feature.properties?.['Current Location'] || null;
+      }
+    }
+    if (feature.geometry.type === 'MultiPolygon' && Array.isArray(feature.geometry.coordinates)) {
+      for (const poly of feature.geometry.coordinates) {
+        if (poly?.[0] && pointInRing(lng, lat, poly[0])) {
+          return feature.properties?.['Current Location'] || null;
+        }
+      }
+    }
+  }
+  return null;
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 const LOCATION_TASK_NAME = 'background-location-task';
 
 export default function PassengerDashboard() {
@@ -99,6 +136,7 @@ export default function PassengerDashboard() {
   const [waitingLocation, setWaitingLocation] = useState('');
   const [waitingModalVisible, setWaitingModalVisible] = useState(false);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
+  const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
 
   // Boarding Status States
   const [isBoarded, setIsBoarded] = useState(false);
@@ -438,11 +476,24 @@ export default function PassengerDashboard() {
           const busesData = await busesRes.json();
           if (busesData && busesData.success && Array.isArray(busesData.buses)) {
             // Filter only available/active buses with valid coordinates
-            const activeBuses = busesData.buses.filter((bus: any) =>
-              bus.status !== 'unavailable' &&
-              bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
-              bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
-            );
+            const activeBuses = busesData.buses
+              .filter((bus: any) =>
+                bus.status !== 'unavailable' &&
+                bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
+                bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
+              )
+              .map((bus: any) => {
+                // If the backend/conductor hasn't set a location name, resolve it
+                // client-side using the bundled GeoJSON polygon data.
+                if (!bus.current_location_name) {
+                  const lat = parseFloat(bus.lat);
+                  const lng = parseFloat(bus.lng);
+                  if (!isNaN(lat) && !isNaN(lng)) {
+                    bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
+                  }
+                }
+                return bus;
+              });
             setBuses(activeBuses);
           }
         }
@@ -692,10 +743,15 @@ export default function PassengerDashboard() {
       if (data.success) {
         setIsWaiting(true);
         setWaitingLocation(stopName);
-        setCancelledStopName(null); // clear if they manually set it again
-        setWaitingModalVisible(false);
+        setCancelledStopName(null);
         if (!silent) {
-          Alert.alert('Waiting Status Set', `🚌 You are now marked as waiting at ${stopName}!`);
+          setWaitingFeedback('waiting');
+          setTimeout(() => {
+            setWaitingFeedback(null);
+            setWaitingModalVisible(false);
+          }, 2200);
+        } else {
+          setWaitingModalVisible(false);
         }
       } else {
         if (!silent) {
@@ -732,9 +788,14 @@ export default function PassengerDashboard() {
         }
         setIsWaiting(false);
         setWaitingLocation('');
-        setWaitingModalVisible(false);
         if (!silent) {
-          Alert.alert('Success', 'Waiting status cancelled successfully.');
+          setWaitingFeedback('cancelled');
+          setTimeout(() => {
+            setWaitingFeedback(null);
+            setWaitingModalVisible(false);
+          }, 2200);
+        } else {
+          setWaitingModalVisible(false);
         }
       } else {
         if (!silent) {
@@ -1222,108 +1283,61 @@ export default function PassengerDashboard() {
             <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
               {/* Close Button */}
               <TouchableOpacity
-                onPress={() => setWaitingModalVisible(false)}
+                onPress={() => {
+                  setWaitingFeedback(null);
+                  setWaitingModalVisible(false);
+                }}
                 style={tw`absolute top-4 right-4 p-1 z-10`}
               >
                 <MaterialIcons name="close" size={22} color="#94a3b8" />
               </TouchableOpacity>
 
-              {/* Waiting Icon */}
-              <Image
-                source={require('../../../assets/images/waitingMark.svg')}
-                style={tw`w-[80px] h-[80px] mb-4`}
-                contentFit="contain"
-              />
-
-              <Text style={[tw`text-lg font-black text-slate-800 text-center mb-1.5`, { fontFamily: 'Inter_900Black' }]}>
-                Are you waiting for a bus?
-              </Text>
-
-              {isBoarded ? (
-                <>
-                  {/* Status Indicator: Boarded */}
-                  <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
-                    <Text style={[tw`text-xs font-black text-blue-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
-                      STATUS: BOARDED
-                    </Text>
-                    <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center mb-1`, { fontFamily: 'Inter_900Black' }]}>
-                      Bus {boardedBus}
-                    </Text>
-                    <Text style={[tw`text-[11px] text-blue-600 font-semibold text-center uppercase tracking-wider`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
-                      Route: {boardedRoute}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() => setWaitingModalVisible(false)}
-                    style={tw`w-full bg-slate-100 py-3 rounded-full justify-center items-center mb-2`}
-                  >
-                    <Text style={[tw`text-slate-500 font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
-                      Close
-                    </Text>
-                  </TouchableOpacity>
-                </>
-              ) : isWaiting ? (
-                <>
-                  {/* Status Indicator: Waiting */}
-                  <View style={tw`bg-emerald-50 border border-emerald-100 rounded-2xl p-4 w-full mb-6 items-center`}>
-                    <Text style={[tw`text-xs font-black text-emerald-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
-                      STATUS: WAITING
-                    </Text>
-                    <Text style={[tw`text-[13px] text-emerald-600 font-semibold text-center`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
-                      At {waitingLocation}
-                    </Text>
-                  </View>
-
-                  <TouchableOpacity
-                    onPress={() => handleCancelWaiting()}
-                    disabled={isUpdatingWaiting}
-                    style={tw`w-full bg-red-500 py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
-                  >
-                    <Image
-                      source={require('../../../assets/images/EKS.svg')}
-                      style={tw`w-4 h-4`}
-                      contentFit="contain"
+              {/* ── Feedback state: show after set/cancel ── */}
+              {waitingFeedback !== null ? (
+                <View style={tw`w-full items-center py-2`}>
+                  <View style={tw`w-16 h-16 rounded-full items-center justify-center mb-4 ${waitingFeedback === 'waiting' ? 'bg-emerald-100' : 'bg-slate-100'}`}>
+                    <MaterialIcons
+                      name={waitingFeedback === 'waiting' ? 'check-circle' : 'remove-circle'}
+                      size={40}
+                      color={waitingFeedback === 'waiting' ? '#10b981' : '#94a3b8'}
                     />
-                    <Text style={[tw`text-white font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
-                      {isUpdatingWaiting ? 'Cancelling...' : 'Cancel Waiting'}
-                    </Text>
-                  </TouchableOpacity>
-                </>
+                  </View>
+                  <Text style={[tw`text-base font-black text-slate-800 text-center mb-2`, { fontFamily: 'Inter_900Black' }]}>
+                    {waitingFeedback === 'waiting'
+                      ? 'You are now registered as a waiting passenger'
+                      : 'You are currently not waiting for a bus'}
+                  </Text>
+                  <Text style={[tw`text-xs text-slate-400 text-center`, { fontFamily: 'Inter_400Regular' }]}>
+                    {waitingFeedback === 'waiting'
+                      ? 'Conductors can see you are waiting nearby.'
+                      : 'Your waiting status has been removed.'}
+                  </Text>
+                </View>
               ) : (
                 <>
-                  {/* Status Indicator: Not Waiting */}
-                  {resolveNearestStop() ? (
-                    <>
-                      <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
-                        <Text style={[tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
-                          RECOGNIZED LOCATION
-                        </Text>
-                        <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center`, { fontFamily: 'Inter_900Black' }]} numberOfLines={2}>
-                          {resolveNearestStop()?.name}
-                        </Text>
-                      </View>
+                  {/* Waiting Icon */}
+                  <Image
+                    source={require('../../../assets/images/waitingMark.svg')}
+                    style={tw`w-[80px] h-[80px] mb-4`}
+                    contentFit="contain"
+                  />
 
-                      <TouchableOpacity
-                        onPress={() => handleSetWaiting(resolveNearestStop()?.name || '')}
-                        disabled={isUpdatingWaiting}
-                        style={tw`w-full bg-[#103d7c] py-3 rounded-full flex-row justify-center items-center gap-2 shadow-md mb-2`}
-                      >
-                        <Image
-                          source={require('../../../assets/images/waitingButton.svg')}
-                          style={tw`w-[120px] h-[22px]`}
-                          contentFit="contain"
-                        />
-                      </TouchableOpacity>
-                    </>
-                  ) : (
+                  <Text style={[tw`text-lg font-black text-slate-800 text-center mb-1.5`, { fontFamily: 'Inter_900Black' }]}>
+                    Are you waiting for a bus?
+                  </Text>
+
+                  {isBoarded ? (
                     <>
-                      <View style={tw`bg-red-50 border border-red-100 rounded-2xl p-4 w-full mb-6 items-center`}>
-                        <Text style={[tw`text-[10px] font-black text-red-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
-                          UNRECOGNIZED LOCATION
+                      {/* Status Indicator: Boarded */}
+                      <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                        <Text style={[tw`text-xs font-black text-blue-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                          STATUS: BOARDED
                         </Text>
-                        <Text style={[tw`text-xs text-red-500 font-semibold text-center leading-relaxed`, { fontFamily: 'Inter_500Medium' }]}>
-                          Waiting can only be activated at designated pickup points or stops.
+                        <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center mb-1`, { fontFamily: 'Inter_900Black' }]}>
+                          Bus {boardedBus}
+                        </Text>
+                        <Text style={[tw`text-[11px] text-blue-600 font-semibold text-center uppercase tracking-wider`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
+                          Route: {boardedRoute}
                         </Text>
                       </View>
 
@@ -1335,6 +1349,80 @@ export default function PassengerDashboard() {
                           Close
                         </Text>
                       </TouchableOpacity>
+                    </>
+                  ) : isWaiting ? (
+                    <>
+                      {/* Status Indicator: Waiting */}
+                      <View style={tw`bg-emerald-50 border border-emerald-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                        <Text style={[tw`text-xs font-black text-emerald-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                          STATUS: WAITING
+                        </Text>
+                        <Text style={[tw`text-[13px] text-emerald-600 font-semibold text-center`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
+                          At {waitingLocation}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={() => handleCancelWaiting()}
+                        disabled={isUpdatingWaiting}
+                        activeOpacity={0.85}
+                        style={tw`w-full mb-2 items-center ${isUpdatingWaiting ? 'opacity-60' : ''}`}
+                      >
+                        <Image
+                          source={require('../../../assets/images/stopWaiting.svg')}
+                          style={{ width: '100%', height: 62, maxWidth: 276 }}
+                          contentFit="contain"
+                        />
+                      </TouchableOpacity>
+                    </>
+                  ) : (
+                    <>
+                      {/* Status Indicator: Not Waiting */}
+                      {resolveNearestStop() ? (
+                        <>
+                          <View style={tw`bg-blue-50 border border-blue-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                            <Text style={[tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                              RECOGNIZED LOCATION
+                            </Text>
+                            <Text style={[tw`text-[15px] font-black text-[#1e3a8a] text-center`, { fontFamily: 'Inter_900Black' }]} numberOfLines={2}>
+                              {resolveNearestStop()?.name}
+                            </Text>
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={() => handleSetWaiting(resolveNearestStop()?.name || '')}
+                            disabled={isUpdatingWaiting}
+                            activeOpacity={0.85}
+                            style={tw`w-full mb-2 items-center ${isUpdatingWaiting ? 'opacity-60' : ''}`}
+                          >
+                            <Image
+                              source={require('../../../assets/images/waitingButtonPill.svg')}
+                              style={{ width: '100%', height: 62, maxWidth: 276 }}
+                              contentFit="contain"
+                            />
+                          </TouchableOpacity>
+                        </>
+                      ) : (
+                        <>
+                          <View style={tw`bg-red-50 border border-red-100 rounded-2xl p-4 w-full mb-6 items-center`}>
+                            <Text style={[tw`text-[10px] font-black text-red-800 uppercase tracking-widest mb-1`, { fontFamily: 'Inter_700Bold' }]}>
+                              UNRECOGNIZED LOCATION
+                            </Text>
+                            <Text style={[tw`text-xs text-red-500 font-semibold text-center leading-relaxed`, { fontFamily: 'Inter_500Medium' }]}>
+                              Waiting can only be activated at designated pickup points or stops.
+                            </Text>
+                          </View>
+
+                          <TouchableOpacity
+                            onPress={() => setWaitingModalVisible(false)}
+                            style={tw`w-full bg-slate-100 py-3 rounded-full justify-center items-center mb-2`}
+                          >
+                            <Text style={[tw`text-slate-500 font-black text-sm`, { fontFamily: 'Inter_900Black' }]}>
+                              Close
+                            </Text>
+                          </TouchableOpacity>
+                        </>
+                      )}
                     </>
                   )}
                 </>
