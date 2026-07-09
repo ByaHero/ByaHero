@@ -137,6 +137,8 @@ export default function PassengerDashboard() {
   const [waitingModalVisible, setWaitingModalVisible] = useState(false);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
   const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
+  const [waitingExpiresAt, setWaitingExpiresAt] = useState<string | null>(null);
+  const [waitingSecondsLeft, setWaitingSecondsLeft] = useState<number | null>(null);
 
   // Boarding Status States
   const [isBoarded, setIsBoarded] = useState(false);
@@ -545,6 +547,11 @@ export default function PassengerDashboard() {
               setIsBoarded(!!waitData.is_boarded);
               setBoardedBus(waitData.bus_code || '');
               setBoardedRoute(waitData.route || '');
+              if (waitData.expires_at) {
+                setWaitingExpiresAt(waitData.expires_at);
+              } else if (!waitData.is_waiting) {
+                setWaitingExpiresAt(null);
+              }
             }
           }
         }
@@ -565,6 +572,21 @@ export default function PassengerDashboard() {
       clearInterval(interval);
     };
   }, []);
+
+  // Live countdown timer for waiting expiry
+  useEffect(() => {
+    if (!isWaiting || !waitingExpiresAt) {
+      setWaitingSecondsLeft(null);
+      return;
+    }
+    const update = () => {
+      const diff = Math.max(0, Math.floor((new Date(waitingExpiresAt).getTime() - Date.now()) / 1000));
+      setWaitingSecondsLeft(diff);
+    };
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
+  }, [isWaiting, waitingExpiresAt]);
 
   // Fetch invite code on load
   useEffect(() => {
@@ -744,6 +766,7 @@ export default function PassengerDashboard() {
         setIsWaiting(true);
         setWaitingLocation(stopName);
         setCancelledStopName(null);
+        if (data.expires_at) setWaitingExpiresAt(data.expires_at);
         if (!silent) {
           setWaitingFeedback('waiting');
           setTimeout(() => {
@@ -1360,6 +1383,15 @@ export default function PassengerDashboard() {
                         <Text style={[tw`text-[13px] text-emerald-600 font-semibold text-center`, { fontFamily: 'Inter_500Medium' }]} numberOfLines={2}>
                           At {waitingLocation}
                         </Text>
+                        {waitingSecondsLeft !== null && (
+                          <View style={tw`mt-2 flex-row items-center`}>
+                            <Text style={[tw`text-[11px] text-emerald-500`, { fontFamily: 'Inter_500Medium' }]}>
+                              {waitingSecondsLeft > 0
+                                ? `Expires in ${Math.floor(waitingSecondsLeft / 60)}m ${waitingSecondsLeft % 60}s`
+                                : 'Expired — refreshing...'}
+                            </Text>
+                          </View>
+                        )}
                       </View>
 
                       <TouchableOpacity
