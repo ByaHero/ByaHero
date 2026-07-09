@@ -13,6 +13,7 @@ import {
   Platform
 } from 'react-native';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
@@ -33,6 +34,7 @@ export default function DashboardScreen() {
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
   const [isBusDropdownOpen, setIsBusDropdownOpen] = useState(false);
   const [isRouteDropdownOpen, setIsRouteDropdownOpen] = useState(false);
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
 
   // Map filter
   const [currentFilter, setCurrentFilter] = useState('ALL ROUTES');
@@ -208,36 +210,21 @@ export default function DashboardScreen() {
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar title="Dashboard" />
 
-      <ScrollView contentContainerStyle={tw`p-4`} style={tw`flex-1`}>
-        {/* Title */}
-        <View style={tw`mb-4`}>
-          <Text style={tw`text-xl font-bold text-slate-800`}>Route Dispatch Setup</Text>
-          <Text style={tw`text-slate-500 text-xs mt-1`}>
-            Select your fleet unit and route below to initialize live passenger tracking and GPS coordinates.
-          </Text>
+      <ScrollView contentContainerStyle={tw`p-5`} style={tw`flex-1`}>
+        {/* Top Actions: Filter Button */}
+        <View style={tw`flex-row justify-center mb-3`}>
+          <TouchableOpacity
+            onPress={() => setIsFilterDropdownOpen(true)}
+            style={tw`bg-white px-5 py-2.5 rounded-3xl flex-row items-center justify-center gap-2 shadow-sm border border-slate-200`}
+          >
+            <Text style={tw`text-[13px] font-bold text-slate-700`}>FILTER ROUTES</Text>
+            <Ionicons name="swap-vertical" size={16} color="#334155" />
+          </TouchableOpacity>
         </View>
 
         {/* Dispatch Map Container */}
-        <View style={tw`mb-4 bg-white rounded-2xl p-1 border border-slate-200 shadow-sm overflow-hidden`}>
-          <View style={tw`p-3 flex-row justify-between items-center bg-slate-100 rounded-t-xl`}>
-            <Text style={tw`text-xs font-bold text-slate-700`}>Dispatch Tracker Map</Text>
-            {/* Filter Toggle */}
-            <View style={tw`flex-row gap-1`}>
-              {['ALL ROUTES', 'LAUREL - TANAUAN', 'TANAUAN - LAUREL'].map(f => (
-                <TouchableOpacity
-                  key={f}
-                  onPress={() => handleFilterChange(f)}
-                  style={tw`px-2.5 py-1 rounded-full ${currentFilter === f ? 'bg-[#0f3878]' : 'bg-white border border-slate-200'}`}
-                >
-                  <Text style={tw`text-[9px] font-bold ${currentFilter === f ? 'text-white' : 'text-slate-600'}`}>
-                    {f === 'ALL ROUTES' ? 'ALL' : f.split(' - ')[0]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <View style={{ height: 260 }}>
+        <View style={tw`mb-5 bg-white rounded-3xl p-1.5 border border-slate-200 shadow-sm overflow-hidden`}>
+          <View style={{ height: 260, borderRadius: 20, overflow: 'hidden' }}>
             {Platform.OS === 'web' ? (
               <iframe
                 ref={webViewRef as any}
@@ -257,32 +244,40 @@ export default function DashboardScreen() {
         </View>
 
         {/* Selector Panel */}
-        <View style={tw`bg-white rounded-2xl p-5 border border-slate-200 shadow-sm mb-6`}>
+        <View style={tw`bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mb-6`}>
+          {/* Card Header */}
+          <View style={tw`items-center mb-7`}>
+            <Text style={tw`text-lg font-bold text-slate-900`}>Route Dispatch Setup</Text>
+            <Text style={tw`text-slate-500 text-[11px] mt-1.5 text-center leading-4`}>
+              Select your bus and route below to initialize live passenger tracking and GPS coordinates.
+            </Text>
+          </View>
+
           {/* Active Fleet Select */}
-          <View style={tw`mb-4`}>
-            <Text style={tw`text-[11px] font-bold text-slate-400 uppercase mb-2 tracking-wider`}>Active Fleet Unit</Text>
+          <View style={tw`mb-5`}>
+            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>ACTIVE FLEET UNIT</Text>
             <TouchableOpacity
               onPress={() => setIsBusDropdownOpen(true)}
-              style={tw`flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3`}
+              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
             >
-              <Text style={tw`text-sm font-semibold ${selectedBus ? 'text-slate-800' : 'text-slate-400'}`}>
+              <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-900'}`}>
                 {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#64748b" />
+              <Ionicons name="caret-down" size={16} color="#1e293b" />
             </TouchableOpacity>
           </View>
 
           {/* Scheduled Route Select */}
-          <View style={tw`mb-6`}>
-            <Text style={tw`text-[11px] font-bold text-slate-400 uppercase mb-2 tracking-wider`}>Scheduled Transit Route</Text>
+          <View style={tw`mb-8`}>
+            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>SCHEDULED TRANSIT ROUTE</Text>
             <TouchableOpacity
               onPress={() => setIsRouteDropdownOpen(true)}
-              style={tw`flex-row justify-between items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3`}
+              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
             >
-              <Text style={tw`text-sm font-semibold ${selectedRoute ? 'text-slate-800' : 'text-slate-400'}`}>
+              <Text style={tw`text-sm font-bold ${selectedRoute ? 'text-slate-900' : 'text-slate-900'}`}>
                 {selectedRoute || 'Select Route'}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#64748b" />
+              <Ionicons name="caret-down" size={16} color="#1e293b" />
             </TouchableOpacity>
           </View>
 
@@ -290,12 +285,18 @@ export default function DashboardScreen() {
           <TouchableOpacity
             onPress={handleStartTracking}
             disabled={isLoading}
-            style={tw`bg-[#0f3878] rounded-full py-4 items-center justify-center shadow-md`}
+            style={tw`w-full items-center justify-center mt-2 mb-2`}
           >
             {isLoading ? (
-              <ActivityIndicator color="white" />
+              <View style={tw`bg-[#1D5CAE] rounded-[35px] w-full py-4 items-center justify-center shadow-md`}>
+                <ActivityIndicator color="white" />
+              </View>
             ) : (
-              <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Start Operation tracking</Text>
+              <Image 
+                source={require('../../assets/images/startTrackingButton.svg')}
+                style={tw`w-full h-16`} 
+                contentFit="contain"
+              />
             )}
           </TouchableOpacity>
         </View>
@@ -394,6 +395,31 @@ export default function DashboardScreen() {
                 <Text style={tw`text-white font-bold`}>Confirm</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Filter Route Modal */}
+      <Modal visible={isFilterDropdownOpen} transparent animationType="fade">
+        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
+          <View style={tw`bg-white rounded-3xl p-5 border border-slate-200`}>
+            <Text style={tw`text-slate-800 font-bold mb-4`}>Filter Routes</Text>
+            {['ALL ROUTES', 'LAUREL - TANAUAN', 'TANAUAN - LAUREL'].map(f => (
+              <TouchableOpacity
+                key={f}
+                onPress={() => {
+                  handleFilterChange(f);
+                  setIsFilterDropdownOpen(false);
+                }}
+                style={tw`py-3 border-b border-slate-100 flex-row justify-between items-center`}
+              >
+                <Text style={tw`font-semibold ${currentFilter === f ? 'text-[#2563eb]' : 'text-slate-700'}`}>{f}</Text>
+                {currentFilter === f && <Ionicons name="checkmark" size={20} color="#2563eb" />}
+              </TouchableOpacity>
+            ))}
+            <TouchableOpacity onPress={() => setIsFilterDropdownOpen(false)} style={tw`mt-4 bg-slate-100 rounded-xl py-2.5 items-center`}>
+              <Text style={tw`text-slate-700 font-bold`}>Close</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
