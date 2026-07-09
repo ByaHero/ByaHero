@@ -492,8 +492,20 @@ class AdminController extends Controller
     {
         $this->checkAuth();
 
+        // Auto-expire stale records before listing
+        DB::table('waiting_passengers')
+            ->where('status', 'waiting')
+            ->where(function ($q) {
+                $q->whereNotNull('expires_at')->where('expires_at', '<=', now())
+                  ->orWhere(function ($q2) {
+                      $q2->whereNull('expires_at')->where('created_at', '<=', now()->subHour());
+                  });
+            })
+            ->update(['status' => 'expired', 'updated_at' => now()]);
+
         $waitingList = DB::select("
-            SELECT wp.id, wp.user_id, wp.user_name, wp.location_name, wp.created_at, wp.status,
+            SELECT wp.id, wp.user_id, wp.user_name, wp.location_name, wp.created_at,
+                   wp.expires_at, wp.status,
                    u.name as registered_name, u.email as registered_email
             FROM waiting_passengers wp
             LEFT JOIN users u ON wp.user_id = u.id
