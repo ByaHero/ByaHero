@@ -12,6 +12,7 @@ import {
   AppState
 } from 'react-native';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
@@ -530,22 +531,24 @@ export default function LiveTrackingScreen() {
       <ConductorNavbar title="Bus Live" />
 
       {/* Map Segment */}
-      <View style={tw`flex-1 relative`}>
-        {Platform.OS === 'web' ? (
-          <iframe
-            ref={webViewRef as any}
-            srcDoc={getConductorLeafletHTML(baseUrl)}
-            style={{ width: '100%', height: '100%', border: 'none' }}
-          />
-        ) : (
-          <WebView
-            ref={webViewRef}
-            originWhitelist={['*']}
-            source={{ html: getConductorLeafletHTML(baseUrl) }}
-            style={StyleSheet.absoluteFillObject}
-            onMessage={() => { }}
-          />
-        )}
+      <View style={tw`flex-1 p-4`}>
+        <View style={tw`flex-1 rounded-[28px] overflow-hidden border border-slate-200 shadow-sm relative`}>
+          {Platform.OS === 'web' ? (
+            <iframe
+              ref={webViewRef as any}
+              srcDoc={getConductorLeafletHTML(baseUrl)}
+              style={{ width: '100%', height: '100%', border: 'none' }}
+            />
+          ) : (
+            <WebView
+              ref={webViewRef}
+              originWhitelist={['*']}
+              source={{ html: getConductorLeafletHTML(baseUrl) }}
+              style={StyleSheet.absoluteFillObject}
+              onMessage={() => { }}
+            />
+          )}
+        </View>
       </View>
 
       {/* Control Details Panel */}
@@ -555,11 +558,8 @@ export default function LiveTrackingScreen() {
           <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3`}>Passenger Count</Text>
           <View style={tw`flex-row items-center gap-6`}>
             {/* Minus */}
-            <TouchableOpacity
-              onPress={decrementPassengers}
-              style={tw`w-14 h-14 bg-slate-100 rounded-full items-center justify-center border border-slate-200`}
-            >
-              <Ionicons name="remove" size={28} color="#64748b" />
+            <TouchableOpacity onPress={decrementPassengers}>
+              <Image source={require('../../assets/images/decrease.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
 
             <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
@@ -567,11 +567,8 @@ export default function LiveTrackingScreen() {
             </Text>
 
             {/* Plus */}
-            <TouchableOpacity
-              onPress={incrementPassengers}
-              style={tw`w-14 h-14 bg-[#0f3878] rounded-full items-center justify-center shadow-md`}
-            >
-              <Ionicons name="add" size={28} color="white" />
+            <TouchableOpacity onPress={incrementPassengers}>
+              <Image source={require('../../assets/images/increase.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
           </View>
         </View>
