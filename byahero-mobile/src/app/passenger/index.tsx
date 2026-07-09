@@ -370,7 +370,9 @@ export default function PassengerDashboard() {
   );
 
   const filteredBuses = buses.filter(bus => !selectedRoute || bus.route === selectedRoute);
-  const filteredStops = busStops.filter(stop => stop.route === stopsRoute);
+  const filteredStops = useMemo(() => {
+    return busStops.filter(stop => stop.route === stopsRoute);
+  }, [busStops, stopsRoute]);
 
   // Cross-platform helper to send messages to the Leaflet map (WebView or iframe)
   const postToMap = (message: any) => {
@@ -386,13 +388,13 @@ export default function PassengerDashboard() {
     }
   };
 
-  // Sync stops to map whenever busStops, filteredStops or sheetTab changes
+  // Sync stops to map whenever filteredStops or sheetTab changes
   useEffect(() => {
     postToMap({
       type: 'UPDATE_STOPS',
       stops: sheetTab === 'busstops' ? filteredStops : []
     });
-  }, [busStops, filteredStops, sheetTab]);
+  }, [filteredStops, sheetTab]);
 
   // Sync filtered buses to map whenever buses or selectedRoute changes
   useEffect(() => {
@@ -505,11 +507,7 @@ export default function PassengerDashboard() {
         if (stopsRes.ok && active) {
           const stopsData = await stopsRes.json();
           if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
-            setBusStops(stopsData.data);
-            postToMap({
-              type: 'UPDATE_STOPS',
-              stops: sheetTab === 'busstops' ? stopsData.data.filter((stop: any) => stop.route === stopsRoute) : []
-            });
+            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(stopsData.data) ? prev : stopsData.data);
           }
         }
 

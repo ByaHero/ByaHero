@@ -728,22 +728,36 @@ export default function PassengerBottomSheet({
                 <Text style={tw`text-sm text-slate-500 font-bold mt-3`}>No stops defined</Text>
               </View>
             ) : (
-              filteredStops.map((stop, idx) => {
-                const lat = parseFloat(stop.lat || stop.latitude);
-                const lng = parseFloat(stop.lng || stop.longitude);
-                let distanceStr = '-- m away';
-                if (lat && lng && userLocation) {
-                  const dist = getDistance(userLocation.lat, userLocation.lng, lat, lng);
-                  if (dist < 1) {
-                    distanceStr = `${Math.round(dist * 1000)} m away`;
-                  } else {
-                    distanceStr = `${dist.toFixed(1)} km away`;
-                  }
+              (() => {
+                let sortedStops = [...filteredStops];
+                if (userLocation) {
+                  sortedStops.forEach(stop => {
+                    const lat = parseFloat(stop.lat || stop.latitude);
+                    const lng = parseFloat(stop.lng || stop.longitude);
+                    if (lat && lng) {
+                      stop._distance = getDistance(userLocation.lat, userLocation.lng, lat, lng);
+                    } else {
+                      stop._distance = Infinity;
+                    }
+                  });
+                  sortedStops.sort((a, b) => a._distance - b._distance);
                 }
 
-                const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+                return sortedStops.map((stop, idx) => {
+                  const lat = parseFloat(stop.lat || stop.latitude);
+                  const lng = parseFloat(stop.lng || stop.longitude);
+                  let distanceStr = '-- m away';
+                  if (lat && lng && userLocation && stop._distance !== undefined && stop._distance !== Infinity) {
+                    if (stop._distance < 1) {
+                      distanceStr = `${Math.round(stop._distance * 1000)} m away`;
+                    } else {
+                      distanceStr = `${stop._distance.toFixed(1)} km away`;
+                    }
+                  }
 
-                return (
+                  const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+
+                  return (
                   <TouchableOpacity
                     key={idx}
                     onPress={() => handleStopPress(stop)}
@@ -770,7 +784,7 @@ export default function PassengerBottomSheet({
                     </View>
                   </TouchableOpacity>
                 );
-              })
+              })()
             )}
           </View>
         )}
