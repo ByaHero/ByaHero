@@ -88,19 +88,29 @@ export default function AdminWaitingPax() {
     );
   };
 
-  // Aggregation
+  // Aggregation: group by location, track earliest expiry
   const locationCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
+    const counts: Record<string, { count: number; earliestExpiry: string | null }> = {};
     waitingList.forEach(wp => {
-      counts[wp.location_name] = (counts[wp.location_name] || 0) + 1;
+      if (!counts[wp.location_name]) {
+        counts[wp.location_name] = { count: 0, earliestExpiry: null };
+      }
+      counts[wp.location_name].count += 1;
+      if (wp.expires_at) {
+        if (!counts[wp.location_name].earliestExpiry || wp.expires_at < counts[wp.location_name].earliestExpiry!) {
+          counts[wp.location_name].earliestExpiry = wp.expires_at;
+        }
+      }
     });
-    return Object.entries(counts).sort((a, b) => b[1] - a[1]);
+    return Object.entries(counts)
+      .map(([loc, data]) => ({ loc, count: data.count, earliestExpiry: data.earliestExpiry }))
+      .sort((a, b) => b.count - a.count);
   }, [waitingList]);
 
   // Filtering
   const filteredLocationCounts = useMemo(() => {
     if (filterLocation === 'All Stop Locations') return locationCounts;
-    return locationCounts.filter(([loc]) => loc === filterLocation);
+    return locationCounts.filter(({ loc }) => loc === filterLocation);
   }, [locationCounts, filterLocation]);
 
   const totalWaiting = waitingList.length;
@@ -136,7 +146,7 @@ export default function AdminWaitingPax() {
                   <Text style={tw`text-slate-400 text-[13px]`}>No passenger waiting signals registered right now.</Text>
                 ) : (
                   <View style={tw`flex-row flex-wrap gap-2`}>
-                    {locationCounts.slice(0, 4).map(([loc, count], idx) => {
+                    {locationCounts.slice(0, 4).map(({ loc, count }, idx) => {
                       const shortLoc = loc.split(',')[0];
                       return (
                         <View key={idx} style={tw`bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 flex-row items-center shadow-sm`}>
@@ -208,38 +218,57 @@ export default function AdminWaitingPax() {
                   </View>
                 ) : (
                   <View>
-                    {filteredLocationCounts.map(([locName, count], idx) => (
-                      <View key={idx} style={tw`border border-slate-200 rounded-2xl bg-white p-5 shadow-sm mb-4`}>
-                        <View style={tw`flex-row justify-between items-start border-b border-slate-100 pb-3 mb-4`}>
-                          <View style={tw`flex-row items-start flex-1 pr-3`}>
-                            <Ionicons name="location" size={18} color="#1d4ed8" style={tw`mr-2 mt-0.5`} />
-                            <Text style={tw`font-bold text-[#1d4ed8] text-[15px] uppercase`}>{locName}</Text>
+                    {filteredLocationCounts.map(({ loc: locName, count, earliestExpiry }, idx) => {
+                      const expiryLabel = earliestExpiry
+                        ? (() => {
+                            const ms = new Date(earliestExpiry).getTime() - Date.now();
+                            if (ms <= 0) return 'Expiring now';
+                            const m = Math.floor(ms / 60000);
+                            const s = Math.floor((ms % 60000) / 1000);
+                            return `Expires in ${m}m ${s}s`;
+                          })()
+                        : null;
+                      return (
+                        <View key={idx} style={tw`border border-slate-200 rounded-2xl bg-white p-5 shadow-sm mb-4`}>
+                          <View style={tw`flex-row justify-between items-start border-b border-slate-100 pb-3 mb-4`}>
+                            <View style={tw`flex-row items-start flex-1 pr-3`}>
+                              <Ionicons name="location" size={18} color="#1d4ed8" style={tw`mr-2 mt-0.5`} />
+                              <Text style={tw`font-bold text-[#1d4ed8] text-[15px] uppercase`}>{locName}</Text>
+                            </View>
+                            <View style={tw`flex-row items-center gap-2`}>
+                              {expiryLabel && (
+                                <View style={tw`bg-amber-50 px-2.5 py-1 rounded-full border border-amber-100 flex-row items-center`}>
+                                  <Ionicons name="time-outline" size={11} color="#b45309" style={tw`mr-1`} />
+                                  <Text style={tw`text-amber-700 text-[10px] font-bold`}>{expiryLabel}</Text>
+                                </View>
+                              )}
+                              <View style={tw`flex-row items-center bg-green-50 px-2.5 py-1 rounded-full border border-green-100`}>
+                                <View style={tw`w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5`} />
+                                <Text style={tw`text-green-700 text-[10px] font-bold tracking-wider`}>ACTIVE</Text>
+                              </View>
+                            </View>
                           </View>
-                          <View style={tw`flex-row items-center bg-green-50 px-2.5 py-1 rounded-full border border-green-100`}>
-                            <View style={tw`w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5`} />
-                            <Text style={tw`text-green-700 text-[10px] font-bold tracking-wider`}>ACTIVE</Text>
+                          
+                          <View style={tw`mb-5`}>
+                            <Text style={tw`text-slate-500 font-bold text-[11px] uppercase tracking-wider mb-2`}>Passengers Waiting</Text>
+                            <View style={tw`bg-blue-50 rounded-xl p-4 border border-blue-100 flex-row items-baseline`}>
+                              <Text style={tw`font-extrabold text-[28px] text-[#1d4ed8] mr-2`}>{count}</Text>
+                              <Text style={tw`text-[#1d4ed8] font-medium`}>passenger{count !== 1 ? 's' : ''}</Text>
+                            </View>
                           </View>
-                        </View>
-                        
-                        <View style={tw`mb-5`}>
-                          <Text style={tw`text-slate-500 font-bold text-[11px] uppercase tracking-wider mb-2`}>Passengers Waiting</Text>
-                          <View style={tw`bg-blue-50 rounded-xl p-4 border border-blue-100 flex-row items-baseline`}>
-                            <Text style={tw`font-extrabold text-[28px] text-[#1d4ed8] mr-2`}>{count}</Text>
-                            <Text style={tw`text-[#1d4ed8] font-medium`}>passenger{count !== 1 ? 's' : ''}</Text>
-                          </View>
-                        </View>
 
-                        <View style={tw`flex-row justify-end`}>
-                          <TouchableOpacity 
-                            style={tw`bg-red-50 rounded-full px-5 py-2.5 flex-row items-center shadow-sm`}
-                            onPress={() => handleCancelClick(locName)}
-                          >
-                            <Ionicons name="close-circle-outline" size={16} color="#dc2626" style={tw`mr-1.5`} />
-                            <Text style={tw`text-[12px] font-bold text-red-600`}>Dismiss Signals</Text>
-                          </TouchableOpacity>
+                          <View style={tw`flex-row justify-end`}>
+                            <TouchableOpacity 
+                              style={tw`bg-red-50 rounded-full px-5 py-2.5 flex-row items-center shadow-sm`}
+                              onPress={() => handleCancelClick(locName)}
+                            >
+                              <Ionicons name="close-circle-outline" size={16} color="#dc2626" style={tw`mr-1.5`} />
+                              <Text style={tw`text-[12px] font-bold text-red-600`}>Dismiss Signals</Text>
+                            </TouchableOpacity>
+                          </View>
                         </View>
-                      </View>
-                    ))}
+                      );
+                    })}
 
                     {filteredLocationCounts.length === 0 && (
                       <View style={tw`flex-col items-center py-12 bg-slate-50 rounded-2xl border border-dashed border-slate-300`}>
@@ -269,9 +298,10 @@ export default function AdminWaitingPax() {
             
             <ScrollView style={tw`p-2`}>
               {LOCATION_WHITELIST.map((loc, idx) => {
+                const entry = locationCounts.find(({ loc: l }) => l === loc);
                 const count = loc === 'All Stop Locations' 
                   ? totalWaiting 
-                  : (locationCounts.find(([l]) => l === loc)?.[1] || 0);
+                  : (entry?.count || 0);
                 const isSelected = filterLocation === loc;
                   
                 return (

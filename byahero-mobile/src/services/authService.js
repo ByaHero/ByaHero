@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
+const DEFAULT_SERVER_URL = 'http://192.168.1.2:8000';
 
 /**
  * Gets the configured backend base URL from storage.

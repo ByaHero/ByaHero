@@ -294,165 +294,174 @@ export default function PassengerBottomSheet({
                 <Text style={tw`text-sm text-slate-500 font-bold mt-3`}>No Available Bus</Text>
               </View>
             ) : (
-              filteredBuses.map((bus, idx) => {
-                const status = bus.status || 'available';
-                let statusLabel = 'AVAILABLE';
-                let statusColor = '#10b981'; // emerald green
-                let statusTextColor = '#047857'; // dark green
-
-                if (status === 'on_stop') {
-                  statusLabel = 'ON STOP';
-                  statusColor = '#f59e0b'; // amber
-                  statusTextColor = '#b45309'; // dark amber
-                } else if (status === 'full') {
-                  statusLabel = 'FULL';
-                  statusColor = '#ef4444'; // red
-                  statusTextColor = '#7f1d1d'; // dark red
-                } else if (status === 'unavailable') {
-                  statusLabel = 'UNAVAILABLE';
-                  statusColor = '#64748b'; // slate
-                  statusTextColor = '#1e293b';
-                }
-
-                // Format seats
-                const seatAvail = (bus.seat_availability !== null && bus.seat_availability !== undefined) ? Number(bus.seat_availability) : null;
-                const totalSeats = (bus.total_seats !== null && bus.total_seats !== undefined) ? Number(bus.total_seats) : 25;
-                const seatsText = seatAvail !== null ? `${seatAvail}/${totalSeats} Available` : `${totalSeats} seats`;
-
-                // Calculate a real dynamic ETA based on current coordinates & user coordinates
-                const getCalculatedETA = () => {
-                  if (bus.eta) return `Arriving by ${bus.eta}`;
-
+              (() => {
+                // Compute distance for each bus, then sort closest first
+                const busesWithDist = filteredBuses.map((bus) => {
                   const busLat = parseFloat(bus.lat);
                   const busLng = parseFloat(bus.lng);
-                  if (!busLat || !busLng || !userLocation) {
-                    return 'Arriving soon';
+                  let distKm: number | null = null;
+                  if (busLat && busLng && userLocation) {
+                    const dLat = (userLocation.lat - busLat) * Math.PI / 180;
+                    const dLon = (userLocation.lng - busLng) * Math.PI / 180;
+                    const a =
+                      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.cos(busLat * Math.PI / 180) *
+                      Math.cos(userLocation.lat * Math.PI / 180) *
+                      Math.sin(dLon / 2) *
+                      Math.sin(dLon / 2);
+                    distKm = 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                  }
+                  return { ...bus, _distKm: distKm };
+                });
+
+                const sorted = [...busesWithDist].sort((a, b) => {
+                  if (a._distKm === null && b._distKm === null) return 0;
+                  if (a._distKm === null) return 1;
+                  if (b._distKm === null) return -1;
+                  return a._distKm - b._distKm;
+                });
+
+                return sorted.map((bus, idx) => {
+                  const status = bus.status || 'available';
+                  let statusLabel = 'AVAILABLE';
+                  let statusBg = '#dcfce7'; let statusText = '#15803d'; let statusDot = '#22c55e';
+                  if (status === 'on_stop') {
+                    statusLabel = 'ON STOP';
+                    statusBg = '#fef9c3'; statusText = '#a16207'; statusDot = '#eab308';
+                  } else if (status === 'full') {
+                    statusLabel = 'FULL';
+                    statusBg = '#fee2e2'; statusText = '#b91c1c'; statusDot = '#ef4444';
+                  } else if (status === 'unavailable') {
+                    statusLabel = 'UNAVAILABLE';
+                    statusBg = '#f1f5f9'; statusText = '#64748b'; statusDot = '#94a3b8';
                   }
 
-                  // Haversine formula to calculate distance in km
-                  const R = 6371; // radius of Earth in km
-                  const dLat = (userLocation.lat - busLat) * Math.PI / 180;
-                  const dLon = (userLocation.lng - busLng) * Math.PI / 180;
-                  const a =
-                    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                    Math.cos(busLat * Math.PI / 180) *
-                    Math.cos(userLocation.lat * Math.PI / 180) *
-                    Math.sin(dLon / 2) *
-                    Math.sin(dLon / 2);
-                  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-                  const distanceKm = R * c;
+                  // Seat availability
+                  const seatAvail = (bus.seat_availability !== null && bus.seat_availability !== undefined) ? Number(bus.seat_availability) : null;
+                  const totalSeats = (bus.total_seats !== null && bus.total_seats !== undefined) ? Number(bus.total_seats) : 25;
+                  const seatFraction = seatAvail !== null ? Math.max(0, Math.min(1, seatAvail / totalSeats)) : null;
+                  const seatBarColor = seatFraction === null ? '#94a3b8' : seatFraction > 0.5 ? '#22c55e' : seatFraction > 0.2 ? '#f59e0b' : '#ef4444';
 
-                  if (distanceKm < 0.15) {
-                    return 'Arriving now';
+                  // Distance + ETA
+                  const distKm = bus._distKm;
+                  let etaText = 'Arriving soon';
+                  let distText: string | null = null;
+                  if (bus.eta) {
+                    etaText = `Arrives at ${bus.eta}`;
+                  } else if (distKm !== null) {
+                    if (distKm < 0.15) {
+                      etaText = 'Arriving now';
+                      distText = `${Math.round(distKm * 1000)} m away`;
+                    } else {
+                      const travelMin = Math.round((distKm / 30) * 60) + 2;
+                      etaText = `~${travelMin} min away`;
+                      distText = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
+                    }
                   }
 
-                  // Average speed of 30 km/h is 0.5 km per minute.
-                  // Include a 2-minute buffer for stops/traffic.
-                  const travelTimeMinutes = Math.round((distanceKm / 30) * 60) + 2;
+                  const progress = bus.progress || 90;
+                  const isNearest = idx === 0 && distKm !== null;
 
-                  const now = new Date();
-                  const etaTime = new Date(now.getTime() + travelTimeMinutes * 60000);
+                  return (
+                    <TouchableOpacity
+                      key={bus.Bus_ID || idx}
+                      onPress={() => handleBusPress?.(bus)}
+                      activeOpacity={0.85}
+                      style={[
+                        tw`mb-3 rounded-2xl overflow-hidden`,
+                        {
+                          backgroundColor: '#ffffff',
+                          borderWidth: 1.5,
+                          borderColor: isNearest ? '#1e3a8a' : '#e2e8f0',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: isNearest ? 0.10 : 0.05,
+                          shadowRadius: 6,
+                          elevation: isNearest ? 4 : 2,
+                        }
+                      ]}
+                    >
+                      {isNearest && <View style={{ height: 3, backgroundColor: '#1e3a8a' }} />}
 
-                  let hours = etaTime.getHours();
-                  const minutes = etaTime.getMinutes();
-                  const ampm = hours >= 12 ? 'PM' : 'AM';
-                  hours = hours % 12;
-                  hours = hours ? hours : 12; // hour '0' should be '12'
-                  const minutesStr = minutes < 10 ? '0' + minutes : minutes;
+                      <View style={tw`p-4`}>
+                        {/* Row 1: Code + NEAREST badge + Status pill */}
+                        <View style={tw`flex-row items-center justify-between mb-2.5`}>
+                          <View style={tw`flex-row items-center`}>
+                            <View style={[tw`px-2.5 py-1 rounded-lg mr-2`, { backgroundColor: '#103d7c' }]}>
+                              <Text style={tw`text-white text-[11px] font-black tracking-widest uppercase`}>
+                                {bus.code || bus.plate_number || '—'}
+                              </Text>
+                            </View>
+                            {isNearest && (
+                              <View style={[tw`px-2 py-0.5 rounded-full flex-row items-center`, { backgroundColor: '#eff6ff' }]}>
+                                <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#3b82f6', marginRight: 4 }} />
+                                <Text style={{ color: '#1d4ed8', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 }}>NEAREST</Text>
+                              </View>
+                            )}
+                          </View>
+                          <View style={[tw`px-2.5 py-1 rounded-full flex-row items-center`, { backgroundColor: statusBg }]}>
+                            <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: statusDot, marginRight: 5 }} />
+                            <Text style={{ color: statusText, fontSize: 9, fontWeight: '800', letterSpacing: 0.8 }}>{statusLabel}</Text>
+                          </View>
+                        </View>
 
-                  return `Arriving by ${hours}:${minutesStr} ${ampm}`;
-                };
-
-                const etaText = getCalculatedETA();
-
-                // Progress for the timeline track (default 90% if not set)
-                const progress = bus.progress || 90;
-
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    onPress={() => handleBusPress?.(bus)}
-                    style={tw`border-b border-[#e2e8f0] py-4`}
-                    activeOpacity={0.7}
-                  >
-                    {/* Top Row: Code & Status Badge */}
-                    <View style={tw`flex-row justify-between items-center mb-1.5`}>
-                      <View style={[tw`px-2.5 py-1 rounded-[6px]`, { backgroundColor: '#103d7c' }]}>
-                        <Text style={tw`text-white text-[11px] font-black tracking-widest uppercase`}>
-                          {bus.code || bus.plate_number || 'T-00002'}
+                        {/* Row 2: Location */}
+                        <Text style={tw`text-[13px] font-bold text-slate-800 mb-1`} numberOfLines={1}>
+                          {bus.current_location_name || 'Unknown Location'}
                         </Text>
+
+                        {/* Row 3: Route */}
+                        {bus.route ? (
+                          <Text style={tw`text-[11px] text-slate-400 font-medium mb-2.5`} numberOfLines={1}>
+                            {bus.route}
+                          </Text>
+                        ) : <View style={tw`mb-2.5`} />}
+
+                        {/* Row 4: ETA + distance */}
+                        <View style={tw`flex-row items-center mb-3`}>
+                          <MaterialIcons name="access-time" size={13} color="#64748b" style={{ marginRight: 4 }} />
+                          <Text style={tw`text-[12px] text-slate-600 font-semibold mr-2`}>{etaText}</Text>
+                          {distText && (
+                            <View style={[tw`px-2 py-0.5 rounded-full`, { backgroundColor: '#f1f5f9' }]}>
+                              <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '700' }}>{distText}</Text>
+                            </View>
+                          )}
+                        </View>
+
+                        {/* Row 5: Seat bar */}
+                        {seatAvail !== null && (
+                          <View style={tw`mb-3`}>
+                            <View style={tw`flex-row justify-between mb-1`}>
+                              <Text style={tw`text-[10px] text-slate-400 font-bold uppercase tracking-wider`}>Seats</Text>
+                              <Text style={{ color: seatBarColor, fontSize: 10, fontWeight: '800' }}>{seatAvail}/{totalSeats}</Text>
+                            </View>
+                            <View style={[tw`h-1.5 rounded-full`, { backgroundColor: '#f1f5f9' }]}>
+                              <View style={[tw`h-1.5 rounded-full`, { width: `${Math.round(seatFraction! * 100)}%`, backgroundColor: seatBarColor }]} />
+                            </View>
+                          </View>
+                        )}
+
+                        {/* Row 6: Timeline progress track */}
+                        <View style={{ height: 24, justifyContent: 'center', position: 'relative', marginTop: 2 }}>
+                          <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 1, marginRight: 8 }} />
+                          <View style={[
+                            tw`absolute w-6 h-6 rounded-full bg-white border border-[#103d7c] items-center justify-center`,
+                            { left: `${progress}%`, marginLeft: -12, top: 0, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 }
+                          ]}>
+                            <Image source={require('../../assets/images/icons/marker.svg')} style={tw`w-[80%] h-[80%]`} contentFit="contain" />
+                          </View>
+                          <View style={[
+                            tw`absolute w-5 h-5 rounded-full bg-white border border-red-400 items-center justify-center`,
+                            { right: 0, marginRight: -4, top: 2, shadowColor: '#ef4444', shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }
+                          ]}>
+                            <MaterialIcons name="place" size={11} color="#ef4444" />
+                          </View>
+                        </View>
                       </View>
-                      <View style={[tw`px-3 py-0.5 rounded-full`, { backgroundColor: statusColor }]}>
-                        <Text style={[tw`text-[9px] font-black tracking-widest`, { color: '#000000' }]}>
-                          {statusLabel}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Middle Row: Location & Availability */}
-                    <View style={tw`flex-row justify-between items-start mb-0.5`}>
-                      <Text style={tw`text-sm font-semibold text-slate-700 flex-1 mr-2`}>
-                        {bus.current_location_name || 'Unknown Location'}
-                      </Text>
-                      <Text style={tw`text-xs text-slate-400 font-bold`}>
-                        {seatsText}
-                      </Text>
-                    </View>
-
-                    {/* ETA Row */}
-                    <Text style={tw`text-xs text-slate-400 mb-4`}>
-                      {etaText}
-                    </Text>
-
-                    {/* Bottom Row: Timeline Track with Bus Icon */}
-                    <View style={tw`h-6 justify-center relative mt-1 mb-2 mx-1`}>
-                      {/* Dotted/Dashed Line */}
-                      <View
-                        style={{
-                          height: 1,
-                          borderStyle: 'dashed',
-                          borderWidth: 1,
-                          borderColor: '#cbd5e1',
-                          borderRadius: 1,
-                          marginRight: 8
-                        }}
-                      />
-
-                      {/* Floating Bus Icon circle */}
-                      <View
-                        style={[
-                          tw`absolute w-6 h-6 rounded-full bg-white border border-[#103d7c] items-center justify-center shadow-sm`,
-                          {
-                            left: `${progress}%`,
-                            marginLeft: -12,
-                            top: 0
-                          }
-                        ]}
-                      >
-                        <Image
-                          source={require('../../assets/images/icons/marker.svg')}
-                          style={tw`w-[80%] h-[80%]`}
-                          contentFit="contain"
-                        />
-                      </View>
-
-                      {/* Floating Destination Location Pin on the far right */}
-                      <View
-                        style={[
-                          tw`absolute w-5 h-5 rounded-full bg-white border border-red-500 items-center justify-center shadow-sm`,
-                          {
-                            right: 0,
-                            marginRight: -4,
-                            top: 2
-                          }
-                        ]}
-                      >
-                        <MaterialIcons name="place" size={11} color="#ef4444" />
-                      </View>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })
+                    </TouchableOpacity>
+                  );
+                });
+              })()
             )}
           </View>
         )}
@@ -719,22 +728,36 @@ export default function PassengerBottomSheet({
                 <Text style={tw`text-sm text-slate-500 font-bold mt-3`}>No stops defined</Text>
               </View>
             ) : (
-              filteredStops.map((stop, idx) => {
-                const lat = parseFloat(stop.lat || stop.latitude);
-                const lng = parseFloat(stop.lng || stop.longitude);
-                let distanceStr = '-- m away';
-                if (lat && lng && userLocation) {
-                  const dist = getDistance(userLocation.lat, userLocation.lng, lat, lng);
-                  if (dist < 1) {
-                    distanceStr = `${Math.round(dist * 1000)} m away`;
-                  } else {
-                    distanceStr = `${dist.toFixed(1)} km away`;
-                  }
+              (() => {
+                let sortedStops = [...filteredStops];
+                if (userLocation) {
+                  sortedStops.forEach(stop => {
+                    const lat = parseFloat(stop.lat || stop.latitude);
+                    const lng = parseFloat(stop.lng || stop.longitude);
+                    if (lat && lng) {
+                      stop._distance = getDistance(userLocation.lat, userLocation.lng, lat, lng);
+                    } else {
+                      stop._distance = Infinity;
+                    }
+                  });
+                  sortedStops.sort((a, b) => a._distance - b._distance);
                 }
 
-                const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+                return sortedStops.map((stop, idx) => {
+                  const lat = parseFloat(stop.lat || stop.latitude);
+                  const lng = parseFloat(stop.lng || stop.longitude);
+                  let distanceStr = '-- m away';
+                  if (lat && lng && userLocation && stop._distance !== undefined && stop._distance !== Infinity) {
+                    if (stop._distance < 1) {
+                      distanceStr = `${Math.round(stop._distance * 1000)} m away`;
+                    } else {
+                      distanceStr = `${stop._distance.toFixed(1)} km away`;
+                    }
+                  }
 
-                return (
+                  const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+
+                  return (
                   <TouchableOpacity
                     key={idx}
                     onPress={() => handleStopPress(stop)}
@@ -761,7 +784,7 @@ export default function PassengerBottomSheet({
                     </View>
                   </TouchableOpacity>
                 );
-              })
+              })()
             )}
           </View>
         )}
