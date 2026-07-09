@@ -32,6 +32,7 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
   const pathname = usePathname();
   const isDashboard = pathname === '/dashboard' || pathname === '/dashboard/';
   const isProfile = pathname === '/profile';
+  const isLiveTracking = pathname === '/liveTracking';
 
   useEffect(() => {
     async function loadUser() {
@@ -146,6 +147,10 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
               </TouchableOpacity>
             </View>
           </>
+        ) : isLiveTracking ? (
+          <View style={tw`flex-row items-center flex-1 justify-center`}>
+            <Text style={tw`text-white font-black text-lg tracking-widest uppercase`}>Bus Live</Text>
+          </View>
         ) : (
           <View style={tw`flex-row items-center flex-1 gap-3`}>
             <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/dashboard')} style={tw`w-11 h-11 rounded-full items-center justify-center bg-white/10`}>
@@ -219,13 +224,15 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
       </Modal>
 
       {/* Bottom Nav Decorative Bar */}
-      <View
-        style={[
-          tw`absolute left-0 right-0 bg-[#0f3878] z-50 shadow-md`,
-          { bottom: 0, height: 40, elevation: 10 }
-        ]}
-        pointerEvents="none"
-      />
+      {!isLiveTracking && (
+        <View
+          style={[
+            tw`absolute left-0 right-0 bg-[#0f3878] z-50 shadow-md`,
+            { bottom: 0, height: 40, elevation: 10 }
+          ]}
+          pointerEvents="none"
+        />
+      )}
     </>
   );
 }
