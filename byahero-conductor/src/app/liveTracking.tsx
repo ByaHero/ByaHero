@@ -16,6 +16,7 @@ import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
@@ -152,8 +153,8 @@ export default function LiveTrackingScreen() {
   }, []);
 
   // Stable refs so media button listeners never hold stale closures
-  const incrementRef = useRef(incrementPassengers);
-  const decrementRef = useRef(decrementPassengers);
+  const incrementRef = useRef<() => void>(() => {});
+  const decrementRef = useRef<() => void>(() => {});
   useEffect(() => { incrementRef.current = incrementPassengers; });
   useEffect(() => { decrementRef.current = decrementPassengers; });
 
@@ -526,13 +527,7 @@ export default function LiveTrackingScreen() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      {/* Header */}
-      <View style={tw`bg-[#0f3878] px-5 py-3.5 flex-row justify-between items-center shadow-md`}>
-        <Text style={tw`text-white text-base font-extrabold tracking-widest uppercase`}>Bus Live</Text>
-        <View style={tw`bg-emerald-500 rounded-full px-3 py-1`}>
-          <Text style={tw`text-white text-xs font-bold`}>{netStatus}</Text>
-        </View>
-      </View>
+      <ConductorNavbar title="Bus Live" />
 
       {/* Map Segment */}
       <View style={tw`flex-1 relative`}>

@@ -8,8 +8,9 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import ConductorNavbar from '../components/ConductorNavbar';
 import { getWaitingPassengerCount } from '../services/conductorService';
 
 export default function WaitingPaxScreen() {
@@ -40,13 +41,7 @@ export default function WaitingPaxScreen() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      {/* Header */}
-      <View style={tw`bg-[#0f3878] px-5 py-3.5 flex-row items-center gap-3 shadow-md`}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={tw`text-white text-base font-extrabold`}>Wait Count</Text>
-      </View>
+      <ConductorNavbar title="Wait Count" />
 
       <ScrollView contentContainerStyle={tw`p-5`} style={tw`flex-1`}>
         {/* Total waiting count badge container */}
