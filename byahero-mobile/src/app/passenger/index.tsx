@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -563,7 +563,7 @@ export default function PassengerDashboard() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 3000); // refresh every 3s
+    const interval = setInterval(fetchData, 15000); // refresh every 15s
 
     return () => {
       active = false;
