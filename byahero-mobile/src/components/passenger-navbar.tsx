@@ -331,21 +331,19 @@ export function PassengerHeader({
       >
         <View
           style={[
-            tw`absolute z-[3000]`,
-            { width, height, top: 0, left: 0, elevation: 20 },
+            { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, zIndex: 3000, elevation: 20 },
             Platform.OS === 'web' && ({
               overscrollBehavior: 'none',
             } as any),
           ]}
         >
-          <View style={[tw`flex-row justify-end relative`, { width, height }]}>
+          <View style={[tw`flex-row justify-end relative`, { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }]}>
             {/* Animated Dim Backdrop */}
             <Animated.View
               style={[
-                tw`absolute inset-0 bg-black`,
+                { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, backgroundColor: '#000' },
                 {
                   opacity: backdropOpacity,
-                  height,
                 },
                 Platform.OS === 'web' && ({
                   overscrollBehavior: 'none',
@@ -353,7 +351,7 @@ export function PassengerHeader({
               ]}
             >
               <TouchableWithoutFeedback onPress={closeMenu}>
-                <View style={{ width, height }} />
+                <View style={{ flex: 1 }} />
               </TouchableWithoutFeedback>
             </Animated.View>
 
@@ -363,7 +361,10 @@ export function PassengerHeader({
                 tw`bg-white shadow-2xl`,
                 {
                   width: width * 0.8,
-                  height,
+                  position: 'absolute',
+                  top: 0,
+                  bottom: 0,
+                  right: 0,
                   transform: [{ translateX: slideAnim }],
                 },
                 Platform.OS === 'web' && ({
