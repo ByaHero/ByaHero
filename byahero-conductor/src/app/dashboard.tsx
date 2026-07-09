@@ -19,6 +19,7 @@ import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl, logout } from '../services/authService';
+import ConductorNavbar from '../components/ConductorNavbar';
 import { getBusesConductor, getActiveBuses, startOperation } from '../services/conductorService';
 
 export default function DashboardScreen() {
@@ -30,7 +31,6 @@ export default function DashboardScreen() {
 
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isBusDropdownOpen, setIsBusDropdownOpen] = useState(false);
   const [isRouteDropdownOpen, setIsRouteDropdownOpen] = useState(false);
 
@@ -204,39 +204,9 @@ export default function DashboardScreen() {
     }
   };
 
-  const handleLogout = async () => {
-    if (Platform.OS === 'web') {
-      const confirmLogout = window.confirm('Are you sure you want to log out?');
-      if (confirmLogout) {
-        await logout();
-        router.replace('/');
-      }
-    } else {
-      Alert.alert('Logout', 'Are you sure you want to log out?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Logout',
-          style: 'destructive',
-          onPress: async () => {
-            await logout();
-            router.replace('/');
-          }
-        }
-      ]);
-    }
-  };
-
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      {/* Top Navbar */}
-      <View style={tw`bg-[#0f3878] px-5 py-3.5 flex-row justify-between items-center shadow-md`}>
-        <View style={tw`flex-row items-center gap-2`}>
-          <Text style={tw`text-white text-lg font-black tracking-widest`}>BYAHERO</Text>
-        </View>
-        <TouchableOpacity onPress={() => setIsMenuOpen(true)}>
-          <Ionicons name="menu" size={28} color="white" />
-        </TouchableOpacity>
-      </View>
+      <ConductorNavbar title="Dashboard" />
 
       <ScrollView contentContainerStyle={tw`p-4`} style={tw`flex-1`}>
         {/* Title */}
@@ -428,60 +398,6 @@ export default function DashboardScreen() {
         </View>
       </Modal>
 
-      {/* Hamburger Drawer Menu Overlay */}
-      <Modal visible={isMenuOpen} transparent animationType="slide">
-        <View style={tw`flex-1 flex-row bg-black/50`}>
-          <View style={tw`w-72 bg-slate-50 h-full p-6 border-r border-slate-200 justify-between`}>
-            <View>
-              {/* Header */}
-              <View style={tw`flex-row justify-between items-center mb-6`}>
-                <Text style={tw`text-slate-800 text-lg font-black`}>BYAHERO</Text>
-                <TouchableOpacity onPress={() => setIsMenuOpen(false)}>
-                  <Ionicons name="close" size={24} color="#334155" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Navigation Items */}
-              <View style={tw`gap-4`}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setIsMenuOpen(false);
-                    router.push('/profile');
-                  }}
-                  style={tw`flex-row items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-100`}
-                >
-                  <Ionicons name="person" size={20} color="#0f3878" />
-                  <Text style={tw`text-slate-700 font-bold text-sm`}>Profile</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setIsMenuOpen(false);
-                    router.push('/waitingPax');
-                  }}
-                  style={tw`flex-row items-center gap-3 bg-white p-3 rounded-xl shadow-sm border border-slate-100`}
-                >
-                  <Ionicons name="people" size={20} color="#0f3878" />
-                  <Text style={tw`text-slate-700 font-bold text-sm`}>Wait Count</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* Logout button */}
-            <TouchableOpacity
-              onPress={() => {
-                setIsMenuOpen(false);
-                handleLogout();
-              }}
-              style={tw`flex-row items-center gap-3 bg-red-50 p-3.5 rounded-xl border border-red-200`}
-            >
-              <Ionicons name="log-out" size={20} color="#ef4444" />
-              <Text style={tw`text-red-600 font-bold text-sm`}>Log Out</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity style={tw`flex-1`} onPress={() => setIsMenuOpen(false)} />
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }

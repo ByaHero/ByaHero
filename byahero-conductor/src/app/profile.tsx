@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateProfile } from '../services/conductorService';
 import { cacheSession } from '../services/authService';
@@ -126,13 +127,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      {/* Header */}
-      <View style={tw`bg-[#0f3878] px-5 py-3.5 flex-row items-center gap-3 shadow-md`}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="close" size={24} color="white" />
-        </TouchableOpacity>
-        <Text style={tw`text-white text-base font-extrabold`}>Profile</Text>
-      </View>
+      <ConductorNavbar title="Profile" />
 
       <ScrollView contentContainerStyle={tw`p-5 items-center`} style={tw`flex-1`}>
         {/* Profile Avatar Initials */}
