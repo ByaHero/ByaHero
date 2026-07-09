@@ -241,11 +241,30 @@ class BusController extends Controller
             ->first();
 
         if ($waiting) {
+            // Auto-expire records older than 1 hour
+            $expiresAt = $waiting->expires_at
+                ? \Carbon\Carbon::parse($waiting->expires_at)
+                : \Carbon\Carbon::parse($waiting->created_at)->addHour();
+
+            if (\Carbon\Carbon::now()->greaterThanOrEqualTo($expiresAt)) {
+                DB::table('waiting_passengers')
+                    ->where('id', $waiting->id)
+                    ->update(['status' => 'expired', 'updated_at' => now()]);
+
+                return response()->json([
+                    'success' => true,
+                    'is_waiting' => false,
+                    'is_boarded' => false,
+                    'location_name' => null
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'is_waiting' => true,
                 'is_boarded' => false,
-                'location_name' => $waiting->location_name
+                'location_name' => $waiting->location_name,
+                'expires_at' => $expiresAt->toIso8601String()
             ]);
         }
 
@@ -283,11 +302,14 @@ class BusController extends Controller
             ->where('status', 'waiting')
             ->first();
 
+        $expiresAt = \Carbon\Carbon::now()->addHour();
+
         if ($existing) {
             DB::table('waiting_passengers')
                 ->where('id', $existing->id)
                 ->update([
                     'location_name' => $locationName,
+                    'expires_at' => $expiresAt,
                     'updated_at' => now()
                 ]);
         } else {
@@ -296,6 +318,7 @@ class BusController extends Controller
                 'user_name' => $userName,
                 'location_name' => $locationName,
                 'status' => 'waiting',
+                'expires_at' => $expiresAt,
                 'created_at' => now(),
                 'updated_at' => now()
             ]);
@@ -305,6 +328,7 @@ class BusController extends Controller
             'success' => true,
             'message' => 'Waiting status updated',
             'location_name' => $locationName,
+            'expires_at' => $expiresAt->toIso8601String(),
             'status' => 'waiting'
         ]);
     }

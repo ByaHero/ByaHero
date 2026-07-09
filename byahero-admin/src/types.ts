@@ -51,6 +51,7 @@ export interface WaitingPassenger {
   user_name: string;
   location_name: string;
   created_at: string;
+  expires_at: string | null;
   status: string;
   registered_name: string;
   registered_email: string;
