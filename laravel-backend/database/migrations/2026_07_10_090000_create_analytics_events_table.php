@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('analytics_events', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
+            $table->unsignedInteger('user_id');
             $table->string('event_type');
             $table->text('event_data')->nullable();
             $table->string('page')->nullable();
@@ -21,6 +21,8 @@ return new class extends Migration
             $table->string('browser')->nullable();
             $table->string('device')->nullable();
             $table->timestamps();
+
+            $table->index('user_id', 'idx_user');
         });
     }
 
