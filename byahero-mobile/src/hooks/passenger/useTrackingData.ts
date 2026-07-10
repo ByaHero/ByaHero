@@ -15,6 +15,7 @@ export function useTrackingData() {
   const [isBoarded, setIsBoarded] = useState(false);
   const [boardedBus, setBoardedBus] = useState('');
   const [boardedRoute, setBoardedRoute] = useState('');
+  const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
 
   const fetchGroupMembers = async (currentBaseUrl: string) => {
     try {
@@ -106,6 +107,10 @@ export function useTrackingData() {
             }
           }
         }
+        
+        if (active) {
+          setIsInitialFetchDone(true);
+        }
       } catch (err: any) {
         if (err.message !== 'Network request failed') {
           console.error('Error fetching tracking data:', err);
@@ -139,6 +144,7 @@ export function useTrackingData() {
     setBoardedBus,
     boardedRoute,
     setBoardedRoute,
-    fetchGroupMembers
+    fetchGroupMembers,
+    isInitialFetchDone
   };
 }
