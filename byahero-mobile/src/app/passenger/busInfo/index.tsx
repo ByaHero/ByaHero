@@ -49,8 +49,10 @@ export default function BusInfoScreen() {
               responseData = data;
             }
           }
-        } catch (e) {
-          console.warn(`Failed to fetch sync data from configured server URL: ${currentBaseUrl}`, e);
+        } catch (e: any) {
+          if (e.message !== 'Network request failed') {
+            console.warn(`Failed to fetch sync data from configured server URL: ${currentBaseUrl}`, e);
+          }
         }
 
         // Fallback to alwaysdata if configured URL failed or was offline
@@ -73,8 +75,10 @@ export default function BusInfoScreen() {
           setFareStops(responseData.bus_stops || []);
           setFareRules(responseData.bus_fares || []);
         }
-      } catch (err) {
-        console.error('Error fetching sync data:', err);
+      } catch (err: any) {
+        if (err.message !== 'Network request failed') {
+          console.error('Error fetching sync data:', err);
+        }
       }
     };
 

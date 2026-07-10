@@ -97,8 +97,10 @@ export function useTrackingData() {
             }
           }
         }
-      } catch (err) {
-        console.error('Error fetching tracking data:', err);
+      } catch (err: any) {
+        if (err.message !== 'Network request failed') {
+          console.error('Error fetching tracking data:', err);
+        }
       }
     };
 
