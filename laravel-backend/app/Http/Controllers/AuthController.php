@@ -53,6 +53,8 @@ class AuthController extends Controller
                 return $this->changePassword($request);
             case 'delete_account':
                 return $this->deleteAccount($request);
+            case 'restore_session':
+                return $this->restoreSession($request);
             default:
                 return response()->json(['success' => false, 'message' => 'Invalid action: ' . $action]);
         }
@@ -541,5 +543,39 @@ class AuthController extends Controller
         Session::flush();
 
         return response()->json(['success' => true, 'message' => 'Account deleted successfully']);
+    }
+
+    public function restoreSession(Request $request)
+    {
+        $email = strtolower(trim($request->input('email', '')));
+        if (empty($email)) {
+            return response()->json(['success' => false, 'message' => 'Email required']);
+        }
+
+        foreach ($this->roleTables as $role => $modelClass) {
+            $user = null;
+            if ($role === 'passenger') {
+                $user = User::where('email', $email)->orWhere('contacts', $email)->first();
+            } elseif ($role === 'conductor') {
+                $user = Conductor::where('email', $email)->orWhere('contacts', $email)->first();
+            } elseif ($role === 'driver') {
+                $user = Driver::where('email', $email)->orWhere('contacts', $email)->first();
+            } else {
+                $user = Admin::where('email', $email)->orWhere('contacts', $email)->first();
+            }
+
+            if ($user) {
+                Session::put('user_id', (int)$user->id);
+                Session::put('user_email', $user->email);
+                Session::put('user_role', $role);
+                Session::put('user_name', $user->name ?? $user->email);
+                Session::put('user_contacts', $user->contacts);
+                Session::put('user_profile_picture', $user->profile_picture);
+                
+                return response()->json(['success' => true, 'message' => 'Session restored']);
+            }
+        }
+
+        return response()->json(['success' => false, 'message' => 'User not found']);
     }
 }

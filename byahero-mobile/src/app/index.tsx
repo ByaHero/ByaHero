@@ -18,7 +18,7 @@ import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
-import { login, googleAuth, getServerUrl, setServerUrl, cacheSession, preWarmServer } from '../services/authService';
+import { login, googleAuth, getServerUrl, setServerUrl, cacheSession, preWarmServer, restoreSession } from '../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 WebBrowser.maybeCompleteAuthSession();
@@ -65,6 +65,13 @@ export default function LoginScreen() {
             const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
             Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
           } else {
+            // Restore backend session to re-hydrate cookies for /api/group/view and notifications
+            try {
+              await restoreSession(cachedEmail);
+            } catch (restoreErr) {
+              console.warn('Silent session restore failed:', restoreErr);
+            }
+
             if (!cachedContacts) {
               router.replace('/passenger/completeProfile' as any);
             } else {

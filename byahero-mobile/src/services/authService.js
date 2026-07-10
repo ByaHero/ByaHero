@@ -147,6 +147,19 @@ export async function login(email, password, isOnline = true) {
   }
 }
 
+/**
+ * Silently restores backend session using cached email.
+ */
+export async function restoreSession(email) {
+  try {
+    const data = await apiRequest('restore_session', { email: email.trim() });
+    return data;
+  } catch (error) {
+    console.error('Failed to restore session:', error);
+    return { success: false };
+  }
+}
+
 const decodeBase64 = (input) => {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
   let str = input.replace(/=+$/, '');
