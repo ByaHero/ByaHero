@@ -7,6 +7,7 @@ import {
   ScrollView,
   Platform,
   Alert,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -196,7 +197,7 @@ export default function BusInfoScreen() {
         {/* Main Content Area */}
         <ScrollView style={{ flex: 1, backgroundColor: '#ffffff' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
           {/* Schedules Section */}
-          <Text style={tw`text-[15px] font-bold text-[#103d7c] mb-3 ml-1`}>Bus Operation Schedule</Text>
+          <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-6 mb-4 text-center`}>Bus Operation Schedule</Text>
           {schedules.length === 0 ? (
             <View style={tw`bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
               <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
@@ -233,9 +234,9 @@ export default function BusInfoScreen() {
           )}
 
           {/* Fare Check Section */}
-          <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-4 mb-3 ml-1`}>Bus Fare Check</Text>
+          <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-6 mb-3 text-center`}>Bus Fare Check</Text>
           
-          <View style={[tw`flex-row justify-between mb-4`, { zIndex: 9999, elevation: 9999 }]}>
+          <View style={[tw`flex-row justify-between mb-4 px-2`, { zIndex: 9999, elevation: 9999 }]}>
             {/* Pick Up Stop Picker */}
             <View style={[tw`flex-1 mr-2 relative`, { zIndex: 100, elevation: 100 }]}>
               <TouchableOpacity
@@ -244,7 +245,7 @@ export default function BusInfoScreen() {
                   setShowDropoffDropdown(false);
                   setShowDiscountDropdown(false);
                 }}
-                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showPickupDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#e2e8f0]`]}
+                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showPickupDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#cbd5e1]`]}
               >
                 <Text style={[tw`text-sm`, pickupStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#64748b]`]} numberOfLines={1}>
                   {pickupStop ? pickupStop.location_name : 'Pick up'}
@@ -281,7 +282,7 @@ export default function BusInfoScreen() {
                   setShowPickupDropdown(false);
                   setShowDiscountDropdown(false);
                 }}
-                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showDropoffDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#e2e8f0]`]}
+                style={[tw`bg-white border rounded-xl p-3 flex-row justify-between items-center`, showDropoffDropdown ? tw`border-blue-300 bg-blue-50` : tw`border-[#cbd5e1]`]}
               >
                 <Text style={[tw`text-sm`, dropoffStop ? tw`text-[#1e293b] font-semibold` : tw`text-[#64748b]`]} numberOfLines={1}>
                   {dropoffStop ? dropoffStop.location_name : 'Drop off'}
@@ -312,8 +313,8 @@ export default function BusInfoScreen() {
           </View>
 
           {/* Passenger Class Row */}
-          <View style={[tw`mt-3 items-center`, { zIndex: 999, elevation: 999 }]}>
-            <View style={[tw`w-1/2 relative`, { zIndex: 999, elevation: 999 }]}>
+          <View style={[tw`mt-3 items-center`, { zIndex: 80, elevation: 80 }]}>
+            <View style={[tw`w-1/2 relative`, { zIndex: 80, elevation: 80 }]}>
               <TouchableOpacity
                 onPress={() => {
                   setShowDiscountDropdown(!showDiscountDropdown);
@@ -356,7 +357,7 @@ export default function BusInfoScreen() {
           </View>
 
           {/* Calculated Fare Row */}
-          <View style={[tw`items-center justify-center mt-8 mb-4`, { zIndex: 1, elevation: 1 }]}>
+          <View style={tw`items-center justify-center mt-8 mb-4`}>
             <Text style={tw`text-xs font-bold text-[#64748b] mb-1`}>CALCULATED FARE</Text>
             <View style={tw`flex-row items-baseline`}>
               <Text style={tw`text-xl font-bold text-[#103d7c] mr-1`}>Php</Text>
