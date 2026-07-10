@@ -393,6 +393,43 @@ class BusController extends Controller
                 ]);
             }
 
+            // Check if there is a recently departed ride on the same bus to resume (prevents new rides from GPS glitches)
+            $recentRideQuery = DB::table('passenger_rides')
+                ->where('user_id', $userId)
+                ->where('status', 'completed')
+                ->where('departed_at', '>=', now()->subMinutes(15));
+            
+            if (Schema::hasColumn('passenger_rides', 'operation_id') && !empty($operationId)) {
+                $recentRideQuery->where('operation_id', $operationId);
+            } elseif (Schema::hasColumn('passenger_rides', 'bus_id')) {
+                $recentRideQuery->where('bus_id', $busId);
+            }
+
+            $recentRide = $recentRideQuery->orderBy('id', 'desc')->first();
+
+            if ($recentRide) {
+                // Resume the ride instead of creating a new one
+                DB::table('passenger_rides')
+                    ->where('id', $recentRide->id)
+                    ->update([
+                        'status' => 'active',
+                        'departed_at' => null,
+                        'updated_at' => now()
+                    ]);
+                
+                // Cancel waiting status just in case
+                DB::table('waiting_passengers')
+                    ->where('user_id', $userId)
+                    ->where('status', 'waiting')
+                    ->update(['status' => 'boarded', 'updated_at' => now()]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Resumed previous ride',
+                    'ride_id' => $recentRide->id
+                ]);
+            }
+
             // Cancel waiting status
             DB::table('waiting_passengers')
                 ->where('user_id', $userId)
