@@ -22,7 +22,6 @@ import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
 import { sendFcmPushes } from '../../services/notificationService';
-import * as Location from 'expo-location';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import PassengerBottomSheet from '../../components/passenger-bottomsheet';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -31,121 +30,38 @@ import { handleTourLayout } from '../../components/TourRegistry';
 import { getLeafletHTML } from '../../components/passengerMapHtml';
 import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
 
+// Custom Hooks
+import { usePassengerProfile } from '../../hooks/passenger/usePassengerProfile';
+import { useTourState } from '../../hooks/passenger/useTourState';
+import { usePushNotifications } from '../../hooks/passenger/usePushNotifications';
+import { useLocationTracking } from '../../hooks/passenger/useLocationTracking';
+import { useTrackingData } from '../../hooks/passenger/useTrackingData';
+import { useAutoBoarding } from '../../hooks/passenger/useAutoBoarding';
+
 const { LocationServiceModule } = NativeModules;
-
-// ── GeoJSON point-in-polygon helper ──────────────────────────────────────────
-function pointInRing(x: number, y: number, ring: number[][]): boolean {
-  let inside = false;
-  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-    const xi = ring[i][0], yi = ring[i][1];
-    const xj = ring[j][0], yj = ring[j][1];
-    const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / ((yj - yi) || 1) + xi);
-    if (intersect) inside = !inside;
-  }
-  return inside;
-}
-
-/**
- * Resolves a human-readable location name for a lat/lng by checking which
- * GeoJSON polygon the point falls inside. Returns null if outside all polygons.
- */
-function resolveBusLocationName(lat: number, lng: number): string | null {
-  if (!routeGeoJSON || !Array.isArray((routeGeoJSON as any).features)) return null;
-  for (const feature of (routeGeoJSON as any).features) {
-    if (!feature.geometry) continue;
-    if (feature.geometry.type === 'Polygon' && Array.isArray(feature.geometry.coordinates[0])) {
-      if (pointInRing(lng, lat, feature.geometry.coordinates[0])) {
-        return feature.properties?.['Current Location'] || null;
-      }
-    }
-    if (feature.geometry.type === 'MultiPolygon' && Array.isArray(feature.geometry.coordinates)) {
-      for (const poly of feature.geometry.coordinates) {
-        if (poly?.[0] && pointInRing(lng, lat, poly[0])) {
-          return feature.properties?.['Current Location'] || null;
-        }
-      }
-    }
-  }
-  return null;
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 const LOCATION_TASK_NAME = 'background-location-task';
 
 export default function PassengerDashboard() {
-  const [activeStep, setActiveStep] = useState<number | null>(null);
   const [menuVisible, setMenuVisible] = useState(false);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      async function checkTour() {
-        const stepVal = await AsyncStorage.getItem('byahero_active_tour_step');
-        if (stepVal !== null) {
-          const stepIdx = parseInt(stepVal, 10);
-
-          // Verify that this step actually belongs to the dashboard screen
-          const stepInfo = tourSteps[stepIdx];
-          if (stepInfo && stepInfo.screen === '/passenger') {
-            setActiveStep(stepIdx);
-
-            // Adjust sheetTab dynamically based on target step highlight
-            if (stepInfo.highlight === 'tab-location') setSheetTab('location');
-            else if (stepInfo.highlight === 'tab-routes') setSheetTab('routes');
-            else if (stepInfo.highlight === 'tab-groups') setSheetTab('groups');
-            else if (stepInfo.highlight === 'tab-busstops') setSheetTab('busstops');
-          } else {
-            setActiveStep(null);
-          }
-        } else {
-          setActiveStep(null);
-        }
-      }
-      checkTour();
-      return () => {
-        setActiveStep(null);
-      };
-    }, [])
-  );
-
   const [activeTab, setActiveTab] = useState<'location' | 'sos' | 'info'>('location');
   const [sheetTab, setSheetTab] = useState<'location' | 'routes' | 'groups' | 'busstops'>('location');
 
-  // Sync the bottom sheet tab whenever the active tour step changes
-  useEffect(() => {
-    if (activeStep === null) return;
-    const stepInfo = tourSteps[activeStep];
-    if (!stepInfo) return;
-    if (stepInfo.highlight === 'tab-location') setSheetTab('location');
-    else if (stepInfo.highlight === 'tab-routes') setSheetTab('routes');
-    else if (stepInfo.highlight === 'tab-groups') setSheetTab('groups');
-    else if (stepInfo.highlight === 'tab-busstops') setSheetTab('busstops');
-  }, [activeStep]);
+  const { activeStep, setActiveStep } = useTourState(setSheetTab);
+  const { userProfilePic, userInitial, getFullProfilePicUrl } = usePassengerProfile();
+
+  usePushNotifications();
+
   const [isLoading, setIsLoading] = useState(true);
-  const [buses, setBuses] = useState<any[]>([]);
-  const [busStops, setBusStops] = useState<any[]>([]);
   const [selectedRoute, setSelectedRoute] = useState<string>(''); // empty means All
   const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
   const [inviteCode, setInviteCode] = useState('------');
   const [joinCode, setJoinCode] = useState('');
-  const [circles, setCircles] = useState<any[]>([]);
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
-  // Waiting Status States
-  const [isWaiting, setIsWaiting] = useState(false);
-  const [waitingLocation, setWaitingLocation] = useState('');
+  // Waiting modal internal states
   const [waitingModalVisible, setWaitingModalVisible] = useState(false);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
   const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
-  const [waitingExpiresAt, setWaitingExpiresAt] = useState<string | null>(null);
   const [waitingSecondsLeft, setWaitingSecondsLeft] = useState<number | null>(null);
-
-  // Boarding Status States
-  const [isBoarded, setIsBoarded] = useState(false);
-  const [boardedBus, setBoardedBus] = useState('');
-  const [boardedRoute, setBoardedRoute] = useState('');
-
-  // Prevent auto-rejoin immediately after manual cancel
   const [cancelledStopName, setCancelledStopName] = useState<string | null>(null);
 
   const webViewRef = useRef<any>(null);
@@ -155,227 +71,15 @@ export default function PassengerDashboard() {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT * 0.3)).current;
 
-  const [userProfilePic, setUserProfilePic] = useState<string>('');
-  const [userInitial, setUserInitial] = useState<string>('P');
+  const {
+    buses, busStops, circles, baseUrl,
+    isWaiting, setIsWaiting, waitingLocation, setWaitingLocation,
+    waitingExpiresAt, setWaitingExpiresAt,
+    isBoarded, setIsBoarded, boardedBus, setBoardedBus, boardedRoute, setBoardedRoute,
+    fetchGroupMembers
+  } = useTrackingData();
 
-  // Load user profile picture and name initial
-  useEffect(() => {
-    async function loadUserProfile() {
-      try {
-        const cachedPic = await AsyncStorage.getItem('byahero_cached_profile_picture') || '';
-        setUserProfilePic(cachedPic);
-
-        const cachedName = await AsyncStorage.getItem('byahero_cached_name') || 'Guest';
-        let name = cachedName;
-        if (name.includes('@')) {
-          name = name.split('@')[0];
-        }
-        const initial = name.charAt(0).toUpperCase() || 'P';
-        setUserInitial(initial);
-      } catch (e) {
-        console.error('Error loading user profile details for map:', e);
-      }
-    }
-    loadUserProfile();
-  }, []);
-
-  const getFullProfilePicUrl = () => {
-    if (!userProfilePic || userProfilePic === 'null' || userProfilePic === 'undefined') {
-      return '';
-    }
-    if (userProfilePic.startsWith('data:') || userProfilePic.startsWith('http')) {
-      return userProfilePic;
-    }
-    return baseUrl.replace(/\/$/, '') + '/' + userProfilePic.replace(/^\//, '');
-  };
-
-  // Use refs to prevent stale closures in location tracking callbacks
-  const userInitialRef = useRef(userInitial);
-  const userProfilePicRef = useRef(userProfilePic);
-  const baseUrlRef = useRef(baseUrl);
-
-  useEffect(() => {
-    userInitialRef.current = userInitial;
-  }, [userInitial]);
-
-  useEffect(() => {
-    userProfilePicRef.current = userProfilePic;
-  }, [userProfilePic]);
-
-  useEffect(() => {
-    baseUrlRef.current = baseUrl;
-  }, [baseUrl]);
-
-  // Watch device location and update state + backend
-  useFocusEffect(
-    React.useCallback(() => {
-      let subscription: Location.LocationSubscription | null = null;
-      let isMounted = true;
-      let nativeLocationListener: any = null;
-
-      if (Platform.OS === 'android' && LocationServiceModule) {
-        nativeLocationListener = DeviceEventEmitter.addListener('onBackgroundLocation', (loc) => {
-          if (!isMounted) return;
-          console.log(`[Native Location] Background coords updated: Lat ${loc.lat}, Lng ${loc.lng}`);
-          setUserLocation({ lat: loc.lat, lng: loc.lng });
-
-          postToMap({
-            type: 'UPDATE_USER_LOCATION',
-            lat: loc.lat,
-            lng: loc.lng,
-            initial: userInitialRef.current,
-            profilePic: getFullProfilePicUrl(),
-            center: false
-          });
-
-          sendLocationToBackend(loc.lat, loc.lng, loc.accuracy || 0);
-        });
-      }
-
-      async function startTracking() {
-        try {
-          const { status } = await Location.requestForegroundPermissionsAsync();
-          if (status !== 'granted') {
-            console.warn('Foreground location permission denied.');
-            return;
-          }
-
-          const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-          if (bgStatus !== 'granted') {
-            console.warn('Background location permission denied.');
-          }
-
-          // 1. Get quick last known location instantly
-          const lastKnownLoc = await Location.getLastKnownPositionAsync();
-          if (lastKnownLoc && isMounted) {
-            const lat = lastKnownLoc.coords.latitude;
-            const lng = lastKnownLoc.coords.longitude;
-            console.log(`[Location GPS] Quick last-known coordinates acquired: Lat ${lat}, Lng ${lng}`);
-            setUserLocation({ lat, lng });
-
-            postToMap({
-              type: 'UPDATE_USER_LOCATION',
-              lat,
-              lng,
-              initial: userInitialRef.current,
-              profilePic: getFullProfilePicUrl(),
-              center: true
-            });
-          }
-
-          // 2. Fetch precise initial location in the background
-          const initialLoc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
-          }).catch(() => null);
-
-          if (initialLoc && isMounted) {
-            const lat = initialLoc.coords.latitude;
-            const lng = initialLoc.coords.longitude;
-            console.log(`[Location GPS] Initial coordinates acquired: Lat ${lat}, Lng ${lng} (Accuracy: ${initialLoc.coords.accuracy}m)`);
-            setUserLocation({ lat, lng });
-
-            postToMap({
-              type: 'UPDATE_USER_LOCATION',
-              lat,
-              lng,
-              initial: userInitialRef.current,
-              profilePic: getFullProfilePicUrl(),
-              center: true
-            });
-
-            sendLocationToBackend(lat, lng, initialLoc.coords.accuracy || 0);
-          }
-
-          // Start watching position
-          if (Platform.OS === 'android' && LocationServiceModule) {
-            const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-            const currentBaseUrl = await getServerUrl();
-            let cookieString = '';
-            try {
-              const CookieManager = require('@react-native-cookies/cookies');
-              const cookies = await CookieManager.get(currentBaseUrl);
-              cookieString = Object.keys(cookies).map(key => `${key}=${cookies[key].value}`).join('; ');
-            } catch (e) {
-              console.warn('Failed to extract cookies:', e);
-            }
-            LocationServiceModule.startService(email, currentBaseUrl, cookieString);
-          } else {
-            subscription = await Location.watchPositionAsync(
-              {
-                accuracy: Location.Accuracy.High,
-                timeInterval: 3000, // every 3s
-                distanceInterval: 3, // or 3 meters
-              },
-              (location) => {
-                if (!isMounted) return;
-                const lat = location.coords.latitude;
-                const lng = location.coords.longitude;
-                console.log(`[Location GPS] Watched coordinates updated: Lat ${lat}, Lng ${lng}`);
-                setUserLocation({ lat, lng });
-
-                postToMap({
-                  type: 'UPDATE_USER_LOCATION',
-                  lat,
-                  lng,
-                  initial: userInitialRef.current,
-                  profilePic: getFullProfilePicUrl(),
-                  center: false
-                });
-
-                sendLocationToBackend(lat, lng, location.coords.accuracy || 0);
-              }
-            );
-          }
-        } catch (err) {
-          console.error('Error starting location tracking:', err);
-        }
-      }
-
-      async function sendLocationToBackend(lat: number, lng: number, accuracy: number) {
-        try {
-          const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-          const currentBaseUrl = await getServerUrl();
-          await fetch(`${currentBaseUrl}/api/location/update`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              latitude: lat,
-              longitude: lng,
-              accuracy,
-              email
-            }),
-            credentials: 'include'
-          });
-        } catch (err) {
-          console.warn('Failed to send user location to backend:', err);
-        }
-      }
-
-      startTracking();
-
-      return () => {
-        isMounted = false;
-        if (subscription) {
-          try {
-            subscription.remove();
-          } catch (err) {
-            console.warn('Failed to remove location subscription:', err);
-          }
-        }
-        if (nativeLocationListener) {
-          nativeLocationListener.remove();
-        }
-      };
-    }, [])
-  );
-
-  const filteredBuses = buses.filter(bus => !selectedRoute || bus.route === selectedRoute);
-  const filteredStops = useMemo(() => {
-    return busStops.filter(stop => stop.route === stopsRoute);
-  }, [busStops, stopsRoute]);
-
-  // Cross-platform helper to send messages to the Leaflet map (WebView or iframe)
-  const postToMap = (message: any) => {
+  const postToMap = React.useCallback((message: any) => {
     let finalMessage = message;
     if (message && message.type === 'UPDATE_USER_LOCATION') {
       finalMessage = { ...message, isWaiting: isWaiting };
@@ -386,7 +90,37 @@ export default function PassengerDashboard() {
     } else {
       webViewRef.current?.postMessage(payload);
     }
-  };
+  }, [isWaiting]);
+
+  const handleCenterLocation = React.useCallback((lat: number, lng: number) => {
+    postToMap({
+      type: 'UPDATE_USER_LOCATION',
+      lat,
+      lng,
+      initial: userInitial,
+      profilePic: getFullProfilePicUrl(baseUrl),
+      center: true
+    });
+  }, [postToMap, userInitial, getFullProfilePicUrl, baseUrl]);
+
+  const { userLocation } = useLocationTracking({ onCenterLocation: handleCenterLocation });
+
+  useAutoBoarding({
+    userLocation,
+    buses,
+    isBoarded,
+    setIsWaiting,
+    setWaitingLocation,
+    setIsBoarded,
+    setBoardedBus,
+    setBoardedRoute,
+    boardedBus
+  });
+
+  const filteredBuses = buses.filter(bus => !selectedRoute || bus.route === selectedRoute);
+  const filteredStops = React.useMemo(() => {
+    return busStops.filter(stop => stop.route === stopsRoute);
+  }, [busStops, stopsRoute]);
 
   // Sync stops to map whenever filteredStops or sheetTab changes
   useEffect(() => {
@@ -394,7 +128,7 @@ export default function PassengerDashboard() {
       type: 'UPDATE_STOPS',
       stops: sheetTab === 'busstops' ? filteredStops : []
     });
-  }, [filteredStops, sheetTab]);
+  }, [filteredStops, sheetTab, postToMap]);
 
   // Sync filtered buses to map whenever buses or selectedRoute changes
   useEffect(() => {
@@ -402,7 +136,7 @@ export default function PassengerDashboard() {
       type: 'UPDATE_BUSES',
       buses: filteredBuses
     });
-  }, [buses, selectedRoute]);
+  }, [buses, selectedRoute, postToMap]);
 
   // Sync user location marker to map whenever location, profile details or waiting status update
   useEffect(() => {
@@ -412,11 +146,25 @@ export default function PassengerDashboard() {
         lat: userLocation.lat,
         lng: userLocation.lng,
         initial: userInitial,
-        profilePic: getFullProfilePicUrl(),
+        profilePic: getFullProfilePicUrl(baseUrl),
         center: false
       });
     }
-  }, [userLocation, userInitial, userProfilePic, isWaiting]);
+  }, [userLocation, userInitial, userProfilePic, isWaiting, postToMap, getFullProfilePicUrl, baseUrl]);
+  
+  // Sync circles to map
+  useEffect(() => {
+    postToMap({
+      type: 'UPDATE_FRIENDS',
+      friends: circles,
+      user: userLocation ? {
+        lat: userLocation.lat,
+        lng: userLocation.lng,
+        initial: userInitial,
+        profilePic: getFullProfilePicUrl(baseUrl)
+      } : null
+    });
+  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap]);
 
   const fetchInviteCode = async (reset = false) => {
     try {
@@ -438,138 +186,7 @@ export default function PassengerDashboard() {
     }
   };
 
-  const fetchGroupMembers = async () => {
-    try {
-      const res = await fetch(`${baseUrl}/api/group/view`, { credentials: 'include', cache: 'no-store' });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.success && Array.isArray(data.friends)) {
-          const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
-          const friendsOnly = data.friends.filter((friend: any) => friend.email?.toLowerCase() !== loggedInEmail.toLowerCase());
 
-          setCircles(friendsOnly);
-          postToMap({
-            type: 'UPDATE_FRIENDS',
-            friends: friendsOnly,
-            user: userLocation ? {
-              lat: userLocation.lat,
-              lng: userLocation.lng,
-              initial: userInitial,
-              profilePic: getFullProfilePicUrl()
-            } : null
-          });
-        }
-      }
-    } catch (err) {
-      console.error('Error fetching group members:', err);
-    }
-  };
-
-  // Poll live buses, bus stops, and group members from backend API
-  useEffect(() => {
-    let active = true;
-
-    const fetchData = async () => {
-      try {
-        const currentBaseUrl = await getServerUrl();
-        setBaseUrl(currentBaseUrl);
-
-        // Fetch live buses
-        const busesRes = await fetch(`${currentBaseUrl}/api/buses`);
-        if (busesRes.ok && active) {
-          const busesData = await busesRes.json();
-          if (busesData && busesData.success && Array.isArray(busesData.buses)) {
-            // Filter only available/active buses with valid coordinates
-            const activeBuses = busesData.buses
-              .filter((bus: any) =>
-                bus.status !== 'unavailable' &&
-                bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
-                bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
-              )
-              .map((bus: any) => {
-                // If the backend/conductor hasn't set a location name, resolve it
-                // client-side using the bundled GeoJSON polygon data.
-                if (!bus.current_location_name) {
-                  const lat = parseFloat(bus.lat);
-                  const lng = parseFloat(bus.lng);
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
-                  }
-                }
-                return bus;
-              });
-            setBuses(activeBuses);
-          }
-        }
-
-        // Fetch bus stops
-        const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
-        if (stopsRes.ok && active) {
-          const stopsData = await stopsRes.json();
-          if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
-            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(stopsData.data) ? prev : stopsData.data);
-          }
-        }
-
-        // Fetch group members
-        const groupRes = await fetch(`${currentBaseUrl}/api/group/view`, { credentials: 'include', cache: 'no-store' });
-        if (groupRes.ok && active) {
-          const groupData = await groupRes.json();
-          if (groupData.success && Array.isArray(groupData.friends)) {
-            const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
-            const friendsOnly = groupData.friends.filter((friend: any) => friend.email?.toLowerCase() !== loggedInEmail.toLowerCase());
-
-            setCircles(friendsOnly);
-            postToMap({
-              type: 'UPDATE_FRIENDS',
-              friends: friendsOnly,
-              user: userLocation ? {
-                lat: userLocation.lat,
-                lng: userLocation.lng,
-                initial: userInitial,
-                profilePic: getFullProfilePicUrl()
-              } : null
-            });
-          }
-        }
-
-        // Fetch my waiting status
-        const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
-        if (loggedInEmail && active) {
-          const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
-          if (waitStatusRes.ok) {
-            const waitData = await waitStatusRes.json();
-            if (waitData.success) {
-              setIsWaiting(!!waitData.is_waiting);
-              setWaitingLocation(waitData.location_name || '');
-              setIsBoarded(!!waitData.is_boarded);
-              setBoardedBus(waitData.bus_code || '');
-              setBoardedRoute(waitData.route || '');
-              if (waitData.expires_at) {
-                setWaitingExpiresAt(waitData.expires_at);
-              } else if (!waitData.is_waiting) {
-                setWaitingExpiresAt(null);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching tracking data:', err);
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchData();
-    const interval = setInterval(fetchData, 15000); // refresh every 15s
-
-    return () => {
-      active = false;
-      clearInterval(interval);
-    };
-  }, []);
 
   // Live countdown timer for waiting expiry
   useEffect(() => {
@@ -606,7 +223,7 @@ export default function PassengerDashboard() {
                 lat: userLocation.lat,
                 lng: userLocation.lng,
                 initial: userInitial,
-                profilePic: getFullProfilePicUrl(),
+                profilePic: getFullProfilePicUrl(baseUrl),
                 center: true
               });
             }
@@ -625,7 +242,7 @@ export default function PassengerDashboard() {
                 lat: userLocation.lat,
                 lng: userLocation.lng,
                 initial: userInitial,
-                profilePic: getFullProfilePicUrl()
+                profilePic: getFullProfilePicUrl(baseUrl)
               } : null
             });
           }
@@ -646,7 +263,7 @@ export default function PassengerDashboard() {
             lat: userLocation.lat,
             lng: userLocation.lng,
             initial: userInitial,
-            profilePic: getFullProfilePicUrl(),
+            profilePic: getFullProfilePicUrl(baseUrl),
             center: true
           });
         }
@@ -665,7 +282,7 @@ export default function PassengerDashboard() {
             lat: userLocation.lat,
             lng: userLocation.lng,
             initial: userInitial,
-            profilePic: getFullProfilePicUrl()
+            profilePic: getFullProfilePicUrl(baseUrl)
           } : null
         });
       }
@@ -752,7 +369,10 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/set`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           email: email,
           location_name: stopName
@@ -796,7 +416,10 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         body: JSON.stringify({
           email: email
         })
@@ -888,7 +511,7 @@ export default function PassengerDashboard() {
         if (data.success) {
           Alert.alert('Success', data.message || `Successfully joined circle with code: ${joinCode}`);
           setJoinCode('');
-          fetchGroupMembers();
+          fetchGroupMembers(baseUrl);
         } else {
           Alert.alert('Error', data.message || 'Failed to join circle.');
         }
@@ -915,7 +538,7 @@ export default function PassengerDashboard() {
           const data = await res.json();
           if (data.success) {
             Alert.alert('Success', data.message || `Successfully removed ${friendName} from circle.`);
-            fetchGroupMembers();
+            fetchGroupMembers(baseUrl);
           } else {
             Alert.alert('Error', data.message || 'Failed to remove member.');
           }
@@ -994,127 +617,7 @@ export default function PassengerDashboard() {
     );
   };
 
-  // Auto-boarding and Auto-departing logic
-  useEffect(() => {
-    let isMounted = true;
 
-    const checkProximity = async () => {
-      if (!userLocation || buses.length === 0) return;
-
-      if (!isBoarded) {
-        // Auto-board logic
-        let nearestBus: any = null;
-        let minDistance = 0.05; // 50 meters threshold
-
-        buses.forEach(bus => {
-          const busLat = parseFloat(bus.lat || bus.latitude);
-          const busLng = parseFloat(bus.lng || bus.longitude);
-          if (!isNaN(busLat) && !isNaN(busLng)) {
-            const R = 6371; // km
-            const dLat = (userLocation.lat - busLat) * Math.PI / 180;
-            const dLon = (userLocation.lng - busLng) * Math.PI / 180;
-            const a =
-              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(busLat * Math.PI / 180) *
-              Math.cos(userLocation.lat * Math.PI / 180) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const distance = R * c;
-
-            if (distance < minDistance) {
-              minDistance = distance;
-              nearestBus = bus;
-            }
-          }
-        });
-
-        if (nearestBus && isMounted) {
-          try {
-            const currentBaseUrl = await getServerUrl();
-            const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-
-            const res = await fetch(`${currentBaseUrl}/api/passenger/board`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                email: email,
-                bus_id: nearestBus.Bus_ID,
-                operation_id: nearestBus.current_operation_id
-              })
-            });
-
-            const data = await res.json();
-            if (data.success && isMounted) {
-              setIsWaiting(false);
-              setWaitingLocation('');
-              setIsBoarded(true);
-              setBoardedBus(nearestBus.code || '');
-              Alert.alert('Boarded Successfully', `🚌 You have auto-boarded Bus ${nearestBus.code}!`);
-            }
-          } catch (e) {
-            console.warn('Auto-boarding failed:', e);
-          }
-        }
-      } else if (isBoarded && boardedBus) {
-        // Auto-depart logic
-        const currentBus = buses.find(b => b.code === boardedBus);
-        if (currentBus) {
-          const busLat = parseFloat(currentBus.lat || currentBus.latitude);
-          const busLng = parseFloat(currentBus.lng || currentBus.longitude);
-
-          if (!isNaN(busLat) && !isNaN(busLng)) {
-            const R = 6371; // km
-            const dLat = (userLocation.lat - busLat) * Math.PI / 180;
-            const dLon = (userLocation.lng - busLng) * Math.PI / 180;
-            const a =
-              Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos(busLat * Math.PI / 180) *
-              Math.cos(userLocation.lat * Math.PI / 180) *
-              Math.sin(dLon / 2) *
-              Math.sin(dLon / 2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const distance = R * c;
-
-            // If user is more than 200 meters away from the bus, auto depart
-            if (distance > 0.2 && isMounted) {
-              try {
-                const currentBaseUrl = await getServerUrl();
-                const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-
-                const res = await fetch(`${currentBaseUrl}/api/passenger/depart`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    email: email
-                  })
-                });
-
-                const data = await res.json();
-                if (data.success && isMounted) {
-                  setIsBoarded(false);
-                  setBoardedBus('');
-                  setBoardedRoute('');
-                  Alert.alert('Departed Successfully', `👋 You have successfully alighted from Bus ${boardedBus}.`);
-                }
-              } catch (e) {
-                console.warn('Auto-depart failed:', e);
-              }
-            }
-          }
-        }
-      }
-    };
-
-    // Check periodically
-    const interval = setInterval(checkProximity, 5000);
-    checkProximity();
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, [isWaiting, isBoarded, userLocation, buses, boardedBus]);
 
   // Geolocation-based waiting status automatic toggle
   useEffect(() => {

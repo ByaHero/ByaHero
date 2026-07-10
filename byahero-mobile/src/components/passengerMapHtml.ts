@@ -147,7 +147,7 @@ export function getLeafletHTML(baseUrl: string): string {
                 userMarker.setLatLng([data.lat, data.lng]);
                 userMarker.setIcon(userIcon);
               } else {
-                userMarker = L.marker([data.lat, data.lng], { icon: userIcon }).addTo(map);
+                userMarker = L.marker([data.lat, data.lng], { icon: userIcon, zIndexOffset: 1000 }).addTo(map);
                 userMarker.on('click', function() {
                   if (postMessageFn) {
                     postMessageFn(JSON.stringify({ type: 'USER_MARKER_CLICKED' }));
@@ -184,7 +184,7 @@ export function getLeafletHTML(baseUrl: string): string {
                     iconAnchor: [14, 14],
                     popupAnchor: [0, -14]
                   });
-                  var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon })
+                  var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon, zIndexOffset: 800 })
                     .bindPopup('<b>Bus Plate:</b> ' + (bus.plate_number || 'N/A') + '<br/><b>Route:</b> ' + (bus.route || 'N/A'))
                     .addTo(map);
                   var busKey = bus.Bus_ID || bus.bus_id || bus.plate_number;
@@ -225,7 +225,7 @@ export function getLeafletHTML(baseUrl: string): string {
                     (stop.location_landmark ? '<span style="font-size:11px;color:#475569;display:block;">' + stop.location_landmark + '</span>' : '') +
                     '<span style="font-size:10px;color:#64748b;font-weight:bold;display:block;margin-top:4px;">' + labelType + '</span>' +
                     '</div>';
-                  var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: stopIcon })
+                  var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: stopIcon, zIndexOffset: 100 })
                     .bindPopup(popupContent)
                     .addTo(map);
                   stopMarkers[stop.id || stop.name] = m;
@@ -322,7 +322,7 @@ export function getLeafletHTML(baseUrl: string): string {
                     popupHtml += '<div style="font-size:11px;color:#64748b;">Live location available</div>';
                   }
 
-                  var m = L.marker([lat, lng], { icon: friendIcon })
+                  var m = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 700 })
                     .bindPopup(popupHtml)
                     .addTo(map);
                   window.groupMarkers.push(m);
@@ -352,7 +352,22 @@ export function getLeafletHTML(baseUrl: string): string {
 
                     innerHtml += '<div style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ' + borderCol + '; background: ' + (member.isUser ? '#2563eb' : '#10b981') + '; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; ' + mlStyle + ' font-size: 10px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">' + avatarHtml + '</div>';
 
-                    popupHtml += '<li>' + (member.isUser ? '<b>You</b>' : (member.name || member.email)) + '</li>';
+                    var statusText = '';
+                    if (!member.isUser) {
+                      var isWaiting = member.waiting_status === 'waiting';
+                      var isBoarded = member.ride_status === 'active';
+                      if (isWaiting) {
+                        statusText = '<br/><span style="font-size:11px;color:#d97706;">Waiting at <b>' + (member.waiting_location || '') + '</b></span>';
+                      } else if (isBoarded) {
+                        statusText = '<br/><span style="font-size:11px;color:#15803d;">Onboard Bus <b>' + (member.boarded_bus_code || '') + '</b></span>';
+                      } else {
+                        statusText = '<br/><span style="font-size:11px;color:#64748b;">Live location available</span>';
+                      }
+                      popupHtml += '<li style="margin-bottom:6px;"><b>' + (member.name || member.email) + '</b>' + statusText + '</li>';
+                    } else {
+                      statusText = '<br/><span style="font-size:11px;color:#2563eb;text-decoration:underline;cursor:pointer;" onclick="if(window.postMessageFn) window.postMessageFn(JSON.stringify({type:\\'USER_MARKER_CLICKED\\'}));">Tap to view your status</span>';
+                      popupHtml += '<li style="margin-bottom:6px;"><b>You</b>' + statusText + '</li>';
+                    }
                   });
 
                   popupHtml += '</ul></div>';
@@ -370,17 +385,9 @@ export function getLeafletHTML(baseUrl: string): string {
                     popupAnchor: [0, -42]
                   });
 
-                  var m = L.marker([lat, lng], { icon: clusterIcon })
+                  var m = L.marker([lat, lng], { icon: clusterIcon, zIndexOffset: 900 })
                     .bindPopup(popupHtml)
                     .addTo(map);
-
-                  if (userOverlaps) {
-                    m.on('click', function() {
-                      if (postMessageFn) {
-                        postMessageFn(JSON.stringify({ type: 'USER_MARKER_CLICKED' }));
-                      }
-                    });
-                  }
 
                   window.groupMarkers.push(m);
                 }
@@ -405,6 +412,7 @@ export function getLeafletHTML(baseUrl: string): string {
         var postMessageFn = (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) 
           ? window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView) 
           : (window.parent && window.parent.postMessage) ? function(msg) { window.parent.postMessage(msg, '*'); } : null;
+        window.postMessageFn = postMessageFn;
 
         if (postMessageFn) {
           postMessageFn(JSON.stringify({ type: 'MAP_READY' }));
