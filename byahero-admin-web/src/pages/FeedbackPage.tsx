@@ -228,16 +228,16 @@ export default function FeedbackPage() {
         isOpen={deleteConfirm.isOpen}
         onClose={() => setDeleteConfirm({ isOpen: false, id: null })}
         title="Delete Feedback"
-        type="warning"
-        secondaryAction={{
-          label: 'Cancel',
-          onClick: () => setDeleteConfirm({ isOpen: false, id: null })
-        }}
-        primaryAction={{
-          label: 'Yes, delete',
-          danger: true,
-          onClick: executeDelete
-        }}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setDeleteConfirm({ isOpen: false, id: null })}>
+              Cancel
+            </button>
+            <button className="btn btn-danger" onClick={executeDelete}>
+              Yes, delete
+            </button>
+          </>
+        }
       >
         <p>Are you sure you want to permanently delete this passenger feedback? This action cannot be undone.</p>
       </Modal>
@@ -246,11 +246,11 @@ export default function FeedbackPage() {
         isOpen={successModal.isOpen}
         onClose={() => setSuccessModal({ isOpen: false, message: '' })}
         title="Success"
-        type="success"
-        primaryAction={{
-          label: 'Okay',
-          onClick: () => setSuccessModal({ isOpen: false, message: '' })
-        }}
+        footer={
+          <button className="btn btn-primary" onClick={() => setSuccessModal({ isOpen: false, message: '' })}>
+            Okay
+          </button>
+        }
       >
         <p>{successModal.message}</p>
       </Modal>
@@ -259,11 +259,11 @@ export default function FeedbackPage() {
         isOpen={errorModal.isOpen}
         onClose={() => setErrorModal({ isOpen: false, message: '' })}
         title="Action Failed"
-        type="error"
-        primaryAction={{
-          label: 'Okay',
-          onClick: () => setErrorModal({ isOpen: false, message: '' })
-        }}
+        footer={
+          <button className="btn btn-primary" onClick={() => setErrorModal({ isOpen: false, message: '' })}>
+            Okay
+          </button>
+        }
       >
         <p>{errorModal.message}</p>
       </Modal>
