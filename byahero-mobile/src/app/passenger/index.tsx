@@ -45,6 +45,7 @@ export default function PassengerDashboard() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'location' | 'sos' | 'info'>('location');
   const [sheetTab, setSheetTab] = useState<'location' | 'routes' | 'groups' | 'busstops'>('location');
+  const [isFollowingUser, setIsFollowingUser] = useState(true);
 
   const { activeStep, setActiveStep } = useTourState(setSheetTab);
   const { userProfilePic, userInitial, getFullProfilePicUrl } = usePassengerProfile();
@@ -147,10 +148,10 @@ export default function PassengerDashboard() {
         lng: userLocation.lng,
         initial: userInitial,
         profilePic: getFullProfilePicUrl(baseUrl),
-        center: false
+        center: isFollowingUser
       });
     }
-  }, [userLocation, userInitial, userProfilePic, isWaiting, postToMap, getFullProfilePicUrl, baseUrl]);
+  }, [userLocation, userInitial, userProfilePic, isWaiting, postToMap, getFullProfilePicUrl, baseUrl, isFollowingUser]);
   
   // Sync circles to map
   useEffect(() => {
@@ -246,6 +247,9 @@ export default function PassengerDashboard() {
               } : null
             });
           }
+          else if (data.type === 'MAP_DRAGGED') {
+            setIsFollowingUser(false);
+          }
         } catch (e) { }
       };
       window.addEventListener('message', handleWebMessage);
@@ -288,6 +292,9 @@ export default function PassengerDashboard() {
       }
       else if (data.type === 'USER_MARKER_CLICKED') {
         setWaitingModalVisible(true);
+      }
+      else if (data.type === 'MAP_DRAGGED') {
+        setIsFollowingUser(false);
       }
     } catch (e) {
       console.error(e);
@@ -456,6 +463,7 @@ export default function PassengerDashboard() {
   };
 
   const centerToMyLocation = () => {
+    setIsFollowingUser(true);
     if (userLocation) {
       postToMap({
         type: 'SET_CENTER',
