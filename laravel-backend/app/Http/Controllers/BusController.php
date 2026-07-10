@@ -379,6 +379,20 @@ class BusController extends Controller
                 return response()->json(['success' => false, 'message' => 'bus_id and operation_id are required'], 400);
             }
 
+            // Prevent duplicate boarding if already active
+            $activeRide = DB::table('passenger_rides')
+                ->where('user_id', $userId)
+                ->where('status', 'active')
+                ->first();
+
+            if ($activeRide) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Already boarded',
+                    'ride_id' => $activeRide->id
+                ]);
+            }
+
             // Cancel waiting status
             DB::table('waiting_passengers')
                 ->where('user_id', $userId)
