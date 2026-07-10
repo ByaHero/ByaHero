@@ -22,9 +22,18 @@ export function useTrackingData() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.friends)) {
-          const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
-          const friendsOnly = data.friends.filter((friend: any) => friend.email?.toLowerCase() !== loggedInEmail.toLowerCase());
-          setCircles(friendsOnly);
+          const loggedInEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').toLowerCase().trim();
+          
+          // Deduplicate by email and filter out the logged in user
+          const uniqueFriends = new Map();
+          data.friends.forEach((friend: any) => {
+            const friendEmail = (friend.email || '').toLowerCase().trim();
+            if (friendEmail && friendEmail !== loggedInEmail && !uniqueFriends.has(friendEmail)) {
+              uniqueFriends.set(friendEmail, friend);
+            }
+          });
+          
+          setCircles(Array.from(uniqueFriends.values()));
         }
       }
     } catch (err) {
