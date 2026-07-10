@@ -1,124 +1,170 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Switch,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
+import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 
 export default function SettingsScreen() {
-  const settingsSections = [
-    {
-      title: 'Alerts & Sharing',
-      items: [
-        {
-          title: 'Smart Notifications',
-          desc: 'Configure push alerts and schedules',
-          icon: 'notifications-active',
-          color: '#3b82f6',
-          route: '/passenger/settings/smartNotification',
-        },
-        {
-          title: 'Privacy & Security',
-          desc: 'Manage profile and visibility settings',
-          icon: 'security',
-          color: '#10b981',
-          route: '/passenger/settings/privacySecurity',
-        },
-      ],
-    },
-    {
-      title: 'Preferences',
-      items: [
-        {
-          title: 'Accessibility Settings',
-          desc: 'High contrast and voice guidance',
-          icon: 'accessibility',
-          color: '#8b5cf6',
-          route: '/passenger/settings/accessibilitySettings',
-        },
-        {
-          title: 'Submit Feedback',
-          desc: 'Report suggestions or issues',
-          icon: 'rate-review',
-          color: '#f59e0b',
-          route: '/passenger/settings/feedback',
-        },
-      ],
-    },
-    {
-      title: 'Legal & Info',
-      items: [
-        {
-          title: 'Privacy Policy',
-          desc: 'Read our data policy guidelines',
-          icon: 'policy',
-          color: '#64748b',
-          route: '/passenger/settings/staticPages?page=privacy',
-        },
-        {
-          title: 'Terms of Service',
-          desc: 'Read terms of use details',
-          icon: 'description',
-          color: '#64748b',
-          route: '/passenger/settings/staticPages?page=terms',
-        },
-        {
-          title: 'About Us',
-          desc: 'About the ByaHero application',
-          icon: 'info',
-          color: '#64748b',
-          route: '/passenger/settings/staticPages?page=about',
-        },
-      ],
-    },
-  ];
+  const [locationServices, setLocationServices] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || 'Guest';
+        const loggedIn = cachedEmail !== 'Guest' && cachedEmail !== 'guest@byahero.app';
+        setIsLoggedIn(loggedIn);
+
+        const cachedLocation = await AsyncStorage.getItem('byahero_location_services');
+        if (cachedLocation !== null) {
+          setLocationServices(cachedLocation === '1');
+        }
+
+        if (loggedIn) {
+          const serverUrl = await getServerUrl();
+          const res = await fetch(`${serverUrl}/api/settings/privacy`, { credentials: 'include' });
+          const data = await res.json();
+          if (data && data.success && data.settings) {
+            const locVal = parseInt(data.settings.location_services) === 1;
+            setLocationServices(locVal);
+            await AsyncStorage.setItem('byahero_location_services', locVal ? '1' : '0');
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load privacy settings:', err);
+      }
+    }
+    loadSettings();
+  }, []);
+
+  const handleToggleLocation = async (value: boolean) => {
+    setLocationServices(value);
+    try {
+      await AsyncStorage.setItem('byahero_location_services', value ? '1' : '0');
+      
+      if (isLoggedIn) {
+        const serverUrl = await getServerUrl();
+        const formData = new FormData();
+        formData.append('setting_name', 'location_services');
+        formData.append('setting_value', value ? '1' : '0');
+
+        const res = await fetch(`${serverUrl}/api/settings/update`, {
+          method: 'POST',
+          body: formData,
+          credentials: 'include',
+        });
+        const data = await res.json();
+        if (!data.success) {
+          console.warn('Failed to save privacy settings on server:', data.message);
+        }
+      }
+
+      if (!value) {
+        Alert.alert('Location Services Disabled', 'Bus tracking and sharing may not work properly while this is disabled.');
+      }
+    } catch (e) {
+      console.error('Failed to update privacy setting:', e);
+    }
+  };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-white`}>
-      <PassengerHeader pageTitle="Settings" showBackButton={true} />
+      <PassengerHeader pageTitle="Privacy & Security" showBackButton={true} />
 
       <ScrollView contentContainerStyle={tw`pb-8`}>
         <View style={[tw`p-4 bg-slate-100/70 min-h-140 mt-4`, { borderTopLeftRadius: 32, borderTopRightRadius: 32 }]}>
-          <Text style={tw`text-lg font-black text-slate-800 mb-1 px-1`}>Settings Portal</Text>
-          <Text style={tw`text-xs text-slate-400 font-medium mb-5 px-1`}>Manage preferences, app visibility, and notification profiles</Text>
-
-          {settingsSections.map((section, secIdx) => (
-            <View key={secIdx} style={tw`mb-5`}>
-              <Text style={tw`text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1`}>
-                {section.title}
+          {/* Banner */}
+          <View style={tw`bg-[#1e3a8a] rounded-3xl p-5 shadow-sm mb-4`}>
+            <Text style={tw`text-base font-bold text-white mb-2`}>Privacy and Security</Text>
+            <Text style={tw`text-xs text-blue-100/90 leading-relaxed`}>
+              Control which apps can access your data and location.{' '}
+              <Text 
+                style={tw`text-[#fbbf24] underline font-semibold`} 
+                onPress={() => router.push('/passenger/settings/staticPages?page=privacy')}
+              >
+                Learn more...
               </Text>
-              
-              <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden`}>
-                {section.items.map((item, itemIdx) => (
-                  <TouchableOpacity
-                    key={itemIdx}
-                    onPress={() => router.push(item.route as any)}
-                    style={[
-                      tw`flex-row items-center justify-between p-4`,
-                      itemIdx < section.items.length - 1 && tw`border-b border-slate-100`
-                    ]}
-                  >
-                    <View style={tw`flex-row items-center flex-1 mr-3`}>
-                      <View style={[tw`w-10 h-10 rounded-2xl justify-center items-center mr-3.5`, { backgroundColor: item.color + '15' }]}>
-                        <MaterialIcons name={item.icon as any} size={20} color={item.color} />
-                      </View>
-                      <View style={tw`flex-1`}>
-                        <Text style={tw`text-sm font-semibold text-slate-700`}>{item.title}</Text>
-                        <Text style={tw`text-xs text-slate-400 mt-0.5`} numberOfLines={1}>{item.desc}</Text>
-                      </View>
-                    </View>
-                    <MaterialIcons name="chevron-right" size={24} color="#cbd5e1" />
-                  </TouchableOpacity>
-                ))}
-              </View>
+            </Text>
+          </View>
+
+          {/* Guest notice */}
+          {!isLoggedIn && (
+            <View style={tw`flex-row items-center bg-[#dbeafe] border-l-4 border-[#3b82f6] p-4 rounded-xl mb-4 gap-2`}>
+              <MaterialIcons name="info" size={18} color="#3b82f6" />
+              <Text style={tw`text-[#1e40af] text-xs flex-1`}>
+                You're using privacy settings as a guest.{' '}
+                <Text 
+                  style={tw`font-bold text-[#1e3a8a] underline`} 
+                  onPress={() => router.replace('/')}
+                >
+                  Login
+                </Text>{' '}
+                to save your preferences across devices.
+              </Text>
             </View>
-          ))}
+          )}
+
+          {/* Permissions Switches */}
+          <Text style={tw`text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1`}>Permissions</Text>
+          <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-5`}>
+            <View style={tw`flex-row items-center justify-between p-4`}>
+              <View style={tw`flex-row items-center flex-1 mr-4`}>
+                <View style={tw`w-10 h-10 rounded-2xl bg-blue-50 justify-center items-center mr-3.5`}>
+                  <MaterialIcons name="location-on" size={20} color="#1e3a8a" />
+                </View>
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-sm font-semibold text-slate-700`}>Location Services</Text>
+                  <Text style={tw`text-xs text-slate-400 mt-0.5`} numberOfLines={1}>
+                    Allow ByaHero to access your location
+                  </Text>
+                </View>
+              </View>
+
+              <Switch
+                value={locationServices}
+                onValueChange={handleToggleLocation}
+                trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
+                thumbColor={locationServices ? '#1e3a8a' : '#f4f3f4'}
+              />
+            </View>
+          </View>
+
+          {/* Additional Resources */}
+          <Text style={tw`text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1`}>Additional Resources</Text>
+          <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden`}>
+            <TouchableOpacity 
+              onPress={() => router.push('/passenger/settings/staticPages?page=privacy')}
+              style={tw`flex-row items-center justify-between p-4 border-b border-slate-100`}
+            >
+              <View style={tw`flex-row items-center`}>
+                <MaterialIcons name="description" size={20} color="#64748b" style={tw`mr-3.5`} />
+                <Text style={tw`text-sm font-semibold text-slate-700`}>Privacy Policy</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="#cbd5e1" />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              onPress={() => router.push('/passenger/settings/staticPages?page=terms')}
+              style={tw`flex-row items-center justify-between p-4`}
+            >
+              <View style={tw`flex-row items-center`}>
+                <MaterialIcons name="gavel" size={20} color="#64748b" style={tw`mr-3.5`} />
+                <Text style={tw`text-sm font-semibold text-slate-700`}>Terms of Service</Text>
+              </View>
+              <MaterialIcons name="chevron-right" size={24} color="#cbd5e1" />
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
