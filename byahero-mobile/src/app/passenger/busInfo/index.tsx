@@ -33,6 +33,10 @@ export default function BusInfoScreen() {
   const [showDropoffDropdown, setShowDropoffDropdown] = useState(false);
   const [showDiscountDropdown, setShowDiscountDropdown] = useState(false);
 
+  const [pickupLayout, setPickupLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [dropoffLayout, setDropoffLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+  const [discountLayout, setDiscountLayout] = useState<{ x: number, y: number, width: number, height: number } | null>(null);
+
   useEffect(() => {
     let active = true;
 
@@ -195,7 +199,12 @@ export default function BusInfoScreen() {
 
       <View style={{ flex: 1, height: '100%' }}>
         {/* Main Content Area */}
-        <ScrollView style={{ flex: 1, backgroundColor: '#ffffff' }} contentContainerStyle={{ padding: 20, paddingBottom: 60 }}>
+        <ScrollView
+          nestedScrollEnabled={true}
+          keyboardShouldPersistTaps="handled"
+          style={{ flex: 1, backgroundColor: '#ffffff' }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 60 }}
+        >
           {/* Schedules Section */}
           <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-6 mb-4 text-center`}>Bus Operation Schedule</Text>
           {schedules.length === 0 ? (
@@ -254,23 +263,26 @@ export default function BusInfoScreen() {
               </TouchableOpacity>
 
               {showPickupDropdown && (
-                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg max-h-48 overflow-hidden`, { zIndex: 1000, elevation: 1000 }]}>
-                  <ScrollView nestedScrollEnabled={true}>
-                    {fareStops.map((stop) => (
-                      <TouchableOpacity
-                        key={stop.stop_id}
-                        onPress={() => {
-                          setPickupStop(stop);
-                          setShowPickupDropdown(false);
-                          calculateFare(stop, dropoffStop, discountType);
-                        }}
-                        style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                      >
-                        <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  style={[tw`mt-1.5 bg-white border border-[#cbd5e1] rounded-xl shadow-inner`, { maxHeight: 150, zIndex: 1000, elevation: 1000 }]}
+                  contentContainerStyle={tw`p-1`}
+                >
+                  {fareStops.map((stop) => (
+                    <TouchableOpacity
+                      key={stop.stop_id}
+                      onPress={() => {
+                        setPickupStop(stop);
+                        setShowPickupDropdown(false);
+                        calculateFare(stop, dropoffStop, discountType);
+                      }}
+                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                    >
+                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               )}
             </View>
 
@@ -291,23 +303,26 @@ export default function BusInfoScreen() {
               </TouchableOpacity>
 
               {showDropoffDropdown && (
-                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg max-h-48 overflow-hidden`, { zIndex: 1000, elevation: 1000 }]}>
-                  <ScrollView nestedScrollEnabled={true}>
-                    {fareStops.map((stop) => (
-                      <TouchableOpacity
-                        key={stop.stop_id}
-                        onPress={() => {
-                          setDropoffStop(stop);
-                          setShowDropoffDropdown(false);
-                          calculateFare(pickupStop, stop, discountType);
-                        }}
-                        style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
-                      >
-                        <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </ScrollView>
-                </View>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  style={[tw`mt-1.5 bg-white border border-[#cbd5e1] rounded-xl shadow-inner`, { maxHeight: 150, zIndex: 1000, elevation: 1000 }]}
+                  contentContainerStyle={tw`p-1`}
+                >
+                  {fareStops.map((stop) => (
+                    <TouchableOpacity
+                      key={stop.stop_id}
+                      onPress={() => {
+                        setDropoffStop(stop);
+                        setShowDropoffDropdown(false);
+                        calculateFare(pickupStop, stop, discountType);
+                      }}
+                      style={tw`py-2.5 px-3 border-b border-[#f1f5f9]`}
+                    >
+                      <Text style={tw`text-xs text-[#334155] font-semibold`}>{stop.location_name}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               )}
             </View>
           </View>
@@ -330,7 +345,12 @@ export default function BusInfoScreen() {
               </TouchableOpacity>
 
               {showDiscountDropdown && (
-                <View style={[tw`absolute top-12 left-0 right-0 bg-white border border-[#e2e8f0] rounded-xl p-1 shadow-lg`, { zIndex: 1000, elevation: 1000 }]}>
+                <ScrollView
+                  nestedScrollEnabled={true}
+                  keyboardShouldPersistTaps="handled"
+                  style={[tw`mt-1.5 bg-white border border-[#cbd5e1] rounded-xl shadow-inner`, { maxHeight: 110, zIndex: 1000, elevation: 1000 }]}
+                  contentContainerStyle={tw`p-1`}
+                >
                   <TouchableOpacity
                     onPress={() => {
                       setDiscountType('regular');
@@ -351,7 +371,7 @@ export default function BusInfoScreen() {
                   >
                     <Text style={tw`text-sm text-[#334155] font-semibold`}>S/E/D</Text>
                   </TouchableOpacity>
-                </View>
+                </ScrollView>
               )}
             </View>
           </View>
