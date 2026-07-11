@@ -32,7 +32,8 @@ jobs:
           server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
           username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
           password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
-          port: 990
+          port: 21
           protocol: ftps
+          security: loose
           local-dir: ./laravel-backend/
           server-dir: ./www/
