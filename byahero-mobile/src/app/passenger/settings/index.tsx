@@ -30,6 +30,13 @@ export default function SettingsScreen() {
           color: '#10b981',
           route: '/passenger/settings/privacySecurity',
         },
+        {
+          title: 'Login Activity',
+          desc: 'Recent login sessions and history',
+          icon: 'history',
+          color: '#6366f1',
+          route: '/passenger/profile/loginActivity',
+        },
       ],
     },
     {

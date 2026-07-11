@@ -88,9 +88,32 @@ export default function PrivacySecurityScreen() {
           <View style={tw`bg-[#1e3a8a] rounded-3xl p-5 shadow-sm mb-4`}>
             <Text style={tw`text-base font-bold text-white mb-2`}>Privacy and Security</Text>
             <Text style={tw`text-xs text-blue-100/90 leading-relaxed`}>
-              Control which apps and services can access your profile details and active device GPS location tracking.
+              Control which apps can access your data and location.{' '}
+              <Text 
+                style={tw`text-[#fbbf24] underline font-semibold`} 
+                onPress={() => router.push('/passenger/settings/staticPages?page=privacy')}
+              >
+                Learn more...
+              </Text>
             </Text>
           </View>
+
+          {/* Guest notice */}
+          {!isLoggedIn && (
+            <View style={tw`flex-row items-center bg-[#dbeafe] border-l-4 border-[#3b82f6] p-4 rounded-xl mb-4 gap-2`}>
+              <MaterialIcons name="info" size={18} color="#3b82f6" />
+              <Text style={tw`text-[#1e40af] text-xs flex-1`}>
+                You're using privacy settings as a guest.{' '}
+                <Text 
+                  style={tw`font-bold text-[#1e3a8a] underline`} 
+                  onPress={() => router.replace('/')}
+                >
+                  Login
+                </Text>{' '}
+                to save your preferences across devices.
+              </Text>
+            </View>
+          )}
 
           {/* Permissions Switches */}
           <Text style={tw`text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1`}>Permissions</Text>
@@ -103,7 +126,7 @@ export default function PrivacySecurityScreen() {
                 <View style={tw`flex-1`}>
                   <Text style={tw`text-sm font-semibold text-slate-700`}>Location Services</Text>
                   <Text style={tw`text-xs text-slate-400 mt-0.5`} numberOfLines={1}>
-                    Allow ByaHero to track your GPS position
+                    Allow ByaHero to access your location
                   </Text>
                 </View>
               </View>

@@ -415,6 +415,9 @@ export function getLeafletHTML(baseUrl: string): string {
         window.postMessageFn = postMessageFn;
 
         if (postMessageFn) {
+          map.on('dragstart', function() {
+            postMessageFn(JSON.stringify({ type: 'MAP_DRAGGED' }));
+          });
           postMessageFn(JSON.stringify({ type: 'MAP_READY' }));
         }
       </script>

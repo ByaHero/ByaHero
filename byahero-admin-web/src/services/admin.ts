@@ -96,7 +96,7 @@ export const adminService = {
     body: JSON.stringify({ id })
   }),
 
-  // Analytics
+    // Analytics & AI
   getAnalytics: (params?: { period?: string; start?: string; end?: string }) => {
     const query = new URLSearchParams();
 
@@ -107,6 +107,7 @@ export const adminService = {
     const suffix = query.toString() ? `?${query.toString()}` : '';
     return apiRequest(`/api/admin/analytics${suffix}`);
   },
+  trainAiModel: () => apiRequest('/api/admin/ai/train', { method: 'POST' }),
 
 
   // Lost & Found

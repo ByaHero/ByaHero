@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'python_ml_api' => [
+        'url' => env('PYTHON_ML_API_URL', 'http://localhost:8001'),
+    ],
+
 ];
