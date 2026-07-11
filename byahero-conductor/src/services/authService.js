@@ -3,7 +3,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 
 export async function getServerUrl() {
-  // Temporarily bypass AsyncStorage because it may be caching an old/wrong IP
+  try {
+    const storedUrl = await AsyncStorage.getItem('byahero_server_url');
+    if (storedUrl) {
+      return storedUrl;
+    }
+  } catch (error) {
+    console.error('Error getting server URL:', error);
+  }
   return DEFAULT_SERVER_URL;
 }
 
