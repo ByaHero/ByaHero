@@ -17,7 +17,7 @@ jobs:
         run: |
           echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> laravel-backend/.env
           echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> laravel-backend/.env
-          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> laravel-backend/.env
+          echo "SENDER_NAME=\"${{ secrets.SENDER_NAME }}\"" >> laravel-backend/.env
           echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> laravel-backend/.env
           echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> laravel-backend/.env
           echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> laravel-backend/.env
