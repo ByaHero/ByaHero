@@ -47,3 +47,9 @@ jobs:
           protocol: ftps
           local-dir: ./byahero-ai/
           server-dir: ./byahero-ai/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/__pycache__/**
+            **/*.pyc
+            **/.env
