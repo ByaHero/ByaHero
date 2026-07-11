@@ -176,7 +176,7 @@ export default function Buses() {
                   <td style={{ fontWeight: 700 }}>Bus {bus.bus_no}</td>
                   <td>{bus.plate_no}</td>
                   <td>{bus.capacity} seats</td>
-                  <td>{bus.conductor_name || <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>None Assigned</span>}</td>
+                  <td>{bus.conductor_name || (bus.conductor_email ? bus.conductor_email.split('@')[0] : <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>None Assigned</span>)}</td>
                   <td>
                     <span className={`badge badge-${bus.status === 'active' ? 'success' : bus.status === 'inactive' ? 'error' : 'warning'}`}>
                       {bus.status}

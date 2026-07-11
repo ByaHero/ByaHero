@@ -17,6 +17,7 @@ export interface Bus {
   description?: string;
   created_at?: string;
   conductor_name?: string;
+  conductor_email?: string;
 }
 
 export interface ActiveBus extends Bus {
@@ -27,6 +28,8 @@ export interface ActiveBus extends Bus {
   speed?: number;
   heading?: number;
   last_updated?: string;
+  current_location?: string;
+  conductor_email?: string;
 }
 
 export interface StaffMember {

@@ -129,7 +129,11 @@ class AdminController extends Controller
     public function listBuses(Request $request)
     {
         $this->checkAuth();
-        $buses = Bus::orderBy('code', 'asc')->get();
+        $buses = DB::table('busses as b')
+            ->leftJoin('conductors as c', 'b.current_conductor_id', '=', 'c.id')
+            ->select('b.*', 'c.name as conductor_name', 'c.email as conductor_email')
+            ->orderBy('b.code', 'asc')
+            ->get();
         return response()->json(['success' => true, 'buses' => $buses]);
     }
 
