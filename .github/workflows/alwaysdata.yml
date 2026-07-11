@@ -15,24 +15,16 @@ jobs:
 
       - name: Create .env file
         run: |
-          cp laravel-backend/.env.example laravel-backend/.env
-          echo "APP_ENV=production" >> laravel-backend/.env
-          echo "APP_DEBUG=false" >> laravel-backend/.env
-          echo "APP_URL=https://byahero.alwaysdata.net" >> laravel-backend/.env
-          echo "APP_KEY=base64:EGu5rmXh566Hhn3KjP3OeyvmYtMhF/bEywyEnfqcEPk=" >> laravel-backend/.env
           echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> laravel-backend/.env
           echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> laravel-backend/.env
           echo "SENDER_NAME=\"${{ secrets.SENDER_NAME }}\"" >> laravel-backend/.env
           echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> laravel-backend/.env
           echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> laravel-backend/.env
           echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> laravel-backend/.env
-          echo "DB_CONNECTION=mysql" >> laravel-backend/.env
           echo "DB_HOST=${{ secrets.ALWAYSDATA_DB_HOST }}" >> laravel-backend/.env
-          echo "DB_PORT=3306" >> laravel-backend/.env
-          echo "DB_DATABASE=${{ secrets.ALWAYSDATA_DB_NAME }}" >> laravel-backend/.env
-          echo "DB_USERNAME=${{ secrets.ALWAYSDATA_DB_USER }}" >> laravel-backend/.env
-          echo "DB_PASSWORD=${{ secrets.ALWAYSDATA_DB_PASS }}" >> laravel-backend/.env
-          echo "PYTHON_ML_API_URL=${{ secrets.PYTHON_ML_API_URL }}" >> laravel-backend/.env
+          echo "DB_USER=${{ secrets.ALWAYSDATA_DB_USER }}" >> laravel-backend/.env
+          echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> laravel-backend/.env
+          echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> laravel-backend/.env
 
       - name: Upload via FTP to AlwaysData
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
