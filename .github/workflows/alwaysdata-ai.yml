@@ -23,7 +23,7 @@ jobs:
           username: ${{ secrets.AI_ALWAYSDATA_FTP_USERNAME }}
           password: ${{ secrets.AI_ALWAYSDATA_FTP_PASSWORD }}
           port: 21
-          protocol: ftps
+          protocol: ftp
           local-dir: ./byahero-ai/
           server-dir: ./byahero-ai/
           exclude: |
