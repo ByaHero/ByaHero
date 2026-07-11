@@ -16,19 +16,11 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v3
 
-      - name: Upload Python API via FTP to AlwaysData
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
-        with:
-          server: ${{ secrets.AI_ALWAYSDATA_FTP_SERVER }}
-          username: ${{ secrets.AI_ALWAYSDATA_FTP_USERNAME }}
-          password: ${{ secrets.AI_ALWAYSDATA_FTP_PASSWORD }}
-          port: 21
-          protocol: ftp
-          local-dir: ./byahero-ai/
-          server-dir: ./byahero-ai/
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/__pycache__/**
-            **/*.pyc
-            **/.env
+      - name: Upload Python API via lftp (FTPS)
+        env:
+          FTP_USER: ${{ secrets.AI_ALWAYSDATA_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.AI_ALWAYSDATA_FTP_PASSWORD }}
+          FTP_HOST: ${{ secrets.AI_ALWAYSDATA_FTP_SERVER }}
+        run: |
+          sudo apt-get update && sudo apt-get install lftp -y
+          lftp -c "set ftp:ssl-allow yes; set ssl:verify-certificate no; open -u $FTP_USER,'$FTP_PASS' $FTP_HOST; mirror -R --exclude .git/ --exclude __pycache__/ ./byahero-ai /byahero-ai"
