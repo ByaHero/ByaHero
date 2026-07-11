@@ -15,24 +15,24 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> laravel-backend/.env
-          echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> laravel-backend/.env
-          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> laravel-backend/.env
-          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> laravel-backend/.env
-          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> laravel-backend/.env
-          echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> laravel-backend/.env
-          echo "DB_HOST=${{ secrets.ALWAYSDATA_DB_HOST }}" >> laravel-backend/.env
-          echo "DB_USER=${{ secrets.ALWAYSDATA_DB_USER }}" >> laravel-backend/.env
-          echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> laravel-backend/.env
-          echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> laravel-backend/.env
+          echo "BREVO_API_KEY=${{ secrets.BREVO_API_KEY }}" >> .env
+          echo "SENDER_EMAIL=${{ secrets.SENDER_EMAIL }}" >> .env
+          echo "SENDER_NAME=${{ secrets.SENDER_NAME }}" >> .env
+          echo "FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}" >> .env
+          echo "FIREBASE_CLIENT_EMAIL=${{ secrets.FIREBASE_CLIENT_EMAIL }}" >> .env
+          echo "FIREBASE_PRIVATE_KEY=\"${{ secrets.FIREBASE_PRIVATE_KEY }}\"" >> .env
+          echo "DB_HOST=${{ secrets.ALWAYSDATA_DB_HOST }}" >> .env
+          echo "DB_USER=${{ secrets.ALWAYSDATA_DB_USER }}" >> .env
+          echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> .env
+          echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> .env
 
-      - name: Upload via SFTP to AlwaysData
-        uses: appleboy/scp-action@master
+      - name: Upload via FTP to AlwaysData
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
-          host: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
+          server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
           username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
           password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
-          port: 22
-          source: "laravel-backend"
-          target: "/home/${{ secrets.ALWAYSDATA_FTP_USERNAME }}/www"
-          strip_components: 1
+          port: 21
+          protocol: ftps
+          local-dir: ./
+          server-dir: ./www/
