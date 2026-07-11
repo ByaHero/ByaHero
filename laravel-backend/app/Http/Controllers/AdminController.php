@@ -473,7 +473,9 @@ class AdminController extends Controller
         $this->checkAuth();
 
         $activeBuses = DB::select("
-            SELECT b.*, b.code as bus_no, c.name AS conductor_name, c.email AS conductor_email
+            SELECT b.*, b.code as bus_no, c.name AS conductor_name, c.email AS conductor_email,
+                   b.lat AS latitude, b.lng AS longitude,
+                   ((SELECT speed FROM bus_telemetries WHERE bus_id = b.Bus_ID ORDER BY id DESC LIMIT 1) * 3.6) as speed
             FROM busses b
             LEFT JOIN conductors c ON b.current_conductor_id = c.id
             WHERE b.current_conductor_id IS NOT NULL
