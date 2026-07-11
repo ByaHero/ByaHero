@@ -26,7 +26,7 @@ jobs:
           echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> laravel-backend/.env
           echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> laravel-backend/.env
 
-      - name: Upload via FTP to AlwaysData
+      - name: Upload Laravel Backend via FTP to AlwaysData
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
@@ -36,3 +36,14 @@ jobs:
           protocol: ftps
           local-dir: ./laravel-backend/
           server-dir: ./www/
+
+      - name: Upload Python API via FTP to AlwaysData
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
+          username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
+          password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          local-dir: ./byahero-ai/
+          server-dir: ./byahero-ai/
