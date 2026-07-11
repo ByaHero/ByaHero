@@ -103,6 +103,9 @@ class AuthController extends Controller
             Session::put('user_contacts', $user->contacts);
             Session::put('user_profile_picture', $user->profile_picture);
 
+            // Log login event
+            $this->logLoginActivity((int)$user->id, $request);
+
             return response()->json([
                 'success' => true,
                 'message' => 'Login successful',
@@ -228,6 +231,9 @@ class AuthController extends Controller
         Session::put('user_role', 'passenger');
         Session::put('user_name', $user->name ?: $email);
         Session::put('user_contacts', $user->contacts);
+
+        // Log login event on signup completion
+        $this->logLoginActivity((int)$user->id, $request);
 
         return response()->json([
             'success' => true,
@@ -409,6 +415,9 @@ class AuthController extends Controller
         Session::put('user_name', $user->name);
         Session::put('user_profile_picture', $user->profile_picture);
 
+        // Log login event
+        $this->logLoginActivity((int)$user->id, $request);
+
         return response()->json([
             'success' => true,
             'message' => 'Google Login Successful',
@@ -425,6 +434,10 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $userId = Session::get('user_id');
+        if ($userId) {
+            $this->logLogoutActivity((int)$userId, $request);
+        }
         Session::flush();
         return response()->json(['success' => true, 'message' => 'Logged out successfully']);
     }
@@ -577,5 +590,103 @@ class AuthController extends Controller
         }
 
         return response()->json(['success' => false, 'message' => 'User not found']);
+    }
+
+    private function logLoginActivity($userId, Request $request)
+    {
+        $userAgent = $request->header('User-Agent', '');
+        
+        $device = 'Desktop';
+        if (preg_match('/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i', $userAgent)) {
+            $device = 'Tablet';
+        } elseif (preg_match('/(mobi|ipod|iphone|blackberry|opera mini|fennec|minimo|symbian|psp|android)/i', $userAgent)) {
+            $device = 'Mobile';
+        }
+
+        $browser = 'Unknown';
+        if (preg_match('/msie/i', $userAgent) && !preg_match('/opera/i', $userAgent)) {
+            $browser = 'Internet Explorer';
+        } elseif (preg_match('/firefox/i', $userAgent)) {
+            $browser = 'Firefox';
+        } elseif (preg_match('/chrome/i', $userAgent)) {
+            $browser = 'Chrome';
+        } elseif (preg_match('/safari/i', $userAgent)) {
+            $browser = 'Safari';
+        } elseif (preg_match('/opera/i', $userAgent)) {
+            $browser = 'Opera';
+        } elseif (preg_match('/netscape/i', $userAgent)) {
+            $browser = 'Netscape';
+        } elseif (preg_match('/maxthon/i', $userAgent)) {
+            $browser = 'Maxthon';
+        } elseif (preg_match('/konqueror/i', $userAgent)) {
+            $browser = 'Konqueror';
+        } elseif (preg_match('/mobile/i', $userAgent)) {
+            $browser = 'Mobile Browser';
+        }
+
+        try {
+            DB::table('analytics_events')->insert([
+                'user_id' => $userId,
+                'event_type' => 'login',
+                'event_data' => json_encode(['action' => 'User logged in successfully']),
+                'page' => '/login',
+                'ip_address' => $request->ip() ?: '127.0.0.1',
+                'browser' => $browser,
+                'device' => $device,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // Fail silently
+        }
+    }
+
+    private function logLogoutActivity($userId, Request $request)
+    {
+        $userAgent = $request->header('User-Agent', '');
+        
+        $device = 'Desktop';
+        if (preg_match('/(tablet|ipad|playbook|silk)|(android(?!.*mobi))/i', $userAgent)) {
+            $device = 'Tablet';
+        } elseif (preg_match('/(mobi|ipod|iphone|blackberry|opera mini|fennec|minimo|symbian|psp|android)/i', $userAgent)) {
+            $device = 'Mobile';
+        }
+
+        $browser = 'Unknown';
+        if (preg_match('/msie/i', $userAgent) && !preg_match('/opera/i', $userAgent)) {
+            $browser = 'Internet Explorer';
+        } elseif (preg_match('/firefox/i', $userAgent)) {
+            $browser = 'Firefox';
+        } elseif (preg_match('/chrome/i', $userAgent)) {
+            $browser = 'Chrome';
+        } elseif (preg_match('/safari/i', $userAgent)) {
+            $browser = 'Safari';
+        } elseif (preg_match('/opera/i', $userAgent)) {
+            $browser = 'Opera';
+        } elseif (preg_match('/netscape/i', $userAgent)) {
+            $browser = 'Netscape';
+        } elseif (preg_match('/maxthon/i', $userAgent)) {
+            $browser = 'Maxthon';
+        } elseif (preg_match('/konqueror/i', $userAgent)) {
+            $browser = 'Konqueror';
+        } elseif (preg_match('/mobile/i', $userAgent)) {
+            $browser = 'Mobile Browser';
+        }
+
+        try {
+            DB::table('analytics_events')->insert([
+                'user_id' => $userId,
+                'event_type' => 'logout',
+                'event_data' => json_encode(['action' => 'User logged out successfully']),
+                'page' => '/logout',
+                'ip_address' => $request->ip() ?: '127.0.0.1',
+                'browser' => $browser,
+                'device' => $device,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        } catch (\Exception $e) {
+            // Fail silently
+        }
     }
 }
