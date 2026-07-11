@@ -16,12 +16,16 @@ import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
 import { sendFcmPushes } from '../../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import { saveBusData, loadBusData, getBusDataAgeHours, formatTimeAgo } from '../../../services/offlineCache';
 
 export default function BusInfoScreen() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
   const [schedules, setSchedules] = useState<any[]>([]);
   const [fareStops, setFareStops] = useState<any[]>([]);
   const [fareRules, setFareRules] = useState<any[]>([]);
+  
+  const [isOffline, setIsOffline] = useState(false);
+  const [cacheTime, setCacheTime] = useState<string | null>(null);
   
   const [pickupStop, setPickupStop] = useState<any>(null);
   const [dropoffStop, setDropoffStop] = useState<any>(null);
@@ -46,12 +50,14 @@ export default function BusInfoScreen() {
         setBaseUrl(currentBaseUrl);
 
         let responseData: any = null;
+        let isNetworkSuccess = false;
         try {
           const syncRes = await fetch(`${currentBaseUrl}/api/buses/sync`);
           if (syncRes.ok) {
             const data = await syncRes.json();
             if (data && data.success) {
               responseData = data;
+              isNetworkSuccess = true;
             }
           }
         } catch (e: any) {
@@ -61,13 +67,14 @@ export default function BusInfoScreen() {
         }
 
         // Fallback to alwaysdata if configured URL failed or was offline
-        if (!responseData && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
+        if (!isNetworkSuccess && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
           try {
             const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/buses/sync`);
             if (fallbackRes.ok) {
               const data = await fallbackRes.json();
               if (data && data.success) {
                 responseData = data;
+                isNetworkSuccess = true;
               }
             }
           } catch (e) {
@@ -75,14 +82,46 @@ export default function BusInfoScreen() {
           }
         }
 
-        if (responseData && active) {
+        if (isNetworkSuccess && responseData && active) {
+          setIsOffline(false);
           setSchedules(responseData.bus_schedule || []);
           setFareStops(responseData.bus_stops || []);
           setFareRules(responseData.bus_fares || []);
+          
+          await saveBusData(
+            responseData.bus_schedule || [],
+            responseData.bus_stops || [],
+            responseData.bus_fares || [],
+            responseData.stops_terminal || []
+          );
+        } else if (!isNetworkSuccess && active) {
+          const cachedData = await loadBusData();
+          if (cachedData) {
+            setIsOffline(true);
+            setCacheTime(cachedData.cached_at);
+            setSchedules(cachedData.schedules || []);
+            setFareStops(cachedData.fare_stops || []);
+            setFareRules(cachedData.fare_rules || []);
+          } else {
+            setIsOffline(true);
+            setCacheTime(null);
+          }
         }
       } catch (err: any) {
         if (err.message !== 'Network request failed') {
           console.error('Error fetching sync data:', err);
+        } else if (active) {
+          const cachedData = await loadBusData();
+          if (cachedData) {
+            setIsOffline(true);
+            setCacheTime(cachedData.cached_at);
+            setSchedules(cachedData.schedules || []);
+            setFareStops(cachedData.fare_stops || []);
+            setFareRules(cachedData.fare_rules || []);
+          } else {
+            setIsOffline(true);
+            setCacheTime(null);
+          }
         }
       }
     };
@@ -196,6 +235,16 @@ export default function BusInfoScreen() {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#ffffff', height: '100%', width: '100%' }}>
       <PassengerHeader onTriggerSOS={handleTriggerSOS} pageTitle="Bus Information" />
+
+      {isOffline && (
+        <View style={tw`px-4 py-2 ${cacheTime ? 'bg-yellow-100 border-yellow-200' : 'bg-red-100 border-red-200'} border-b flex-row justify-center items-center`}>
+          <Text style={tw`text-xs text-center ${cacheTime ? 'text-yellow-800' : 'text-red-800'} font-semibold`}>
+            {cacheTime 
+              ? `Offline mode • Showing cached data (${formatTimeAgo(cacheTime)})` 
+              : 'No internet connection. Cannot load bus data.'}
+          </Text>
+        </View>
+      )}
 
       <View style={{ flex: 1, height: '100%' }}>
         {/* Main Content Area */}

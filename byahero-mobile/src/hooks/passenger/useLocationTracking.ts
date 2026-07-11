@@ -8,7 +8,14 @@ import { getServerUrl } from '../../services/authService';
 
 let CookieManager: any = null;
 if (Platform.OS === 'android') {
-  CookieManager = require('@react-native-cookies/cookies');
+  try {
+    CookieManager = require('@react-native-cookies/cookies');
+    if (CookieManager && CookieManager.default) {
+      CookieManager = CookieManager.default;
+    }
+  } catch (e) {
+    console.warn('CookieManager native module not available (expected in Expo Go)');
+  }
 }
 
 const { LocationServiceModule } = NativeModules;
