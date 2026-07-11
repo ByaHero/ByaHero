@@ -350,6 +350,18 @@ class ConductorController extends Controller
         
         Bus::where('Bus_ID', $busId)->update($updateData);
 
+        // Save telemetry data for ML Training
+        if (isset($updateData['lat']) && isset($updateData['lng'])) {
+            \App\Models\BusTelemetry::create([
+                'bus_id' => $busId,
+                'route' => $updateData['route'] ?? $bus->route ?? null,
+                'latitude' => $updateData['lat'],
+                'longitude' => $updateData['lng'],
+                'speed' => $request->input('speed', 0), // Speed in m/s
+                'status' => $updateData['status'] ?? $bus->status ?? null,
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Location updated successfully',

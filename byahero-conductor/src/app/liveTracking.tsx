@@ -69,7 +69,7 @@ export default function LiveTrackingScreen() {
   const syncTimer = useRef<any>(null);
 
   // Last known coordinate caches for status computation
-  const lastCoords = useRef<{ lat: number; lng: number } | null>(null);
+  const lastCoords = useRef<{ lat: number; lng: number; speed: number } | null>(null);
   const lastMoveCheck = useRef<{ time: number; lat: number; lng: number } | null>(null);
   const lastResolvedLocation = useRef<{ lat: number; lng: number; name: string } | null>(null);
 
@@ -351,7 +351,8 @@ export default function LiveTrackingScreen() {
   const onLocationUpdate = (location: Location.LocationObject) => {
     const lat = location.coords.latitude;
     const lng = location.coords.longitude;
-    lastCoords.current = { lat, lng };
+    const speed = location.coords.speed || 0;
+    lastCoords.current = { lat, lng, speed };
 
     // Resolve Location Name
     let resolved = resolvedLocationNameCached(lat, lng);
@@ -371,7 +372,7 @@ export default function LiveTrackingScreen() {
       pan: true
     });
 
-    sendDataToServer(lat, lng, resolved, computedStatus);
+    sendDataToServer(lat, lng, speed, resolved, computedStatus);
   };
 
   const resolvedLocationNameCached = (lat: number, lng: number): string => {
@@ -386,7 +387,7 @@ export default function LiveTrackingScreen() {
     return resolved;
   };
 
-  const sendDataToServer = async (lat: number, lng: number, locName: string, status: string) => {
+  const sendDataToServer = async (lat: number, lng: number, speed: number, locName: string, status: string) => {
     const activeSession = sessionRef.current || session;
     if (!activeSession) return;
     setNetStatus('Saving...');
@@ -410,6 +411,7 @@ export default function LiveTrackingScreen() {
       route: activeSession.route,
       seats_available: currentSeats,
       status: status,
+      speed: speed,
       current_location_name: locName
     };
 
@@ -426,9 +428,10 @@ export default function LiveTrackingScreen() {
     if (lastCoords.current && activeSession) {
       const lat = lastCoords.current.lat;
       const lng = lastCoords.current.lng;
+      const speed = lastCoords.current.speed || 0;
       const resolved = lastResolvedLocation.current?.name || `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
       const computedStatus = autoComputeStatus(lat, lng, seatsRef.current);
-      sendDataToServer(lat, lng, resolved, computedStatus);
+      sendDataToServer(lat, lng, speed, resolved, computedStatus);
     }
   };
 

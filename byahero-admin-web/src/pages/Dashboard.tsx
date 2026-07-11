@@ -106,10 +106,32 @@ export default function Dashboard() {
         <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)' }}>
           System Monitor
         </h2>
-        <button className="btn btn-secondary" onClick={fetchStats} disabled={loading}>
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-          Refresh Stats
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button 
+            className="btn btn-secondary" 
+            style={{ backgroundColor: '#e2e8f0', color: '#334155' }}
+            onClick={async () => {
+              if (window.confirm("Retrain the ETA AI Model using latest historical data?")) {
+                setLoading(true);
+                try {
+                  const res = await adminService.trainAiModel();
+                  alert(res.message || "Model trained");
+                } catch (e: any) {
+                  alert(e.message || "Failed to train model");
+                }
+                setLoading(false);
+              }
+            }} 
+            disabled={loading}
+          >
+            <Activity size={14} />
+            Retrain ETA AI
+          </button>
+          <button className="btn btn-secondary" onClick={fetchStats} disabled={loading}>
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Refresh Stats
+          </button>
+        </div>
       </div>
 
       <div className="dashboard-grid">

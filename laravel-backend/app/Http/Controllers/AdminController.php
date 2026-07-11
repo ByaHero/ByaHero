@@ -1055,4 +1055,25 @@ class AdminController extends Controller
 
         return response()->json(['success' => false, 'error' => 'Unknown action.']);
     }
+    // --- AI MODEL TRAINING ---
+    public function trainAiModel(Request $request)
+    {
+        $this->checkAuth();
+        
+        $aiService = new \App\Services\AIEtaService();
+        $success = $aiService->trainModel();
+        
+        if ($success) {
+            return response()->json([
+                'success' => true,
+                'message' => 'AI Speed Model trained successfully using historical data.',
+                'last_trained' => \Illuminate\Support\Facades\Cache::get('ai_model_last_trained')
+            ]);
+        } else {
+            return response()->json([
+                'success' => false,
+                'message' => 'Not enough historical data to train the model.'
+            ], 400);
+        }
+    }
 }

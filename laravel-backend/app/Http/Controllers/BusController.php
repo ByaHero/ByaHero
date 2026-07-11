@@ -96,6 +96,16 @@ class BusController extends Controller
             }
             $r['current_operation_id'] = $currentOpId;
 
+            // Calculate AI ETA and Predicted Speed
+            $aiEtaService = new \App\Services\AIEtaService();
+            // Default arbitrary distance to next stop for ETA demo: 5000 meters (5 km)
+            $demoDistance = 5000;
+            // Get current speed from latest telemetry if available
+            $currentSpeed = \App\Models\BusTelemetry::where('bus_id', $busId)->orderBy('id', 'desc')->value('speed') ?? 0;
+            $predictions = $aiEtaService->predictEtaAndSpeed($bus->route, $currentSpeed, $demoDistance);
+            $r['ai_predicted_speed_kmh'] = $predictions['predicted_speed_kmh'];
+            $r['ai_eta_minutes'] = $predictions['eta_minutes'];
+
             $out[] = $r;
         }
 
