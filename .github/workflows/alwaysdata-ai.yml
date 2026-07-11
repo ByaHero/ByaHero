@@ -1,0 +1,34 @@
+name: Deploy Python AI to AlwaysData
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'byahero-ai/**'
+      - '.github/workflows/alwaysdata-ai.yml'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get latest code
+        uses: actions/checkout@v3
+
+      - name: Upload Python API via FTP to AlwaysData
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        with:
+          server: ${{ secrets.AI_ALWAYSDATA_FTP_SERVER }}
+          username: ${{ secrets.AI_ALWAYSDATA_FTP_USERNAME }}
+          password: ${{ secrets.AI_ALWAYSDATA_FTP_PASSWORD }}
+          port: 21
+          protocol: ftps
+          local-dir: ./byahero-ai/
+          server-dir: ./byahero-ai/
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/__pycache__/**
+            **/*.pyc
+            **/.env
