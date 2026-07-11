@@ -26,14 +26,13 @@ jobs:
           echo "DB_PASS=${{ secrets.ALWAYSDATA_DB_PASS }}" >> laravel-backend/.env
           echo "DB_NAME=${{ secrets.ALWAYSDATA_DB_NAME }}" >> laravel-backend/.env
 
-      - name: Upload via FTP to AlwaysData
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+      - name: Upload via SFTP to AlwaysData
+        uses: appleboy/scp-action@master
         with:
-          server: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
+          host: ${{ secrets.ALWAYSDATA_FTP_SERVER }}
           username: ${{ secrets.ALWAYSDATA_FTP_USERNAME }}
           password: ${{ secrets.ALWAYSDATA_FTP_PASSWORD }}
-          port: 21
-          protocol: ftps
-          security: loose
-          local-dir: ./laravel-backend/
-          server-dir: ./www/
+          port: 22
+          source: "laravel-backend"
+          target: "/home/${{ secrets.ALWAYSDATA_FTP_USERNAME }}/www"
+          strip_components: 1
