@@ -198,14 +198,14 @@ export default function Dashboard() {
           </div>
 
           <div className="dashboard-section-title" style={{ marginTop: '24px' }}>AI Model Intelligence</div>
-          <div className="stat-card" style={{ display: 'block', padding: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <div style={{ padding: '8px', borderRadius: '8px', backgroundColor: 'rgba(15, 23, 42, 0.05)', color: 'var(--primary-color)' }}>
-                <BrainCircuit size={24} />
+          <div style={{ display: 'block', padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
+                <BrainCircuit size={28} />
               </div>
               <div>
-                <div style={{ fontSize: '1rem', fontWeight: 700, color: '#1e293b' }}>ETA Prediction Engine</div>
-                <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>ETA Prediction Engine</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</div>
               </div>
             </div>
             

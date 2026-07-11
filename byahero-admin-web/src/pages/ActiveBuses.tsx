@@ -12,7 +12,7 @@ export default function ActiveBuses() {
       setLoading(true);
       const data = await adminService.listActiveBuses();
       if (data.success) {
-        setActiveBuses(data.active_buses || []);
+        setActiveBuses(data.activeBuses || data.active_buses || []);
       }
     } catch (e) {
       console.error(e);
@@ -60,8 +60,8 @@ export default function ActiveBuses() {
               </tr>
             </thead>
             <tbody>
-              {activeBuses.map((bus) => (
-                <tr key={bus.id}>
+              {activeBuses.map((bus, idx) => (
+                <tr key={bus.id || idx}>
                   <td style={{ fontWeight: 700 }}>Bus {bus.bus_no}</td>
                   <td>{bus.plate_no}</td>
                   <td>{bus.conductor_name || 'N/A'}</td>

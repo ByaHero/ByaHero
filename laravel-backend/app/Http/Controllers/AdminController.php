@@ -473,7 +473,7 @@ class AdminController extends Controller
         $this->checkAuth();
 
         $activeBuses = DB::select("
-            SELECT b.*, c.email AS conductor_email
+            SELECT b.*, b.code as bus_no, b.plate_number as plate_no, c.name AS conductor_name, c.email AS conductor_email
             FROM busses b
             LEFT JOIN conductors c ON b.current_conductor_id = c.id
             WHERE b.current_conductor_id IS NOT NULL
