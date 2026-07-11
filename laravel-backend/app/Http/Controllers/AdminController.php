@@ -129,7 +129,11 @@ class AdminController extends Controller
     public function listBuses(Request $request)
     {
         $this->checkAuth();
-        $buses = Bus::orderBy('code', 'asc')->get();
+        $buses = DB::table('busses as b')
+            ->leftJoin('conductors as c', 'b.current_conductor_id', '=', 'c.id')
+            ->select('b.*', 'c.name as conductor_name', 'c.email as conductor_email')
+            ->orderBy('b.code', 'asc')
+            ->get();
         return response()->json(['success' => true, 'buses' => $buses]);
     }
 
@@ -473,7 +477,9 @@ class AdminController extends Controller
         $this->checkAuth();
 
         $activeBuses = DB::select("
-            SELECT b.*, c.email AS conductor_email
+            SELECT b.*, b.code as bus_no, c.name AS conductor_name, c.email AS conductor_email,
+                   b.lat AS latitude, b.lng AS longitude,
+                   ((SELECT speed FROM bus_telemetries WHERE bus_id = b.Bus_ID ORDER BY id DESC LIMIT 1) * 3.6) as speed
             FROM busses b
             LEFT JOIN conductors c ON b.current_conductor_id = c.id
             WHERE b.current_conductor_id IS NOT NULL
@@ -1075,5 +1081,30 @@ class AdminController extends Controller
                 'message' => 'Not enough historical data to train the model.'
             ], 400);
         }
+    }
+    
+    // --- AI ANALYTICS ---
+    public function getAiStats(Request $request)
+    {
+        $this->checkAuth();
+
+        $totalDataPoints = DB::table('bus_telemetries')->where('speed', '>', 0)->whereNotNull('route')->count();
+        $lastTrained = \Illuminate\Support\Facades\Cache::get('ai_model_last_trained', 'Never');
+        
+        $avgSpeeds = DB::select("
+            SELECT route, ROUND(AVG(speed), 2) as avg_speed_ms, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
+            FROM bus_telemetries 
+            WHERE speed > 0 AND route IS NOT NULL 
+            GROUP BY route
+        ");
+
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'total_data_points' => $totalDataPoints,
+                'last_trained' => $lastTrained,
+                'routes' => $avgSpeeds
+            ]
+        ]);
     }
 }

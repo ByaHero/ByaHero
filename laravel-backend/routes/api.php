@@ -79,6 +79,7 @@ Route::middleware([
     Route::post('/admin/waiting-passengers', [AdminController::class, 'manageWaitingPassengers']);
     Route::match(['get', 'post'], '/admin/profile', [AdminController::class, 'updateProfile']);
     Route::post('/admin/ai/train', [AdminController::class, 'trainAiModel']);
+    Route::get('/admin/ai/stats', [AdminController::class, 'getAiStats']);
     
     // Missing Admin Modules
     Route::get('/admin/fares', [AdminController::class, 'listFares']);

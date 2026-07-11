@@ -13,7 +13,8 @@ import {
   DollarSign, 
   BarChart3, 
   RefreshCw, 
-  Navigation 
+  Navigation,
+  BrainCircuit
 } from 'lucide-react';
 import { adminService } from '../services/admin';
 
@@ -34,12 +35,15 @@ export default function Dashboard() {
     analytics_boarded: 0,
   });
 
+  const [aiStats, setAiStats] = useState<any>(null);
+
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [data, analyticsData] = await Promise.all([
+      const [data, analyticsData, aiData] = await Promise.all([
         adminService.getDashboardStats(),
-        adminService.getAnalytics({ period: 'today' }).catch(() => null)
+        adminService.getAnalytics({ period: 'today' }).catch(() => null),
+        adminService.getAiStats().catch(() => null)
       ]);
       
       let analyticsBoarded = 0;
@@ -52,6 +56,10 @@ export default function Dashboard() {
           ...data.stats,
           analytics_boarded: analyticsBoarded
         });
+      }
+      
+      if (aiData && aiData.success && aiData.stats) {
+        setAiStats(aiData.stats);
       }
     } catch (e) {
       console.error('Failed to fetch dashboard stats', e);
@@ -186,6 +194,42 @@ export default function Dashboard() {
               <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0 24px' }}>
                 Active bus fleets coordinates and real-time transit telemetry are visualized here.
               </p>
+            </div>
+          </div>
+
+          <div className="dashboard-section-title" style={{ marginTop: '24px' }}>AI Model Intelligence</div>
+          <div style={{ display: 'block', padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
+                <BrainCircuit size={28} />
+              </div>
+              <div>
+                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>ETA Prediction Engine</div>
+                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</div>
+              </div>
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Data Points</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>{aiStats?.total_data_points || 0}</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', marginTop: '4px' }}>Online</div>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Historical Route Average Speeds</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>{r.route}</span>
+                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)' }}>{r.avg_speed_kmh} km/h</span>
+                </div>
+              )) : (
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No speed data learned yet.</div>
+              )}
             </div>
           </div>
         </div>
