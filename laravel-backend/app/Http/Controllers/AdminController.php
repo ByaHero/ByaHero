@@ -1076,4 +1076,29 @@ class AdminController extends Controller
             ], 400);
         }
     }
+    
+    // --- AI ANALYTICS ---
+    public function getAiStats(Request $request)
+    {
+        $this->checkAuth();
+
+        $totalDataPoints = DB::table('bus_telemetries')->where('speed', '>', 0)->whereNotNull('route')->count();
+        $lastTrained = \Illuminate\Support\Facades\Cache::get('ai_model_last_trained', 'Never');
+        
+        $avgSpeeds = DB::select("
+            SELECT route, ROUND(AVG(speed), 2) as avg_speed_ms, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
+            FROM bus_telemetries 
+            WHERE speed > 0 AND route IS NOT NULL 
+            GROUP BY route
+        ");
+
+        return response()->json([
+            'success' => true,
+            'stats' => [
+                'total_data_points' => $totalDataPoints,
+                'last_trained' => $lastTrained,
+                'routes' => $avgSpeeds
+            ]
+        ]);
+    }
 }

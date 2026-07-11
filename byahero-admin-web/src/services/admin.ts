@@ -108,6 +108,7 @@ export const adminService = {
     return apiRequest(`/api/admin/analytics${suffix}`);
   },
   trainAiModel: () => apiRequest('/api/admin/ai/train', { method: 'POST' }),
+  getAiStats: () => apiRequest('/api/admin/ai/stats'),
 
 
   // Lost & Found
