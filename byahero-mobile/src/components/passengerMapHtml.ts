@@ -14,10 +14,16 @@ export function getLeafletHTML(baseUrl: string): string {
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <!-- idb is a required peer dependency for leaflet.offline -->
+      <script src="https://unpkg.com/idb@7/build/umd.js"></script>
+      <script src="https://unpkg.com/leaflet.offline@2/dist/bundle.min.js"></script>
       <script src="https://cdn.tailwindcss.com"></script>
       <style>
         body { padding: 0; margin: 0; }
         html, body, #map { height: 100%; width: 100vw; background: #e5e7eb; }
+        
+        /* Hide leaflet.offline buttons */
+        .savetiles, .rmtiles { display: none !important; }
         
         .waiting-badge {
           background: #ffffff;
@@ -79,9 +85,60 @@ export function getLeafletHTML(baseUrl: string): string {
       <script>
         var map = L.map('map', { zoomControl: false }).setView([14.2137, 121.1620], 14);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap'
+        var baseLayer = L.tileLayer.offline('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+          attribution: '&copy; OpenStreetMap',
+          subdomains: 'abc',
+          minZoom: 12,
+          maxZoom: 18,
+          crossOrigin: true
         }).addTo(map);
+
+        // Setup automatic offline caching for a specific area
+        var targetAreaGeoJson = {
+          "type": "FeatureCollection",
+          "features": [
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[120.9271501, 14.1010954], [120.9271501, 14.1010954], [120.9271501, 14.1010954], [120.9271501, 14.1010954]]] } },
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[120.9224554, 14.1043162], [120.9224554, 14.1043162], [120.9224554, 14.1043162], [120.9224554, 14.1043162]]] } },
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[121.1728316, 14.13252985418714], [120.91388315754506, 14.13252985418714], [120.91388315754506, 14.0281904], [121.0530501, 14.0586983], [121.131714, 14.0554998], [121.1731656, 14.0774318], [121.1728316, 14.13252985418714]]] } }
+          ]
+        };
+
+        var targetBounds = L.geoJSON(targetAreaGeoJson).getBounds();
+
+        var saveControl = L.control.savetiles(baseLayer, {
+          zoomlevels: [12, 13, 14, 15, 16, 17],
+          bounds: targetBounds,
+          alwaysDownload: false,
+          confirm: function(layer, successCallback) {
+            successCallback();
+          }
+        });
+        saveControl.addTo(map);
+
+        if (localStorage.getItem('byahero_offline_v2') !== 'true') {
+          // Register saveend BEFORE triggering so we never miss a fast completion
+          baseLayer.on('saveend', function() {
+            console.log('[ByaHero] Offline map tiles saved successfully.');
+            localStorage.setItem('byahero_offline_v2', 'true');
+          });
+          baseLayer.on('savetileend', function(e) {
+            console.log('[ByaHero] Offline tile saved:', e.lengthSaved, '/', e.lengthToBeSaved);
+          });
+
+          // Slight delay to let the map render first, then auto-cache in background
+          setTimeout(function() {
+            try {
+              if (!targetBounds || !targetBounds.isValid()) {
+                console.warn('[ByaHero] Offline caching skipped: target bounds are invalid.');
+                return;
+              }
+              console.log('[ByaHero] Starting offline map caching for target area...');
+              saveControl._saveTiles();
+            } catch(e) {
+              console.error('[ByaHero] Offline map caching failed:', e);
+            }
+          }, 3000);
+        }
 
         var routeGeoJSON = ${JSON.stringify(require('../../assets/data/laurel-talisay-tanauan.json'))};
         if (routeGeoJSON) {
