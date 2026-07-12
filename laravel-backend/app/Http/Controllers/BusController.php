@@ -98,12 +98,31 @@ class BusController extends Controller
 
             // Calculate AI ETA and Predicted Speed
             $aiEtaService = new \App\Services\AIEtaService();
-            // Default arbitrary distance to next stop for ETA demo: 5000 meters (5 km)
-            $demoDistance = 5000;
+            
+            $distanceMeters = 5000; // fallback demo distance
+            if ($request->has('user_lat') && $request->has('user_lng') && isset($r['lat']) && isset($r['lng'])) {
+                $userLat = (float)$request->input('user_lat');
+                $userLng = (float)$request->input('user_lng');
+                $busLat = (float)$r['lat'];
+                $busLng = (float)$r['lng'];
+                
+                // Haversine formula
+                $earthRadius = 6371000; // meters
+                $latDelta = deg2rad($busLat - $userLat);
+                $lonDelta = deg2rad($busLng - $userLng);
+                $a = sin($latDelta / 2) * sin($latDelta / 2) +
+                    cos(deg2rad($userLat)) * cos(deg2rad($busLat)) *
+                    sin($lonDelta / 2) * sin($lonDelta / 2);
+                $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+                $distanceMeters = $earthRadius * $c;
+            }
+
             // Get current speed from latest telemetry if available
             $currentSpeed = \App\Models\BusTelemetry::where('bus_id', $busId)->orderBy('id', 'desc')->value('speed') ?? 0;
-            $predictions = $aiEtaService->predictEtaAndSpeed($bus->route, $currentSpeed, $demoDistance);
-            $r['ai_predicted_speed_kmh'] = $predictions['predicted_speed_kmh'];
+            $predictions = $aiEtaService->predictEtaAndSpeed($bus->route, $currentSpeed, $distanceMeters);
+            
+            // If the bus is physically not moving, display 0 km/h instead of the model's predicted average route speed
+            $r['ai_predicted_speed_kmh'] = $currentSpeed <= 0 ? 0 : $predictions['predicted_speed_kmh'];
             $r['ai_eta_minutes'] = $predictions['eta_minutes'];
 
             $out[] = $r;

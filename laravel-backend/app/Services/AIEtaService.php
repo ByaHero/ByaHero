@@ -37,6 +37,8 @@ class AIEtaService
      */
     public function predictEtaAndSpeed($route, $currentSpeed, $distanceMeters = null)
     {
+
+
         try {
             $apiUrl = config('services.python_ml_api.url');
             $response = \Illuminate\Support\Facades\Http::timeout(5)->post("{$apiUrl}/predict", [

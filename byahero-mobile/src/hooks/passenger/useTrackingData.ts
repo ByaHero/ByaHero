@@ -2,8 +2,9 @@ import { useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServerUrl } from '../../services/authService';
 import { resolveBusLocationName } from '../../utils/locationUtils';
+import { loadBusData } from '../../services/offlineCache';
 
-export function useTrackingData() {
+export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
@@ -37,50 +38,86 @@ export function useTrackingData() {
           setCircles(Array.from(uniqueFriends.values()));
         }
       }
-    } catch (err) {
-      console.error('Error fetching group members:', err);
+    } catch (err: any) {
+      if (err.message !== 'Network request failed') {
+        console.error('Error fetching group members:', err);
+      }
     }
   };
 
   useEffect(() => {
     let active = true;
+    let isFetching = false;
+    let hasFetchedStops = false;
 
     const fetchData = async () => {
+      if (isFetching) return;
+      isFetching = true;
       try {
         const currentBaseUrl = await getServerUrl();
         setBaseUrl(currentBaseUrl);
 
         // Fetch live buses
-        const busesRes = await fetch(`${currentBaseUrl}/api/buses`);
-        if (busesRes.ok && active) {
-          const busesData = await busesRes.json();
-          if (busesData && busesData.success && Array.isArray(busesData.buses)) {
-            const activeBuses = busesData.buses
-              .filter((bus: any) =>
-                bus.status !== 'unavailable' &&
-                bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
-                bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
-              )
-              .map((bus: any) => {
-                if (!bus.current_location_name) {
-                  const lat = parseFloat(bus.lat);
-                  const lng = parseFloat(bus.lng);
-                  if (!isNaN(lat) && !isNaN(lng)) {
-                    bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
-                  }
-                }
-                return bus;
-              });
-            setBuses(activeBuses);
+        try {
+          let busesUrl = `${currentBaseUrl}/api/buses`;
+          if (userLocation && userLocation.lat && userLocation.lng) {
+            busesUrl += `?user_lat=${userLocation.lat}&user_lng=${userLocation.lng}`;
           }
+          const busesRes = await fetch(busesUrl);
+          if (busesRes.ok && active) {
+            const busesData = await busesRes.json();
+            if (busesData && busesData.success && Array.isArray(busesData.buses)) {
+              const activeBuses = busesData.buses
+                .filter((bus: any) =>
+                  bus.status !== 'unavailable' &&
+                  bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
+                  bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
+                )
+                .map((bus: any) => {
+                  if (!bus.current_location_name) {
+                    const lat = parseFloat(bus.lat);
+                    const lng = parseFloat(bus.lng);
+                    if (!isNaN(lat) && !isNaN(lng)) {
+                      bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
+                    }
+                  }
+                  return bus;
+                });
+              setBuses(activeBuses);
+            }
+          }
+        } catch (e: any) {
+          if (e.message !== 'Network request failed') console.error('Error fetching buses:', e);
         }
 
         // Fetch bus stops
-        const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
-        if (stopsRes.ok && active) {
-          const stopsData = await stopsRes.json();
-          if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
-            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(stopsData.data) ? prev : stopsData.data);
+        if (!hasFetchedStops) {
+          let fetchedStops = null;
+          try {
+            const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
+            if (stopsRes.ok && active) {
+              const stopsData = await stopsRes.json();
+              if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
+                fetchedStops = stopsData.data;
+              }
+            }
+          } catch (err: any) {
+            if (err.message !== 'Network request failed') {
+              console.error('Error fetching stops:', err);
+            }
+          }
+
+          if (fetchedStops && active) {
+            hasFetchedStops = true;
+            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(fetchedStops) ? prev : fetchedStops);
+          } else if (active) {
+            // Fallback to offline cache
+            const cached = await loadBusData();
+            if (cached && cached.pickup_points && cached.pickup_points.length > 0) {
+              const pts = cached.pickup_points || [];
+              hasFetchedStops = true;
+              setBusStops(prev => JSON.stringify(prev) === JSON.stringify(pts) ? prev : pts);
+            }
           }
         }
 
@@ -88,24 +125,28 @@ export function useTrackingData() {
         await fetchGroupMembers(currentBaseUrl);
 
         // Fetch my waiting status
-        const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
-        if (loggedInEmail && active) {
-          const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
-          if (waitStatusRes.ok) {
-            const waitData = await waitStatusRes.json();
-            if (waitData.success) {
-              setIsWaiting(!!waitData.is_waiting);
-              setWaitingLocation(waitData.location_name || '');
-              setIsBoarded(!!waitData.is_boarded);
-              setBoardedBus(waitData.bus_code || '');
-              setBoardedRoute(waitData.route || '');
-              if (waitData.expires_at) {
-                setWaitingExpiresAt(waitData.expires_at);
-              } else if (!waitData.is_waiting) {
-                setWaitingExpiresAt(null);
+        try {
+          const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
+          if (loggedInEmail && active) {
+            const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
+            if (waitStatusRes.ok) {
+              const waitData = await waitStatusRes.json();
+              if (waitData.success) {
+                setIsWaiting(!!waitData.is_waiting);
+                setWaitingLocation(waitData.location_name || '');
+                setIsBoarded(!!waitData.is_boarded);
+                setBoardedBus(waitData.bus_code || '');
+                setBoardedRoute(waitData.route || '');
+                if (waitData.expires_at) {
+                  setWaitingExpiresAt(waitData.expires_at);
+                } else if (!waitData.is_waiting) {
+                  setWaitingExpiresAt(null);
+                }
               }
             }
           }
+        } catch (e: any) {
+          if (e.message !== 'Network request failed') console.error('Error fetching waiting status:', e);
         }
         
         if (active) {
@@ -115,17 +156,19 @@ export function useTrackingData() {
         if (err.message !== 'Network request failed') {
           console.error('Error fetching tracking data:', err);
         }
+      } finally {
+        isFetching = false;
       }
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 4000);
+    const interval = setInterval(fetchData, 10000);
 
     return () => {
       active = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [userLocation?.lat, userLocation?.lng]);
 
   return {
     buses,

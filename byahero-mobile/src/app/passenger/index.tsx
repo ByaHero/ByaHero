@@ -72,13 +72,21 @@ export default function PassengerDashboard() {
   const insets = useSafeAreaInsets();
   const translateY = useRef(new Animated.Value(SCREEN_HEIGHT * 0.3)).current;
 
+  const handleCenterLocationRef = useRef<((lat: number, lng: number) => void) | null>(null);
+
+  const { userLocation } = useLocationTracking({ 
+    onCenterLocation: React.useCallback((lat: number, lng: number) => {
+      handleCenterLocationRef.current?.(lat, lng);
+    }, [])
+  });
+
   const {
     buses, busStops, circles, baseUrl,
     isWaiting, setIsWaiting, waitingLocation, setWaitingLocation,
     waitingExpiresAt, setWaitingExpiresAt,
     isBoarded, setIsBoarded, boardedBus, setBoardedBus, boardedRoute, setBoardedRoute,
     fetchGroupMembers, isInitialFetchDone
-  } = useTrackingData();
+  } = useTrackingData(userLocation);
 
   const postToMap = React.useCallback((message: any) => {
     let finalMessage = message;
@@ -104,7 +112,9 @@ export default function PassengerDashboard() {
     });
   }, [postToMap, userInitial, getFullProfilePicUrl, baseUrl]);
 
-  const { userLocation } = useLocationTracking({ onCenterLocation: handleCenterLocation });
+  React.useEffect(() => {
+    handleCenterLocationRef.current = handleCenterLocation;
+  }, [handleCenterLocation]);
 
   const {
     pendingBoardBus,
@@ -384,6 +394,7 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/set`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -431,6 +442,7 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -754,6 +766,8 @@ export default function PassengerDashboard() {
               handleBusPress={handleBusPress}
               userLocation={userLocation}
               baseUrl={baseUrl}
+              isBoarded={isBoarded}
+              boardedBus={boardedBus}
               translateY={translateY}
               handleRemoveCircleMember={handleRemoveCircleMember}
               activeStep={activeStep}

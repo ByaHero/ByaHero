@@ -1,17 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2, Users, RefreshCw, XCircle, MapPin, Filter } from 'lucide-react';
 import { adminService } from '../services/admin';
-
-interface WaitingPassenger {
-  id: number;
-  user_id: number;
-  user_name: string;
-  location_name: string;
-  created_at: string;
-  status: string;
-  registered_name: string;
-  registered_email: string;
-}
+import { WaitingPassenger } from '../types';
 
 export default function WaitingPassengers() {
   const [waitingList, setWaitingList] = useState<WaitingPassenger[]>([]);

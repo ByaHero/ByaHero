@@ -75,8 +75,8 @@ export default function FeedbackPage() {
                 <tr key={f.id}>
                   <td>
                     <div style={{ display: 'flex', flexDirection: 'column' }}>
-                      <span style={{ fontWeight: 700 }}>{f.name || 'Anonymous Passenger'}</span>
-                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{f.user_email}</span>
+                      <span style={{ fontWeight: 700 }}>{f.passenger_name || 'Anonymous Passenger'}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{f.passenger_email}</span>
                     </div>
                   </td>
                   <td>
@@ -88,7 +88,7 @@ export default function FeedbackPage() {
                   </td>
                   <td>
                     <p style={{ maxWidth: '400px', whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                      {f.message}
+                      {f.feedback_text}
                     </p>
                   </td>
                   <td>{f.created_at ? new Date(f.created_at).toLocaleDateString() : 'N/A'}</td>

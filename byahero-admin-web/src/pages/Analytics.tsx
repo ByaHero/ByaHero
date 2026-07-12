@@ -428,35 +428,38 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '8px 0' }}>
-              <div className="text-uppercase text-muted fw-bold small tracking-wider" style={{ fontSize: '0.7rem', marginBottom: '8px' }}>Total Boarded Passengers</div>
-              <div className="display-5 fw-bold text-success lh-sm">{data.totalPassengers.toLocaleString()}</div>
-              <div className="text-muted fw-semibold small mt-2">Activity across all tracked terminals &amp; stops</div>
-            </div>
-            <div className="text-center mt-3 pt-3 border-top">
-              <div className="text-uppercase text-muted fw-bold small tracking-wider" style={{ fontSize: '0.7rem', marginBottom: '8px' }}>Boarding Locations</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '8px', marginTop: '8px' }}>
-                {data.boardingLocations.map((location) => (
-                  <span key={location.location_name} className="badge bg-light text-dark border py-2 px-3 rounded-pill fw-bold">
-                    {location.location_name} — <span className="text-success">{location.total}</span> <span className="text-muted" style={{ fontSize: '0.65rem' }}>Boarded</span>
-                  </span>
+          <div className="analytics-summary-band">
+            <div>
+              <div className="analytics-section-kicker">Total Boarded Passengers</div>
+              <div className="analytics-summary-value">{data.totalPassengers.toLocaleString()}</div>
+              <div className="analytics-summary-copy">Activity across all tracked terminals & stops</div>
+              
+              <div className="analytics-location-cloud">
+                <div className="analytics-location-pill">
+                  <strong>BOARDING LOCATIONS</strong>
+                </div>
+                {data.boardingLocations.map((loc) => (
+                  <div key={loc.location_name} className="analytics-location-pill">
+                    {loc.location_name} <strong>{loc.total} Boarded</strong>
+                  </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 text-dark fs-6 text-uppercase tracking-wider" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <TrendingUp size={18} className="text-primary" />
-              <span>Passenger Flow</span>
-            </h5>
+          <div className="analytics-surface analytics-card-tight">
+            <div className="analytics-section-head">
+              <div>
+                <div className="analytics-section-kicker">HOURLY TRENDS</div>
+                <h3 className="analytics-section-title"><TrendingUp size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Passenger Flow</h3>
+              </div>
+            </div>
             <div className="analytics-chart-wrap" style={{ width: '100%', position: 'relative' }}>
               <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }} aria-label="Passenger flow chart">
                 <defs>
-                  <linearGradient id="analyticsArea" x1="0" x2="0" y1="0" y2="1">
-                    <stop offset="0%" stopColor="rgba(29, 78, 216, 0.2)" />
-                    <stop offset="100%" stopColor="rgba(29, 78, 216, 0.00)" />
+                  <linearGradient id="analyticsArea" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 {[0, 25, 50, 75, 100].map((line) => (
@@ -505,56 +508,53 @@ export default function Analytics() {
                 </div>
               ))}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', marginTop: '12px', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div className="analytics-hour-row">
               {data.hourlyFlow.slice(0, 6).map((entry) => (
-                <div key={entry.hr} className="small text-muted fw-semibold" style={{ fontSize: '0.8rem' }}>
-                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'}: <span className="text-primary fw-bold">{entry.total}</span>
+                <div key={entry.hr} className="analytics-hour-chip">
+                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'}: <strong>{entry.total}</strong>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <Route size={18} className="text-primary" />
-              Route Breakdown
-            </h5>
-            <div className="table-responsive">
-              <table className="table table-hover align-middle mb-0 text-secondary fw-semibold small">
-                <thead>
-                  <tr className="text-uppercase text-muted small border-bottom border-light-subtle" style={{ fontSize: '0.7rem' }}>
-                    <th className="py-2">Route</th>
-                    <th className="py-2">Trips</th>
-                    <th className="py-2">Passengers</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.routes.map((route) => (
-                    <tr key={route.name}>
-                      <td className="text-dark fw-bold py-2">{route.name}</td>
-                      <td className="py-2">{Math.max(1, Math.round((route.count / routeChartMax) * 48))}</td>
-                      <td className="text-primary fw-bold py-2">{route.count.toLocaleString()}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="analytics-table-card">
+            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
+              <div>
+                <div className="analytics-section-kicker">VOLUME SHARE</div>
+                <h3 className="analytics-section-title"><Route size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Route Breakdown</h3>
+              </div>
+            </div>
+            <div className="table-responsive" style={{ padding: '20px' }}>
+              <div className="analytics-route-list">
+                {data.routes.map((route) => (
+                  <div key={route.name} className="analytics-route-row">
+                    <div className="analytics-route-label">{route.name}</div>
+                    <div className="analytics-route-track">
+                      <div className="analytics-route-fill" style={{ width: `${Math.max(2, (route.count / routeChartMax) * 100)}%` }} />
+                    </div>
+                    <div className="analytics-route-value">{route.count.toLocaleString()} pax</div>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <BusFront size={18} className="text-primary" />
-              Bus Performance
-            </h5>
-            <p style={{ fontSize: '.75rem', color: '#64748b', marginBottom: '12px', fontWeight: 600 }}>Click on a bus to view its specific departure hotspots.</p>
+          <div className="analytics-table-card">
+            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
+              <div>
+                <div className="analytics-section-kicker">FLEET STATS</div>
+                <h3 className="analytics-section-title"><BusFront size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Bus Performance</h3>
+              </div>
+            </div>
+            <p style={{ fontSize: '.75rem', color: '#64748b', padding: '0 20px', marginBottom: '0', fontWeight: 600 }}>Click on a bus to view its specific departure hotspots.</p>
             <div style={{ overflowX: 'auto' }}>
               {data.buses.length ? (
-                <table className="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+                <table className="analytics-table">
                   <thead>
-                    <tr className="text-uppercase text-muted small border-bottom border-light-subtle" style={{ fontSize: '0.7rem' }}>
-                      <th className="py-2">Bus Code</th>
-                      <th className="py-2">Trips</th>
-                      <th className="py-2">Passengers</th>
+                    <tr>
+                      <th>Bus Code</th>
+                      <th>Trips</th>
+                      <th>Passengers</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -616,19 +616,21 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <BadgeInfo size={18} className="text-primary" />
-              Conductor Activity
-            </h5>
+          <div className="analytics-table-card">
+            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
+              <div>
+                <div className="analytics-section-kicker">PERSONNEL</div>
+                <h3 className="analytics-section-title"><BadgeInfo size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Conductor Activity</h3>
+              </div>
+            </div>
             <div className="table-responsive">
               {data.conductors.length ? (
-                <table className="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+                <table className="analytics-table">
                   <thead>
-                    <tr className="text-uppercase text-muted small border-bottom border-light-subtle" style={{ fontSize: '0.7rem' }}>
-                      <th className="py-2">Conductor</th>
-                      <th className="py-2">Trips</th>
-                      <th className="py-2">Passengers</th>
+                    <tr>
+                      <th>Conductor</th>
+                      <th>Trips</th>
+                      <th>Passengers</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -645,24 +647,26 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <MapPinned size={18} className="text-primary" />
-              Location Activity Log
-            </h5>
+          <div className="analytics-table-card">
+            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
+              <div>
+                <div className="analytics-section-kicker">REAL-TIME</div>
+                <h3 className="analytics-section-title"><MapPinned size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Location Activity Log</h3>
+              </div>
+            </div>
             <div style={{ overflowX: 'auto' }}>
               {data.locationLogs.length ? (
                 <>
-                  <table className="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+                  <table className="analytics-table">
                     <thead>
-                      <tr className="text-uppercase text-muted small border-bottom border-light-subtle" style={{ fontSize: '0.7rem' }}>
-                        <th className="py-2">Time</th>
-                        <th className="py-2">Location</th>
-                        <th className="py-2">Bus</th>
-                        <th className="py-2">Conductor</th>
-                        <th className="py-2">Route</th>
-                        <th className="py-2">Board</th>
-                        <th className="py-2">Depart</th>
+                      <tr>
+                        <th>Time</th>
+                        <th>Location</th>
+                        <th>Bus</th>
+                        <th>Conductor</th>
+                        <th>Route</th>
+                        <th>Board</th>
+                        <th>Depart</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -689,37 +693,38 @@ export default function Analytics() {
             </div>
           </div>
 
-          <div className="card border border-light-subtle shadow-sm rounded-3 p-4 mb-0 bg-white">
-            <h5 className="fw-bold mb-3 d-flex align-items-center gap-2 text-dark fs-6 text-uppercase tracking-wider">
-              <History size={18} className="text-primary" />
-              Recent Operations
-            </h5>
+          <div className="analytics-table-card">
+            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
+              <div>
+                <div className="analytics-section-kicker">STATUS</div>
+                <h3 className="analytics-section-title"><History size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Recent Operations</h3>
+              </div>
+            </div>
             <div style={{ overflowX: 'auto' }}>
               {data.recentOperations.length ? (
                 <>
-                  <table className="table table-hover align-middle mb-0 text-secondary fw-semibold small">
+                  <table className="analytics-table">
                     <thead>
-                      <tr className="text-uppercase text-muted small border-bottom border-light-subtle" style={{ fontSize: '0.7rem' }}>
-                        <th className="py-2">Bus</th>
-                        <th className="py-2">Route</th>
-                        <th className="py-2">Conductor</th>
-                        <th className="py-2">Boarded</th>
-                        <th className="py-2">Duration</th>
-                        <th className="py-2">Status</th>
+                      <tr>
+                        <th>Bus</th>
+                        <th>Route</th>
+                        <th>Conductor</th>
+                        <th>Boarded</th>
+                        <th>Duration</th>
+                        <th>Status</th>
                       </tr>
                     </thead>
                     <tbody>
                       {data.recentOperations.slice(0, recentLimit).map((operation, index) => {
-                        const statusBadge = operation.status === 'active' ? 'bg-success-subtle text-success' : operation.status === 'pending' ? 'bg-warning-subtle text-warning' : 'bg-primary-subtle text-primary';
                         const duration = operation.duration_min != null ? `${operation.duration_min} min` : '-';
                         return (
                           <tr key={`${operation.bus_code}-${operation.route}-${operation.conductor_email}-${index}`}>
-                            <td className="text-dark fw-bold py-2">{operation.bus_code}</td>
-                            <td className="py-2">{operation.route}</td>
-                            <td className="py-2">{conductorName(operation.conductor_email)}</td>
-                            <td className="text-primary fw-bold py-2">{operation.total_boarded.toLocaleString()}</td>
-                            <td className="py-2">{duration}</td>
-                            <td className="py-2"><span className={`badge rounded-pill fw-bold text-uppercase px-2 py-1 ${statusBadge}`} style={{ fontSize: '0.65rem' }}>{operation.status}</span></td>
+                            <td style={{ fontWeight: 700 }}>{operation.bus_code}</td>
+                            <td>{operation.route}</td>
+                            <td>{conductorName(operation.conductor_email)}</td>
+                            <td style={{ fontWeight: 700, color: 'var(--primary-color)' }}>{operation.total_boarded.toLocaleString()}</td>
+                            <td>{duration}</td>
+                            <td><span className={`analytics-status ${operation.status}`}>{operation.status}</span></td>
                           </tr>
                         );
                       })}
