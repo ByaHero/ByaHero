@@ -754,6 +754,8 @@ export default function PassengerDashboard() {
               handleBusPress={handleBusPress}
               userLocation={userLocation}
               baseUrl={baseUrl}
+              isBoarded={isBoarded}
+              boardedBus={boardedBus}
               translateY={translateY}
               handleRemoveCircleMember={handleRemoveCircleMember}
               activeStep={activeStep}

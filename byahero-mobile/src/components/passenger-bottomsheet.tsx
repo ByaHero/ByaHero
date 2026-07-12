@@ -41,6 +41,8 @@ interface PassengerBottomSheetProps {
   handleRemoveCircleMember: (friendId: number, name: string) => void;
   activeStep?: number | null;
   menuVisible: boolean;
+  isBoarded?: boolean;
+  boardedBus?: string;
 }
 
 const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -87,6 +89,8 @@ export default function PassengerBottomSheet({
   handleRemoveCircleMember,
   activeStep,
   menuVisible,
+  isBoarded,
+  boardedBus,
 }: PassengerBottomSheetProps) {
 
   const lastTranslatedY = useRef(MED_UP);
@@ -347,7 +351,10 @@ export default function PassengerBottomSheet({
                   let etaText = 'Arriving soon';
                   let distText: string | null = null;
                   
-                  if (bus.ai_eta_minutes) {
+                  if (bus.ai_predicted_speed_kmh === 0) {
+                    etaText = `Stationary`;
+                    distText = `0 km/h`;
+                  } else if (bus.ai_eta_minutes) {
                     etaText = `AI ETA: ~${bus.ai_eta_minutes} min`;
                     if (bus.ai_predicted_speed_kmh) {
                       distText = `${Math.round(bus.ai_predicted_speed_kmh)} km/h`;
@@ -403,7 +410,9 @@ export default function PassengerBottomSheet({
                             {isNearest && (
                               <View style={[tw`px-2 py-0.5 rounded-full flex-row items-center`, { backgroundColor: '#eff6ff' }]}>
                                 <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#3b82f6', marginRight: 4 }} />
-                                <Text style={{ color: '#1d4ed8', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 }}>NEAREST</Text>
+                                <Text style={{ color: '#1d4ed8', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 }}>
+                                  {(isBoarded && (bus.code === boardedBus || bus.plate_number === boardedBus)) || (bus.ai_predicted_speed_kmh === 0 && distKm !== null && distKm < 0.15) ? 'BOARDING' : 'NEAREST'}
+                                </Text>
                               </View>
                             )}
                           </View>

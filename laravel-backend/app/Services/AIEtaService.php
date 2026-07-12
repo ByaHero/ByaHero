@@ -37,6 +37,14 @@ class AIEtaService
      */
     public function predictEtaAndSpeed($route, $currentSpeed, $distanceMeters = null)
     {
+        if ((float)$currentSpeed <= 0) {
+            return [
+                'predicted_speed_ms' => 0.0,
+                'predicted_speed_kmh' => 0.0,
+                'eta_minutes' => null
+            ];
+        }
+
         try {
             $apiUrl = config('services.python_ml_api.url');
             $response = \Illuminate\Support\Facades\Http::timeout(5)->post("{$apiUrl}/predict", [
