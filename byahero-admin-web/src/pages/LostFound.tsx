@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2, HelpCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Loader2, HelpCircle, Image as ImageIcon } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { API_BASE_URL } from '../services/api';
 import { LostItem } from '../types';
@@ -169,6 +169,16 @@ export default function LostFound() {
                   <td>{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</td>
                   <td style={{ textAlign: 'right' }}>
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                      {(item.image1_path || item.image2_path) && (
+                        <button 
+                          className="btn btn-primary" 
+                          style={{ padding: '6px 10px' }} 
+                          onClick={() => window.open(`${API_BASE_URL}/${item.image1_path || item.image2_path}`, '_blank')}
+                          title="View Image"
+                        >
+                          <ImageIcon size={12} />
+                        </button>
+                      )}
                       <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openEditModal(item)}>
                         <Edit2 size={12} />
                       </button>

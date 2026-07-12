@@ -507,7 +507,7 @@ class AdminController extends Controller
                       $q2->whereNull('expires_at')->where('created_at', '<=', now()->subHour());
                   });
             })
-            ->update(['status' => 'expired', 'updated_at' => now()]);
+            ->update(['status' => 'cancelled', 'updated_at' => now()]);
 
         $waitingList = DB::select("
             SELECT wp.id, wp.user_id, wp.user_name, wp.location_name, wp.created_at,

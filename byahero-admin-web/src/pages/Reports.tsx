@@ -98,16 +98,18 @@ export default function Reports() {
             <tbody>
               {reports.map((report) => (
                 <tr key={report.id}>
-                  <td style={{ fontWeight: 700 }}>{report.title}</td>
+                  <td style={{ fontWeight: 700 }}>
+                    {report.bus_number ? `Incident Report: Bus ${report.bus_number}` : 'Incident Report: Bus Unknown'}
+                  </td>
                   <td>
-                    <span className="badge badge-secondary">{report.category}</span>
+                    <span className="badge badge-secondary">{report.report_reason || 'Unknown'}</span>
                   </td>
                   <td>
                     <p style={{ maxWidth: '300px', whiteSpace: 'normal', wordBreak: 'break-word', fontSize: '0.8rem' }}>
-                      {report.description}
+                      {report.others_details || 'No additional details provided.'}
                     </p>
                   </td>
-                  <td>{report.user_name || 'Anonymous'}</td>
+                  <td>{report.reporter_name || 'Anonymous'}</td>
                   <td>
                     <span className={`badge badge-${report.status === 'resolved' ? 'success' : 'error'}`}>
                       {report.status}
@@ -131,10 +133,10 @@ export default function Reports() {
         <form onSubmit={handleSaveStatus}>
           <div style={{ marginBottom: '16px' }}>
             <p style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
-              {currentReport?.title}
+              {currentReport?.bus_number ? `Incident Report: Bus ${currentReport.bus_number}` : 'Incident Report: Bus Unknown'}
             </p>
             <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-              {currentReport?.description}
+              {currentReport?.others_details || 'No additional details provided.'}
             </p>
           </div>
 

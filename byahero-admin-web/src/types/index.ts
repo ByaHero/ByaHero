@@ -70,11 +70,13 @@ export interface Fare {
 
 export interface WaitingPassenger {
   id: number;
-  stop_id: number;
-  stop_name?: string;
-  passengers_count: number;
-  route_direction?: string;
-  updated_at?: string;
+  user_id: number;
+  user_name: string;
+  location_name: string;
+  created_at: string;
+  status: string;
+  registered_name: string;
+  registered_email: string;
 }
 
 export interface Stop {
@@ -89,9 +91,9 @@ export interface Stop {
 
 export interface Feedback {
   id: number;
-  user_email: string;
-  name?: string;
-  message: string;
+  passenger_email: string;
+  passenger_name?: string;
+  feedback_text: string;
   rating: number;
   created_at?: string;
 }
@@ -110,10 +112,12 @@ export interface LostItem {
 
 export interface IncidentReport {
   id: number;
-  title: string;
-  description: string;
-  category: 'accident' | 'delay' | 'breakdown' | 'other';
+  bus_number?: string;
+  others_details?: string;
+  report_reason?: string;
   status: 'pending' | 'resolved';
   created_at?: string;
-  user_name?: string;
+  reporter_name?: string;
+  reporter_email?: string;
+  contact_number?: string;
 }
