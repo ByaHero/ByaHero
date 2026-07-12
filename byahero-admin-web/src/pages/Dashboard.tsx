@@ -211,19 +211,19 @@ export default function Dashboard() {
             
             <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Data Points</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>{aiStats?.total_data_points || 0}</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>What the AI has learned from</div>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>{aiStats?.total_data_points ? aiStats.total_data_points.toLocaleString() : 0} GPS Records</div>
                 <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>{aiStats?.moving_points || 0} Moving</span> <span style={{ opacity: 0.5 }}>•</span> <span style={{ color: '#ef4444', fontWeight: 700 }}>{aiStats?.stationary_points || 0} Stopped</span>
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>{aiStats?.moving_points ? aiStats.moving_points.toLocaleString() : 0} moving records</span> <span style={{ opacity: 0.5 }}>•</span> <span style={{ color: '#ef4444', fontWeight: 700 }}>{aiStats?.stationary_points ? aiStats.stationary_points.toLocaleString() : 0} traffic stops</span>
                 </div>
               </div>
               <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', marginTop: '4px' }}>Online</div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Status</div>
+                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', marginTop: '4px' }}>Active & Learning</div>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Historical Route Average Speeds</div>
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Average Speeds by Route (How fast buses usually go)</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
               {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
@@ -231,33 +231,45 @@ export default function Dashboard() {
                   <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)' }}>{r.avg_speed_kmh} km/h</span>
                 </div>
               )) : (
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No speed data learned yet.</div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>Not enough trips yet.</div>
               )}
             </div>
 
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Hourly Traffic Patterns</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-              {aiStats?.hourly_speeds?.length > 0 ? aiStats.hourly_speeds.map((h: any, idx: number) => {
-                const hour = h.hr % 12 || 12;
-                const ampm = h.hr >= 12 ? 'PM' : 'AM';
-                return (
-                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '45px' }}>
-                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>{hour}{ampm}</span>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{h.avg_speed_kmh}</span>
-                  </div>
-                );
-              }) : (
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No hourly patterns learned yet.</div>
-              )}
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Detected Rush Hours (Slowest Times)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+              {(() => {
+                if (aiStats?.hourly_speeds?.length > 0) {
+                  const sorted = [...aiStats.hourly_speeds].sort((a: any, b: any) => a.avg_speed_kmh - b.avg_speed_kmh).slice(0, 3);
+                  return sorted.map((h: any, idx: number) => {
+                    const hour = h.hr % 12 || 12;
+                    const ampm = h.hr >= 12 ? 'PM' : 'AM';
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <AlertTriangle size={16} color="#ef4444" />
+                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#991b1b' }}>{hour}:00 {ampm}</span>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c' }}>Heavy Traffic</span>
+                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>{h.avg_speed_kmh} <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>km/h</span></span>
+                        </div>
+                      </div>
+                    );
+                  });
+                }
+                return <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>Not enough data to detect rush hours yet.</div>;
+              })()}
             </div>
 
-            <div style={{ padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
-              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Model Capabilities</div>
-              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.75rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <li><strong>Algorithm:</strong> Random Forest Regressor</li>
-                <li><strong>Traffic Patterns:</strong> Learns peak hour congestion by analyzing time of day and day of week.</li>
-                <li><strong>Stable ETAs:</strong> Prevents jumping/infinity ETAs during stops by blending real-time metrics with learned historical speeds.</li>
-                <li><strong>Self-Improving:</strong> Automatically incorporates 0 km/h stops and real driving speeds from Conductor telemetry.</li>
+            <div style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
+              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <Activity size={16} />
+                Why this AI is smart
+              </div>
+              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.8rem', color: '#15803d', display: 'flex', flexDirection: 'column', gap: '8px', fontWeight: 500 }}>
+                <li><strong>Rush Hour Aware:</strong> It knows when traffic is bad (like Friday at 5 PM) and adjusts ETAs so passengers aren't left guessing.</li>
+                <li><strong>No Jumping ETAs:</strong> If a bus stops at a red light, the passenger's ETA stays steady instead of suddenly breaking or saying "infinity".</li>
+                <li><strong>Always Improving:</strong> Every time a conductor uses the app, the AI silently learns where the new traffic hotspots are.</li>
               </ul>
             </div>
           </div>
