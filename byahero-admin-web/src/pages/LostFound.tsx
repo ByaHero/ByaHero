@@ -160,10 +160,9 @@ export default function LostFound() {
                   <td>{item.reported_by}</td>
                   <td>{item.contact_number}</td>
                   <td>
-                    <span className={`badge badge-${
-                      item.status === 'claimed' ? 'success' : 
-                      item.status === 'found' ? 'primary' : 'error'
-                    }`}>
+                    <span className={`badge badge-${item.status === 'claimed' ? 'success' :
+                        item.status === 'found' ? 'primary' : 'error'
+                      }`}>
                       {item.status}
                     </span>
                   </td>
@@ -194,19 +193,19 @@ export default function LostFound() {
               <div style={{ display: 'flex', gap: '12px', marginTop: '5px' }}>
                 {currentItem.image1_path && (
                   <a href={`${API_BASE_URL}/${currentItem.image1_path}`} target="_blank" rel="noreferrer">
-                    <img 
-                      src={`${API_BASE_URL}/${currentItem.image1_path}`} 
-                      alt="Lost Item 1" 
-                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                    <img
+                      src={`${API_BASE_URL}/${currentItem.image1_path}`}
+                      alt="Lost Item 1"
+                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                     />
                   </a>
                 )}
                 {currentItem.image2_path && (
                   <a href={`${API_BASE_URL}/${currentItem.image2_path}`} target="_blank" rel="noreferrer">
-                    <img 
-                      src={`${API_BASE_URL}/${currentItem.image2_path}`} 
-                      alt="Lost Item 2" 
-                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                    <img
+                      src={`${API_BASE_URL}/${currentItem.image2_path}`}
+                      alt="Lost Item 2"
+                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
                     />
                   </a>
                 )}
@@ -216,10 +215,10 @@ export default function LostFound() {
 
           <div className="form-group">
             <label className="form-label">Item Name</label>
-            <input 
-              type="text" 
-              className="form-input" 
-              placeholder="e.g. Leather Wallet" 
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. Leather Wallet"
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
               required
@@ -228,10 +227,10 @@ export default function LostFound() {
 
           <div className="form-group">
             <label className="form-label">Item Description</label>
-            <textarea 
-              className="form-input" 
+            <textarea
+              className="form-input"
               rows={3}
-              placeholder="e.g. Black leather containing IDs and cards. Found under row 5 seat." 
+              placeholder="e.g. Black leather containing IDs and cards. Found under row 5 seat."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
@@ -241,10 +240,10 @@ export default function LostFound() {
           <div className="form-row">
             <div className="form-group">
               <label className="form-label">Reported By</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Passenger Name" 
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Passenger Name"
                 value={reportedBy}
                 onChange={(e) => setReportedBy(e.target.value)}
                 required
@@ -252,10 +251,10 @@ export default function LostFound() {
             </div>
             <div className="form-group">
               <label className="form-label">Contact Number</label>
-              <input 
-                type="text" 
-                className="form-input" 
-                placeholder="Phone number" 
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Phone number"
                 value={contactNumber}
                 onChange={(e) => setContactNumber(e.target.value)}
                 required
