@@ -120,7 +120,9 @@ class BusController extends Controller
             // Get current speed from latest telemetry if available
             $currentSpeed = \App\Models\BusTelemetry::where('bus_id', $busId)->orderBy('id', 'desc')->value('speed') ?? 0;
             $predictions = $aiEtaService->predictEtaAndSpeed($bus->route, $currentSpeed, $distanceMeters);
-            $r['ai_predicted_speed_kmh'] = $predictions['predicted_speed_kmh'];
+            
+            // If the bus is physically not moving, display 0 km/h instead of the model's predicted average route speed
+            $r['ai_predicted_speed_kmh'] = $currentSpeed <= 0 ? 0 : $predictions['predicted_speed_kmh'];
             $r['ai_eta_minutes'] = $predictions['eta_minutes'];
 
             $out[] = $r;
