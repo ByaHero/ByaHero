@@ -213,6 +213,9 @@ export default function Dashboard() {
               <div>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Data Points</div>
                 <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>{aiStats?.total_data_points || 0}</div>
+                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
+                  <span style={{ color: '#10b981', fontWeight: 700 }}>{aiStats?.moving_points || 0} Moving</span> <span style={{ opacity: 0.5 }}>•</span> <span style={{ color: '#ef4444', fontWeight: 700 }}>{aiStats?.stationary_points || 0} Stopped</span>
+                </div>
               </div>
               <div style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Status</div>
@@ -221,7 +224,7 @@ export default function Dashboard() {
             </div>
 
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Historical Route Average Speeds</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
               {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
                 <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
                   <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>{r.route}</span>
@@ -230,6 +233,32 @@ export default function Dashboard() {
               )) : (
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No speed data learned yet.</div>
               )}
+            </div>
+
+            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Hourly Traffic Patterns</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
+              {aiStats?.hourly_speeds?.length > 0 ? aiStats.hourly_speeds.map((h: any, idx: number) => {
+                const hour = h.hr % 12 || 12;
+                const ampm = h.hr >= 12 ? 'PM' : 'AM';
+                return (
+                  <div key={idx} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '6px 12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', minWidth: '45px' }}>
+                    <span style={{ fontSize: '0.65rem', fontWeight: 700, color: '#64748b', marginBottom: '2px' }}>{hour}{ampm}</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#0f172a' }}>{h.avg_speed_kmh}</span>
+                  </div>
+                );
+              }) : (
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>No hourly patterns learned yet.</div>
+              )}
+            </div>
+
+            <div style={{ padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+              <div style={{ fontSize: '0.75rem', fontWeight: 700, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Model Capabilities</div>
+              <ul style={{ margin: 0, paddingLeft: '16px', fontSize: '0.75rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <li><strong>Algorithm:</strong> Random Forest Regressor</li>
+                <li><strong>Traffic Patterns:</strong> Learns peak hour congestion by analyzing time of day and day of week.</li>
+                <li><strong>Stable ETAs:</strong> Prevents jumping/infinity ETAs during stops by blending real-time metrics with learned historical speeds.</li>
+                <li><strong>Self-Improving:</strong> Automatically incorporates 0 km/h stops and real driving speeds from Conductor telemetry.</li>
+              </ul>
             </div>
           </div>
         </div>

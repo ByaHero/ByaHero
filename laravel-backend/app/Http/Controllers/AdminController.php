@@ -1088,22 +1088,35 @@ class AdminController extends Controller
     {
         $this->checkAuth();
 
-        $totalDataPoints = DB::table('bus_telemetries')->where('speed', '>', 0)->whereNotNull('route')->count();
+        $totalDataPoints = DB::table('bus_telemetries')->where('speed', '>=', 0)->whereNotNull('route')->count();
+        $stationaryPoints = DB::table('bus_telemetries')->where('speed', '<=', 0)->whereNotNull('route')->count();
+        $movingPoints = DB::table('bus_telemetries')->where('speed', '>', 0)->whereNotNull('route')->count();
         $lastTrained = \Illuminate\Support\Facades\Cache::get('ai_model_last_trained', 'Never');
         
         $avgSpeeds = DB::select("
             SELECT route, ROUND(AVG(speed), 2) as avg_speed_ms, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
             FROM bus_telemetries 
-            WHERE speed > 0 AND route IS NOT NULL 
+            WHERE speed >= 0 AND route IS NOT NULL 
             GROUP BY route
+        ");
+
+        $hourlySpeeds = DB::select("
+            SELECT HOUR(created_at) as hr, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
+            FROM bus_telemetries
+            WHERE speed >= 0 AND route IS NOT NULL
+            GROUP BY HOUR(created_at)
+            ORDER BY hr
         ");
 
         return response()->json([
             'success' => true,
             'stats' => [
                 'total_data_points' => $totalDataPoints,
+                'stationary_points' => $stationaryPoints,
+                'moving_points' => $movingPoints,
                 'last_trained' => $lastTrained,
-                'routes' => $avgSpeeds
+                'routes' => $avgSpeeds,
+                'hourly_speeds' => $hourlySpeeds
             ]
         ]);
     }

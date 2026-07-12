@@ -22,7 +22,7 @@ def get_db_connection():
 
 def train_model():
     conn = get_db_connection()
-    query = "SELECT route, speed, created_at FROM bus_telemetries WHERE speed > 0 AND route IS NOT NULL"
+    query = "SELECT route, speed, created_at FROM bus_telemetries WHERE speed >= 0 AND route IS NOT NULL"
     df = pd.read_sql(query, conn)
     conn.close()
 
