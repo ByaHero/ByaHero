@@ -350,17 +350,26 @@ export default function PassengerBottomSheet({
                   const distKm = bus._distKm;
                   let etaText = 'Arriving soon';
                   let distText: string | null = null;
-                  
-                  if (bus.ai_predicted_speed_kmh === 0) {
-                    etaText = `Stationary`;
-                    distText = `0 km/h`;
+
+                  const isUserBoarding = isBoarded && (bus.code === boardedBus || bus.plate_number === boardedBus);
+                  const isNearAndStationary = bus.ai_predicted_speed_kmh === 0 && distKm !== null && distKm < 0.15;
+
+                  if (isUserBoarding) {
+                    etaText = 'On Board';
+                    distText = 'Boarded';
+                  } else if (isNearAndStationary) {
+                    etaText = 'Boarding';
+                    distText = '0 m';
                   } else if (bus.ai_eta_minutes) {
                     etaText = `AI ETA: ~${bus.ai_eta_minutes} min`;
-                    if (bus.ai_predicted_speed_kmh) {
+                    if (bus.ai_predicted_speed_kmh !== null && bus.ai_predicted_speed_kmh !== undefined) {
                       distText = `${Math.round(bus.ai_predicted_speed_kmh)} km/h`;
                     } else if (distKm !== null) {
                       distText = distKm < 1 ? `${Math.round(distKm * 1000)} m` : `${distKm.toFixed(1)} km`;
                     }
+                  } else if (bus.ai_predicted_speed_kmh === 0) {
+                    etaText = `Stationary`;
+                    distText = `0 km/h`;
                   } else if (bus.eta) {
                     etaText = `Arrives at ${bus.eta}`;
                   } else if (distKm !== null) {

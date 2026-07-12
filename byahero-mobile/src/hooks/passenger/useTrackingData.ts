@@ -4,7 +4,7 @@ import { getServerUrl } from '../../services/authService';
 import { resolveBusLocationName } from '../../utils/locationUtils';
 import { loadBusData } from '../../services/offlineCache';
 
-export function useTrackingData() {
+export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
@@ -53,7 +53,11 @@ export function useTrackingData() {
 
         // Fetch live buses
         try {
-          const busesRes = await fetch(`${currentBaseUrl}/api/buses`);
+          let busesUrl = `${currentBaseUrl}/api/buses`;
+          if (userLocation && userLocation.lat && userLocation.lng) {
+            busesUrl += `?user_lat=${userLocation.lat}&user_lng=${userLocation.lng}`;
+          }
+          const busesRes = await fetch(busesUrl);
           if (busesRes.ok && active) {
             const busesData = await busesRes.json();
             if (busesData && busesData.success && Array.isArray(busesData.buses)) {
@@ -152,7 +156,7 @@ export function useTrackingData() {
       active = false;
       clearInterval(interval);
     };
-  }, []);
+  }, [userLocation?.lat, userLocation?.lng]);
 
   return {
     buses,
