@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Trash2, Loader2, HelpCircle } from 'lucide-react';
 import { adminService } from '../services/admin';
+import { API_BASE_URL } from '../services/api';
 import { LostItem } from '../types';
 import Modal from '../components/Modal';
 
@@ -187,6 +188,32 @@ export default function LostFound() {
       {/* Save Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={currentItem ? 'Update Item Log' : 'Log New Item'}>
         <form onSubmit={handleSave}>
+          {currentItem && (currentItem.image1_path || currentItem.image2_path) && (
+            <div className="form-group">
+              <label className="form-label">Attached Images (From Passenger)</label>
+              <div style={{ display: 'flex', gap: '12px', marginTop: '5px' }}>
+                {currentItem.image1_path && (
+                  <a href={`${API_BASE_URL}/${currentItem.image1_path}`} target="_blank" rel="noreferrer">
+                    <img 
+                      src={`${API_BASE_URL}/${currentItem.image1_path}`} 
+                      alt="Lost Item 1" 
+                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                    />
+                  </a>
+                )}
+                {currentItem.image2_path && (
+                  <a href={`${API_BASE_URL}/${currentItem.image2_path}`} target="_blank" rel="noreferrer">
+                    <img 
+                      src={`${API_BASE_URL}/${currentItem.image2_path}`} 
+                      alt="Lost Item 2" 
+                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }} 
+                    />
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="form-group">
             <label className="form-label">Item Name</label>
             <input 

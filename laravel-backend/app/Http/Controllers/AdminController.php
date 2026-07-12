@@ -982,7 +982,9 @@ class AdminController extends Controller
                 'reported_by' => $t->reported_by_name ?? ($t->reporter_name ?? 'Unknown'),
                 'contact_number' => $t->contact_number ?? ($t->reporter_contact ?? 'N/A'),
                 'status' => in_array($t->status ?? '', ['lost', 'found', 'claimed']) ? $t->status : $status,
-                'created_at' => $t->created_at ?? null
+                'created_at' => $t->created_at ?? null,
+                'image1_path' => $t->image1_path ?? null,
+                'image2_path' => $t->image2_path ?? null
             ];
         });
 

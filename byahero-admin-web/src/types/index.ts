@@ -104,6 +104,8 @@ export interface LostItem {
   contact_number: string;
   status: 'lost' | 'found' | 'claimed';
   created_at?: string;
+  image1_path?: string;
+  image2_path?: string;
 }
 
 export interface IncidentReport {
