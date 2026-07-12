@@ -38,14 +38,17 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
           setCircles(Array.from(uniqueFriends.values()));
         }
       }
-    } catch (err) {
-      console.error('Error fetching group members:', err);
+    } catch (err: any) {
+      if (err.message !== 'Network request failed') {
+        console.error('Error fetching group members:', err);
+      }
     }
   };
 
   useEffect(() => {
     let active = true;
     let isFetching = false;
+    let hasFetchedStops = false;
 
     const fetchData = async () => {
       if (isFetching) return;
@@ -88,29 +91,33 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
         }
 
         // Fetch bus stops
-        let fetchedStops = null;
-        try {
-          const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
-          if (stopsRes.ok && active) {
-            const stopsData = await stopsRes.json();
-            if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
-              fetchedStops = stopsData.data;
+        if (!hasFetchedStops) {
+          let fetchedStops = null;
+          try {
+            const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
+            if (stopsRes.ok && active) {
+              const stopsData = await stopsRes.json();
+              if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
+                fetchedStops = stopsData.data;
+              }
+            }
+          } catch (err: any) {
+            if (err.message !== 'Network request failed') {
+              console.error('Error fetching stops:', err);
             }
           }
-        } catch (err: any) {
-          if (err.message !== 'Network request failed') {
-            console.error('Error fetching stops:', err);
-          }
-        }
 
-        if (fetchedStops && active) {
-          setBusStops(prev => JSON.stringify(prev) === JSON.stringify(fetchedStops) ? prev : fetchedStops);
-        } else if (active) {
-          // Fallback to offline cache
-          const cached = await loadBusData();
-          if (cached && cached.pickup_points && cached.pickup_points.length > 0) {
-            const pts = cached.pickup_points || [];
-            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(pts) ? prev : pts);
+          if (fetchedStops && active) {
+            hasFetchedStops = true;
+            setBusStops(prev => JSON.stringify(prev) === JSON.stringify(fetchedStops) ? prev : fetchedStops);
+          } else if (active) {
+            // Fallback to offline cache
+            const cached = await loadBusData();
+            if (cached && cached.pickup_points && cached.pickup_points.length > 0) {
+              const pts = cached.pickup_points || [];
+              hasFetchedStops = true;
+              setBusStops(prev => JSON.stringify(prev) === JSON.stringify(pts) ? prev : pts);
+            }
           }
         }
 
@@ -155,7 +162,7 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 4000);
+    const interval = setInterval(fetchData, 10000);
 
     return () => {
       active = false;
