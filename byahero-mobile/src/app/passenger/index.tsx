@@ -394,6 +394,7 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/set`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
@@ -441,6 +442,7 @@ export default function PassengerDashboard() {
 
       const res = await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
         method: 'POST',
+        credentials: 'include',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'

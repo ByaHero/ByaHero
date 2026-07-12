@@ -45,8 +45,11 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
 
   useEffect(() => {
     let active = true;
+    let isFetching = false;
 
     const fetchData = async () => {
+      if (isFetching) return;
+      isFetching = true;
       try {
         const currentBaseUrl = await getServerUrl();
         setBaseUrl(currentBaseUrl);
@@ -146,6 +149,8 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
         if (err.message !== 'Network request failed') {
           console.error('Error fetching tracking data:', err);
         }
+      } finally {
+        isFetching = false;
       }
     };
 
