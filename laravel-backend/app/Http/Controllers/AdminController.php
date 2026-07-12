@@ -947,14 +947,48 @@ class AdminController extends Controller
     public function listLostAndFound(Request $request)
     {
         $this->checkAuth();
+
+        try {
+            if (!\Illuminate\Support\Facades\Schema::hasColumn('lost_and_found', 'description')) {
+                \Illuminate\Support\Facades\Schema::table('lost_and_found', function ($table) {
+                    if (!\Illuminate\Support\Facades\Schema::hasColumn('lost_and_found', 'item_name')) {
+                        $table->string('item_name')->nullable();
+                    }
+                    $table->text('description')->nullable();
+                    $table->string('reported_by_name')->nullable();
+                    $table->string('contact_number')->nullable();
+                });
+            }
+        } catch (\Exception $e) {}
+
         $tickets = DB::table('lost_and_found as lf')
             ->leftJoin('users as u', 'lf.user_id', '=', 'u.id')
             ->select('lf.*', 'u.name as reporter_name', 'u.contacts as reporter_contact')
             ->orderBy('lf.created_at', 'desc')
             ->get();
 
+        $items = $tickets->map(function ($t) {
+            $status = $t->status ?? 'lost';
+            if ($status === 'open') {
+                $status = ($t->type ?? 'lost') === 'found' ? 'found' : 'lost';
+            } elseif ($status === 'resolved' || $status === 'closed') {
+                $status = 'claimed';
+            }
+
+            return [
+                'id' => $t->id,
+                'item_name' => $t->item_name ?? ('User Ticket #' . $t->id),
+                'description' => $t->description ?? ($t->item_description ?? ''),
+                'reported_by' => $t->reported_by_name ?? ($t->reporter_name ?? 'Unknown'),
+                'contact_number' => $t->contact_number ?? ($t->reporter_contact ?? 'N/A'),
+                'status' => in_array($t->status ?? '', ['lost', 'found', 'claimed']) ? $t->status : $status,
+                'created_at' => $t->created_at ?? null
+            ];
+        });
+
         return response()->json([
             'success' => true,
+            'items' => $items,
             'tickets' => $tickets
         ]);
     }
@@ -965,7 +999,30 @@ class AdminController extends Controller
         $action = $request->input('action');
 
         try {
-            if ($action === 'update_status') {
+            if ($action === 'create' || $action === 'update') {
+                $data = [
+                    'item_name' => $request->input('item_name'),
+                    'description' => $request->input('description'),
+                    'reported_by_name' => $request->input('reported_by'),
+                    'contact_number' => $request->input('contact_number'),
+                    'status' => $request->input('status', 'lost'),
+                    'type' => $request->input('status') === 'found' ? 'found' : 'lost',
+                    'item_description' => $request->input('description'),
+                ];
+                
+                if ($action === 'create') {
+                    $data['user_id'] = 0; // Admin manually entered
+                    $data['created_at'] = now();
+                    DB::table('lost_and_found')->insert($data);
+                    return response()->json(['success' => true, 'message' => 'Item created successfully.']);
+                } else {
+                    $id = $request->input('id');
+                    if (!$id) return response()->json(['success' => false, 'error' => 'ID required.']);
+                    DB::table('lost_and_found')->where('id', $id)->update($data);
+                    return response()->json(['success' => true, 'message' => 'Item updated successfully.']);
+                }
+            }
+            elseif ($action === 'update_status') {
                 $id = $request->input('id');
                 $status = $request->input('status', 'open');
 
@@ -981,7 +1038,7 @@ class AdminController extends Controller
                 return response()->json(['success' => true, 'message' => 'Ticket updated successfully.']);
             } 
             
-            elseif ($action === 'delete_ticket') {
+            elseif ($action === 'delete' || $action === 'delete_ticket') {
                 $id = $request->input('id');
                 if (!$id) {
                     return response()->json(['success' => false, 'error' => 'Invalid delete request (empty ID).']);
