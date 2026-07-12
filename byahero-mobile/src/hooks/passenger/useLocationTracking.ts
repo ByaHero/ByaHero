@@ -10,8 +10,11 @@ let CookieManager: any = null;
 if (Platform.OS === 'android') {
   try {
     CookieManager = require('@react-native-cookies/cookies');
+    if (CookieManager && CookieManager.default) {
+      CookieManager = CookieManager.default;
+    }
   } catch (e) {
-    console.warn('CookieManager native module not available in this environment (e.g. Expo Go).');
+    console.warn('CookieManager native module not available (expected in Expo Go)');
   }
 }
 
