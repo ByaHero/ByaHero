@@ -6,4 +6,10 @@ expo-env.d.ts
 # @end expo-cli
 
 /android
-/.expo
+
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
