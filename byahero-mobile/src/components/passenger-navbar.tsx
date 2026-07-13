@@ -376,7 +376,7 @@ export function PassengerHeader({
               <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
                 <TouchableOpacity
                   onPress={closeMenu}
-                  style={tw`absolute top-3 right-3 p-1`}
+                  style={[tw`absolute top-3 right-3 p-1`, { marginTop: 25 }]}
                 >
                   <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
                 </TouchableOpacity>

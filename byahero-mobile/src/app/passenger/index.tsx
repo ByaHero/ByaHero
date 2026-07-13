@@ -495,6 +495,7 @@ export default function PassengerDashboard() {
   };
 
   const handleStopPress = (stop: any) => {
+    setIsFollowingUser(false);
     const lat = parseFloat(stop.lat || stop.latitude);
     const lng = parseFloat(stop.lng || stop.longitude);
     if (lat && lng) {
@@ -507,6 +508,7 @@ export default function PassengerDashboard() {
   };
 
   const handleBusPress = (bus: any) => {
+    setIsFollowingUser(false);
     const lat = parseFloat(bus.lat || bus.latitude);
     const lng = parseFloat(bus.lng || bus.longitude);
     if (lat && lng) {
@@ -739,9 +741,10 @@ export default function PassengerDashboard() {
               <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: leafletHTML }}
+                source={{ html: leafletHTML, baseUrl: baseUrl || 'https://byahero.alwaysdata.net/' }}
                 onMessage={handleWebViewMessage}
-                style={tw`flex-1`}
+                onConsoleMessage={(e: any) => console.log('WebView Console:', e.nativeEvent.message)}
+                style={[tw`flex-1`, { width: '100%', height: '100%' }]}
                 javaScriptEnabled={true}
                 domStorageEnabled={true}
               />

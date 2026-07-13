@@ -14,10 +14,33 @@ export function getLeafletHTML(baseUrl: string): string {
       <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
       <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
       <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+      <!-- idb is a required peer dependency for leaflet.offline -->
+      <script src="https://unpkg.com/idb@7/build/umd.js"></script>
+      <script src="https://unpkg.com/leaflet.offline@2/dist/bundle.min.js"></script>
       <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          var errorDiv = document.createElement('div');
+          errorDiv.style.position = 'absolute';
+          errorDiv.style.top = '0';
+          errorDiv.style.left = '0';
+          errorDiv.style.right = '0';
+          errorDiv.style.zIndex = '999999';
+          errorDiv.style.background = 'red';
+          errorDiv.style.color = 'white';
+          errorDiv.style.padding = '10px';
+          errorDiv.style.fontSize = '12px';
+          errorDiv.style.wordBreak = 'break-word';
+          errorDiv.innerHTML = 'JS Error: ' + msg + ' at line ' + lineNo;
+          document.body.appendChild(errorDiv);
+        };
+      </script>
       <style>
         body { padding: 0; margin: 0; }
         html, body, #map { height: 100%; width: 100vw; background: #e5e7eb; }
+        
+        /* Hide leaflet.offline buttons */
+        .savetiles, .rmtiles { display: none !important; }
         
         .waiting-badge {
           background: #ffffff;
@@ -77,22 +100,104 @@ export function getLeafletHTML(baseUrl: string): string {
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false }).setView([14.2137, 121.1620], 14);
+        var map = L.map('map', { zoomControl: false, maxZoom: 22, minZoom: 2 }).setView([14.2137, 121.1620], 14);
         
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap'
-        }).addTo(map);
+        function updateMarkerSizes() {
+          var zoom = map.getZoom();
+          // At zoom 14, scale is 1. Increases smoothly as user zooms in.
+          var scale = Math.min(3, Math.max(0.7, 1 + (zoom - 14) * 0.4));
+          document.documentElement.style.setProperty('--stop-marker-scale', scale);
+        }
+        map.on('zoomend', updateMarkerSizes);
+        updateMarkerSizes();
+        
+        var baseLayer;
+        if (L.tileLayer.offline) {
+          baseLayer = L.tileLayer.offline('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            subdomains: 'abc',
+            crossOrigin: true,
+            minZoom: 12,
+            maxZoom: 18,
+            maxNativeZoom: 18
+          }).addTo(map);
+        } else {
+          baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            subdomains: 'abc',
+            maxZoom: 22,
+            maxNativeZoom: 19
+          }).addTo(map);
+        }
+
+        // Setup automatic offline caching for a specific area
+        var targetAreaGeoJson = {
+          "type": "FeatureCollection",
+          "features": [
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[120.9271501, 14.1010954], [120.9271501, 14.1010954], [120.9271501, 14.1010954], [120.9271501, 14.1010954]]] } },
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[120.9224554, 14.1043162], [120.9224554, 14.1043162], [120.9224554, 14.1043162], [120.9224554, 14.1043162]]] } },
+            { "type": "Feature", "properties": {}, "geometry": { "type": "Polygon", "coordinates": [[[121.1728316, 14.13252985418714], [120.91388315754506, 14.13252985418714], [120.91388315754506, 14.0281904], [121.0530501, 14.0586983], [121.131714, 14.0554998], [121.1731656, 14.0774318], [121.1728316, 14.13252985418714]]] } }
+          ]
+        };
+
+        var targetBounds = L.geoJSON(targetAreaGeoJson).getBounds();
+
+        var saveControl = null;
+        try {
+          saveControl = L.control.savetiles(baseLayer, {
+            zoomlevels: [12, 13, 14, 15, 16, 17],
+            bounds: targetBounds,
+            alwaysDownload: false,
+            confirm: function(layer, successCallback) {
+              successCallback();
+            }
+          });
+          saveControl.addTo(map);
+
+          if (localStorage.getItem('byahero_offline_v2') !== 'true') {
+            // Register saveend BEFORE triggering so we never miss a fast completion
+            baseLayer.on('saveend', function() {
+              console.log('[ByaHero] Offline map tiles saved successfully.');
+              localStorage.setItem('byahero_offline_v2', 'true');
+            });
+            baseLayer.on('savetileend', function(e) {
+              console.log('[ByaHero] Offline tile saved:', e.lengthSaved, '/', e.lengthToBeSaved);
+            });
+
+            // Slight delay to let the map render first, then auto-cache in background
+            setTimeout(function() {
+              try {
+                if (!targetBounds || !targetBounds.isValid()) {
+                  console.warn('[ByaHero] Offline caching skipped: target bounds are invalid.');
+                  return;
+                }
+                console.log('[ByaHero] Starting offline map caching for target area...');
+                if (saveControl && saveControl._saveTiles) {
+                  saveControl._saveTiles();
+                }
+              } catch(e) {
+                console.error('[ByaHero] Offline map caching failed:', e);
+              }
+            }, 3000);
+          }
+        } catch (e) {
+          console.error('[ByaHero] Offline tile control initialization failed:', e);
+        }
 
         var routeGeoJSON = ${JSON.stringify(require('../../assets/data/laurel-talisay-tanauan.json'))};
-        if (routeGeoJSON) {
-          L.geoJSON(routeGeoJSON, {
-            style: function (feature) {
-              return { color: '#3b82f6', weight: 4, opacity: 0.7 };
-            },
-            filter: function(feature) {
-              return feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString';
-            }
-          }).addTo(map);
+        if (routeGeoJSON && typeof routeGeoJSON === 'object') {
+          try {
+            L.geoJSON(routeGeoJSON, {
+              style: function (feature) {
+                return { color: '#3b82f6', weight: 4, opacity: 0.7 };
+              },
+              filter: function(feature) {
+                return feature.geometry && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString');
+              }
+            }).addTo(map);
+          } catch(e) {
+            console.error('[ByaHero] Error loading route GeoJSON:', e);
+          }
         }
 
         var userMarker = null;
@@ -106,7 +211,7 @@ export function getLeafletHTML(baseUrl: string): string {
             var data = JSON.parse(event.data);
             if (data.type === 'SET_CENTER') {
               map.setView([data.lat, data.lng], data.zoom || 14);
-            } 
+            }
             else if (data.type === 'FOCUS_STOP') {
               var m = stopMarkers[data.stop_id || data.name];
               if (m) {
@@ -203,7 +308,7 @@ export function getLeafletHTML(baseUrl: string): string {
                 if (lat && lng) {
                   var stopIcon = L.divIcon({
                     className: 'bus-stop-marker-svg-container',
-                    html: '<div style="width:26px;height:33px;">' +
+                    html: '<div style="width:26px;height:33px; transform: scale(var(--stop-marker-scale, 1)); transform-origin: bottom center; transition: transform 0.2s ease-out;">' +
                           '<svg width="26" height="33" viewBox="0 0 3287 4203" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                           '<rect x="750.834" y="1205.59" width="229.82" height="500.548" rx="59" fill="#1856b0"/>' +
                           '<rect x="959.037" y="2172.48" width="350.418" height="367.144" rx="59" fill="#1856b0"/>' +
@@ -409,17 +514,30 @@ export function getLeafletHTML(baseUrl: string): string {
         window.addEventListener('message', handleIncomingMessage);
         document.addEventListener('message', handleIncomingMessage);
 
-        var postMessageFn = (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) 
-          ? window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView) 
-          : (window.parent && window.parent.postMessage) ? function(msg) { window.parent.postMessage(msg, '*'); } : null;
-        window.postMessageFn = postMessageFn;
-
-        if (postMessageFn) {
-          map.on('dragstart', function() {
-            postMessageFn(JSON.stringify({ type: 'MAP_DRAGGED' }));
-          });
-          postMessageFn(JSON.stringify({ type: 'MAP_READY' }));
+        function sendPostMessage(msg) {
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.ReactNativeWebView.postMessage(msg);
+          } else if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage(msg, '*');
+          }
         }
+        window.postMessageFn = sendPostMessage;
+
+        map.on('dragstart', function() {
+          sendPostMessage(JSON.stringify({ type: 'MAP_DRAGGED' }));
+        });
+
+        // Try to send MAP_READY immediately, and also retry a few times to ensure RN receives it
+        sendPostMessage(JSON.stringify({ type: 'MAP_READY' }));
+        var retries = 0;
+        var readyInterval = setInterval(function() {
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            sendPostMessage(JSON.stringify({ type: 'MAP_READY' }));
+            clearInterval(readyInterval);
+          }
+          retries++;
+          if (retries > 10) clearInterval(readyInterval);
+        }, 500);
       </script>
     </body>
     </html>
