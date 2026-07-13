@@ -18,6 +18,23 @@ export function getLeafletHTML(baseUrl: string): string {
       <script src="https://unpkg.com/idb@7/build/umd.js"></script>
       <script src="https://unpkg.com/leaflet.offline@2/dist/bundle.min.js"></script>
       <script src="https://cdn.tailwindcss.com"></script>
+      <script>
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+          var errorDiv = document.createElement('div');
+          errorDiv.style.position = 'absolute';
+          errorDiv.style.top = '0';
+          errorDiv.style.left = '0';
+          errorDiv.style.right = '0';
+          errorDiv.style.zIndex = '999999';
+          errorDiv.style.background = 'red';
+          errorDiv.style.color = 'white';
+          errorDiv.style.padding = '10px';
+          errorDiv.style.fontSize = '12px';
+          errorDiv.style.wordBreak = 'break-word';
+          errorDiv.innerHTML = 'JS Error: ' + msg + ' at line ' + lineNo;
+          document.body.appendChild(errorDiv);
+        };
+      </script>
       <style>
         body { padding: 0; margin: 0; }
         html, body, #map { height: 100%; width: 100vw; background: #e5e7eb; }
@@ -83,15 +100,26 @@ export function getLeafletHTML(baseUrl: string): string {
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false }).setView([14.2137, 121.1620], 14);
+        var map = L.map('map', { zoomControl: false, maxZoom: 22, minZoom: 2 }).setView([14.2137, 121.1620], 14);
         
-        var baseLayer = L.tileLayer.offline('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-          attribution: '&copy; OpenStreetMap',
-          subdomains: 'abc',
-          minZoom: 12,
-          maxZoom: 18,
-          crossOrigin: true
-        }).addTo(map);
+        var baseLayer;
+        if (L.tileLayer.offline) {
+          baseLayer = L.tileLayer.offline('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            subdomains: 'abc',
+            crossOrigin: true,
+            minZoom: 12,
+            maxZoom: 18,
+            maxNativeZoom: 18
+          }).addTo(map);
+        } else {
+          baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap',
+            subdomains: 'abc',
+            maxZoom: 22,
+            maxNativeZoom: 19
+          }).addTo(map);
+        }
 
         // Setup automatic offline caching for a specific area
         var targetAreaGeoJson = {
@@ -105,51 +133,62 @@ export function getLeafletHTML(baseUrl: string): string {
 
         var targetBounds = L.geoJSON(targetAreaGeoJson).getBounds();
 
-        var saveControl = L.control.savetiles(baseLayer, {
-          zoomlevels: [12, 13, 14, 15, 16, 17],
-          bounds: targetBounds,
-          alwaysDownload: false,
-          confirm: function(layer, successCallback) {
-            successCallback();
-          }
-        });
-        saveControl.addTo(map);
-
-        if (localStorage.getItem('byahero_offline_v2') !== 'true') {
-          // Register saveend BEFORE triggering so we never miss a fast completion
-          baseLayer.on('saveend', function() {
-            console.log('[ByaHero] Offline map tiles saved successfully.');
-            localStorage.setItem('byahero_offline_v2', 'true');
-          });
-          baseLayer.on('savetileend', function(e) {
-            console.log('[ByaHero] Offline tile saved:', e.lengthSaved, '/', e.lengthToBeSaved);
-          });
-
-          // Slight delay to let the map render first, then auto-cache in background
-          setTimeout(function() {
-            try {
-              if (!targetBounds || !targetBounds.isValid()) {
-                console.warn('[ByaHero] Offline caching skipped: target bounds are invalid.');
-                return;
-              }
-              console.log('[ByaHero] Starting offline map caching for target area...');
-              saveControl._saveTiles();
-            } catch(e) {
-              console.error('[ByaHero] Offline map caching failed:', e);
+        var saveControl = null;
+        try {
+          saveControl = L.control.savetiles(baseLayer, {
+            zoomlevels: [12, 13, 14, 15, 16, 17],
+            bounds: targetBounds,
+            alwaysDownload: false,
+            confirm: function(layer, successCallback) {
+              successCallback();
             }
-          }, 3000);
+          });
+          saveControl.addTo(map);
+
+          if (localStorage.getItem('byahero_offline_v2') !== 'true') {
+            // Register saveend BEFORE triggering so we never miss a fast completion
+            baseLayer.on('saveend', function() {
+              console.log('[ByaHero] Offline map tiles saved successfully.');
+              localStorage.setItem('byahero_offline_v2', 'true');
+            });
+            baseLayer.on('savetileend', function(e) {
+              console.log('[ByaHero] Offline tile saved:', e.lengthSaved, '/', e.lengthToBeSaved);
+            });
+
+            // Slight delay to let the map render first, then auto-cache in background
+            setTimeout(function() {
+              try {
+                if (!targetBounds || !targetBounds.isValid()) {
+                  console.warn('[ByaHero] Offline caching skipped: target bounds are invalid.');
+                  return;
+                }
+                console.log('[ByaHero] Starting offline map caching for target area...');
+                if (saveControl && saveControl._saveTiles) {
+                  saveControl._saveTiles();
+                }
+              } catch(e) {
+                console.error('[ByaHero] Offline map caching failed:', e);
+              }
+            }, 3000);
+          }
+        } catch (e) {
+          console.error('[ByaHero] Offline tile control initialization failed:', e);
         }
 
         var routeGeoJSON = ${JSON.stringify(require('../../assets/data/laurel-talisay-tanauan.json'))};
-        if (routeGeoJSON) {
-          L.geoJSON(routeGeoJSON, {
-            style: function (feature) {
-              return { color: '#3b82f6', weight: 4, opacity: 0.7 };
-            },
-            filter: function(feature) {
-              return feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString';
-            }
-          }).addTo(map);
+        if (routeGeoJSON && typeof routeGeoJSON === 'object') {
+          try {
+            L.geoJSON(routeGeoJSON, {
+              style: function (feature) {
+                return { color: '#3b82f6', weight: 4, opacity: 0.7 };
+              },
+              filter: function(feature) {
+                return feature.geometry && (feature.geometry.type === 'LineString' || feature.geometry.type === 'MultiLineString');
+              }
+            }).addTo(map);
+          } catch(e) {
+            console.error('[ByaHero] Error loading route GeoJSON:', e);
+          }
         }
 
         var userMarker = null;
@@ -163,7 +202,7 @@ export function getLeafletHTML(baseUrl: string): string {
             var data = JSON.parse(event.data);
             if (data.type === 'SET_CENTER') {
               map.setView([data.lat, data.lng], data.zoom || 14);
-            } 
+            }
             else if (data.type === 'FOCUS_STOP') {
               var m = stopMarkers[data.stop_id || data.name];
               if (m) {
@@ -466,17 +505,30 @@ export function getLeafletHTML(baseUrl: string): string {
         window.addEventListener('message', handleIncomingMessage);
         document.addEventListener('message', handleIncomingMessage);
 
-        var postMessageFn = (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) 
-          ? window.ReactNativeWebView.postMessage.bind(window.ReactNativeWebView) 
-          : (window.parent && window.parent.postMessage) ? function(msg) { window.parent.postMessage(msg, '*'); } : null;
-        window.postMessageFn = postMessageFn;
-
-        if (postMessageFn) {
-          map.on('dragstart', function() {
-            postMessageFn(JSON.stringify({ type: 'MAP_DRAGGED' }));
-          });
-          postMessageFn(JSON.stringify({ type: 'MAP_READY' }));
+        function sendPostMessage(msg) {
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            window.ReactNativeWebView.postMessage(msg);
+          } else if (window.parent && window.parent.postMessage) {
+            window.parent.postMessage(msg, '*');
+          }
         }
+        window.postMessageFn = sendPostMessage;
+
+        map.on('dragstart', function() {
+          sendPostMessage(JSON.stringify({ type: 'MAP_DRAGGED' }));
+        });
+
+        // Try to send MAP_READY immediately, and also retry a few times to ensure RN receives it
+        sendPostMessage(JSON.stringify({ type: 'MAP_READY' }));
+        var retries = 0;
+        var readyInterval = setInterval(function() {
+          if (window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+            sendPostMessage(JSON.stringify({ type: 'MAP_READY' }));
+            clearInterval(readyInterval);
+          }
+          retries++;
+          if (retries > 10) clearInterval(readyInterval);
+        }, 500);
       </script>
     </body>
     </html>
