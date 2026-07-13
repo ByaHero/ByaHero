@@ -14,7 +14,7 @@ if (Platform.OS === 'android') {
       CookieManager = CookieManager.default;
     }
   } catch (e) {
-    console.warn('CookieManager native module not available in this environment (e.g. Expo Go).');
+    console.warn('CookieManager native module not available (expected in Expo Go)');
   }
 }
 
@@ -77,15 +77,8 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps) {
             if (!isRunning) {
               const email = await AsyncStorage.getItem('byahero_cached_email') || '';
               const serverUrl = await getServerUrl();
-              let cookieString = '';
-              if (CookieManager && typeof CookieManager.get === 'function') {
-                try {
-                  const cookies = await CookieManager.get(serverUrl);
-                  cookieString = Object.keys(cookies).map(key => `${key}=${cookies[key].value}`).join('; ');
-                } catch (e) {
-                  console.error('Failed to get cookies from CookieManager:', e);
-                }
-              }
+              const cookies = await CookieManager.get(serverUrl);
+              const cookieString = Object.keys(cookies).map(key => `${key}=${cookies[key].value}`).join('; ');
               
               LocationServiceModule.startService(email, serverUrl, cookieString);
             }
@@ -122,4 +115,3 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps) {
 
   return { userLocation };
 }
-

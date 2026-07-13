@@ -89,15 +89,6 @@ export default function RideHistoryScreen() {
     }
   };
 
-  const parseDateInUTC = (dateStr: string | null) => {
-    if (!dateStr) return new Date();
-    let normalized = dateStr;
-    if (!dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.includes('+')) {
-      normalized = dateStr.replace(' ', 'T') + 'Z';
-    }
-    return new Date(normalized);
-  };
-
   const processStats = (rideList: any[]) => {
     setTotalRides(rideList.length);
     let totalMins = 0;
@@ -105,7 +96,7 @@ export default function RideHistoryScreen() {
 
     rideList.forEach((r) => {
       if (r.departed_at && r.boarded_at) {
-        totalMins += Math.floor((parseDateInUTC(r.departed_at).getTime() - parseDateInUTC(r.boarded_at).getTime()) / 60000);
+        totalMins += Math.floor((new Date(r.departed_at).getTime() - new Date(r.boarded_at).getTime()) / 60000);
       }
       if (r.route) {
         routes[r.route] = (routes[r.route] || 0) + 1;
@@ -124,7 +115,7 @@ export default function RideHistoryScreen() {
 
   const formatDuration = (start: string, end: string | null) => {
     if (!end) return 'Ongoing';
-    const diff = parseDateInUTC(end).getTime() - parseDateInUTC(start).getTime();
+    const diff = new Date(end).getTime() - new Date(start).getTime();
     const mins = Math.floor(diff / 60000);
     if (mins < 60) return `${mins} mins`;
     const hrs = Math.floor(mins / 60);
@@ -134,32 +125,19 @@ export default function RideHistoryScreen() {
 
   const getGroupLabel = (date: string) => {
     const now = new Date();
-    const manilaNowStr = now.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-    const manilaNow = new Date(manilaNowStr);
-    manilaNow.setHours(0,0,0,0);
-
-    const rideDate = parseDateInUTC(date);
-    const manilaRideStr = rideDate.toLocaleString('en-US', { timeZone: 'Asia/Manila' });
-    const manilaRideDate = new Date(manilaRideStr);
-    const rideDateDay = new Date(manilaRideDate);
-    rideDateDay.setHours(0,0,0,0);
-
-    const diffDays = Math.floor((manilaNow.getTime() - rideDateDay.getTime()) / (1000 * 60 * 60 * 24));
+    const rideDate = new Date(date);
+    const diffDays = Math.floor((now.getTime() - rideDate.setHours(0,0,0,0)) / (1000 * 60 * 60 * 24));
     
     if (diffDays === 0) return 'Today';
     if (diffDays === 1) return 'Yesterday';
     if (diffDays < 7) return 'This Week';
     
-    return manilaRideDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    return rideDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
   };
 
   const getDisplayTime = (dateStr: string | null) => {
     if (!dateStr) return 'Ongoing';
-    return parseDateInUTC(dateStr).toLocaleTimeString('en-US', {
-      timeZone: 'Asia/Manila',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
+    return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
   return (
