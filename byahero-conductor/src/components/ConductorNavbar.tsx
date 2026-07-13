@@ -204,7 +204,7 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
                 onPress={() => { closeMenu(); router.push('/waitingPax'); }}
               >
                 <View style={tw`w-9 h-9 items-center justify-center mr-2 ml-2`}>
-                  <MaterialIcons name="people" size={24} color="#0f3878" />
+                  <Image source={require('../../assets/images/waitingPaxColor.svg')} style={tw`w-7 h-7`} contentFit="contain" />
                 </View>
                 <Text style={tw`text-[#111827] font-extrabold text-base`}>Wait Count</Text>
               </TouchableOpacity>
