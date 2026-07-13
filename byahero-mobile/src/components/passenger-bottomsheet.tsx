@@ -351,14 +351,14 @@ export default function PassengerBottomSheet({
                   let etaText = 'Arriving soon';
                   let distText: string | null = null;
 
-                  const isUserBoarding = isBoarded && (bus.code === boardedBus || bus.plate_number === boardedBus);
+                  const isUserBoarding = isBoarded && !!boardedBus && (bus.code === boardedBus || bus.plate_number === boardedBus);
                   const isNearAndStationary = bus.ai_predicted_speed_kmh === 0 && distKm !== null && distKm < 0.15;
 
                   if (isUserBoarding) {
                     etaText = 'On Board';
                     distText = 'Boarded';
                   } else if (isNearAndStationary) {
-                    etaText = 'Boarding';
+                    etaText = 'Arrived';
                     distText = '0 m';
                   } else if (bus.ai_eta_minutes) {
                     etaText = `AI ETA: ~${bus.ai_eta_minutes} min`;
@@ -416,11 +416,11 @@ export default function PassengerBottomSheet({
                                 {bus.code || bus.plate_number || '—'}
                               </Text>
                             </View>
-                            {isNearest && (
+                            {(isNearest || isUserBoarding) && (
                               <View style={[tw`px-2 py-0.5 rounded-full flex-row items-center`, { backgroundColor: '#eff6ff' }]}>
                                 <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#3b82f6', marginRight: 4 }} />
                                 <Text style={{ color: '#1d4ed8', fontSize: 9, fontWeight: '800', letterSpacing: 0.8 }}>
-                                  {(isBoarded && (bus.code === boardedBus || bus.plate_number === boardedBus)) || (bus.ai_predicted_speed_kmh === 0 && distKm !== null && distKm < 0.15) ? 'BOARDING' : 'NEAREST'}
+                                  {isUserBoarding ? 'ON BOARD' : (isNearAndStationary ? 'NEARBY' : 'NEAREST')}
                                 </Text>
                               </View>
                             )}

@@ -187,10 +187,10 @@ class BusController extends Controller
 
     public function updateUserLocation(Request $request)
     {
-        $userId = Session::get('user_id');
         $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+        if (empty($userId)) {
+            $userId = Session::get('user_id');
         }
 
         if (empty($userId)) {
@@ -233,10 +233,10 @@ class BusController extends Controller
 
     public function getMyWaitingStatus(Request $request)
     {
-        $userId = Session::get('user_id');
         $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+        if (empty($userId)) {
+            $userId = Session::get('user_id');
         }
 
         if (empty($userId)) {
@@ -307,10 +307,10 @@ class BusController extends Controller
 
     public function setWaitingStatus(Request $request)
     {
-        $userId = Session::get('user_id');
         $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+        if (empty($userId)) {
+            $userId = Session::get('user_id');
         }
 
         if (empty($userId)) {
@@ -364,10 +364,10 @@ class BusController extends Controller
 
     public function cancelWaitingStatus(Request $request)
     {
-        $userId = Session::get('user_id');
         $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+        if (empty($userId)) {
+            $userId = Session::get('user_id');
         }
 
         if (empty($userId)) {
@@ -391,10 +391,10 @@ class BusController extends Controller
     public function autoBoard(Request $request)
     {
         try {
-            $userId = Session::get('user_id');
             $email = $request->input('email');
-            if (empty($userId) && !empty($email)) {
-                $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+            $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+            if (empty($userId)) {
+                $userId = Session::get('user_id');
             }
 
             if (empty($userId)) {
@@ -514,10 +514,10 @@ class BusController extends Controller
 
     public function autoDepart(Request $request)
     {
-        $userId = Session::get('user_id');
         $email = $request->input('email');
-        if (empty($userId) && !empty($email)) {
-            $userId = DB::table('users')->where('email', strtolower(trim($email)))->value('id');
+        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
+        if (empty($userId)) {
+            $userId = Session::get('user_id');
         }
 
         if (empty($userId)) {
