@@ -100,8 +100,17 @@ export function getLeafletHTML(baseUrl: string): string {
     <body>
       <div id="map"></div>
       <script>
-        var map = L.map('map', { zoomControl: false, maxZoom: 22, minZoom: 2 }).setView([14.2137, 121.1620], 14);
-        
+        var phBounds = L.latLngBounds(
+          [4.5, 116.9], // Southwest bounds
+          [21.5, 126.6] // Northeast bounds
+        );
+        var map = L.map('map', { 
+          zoomControl: false, 
+          maxZoom: 22, 
+          minZoom: 6,
+          maxBounds: phBounds,
+          maxBoundsViscosity: 1.0
+        }).setView([14.2137, 121.1620], 14);
         function updateMarkerSizes() {
           var zoom = map.getZoom();
           // At zoom 14, scale is 1. Increases smoothly as user zooms in.
@@ -117,7 +126,7 @@ export function getLeafletHTML(baseUrl: string): string {
             attribution: '&copy; OpenStreetMap',
             subdomains: 'abc',
             crossOrigin: true,
-            minZoom: 12,
+            minZoom: 6,
             maxZoom: 18,
             maxNativeZoom: 18
           }).addTo(map);
@@ -125,6 +134,7 @@ export function getLeafletHTML(baseUrl: string): string {
           baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; OpenStreetMap',
             subdomains: 'abc',
+            minZoom: 6,
             maxZoom: 22,
             maxNativeZoom: 19
           }).addTo(map);
@@ -408,14 +418,23 @@ export function getLeafletHTML(baseUrl: string): string {
                     ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
                     : initials;
 
+                  var badgeHtml = '';
+                  var avatarBorder = 'border-color: white;';
+                  
+                  if (isWaiting) {
+                    badgeHtml = '<div class="waiting-badge" style="background: #10b981; border-color: #10b981; color: white;">Waiting!</div>';
+                    avatarBorder = 'border-color: #10b981; box-shadow: 0 0 0 2px #10b981, 0 3px 8px rgba(0,0,0,0.3);';
+                  }
+
                   var friendIcon = L.divIcon({
                     className: 'friend-marker-container',
                     html: '<div style="position: relative; width: 30px; height: 30px;">' +
-                          '<div class="user-avatar-circle" style="background: #10b981; border-color: white; overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div>' +
+                          badgeHtml +
+                          '<div class="user-avatar-circle" style="background: #3b82f6; ' + avatarBorder + ' overflow: hidden; display: flex; align-items: center; justify-content: center;">' + avatarHtml + '</div>' +
                           '</div>',
-                    iconSize: [30, 30],
-                    iconAnchor: [15, 15],
-                    popupAnchor: [0, -15]
+                    iconSize: [30, 45],
+                    iconAnchor: [15, 30],
+                    popupAnchor: [0, -30]
                   });
 
                   var popupHtml = '<div><strong>' + (friend.name || friend.email) + '</strong></div>';
@@ -453,9 +472,13 @@ export function getLeafletHTML(baseUrl: string): string {
                       : initials;
 
                     var mlStyle = idx > 0 ? 'margin-left: -10px;' : '';
-                    var borderCol = member.isUser ? '#2563eb' : '#10b981'; // Blue border for user, green for friends
+                    
+                    var isWaiting = member.waiting_status === 'waiting';
+                    var isBoarded = member.ride_status === 'active';
+                    var borderCol = member.isUser ? '#2563eb' : (isWaiting ? '#10b981' : 'white');
+                    var bgCol = member.isUser ? '#2563eb' : '#3b82f6';
 
-                    innerHtml += '<div style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ' + borderCol + '; background: ' + (member.isUser ? '#2563eb' : '#10b981') + '; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; ' + mlStyle + ' font-size: 10px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">' + avatarHtml + '</div>';
+                    innerHtml += '<div style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ' + borderCol + '; background: ' + bgCol + '; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; ' + mlStyle + ' font-size: 10px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">' + avatarHtml + '</div>';
 
                     var statusText = '';
                     if (!member.isUser) {

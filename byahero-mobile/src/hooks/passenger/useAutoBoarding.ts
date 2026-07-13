@@ -190,9 +190,9 @@ export function useAutoBoarding({
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
             const distance = R * c;
 
-            if (distance > 0.5) {
+            if (distance > 0.5) { // Reverted to 0.5km for quicker real-world departure detection
               departCounter.current += 1;
-              if (departCounter.current >= 3 && isMounted) {
+              if (departCounter.current >= 4 && isMounted) { // 40 seconds sustained
                 setPendingDepartBus(myBus);
                 departPromptTime.current = Date.now();
                 departCounter.current = 0;
