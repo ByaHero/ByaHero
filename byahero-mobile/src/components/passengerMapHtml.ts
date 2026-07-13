@@ -102,6 +102,15 @@ export function getLeafletHTML(baseUrl: string): string {
       <script>
         var map = L.map('map', { zoomControl: false, maxZoom: 22, minZoom: 2 }).setView([14.2137, 121.1620], 14);
         
+        function updateMarkerSizes() {
+          var zoom = map.getZoom();
+          // At zoom 14, scale is 1. Increases smoothly as user zooms in.
+          var scale = Math.min(3, Math.max(0.7, 1 + (zoom - 14) * 0.4));
+          document.documentElement.style.setProperty('--stop-marker-scale', scale);
+        }
+        map.on('zoomend', updateMarkerSizes);
+        updateMarkerSizes();
+        
         var baseLayer;
         if (L.tileLayer.offline) {
           baseLayer = L.tileLayer.offline('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -299,7 +308,7 @@ export function getLeafletHTML(baseUrl: string): string {
                 if (lat && lng) {
                   var stopIcon = L.divIcon({
                     className: 'bus-stop-marker-svg-container',
-                    html: '<div style="width:26px;height:33px;">' +
+                    html: '<div style="width:26px;height:33px; transform: scale(var(--stop-marker-scale, 1)); transform-origin: bottom center; transition: transform 0.2s ease-out;">' +
                           '<svg width="26" height="33" viewBox="0 0 3287 4203" fill="none" xmlns="http://www.w3.org/2000/svg">' +
                           '<rect x="750.834" y="1205.59" width="229.82" height="500.548" rx="59" fill="#1856b0"/>' +
                           '<rect x="959.037" y="2172.48" width="350.418" height="367.144" rx="59" fill="#1856b0"/>' +
