@@ -115,4 +115,3 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps) {
 
   return { userLocation };
 }
-

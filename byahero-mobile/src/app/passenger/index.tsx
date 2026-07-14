@@ -320,7 +320,7 @@ export default function PassengerDashboard() {
   };
 
   // Helper to resolve recognized location from GeoJSON polygons or proximity to database stops
-  const resolveNearestStop = () => {
+  const resolveNearestStop = React.useCallback(() => {
     if (!userLocation) return null;
 
     // 1. Check polygons first
@@ -384,7 +384,7 @@ export default function PassengerDashboard() {
     }
 
     return null;
-  };
+  }, [userLocation, routeGeoJSON, busStops]);
 
   const handleSetWaiting = async (stopName: string, silent: boolean = false) => {
     setIsUpdatingWaiting(true);
