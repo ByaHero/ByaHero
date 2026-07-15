@@ -134,9 +134,11 @@ export default function DashboardScreen() {
     });
 
     const filtered = normalized.filter(b =>
-      (filter === 'ALL ROUTES' || b.route === filter) &&
+      (filter === 'ALL ROUTES' || (b.route && b.route.replace(/\s+/g, '').toUpperCase() === filter.replace(/\s+/g, '').toUpperCase())) &&
       b.status !== 'unavailable' &&
-      b.coords !== null
+      b.coords !== null &&
+      !isNaN(b.coords[0]) && 
+      !isNaN(b.coords[1])
     );
 
     postToMap({
@@ -237,7 +239,14 @@ export default function DashboardScreen() {
                 originWhitelist={['*']}
                 source={{ html: getConductorLeafletHTML(baseUrl) }}
                 style={StyleSheet.absoluteFillObject}
-                onMessage={() => { }}
+                onMessage={(event) => {
+                  try {
+                    const data = JSON.parse(event.nativeEvent.data);
+                    if (data.type === 'MAP_READY') {
+                      fetchLiveBusesForMap();
+                    }
+                  } catch(e) {}
+                }}
               />
             )}
           </View>
