@@ -29,6 +29,7 @@ export default function DashboardScreen() {
   const [selectedRoute, setSelectedRoute] = useState<string>('');
   const [paxCount, setPaxCount] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+  const [ticketingMode, setTicketingMode] = useState<'Manual' | 'Automatic'>('Manual');
 
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
@@ -254,12 +255,29 @@ export default function DashboardScreen() {
 
         {/* Selector Panel */}
         <View style={tw`bg-white rounded-3xl p-6 border border-slate-100 shadow-sm mb-6`}>
-          {/* Card Header */}
+          {/* Card Header & Mode Switch */}
           <View style={tw`items-center mb-7`}>
-            <Text style={tw`text-lg font-bold text-slate-900`}>Route Dispatch Setup</Text>
-            <Text style={tw`text-slate-500 text-[11px] mt-1.5 text-center leading-4`}>
-              Select your bus and route below to initialize live passenger tracking and GPS coordinates.
-            </Text>
+            <Text style={tw`text-lg font-bold text-slate-900 mb-4`}>Route Dispatch Setup</Text>
+            
+            {/* Ticketing Mode Switch */}
+            <View style={tw`flex-row bg-slate-100 rounded-full p-1 w-full max-w-[280px]`}>
+              <TouchableOpacity
+                onPress={() => setTicketingMode('Manual')}
+                style={tw`flex-1 py-2.5 rounded-full ${ticketingMode === 'Manual' ? 'bg-blue-600 shadow-sm' : ''}`}
+              >
+                <Text style={tw`text-center font-bold text-[13px] ${ticketingMode === 'Manual' ? 'text-white' : 'text-slate-500'}`}>
+                  Manual Ticketing
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setTicketingMode('Automatic')}
+                style={tw`flex-1 py-2.5 rounded-full ${ticketingMode === 'Automatic' ? 'bg-blue-600 shadow-sm' : ''}`}
+              >
+                <Text style={tw`text-center font-bold text-[13px] ${ticketingMode === 'Automatic' ? 'text-white' : 'text-slate-500'}`}>
+                  Auto Ticketing
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Active Fleet Select */}
