@@ -275,7 +275,7 @@ export default function LoginScreen() {
               placeholderTextColor="#94a3b8"
               autoCapitalize="none"
               autoCorrect={false}
-              style={tw`bg-slate-50 color-slate-800 rounded-xl px-4 py-2 border border-slate-200 mb-4`}
+              style={tw`bg-slate-50 text-slate-800 rounded-xl px-4 py-2 border border-slate-200 mb-4`}
             />
             <View style={tw`flex-row justify-end gap-2`}>
               <TouchableOpacity
