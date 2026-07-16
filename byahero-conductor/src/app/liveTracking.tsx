@@ -73,7 +73,7 @@ export default function LiveTrackingScreen() {
   const [locationSearch, setLocationSearch] = useState('');
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
-  const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
+  const [pendingTickets, setPendingTickets] = useState(0);
 
   // References & Tracking states
   const slideAnim = useRef(new Animated.Value(800)).current;
@@ -102,11 +102,11 @@ export default function LiveTrackingScreen() {
       try {
         const p = JSON.parse(str);
         p.current_seats = seats;
-        p.pending_pre_departure = pendingPreDeparture;
+        p.pending_tickets = pendingTickets;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, pendingPreDeparture]);
+  }, [seats, pendingTickets]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -239,10 +239,12 @@ export default function LiveTrackingScreen() {
 
     setSeats(restoredSeats);
     
-    let restoredPending = payload.pending_pre_departure !== undefined
-      ? payload.pending_pre_departure
-      : (payload.pre_departure_count || 0);
-    setPendingPreDeparture(restoredPending);
+    let restoredPending = payload.pending_tickets !== undefined
+      ? payload.pending_tickets
+      : (payload.pending_pre_departure !== undefined 
+          ? payload.pending_pre_departure 
+          : (payload.pre_departure_count || 0));
+    setPendingTickets(restoredPending);
 
     // Load route features for geofenced location parsing
     try {
@@ -516,6 +518,7 @@ export default function LiveTrackingScreen() {
     if (sessionRef.current && currentSeats < sessionRef.current.seats_total) {
       setSeats(currentSeats + 1);
       pendingDeparts.current++;
+      setPendingTickets(prev => Math.max(0, prev - 1));
       scheduleSync();
     }
   };
@@ -600,16 +603,16 @@ export default function LiveTrackingScreen() {
     }
     
     let remainingToDeduct = ticketQuantity;
-    let preDepartureDeducted = 0;
+    let pendingDeducted = 0;
 
-    // Use up pending pre-departure queue first
-    if (pendingPreDeparture > 0) {
-      preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
-      setPendingPreDeparture(prev => prev - preDepartureDeducted);
-      remainingToDeduct -= preDepartureDeducted;
+    // Use up pending tickets queue first
+    if (pendingTickets > 0) {
+      pendingDeducted = Math.min(remainingToDeduct, pendingTickets);
+      setPendingTickets(prev => prev - pendingDeducted);
+      remainingToDeduct -= pendingDeducted;
     }
 
-    // Only increment new passengers (deducts seats) if not from pre-departure
+    // Only increment new passengers (deducts seats) if not from pending queue
     if (remainingToDeduct > 0) {
       incrementPassengers(remainingToDeduct);
     }
@@ -689,7 +692,10 @@ export default function LiveTrackingScreen() {
             </Text>
 
             {/* Plus */}
-            <TouchableOpacity onPress={() => incrementPassengers(1)}>
+            <TouchableOpacity onPress={() => {
+              incrementPassengers(1);
+              setPendingTickets(prev => prev + 1);
+            }}>
               <Image source={require('../../assets/images/increase.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
           </View>
@@ -715,13 +721,13 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TERMINAL TICKETS BANNER */}
-        {pendingPreDeparture > 0 && (
+        {/* PENDING TICKETS BANNER */}
+        {pendingTickets > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
             <Ionicons name="warning" size={24} color="#d97706" />
             <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Terminal Tickets</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pre-departure passenger(s) to ticket.</Text>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket.</Text>
             </View>
           </View>
         )}
