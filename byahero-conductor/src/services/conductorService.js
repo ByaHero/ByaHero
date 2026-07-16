@@ -138,3 +138,10 @@ export async function updateProfile(payload) {
   // payload: { name, email, current_password, new_password, confirm_password }
   return safeRequest('api/conductor/profile', payload, 'POST');
 }
+
+/**
+ * Fetches initial sync data including bus stops, fares, and schedule.
+ */
+export async function getSyncData() {
+  return safeRequest('api/buses/sync');
+}

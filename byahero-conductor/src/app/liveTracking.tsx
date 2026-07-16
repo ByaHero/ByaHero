@@ -9,7 +9,11 @@ import {
   ActivityIndicator,
   Platform,
   DeviceEventEmitter,
-  AppState
+  AppState,
+  Modal,
+  ScrollView,
+  TextInput,
+  Animated
 } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -21,7 +25,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 const { LocationServiceModule } = NativeModules;
 
@@ -56,7 +60,23 @@ export default function LiveTrackingScreen() {
   const [lastUpdate, setLastUpdate] = useState('00:00');
   const [isLoading, setIsLoading] = useState(false);
 
+  // Ticketing Mode States
+  const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);
+  const [busStops, setBusStops] = useState<any[]>([]);
+  const [busFares, setBusFares] = useState<any[]>([]);
+  const [boardingStop, setBoardingStop] = useState<any>(null);
+  const [alightingStop, setAlightingStop] = useState<any>(null);
+  const [discountType, setDiscountType] = useState('Regular');
+  const [ticketFare, setTicketFare] = useState(0);
+  const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
+  const [selectingLocationType, setSelectingLocationType] = useState<'boarding'|'alighting'|null>(null);
+  const [locationSearch, setLocationSearch] = useState('');
+  const [issuedTicket, setIssuedTicket] = useState<any>(null);
+  const [ticketQuantity, setTicketQuantity] = useState(1);
+  const [pendingTickets, setPendingTickets] = useState(0);
+
   // References & Tracking states
+  const slideAnim = useRef(new Animated.Value(800)).current;
   const webViewRef = useRef<WebView>(null);
   const [baseUrl, setBaseUrl] = useState('http://localhost:8000');
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
@@ -82,10 +102,11 @@ export default function LiveTrackingScreen() {
       try {
         const p = JSON.parse(str);
         p.current_seats = seats;
+        p.pending_tickets = pendingTickets;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
-      } catch (_) {}
+      } catch (e) {}
     });
-  }, [seats]);
+  }, [seats, pendingTickets]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -217,6 +238,13 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+    
+    let restoredPending = payload.pending_tickets !== undefined
+      ? payload.pending_tickets
+      : (payload.pending_pre_departure !== undefined 
+          ? payload.pending_pre_departure 
+          : (payload.pre_departure_count || 0));
+    setPendingTickets(restoredPending);
 
     // Load route features for geofenced location parsing
     try {
@@ -475,11 +503,12 @@ export default function LiveTrackingScreen() {
     }, 3000);
   };
 
-  const incrementPassengers = () => {
+  const incrementPassengers = (count = 1) => {
     const currentSeats = seatsRef.current;
     if (sessionRef.current && currentSeats > 0) {
-      setSeats(currentSeats - 1);
-      pendingBoards.current++;
+      const actualCount = Math.min(count, currentSeats);
+      setSeats(currentSeats - actualCount);
+      pendingBoards.current += actualCount;
       scheduleSync();
     }
   };
@@ -489,6 +518,7 @@ export default function LiveTrackingScreen() {
     if (sessionRef.current && currentSeats < sessionRef.current.seats_total) {
       setSeats(currentSeats + 1);
       pendingDeparts.current++;
+      setPendingTickets(prev => Math.max(0, prev - 1));
       scheduleSync();
     }
   };
@@ -527,6 +557,98 @@ export default function LiveTrackingScreen() {
         }
       ]);
     }
+  };
+
+  const loadTicketingData = async () => {
+    try {
+      const res = await getSyncData();
+      if (res && res.success) {
+        setBusStops(res.bus_stops || []);
+        setBusFares(res.bus_fares || []);
+      }
+    } catch(e) {
+      console.warn('Failed to load ticketing data', e);
+    }
+  };
+
+  useEffect(() => {
+    if (boardingStop && alightingStop) {
+      let fareObj = busFares.find(
+        (f) => f.origin_stop_id === boardingStop.stop_id && f.destination_stop_id === alightingStop.stop_id
+      );
+      if (!fareObj) {
+        fareObj = busFares.find(
+          (f) => f.origin_stop_id === alightingStop.stop_id && f.destination_stop_id === boardingStop.stop_id
+        );
+      }
+      if (fareObj) {
+        const fare = discountType === 'Regular' ? parseFloat(fareObj.regular_fare) : parseFloat(fareObj.discounted_fare);
+        setTicketFare(fare);
+      } else {
+        setTicketFare(0);
+      }
+    } else {
+      setTicketFare(0);
+    }
+  }, [boardingStop, alightingStop, discountType, busFares]);
+
+  const handleIssueTicket = () => {
+    if (!boardingStop || !alightingStop) {
+      Alert.alert('Incomplete', 'Please select boarding and alighting locations.');
+      return;
+    }
+    if (ticketFare <= 0) {
+      Alert.alert('Invalid Fare', 'No fare matrix available for these locations.');
+      return;
+    }
+    
+    let remainingToDeduct = ticketQuantity;
+    let pendingDeducted = 0;
+
+    // Use up pending tickets queue first
+    if (pendingTickets > 0) {
+      pendingDeducted = Math.min(remainingToDeduct, pendingTickets);
+      setPendingTickets(prev => prev - pendingDeducted);
+      remainingToDeduct -= pendingDeducted;
+    }
+
+    // Only increment new passengers (deducts seats) if not from pending queue
+    if (remainingToDeduct > 0) {
+      incrementPassengers(remainingToDeduct);
+    }
+
+    const ticketData = {
+      busNumber: session ? session.code : '-',
+      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      boarding: boardingStop.location_name,
+      alighting: alightingStop.location_name,
+      fare: ticketFare * ticketQuantity,
+      discount: discountType,
+      quantity: ticketQuantity
+    };
+    setIssuedTicket(ticketData);
+    
+    // Close modal and reset
+    setIsTicketingModalVisible(false);
+    setBoardingStop(null);
+    setAlightingStop(null);
+    setDiscountType('Regular');
+    setTicketQuantity(1);
+    
+    Animated.spring(slideAnim, {
+      toValue: 0,
+      useNativeDriver: true,
+      friction: 6,
+      tension: 50
+    }).start();
+  };
+
+  const closeReceipt = () => {
+    Animated.timing(slideAnim, {
+      toValue: 800,
+      duration: 300,
+      useNativeDriver: true,
+    }).start(() => setIssuedTicket(null));
   };
 
   return (
@@ -570,7 +692,10 @@ export default function LiveTrackingScreen() {
             </Text>
 
             {/* Plus */}
-            <TouchableOpacity onPress={incrementPassengers}>
+            <TouchableOpacity onPress={() => {
+              incrementPassengers(1);
+              setPendingTickets(prev => prev + 1);
+            }}>
               <Image source={require('../../assets/images/increase.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
           </View>
@@ -578,23 +703,45 @@ export default function LiveTrackingScreen() {
 
         {/* Informative Stats */}
         <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3 mb-5`}>
-          <View style={tw`flex-row justify-between border-b border-slate-150 pb-2`}>
+          <View style={tw`flex-row justify-between border-b border-slate-200 pb-2`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Bus Number</Text>
             <Text style={tw`text-xs font-bold text-slate-800`}>{session ? session.code : '-'}</Text>
           </View>
-          <View style={tw`flex-row justify-between border-b border-slate-150 pb-2`}>
+          <View style={tw`flex-row justify-between border-b border-slate-200 pb-2`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Route</Text>
             <Text style={tw`text-xs font-bold text-slate-800`}>{session ? session.route : '-'}</Text>
           </View>
-          <View style={tw`flex-row justify-between border-b border-slate-150 pb-2`}>
+          <View style={tw`flex-row justify-between border-b border-slate-200 pb-2`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Current Location</Text>
             <Text style={tw`text-xs font-bold text-slate-800 max-w-[60%] text-right`}>{locationName}</Text>
           </View>
           <View style={tw`flex-row justify-between`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Last Update</Text>
-            <Text style={tw`text-xs font-bold text-slate-850`}>{lastUpdate}</Text>
+            <Text style={tw`text-xs font-bold text-slate-800`}>{lastUpdate}</Text>
           </View>
         </View>
+
+        {/* PENDING TICKETS BANNER */}
+        {pendingTickets > 0 && (
+          <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
+            <Ionicons name="warning" size={24} color="#d97706" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket.</Text>
+            </View>
+          </View>
+        )}
+
+        {/* PRODUCE TICKET BUTTON */}
+        <TouchableOpacity
+          onPress={() => {
+            setIsTicketingModalVisible(true);
+            if (busStops.length === 0) loadTicketingData();
+          }}
+          style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
+        >
+          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
+        </TouchableOpacity>
 
         {/* STOP BUTTON */}
         <TouchableOpacity
@@ -609,6 +756,244 @@ export default function LiveTrackingScreen() {
           )}
         </TouchableOpacity>
       </View>
+      {/* TICKETING MODAL */}
+      <Modal
+        visible={isTicketingModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsTicketingModalVisible(false)}
+      >
+        <SafeAreaView style={tw`flex-1 bg-white`}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center`}>
+            <Text style={tw`text-xl font-black text-slate-800`}>Issue Ticket</Text>
+            <TouchableOpacity onPress={() => setIsTicketingModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={tw`flex-1 p-5`} keyboardShouldPersistTaps="handled">
+            {/* Boarding Stop */}
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Boarding Location</Text>
+            <TouchableOpacity 
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              onPress={() => {
+                setSelectingLocationType('boarding');
+                setLocationSearch('');
+                setIsLocationModalVisible(true);
+              }}
+            >
+              <Text style={tw`text-slate-800 font-medium`}>{boardingStop ? boardingStop.location_name : 'Select Boarding Stop'}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            </TouchableOpacity>
+
+            {/* Alighting Stop */}
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Alighting Location</Text>
+            <TouchableOpacity 
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              onPress={() => {
+                setSelectingLocationType('alighting');
+                setLocationSearch('');
+                setIsLocationModalVisible(true);
+              }}
+            >
+              <Text style={tw`text-slate-800 font-medium`}>{alightingStop ? alightingStop.location_name : 'Select Alighting Stop'}</Text>
+              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+            </TouchableOpacity>
+
+            {/* Discount Type */}
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2 mt-2`}>Discount Type</Text>
+            <View style={tw`flex-row flex-wrap gap-2 mb-6`}>
+              {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
+                <TouchableOpacity
+                  key={type}
+                  style={tw`px-4 py-2 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
+                  onPress={() => setDiscountType(type)}
+                >
+                  <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Ticket Quantity */}
+            <View style={tw`flex-row justify-between items-center mb-6`}>
+              <Text style={tw`text-sm font-bold text-slate-500`}>Ticket Quantity</Text>
+              <View style={tw`flex-row items-center border border-slate-200 rounded-full bg-slate-50 overflow-hidden`}>
+                <TouchableOpacity 
+                  onPress={() => setTicketQuantity(q => Math.max(1, q - 1))}
+                  style={tw`px-4 py-3 bg-slate-100`}
+                >
+                  <Ionicons name="remove" size={20} color="#64748b" />
+                </TouchableOpacity>
+                <Text style={tw`px-4 font-bold text-slate-800 text-lg`}>{ticketQuantity}</Text>
+                <TouchableOpacity 
+                  onPress={() => setTicketQuantity(q => q + 1)}
+                  style={tw`px-4 py-3 bg-slate-100`}
+                >
+                  <Ionicons name="add" size={20} color="#64748b" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Fare Summary */}
+            <View style={tw`bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-8 items-center`}>
+              <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-1`}>Total Fare</Text>
+              <Text style={tw`text-4xl font-black text-blue-600`}>₱{(ticketFare * ticketQuantity).toFixed(2)}</Text>
+            </View>
+            
+          </ScrollView>
+
+          {/* Issue Button */}
+          <View style={tw`p-5 border-t border-slate-200 bg-white`}>
+            <TouchableOpacity
+              onPress={handleIssueTicket}
+              style={tw`bg-emerald-500 rounded-full py-4 items-center justify-center shadow-md`}
+            >
+              <Text style={tw`text-white font-bold text-base tracking-wider uppercase`}>Issue Ticket</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </Modal>
+
+      {/* LOCATION SELECTION MODAL */}
+      <Modal
+        visible={isLocationModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setIsLocationModalVisible(false)}
+      >
+        <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center bg-white`}>
+            <Text style={tw`text-lg font-black text-slate-800`}>
+              {selectingLocationType === 'boarding' ? 'Select Boarding Stop' : 'Select Alighting Stop'}
+            </Text>
+            <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
+              <Ionicons name="close" size={28} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={tw`p-4 bg-white border-b border-slate-200`}>
+            <View style={tw`flex-row items-center bg-slate-100 rounded-xl px-4 py-3`}>
+              <Ionicons name="search" size={20} color="#94a3b8" />
+              <TextInput 
+                placeholder="Search locations..."
+                style={tw`flex-1 ml-2 text-slate-800`}
+                onChangeText={setLocationSearch}
+                value={locationSearch}
+              />
+            </View>
+          </View>
+
+          <ScrollView style={tw`flex-1 p-4`} keyboardShouldPersistTaps="handled">
+            <View style={tw`flex-row flex-wrap justify-between`}>
+              {busStops
+                .filter(s => (s?.location_name || '').toLowerCase().includes(locationSearch.toLowerCase()))
+                .map(stop => {
+                  const isSelected = selectingLocationType === 'boarding' 
+                    ? boardingStop?.stop_id === stop.stop_id 
+                    : alightingStop?.stop_id === stop.stop_id;
+                    
+                  return (
+                    <TouchableOpacity 
+                      key={stop.stop_id}
+                      style={tw`w-[48%] mb-4 p-4 rounded-2xl border ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white'} shadow-sm items-center justify-center`}
+                      onPress={() => {
+                        if (selectingLocationType === 'boarding') {
+                          setBoardingStop(stop);
+                        } else {
+                          setAlightingStop(stop);
+                        }
+                        setIsLocationModalVisible(false);
+                      }}
+                    >
+                      <Text style={tw`text-center font-medium ${isSelected ? 'text-blue-600' : 'text-slate-700'}`}>
+                        {stop.location_name}
+                      </Text>
+                      {isSelected && (
+                        <View style={tw`absolute top-2 right-2`}>
+                          <Ionicons name="checkmark-circle" size={16} color="#2563eb" />
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+            </View>
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* ANIMATED RECEIPT TICKET OVERLAY */}
+      {issuedTicket && (
+        <View style={[StyleSheet.absoluteFillObject, tw`justify-end p-5`, { backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 100 }]}>
+          <Animated.View 
+            style={[
+              tw`bg-white rounded-t-3xl rounded-b-md w-full overflow-hidden shadow-2xl`, 
+              { transform: [{ translateY: slideAnim }] }
+            ]}
+          >
+            {/* Ticket Header */}
+            <View style={tw`bg-blue-600 p-6 items-center`}>
+              <Ionicons name="bus" size={32} color="white" />
+              <Text style={tw`text-white font-black text-xl tracking-widest mt-2`}>BYAHERO</Text>
+              <Text style={tw`text-blue-200 text-xs font-bold uppercase mt-1 tracking-wider`}>E-Ticket Receipt</Text>
+            </View>
+
+            {/* Ticket Details */}
+            <View style={tw`p-6 bg-white relative`}>
+              {/* Jagged edge overlay simulation */}
+              <View style={tw`absolute -top-3 left-0 right-0 flex-row justify-between px-2`}>
+                {Array.from({length: 20}).map((_, i) => (
+                  <View key={i} style={tw`w-3 h-3 bg-blue-600 rounded-full`} />
+                ))}
+              </View>
+
+              <View style={tw`items-center border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
+                <Text style={tw`text-slate-500 font-bold text-xs uppercase mb-1`}>Total Fare Paid</Text>
+                <Text style={tw`text-5xl font-black text-slate-800`}>₱{issuedTicket.fare.toFixed(2)}</Text>
+                <View style={tw`flex-row gap-2 mt-2`}>
+                  <View style={tw`bg-blue-50 px-3 py-1 rounded-full`}>
+                    <Text style={tw`text-blue-600 font-bold text-xs uppercase`}>{issuedTicket.discount} Fare</Text>
+                  </View>
+                  {issuedTicket.quantity > 1 && (
+                    <View style={tw`bg-indigo-50 px-3 py-1 rounded-full`}>
+                      <Text style={tw`text-indigo-600 font-bold text-xs uppercase`}>{issuedTicket.quantity}x Tickets</Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              <View style={tw`flex-row justify-between mb-4`}>
+                <View>
+                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Boarding</Text>
+                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.boarding}</Text>
+                </View>
+                <View style={tw`items-end`}>
+                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Alighting</Text>
+                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.alighting}</Text>
+                </View>
+              </View>
+
+              <View style={tw`flex-row justify-between mb-6`}>
+                <View>
+                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Bus Number</Text>
+                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.busNumber}</Text>
+                </View>
+                <View style={tw`items-end`}>
+                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Date & Time</Text>
+                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.date}</Text>
+                </View>
+              </View>
+
+              {/* Close Button */}
+              <TouchableOpacity
+                onPress={closeReceipt}
+                style={tw`bg-slate-100 rounded-full py-4 items-center justify-center`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm tracking-wider uppercase`}>Close Ticket</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }

@@ -147,7 +147,7 @@ export default function ProfileScreen() {
           </Text>
 
           {/* Email Info Row */}
-          <View style={tw`bg-white rounded-2xl p-4 border border-slate-150 flex-row justify-between items-center shadow-sm`}>
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm`}>
             <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
               <Ionicons name="mail" size={20} color="#0f3878" />
               <View style={tw`flex-1`}>
@@ -163,7 +163,7 @@ export default function ProfileScreen() {
           </View>
 
           {/* Password Info Row */}
-          <View style={tw`bg-white rounded-2xl p-4 border border-slate-150 flex-row justify-between items-center shadow-sm`}>
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm`}>
             <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
               <Ionicons name="lock-closed" size={20} color="#0f3878" />
               <View style={tw`flex-1`}>
