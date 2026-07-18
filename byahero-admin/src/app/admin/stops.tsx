@@ -24,7 +24,7 @@ export default function AdminStops() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  
+
   const [stops, setStops] = useState<BusStop[]>([]);
   const [stopsForward, setStopsForward] = useState<BusStop[]>([]);
   const [stopsReverse, setStopsReverse] = useState<BusStop[]>([]);
@@ -83,7 +83,7 @@ export default function AdminStops() {
   useEffect(() => {
     fetchStops();
     import('@/services/authService').then(m => m.getServerUrl().then(url => setBaseUrl(url)));
-    
+
     if (Platform.OS === 'web') {
       const handleWebMessage = (event: MessageEvent) => {
         try {
@@ -93,7 +93,7 @@ export default function AdminStops() {
             setLng(data.lng.toFixed(6));
             if (data.locName) setLocationName(data.locName);
           } else if (data.type === 'MAP_READY') {
-             updateMapData(stopsRef.current, filterRef.current, iconSizeRef.current);
+            updateMapData(stopsRef.current, filterRef.current, iconSizeRef.current);
           }
         } catch (e) { }
       };
@@ -159,7 +159,7 @@ export default function AdminStops() {
           lng: parseFloat(lng)
         })
       });
-      
+
       if (data.success) {
         Alert.alert('Success', 'Stop saved successfully.');
         setIsFormOpen(false);
@@ -180,8 +180,8 @@ export default function AdminStops() {
       `Are you sure you want to permanently delete ${stopName}?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
+        {
+          text: 'Delete',
           style: 'destructive',
           onPress: async () => {
             try {
@@ -207,11 +207,11 @@ export default function AdminStops() {
 
     const newList = [...listData];
     const swapIndex = direction === 'up' ? index - 1 : index + 1;
-    
+
     const temp = newList[index];
     newList[index] = newList[swapIndex];
     newList[swapIndex] = temp;
-    
+
     setListData(newList);
   };
 
@@ -264,7 +264,7 @@ export default function AdminStops() {
           </View>
         )}
         {listData.length > 0 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             style={tw`mt-3 self-start bg-blue-50 px-4 py-2 rounded-lg`}
             onPress={() => saveOrder(routeName, listData)}
           >
@@ -284,203 +284,203 @@ export default function AdminStops() {
           <ActivityIndicator size="large" color="#1d4ed8" />
         </View>
       ) : (
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={tw`pb-10 pt-4 bg-white`}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#1d4ed8" />}
         >
-            <View style={tw`lg:flex-row flex-col gap-4 mx-5 mb-6 z-50`}>
-              {/* Left Column: Map */}
-              <View style={tw`flex-[2] bg-white rounded-[14px] shadow-sm border border-slate-200 overflow-hidden`}>
-                <View style={tw`bg-white px-5 py-4 border-b border-slate-100 flex-row justify-between items-center`}>
-                  <Text style={tw`font-extrabold text-slate-800 text-[15px]`}>Stops Map</Text>
-                  <Text style={tw`text-slate-400 text-[11px]`}>Click map to pick</Text>
-                </View>
+          <View style={tw`lg:flex-row flex-col gap-4 mx-5 mb-6 z-50`}>
+            {/* Left Column: Map */}
+            <View style={tw`flex-[2] bg-white rounded-[14px] shadow-sm border border-slate-200 overflow-hidden`}>
+              <View style={tw`bg-white px-5 py-4 border-b border-slate-100 flex-row justify-between items-center`}>
+                <Text style={tw`font-extrabold text-slate-800 text-[15px]`}>Stops Map</Text>
+                <Text style={tw`text-slate-400 text-[11px]`}>Click map to pick</Text>
+              </View>
 
-                {/* Filter */}
-                <View style={tw`bg-[#e5e7eb] py-3 px-4 mx-4 mt-4 rounded-[16px] items-center mb-4 relative z-50`}>
-                  <Text style={tw`text-slate-800 font-bold text-[11px] uppercase mb-2 tracking-wide`}>Filter Bus Pick up and Terminal</Text>
-                  <TouchableOpacity
-                    onPress={() => setIsFilterOpen(!isFilterOpen)}
-                    style={tw`bg-white rounded-full border border-slate-200 px-4 py-2 flex-row items-center justify-between w-[220px]`}
-                  >
-                    <Text style={tw`text-[10px] font-bold text-slate-800`}>
-                      {currentFilter === 'ALL ROUTES' ? 'ALL PICK UP & TERMINAL' : currentFilter}
-                    </Text>
-                    <Ionicons name={isFilterOpen ? "chevron-up" : "chevron-down"} size={14} color="#64748b" />
-                  </TouchableOpacity>
-                  
-                  {isFilterOpen && (
-                    <View style={tw`absolute top-[70px] bg-white border border-slate-200 rounded-xl shadow-lg w-[220px] overflow-hidden z-50`}>
-                      {['ALL ROUTES', 'LAUREL - TANAUAN', 'TANAUAN - LAUREL'].map(f => (
-                        <TouchableOpacity
-                          key={f}
-                          onPress={() => { setCurrentFilter(f); setIsFilterOpen(false); }}
-                          style={tw`px-4 py-3 border-b border-slate-100 ${currentFilter === f ? 'bg-slate-50' : ''}`}
-                        >
-                          <Text style={tw`text-[10px] font-bold ${currentFilter === f ? 'text-slate-800' : 'text-slate-500'}`}>
-                            {f === 'ALL ROUTES' ? 'ALL PICK UP & TERMINAL' : f}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </View>
-
-            {/* Map Area */}
-            <View style={{ height: 320 }}>
-              {Platform.OS === 'web' ? (
-                <iframe
-                  ref={webViewRef as any}
-                  srcDoc={getStopMapHTML(baseUrl)}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
-              ) : (
-                <WebView
-                  ref={webViewRef}
-                  originWhitelist={['*']}
-                  source={{ html: getStopMapHTML(baseUrl) }}
-                  style={StyleSheet.absoluteFillObject}
-                  onMessage={(event) => {
-                    try {
-                      const data = JSON.parse(event.nativeEvent.data);
-                      if (data.type === 'MAP_CLICK') {
-                        setLat(data.lat.toFixed(6));
-                        setLng(data.lng.toFixed(6));
-                        if (data.locName) setLocationName(data.locName);
-                      } else if (data.type === 'MAP_READY') {
-                        updateMapData(stops, currentFilter, iconSize);
-                      }
-                    } catch (e) {}
-                  }}
-                />
-              )}
-            </View>
-
-            {/* Slider */}
-            <View style={tw`px-4 py-4 bg-white z-0`}>
-              <View style={tw`border border-dashed border-slate-300 bg-slate-50 rounded-[14px] p-3`}>
-                <View style={tw`flex-row justify-between items-center mb-2`}>
-                  <Text style={tw`font-bold text-slate-800 text-[14px]`}>Marker Icon Size</Text>
-                  <Text style={tw`font-bold text-slate-500 text-[12px]`}>
-                    <Text style={tw`text-slate-800 text-[14px]`}>{iconSize}</Text>px
+              {/* Filter */}
+              <View style={tw`bg-[#e5e7eb] py-3 px-4 mx-4 mt-4 rounded-[16px] items-center mb-4 relative z-50`}>
+                <Text style={tw`text-slate-800 font-bold text-[11px] uppercase mb-2 tracking-wide`}>Filter Bus Pick up and Terminal</Text>
+                <TouchableOpacity
+                  onPress={() => setIsFilterOpen(!isFilterOpen)}
+                  style={tw`bg-white rounded-full border border-slate-200 px-4 py-2 flex-row items-center justify-between w-[220px]`}
+                >
+                  <Text style={tw`text-[10px] font-bold text-slate-800`}>
+                    {currentFilter === 'ALL ROUTES' ? 'ALL PICK UP & TERMINAL' : currentFilter}
                   </Text>
-                </View>
-                {Platform.OS === 'web' ? (
-                  <input 
-                    type="range" 
-                    min={22} 
-                    max={80} 
-                    value={iconSize} 
-                    onChange={(e) => setIconSize(parseInt(e.target.value, 10))} 
-                    style={{ width: '100%', cursor: 'pointer', height: '4px', background: '#cbd5e1', appearance: 'none', borderRadius: '4px', outline: 'none', marginTop: 8 } as React.CSSProperties}
-                  />
-                ) : (
-                  <View style={tw`flex-row items-center gap-2 mt-1`}>
-                    <TouchableOpacity onPress={() => setIconSize(Math.max(22, iconSize - 5))} style={tw`bg-slate-200 p-1.5 rounded-full`}><Ionicons name="remove" size={14}/></TouchableOpacity>
-                    <View style={tw`flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden`}>
-                      <View style={[tw`h-full bg-[#1d4ed8]`, { width: `${((iconSize - 22) / (80 - 22)) * 100}%` }]} />
-                    </View>
-                    <TouchableOpacity onPress={() => setIconSize(Math.min(80, iconSize + 5))} style={tw`bg-slate-200 p-1.5 rounded-full`}><Ionicons name="add" size={14}/></TouchableOpacity>
+                  <Ionicons name={isFilterOpen ? "chevron-up" : "chevron-down"} size={14} color="#64748b" />
+                </TouchableOpacity>
+
+                {isFilterOpen && (
+                  <View style={tw`absolute top-[70px] bg-white border border-slate-200 rounded-xl shadow-lg w-[220px] overflow-hidden z-50`}>
+                    {['ALL ROUTES', 'LAUREL - TANAUAN', 'TANAUAN - LAUREL'].map(f => (
+                      <TouchableOpacity
+                        key={f}
+                        onPress={() => { setCurrentFilter(f); setIsFilterOpen(false); }}
+                        style={tw`px-4 py-3 border-b border-slate-100 ${currentFilter === f ? 'bg-slate-50' : ''}`}
+                      >
+                        <Text style={tw`text-[10px] font-bold ${currentFilter === f ? 'text-slate-800' : 'text-slate-500'}`}>
+                          {f === 'ALL ROUTES' ? 'ALL PICK UP & TERMINAL' : f}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
                   </View>
                 )}
-                <View style={tw`flex-row justify-between items-center mt-1.5`}>
-                  <Text style={tw`text-slate-400 text-[11px]`}>Small</Text>
-                  <Text style={tw`text-slate-400 text-[11px]`}>Large</Text>
-                </View>
-                <Text style={tw`text-slate-500 text-[11px] mt-2`}>Tip: adjust to make bus stop / pick-up / terminal icons bigger on the map.</Text>
-              </View>
-              
-              <Text style={tw`text-slate-500 text-[12px] mt-3`}>
-                Selected: <Text style={tw`font-bold text-slate-800`}>{lat && lng ? `${lat}, ${lng}` : 'None'}</Text>
-              </Text>
-            </View>
-          </View>
-
-          {/* Right Column: Add Stop Form */}
-          <View style={tw`flex-1 bg-white rounded-[14px] shadow-sm border border-slate-200`}>
-            <View style={tw`px-5 pt-4 pb-3 border-b border-slate-100 flex-row items-center gap-2`}>
-              <Ionicons name="add-circle" size={18} color="#1d4ed8" />
-              <Text style={tw`font-bold text-[#1d4ed8] text-[15px]`}>Add Stop / Terminal</Text>
-            </View>
-              
-            <View style={tw`p-5 bg-white`}>
-              <View style={tw`mb-4`}>
-                <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>NAME</Text>
-                <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={name} onChangeText={setName} placeholder="e.g. TALISAY" placeholderTextColor="#94a3b8" />
               </View>
 
-              <View style={tw`mb-4`}>
-                <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>TYPE</Text>
-                <View style={tw`border border-slate-300 rounded-xl bg-white overflow-hidden`}>
+              {/* Map Area */}
+              <View style={{ height: 320 }}>
+                {Platform.OS === 'web' ? (
+                  <iframe
+                    ref={webViewRef as any}
+                    srcDoc={getStopMapHTML(baseUrl)}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                  />
+                ) : (
+                  <WebView
+                    ref={webViewRef}
+                    originWhitelist={['*']}
+                    source={{ html: getStopMapHTML(baseUrl) }}
+                    style={StyleSheet.absoluteFill}
+                    onMessage={(event) => {
+                      try {
+                        const data = JSON.parse(event.nativeEvent.data);
+                        if (data.type === 'MAP_CLICK') {
+                          setLat(data.lat.toFixed(6));
+                          setLng(data.lng.toFixed(6));
+                          if (data.locName) setLocationName(data.locName);
+                        } else if (data.type === 'MAP_READY') {
+                          updateMapData(stops, currentFilter, iconSize);
+                        }
+                      } catch (e) { }
+                    }}
+                  />
+                )}
+              </View>
+
+              {/* Slider */}
+              <View style={tw`px-4 py-4 bg-white z-0`}>
+                <View style={tw`border border-dashed border-slate-300 bg-slate-50 rounded-[14px] p-3`}>
+                  <View style={tw`flex-row justify-between items-center mb-2`}>
+                    <Text style={tw`font-bold text-slate-800 text-[14px]`}>Marker Icon Size</Text>
+                    <Text style={tw`font-bold text-slate-500 text-[12px]`}>
+                      <Text style={tw`text-slate-800 text-[14px]`}>{iconSize}</Text>px
+                    </Text>
+                  </View>
                   {Platform.OS === 'web' ? (
-                    <select
-                      value={type}
-                      onChange={(e) => setType(e.target.value)}
-                      style={{ width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1e293b' }}
-                    >
-                      <option value="bus_stop">Bus Stop</option>
-                      <option value="pickup_point">Pickup Point</option>
-                      <option value="terminal">Terminal</option>
-                    </select>
+                    <input
+                      type="range"
+                      min={22}
+                      max={80}
+                      value={iconSize}
+                      onChange={(e) => setIconSize(parseInt(e.target.value, 10))}
+                      style={{ width: '100%', cursor: 'pointer', height: '4px', background: '#cbd5e1', appearance: 'none', borderRadius: '4px', outline: 'none', marginTop: 8 } as React.CSSProperties}
+                    />
                   ) : (
-                    <View style={tw`flex-row`}>
-                      {(['bus_stop', 'pickup_point', 'terminal'] as const).map(t => (
-                        <TouchableOpacity key={t} onPress={() => setType(t)} style={tw`flex-1 p-3 items-center justify-center border-r border-slate-200 ${type === t ? 'bg-slate-100' : ''}`}>
-                          <Text style={tw`text-[11px] uppercase font-bold ${type === t ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>{t.replace('_', ' ')}</Text>
-                        </TouchableOpacity>
-                      ))}
+                    <View style={tw`flex-row items-center gap-2 mt-1`}>
+                      <TouchableOpacity onPress={() => setIconSize(Math.max(22, iconSize - 5))} style={tw`bg-slate-200 p-1.5 rounded-full`}><Ionicons name="remove" size={14} /></TouchableOpacity>
+                      <View style={tw`flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden`}>
+                        <View style={[tw`h-full bg-[#1d4ed8]`, { width: `${((iconSize - 22) / (80 - 22)) * 100}%` }]} />
+                      </View>
+                      <TouchableOpacity onPress={() => setIconSize(Math.min(80, iconSize + 5))} style={tw`bg-slate-200 p-1.5 rounded-full`}><Ionicons name="add" size={14} /></TouchableOpacity>
                     </View>
                   )}
+                  <View style={tw`flex-row justify-between items-center mt-1.5`}>
+                    <Text style={tw`text-slate-400 text-[11px]`}>Small</Text>
+                    <Text style={tw`text-slate-400 text-[11px]`}>Large</Text>
+                  </View>
+                  <Text style={tw`text-slate-500 text-[11px] mt-2`}>Tip: adjust to make bus stop / pick-up / terminal icons bigger on the map.</Text>
                 </View>
+
+                <Text style={tw`text-slate-500 text-[12px] mt-3`}>
+                  Selected: <Text style={tw`font-bold text-slate-800`}>{lat && lng ? `${lat}, ${lng}` : 'None'}</Text>
+                </Text>
+              </View>
+            </View>
+
+            {/* Right Column: Add Stop Form */}
+            <View style={tw`flex-1 bg-white rounded-[14px] shadow-sm border border-slate-200`}>
+              <View style={tw`px-5 pt-4 pb-3 border-b border-slate-100 flex-row items-center gap-2`}>
+                <Ionicons name="add-circle" size={18} color="#1d4ed8" />
+                <Text style={tw`font-bold text-[#1d4ed8] text-[15px]`}>Add Stop / Terminal</Text>
               </View>
 
-              <View style={tw`mb-4`}>
-                <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>ROUTE</Text>
-                <View style={tw`border border-slate-300 rounded-xl bg-white overflow-hidden`}>
-                  {Platform.OS === 'web' ? (
-                    <select
-                      value={route}
-                      onChange={(e) => setRoute(e.target.value)}
-                      style={{ width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1e293b' }}
-                    >
-                      <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
-                      <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
-                    </select>
-                  ) : (
-                    <View style={tw`flex-row`}>
-                      {(['LAUREL - TANAUAN', 'TANAUAN - LAUREL'] as const).map(r => (
-                        <TouchableOpacity key={r} onPress={() => setRoute(r)} style={tw`flex-1 p-3 items-center justify-center border-r border-slate-200 ${route === r ? 'bg-slate-100' : ''}`}>
-                          <Text style={tw`text-[10px] uppercase font-bold ${route === r ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>{r}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
+              <View style={tw`p-5 bg-white`}>
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>NAME</Text>
+                  <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={name} onChangeText={setName} placeholder="e.g. TALISAY" placeholderTextColor="#94a3b8" />
                 </View>
-              </View>
 
-              <View style={tw`mb-4`}>
-                <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>LOCATION NAME</Text>
-                <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={locationName} onChangeText={setLocationName} placeholder="e.g. Mototrade" placeholderTextColor="#94a3b8" />
-              </View>
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>TYPE</Text>
+                  <View style={tw`border border-slate-300 rounded-xl bg-white overflow-hidden`}>
+                    {Platform.OS === 'web' ? (
+                      <select
+                        value={type}
+                        onChange={(e) => setType(e.target.value)}
+                        style={{ width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1e293b' }}
+                      >
+                        <option value="bus_stop">Bus Stop</option>
+                        <option value="pickup_point">Pickup Point</option>
+                        <option value="terminal">Terminal</option>
+                      </select>
+                    ) : (
+                      <View style={tw`flex-row`}>
+                        {(['bus_stop', 'pickup_point', 'terminal'] as const).map(t => (
+                          <TouchableOpacity key={t} onPress={() => setType(t)} style={tw`flex-1 p-3 items-center justify-center border-r border-slate-200 ${type === t ? 'bg-slate-100' : ''}`}>
+                            <Text style={tw`text-[11px] uppercase font-bold ${type === t ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>{t.replace('_', ' ')}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
 
-              <View style={tw`mb-5`}>
-                <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>LOCATION LANDMARK (OPTIONAL)</Text>
-                <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={locationLandmark} onChangeText={setLocationLandmark} placeholder="e.g. Near public market" placeholderTextColor="#94a3b8" />
-              </View>
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>ROUTE</Text>
+                  <View style={tw`border border-slate-300 rounded-xl bg-white overflow-hidden`}>
+                    {Platform.OS === 'web' ? (
+                      <select
+                        value={route}
+                        onChange={(e) => setRoute(e.target.value)}
+                        style={{ width: '100%', padding: '12px', backgroundColor: 'transparent', border: 'none', outline: 'none', fontSize: '13px', color: '#1e293b' }}
+                      >
+                        <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
+                        <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
+                      </select>
+                    ) : (
+                      <View style={tw`flex-row`}>
+                        {(['LAUREL - TANAUAN', 'TANAUAN - LAUREL'] as const).map(r => (
+                          <TouchableOpacity key={r} onPress={() => setRoute(r)} style={tw`flex-1 p-3 items-center justify-center border-r border-slate-200 ${route === r ? 'bg-slate-100' : ''}`}>
+                            <Text style={tw`text-[10px] uppercase font-bold ${route === r ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>{r}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    )}
+                  </View>
+                </View>
 
-              <TouchableOpacity onPress={handleSaveStop} disabled={saving} style={tw`bg-[#1d4ed8] rounded-full py-3 items-center flex-row justify-center mt-1`}>
-                {saving && <ActivityIndicator color="white" style={tw`mr-2`} size="small" />}
-                <Text style={tw`text-white font-extrabold tracking-wide text-[14px]`}>{saving ? 'Saving...' : 'Save'}</Text>
-              </TouchableOpacity>
+                <View style={tw`mb-4`}>
+                  <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>LOCATION NAME</Text>
+                  <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={locationName} onChangeText={setLocationName} placeholder="e.g. Mototrade" placeholderTextColor="#94a3b8" />
+                </View>
+
+                <View style={tw`mb-5`}>
+                  <Text style={tw`text-[11px] font-bold text-slate-800 mb-1.5 uppercase`}>LOCATION LANDMARK (OPTIONAL)</Text>
+                  <TextInput style={tw`bg-white border border-slate-300 rounded-xl p-3 text-slate-800 font-medium text-[13px]`} value={locationLandmark} onChangeText={setLocationLandmark} placeholder="e.g. Near public market" placeholderTextColor="#94a3b8" />
+                </View>
+
+                <TouchableOpacity onPress={handleSaveStop} disabled={saving} style={tw`bg-[#1d4ed8] rounded-full py-3 items-center flex-row justify-center mt-1`}>
+                  {saving && <ActivityIndicator color="white" style={tw`mr-2`} size="small" />}
+                  <Text style={tw`text-white font-extrabold tracking-wide text-[14px]`}>{saving ? 'Saving...' : 'Save'}</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
 
           <View style={tw`lg:flex-row flex-col gap-2 mx-5 bg-white border border-slate-200 rounded-[14px] shadow-sm py-4 mt-4`}>
             <View style={tw`flex-1`}>
               {renderRouteList('LAUREL - TANAUAN', stopsForward, setStopsForward)}
             </View>
-            
+
             {/* Divider */}
             <View style={tw`h-[1px] lg:h-auto lg:w-[1px] bg-slate-200 my-4 lg:my-0`} />
 
@@ -494,7 +494,7 @@ export default function AdminStops() {
               <Text style={tw`font-extrabold text-slate-800 text-[15px]`}>Existing Stops (All Routes)</Text>
               <Text style={tw`text-slate-500 text-[12px]`}>Rows: {stops.length}</Text>
             </View>
-            
+
             <View style={tw`p-3`}>
               {stops.length === 0 ? (
                 <Text style={tw`text-slate-400 text-center py-6 text-[13px]`}>No stops added.</Text>
@@ -510,7 +510,7 @@ export default function AdminStops() {
                           {s.type.replace('_', ' ')} • {s.route}
                         </Text>
                       </View>
-                      <TouchableOpacity 
+                      <TouchableOpacity
                         style={tw`bg-red-50 px-3 py-1.5 rounded-full flex-row items-center border border-red-100`}
                         onPress={() => executeDelete(s.id, s.name)}
                       >

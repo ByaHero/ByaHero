@@ -1,12 +1,12 @@
 {
   "expo": {
-    "name": "byahero-conductor",
-    "slug": "byahero-conductor",
+    "name": "ByaHero Conductor",
+    "slug": "ByaHero Conductor",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
-      "image": "./assets/images/splash.png",
+      "image": "./assets/images/splash_icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -44,7 +44,7 @@
         {
           "backgroundColor": "#ffffff",
           "android": {
-            "image": "./assets/images/splash-icon.png",
+            "image": "./assets/images/splash_icon.png",
             "imageWidth": 76
           }
         }

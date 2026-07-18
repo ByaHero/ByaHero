@@ -92,7 +92,7 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
         await AsyncStorage.removeItem('byahero_cached_role');
         await AsyncStorage.removeItem('byahero_cached_name');
         await AsyncStorage.removeItem('byahero_admin_user');
-        router.replace('/');
+        router.replace('/' as any);
       });
     };
 
