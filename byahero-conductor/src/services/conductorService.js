@@ -145,3 +145,10 @@ export async function updateProfile(payload) {
 export async function getSyncData() {
   return safeRequest('api/buses/sync');
 }
+
+/**
+ * Fetches operation history for the conductor.
+ */
+export async function getOperationHistory() {
+  return safeRequest('api/conductor/history');
+}

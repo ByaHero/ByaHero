@@ -211,6 +211,16 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
 
               <TouchableOpacity
                 style={tw`bg-white rounded-2xl flex-row items-center p-3.5 shadow-sm mt-1`}
+                onPress={() => { closeMenu(); router.push('/operationHistory'); }}
+              >
+                <View style={tw`w-9 h-9 items-center justify-center mr-2 ml-2`}>
+                  <Image source={require('../../assets/images/bus_history.svg')} style={tw`w-7 h-7`} contentFit="contain" />
+                </View>
+                <Text style={tw`text-[#111827] font-extrabold text-base`}>Operation History</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={tw`bg-white rounded-2xl flex-row items-center p-3.5 shadow-sm mt-1`}
                 onPress={handleLogout}
               >
                 <View style={tw`w-9 h-9 items-center justify-center mr-2 ml-2`}>
