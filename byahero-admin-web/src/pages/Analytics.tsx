@@ -349,12 +349,23 @@ export default function Analytics() {
               <h1 className="analytics-title">Analytics Dashboard</h1>
               <p className="analytics-subtitle">Boarding activity, route share, fleet performance, and operational logs in a cleaner, denser view.</p>
 
-              <div className="analytics-pill-row">
+              <div style={{ display: 'flex', gap: '8px', marginTop: '24px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '12px', width: 'fit-content' }}>
                 {(Object.keys(periodLabels) as PeriodKey[]).map((key) => (
                   <button
                     key={key}
                     type="button"
-                    className={`period-pill ${period === key ? 'active' : ''}`}
+                    style={{
+                      padding: '8px 20px',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      border: 'none',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      backgroundColor: period === key ? '#ffffff' : 'transparent',
+                      color: period === key ? 'var(--primary-color)' : '#64748b',
+                      boxShadow: period === key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                    }}
                     onClick={() => setPeriod(key)}
                   >
                     {periodLabels[key]}

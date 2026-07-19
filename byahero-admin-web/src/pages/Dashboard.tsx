@@ -1,5 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+import icon from 'leaflet/dist/images/marker-icon.png';
+import iconShadow from 'leaflet/dist/images/marker-shadow.png';
+import busIconSvg from '../assets/busStopMarkerFinalBlue.svg';
+
+let DefaultIcon = L.icon({
+    iconUrl: icon,
+    shadowUrl: iconShadow,
+    iconAnchor: [12, 41]
+});
+L.Marker.prototype.options.icon = DefaultIcon;
+
+const BusIcon = L.icon({
+    iconUrl: busIconSvg,
+    iconSize: [32, 42],
+    iconAnchor: [16, 42],
+    popupAnchor: [0, -42],
+});
 import { 
   Bus, 
   Activity, 
@@ -14,12 +35,17 @@ import {
   BarChart3, 
   RefreshCw, 
   Navigation,
-  BrainCircuit
+  BrainCircuit,
+  Maximize,
+  X
 } from 'lucide-react';
 import { adminService } from '../services/admin';
+import { ActiveBus } from '../types';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
+  const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+  const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
   const [stats, setStats] = useState({
     total_buses: 0,
     active_buses: 0,
@@ -40,11 +66,16 @@ export default function Dashboard() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [data, analyticsData, aiData] = await Promise.all([
+      const [data, analyticsData, aiData, activeBusesData] = await Promise.all([
         adminService.getDashboardStats(),
         adminService.getAnalytics({ period: 'today' }).catch(() => null),
-        adminService.getAiStats().catch(() => null)
+        adminService.getAiStats().catch(() => null),
+        adminService.listActiveBuses().catch(() => null)
       ]);
+
+      if (activeBusesData && activeBusesData.success) {
+        setActiveBuses(activeBusesData.activeBuses || activeBusesData.active_buses || []);
+      }
       
       let analyticsBoarded = 0;
       if (analyticsData && analyticsData.success && analyticsData.summary) {
@@ -182,18 +213,49 @@ export default function Dashboard() {
                 </div>
                 <span className="map-logo-text">BUS TRACKER</span>
               </div>
-              <div className="map-updates">
+              <div className="map-updates" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="status-dot" style={{ backgroundColor: 'var(--success)', width: '6px', height: '6px' }}></span>
                 <span>Live Feed</span>
+                <button 
+                  onClick={() => setIsMapModalOpen(true)} 
+                  className="btn btn-secondary" 
+                  style={{ padding: '4px 8px', fontSize: '0.75rem', marginLeft: '4px' }}
+                >
+                  <Maximize size={12} />
+                  Expand
+                </button>
               </div>
             </div>
 
-            <div className="map-viewport">
-              <Navigation size={48} color="#94a3b8" className="animate-pulse" />
-              <span className="map-viewport-text">Live Dispatch Operations Map</span>
-              <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center', padding: '0 24px' }}>
-                Active bus fleets coordinates and real-time transit telemetry are visualized here.
-              </p>
+            <div className="map-viewport" style={{ padding: 0, overflow: 'hidden' }}>
+              <MapContainer 
+                center={[14.076, 120.931]}
+                zoom={12} 
+                style={{ width: '100%', height: '100%', zIndex: 1 }}
+              >
+                <TileLayer
+                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                />
+                {activeBuses.map((bus, idx) => {
+                  if (bus.latitude && bus.longitude) {
+                    return (
+                      <Marker 
+                        key={bus.id || idx} 
+                        position={[Number(bus.latitude), Number(bus.longitude)]}
+                        icon={BusIcon}
+                      >
+                        <Popup>
+                          <strong>Bus {bus.bus_no}</strong><br />
+                          Plate: {bus.plate_no}<br />
+                          Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}
+                        </Popup>
+                      </Marker>
+                    );
+                  }
+                  return null;
+                })}
+              </MapContainer>
             </div>
           </div>
 
@@ -275,6 +337,62 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {isMapModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.7)',
+          zIndex: 9999,
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '24px'
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            backgroundColor: 'white',
+            padding: '16px 24px',
+            borderRadius: '12px 12px 0 0'
+          }}>
+            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)' }}>Live Dispatch Operations Map</h2>
+            <button onClick={() => setIsMapModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+              <X size={24} />
+            </button>
+          </div>
+          <div style={{ flex: 1, backgroundColor: 'white', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+            <MapContainer 
+              center={[14.076, 120.931]}
+              zoom={12} 
+              style={{ width: '100%', height: '100%', zIndex: 1 }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {activeBuses.map((bus, idx) => {
+                if (bus.latitude && bus.longitude) {
+                  return (
+                    <Marker 
+                      key={bus.id || idx} 
+                      position={[Number(bus.latitude), Number(bus.longitude)]}
+                      icon={BusIcon}
+                    >
+                      <Popup>
+                        <strong>Bus {bus.bus_no}</strong><br />
+                        Plate: {bus.plate_no}<br />
+                        Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}
+                      </Popup>
+                    </Marker>
+                  );
+                }
+                return null;
+              })}
+            </MapContainer>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
