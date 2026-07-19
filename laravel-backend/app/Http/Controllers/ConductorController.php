@@ -487,4 +487,19 @@ class ConductorController extends Controller
             'locations' => $locations
         ]);
     }
+
+    public function getHistory(Request $request)
+    {
+        $userId = $this->checkAuth();
+
+        $history = BusOperation::where('conductor_id', $userId)
+            ->where('status', 'completed')
+            ->orderBy('started_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'history' => $history
+        ]);
+    }
 }

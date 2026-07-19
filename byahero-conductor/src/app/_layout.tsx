@@ -2,11 +2,11 @@ import { Stack } from 'expo-router';
 import { ThemeProvider, DefaultTheme } from '@react-navigation/native';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { Linking, type LinkingEvent } from 'react-native';
+import { Linking } from 'react-native';
 
 export default function RootLayout() {
   useEffect(() => {
-    const handleDeepLink = (event: LinkingEvent) => {
+    const handleDeepLink = (event: { url: string }) => {
       const url = event.url;
       if (url?.startsWith('byaheroconductor://')) {
         console.log('Deep link received, ignoring to prevent Unmatched Route:', url);
@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="liveTracking" />
         <Stack.Screen name="waitingPax" />
         <Stack.Screen name="profile" />
+        <Stack.Screen name="operationHistory" />
       </Stack>
     </ThemeProvider>
   );

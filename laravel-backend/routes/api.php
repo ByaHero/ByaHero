@@ -99,6 +99,7 @@ Route::middleware([
     Route::post('/conductor/stop', [ConductorController::class, 'stop']);
     Route::match(['get', 'post'], '/conductor/profile', [ConductorController::class, 'updateProfile']);
     Route::get('/conductor/waiting-passengers', [ConductorController::class, 'getWaitingPassengers']);
+    Route::get('/conductor/history', [ConductorController::class, 'getHistory']);
 
     // Passenger profile routes
     Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);
