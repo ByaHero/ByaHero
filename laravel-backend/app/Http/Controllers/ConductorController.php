@@ -85,7 +85,9 @@ class ConductorController extends Controller
         }
 
         $name = trim((string)$request->input('name', ''));
+        // Ignore email update since it's disabled, or keep it if they send it
         $email = trim((string)$request->input('email', ''));
+        $contacts = trim((string)$request->input('contacts', ''));
         $currentPassword = $request->input('current_password');
         $newPassword = $request->input('new_password');
         $confirmPassword = $request->input('confirm_password');
@@ -102,20 +104,35 @@ class ConductorController extends Controller
                 $error = "New passwords do not match.";
             } elseif (strlen($newPassword) < 6) {
                 $error = "Password must be at least 6 characters.";
-            } else {
+            }
+        }
+
+        if (empty($error)) {
+            if (!empty($newPassword)) {
                 $model->password = Hash::make($newPassword);
+            }
+            if (!empty($name)) {
                 $model->name = $name;
+            }
+            if (!empty($email)) {
                 $model->email = $email;
-                if ($model->save()) {
-                    $message = "Profile and password updated successfully!";
-                } else {
-                    $error = "Failed to update profile.";
+            }
+            if ($request->has('contacts')) {
+                $model->contacts = $contacts;
+            }
+            if ($request->input('remove_image') === '1') {
+                $model->profile_picture = null;
+            } elseif ($request->has('profile_image_data')) {
+                $imgData = $request->input('profile_image_data');
+                if (strpos($imgData, 'data:image/') === 0) {
+                    $model->profile_picture = $imgData;
                 }
             }
-        } else {
-            $model->name = $name;
-            $model->email = $email;
+
             if ($model->save()) {
+                Session::put('user_name', $model->name);
+                Session::put('user_contacts', $model->contacts);
+                Session::put('user_profile_picture', $model->profile_picture);
                 $message = "Profile updated successfully!";
             } else {
                 $error = "Failed to update profile.";
@@ -128,7 +145,9 @@ class ConductorController extends Controller
             'error' => $error,
             'user' => [
                 'name' => $model->name ?? '',
-                'email' => $model->email ?? ''
+                'email' => $model->email ?? '',
+                'contacts' => $model->contacts ?? '',
+                'profile_picture' => $model->profile_picture ?? ''
             ]
         ]);
     }
