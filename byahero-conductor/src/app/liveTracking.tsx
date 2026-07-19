@@ -692,10 +692,7 @@ export default function LiveTrackingScreen() {
             </Text>
 
             {/* Plus */}
-            <TouchableOpacity onPress={() => {
-              incrementPassengers(1);
-              setPendingTickets(prev => prev + 1);
-            }}>
+            <TouchableOpacity onPress={() => incrementPassengers(1)}>
               <Image source={require('../../assets/images/increase.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
           </View>
@@ -721,27 +718,6 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TICKETS BANNER */}
-        {pendingTickets > 0 && (
-          <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
-            <Ionicons name="warning" size={24} color="#d97706" />
-            <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket.</Text>
-            </View>
-          </View>
-        )}
-
-        {/* PRODUCE TICKET BUTTON */}
-        <TouchableOpacity
-          onPress={() => {
-            setIsTicketingModalVisible(true);
-            if (busStops.length === 0) loadTicketingData();
-          }}
-          style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
-        >
-          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
-        </TouchableOpacity>
 
         {/* STOP BUTTON */}
         <TouchableOpacity
