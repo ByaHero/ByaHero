@@ -176,7 +176,7 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
           <Animated.View style={[tw`bg-[#f3f4f6] h-full shadow-lg`, { width: width * 0.85, transform: [{ translateX: slideAnim }] }]}>
             <View style={[tw`bg-[#0f3878] px-4 pt-4 pb-4`, { borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingTop: insets.top + 16 }]}>
               <TouchableOpacity onPress={closeMenu} style={[tw`absolute right-3 p-2 z-10`, { top: insets.top + 8 }]}>
-                <Image source={require('../../assets/images/EKS.svg')} style={[tw`w-6 h-6`, { filter: 'brightness(0) invert(1)' } as any]} contentFit="contain" />
+                <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
               </TouchableOpacity>
 
               <View style={tw`flex-row items-center gap-3 pt-2`}>
