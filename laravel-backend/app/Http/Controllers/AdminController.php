@@ -43,7 +43,7 @@ class AdminController extends Controller
             'feedbacks' => \Illuminate\Support\Facades\Schema::hasTable('feedbacks') ? Feedback::count() : 0,
             'bus_fares' => \Illuminate\Support\Facades\Schema::hasTable('bus_fares') ? DB::table('bus_fares')->count() : 0,
             'reports' => \Illuminate\Support\Facades\Schema::hasTable('reports') ? DB::table('reports')->count() : 0,
-            'analytics_boarded' => (int)(\Illuminate\Support\Facades\Schema::hasTable('bus_operations') ? DB::table('bus_operations')->whereDate('started_at', \Carbon\Carbon::today())->sum('total_boarded') : 0),
+            'analytics_boarded' => (int)(\Illuminate\Support\Facades\Schema::hasTable('passenger_events') ? DB::table('passenger_events')->where('event_type', 'board')->whereDate('recorded_at', \Carbon\Carbon::today())->sum('count') : 0),
         ];
 
         return response()->json([
