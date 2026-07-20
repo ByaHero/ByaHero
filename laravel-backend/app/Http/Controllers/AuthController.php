@@ -434,6 +434,11 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
+        $fcmToken = $request->input('fcm_token');
+        if (!empty($fcmToken)) {
+            DB::table('user_fcm_tokens')->where('fcm_token', $fcmToken)->delete();
+        }
+
         $userId = Session::get('user_id');
         if ($userId) {
             $this->logLogoutActivity((int)$userId, $request);
