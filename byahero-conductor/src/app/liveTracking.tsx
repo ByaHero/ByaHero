@@ -573,19 +573,25 @@ export default function LiveTrackingScreen() {
 
   useEffect(() => {
     if (boardingStop && alightingStop) {
-      let fareObj = busFares.find(
-        (f) => f.origin_stop_id === boardingStop.stop_id && f.destination_stop_id === alightingStop.stop_id
-      );
-      if (!fareObj) {
-        fareObj = busFares.find(
-          (f) => f.origin_stop_id === alightingStop.stop_id && f.destination_stop_id === boardingStop.stop_id
-        );
-      }
+      const pKm = Math.round(parseFloat(boardingStop.km_marker || 0));
+      const dKm = Math.round(parseFloat(alightingStop.km_marker || 0));
+      const distance = Math.abs(dKm - pKm);
+      const direction = dKm >= pKm ? 'LT' : 'TL';
+
+      const fareObj = busFares.find(f => f.direction === direction && parseInt(f.distance_km) === distance);
+
       if (fareObj) {
         const fare = discountType === 'Regular' ? parseFloat(fareObj.regular_fare) : parseFloat(fareObj.discounted_fare);
         setTicketFare(fare);
       } else {
-        setTicketFare(0);
+        // Fallback LTFRB
+        if (distance <= 4) {
+          setTicketFare(discountType === 'Regular' ? 14.00 : 11.25);
+        } else {
+          const reg = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
+          const disc = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
+          setTicketFare(discountType === 'Regular' ? reg : disc);
+        }
       }
     } else {
       setTicketFare(0);

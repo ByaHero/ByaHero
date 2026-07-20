@@ -1,29 +1,24 @@
 import React, { useEffect, useState } from 'react';
-import { Plus, Edit2, Trash2, Loader2, DollarSign } from 'lucide-react';
+import { Plus, Edit2, Loader2, DollarSign } from 'lucide-react';
 import { adminService } from '../services/admin';
-import { Fare, Stop } from '../types';
 import Modal from '../components/Modal';
 
 export default function Fares() {
-  const [fares, setFares] = useState<Fare[]>([]);
+  const [fares, setFares] = useState<any[]>([]);
   const [stops, setStops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
-  const [currentFare, setCurrentFare] = useState<Fare | null>(null);
+  const [currentFare, setCurrentFare] = useState<any | null>(null);
 
   // Form Inputs
-  const [routeName, setRouteName] = useState('LAUREL - TANAUAN');
-  const [originStopId, setOriginStopId] = useState('');
-  const [destinationStopId, setDestinationStopId] = useState('');
+  const [direction, setDirection] = useState('LT');
+  const [distanceKm, setDistanceKm] = useState('0');
+  const [stopId, setStopId] = useState('');
   const [regularFare, setRegularFare] = useState('');
   const [discountedFare, setDiscountedFare] = useState('');
-  const [distanceKm, setDistanceKm] = useState('');
-  const [baseRegularFare, setBaseRegularFare] = useState('');
-  const [baseDiscountedFare, setBaseDiscountedFare] = useState('');
 
   const fetchInitialData = async () => {
     try {
@@ -51,57 +46,42 @@ export default function Fares() {
 
   const openAddModal = () => {
     setCurrentFare(null);
-    setRouteName('LAUREL - TANAUAN');
-    setOriginStopId('');
-    setDestinationStopId('');
-    setRegularFare('15.00');
-    setDiscountedFare('12.00');
-    setDistanceKm('1');
-    setBaseRegularFare('15.00');
-    setBaseDiscountedFare('12.00');
+    setDirection('LT');
+    setDistanceKm('0');
+    setStopId('');
+    setRegularFare('0.00');
+    setDiscountedFare('0.00');
     setIsFormOpen(true);
   };
 
-  const openEditModal = (fare: Fare) => {
+  const openEditModal = (fare: any) => {
     setCurrentFare(fare);
-    // Determine route from origin stop if possible
-    const originStop = stops.find(s => s.id === fare.origin_stop_id);
-    setRouteName(originStop?.route || 'LAUREL - TANAUAN');
-    setOriginStopId(fare.origin_stop_id.toString());
-    setDestinationStopId(fare.destination_stop_id.toString());
-    setRegularFare(fare.regular_fare.toString());
-    setDiscountedFare(fare.discounted_fare.toString());
-    setDistanceKm(fare.distance_km?.toString() || '1');
-    setBaseRegularFare(fare.base_regular_fare?.toString() || '15.00');
-    setBaseDiscountedFare(fare.base_discounted_fare?.toString() || '12.00');
+    setDirection(fare.direction);
+    setDistanceKm(fare.distance_km?.toString() || '0');
+    setStopId(fare.stop_id?.toString() || '');
+    setRegularFare(fare.regular_fare?.toString() || '0.00');
+    setDiscountedFare(fare.discounted_fare?.toString() || '0.00');
     setIsFormOpen(true);
-  };
-
-  const openDeleteModal = (fare: Fare) => {
-    setCurrentFare(fare);
-    setIsDeleteOpen(true);
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!routeName.trim() || !originStopId || !destinationStopId || !regularFare) {
+    if (!regularFare || !discountedFare || !stopId) {
       alert('Please fill out all required fields.');
       return;
     }
 
     setSaving(true);
     try {
-      let data;
       const payload = {
-        origin_stop_id: parseInt(originStopId),
-        destination_stop_id: parseInt(destinationStopId),
+        direction,
+        distance_km: parseInt(distanceKm),
+        stop_id: parseInt(stopId),
         regular_fare: parseFloat(regularFare),
-        discounted_fare: parseFloat(discountedFare || '0'),
-        distance_km: parseInt(distanceKm || '1'),
-        base_regular_fare: parseFloat(baseRegularFare || regularFare),
-        base_discounted_fare: parseFloat(baseDiscountedFare || discountedFare),
+        discounted_fare: parseFloat(discountedFare),
       };
 
+      let data;
       if (currentFare) {
         data = await adminService.updateFare({ fare_id: currentFare.fare_id, ...payload });
       } else {
@@ -110,8 +90,7 @@ export default function Fares() {
 
       if (data.success) {
         setIsFormOpen(false);
-        const refetch = await adminService.listFares();
-        if (refetch.success) setFares(refetch.fares || []);
+        fetchInitialData();
       } else {
         alert(data.error || 'Failed to save fare rules.');
       }
@@ -122,31 +101,54 @@ export default function Fares() {
     }
   };
 
-  const handleDelete = async () => {
-    if (!currentFare) return;
-    setSaving(true);
-    try {
-      const data = await adminService.deleteFare(currentFare.fare_id);
-      if (data.success) {
-        setIsDeleteOpen(false);
-        const refetch = await adminService.listFares();
-        if (refetch.success) setFares(refetch.fares || []);
-      } else {
-        alert(data.error || 'Failed to remove fare.');
-      }
-    } catch (e) {
-      alert('Network error while deleting fare.');
-    } finally {
-      setSaving(false);
-    }
-  };
+  const faresLT = fares.filter(f => f.direction === 'LT');
+  const faresTL = fares.filter(f => f.direction === 'TL');
+
+  const renderTable = (title: string, directionFares: any[]) => (
+    <div style={{ flex: 1, minWidth: '350px' }}>
+      <h3 style={{ marginBottom: '16px', color: 'var(--text-color)', fontWeight: 600, textAlign: 'center' }}>{title}</h3>
+      <div className="table-responsive">
+        <table className="table" style={{ fontSize: '0.9rem' }}>
+          <thead>
+            <tr>
+              <th style={{ width: '40px' }}>KM</th>
+              <th>PARTICULARS</th>
+              <th style={{ textAlign: 'right' }}>REGULAR</th>
+              <th style={{ textAlign: 'right' }}>S/E/D</th>
+              <th style={{ textAlign: 'right', width: '50px' }}>Acts</th>
+            </tr>
+          </thead>
+          <tbody>
+            {directionFares.map((fare) => (
+              <tr key={fare.fare_id}>
+                <td style={{ fontWeight: 500 }}>{fare.distance_km}</td>
+                <td>{fare.stop_name}</td>
+                <td style={{ textAlign: 'right', fontWeight: 600 }}>{parseFloat(fare.regular_fare).toFixed(2)}</td>
+                <td style={{ textAlign: 'right' }}>{parseFloat(fare.discounted_fare).toFixed(2)}</td>
+                <td style={{ textAlign: 'right' }}>
+                  <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => openEditModal(fare)}>
+                    <Edit2 size={12} />
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {directionFares.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>No fares found for this direction.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
 
   return (
     <div className="card">
-      <div className="page-header-actions">
+      <div className="page-header-actions" style={{ marginBottom: '24px' }}>
         <h2 className="card-title">Fare Matrices</h2>
         <button className="btn btn-primary" onClick={openAddModal}>
-          <Plus size={16} /> New Fare Route
+          <Plus size={16} /> Add Fare Row
         </button>
       </div>
 
@@ -157,41 +159,12 @@ export default function Fares() {
       ) : fares.length === 0 ? (
         <div className="empty-state">
           <DollarSign size={48} className="empty-state-icon" />
-          <p>No fare matrices configured. Tap button above to add pricing.</p>
+          <p>No fare matrices configured. Please generate matrix first or add manually.</p>
         </div>
       ) : (
-        <div className="table-responsive">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>Origin Stop</th>
-                <th>Destination Stop</th>
-                <th>Regular Fare</th>
-                <th>Discounted Fare</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {fares.map((fare) => (
-                <tr key={fare.fare_id}>
-                  <td>{fare.origin_stop_name || fare.origin_stop_id}</td>
-                  <td>{fare.destination_stop_name || fare.destination_stop_id}</td>
-                  <td>₱{fare.regular_fare ? parseFloat(fare.regular_fare as any).toFixed(2) : '0.00'}</td>
-                  <td>₱{fare.discounted_fare ? parseFloat(fare.discounted_fare as any).toFixed(2) : '0.00'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openEditModal(fare)}>
-                        <Edit2 size={12} />
-                      </button>
-                      <button className="btn btn-danger" style={{ padding: '6px 10px' }} onClick={() => openDeleteModal(fare)}>
-                        <Trash2 size={12} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+          {renderTable('LAUREL - TANAUAN', faresLT)}
+          {renderTable('TANAUAN - LAUREL', faresTL)}
         </div>
       )}
 
@@ -199,102 +172,42 @@ export default function Fares() {
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={currentFare ? 'Edit Fare Config' : 'Create Fare Config'}>
         <form onSubmit={handleSave}>
           <div className="form-group">
-            <label className="form-label">Route Category / Line</label>
-            <select className="form-input" value={routeName} onChange={(e) => setRouteName(e.target.value)}>
-               <option value="LAUREL - TANAUAN">LAUREL - TANAUAN</option>
-               <option value="TANAUAN - LAUREL">TANAUAN - LAUREL</option>
+            <label className="form-label">Direction</label>
+            <select className="form-input" value={direction} onChange={(e) => setDirection(e.target.value)} required>
+              <option value="LT">LAUREL - TANAUAN</option>
+              <option value="TL">TANAUAN - LAUREL</option>
             </select>
           </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Origin Stop</label>
-              <select className="form-input" value={originStopId} onChange={(e) => setOriginStopId(e.target.value)} required>
-                <option value="">Select Origin...</option>
-                {stops.filter(s => s.route === routeName).map(s => <option key={s.id} value={s.id}>{s.name || s.location_name}</option>)}
-              </select>
-            </div>
-            <div className="form-group">
-              <label className="form-label">Destination Stop</label>
-              <select className="form-input" value={destinationStopId} onChange={(e) => setDestinationStopId(e.target.value)} required>
-                <option value="">Select Destination...</option>
-                {stops.filter(s => s.route === routeName).map(s => <option key={s.id} value={s.id}>{s.name || s.location_name}</option>)}
-              </select>
-            </div>
+          <div className="form-group">
+            <label className="form-label">Distance (KM)</label>
+            <input type="number" className="form-input" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} required />
           </div>
-
-          <div className="form-row">
+          <div className="form-group">
+            <label className="form-label">Stop</label>
+            <select className="form-input" value={stopId} onChange={(e) => setStopId(e.target.value)} required>
+              <option value="">Select Stop</option>
+              {stops.map(s => (
+                <option key={s.stop_id} value={s.stop_id}>{s.location_name} (KM {s.km_marker})</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div className="form-group">
               <label className="form-label">Regular Fare (₱)</label>
-              <input 
-                type="number" 
-                step="0.01" 
-                className="form-input" 
-                value={regularFare}
-                onChange={(e) => setRegularFare(e.target.value)}
-                required
-              />
+              <input type="number" step="0.01" className="form-input" value={regularFare} onChange={(e) => setRegularFare(e.target.value)} required />
             </div>
             <div className="form-group">
               <label className="form-label">Discounted Fare (₱)</label>
-              <input 
-                type="number" 
-                step="0.01" 
-                className="form-input" 
-                value={discountedFare}
-                onChange={(e) => setDiscountedFare(e.target.value)}
-                required
-              />
+              <input type="number" step="0.01" className="form-input" value={discountedFare} onChange={(e) => setDiscountedFare(e.target.value)} required />
             </div>
           </div>
-
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Distance (Km)</label>
-              <input 
-                type="number" 
-                step="1" 
-                className="form-input" 
-                value={distanceKm}
-                onChange={(e) => setDistanceKm(e.target.value)}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Base Regular (₱)</label>
-              <input 
-                type="number" 
-                step="0.01" 
-                className="form-input" 
-                value={baseRegularFare}
-                onChange={(e) => setBaseRegularFare(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsFormOpen(false)} disabled={saving}>
-              Cancel
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
+            <button type="button" className="btn btn-secondary" onClick={() => setIsFormOpen(false)}>Cancel</button>
             <button type="submit" className="btn btn-primary" disabled={saving}>
-              {saving ? 'Saving...' : 'Save Matrix'}
+              {saving ? 'Saving...' : 'Save Fare'}
             </button>
           </div>
         </form>
-      </Modal>
-
-      {/* Delete Fare Modal */}
-      <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="De-authorize Route Fares">
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Are you sure you want to remove this fare configuration from the matrix?
-        </p>
-        <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
-          <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteOpen(false)} disabled={saving}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={saving}>
-            {saving ? 'Deleting...' : 'Delete Permanently'}
-          </button>
-        </div>
       </Modal>
     </div>
   );

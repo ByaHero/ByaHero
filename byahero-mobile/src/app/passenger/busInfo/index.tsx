@@ -150,32 +150,29 @@ export default function BusInfoScreen() {
     let regularFare: number | null = null;
     let discountedFare: number | null = null;
 
-    const pId = parseInt(pickup.stop_id, 10);
-    const dId = parseInt(dropoff.stop_id, 10);
+    const pKm = Math.round(parseFloat(pickup.km_marker || 0));
+    const dKm = Math.round(parseFloat(dropoff.km_marker || 0));
+    
+    // Calculate absolute distance in km
+    const distance = Math.abs(dKm - pKm);
+    
+    // Determine direction: LT (Laurel to Tanauan, increasing KM) or TL (decreasing KM)
+    const direction = dKm >= pKm ? 'LT' : 'TL';
 
-    // Check direct fares first with consistent integer comparisons
-    const match = fareRules.find(f => {
-      const originId = parseInt(f.origin_stop_id, 10);
-      const destId = parseInt(f.destination_stop_id, 10);
-      return (originId === pId && destId === dId) || (originId === dId && destId === pId);
-    });
+    // Find matching fare rule by distance and direction
+    const match = fareRules.find(f => f.direction === direction && parseInt(f.distance_km) === distance);
 
     if (match) {
       regularFare = parseFloat(match.regular_fare);
       discountedFare = parseFloat(match.discounted_fare);
     } else {
-      // Calculate distance based on km markers
-      const distance = Math.abs(parseFloat(pickup.km_marker || 0) - parseFloat(dropoff.km_marker || 0));
-
+      // Fallback LTFRB formula if rule not found in DB
       if (distance <= 4) {
         regularFare = 14.00;
         discountedFare = 11.25;
       } else {
-        regularFare = 14.00 + ((distance - 1) * 2.25);
-        discountedFare = regularFare * 0.80;
-
-        regularFare = Math.round(regularFare * 4) / 4;
-        discountedFare = Math.round(discountedFare * 4) / 4;
+        regularFare = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
+        discountedFare = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
       }
     }
 

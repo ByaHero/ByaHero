@@ -642,77 +642,16 @@ class AdminController extends Controller
     {
         $this->checkAuth();
         
-        // Admin web list
-        if (!$request->has('destination') && !$request->has('q')) {
-            $fares = \Illuminate\Support\Facades\DB::table('bus_fares')
-                ->join('bus_stops as origin', 'bus_fares.origin_stop_id', '=', 'origin.stop_id')
-                ->join('bus_stops as dest', 'bus_fares.destination_stop_id', '=', 'dest.stop_id')
-                ->select(
-                    'bus_fares.*', 
-                    'origin.location_name as origin_stop_name', 
-                    'dest.location_name as destination_stop_name'
-                )
-                ->orderBy('bus_fares.fare_id', 'desc')
-                ->get();
-                
-            return response()->json(['success' => true, 'fares' => $fares]);
-        }
-
-        $destination = $request->input('destination');
-        $query = $request->input('q', '');
-
-        // Fetch destinations that exist in bus_fares
-        $destinationsList = DB::table('bus_stops')
-            ->select('stop_id', 'location_name')
-            ->whereIn('stop_id', function($q) {
-                $q->select('destination_stop_id')->from('bus_fares');
-            })
-            ->get();
-
-        if ($destinationsList->isEmpty()) {
-            return response()->json([
-                'success' => true,
-                'destinationsList' => [],
-                'filterDestination' => '',
-                'snapshots' => [],
-                'destName' => 'UNDEFINED',
-                'farthestOriginName' => 'UNDEFINED',
-                'fares' => []
-            ]);
-        }
-
-        if (empty($destination)) {
-            $destination = $destinationsList->first()->stop_id;
-        }
-
-        $destModel = DB::table('bus_stops')->where('stop_id', $destination)->first();
-        $destName = $destModel ? $destModel->location_name : 'UNDEFINED';
-
-        // Get fares for this destination
-        $faresQuery = DB::table('bus_fares as bf')
-            ->join('bus_stops as origin', 'bf.origin_stop_id', '=', 'origin.stop_id')
+        $fares = \Illuminate\Support\Facades\DB::table('bus_fares')
+            ->join('bus_stops', 'bus_fares.stop_id', '=', 'bus_stops.stop_id')
             ->select(
-                'bf.fare_id',
-                'bf.distance_km',
-                'origin.location_name as origin_name',
-                'bf.regular_fare',
-                'bf.discounted_fare'
+                'bus_fares.*', 
+                'bus_stops.location_name as stop_name'
             )
-            ->where('bf.destination_stop_id', $destination)
-            ->orderBy('bf.distance_km', 'desc'); // Show farthest origins first
-
-        if (!empty($query)) {
-            $faresQuery->where('origin.location_name', 'like', '%' . $query . '%');
-        }
-
-        $fares = $faresQuery->get();
-
-        $farthestOriginName = 'UNDEFINED';
-        if ($fares->isNotEmpty()) {
-            $farthest = $fares->sortByDesc('distance_km')->first();
-            $farthestOriginName = $farthest->origin_name;
-        }
-
+            ->orderBy('bus_fares.direction', 'asc')
+            ->orderBy('bus_fares.distance_km', 'asc')
+            ->get();
+            
         $snapshots = [];
         try {
             $snapshots = DB::table('bus_fare_snapshots')->orderBy('created_at', 'desc')->get();
@@ -720,12 +659,8 @@ class AdminController extends Controller
 
         return response()->json([
             'success' => true,
-            'destinationsList' => $destinationsList,
-            'filterDestination' => (string)$destination,
-            'snapshots' => $snapshots,
-            'destName' => $destName,
-            'farthestOriginName' => $farthestOriginName,
-            'fares' => $fares
+            'fares' => $fares,
+            'snapshots' => $snapshots
         ]);
     }
 
@@ -782,40 +717,58 @@ class AdminController extends Controller
                 if ($discounted > $regular) {
                     return response()->json(['success' => false, 'error' => 'Discounted fare cannot be higher than regular fare.']);
                 }
+            }
+
+            if ($action === 'add_fare') {
+                $direction = $request->input('direction');
+                $distance_km = (int)$request->input('distance_km');
+                $stop_id = (int)$request->input('stop_id');
+                $regular = (float)$request->input('regular_fare');
+                $discounted = (float)$request->input('discounted_fare');
+
+                DB::table('bus_fares')->insert([
+                    'direction' => $direction,
+                    'distance_km' => $distance_km,
+                    'stop_id' => $stop_id,
+                    'regular_fare' => $regular,
+                    'discounted_fare' => $discounted,
+                    'base_regular_fare' => (float)$request->input('base_regular_fare', $regular),
+                    'base_discounted_fare' => (float)$request->input('base_discounted_fare', $discounted),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ]);
+
+                return response()->json(['success' => true, 'message' => 'Fare added successfully.']);
+            } 
+            
+            elseif ($action === 'delete_fare') {
+                $fareId = (int)$request->input('fare_id');
+                DB::table('bus_fares')->where('fare_id', $fareId)->delete();
+                return response()->json(['success' => true, 'message' => 'Fare deleted successfully.']);
+            } 
+            
+            elseif ($action === 'update_fare') {
+                $fareId = (int)$request->input('fare_id');
+                $direction = $request->input('direction');
+                $distance_km = (int)$request->input('distance_km');
+                $stop_id = (int)$request->input('stop_id');
+                $regular = (float)$request->input('regular_fare');
+                $discounted = (float)$request->input('discounted_fare');
 
                 DB::table('bus_fares')
                     ->where('fare_id', $fareId)
                     ->update([
-                        'regular_fare' => round((float)$regular, 2),
-                        'discounted_fare' => round((float)$discounted, 2),
+                        'direction' => $direction,
+                        'distance_km' => $distance_km,
+                        'stop_id' => $stop_id,
+                        'regular_fare' => round($regular, 2),
+                        'discounted_fare' => round($discounted, 2),
+                        'base_regular_fare' => (float)$request->input('base_regular_fare', $regular),
+                        'base_discounted_fare' => (float)$request->input('base_discounted_fare', $discounted),
                         'updated_at' => now()
                     ]);
 
                 return response()->json(['success' => true, 'message' => 'Fare updated successfully.']);
-            } 
-            
-            elseif ($action === 'update_multiple_fares') {
-                $regFares = $request->input('regular_fare', []);
-                $discFares = $request->input('discounted_fare', []);
-
-                $affected = 0;
-                foreach ($regFares as $id => $reg) {
-                    $id = (int)$id;
-                    $regVal = $reg !== null ? round((float)$reg, 2) : null;
-                    $discVal = isset($discFares[$id]) && $discFares[$id] !== null ? round((float)$discFares[$id], 2) : null;
-
-                    if ($regVal !== null && $discVal !== null && $regVal >= 0 && $discVal >= 0 && $discVal <= $regVal) {
-                        $upd = DB::table('bus_fares')
-                            ->where('fare_id', $id)
-                            ->update([
-                                'regular_fare' => $regVal,
-                                'discounted_fare' => $discVal,
-                                'updated_at' => now()
-                            ]);
-                        if ($upd) $affected++;
-                    }
-                }
-                return response()->json(['success' => true, 'message' => "Saved successfully. Fares updated: $affected"]);
             } 
             
             elseif ($action === 'generate_matrix') {
@@ -884,6 +837,9 @@ class AdminController extends Controller
                         DB::table('bus_fare_snapshot_rows')->insert([
                             'snapshot_id' => $snapshotId,
                             'fare_id' => $fare->fare_id,
+                            'direction' => $fare->direction,
+                            'distance_km' => $fare->distance_km,
+                            'stop_id' => $fare->stop_id,
                             'regular_fare' => $fare->regular_fare,
                             'discounted_fare' => $fare->discounted_fare,
                             'base_regular_fare' => $fare->base_regular_fare,
