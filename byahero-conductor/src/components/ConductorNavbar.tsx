@@ -24,6 +24,7 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
   const [userName, setUserName] = useState('Conductor');
   const [userEmail, setUserEmail] = useState('conductor@byahero.com');
   const [userInitial, setUserInitial] = useState('C');
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
 
   const slideAnim = React.useRef(new Animated.Value(width)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
@@ -39,12 +40,18 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
       try {
         const name = await AsyncStorage.getItem('byahero_cached_name');
         const email = await AsyncStorage.getItem('byahero_cached_email');
+        const picture = await AsyncStorage.getItem('byahero_cached_profile_picture');
         if (name) {
           setUserName(name);
           setUserInitial(name.charAt(0).toUpperCase());
         }
         if (email) {
           setUserEmail(email);
+        }
+        if (picture) {
+          setProfilePicture(picture);
+        } else {
+          setProfilePicture(null);
         }
       } catch (err) { }
     }
@@ -173,13 +180,17 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
           <Animated.View style={[tw`bg-[#f3f4f6] h-full shadow-lg`, { width: width * 0.85, transform: [{ translateX: slideAnim }] }]}>
             <View style={[tw`bg-[#0f3878] px-4 pt-4 pb-4`, { borderBottomLeftRadius: 18, borderBottomRightRadius: 18, paddingTop: insets.top + 16 }]}>
               <TouchableOpacity onPress={closeMenu} style={[tw`absolute right-3 p-2 z-10`, { top: insets.top + 8 }]}>
-                <Image source={require('../../assets/images/EKS.svg')} style={[tw`w-6 h-6`, { filter: 'brightness(0) invert(1)' } as any]} contentFit="contain" />
+                <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
               </TouchableOpacity>
 
               <View style={tw`flex-row items-center gap-3 pt-2`}>
-                <View style={tw`w-20 h-20 rounded-full bg-white items-center justify-center`}>
-                  <Text style={tw`text-[#0f3878] text-4xl font-bold`}>{userInitial}</Text>
-                </View>
+                {profilePicture ? (
+                  <Image source={{ uri: profilePicture }} style={tw`w-20 h-20 rounded-full bg-white`} />
+                ) : (
+                  <View style={tw`w-20 h-20 rounded-full bg-white items-center justify-center`}>
+                    <Text style={tw`text-[#0f3878] text-4xl font-bold`}>{userInitial}</Text>
+                  </View>
+                )}
                 <View style={tw`flex-1 pr-10`}>
                   <Text style={tw`text-white font-black text-2xl mb-1`} numberOfLines={2}>{userName}</Text>
                   <Text style={tw`text-white/80 text-sm`} numberOfLines={1}>{userEmail}</Text>
