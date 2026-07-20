@@ -63,7 +63,6 @@ export default function PassengerDashboard() {
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
   const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
   const [waitingSecondsLeft, setWaitingSecondsLeft] = useState<number | null>(null);
-  const [cancelledStopName, setCancelledStopName] = useState<string | null>(null);
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -409,7 +408,6 @@ export default function PassengerDashboard() {
       if (data.success) {
         setIsWaiting(true);
         setWaitingLocation(stopName);
-        setCancelledStopName(null);
         if (data.expires_at) setWaitingExpiresAt(data.expires_at);
         if (!silent) {
           setWaitingFeedback('waiting');
@@ -454,9 +452,6 @@ export default function PassengerDashboard() {
 
       const data = await res.json();
       if (data.success) {
-        if (!silent) {
-          setCancelledStopName(waitingLocation);
-        }
         setIsWaiting(false);
         setWaitingLocation('');
         if (!silent) {
@@ -649,77 +644,63 @@ export default function PassengerDashboard() {
 
 
 
-  // Geolocation-based waiting status automatic toggle
+  // Geolocation-based waiting status automatic cancel when moving away
   useEffect(() => {
     if (!userLocation || isUpdatingWaiting || isBoarded) return;
 
-    const nearestStop = resolveNearestStop();
+    if (isWaiting && waitingLocation) {
+      let stopLat = NaN;
+      let stopLng = NaN;
 
-    if (nearestStop) {
-      // If we are not already waiting at this exact stop, set it
-      if (!isWaiting || waitingLocation !== nearestStop.name) {
-        // Prevent auto-waiting if they just explicitly cancelled this stop
-        if (nearestStop.name !== cancelledStopName) {
-          handleSetWaiting(nearestStop.name, true); // true for silent
+      // Try to find matching stop coordinates in the database list
+      const currentWaitingStop = busStops.find(s => s.name === waitingLocation || s.location_name === waitingLocation);
+      if (currentWaitingStop) {
+        stopLat = parseFloat(currentWaitingStop.lat || currentWaitingStop.latitude);
+        stopLng = parseFloat(currentWaitingStop.lng || currentWaitingStop.longitude);
+      } else if (routeGeoJSON && routeGeoJSON.features) {
+        // Fallback: find centroid of matching polygon location from GeoJSON
+        const feature = routeGeoJSON.features.find(f => {
+          const props = f.properties as any;
+          return props && (props['Current Location'] === waitingLocation || props['name'] === waitingLocation);
+        });
+        if (feature && feature.geometry && feature.geometry.type === 'Polygon' && feature.geometry.coordinates[0]) {
+          const ring = feature.geometry.coordinates[0];
+          let sumLat = 0;
+          let sumLng = 0;
+          ring.forEach((coord: number[]) => {
+            sumLng += coord[0];
+            sumLat += coord[1];
+          });
+          stopLat = sumLat / ring.length;
+          stopLng = sumLng / ring.length;
         }
       }
-    } else {
-      // If we moved away from the stop and we are waiting, check distance before cancelling
-      if (cancelledStopName) setCancelledStopName(null);
-      if (isWaiting && waitingLocation) {
-        let stopLat = NaN;
-        let stopLng = NaN;
 
-        // Try to find matching stop coordinates in the database list
-        const currentWaitingStop = busStops.find(s => s.name === waitingLocation || s.location_name === waitingLocation);
-        if (currentWaitingStop) {
-          stopLat = parseFloat(currentWaitingStop.lat || currentWaitingStop.latitude);
-          stopLng = parseFloat(currentWaitingStop.lng || currentWaitingStop.longitude);
-        } else if (routeGeoJSON && routeGeoJSON.features) {
-          // Fallback: find centroid of matching polygon location from GeoJSON
-          const feature = routeGeoJSON.features.find(f => {
-            const props = f.properties as any;
-            return props && (props['Current Location'] === waitingLocation || props['name'] === waitingLocation);
-          });
-          if (feature && feature.geometry && feature.geometry.type === 'Polygon' && feature.geometry.coordinates[0]) {
-            const ring = feature.geometry.coordinates[0];
-            let sumLat = 0;
-            let sumLng = 0;
-            ring.forEach((coord: number[]) => {
-              sumLng += coord[0];
-              sumLat += coord[1];
-            });
-            stopLat = sumLat / ring.length;
-            stopLng = sumLng / ring.length;
-          }
+      let shouldCancel = true;
+      if (!isNaN(stopLat) && !isNaN(stopLng)) {
+        const R = 6371; // km
+        const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
+        const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
+        const a =
+          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(stopLat * Math.PI / 180) *
+          Math.cos(userLocation.lat * Math.PI / 180) *
+          Math.sin(dLon / 2) *
+          Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        const distance = R * c;
+
+        // Only auto-cancel if they walk more than 300 meters away
+        if (distance < 0.3) {
+          shouldCancel = false;
         }
+      }
 
-        let shouldCancel = true;
-        if (!isNaN(stopLat) && !isNaN(stopLng)) {
-          const R = 6371; // km
-          const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
-          const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
-          const a =
-            Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(stopLat * Math.PI / 180) *
-            Math.cos(userLocation.lat * Math.PI / 180) *
-            Math.sin(dLon / 2) *
-            Math.sin(dLon / 2);
-          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-          const distance = R * c;
-
-          // Only auto-cancel if they walk more than 300 meters away
-          if (distance < 0.3) {
-            shouldCancel = false;
-          }
-        }
-
-        if (shouldCancel) {
-          handleCancelWaiting(true); // true for silent
-        }
+      if (shouldCancel) {
+        handleCancelWaiting(true); // true for silent
       }
     }
-  }, [userLocation, isBoarded, isWaiting, waitingLocation, cancelledStopName, busStops]);
+  }, [userLocation, isBoarded, isWaiting, waitingLocation, busStops]);
 
   // Map HTML using LeafletJS loaded via CDN
   const leafletHTML = getLeafletHTML(baseUrl);
