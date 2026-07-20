@@ -1,7 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Alert } from 'react-native';
-import { Image } from 'expo-image';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  SafeAreaView,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
 import { router } from 'expo-router';
+import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '../services/admin';
@@ -9,6 +21,7 @@ import { adminService } from '../services/admin';
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [loading, setLoading] = useState(false);
 
   // Check if already logged in
@@ -61,66 +74,131 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView 
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={tw`flex-1 bg-white`}
-    >
-      <View style={tw`flex-1 justify-center items-center px-6 bg-[#f8fafc]`}>
-        <View style={tw`w-full max-w-md bg-white p-8 rounded-3xl shadow-lg border border-slate-100`}>
-          
-          <View style={tw`items-center mb-8`}>
-            {/* Try to use the logo if available, else a placeholder */}
-            <Image 
-              source={require('../../assets/images/byaheroLogoBlue.svg')} 
-              style={tw`w-24 h-24 mb-4`} 
-              contentFit="contain" 
-            />
-            <Text style={tw`text-3xl font-black text-[#0f3878] tracking-tight`}>ByaHero Admin</Text>
-            <Text style={tw`text-slate-500 text-sm mt-2 text-center`}>
-              Enter your credentials to access the control center.
-            </Text>
-          </View>
-
-          <View style={tw`space-y-4`}>
-            <View style={tw`mb-4`}>
-              <Text style={tw`text-xs font-bold text-slate-500 mb-1 ml-1 uppercase tracking-wider`}>Email Address</Text>
-              <TextInput
-                style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-slate-800 font-medium`}
-                placeholder="admin@byahero.com"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-              />
+    <SafeAreaView style={tw`flex-1 bg-slate-100`}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={tw`flex-1`}
+      >
+        <ScrollView
+          contentContainerStyle={tw`flex-grow justify-center items-center py-10`}
+          style={tw`px-6 bg-slate-100`}
+          bounces={false}
+          alwaysBounceVertical={false}
+          alwaysBounceHorizontal={false}
+          showsHorizontalScrollIndicator={false}
+          showsVerticalScrollIndicator={false}
+          overScrollMode="never"
+        >
+          <View style={tw`w-full max-w-[400px] items-center`}>
+            <View style={tw`items-center mb-7`}>
+              <View style={tw`items-center`}>
+                <Image
+                  source={require('../../assets/images/byaheroLogo.png')}
+                  style={tw`w-[120px] h-[120px]`}
+                  contentFit="contain"
+                />
+                <Image
+                  source={require('../../assets/images/ByaHero_rext_.svg')}
+                  style={tw`w-[150px] h-[36px] mt-1`}
+                  contentFit="contain"
+                />
+              </View>
             </View>
 
-            <View style={tw`mb-6`}>
-              <Text style={tw`text-xs font-bold text-slate-500 mb-1 ml-1 uppercase tracking-wider`}>Password</Text>
-              <TextInput
-                style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3.5 text-slate-800 font-medium`}
-                placeholder="••••••••"
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry
-              />
-            </View>
-
-            <TouchableOpacity 
-              onPress={handleLogin}
-              disabled={loading}
-              style={tw`w-full bg-[#1d4ed8] rounded-xl py-4 items-center flex-row justify-center shadow-md`}
-            >
-              {loading ? (
-                <ActivityIndicator color="white" style={tw`mr-2`} />
-              ) : null}
-              <Text style={tw`text-white font-bold text-[15px]`}>
-                {loading ? 'Signing in...' : 'Sign In'}
+            {/* Login Card */}
+            <View style={tw`bg-white rounded-[28px] px-7 py-8 w-full shadow-md`}>
+              <Text style={tw`text-[#1d72f8] text-sm font-extrabold tracking-wider mb-6 text-center`}>
+                LOG IN TO YOUR ACCOUNT
               </Text>
-            </TouchableOpacity>
-          </View>
 
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+              {/* Email Input */}
+              <View style={tw`flex-row items-center bg-white rounded-full px-6 mb-4 border border-slate-100 shadow-sm`}>
+                <TextInput
+                  value={email}
+                  onChangeText={setEmail}
+                  placeholder="Email"
+                  placeholderTextColor="#94a3b8"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  style={tw`flex-1 text-slate-800 py-3 text-sm font-semibold outline-none`}
+                />
+              </View>
+
+              {/* Password Input */}
+              <View style={tw`flex-row items-center bg-white rounded-full px-6 mb-3 border border-slate-100 shadow-sm`}>
+                <TextInput
+                  value={password}
+                  onChangeText={setPassword}
+                  secureTextEntry={secureTextEntry}
+                  placeholder="Password"
+                  placeholderTextColor="#94a3b8"
+                  autoCapitalize="none"
+                  style={tw`flex-1 text-slate-800 py-3 text-sm font-semibold outline-none`}
+                />
+                <TouchableOpacity onPress={() => setSecureTextEntry(!secureTextEntry)}>
+                  <Ionicons name={secureTextEntry ? "eye-off" : "eye"} size={18} color="#94a3b8" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Forgot Password Link */}
+              <TouchableOpacity
+                onPress={() => Alert.alert('Forgot Password', 'Not implemented for admin.')}
+                style={tw`self-start mb-6 ml-3`}
+              >
+                <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>
+              </TouchableOpacity>
+
+              {/* Submit Button */}
+              <TouchableOpacity
+                onPress={handleLogin}
+                disabled={loading}
+                style={tw`bg-[#1d72f8] rounded-full py-3 px-12 self-center justify-center shadow-md mb-5`}
+              >
+                {loading ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={tw`text-white text-sm font-bold tracking-wider`}>LOGIN</Text>
+                )}
+              </TouchableOpacity>
+
+              {/* Divider */}
+              <View style={tw`flex-row items-center w-full mb-5`}>
+                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
+                <Text style={tw`text-slate-400 text-[10px] font-bold mx-3`}>OR</Text>
+                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
+              </View>
+
+              {/* Google sign-in button */}
+              <TouchableOpacity
+                onPress={() => Alert.alert('Google Sign-In', 'Not implemented for admin.')}
+                activeOpacity={0.85}
+                style={tw`flex-row items-center justify-center border border-slate-200 rounded-full py-2.5 px-4 w-full bg-white mb-6 shadow-sm`}
+              >
+                <Image
+                  source={{ uri: 'https://developers.google.com/static/identity/images/g-logo.png' }}
+                  style={tw`w-4 h-4 mr-3`}
+                  contentFit="contain"
+                />
+                <Text style={tw`text-slate-700 text-xs font-semibold`}>
+                  Continue with Google
+                </Text>
+              </TouchableOpacity>
+
+              {/* Sign Up Navigation link */}
+              <View style={tw`flex-row justify-center items-center`}>
+                <Text style={tw`text-slate-500 text-xs font-medium`}>
+                  Don't have an account?{' '}
+                </Text>
+                <TouchableOpacity onPress={() => Alert.alert('Sign Up', 'Admin accounts must be created by super admins.')}>
+                  <Text style={tw`text-[#1d72f8] text-xs font-bold`}>
+                    Sign up
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 }
