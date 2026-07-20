@@ -33,8 +33,7 @@
           "image": "./assets/images/splash_icon.png",
           "imageWidth": 76
         }
-      ],
-      "expo-sharing"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,

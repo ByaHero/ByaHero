@@ -24,6 +24,7 @@ export default function AdminDashboard() {
     reports: 0,
     feedbacks: 0,
     bus_fares: 0,
+    analytics_boarded: 0,
   });
 
   const fetchStats = async () => {
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
       title: 'Revenue & Insights',
       items: [
         { label: 'Bus Fares', count: stats.bus_fares, route: '/admin/fares', action: 'Manage' },
-        { label: 'Analytics (Boarded)', count: 0, route: '/admin/analytics', action: 'View' },
+        { label: 'Analytics (Boarded)', count: stats.analytics_boarded || 0, route: '/admin/analytics', action: 'View' },
       ],
     }
   ];
