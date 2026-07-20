@@ -437,6 +437,15 @@ class AuthController extends Controller
         $userId = Session::get('user_id');
         if ($userId) {
             $this->logLogoutActivity((int)$userId, $request);
+            
+            // Cancel active waiting status on logout
+            DB::table('waiting_passengers')
+                ->where('user_id', $userId)
+                ->where('status', 'waiting')
+                ->update([
+                    'status' => 'cancelled',
+                    'updated_at' => now()
+                ]);
         }
         Session::flush();
         return response()->json(['success' => true, 'message' => 'Logged out successfully']);

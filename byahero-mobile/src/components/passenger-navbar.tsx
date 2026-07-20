@@ -160,6 +160,16 @@ export function PassengerHeader({
         setMenuVisible(false);
         try {
           const currentBaseUrl = await getServerUrl();
+          const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+          if (email) {
+            await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email: email }),
+              credentials: 'include'
+            }).catch(() => { });
+          }
+
           const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
           await fetch(`${currentBaseUrl}/api/logout`, {
             method: 'POST',
