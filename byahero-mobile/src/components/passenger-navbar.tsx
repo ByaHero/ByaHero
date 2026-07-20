@@ -211,7 +211,7 @@ export function PassengerHeader({
   const menuItems = [
     { title: 'Profile', icon: require('../../assets/images/person.svg'), route: '/passenger/profile', highlightKey: null },
     { title: 'User Guide', icon: require('../../assets/images/icons/USER GUIDE.svg'), route: '/passenger/showGuide', highlightKey: null },
-    { title: 'Privacy and Security', icon: require('../../assets/images/privacy.svg'), route: '/passenger/settings', highlightKey: null },
+    { title: 'Settings', icon: require('../../assets/images/settings.svg'), route: '/passenger/settings', highlightKey: null },
     { title: 'Lost and Found', icon: require('../../assets/images/lostandfound.svg'), route: '/passenger/lostAndFound', highlightKey: null },
     { title: 'About ByaHero', icon: require('../../assets/images/about.svg'), route: '/passenger/settings/staticPages?page=about', highlightKey: null },
     { title: 'Feedback', icon: require('../../assets/images/feedback.svg'), route: '/passenger/settings/feedback', highlightKey: 'menu-feedback' },
