@@ -103,30 +103,25 @@ export default function PassengerBottomSheet({
   const tabGroupsRef = useRef<any>(null);
   const tabBusstopsRef = useRef<any>(null);
 
+  const expandToMed = () => {
+    if (lastTranslatedY.current === MIN_UP) {
+      lastTranslatedY.current = MED_UP;
+      setIsExpanded(false);
+      Animated.spring(translateY, {
+        toValue: MED_UP,
+        useNativeDriver: true,
+        tension: 75,
+        friction: 12,
+      }).start();
+    }
+  };
+
   const panResponder = useRef(
     PanResponder.create({
       onStartShouldSetPanResponder: () => false,
       onMoveShouldSetPanResponder: (e, gestureState) => {
         const isVerticalDrag = Math.abs(gestureState.dy) > 5 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
-        if (!isVerticalDrag) return false;
-
-        // If the touch started in the header area (top 50px of the sheet), we ALWAYS allow dragging
-        const sheetTop = (SCREEN_HEIGHT * 0.3) + lastTranslatedY.current;
-        if (gestureState.y0 - sheetTop < 50) {
-          return true;
-        }
-
-        // If the sheet is not fully expanded and user drags UP, drag the sheet instead of scrolling
-        if (gestureState.dy < 0 && lastTranslatedY.current > MAX_UP) {
-          return true;
-        }
-
-        // If dragging down and the scroll view is at the top, we drag the sheet
-        if (gestureState.dy > 0 && scrollOffset.current <= 0) {
-          return true;
-        }
-
-        return false;
+        return isVerticalDrag;
       },
       onPanResponderGrant: () => {
         translateY.setOffset(lastTranslatedY.current);
@@ -138,25 +133,64 @@ export default function PassengerBottomSheet({
       },
       onPanResponderRelease: (e, gestureState) => {
         translateY.flattenOffset();
-        const finalY = lastTranslatedY.current + gestureState.dy;
+        const dy = gestureState.dy;
+        const vy = gestureState.vy;
 
-        let snapTo = MED_UP;
-        const distToMax = Math.abs(finalY - MAX_UP);
-        const distToMed = Math.abs(finalY - MED_UP);
-        const distToMin = Math.abs(finalY - MIN_UP);
+        // Determine current state based on proximity of lastTranslatedY
+        const distToMax = Math.abs(lastTranslatedY.current - MAX_UP);
+        const distToMed = Math.abs(lastTranslatedY.current - MED_UP);
+        const distToMin = Math.abs(lastTranslatedY.current - MIN_UP);
 
-        const minDist = Math.min(distToMax, distToMed, distToMin);
-        if (minDist === distToMax) {
-          snapTo = MAX_UP;
-          setIsExpanded(true);
-        } else if (minDist === distToMin) {
-          snapTo = MIN_UP;
-          setIsExpanded(false);
+        const currentSnapState = Math.min(distToMax, distToMed, distToMin) === distToMax
+          ? MAX_UP
+          : Math.min(distToMax, distToMed, distToMin) === distToMin
+            ? MIN_UP
+            : MED_UP;
+
+        let snapTo = currentSnapState;
+
+        // Velocity or distance based snapping
+        if (vy < -0.3 || dy < -120) {
+          // Strong swipe UP
+          if (currentSnapState === MIN_UP) {
+            snapTo = (vy < -1.0 || dy < -220) ? MAX_UP : MED_UP;
+          } else {
+            snapTo = MAX_UP;
+          }
+        } else if (vy > 0.3 || dy > 120) {
+          // Strong swipe DOWN
+          if (currentSnapState === MAX_UP) {
+            snapTo = (vy > 1.0 || dy > 220) ? MIN_UP : MED_UP;
+          } else {
+            snapTo = MIN_UP;
+          }
         } else {
-          snapTo = MED_UP;
-          setIsExpanded(false);
+          // Moderate drag direction check
+          if (dy < -30) {
+            // Dragged UP
+            if (currentSnapState === MIN_UP) {
+              snapTo = MED_UP;
+            } else if (currentSnapState === MED_UP) {
+              snapTo = MAX_UP;
+            } else {
+              snapTo = MAX_UP;
+            }
+          } else if (dy > 30) {
+            // Dragged DOWN
+            if (currentSnapState === MAX_UP) {
+              snapTo = MED_UP;
+            } else if (currentSnapState === MED_UP) {
+              snapTo = MIN_UP;
+            } else {
+              snapTo = MIN_UP;
+            }
+          } else {
+            // Minimal drag: return to current snap state
+            snapTo = currentSnapState;
+          }
         }
 
+        setIsExpanded(snapTo === MAX_UP);
         lastTranslatedY.current = snapTo;
         Animated.spring(translateY, {
           toValue: snapTo,
@@ -170,7 +204,6 @@ export default function PassengerBottomSheet({
 
   return (
     <Animated.View
-      {...panResponder.panHandlers}
       style={[
         tw`absolute left-0 right-0 bottom-0 bg-white rounded-t-2xl shadow-2xl z-[1050]`,
         {
@@ -180,101 +213,137 @@ export default function PassengerBottomSheet({
       ]}
     >
       <View style={tw`flex-1 rounded-t-2xl overflow-hidden`}>
-        {/* Drag Handle indicator */}
-      <View style={tw`w-full py-3.5 items-center bg-white rounded-t-3xl`}>
-        <View style={tw`w-20 h-1.5 bg-[#e2e8f0] rounded-full`} />
-      </View>
+        {/* Header Drag Handle & Quick Filter Tabs Area */}
+        <View {...panResponder.panHandlers} style={tw`bg-white rounded-t-3xl`}>
+          {/* Drag Handle indicator */}
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => {
+              let snapTo = MED_UP;
+              if (lastTranslatedY.current === MIN_UP) {
+                snapTo = MED_UP;
+              } else if (lastTranslatedY.current === MED_UP) {
+                snapTo = MAX_UP;
+              } else {
+                snapTo = MED_UP;
+              }
+              lastTranslatedY.current = snapTo;
+              setIsExpanded(snapTo === MAX_UP);
+              Animated.spring(translateY, {
+                toValue: snapTo,
+                useNativeDriver: true,
+                tension: 75,
+                friction: 12,
+              }).start();
+            }}
+            style={tw`w-full py-3.5 items-center`}
+          >
+            <View style={tw`w-20 h-1.5 bg-[#e2e8f0] rounded-full`} />
+          </TouchableOpacity>
 
-      {/* Bottom Sheet Header Quick Filter Tabs */}
-      <View style={tw`flex-row justify-center px-4 py-3 bg-white`}>
-        <TouchableOpacity
-          ref={tabLocationRef}
-          onLayout={() => handleTourLayout('tab-location', tabLocationRef)}
-          onPress={() => setSheetTab('location')}
-          style={[
-            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
-            sheetTab === 'location' && tw`bg-[#1e3a8a]`
-          ]}
-        >
-          <Image
-            source={sheetTab === 'location'
-              ? require('../../assets/images/icons/busStopWhiteIcon.png')
-              : require('../../assets/images/icons/busStopBlueIcon.png')
-            }
-            style={tw`w-[26px] h-[26px]`}
-            contentFit="contain"
-          />
-        </TouchableOpacity>
+          {/* Bottom Sheet Header Quick Filter Tabs */}
+          <View style={tw`flex-row justify-center px-4 py-3 bg-white`}>
+            <TouchableOpacity
+              ref={tabLocationRef}
+              onLayout={() => handleTourLayout('tab-location', tabLocationRef)}
+              onPress={() => {
+                setSheetTab('location');
+                expandToMed();
+              }}
+              style={[
+                tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+                sheetTab === 'location' && tw`bg-[#1e3a8a]`
+              ]}
+            >
+              <Image
+                source={sheetTab === 'location'
+                  ? require('../../assets/images/icons/busStopWhiteIcon.png')
+                  : require('../../assets/images/icons/busStopBlueIcon.png')
+                }
+                style={tw`w-[26px] h-[26px]`}
+                contentFit="contain"
+              />
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          ref={tabRoutesRef}
-          onLayout={() => handleTourLayout('tab-routes', tabRoutesRef)}
-          onPress={() => setSheetTab('routes')}
-          style={[
-            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
-            sheetTab === 'routes' && tw`bg-[#1e3a8a]`
-          ]}
-        >
-          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
-            <Image
-              source={require('../../assets/images/icons/routes active.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 1 : 0 }]}
-              contentFit="contain"
-            />
-            <Image
-              source={require('../../assets/images/icons/routes idle.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 0 : 1 }]}
-              contentFit="contain"
-            />
+            <TouchableOpacity
+              ref={tabRoutesRef}
+              onLayout={() => handleTourLayout('tab-routes', tabRoutesRef)}
+              onPress={() => {
+                setSheetTab('routes');
+                expandToMed();
+              }}
+              style={[
+                tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+                sheetTab === 'routes' && tw`bg-[#1e3a8a]`
+              ]}
+            >
+              <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
+                <Image
+                  source={require('../../assets/images/icons/routes active.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 1 : 0 }]}
+                  contentFit="contain"
+                />
+                <Image
+                  source={require('../../assets/images/icons/routes idle.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'routes' ? 0 : 1 }]}
+                  contentFit="contain"
+                />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              ref={tabGroupsRef}
+              onLayout={() => handleTourLayout('tab-groups', tabGroupsRef)}
+              onPress={() => {
+                setSheetTab('groups');
+                expandToMed();
+              }}
+              style={[
+                tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+                sheetTab === 'groups' && tw`bg-[#1e3a8a]`
+              ]}
+            >
+              <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
+                <Image
+                  source={require('../../assets/images/icons/groupsActive.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 1 : 0 }]}
+                  contentFit="contain"
+                />
+                <Image
+                  source={require('../../assets/images/icons/groupsIdle.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 0 : 1 }]}
+                  contentFit="contain"
+                />
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              ref={tabBusstopsRef}
+              onLayout={() => handleTourLayout('tab-busstops', tabBusstopsRef)}
+              onPress={() => {
+                setSheetTab('busstops');
+                expandToMed();
+              }}
+              style={[
+                tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
+                sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
+              ]}
+            >
+              <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
+                <Image
+                  source={require('../../assets/images/icons/busStopMarkerFinalWhite.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 1 : 0 }]}
+                  contentFit="contain"
+                />
+                <Image
+                  source={require('../../assets/images/icons/busStopMarkerFinalBlue.svg')}
+                  style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 0 : 1 }]}
+                  contentFit="contain"
+                />
+              </View>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          ref={tabGroupsRef}
-          onLayout={() => handleTourLayout('tab-groups', tabGroupsRef)}
-          onPress={() => setSheetTab('groups')}
-          style={[
-            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
-            sheetTab === 'groups' && tw`bg-[#1e3a8a]`
-          ]}
-        >
-          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
-            <Image
-              source={require('../../assets/images/icons/groupsActive.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 1 : 0 }]}
-              contentFit="contain"
-            />
-            <Image
-              source={require('../../assets/images/icons/groupsIdle.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'groups' ? 0 : 1 }]}
-              contentFit="contain"
-            />
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          ref={tabBusstopsRef}
-          onLayout={() => handleTourLayout('tab-busstops', tabBusstopsRef)}
-          onPress={() => setSheetTab('busstops')}
-          style={[
-            tw`flex-1 h-[45px] mx-1.5 rounded-[22px] bg-[#dbeafe] justify-center items-center`,
-            sheetTab === 'busstops' && tw`bg-[#1e3a8a]`
-          ]}
-        >
-          <View style={tw`w-[26px] h-[26px] justify-center items-center`}>
-            <Image
-              source={require('../../assets/images/icons/busStopMarkerFinalWhite.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 1 : 0 }]}
-              contentFit="contain"
-            />
-            <Image
-              source={require('../../assets/images/icons/busStopMarkerFinalBlue.svg')}
-              style={[tw`w-[26px] h-[26px] absolute`, { opacity: sheetTab === 'busstops' ? 0 : 1 }]}
-              contentFit="contain"
-            />
-          </View>
-        </TouchableOpacity>
-      </View>
+        </View>
 
       {/* Bottom Sheet Body Content */}
       <ScrollView
@@ -283,7 +352,7 @@ export default function PassengerBottomSheet({
         }}
         scrollEventThrottle={16}
         style={tw`flex-1 px-4`}
-        contentContainerStyle={{ paddingBottom: 250 }}
+        contentContainerStyle={{ paddingBottom: 285 }}
       >
         {sheetTab === 'location' && (
           <View>

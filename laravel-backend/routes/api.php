@@ -37,7 +37,9 @@ Route::middleware([
     Route::post('/settings/update', [SettingsController::class, 'update']);
     Route::get('/settings/privacy', [SettingsController::class, 'getPrivacy']);
     Route::get('/settings/share-location', [SettingsController::class, 'getShareLocation']);
+    Route::get('/settings/feedback', [SettingsController::class, 'getFeedback']);
     Route::post('/settings/feedback', [SettingsController::class, 'submitFeedback']);
+    Route::post('/settings/feedback/delete', [SettingsController::class, 'deleteFeedback']);
 
     Route::post('/fcm/register', [NotificationController::class, 'registerFcmToken']);
     Route::get('/notifications/unread-count', [NotificationController::class, 'getUnreadCount']);

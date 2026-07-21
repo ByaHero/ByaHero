@@ -13,7 +13,8 @@ import {
   Modal,
   ScrollView,
   TextInput,
-  Animated
+  Animated,
+  Linking
 } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -299,22 +300,6 @@ export default function LiveTrackingScreen() {
   };
 
   const startLocationTracking = async () => {
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
-      return;
-    }
-
-    // Request background location permission (Android 10+)
-    const { status: bgStatus } = await Location.requestBackgroundPermissionsAsync();
-    if (bgStatus !== 'granted') {
-      Alert.alert(
-        'Background Location Required',
-        'Please allow "Allow all the time" location access so tracking continues when the screen is off.',
-        [{ text: 'OK' }]
-      );
-    }
-
     // Start the Android foreground service to keep GPS alive when backgrounded
     if (Platform.OS === 'android' && LocationServiceModule) {
       LocationServiceModule.startService();

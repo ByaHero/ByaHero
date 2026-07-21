@@ -122,6 +122,25 @@ class SettingsController extends Controller
         ]);
     }
 
+    public function getFeedback(Request $request)
+    {
+        $userId = Session::get('user_id');
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
+        }
+
+        $feedback = \App\Models\Feedback::where('user_id', $userId)->latest()->first();
+        return response()->json([
+            'success' => true,
+            'feedback' => $feedback ? [
+                'id' => $feedback->id,
+                'rating' => (int)$feedback->rating,
+                'feedback_text' => $feedback->feedback_text,
+                'updated_at' => $feedback->updated_at ? $feedback->updated_at->toDateTimeString() : null,
+            ] : null
+        ]);
+    }
+
     public function submitFeedback(Request $request)
     {
         $userId = Session::get('user_id');
@@ -137,15 +156,41 @@ class SettingsController extends Controller
         }
 
         try {
-            \App\Models\Feedback::create([
-                'user_id' => $userId,
-                'rating' => $rating,
-                'feedback_text' => $feedbackText,
-            ]);
+            $feedback = \App\Models\Feedback::updateOrCreate(
+                ['user_id' => $userId],
+                [
+                    'rating' => $rating,
+                    'feedback_text' => $feedbackText,
+                ]
+            );
 
-            return response()->json(['success' => true, 'message' => 'Feedback submitted successfully']);
+            return response()->json([
+                'success' => true,
+                'message' => 'Feedback saved successfully',
+                'feedback' => [
+                    'id' => $feedback->id,
+                    'rating' => (int)$feedback->rating,
+                    'feedback_text' => $feedback->feedback_text,
+                    'updated_at' => $feedback->updated_at ? $feedback->updated_at->toDateTimeString() : null,
+                ]
+            ]);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => 'Failed to submit feedback: ' . $e->getMessage()]);
+        }
+    }
+
+    public function deleteFeedback(Request $request)
+    {
+        $userId = Session::get('user_id');
+        if (empty($userId)) {
+            return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
+        }
+
+        try {
+            \App\Models\Feedback::where('user_id', $userId)->delete();
+            return response()->json(['success' => true, 'message' => 'Feedback removed successfully']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to delete feedback: ' . $e->getMessage()]);
         }
     }
 }

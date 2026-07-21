@@ -10,8 +10,10 @@ import {
   Alert,
   ActivityIndicator,
   StyleSheet,
-  Platform
+  Platform,
+  Linking
 } from 'react-native';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
@@ -36,6 +38,7 @@ export default function DashboardScreen() {
   const [isBusDropdownOpen, setIsBusDropdownOpen] = useState(false);
   const [isRouteDropdownOpen, setIsRouteDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+  const [isLocationInstructionModalVisible, setIsLocationInstructionModalVisible] = useState(false);
 
   // Map filter
   const [currentFilter, setCurrentFilter] = useState('ALL ROUTES');
@@ -153,7 +156,32 @@ export default function DashboardScreen() {
     sendBusesToMap(rawBusesList, filter);
   };
 
-  const handleStartTracking = () => {
+  const handleGrantBgPermission = async () => {
+    try {
+      const { status } = await Location.requestBackgroundPermissionsAsync();
+      setIsLocationInstructionModalVisible(false);
+      if (status === 'granted') {
+        setIsPreDepartureVisible(true);
+      } else {
+        Alert.alert(
+          'Settings Required',
+          'Android requires selecting "Allow all the time" in app settings to keep location active in the background.',
+          [
+            { text: 'Continue Anyway', onPress: () => setIsPreDepartureVisible(true) },
+            {
+              text: 'Open Settings',
+              onPress: () => Linking.openSettings()
+            }
+          ]
+        );
+      }
+    } catch (e) {
+      setIsLocationInstructionModalVisible(false);
+      setIsPreDepartureVisible(true);
+    }
+  };
+
+  const handleStartTracking = async () => {
     if (!selectedBus) {
       Alert.alert('Selection Required', 'Please select an active bus unit.');
       return;
@@ -162,6 +190,21 @@ export default function DashboardScreen() {
       Alert.alert('Selection Required', 'Please select a transit route.');
       return;
     }
+
+    // Step 1: Request foreground location permission
+    const { status } = await Location.requestForegroundPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
+      return;
+    }
+
+    // Step 2: Check background location permission ("Allow all the time")
+    const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
+    if (bgStatus !== 'granted') {
+      setIsLocationInstructionModalVisible(true);
+      return;
+    }
+
     setIsPreDepartureVisible(true);
   };
 
@@ -446,6 +489,85 @@ export default function DashboardScreen() {
             ))}
             <TouchableOpacity onPress={() => setIsFilterDropdownOpen(false)} style={tw`mt-4 bg-slate-100 rounded-xl py-2.5 items-center`}>
               <Text style={tw`text-slate-700 font-bold`}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Background Location Instruction Modal */}
+      <Modal
+        visible={isLocationInstructionModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsLocationInstructionModalVisible(false)}
+      >
+        <View style={tw`flex-1 bg-black/60 items-center justify-center p-5`}>
+          <View style={tw`bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl border border-slate-100`}>
+            {/* Header Icon */}
+            <View style={tw`items-center mb-4`}>
+              <View style={tw`w-16 h-16 rounded-full bg-emerald-50 items-center justify-center border-4 border-emerald-100 mb-3`}>
+                <Ionicons name="location" size={32} color="#059669" />
+              </View>
+              <View style={tw`bg-emerald-100 px-3 py-1 rounded-full flex-row items-center gap-1.5`}>
+                <Ionicons name="shield-checkmark" size={14} color="#047857" />
+                <Text style={tw`text-[11px] font-bold text-emerald-800 tracking-wider uppercase`}>Location Setup</Text>
+              </View>
+            </View>
+
+            {/* Title & Body */}
+            <Text style={tw`text-xl font-black text-slate-900 text-center mb-2`}>
+              Enable "Allow All The Time"
+            </Text>
+            <Text style={tw`text-xs text-slate-600 text-center leading-5 mb-5`}>
+              Before starting tracking, please enable continuous location access so passengers can track your bus even when your screen is locked.
+            </Text>
+
+            {/* Steps Card */}
+            <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3.5 mb-6`}>
+              <View style={tw`flex-row items-center gap-3`}>
+                <View style={tw`w-6 h-6 rounded-full bg-slate-800 items-center justify-center`}>
+                  <Text style={tw`text-xs font-bold text-white`}>1</Text>
+                </View>
+                <Text style={tw`text-xs font-bold text-slate-700 flex-1`}>
+                  Tap <Text style={tw`text-emerald-700 font-extrabold`}>"Grant Permission"</Text> below
+                </Text>
+              </View>
+
+              <View style={tw`flex-row items-center gap-3`}>
+                <View style={tw`w-6 h-6 rounded-full bg-slate-800 items-center justify-center`}>
+                  <Text style={tw`text-xs font-bold text-white`}>2</Text>
+                </View>
+                <Text style={tw`text-xs font-bold text-slate-700 flex-1`}>
+                  Select <Text style={tw`text-emerald-700 font-extrabold`}>"Allow all the time"</Text> in Android settings
+                </Text>
+              </View>
+
+              <View style={tw`flex-row items-center gap-3`}>
+                <View style={tw`w-6 h-6 rounded-full bg-slate-800 items-center justify-center`}>
+                  <Text style={tw`text-xs font-bold text-white`}>3</Text>
+                </View>
+                <Text style={tw`text-xs font-bold text-slate-700 flex-1`}>
+                  Ensure <Text style={tw`text-emerald-700 font-extrabold`}>"Use precise location"</Text> is ON
+                </Text>
+              </View>
+            </View>
+
+            {/* Actions */}
+            <TouchableOpacity
+              onPress={handleGrantBgPermission}
+              style={tw`bg-emerald-600 rounded-2xl py-3.5 items-center justify-center shadow-md mb-2.5`}
+            >
+              <Text style={tw`text-white font-bold text-sm uppercase tracking-wider`}>Grant Permission</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={() => {
+                setIsLocationInstructionModalVisible(false);
+                setIsPreDepartureVisible(true);
+              }}
+              style={tw`bg-slate-100 rounded-2xl py-3 items-center justify-center border border-slate-200`}
+            >
+              <Text style={tw`text-slate-600 font-bold text-xs uppercase tracking-wider`}>Skip & Start</Text>
             </TouchableOpacity>
           </View>
         </View>
