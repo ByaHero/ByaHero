@@ -259,11 +259,11 @@ export default function AdminAnalytics() {
             )}
           </View>
 
-          <TouchableOpacity onPress={generatePDF} style={tw`flex-row items-center bg-emerald-500 px-4 py-2 rounded-xl shadow-sm h-[36px] ml-auto`}>
-            <Ionicons name="download" size={16} color="white" style={tw`mr-2`} />
-            <Text style={tw`text-white font-bold text-[13px]`}>Export PDF</Text>
-          </TouchableOpacity>
         </View>
+        <TouchableOpacity onPress={generatePDF} style={tw`flex-row items-center justify-center bg-[#1d4ed8] px-4 py-3 rounded-xl shadow-sm mt-4 self-start`}>
+          <Ionicons name="download" size={18} color="white" style={tw`mr-2`} />
+          <Text style={tw`text-white font-bold text-[14px]`}>Export PDF</Text>
+        </TouchableOpacity>
       </View>
 
       {loading && !refreshing ? (
@@ -296,7 +296,7 @@ export default function AdminAnalytics() {
           {/* Boarding Hotspots */}
           <View style={tw`bg-white rounded-3xl p-6 mx-5 mb-6 shadow-sm border border-slate-200 items-center`}>
             <Text style={tw`text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-2`}>Total Boarded Passengers</Text>
-            <Text style={tw`text-5xl font-black text-emerald-500 mb-2`}>{Number(data.summary?.total_passengers || 0).toLocaleString()}</Text>
+            <Text style={tw`text-5xl font-black text-[#1d4ed8] mb-2`}>{Number(data.summary?.total_passengers || 0).toLocaleString()}</Text>
             <Text style={tw`text-slate-500 text-[12px] font-medium text-center mb-5`}>Activity across all tracked terminals & stops</Text>
             
             <View style={tw`border-t border-slate-100 pt-5 w-full items-center`}>
@@ -305,7 +305,7 @@ export default function AdminAnalytics() {
                 {data.boarding_locations?.length ? data.boarding_locations.map((loc, i) => (
                   <View key={i} style={tw`bg-slate-50 border border-slate-200 rounded-full px-3 py-1.5 flex-row items-center m-1`}>
                     <Text style={tw`font-bold text-slate-700 text-[12px] mr-1`}>{loc.location_name}</Text>
-                    <Text style={tw`text-emerald-500 font-black text-[12px] mr-1`}>— {Number(loc.total).toLocaleString()}</Text>
+                    <Text style={tw`text-[#1d4ed8] font-black text-[12px] mr-1`}>— {Number(loc.total).toLocaleString()}</Text>
                     <Text style={tw`text-slate-400 text-[9px] uppercase tracking-wider`}>Boarded</Text>
                   </View>
                 )) : <Text style={tw`text-slate-400 text-[12px] italic`}>No boarding data yet</Text>}
@@ -458,8 +458,8 @@ export default function AdminAnalytics() {
                     <Text style={tw`w-[100px] text-slate-600 font-medium text-[11px]`} numberOfLines={1}>{(o.conductor_email || '').split('@')[0]}</Text>
                     <Text style={tw`w-[60px] text-[#1d4ed8] font-bold text-[12px] text-center`}>{Number(o.total_boarded || 0)}</Text>
                     <View style={tw`w-[80px] items-end`}>
-                      <View style={tw`px-2 py-0.5 rounded-full ${o.status === 'active' ? 'bg-emerald-100' : 'bg-blue-100'}`}>
-                        <Text style={tw`text-[9px] font-black uppercase ${o.status === 'active' ? 'text-emerald-700' : 'text-blue-700'}`}>{o.status}</Text>
+                      <View style={tw`px-2 py-0.5 rounded-full ${o.status === 'active' ? 'bg-blue-100' : 'bg-slate-100'}`}>
+                        <Text style={tw`text-[9px] font-black uppercase ${o.status === 'active' ? 'text-blue-700' : 'text-slate-700'}`}>{o.status}</Text>
                       </View>
                     </View>
                   </View>
@@ -525,7 +525,7 @@ export default function AdminAnalytics() {
                     <Text style={tw`w-[120px] font-bold text-slate-700 text-[12px]`} numberOfLines={1}>{l.location_name}</Text>
                     <Text style={tw`w-[80px] text-[#1d4ed8] font-bold text-[12px]`}>{l.bus_code}</Text>
                     <Text style={tw`w-[120px] text-slate-600 font-medium text-[11px]`} numberOfLines={1}>{l.route}</Text>
-                    <Text style={tw`w-[60px] text-emerald-500 font-black text-[12px] text-center`}>+{Number(l.boarded || 0)}</Text>
+                    <Text style={tw`w-[60px] text-[#1d4ed8] font-black text-[12px] text-center`}>+{Number(l.boarded || 0)}</Text>
                     <Text style={tw`w-[60px] text-rose-500 font-black text-[12px] text-center`}>-{Number(l.departed || 0)}</Text>
                   </View>
                 ))}

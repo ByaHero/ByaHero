@@ -152,24 +152,24 @@ export default function AdminFeedback() {
           {stats && (
             <View style={tw`mb-6`}>
               <View style={tw`flex-row justify-between mb-2 gap-3`}>
-                <View style={tw`flex-1 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm flex-row items-center`}>
-                  <Text style={tw`text-3xl font-extrabold text-[#1d4ed8] mr-3`}>{stats.averageRating.toFixed(1)}</Text>
-                  <View>
-                    <Text style={tw`text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-1`}>Avg Rating</Text>
+                <View style={tw`flex-1 p-4 sm:p-5 bg-white rounded-3xl border border-slate-200 shadow-sm flex-row items-center`}>
+                  <Text style={tw`text-3xl sm:text-4xl font-extrabold text-[#1d4ed8] mr-3`}>{stats.averageRating.toFixed(1)}</Text>
+                  <View style={tw`flex-1`}>
+                    <Text style={tw`text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1`} numberOfLines={1}>Avg Rating</Text>
                     <View style={tw`flex-row items-center flex-wrap`}>
                       {renderStars(stats.averageRating, 12)}
-                      <Text style={tw`ml-1 text-slate-400 text-[9px] font-medium`}>({stats.totalFeedbacks})</Text>
+                      <Text style={tw`ml-1 text-slate-400 text-[9px] sm:text-[10px] font-medium mt-0.5`}>({stats.totalFeedbacks})</Text>
                     </View>
                   </View>
                 </View>
 
-                <View style={tw`flex-1 p-4 bg-white rounded-3xl border border-slate-200 shadow-sm flex-row items-center`}>
-                  <View style={tw`bg-blue-50 p-2.5 rounded-2xl mr-3`}>
+                <View style={tw`flex-1 p-4 sm:p-5 bg-white rounded-3xl border border-slate-200 shadow-sm flex-row items-center`}>
+                  <View style={tw`bg-blue-50 p-2.5 sm:p-3 rounded-2xl mr-3`}>
                     <Ionicons name="chatbubbles" size={20} color="#1d4ed8" />
                   </View>
-                  <View>
-                    <Text style={tw`text-slate-500 text-[9px] font-bold uppercase tracking-wider mb-1`}>Comments</Text>
-                    <Text style={tw`text-xl font-extrabold text-slate-800`}>{stats.totalComments}</Text>
+                  <View style={tw`flex-1`}>
+                    <Text style={tw`text-slate-500 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider mb-1`} numberOfLines={1}>Comments</Text>
+                    <Text style={tw`text-xl sm:text-2xl font-extrabold text-slate-800`}>{stats.totalComments}</Text>
                   </View>
                 </View>
               </View>
