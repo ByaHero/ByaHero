@@ -264,9 +264,10 @@ export default function LostFound() {
               <input
                 type="text"
                 className="form-input"
-                placeholder="Phone number"
+                placeholder="e.g. 09171234567"
+                maxLength={11}
                 value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
+                onChange={(e) => setContactNumber(e.target.value.replace(/\D/g, '').slice(0, 11))}
                 required
               />
             </div>

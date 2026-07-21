@@ -119,9 +119,10 @@ export default function Profile({ adminEmail }: ProfileProps) {
             <input 
               type="text" 
               className="form-input" 
-              placeholder="e.g. +63 900 000 0000"
+              placeholder="e.g. 09171234567"
+              maxLength={11}
               value={contacts}
-              onChange={(e) => setContacts(e.target.value)}
+              onChange={(e) => setContacts(e.target.value.replace(/\D/g, '').slice(0, 11))}
             />
           </div>
 
@@ -151,6 +152,7 @@ export default function Profile({ adminEmail }: ProfileProps) {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
             />
           </div>
 
@@ -163,6 +165,7 @@ export default function Profile({ adminEmail }: ProfileProps) {
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
+              style={{ color: '#0f172a', backgroundColor: '#ffffff' }}
             />
           </div>
 

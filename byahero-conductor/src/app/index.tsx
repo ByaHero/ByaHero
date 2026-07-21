@@ -87,9 +87,28 @@ export default function LoginScreen() {
     }
   };
 
+  // Custom Auth Response Modal state
+  const [authModalConfig, setAuthModalConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'error';
+    title: string;
+    message: string;
+    targetRoute?: string;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Validation Error', 'Email and password are required.');
+      setAuthModalConfig({
+        visible: true,
+        type: 'error',
+        title: 'Validation Error',
+        message: 'Email and password are required.',
+      });
       return;
     }
 
@@ -106,23 +125,35 @@ export default function LoginScreen() {
       setShowWarmingUpMsg(false);
 
       if (result.role !== 'conductor') {
-        Alert.alert('Access Denied', 'This app is only for authorized ByaHero conductors.');
+        setAuthModalConfig({
+          visible: true,
+          type: 'error',
+          title: 'Access Denied',
+          message: 'This app is only for authorized ByaHero conductors.',
+        });
         return;
       }
 
-      Alert.alert('Login Successful', 'Welcome to Conductor Dashboard');
-      
       const hasLivePayload = await AsyncStorage.getItem('byahero_conductor_payload');
-      if (hasLivePayload) {
-        router.replace('/liveTracking');
-      } else {
-        router.replace('/dashboard');
-      }
+      const targetRoute = hasLivePayload ? '/liveTracking' : '/dashboard';
+
+      setAuthModalConfig({
+        visible: true,
+        type: 'success',
+        title: 'Login Successful',
+        message: 'Hello, welcome back user.',
+        targetRoute,
+      });
     } catch (error) {
       clearTimeout(timer);
       setIsLoading(false);
       setShowWarmingUpMsg(false);
-      Alert.alert('Authentication Failed', (error as any).message || 'Check network connection or configuration.');
+      setAuthModalConfig({
+        visible: true,
+        type: 'error',
+        title: 'Authentication Failed',
+        message: (error as any).message || 'Check network connection or configuration.',
+      });
     }
   };
 
@@ -291,6 +322,50 @@ export default function LoginScreen() {
                 <Text style={tw`text-white font-bold`}>Save</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Auth Result Modal (Success / Error) */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={authModalConfig.visible}
+        onRequestClose={() => setAuthModalConfig(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-6`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-[28px] p-7 items-center shadow-lg border border-slate-100`}>
+            <View style={tw`w-16 h-16 rounded-full ${authModalConfig.type === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4 border ${authModalConfig.type === 'success' ? 'border-emerald-100' : 'border-rose-100'}`}>
+              <Ionicons
+                name={authModalConfig.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
+                size={38}
+                color={authModalConfig.type === 'success' ? '#10b981' : '#f43f5e'}
+              />
+            </View>
+
+            <Text style={tw`text-slate-800 text-base font-extrabold mb-1 text-center tracking-wide`}>
+              {authModalConfig.title}
+            </Text>
+
+            <Text style={tw`text-slate-500 text-sm text-center mb-6 leading-5 px-2 font-semibold`}>
+              {authModalConfig.message}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => {
+                const target = authModalConfig.targetRoute;
+                setAuthModalConfig(prev => ({ ...prev, visible: false }));
+                if (target) {
+                  router.replace(target as any);
+                }
+              }}
+              activeOpacity={0.8}
+              style={tw`w-full ${authModalConfig.type === 'success' ? 'bg-[#1d72f8]' : 'bg-slate-800'} py-3 rounded-full items-center shadow-md`}
+            >
+              <Text style={tw`text-white text-sm font-bold tracking-wider`}>
+                {authModalConfig.type === 'success' ? 'CONTINUE' : 'OK'}
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

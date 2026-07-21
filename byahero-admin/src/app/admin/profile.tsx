@@ -208,9 +208,11 @@ export default function AdminProfile() {
             <TextInput 
               style={tw`bg-white border border-slate-200 rounded-xl p-3 text-slate-800 font-medium`} 
               value={contacts} 
-              onChangeText={setContacts} 
-              placeholder="e.g. +63 900 000 0000" 
+              onChangeText={(text) => setContacts(text.replace(/\D/g, '').slice(0, 11))} 
+              placeholder="e.g. 09171234567"
+              placeholderTextColor="#94a3b8"
               keyboardType="phone-pad"
+              maxLength={11}
             />
           </View>
 
@@ -273,22 +275,25 @@ export default function AdminProfile() {
             <Text style={tw`text-slate-500 text-sm mb-4`}>Enter your current and new password below.</Text>
             
             <TextInput 
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 mb-3 font-medium`}
-              placeholder="Current password" 
+              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3 font-medium`, { color: '#0f172a' }]}
+              placeholder="Current password"
+              placeholderTextColor="#94a3b8"
               value={currentPassword}
               onChangeText={setCurrentPassword}
               secureTextEntry
             />
             <TextInput 
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 mb-3 font-medium`}
-              placeholder="New password" 
+              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3 font-medium`, { color: '#0f172a' }]}
+              placeholder="New password"
+              placeholderTextColor="#94a3b8"
               value={newPassword}
               onChangeText={setNewPassword}
               secureTextEntry
             />
             <TextInput 
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 mb-6 font-medium`}
-              placeholder="Confirm new password" 
+              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-6 font-medium`, { color: '#0f172a' }]}
+              placeholder="Confirm new password"
+              placeholderTextColor="#94a3b8"
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry
