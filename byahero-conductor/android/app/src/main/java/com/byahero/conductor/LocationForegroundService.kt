@@ -22,6 +22,8 @@ class LocationForegroundService : Service() {
         const val ACTION_UPDATE_META    = "com.byahero.conductor.ACTION_UPDATE_META"
         const val ACTION_APP_FOREGROUND = "com.byahero.conductor.ACTION_APP_FOREGROUND"
         const val ACTION_APP_BACKGROUND = "com.byahero.conductor.ACTION_APP_BACKGROUND"
+        const val ACTION_MEDIA_NEXT     = "com.byahero.conductor.ACTION_MEDIA_NEXT"
+        const val ACTION_MEDIA_PREV     = "com.byahero.conductor.ACTION_MEDIA_PREV"
         const val EXTRA_TITLE  = "meta_title"
         const val EXTRA_ARTIST = "meta_artist"
 
@@ -70,6 +72,14 @@ class LocationForegroundService : Service() {
             ACTION_APP_BACKGROUND -> {
                 appInForeground = false
                 refreshNotification()
+                return START_STICKY
+            }
+            ACTION_MEDIA_NEXT -> {
+                broadcastMediaButton("media-session-next")
+                return START_STICKY
+            }
+            ACTION_MEDIA_PREV -> {
+                broadcastMediaButton("media-session-prev")
                 return START_STICKY
             }
         }
@@ -200,8 +210,8 @@ class LocationForegroundService : Service() {
             .setContentIntent(openIntent)
             .setOngoing(true)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(android.R.drawable.ic_media_previous, "Depart", buildActionIntent(ACTION_APP_BACKGROUND, 1))
-            .addAction(android.R.drawable.ic_media_next, "Board", buildActionIntent(ACTION_APP_BACKGROUND, 2))
+            .addAction(android.R.drawable.ic_media_previous, "Depart", buildActionIntent(ACTION_MEDIA_PREV, 1))
+            .addAction(android.R.drawable.ic_media_next, "Board", buildActionIntent(ACTION_MEDIA_NEXT, 2))
             .setStyle(
                 MediaStyle()
                     .setMediaSession(session.sessionToken)

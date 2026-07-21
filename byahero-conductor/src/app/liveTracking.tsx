@@ -320,8 +320,8 @@ export default function LiveTrackingScreen() {
       LocationServiceModule.startService();
       const s = sessionRef.current;
       if (s) LocationServiceModule.updateMetadata(
-        `Bus ${s.code} | Seats: ${seatsRef.current}`,
-        `Route: ${s.route}`
+        `Seats: ${seatsRef.current}`,
+        `Bus ${s.code} - Route: ${s.route}`
       );
     }
 

@@ -12,6 +12,7 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { API_BASE_URL } from '../services/api';
 import { adminService } from '../services/admin';
 
 type PeriodKey = 'today' | 'week' | 'month';
@@ -167,12 +168,18 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
+      const url = `/api/admin/analytics?period=${encodeURIComponent(period)}`;
+      console.log('[Analytics] Fetching', url, 'base API:', API_BASE_URL);
       const res = await adminService.getAnalytics({ period });
-      if (res.success) {
+      console.log('[Analytics] API response', res);
+      if (res && res.success) {
         setApiData(res as ApiAnalytics);
+      } else {
+        console.warn('[Analytics] API returned non-success response', res);
+        setApiData(null);
       }
-    } catch (e) {
-      console.warn("Analytics API failed, fallback to mock analytics data");
+    } catch (e: any) {
+      console.warn("[Analytics] API failed, fallback to mock analytics data", e);
       setApiData(null);
     } finally {
       setLoading(false);
