@@ -333,9 +333,9 @@ export default function LoginScreen() {
         visible={authModalConfig.visible}
         onRequestClose={() => setAuthModalConfig(prev => ({ ...prev, visible: false }))}
       >
-        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
-          <View style={tw`bg-white w-full max-w-[340px] rounded-3xl p-6 items-center shadow-2xl border border-slate-100`}>
-            <View style={tw`w-16 h-16 rounded-full ${authModalConfig.type === 'success' ? 'bg-emerald-100' : 'bg-rose-100'} items-center justify-center mb-4`}>
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-6`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-[28px] p-7 items-center shadow-lg border border-slate-100`}>
+            <View style={tw`w-16 h-16 rounded-full ${authModalConfig.type === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4 border ${authModalConfig.type === 'success' ? 'border-emerald-100' : 'border-rose-100'}`}>
               <Ionicons
                 name={authModalConfig.type === 'success' ? 'checkmark-circle' : 'alert-circle'}
                 size={38}
@@ -343,11 +343,11 @@ export default function LoginScreen() {
               />
             </View>
 
-            <Text style={tw`text-slate-800 text-lg font-bold mb-2 text-center`}>
+            <Text style={tw`text-slate-800 text-base font-extrabold mb-1 text-center tracking-wide`}>
               {authModalConfig.title}
             </Text>
 
-            <Text style={tw`text-slate-600 text-sm text-center mb-6 leading-5 px-2 font-medium`}>
+            <Text style={tw`text-slate-500 text-sm text-center mb-6 leading-5 px-2 font-semibold`}>
               {authModalConfig.message}
             </Text>
 
@@ -360,9 +360,9 @@ export default function LoginScreen() {
                 }
               }}
               activeOpacity={0.8}
-              style={tw`w-full ${authModalConfig.type === 'success' ? 'bg-[#1d72f8]' : 'bg-slate-800'} py-3.5 rounded-full items-center shadow-md`}
+              style={tw`w-full ${authModalConfig.type === 'success' ? 'bg-[#1d72f8]' : 'bg-slate-800'} py-3 rounded-full items-center shadow-md`}
             >
-              <Text style={tw`text-white font-bold text-sm tracking-wide`}>
+              <Text style={tw`text-white text-sm font-bold tracking-wider`}>
                 {authModalConfig.type === 'success' ? 'CONTINUE' : 'OK'}
               </Text>
             </TouchableOpacity>
