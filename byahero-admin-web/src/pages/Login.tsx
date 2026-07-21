@@ -68,7 +68,7 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         </div>
 
         <h1 className="login-title">ByaHero Admin</h1>
-        <p className="login-subtitle">Sign in to control and monitor the fleet system</p>
+        <p className="login-subtitle">Sign in to control and monitor the bus system</p>
 
         {error && (
           <div style={{

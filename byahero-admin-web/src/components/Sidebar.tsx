@@ -43,7 +43,7 @@ export default function Sidebar({ onLogout }: SidebarProps) {
       ]
     },
     {
-      title: 'Fleet & Operations',
+      title: 'Buses & Operations',
       links: [
         { to: '/buses', label: 'Total Buses', icon: Bus },
         { to: '/active-buses', label: 'Active Buses', icon: Activity },

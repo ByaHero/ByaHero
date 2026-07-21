@@ -83,7 +83,7 @@ export default function AdminDashboard() {
 
   const sections = [
     {
-      title: 'Fleet & Operations',
+      title: 'Buses & Operations',
       items: [
         { label: 'Total Buses', count: stats.total_buses, route: '/admin/buses', action: 'Manage' },
         { label: 'Active Buses', count: stats.active_buses, route: '/admin/activeBuses', action: 'Manage' },
@@ -197,7 +197,7 @@ export default function AdminDashboard() {
             <View style={tw`mb-3`}>
               <Text style={tw`text-2xl font-black text-slate-900 mb-1 tracking-tight`}>Control Center</Text>
               <Text style={tw`text-slate-500 text-sm`}>
-                Monitor and manage real-time transport fleet, personnel, and passenger analytics.
+                Monitor and manage real-time transport buses, personnel, and passenger analytics.
               </Text>
             </View>
             <View style={tw`self-start flex-row items-center bg-white px-3 py-2 rounded-full border border-gray-200 shadow-sm`}>
