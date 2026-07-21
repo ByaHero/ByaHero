@@ -120,11 +120,12 @@ export default function ChangePasswordScreen() {
             {hasPassword && (
               <View style={tw`mb-4`}>
                 <Text style={tw`text-xs font-bold text-slate-400 mb-1.5`}>Current Password</Text>
-                <View style={tw`flex-row items-center bg-slate-550 border border-slate-200 rounded-xl px-4 py-3`}>
+                <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3`}>
                   <TextInput
-                    style={tw`flex-1 text-sm font-semibold text-slate-700`}
+                    style={[tw`flex-1 text-sm font-semibold`, { color: '#0f172a' }]}
                     secureTextEntry={secureCurrent}
                     placeholder="Enter current password"
+                    placeholderTextColor="#94a3b8"
                     value={currentPassword}
                     onChangeText={setCurrentPassword}
                   />
@@ -144,9 +145,10 @@ export default function ChangePasswordScreen() {
               <Text style={tw`text-xs font-bold text-slate-400 mb-1.5`}>New Password</Text>
               <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3`}>
                 <TextInput
-                  style={tw`flex-1 text-sm font-semibold text-slate-700`}
+                  style={[tw`flex-1 text-sm font-semibold`, { color: '#0f172a' }]}
                   secureTextEntry={secureNew}
                   placeholder="Enter new password"
+                  placeholderTextColor="#94a3b8"
                   value={newPassword}
                   onChangeText={setNewPassword}
                 />
@@ -165,9 +167,10 @@ export default function ChangePasswordScreen() {
               <Text style={tw`text-xs font-bold text-slate-400 mb-1.5`}>Confirm New Password</Text>
               <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-3`}>
                 <TextInput
-                  style={tw`flex-1 text-sm font-semibold text-slate-700`}
+                  style={[tw`flex-1 text-sm font-semibold`, { color: '#0f172a' }]}
                   secureTextEntry={secureConfirm}
                   placeholder="Confirm new password"
+                  placeholderTextColor="#94a3b8"
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                 />

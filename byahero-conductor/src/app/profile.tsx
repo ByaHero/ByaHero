@@ -403,7 +403,8 @@ export default function ProfileScreen() {
                 onChangeText={setCurrentPassword}
                 secureTextEntry={secureCurrent}
                 placeholder="Current password"
-                style={tw`flex-1 text-slate-800 font-semibold`}
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
               />
               <TouchableOpacity onPress={() => setSecureCurrent(!secureCurrent)}>
                 <Ionicons name={secureCurrent ? "eye-off" : "eye"} size={16} color="#64748b" />
@@ -417,7 +418,8 @@ export default function ProfileScreen() {
                 onChangeText={setNewPassword}
                 secureTextEntry={secureNew}
                 placeholder="New password"
-                style={tw`flex-1 text-slate-800 font-semibold`}
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
               />
               <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
                 <Ionicons name={secureNew ? "eye-off" : "eye"} size={16} color="#64748b" />
@@ -431,7 +433,8 @@ export default function ProfileScreen() {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={secureConfirm}
                 placeholder="Confirm new password"
-                style={tw`flex-1 text-slate-800 font-semibold`}
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
               />
               <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
                 <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={16} color="#64748b" />
