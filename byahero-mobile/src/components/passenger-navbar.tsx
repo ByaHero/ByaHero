@@ -383,10 +383,10 @@ export function PassengerHeader({
               ]}
             >
               {/* Header Block */}
-              <View style={tw`bg-[#103d7c] p-4 pt-10 rounded-b-2xl relative`}>
+              <View style={[tw`bg-[#103d7c] p-4 rounded-b-2xl relative`, { paddingTop: Math.max(insets.top + 12, 36) }]}>
                 <TouchableOpacity
                   onPress={closeMenu}
-                  style={[tw`absolute top-3 right-3 p-1`, { marginTop: 25 }]}
+                  style={[tw`absolute right-3 p-1`, { top: Math.max(insets.top + 8, 20) }]}
                 >
                   <Text style={tw`text-white text-2xl font-bold`}>✕</Text>
                 </TouchableOpacity>
@@ -401,7 +401,11 @@ export function PassengerHeader({
 
               {/* Menu Items List */}
               <ScrollView
-                contentContainerStyle={{ padding: 16, gap: 14 }}
+                contentContainerStyle={{
+                  padding: 16,
+                  paddingBottom: Math.max(insets.bottom + 32, 40),
+                  gap: 14,
+                }}
                 bounces={false}
                 overScrollMode="never"
                 style={Platform.OS === 'web' ? ({ overscrollBehavior: 'none' } as any) : undefined}
