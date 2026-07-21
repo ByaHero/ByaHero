@@ -107,7 +107,7 @@ export default function Dashboard() {
 
   const sections = [
     {
-      title: 'Fleet & Operations',
+      title: 'Buses & Operations',
       items: [
         { label: 'Total Buses', count: stats.total_buses, route: '/buses', action: 'Manage', icon: Bus },
         { label: 'Active Buses', count: stats.active_buses, route: '/active-buses', action: 'Manage', icon: Activity },

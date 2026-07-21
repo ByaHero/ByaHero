@@ -15,12 +15,12 @@ export default function Navbar({ adminEmail }: NavbarProps) {
       case '/':
         return {
           title: 'Control Center',
-          subtitle: 'Monitor and manage real-time transport fleet, personnel, and passenger analytics.'
+          subtitle: 'Monitor and manage real-time transport buses, personnel, and passenger analytics.'
         };
       case '/buses':
         return {
           title: 'Total Buses',
-          subtitle: 'Manage and register fleet vehicles, plate numbers, and passenger capacities.'
+          subtitle: 'Manage and register bus vehicles, plate numbers, and passenger capacities.'
         };
       case '/active-buses':
         return {
@@ -69,7 +69,7 @@ export default function Navbar({ adminEmail }: NavbarProps) {
         };
       case '/analytics':
         return {
-          title: 'Fleet Analytics',
+          title: 'Bus Analytics',
           subtitle: 'Inspect aggregate charts, boarded counts, and revenue trends.'
         };
       case '/profile':
@@ -80,7 +80,7 @@ export default function Navbar({ adminEmail }: NavbarProps) {
       default:
         return {
           title: 'Admin Dashboard',
-          subtitle: 'ByaHero Live Fleet Management Portal'
+          subtitle: 'ByaHero Live Bus Management Portal'
         };
     }
   };

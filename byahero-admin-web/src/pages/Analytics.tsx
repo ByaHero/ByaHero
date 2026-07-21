@@ -345,9 +345,9 @@ export default function Analytics() {
         <>
           <section className="analytics-hero analytics-surface">
             <div className="analytics-hero-copy">
-              <div className="analytics-eyebrow">Fleet intelligence</div>
+              <div className="analytics-eyebrow">Bus intelligence</div>
               <h1 className="analytics-title">Analytics Dashboard</h1>
-              <p className="analytics-subtitle">Boarding activity, route share, fleet performance, and operational logs in a cleaner, denser view.</p>
+              <p className="analytics-subtitle">Boarding activity, route share, bus performance, and operational logs in a cleaner, denser view.</p>
 
               <div style={{ display: 'flex', gap: '8px', marginTop: '24px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '12px', width: 'fit-content' }}>
                 {(Object.keys(periodLabels) as PeriodKey[]).map((key) => (
@@ -553,7 +553,7 @@ export default function Analytics() {
           <div className="analytics-table-card">
             <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
               <div>
-                <div className="analytics-section-kicker">FLEET STATS</div>
+                <div className="analytics-section-kicker">BUS STATS</div>
                 <h3 className="analytics-section-title"><BusFront size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Bus Performance</h3>
               </div>
             </div>

@@ -136,7 +136,7 @@ export default function Buses() {
   return (
     <div className="card">
       <div className="page-header-actions">
-        <h2 className="card-title">Bus Fleet Directory</h2>
+        <h2 className="card-title">Bus Directory</h2>
         <button className="btn btn-primary" onClick={openAddModal}>
           <Plus size={16} /> Register New Bus
         </button>

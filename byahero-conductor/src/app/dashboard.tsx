@@ -155,7 +155,7 @@ export default function DashboardScreen() {
 
   const handleStartTracking = () => {
     if (!selectedBus) {
-      Alert.alert('Selection Required', 'Please select an active fleet unit.');
+      Alert.alert('Selection Required', 'Please select an active bus unit.');
       return;
     }
     if (!selectedRoute) {
@@ -280,9 +280,9 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Active Fleet Select */}
+          {/* Active Bus Select */}
           <View style={tw`mb-5`}>
-            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>ACTIVE FLEET UNIT</Text>
+            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>ACTIVE BUS UNIT</Text>
             <TouchableOpacity
               onPress={() => setIsBusDropdownOpen(true)}
               style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
