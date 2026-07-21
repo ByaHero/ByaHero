@@ -16,33 +16,11 @@ import { getServerUrl } from '../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import TourOverlay, { tourSteps } from '../../components/TourOverlay';
 import { handleTourLayout } from '../../components/TourRegistry';
+import { useTourSync } from '../../hooks/passenger/useTourSync';
 
 export default function RideHistoryScreen() {
-  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const { activeStep, setActiveStep } = useTourSync('/passenger/rideHistory');
   const firstItemRef = useRef<any>(null);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      async function checkTour() {
-        const stepVal = await AsyncStorage.getItem('byahero_active_tour_step');
-        if (stepVal !== null) {
-          const stepIdx = parseInt(stepVal, 10);
-          const stepInfo = tourSteps[stepIdx];
-          if (stepInfo && stepInfo.screen === '/passenger/rideHistory') {
-            setActiveStep(stepIdx);
-          } else {
-            setActiveStep(null);
-          }
-        } else {
-          setActiveStep(null);
-        }
-      }
-      checkTour();
-      return () => {
-        setActiveStep(null);
-      };
-    }, [])
-  );
 
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -17,6 +17,7 @@ import { getServerUrl } from '../../../services/authService';
 import { sendFcmPushes } from '../../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 import { saveBusData, loadBusData, getBusDataAgeHours, formatTimeAgo } from '../../../services/offlineCache';
+import { triggerSOS } from '../../../utils/sosUtils';
 
 export default function BusInfoScreen() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
@@ -181,52 +182,7 @@ export default function BusInfoScreen() {
   };
 
   const handleTriggerSOS = () => {
-    Alert.alert(
-      'Emergency Center',
-      'Trigger Panic Alert? This will broadcast your SOS alert to emergency contacts.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'TRIGGER SOS', 
-          style: 'destructive', 
-          onPress: async () => {
-            try {
-              const email = await AsyncStorage.getItem('byahero_cached_email') || 'Guest';
-              const res = await fetch(`${baseUrl}/api/sos/send`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  email: email,
-                  recipients: [],
-                  location_text: 'Mobile Device',
-                  lat: null,
-                  lng: null
-                }),
-                credentials: 'include'
-              });
-              const data = await res.json();
-              if (data.success) {
-                if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
-                  try {
-                    await sendFcmPushes(data);
-                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified via Push Notifications.');
-                  } catch (pushErr) {
-                    Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been registered on the server, but push notification broadcast failed.');
-                  }
-                } else {
-                  Alert.alert('SOS Broadcasted', 'Help is on the way! Your circle has been notified on the server.');
-                }
-              } else {
-                Alert.alert('SOS Failed', data.message || 'Failed to send SOS.');
-              }
-            } catch (err) {
-              console.error('SOS Alert send error:', err);
-              Alert.alert('SOS Failed', 'Network error. Failed to broadcast SOS.');
-            }
-          }
-        }
-      ]
-    );
+    triggerSOS({ baseUrl });
   };
 
   return (

@@ -14,6 +14,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import { SettingsRowSwitch } from '../../../components/ui/SettingsRowSwitch';
+import { GuestNotice } from '../../../components/ui/GuestNotice';
 
 export default function PrivacySecurityScreen() {
   const [locationServices, setLocationServices] = useState(true);
@@ -100,44 +102,23 @@ export default function PrivacySecurityScreen() {
 
           {/* Guest notice */}
           {!isLoggedIn && (
-            <View style={tw`flex-row items-center bg-[#dbeafe] border-l-4 border-[#3b82f6] p-4 rounded-xl mb-4 gap-2`}>
-              <MaterialIcons name="info" size={18} color="#3b82f6" />
-              <Text style={tw`text-[#1e40af] text-xs flex-1`}>
-                You're using privacy settings as a guest.{' '}
-                <Text 
-                  style={tw`font-bold text-[#1e3a8a] underline`} 
-                  onPress={() => router.replace('/')}
-                >
-                  Login
-                </Text>{' '}
-                to save your preferences across devices.
-              </Text>
-            </View>
+            <GuestNotice 
+              message="You're using privacy settings as a guest. Log in to save your preferences across devices." 
+              actionText="Login"
+              onActionPress={() => router.replace('/')}
+            />
           )}
 
           {/* Permissions Switches */}
           <Text style={tw`text-xs font-bold text-slate-500 uppercase tracking-wider mb-2.5 px-1`}>Permissions</Text>
           <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden mb-5`}>
-            <View style={tw`flex-row items-center justify-between p-4`}>
-              <View style={tw`flex-row items-center flex-1 mr-4`}>
-                <View style={tw`w-10 h-10 rounded-2xl bg-blue-50 justify-center items-center mr-3.5`}>
-                  <MaterialIcons name="location-on" size={20} color="#1e3a8a" />
-                </View>
-                <View style={tw`flex-1`}>
-                  <Text style={tw`text-sm font-semibold text-slate-700`}>Location Services</Text>
-                  <Text style={tw`text-xs text-slate-400 mt-0.5`} numberOfLines={1}>
-                    Allow ByaHero to access your location
-                  </Text>
-                </View>
-              </View>
-
-              <Switch
-                value={locationServices}
-                onValueChange={handleToggleLocation}
-                trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-                thumbColor={locationServices ? '#1e3a8a' : '#f4f3f4'}
-              />
-            </View>
+            <SettingsRowSwitch
+              title="Location Services"
+              description="Allow ByaHero to access your location"
+              value={locationServices}
+              onValueChange={handleToggleLocation}
+              iconName="location-on"
+            />
           </View>
 
           {/* Additional Resources */}

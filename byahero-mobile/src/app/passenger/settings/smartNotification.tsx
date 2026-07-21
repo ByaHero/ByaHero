@@ -14,6 +14,8 @@ import tw from 'twrnc';
 import * as Notifications from 'expo-notifications';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import { SettingsRowSwitch } from '../../../components/ui/SettingsRowSwitch';
+import { GuestNotice } from '../../../components/ui/GuestNotice';
 
 export default function SmartNotificationScreen() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -206,12 +208,10 @@ export default function SmartNotificationScreen() {
 
           {/* Guest Warning */}
           {!isLoggedIn && (
-            <View style={tw`bg-yellow-50 border border-yellow-100 rounded-3xl p-4 mb-4 flex-row items-center`}>
-              <MaterialIcons name="warning" size={20} color="#b45309" style={tw`mr-2`} />
-              <Text style={tw`text-xs text-amber-800/90 leading-relaxed flex-1`}>
-                Settings are saved locally. Log in to synchronize notifications across devices.
-              </Text>
-            </View>
+            <GuestNotice 
+              message="Settings are saved locally. Log in to synchronize notifications across devices."
+              type="warning" 
+            />
           )}
 
           {/* Switches */}
@@ -220,30 +220,16 @@ export default function SmartNotificationScreen() {
           </Text>
           <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden`}>
             {notificationOptions.map((opt, idx) => (
-              <View 
+              <SettingsRowSwitch
                 key={idx}
-                style={[
-                  tw`flex-row items-center justify-between p-4`,
-                  idx < notificationOptions.length - 1 && tw`border-b border-slate-100`
-                ]}
-              >
-                <View style={tw`flex-row items-center flex-1 mr-4`}>
-                  <View style={[tw`w-10 h-10 rounded-2xl justify-center items-center mr-3.5`, { backgroundColor: opt.color + '15' }]}>
-                    <MaterialIcons name={opt.icon as any} size={20} color={opt.color} />
-                  </View>
-                  <View style={tw`flex-1`}>
-                    <Text style={tw`text-sm font-semibold text-slate-700`}>{opt.title}</Text>
-                    <Text style={tw`text-xs text-slate-400 mt-0.5`} numberOfLines={1}>{opt.desc}</Text>
-                  </View>
-                </View>
-
-                <Switch
-                  value={opt.value}
-                  onValueChange={(val) => updateSetting(opt.key, val)}
-                  trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-                  thumbColor={opt.value ? '#1e3a8a' : '#f4f3f4'}
-                />
-              </View>
+                title={opt.title}
+                description={opt.desc}
+                value={opt.value}
+                onValueChange={(val) => updateSetting(opt.key, val)}
+                iconName={opt.icon as any}
+                iconColor={opt.color}
+                isLast={idx === notificationOptions.length - 1}
+              />
             ))}
           </View>
         </View>

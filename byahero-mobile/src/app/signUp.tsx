@@ -16,6 +16,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { signupRequestOtp, signupVerifyOtp } from '../services/authService';
+import { FormInput } from '../components/ui/FormInput';
+import { PrimaryButton } from '../components/ui/PrimaryButton';
+import { OtpInput } from '../components/ui/OtpInput';
 
 export default function SignUpScreen() {
   const [step, setStep] = useState(1);
@@ -27,8 +30,6 @@ export default function SignUpScreen() {
   const [contacts, setContacts] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [securePass, setSecurePass] = useState(true);
-  const [secureConfirm, setSecureConfirm] = useState(true);
 
   // Step 2 OTP Fields
   const [otp, setOtp] = useState('');
@@ -138,86 +139,55 @@ export default function SignUpScreen() {
                   </Text>
 
                   {/* Name Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
-                    <TextInput
-                      value={name}
-                      onChangeText={setName}
-                      placeholder="Full Name (optional)"
-                      placeholderTextColor="#7a98c8"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                  </View>
+                  <FormInput
+                    value={name}
+                    onChangeText={setName}
+                    placeholder="Full Name (optional)"
+                  />
 
                   {/* Email Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Email Address"
-                      placeholderTextColor="#7a98c8"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                  </View>
+                  <FormInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Email Address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                  />
 
                   {/* Contacts Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
-                    <TextInput
-                      value={contacts}
-                      onChangeText={txt => setContacts(txt.replace(/[^0-9]/g, ''))}
-                      placeholder="Contact Number (e.g. 09123456789)"
-                      placeholderTextColor="#7a98c8"
-                      keyboardType="numeric"
-                      maxLength={11}
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                  </View>
+                  <FormInput
+                    value={contacts}
+                    onChangeText={txt => setContacts(txt.replace(/[^0-9]/g, ''))}
+                    placeholder="Contact Number (e.g. 09123456789)"
+                    keyboardType="numeric"
+                    maxLength={11}
+                  />
 
                   {/* Password Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
-                    <TextInput
-                      value={password}
-                      onChangeText={setPassword}
-                      secureTextEntry={securePass}
-                      placeholder="Password"
-                      placeholderTextColor="#7a98c8"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                    <TouchableOpacity onPress={() => setSecurePass(!securePass)}>
-                      <Ionicons name={securePass ? "eye-off" : "eye"} size={18} color="#7a98c8" />
-                    </TouchableOpacity>
-                  </View>
+                  <FormInput
+                    value={password}
+                    onChangeText={setPassword}
+                    placeholder="Password"
+                    autoCapitalize="none"
+                    isPassword
+                  />
 
                   {/* Confirm Password Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-6`}>
-                    <TextInput
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry={secureConfirm}
-                      placeholder="Confirm Password"
-                      placeholderTextColor="#7a98c8"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                    <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
-                      <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={18} color="#7a98c8" />
-                    </TouchableOpacity>
-                  </View>
+                  <FormInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm Password"
+                    autoCapitalize="none"
+                    isPassword
+                    containerStyle={tw`mb-6`}
+                  />
 
                   {/* Register Submit Button */}
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="SIGN UP"
                     onPress={handleSignUpSubmit}
-                    disabled={isLoading}
-                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>SIGN UP</Text>
-                    )}
-                  </TouchableOpacity>
+                    isLoading={isLoading}
+                  />
                 </View>
               ) : (
                 // STEP 2: OTP Verification
@@ -238,31 +208,17 @@ export default function SignUpScreen() {
                   )}
 
                   {/* OTP Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-5`}>
-                    <TextInput
-                      value={otp}
-                      onChangeText={txt => setOtp(txt.replace(/[^0-9]/g, ''))}
-                      placeholder="000000"
-                      placeholderTextColor="#7a98c8"
-                      keyboardType="numeric"
-                      maxLength={6}
-                      textAlign="center"
-                      style={[tw`flex-1 color-[#0f172a] py-3 text-lg font-bold`, { letterSpacing: 6 }]}
-                    />
-                  </View>
+                  <OtpInput
+                    value={otp}
+                    onChangeText={(txt: string) => setOtp(txt.replace(/[^0-9]/g, ''))}
+                  />
 
                   {/* Verify Submit Button */}
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="VERIFY"
                     onPress={handleOtpVerify}
-                    disabled={isLoading}
-                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>VERIFY</Text>
-                    )}
-                  </TouchableOpacity>
+                    isLoading={isLoading}
+                  />
 
                   <TouchableOpacity
                     onPress={() => setStep(1)}

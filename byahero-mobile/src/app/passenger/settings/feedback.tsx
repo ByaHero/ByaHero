@@ -16,33 +16,12 @@ import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 import TourOverlay, { tourSteps } from '../../../components/TourOverlay';
 import { handleTourLayout } from '../../../components/TourRegistry';
+import { useTourSync } from '../../../hooks/passenger/useTourSync';
+import { SuccessScreen } from '../../../components/ui/SuccessScreen';
 
 export default function FeedbackScreen() {
-  const [activeStep, setActiveStep] = useState<number | null>(null);
+  const { activeStep, setActiveStep } = useTourSync('/passenger/settings/feedback');
   const feedbackCardRef = useRef<any>(null);
-
-  useFocusEffect(
-    React.useCallback(() => {
-      async function checkTour() {
-        const stepVal = await AsyncStorage.getItem('byahero_active_tour_step');
-        if (stepVal !== null) {
-          const stepIdx = parseInt(stepVal, 10);
-          const stepInfo = tourSteps[stepIdx];
-          if (stepInfo && stepInfo.screen === '/passenger/settings/feedback') {
-            setActiveStep(stepIdx);
-          } else {
-            setActiveStep(null);
-          }
-        } else {
-          setActiveStep(null);
-        }
-      }
-      checkTour();
-      return () => {
-        setActiveStep(null);
-      };
-    }, [])
-  );
 
   const [rating, setRating] = useState<number>(0);
   const [feedback, setFeedback] = useState('');
@@ -200,14 +179,10 @@ export default function FeedbackScreen() {
                 </View>
               </View>
             ) : (
-              <View style={tw`items-center py-10`}>
-                <MaterialIcons name="check-circle" size={64} color="#10b981" />
-                <Text style={tw`text-lg font-black text-[#1e3a8a] mt-4 mb-2`}>Feedback Sent!</Text>
-                <Text style={tw`text-xs text-slate-400 font-semibold text-center leading-relaxed px-5`}>
-                  {submittedMessage}
-                </Text>
-                <Text style={tw`text-xs text-slate-300 font-semibold mt-8`}>Redirecting you home...</Text>
-              </View>
+              <SuccessScreen 
+                title="Feedback Sent!" 
+                message={submittedMessage} 
+              />
             )}
           </View>
         </View>

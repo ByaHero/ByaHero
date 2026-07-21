@@ -16,6 +16,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { forgotRequestOtp, forgotVerifyOtp, forgotResetPassword } from '../services/authService';
+import { FormInput } from '../components/ui/FormInput';
+import { PrimaryButton } from '../components/ui/PrimaryButton';
+import { OtpInput } from '../components/ui/OtpInput';
 
 export default function ForgotPasswordScreen() {
   const [step, setStep] = useState(1);
@@ -25,8 +28,6 @@ export default function ForgotPasswordScreen() {
   const [devOtp, setDevOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [secureNewPass, setSecureNewPass] = useState(true);
-  const [secureConfirmPass, setSecureConfirmPass] = useState(true);
 
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -176,29 +177,20 @@ export default function ForgotPasswordScreen() {
                     Enter your email address to receive a 6-digit confirmation code.
                   </Text>
 
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-6`}>
-                    <TextInput
-                      value={email}
-                      onChangeText={setEmail}
-                      placeholder="Email Address"
-                      placeholderTextColor="#7a98c8"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                  </View>
+                  <FormInput
+                    value={email}
+                    onChangeText={setEmail}
+                    placeholder="Email Address"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    containerStyle={tw`mb-6`}
+                  />
 
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="SEND RECOVERY CODE"
                     onPress={handleRequestOtp}
-                    disabled={isLoading}
-                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>SEND RECOVERY CODE</Text>
-                    )}
-                  </TouchableOpacity>
+                    isLoading={isLoading}
+                  />
                 </View>
               )}
 
@@ -220,30 +212,16 @@ export default function ForgotPasswordScreen() {
                     </View>
                   )}
 
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-5`}>
-                    <TextInput
-                      value={otp}
-                      onChangeText={txt => setOtp(txt.replace(/[^0-9]/g, ''))}
-                      placeholder="000000"
-                      placeholderTextColor="#7a98c8"
-                      keyboardType="numeric"
-                      maxLength={6}
-                      textAlign="center"
-                      style={[tw`flex-1 color-[#0f172a] py-3 text-lg font-bold`, { letterSpacing: 6 }]}
-                    />
-                  </View>
+                  <OtpInput
+                    value={otp}
+                    onChangeText={(txt: string) => setOtp(txt.replace(/[^0-9]/g, ''))}
+                  />
 
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="VERIFY CODE"
                     onPress={handleVerifyOtp}
-                    disabled={isLoading}
-                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>VERIFY CODE</Text>
-                    )}
-                  </TouchableOpacity>
+                    isLoading={isLoading}
+                  />
 
                   <Text style={tw`text-slate-500 text-center text-xs mt-3`}>
                     Code expires in <Text style={tw`text-red-500 font-bold`}>{formatTime(timeLeft)}</Text>
@@ -262,48 +240,29 @@ export default function ForgotPasswordScreen() {
                   </Text>
 
                   {/* New Password Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-4`}>
-                    <TextInput
-                      value={newPassword}
-                      onChangeText={setNewPassword}
-                      secureTextEntry={secureNewPass}
-                      placeholder="New Password"
-                      placeholderTextColor="#7a98c8"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                    <TouchableOpacity onPress={() => setSecureNewPass(!secureNewPass)}>
-                      <Ionicons name={secureNewPass ? "eye-off" : "eye"} size={18} color="#7a98c8" />
-                    </TouchableOpacity>
-                  </View>
+                  <FormInput
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    placeholder="New Password"
+                    autoCapitalize="none"
+                    isPassword
+                  />
 
                   {/* Confirm Password Input */}
-                  <View style={tw`flex-row items-center bg-[#e8efff] rounded-full px-5 mb-6`}>
-                    <TextInput
-                      value={confirmPassword}
-                      onChangeText={setConfirmPassword}
-                      secureTextEntry={secureConfirmPass}
-                      placeholder="Confirm Password"
-                      placeholderTextColor="#7a98c8"
-                      autoCapitalize="none"
-                      style={tw`flex-1 color-[#0f172a] py-3 text-sm font-semibold`}
-                    />
-                    <TouchableOpacity onPress={() => setSecureConfirmPass(!secureConfirmPass)}>
-                      <Ionicons name={secureConfirmPass ? "eye-off" : "eye"} size={18} color="#7a98c8" />
-                    </TouchableOpacity>
-                  </View>
+                  <FormInput
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    placeholder="Confirm Password"
+                    autoCapitalize="none"
+                    isPassword
+                    containerStyle={tw`mb-6`}
+                  />
 
-                  <TouchableOpacity
+                  <PrimaryButton
+                    title="RESET PASSWORD"
                     onPress={handleResetPassword}
-                    disabled={isLoading}
-                    style={tw`self-center bg-[#1d72f8] rounded-full py-3.5 w-full items-center justify-center shadow-sm mb-4`}
-                  >
-                    {isLoading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={tw`text-white text-sm font-bold tracking-wider`}>RESET PASSWORD</Text>
-                    )}
-                  </TouchableOpacity>
+                    isLoading={isLoading}
+                  />
                 </View>
               )}
 

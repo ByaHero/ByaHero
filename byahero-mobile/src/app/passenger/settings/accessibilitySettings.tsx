@@ -13,6 +13,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import { SettingsRowSwitch } from '../../../components/ui/SettingsRowSwitch';
+import { GuestNotice } from '../../../components/ui/GuestNotice';
 
 export default function AccessibilitySettingsScreen() {
   const [textSize, setTextSize] = useState<'small' | 'medium' | 'large'>('medium');
@@ -119,12 +121,7 @@ export default function AccessibilitySettingsScreen() {
 
           {/* Guest Notice */}
           {!isLoggedIn && (
-            <View style={tw`bg-blue-50 border border-blue-100 rounded-3xl p-4 mb-4 flex-row items-center`}>
-              <MaterialIcons name="info" size={20} color="#1d4ed8" style={tw`mr-2`} />
-              <Text style={tw`text-xs text-blue-800/90 leading-relaxed flex-1`}>
-                You're using accessibility settings as a guest. Log in to save preferences.
-              </Text>
-            </View>
+            <GuestNotice message="You're using accessibility settings as a guest. Log in to save preferences." />
           )}
 
           {/* Text Size Card */}
@@ -162,45 +159,29 @@ export default function AccessibilitySettingsScreen() {
           </View>
 
           {/* High Contrast Mode Switch */}
-          <View style={tw`bg-white rounded-3xl p-4 border border-slate-100 shadow-sm mb-4`}>
-            <View style={tw`flex-row items-center justify-between`}>
-              <View style={tw`flex-1 mr-4`}>
-                <Text style={tw`text-sm font-bold text-slate-800`}>High Contrast Mode</Text>
-                <Text style={tw`text-xs text-slate-400 mt-0.5 font-semibold`}>
-                  Increase contrast for better visibility.
-                </Text>
-              </View>
-              <Switch
-                value={highContrast}
-                onValueChange={(val) => {
-                  setHighContrast(val);
-                  saveSetting('byahero_high_contrast', val ? '1' : '0');
-                }}
-                trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-                thumbColor={highContrast ? '#1e3a8a' : '#f4f3f4'}
-              />
-            </View>
+          <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm mb-4 overflow-hidden`}>
+            <SettingsRowSwitch
+              title="High Contrast Mode"
+              description="Increase contrast for better visibility."
+              value={highContrast}
+              onValueChange={(val) => {
+                setHighContrast(val);
+                saveSetting('byahero_high_contrast', val ? '1' : '0');
+              }}
+            />
           </View>
 
           {/* Screen Reader Switch */}
-          <View style={tw`bg-white rounded-3xl p-4 border border-slate-100 shadow-sm`}>
-            <View style={tw`flex-row items-center justify-between`}>
-              <View style={tw`flex-1 mr-4`}>
-                <Text style={tw`text-sm font-bold text-slate-800`}>Screen Reader Support</Text>
-                <Text style={tw`text-xs text-slate-400 mt-0.5 font-semibold`}>
-                  Optimize for screen reader compatibility.
-                </Text>
-              </View>
-              <Switch
-                value={screenReader}
-                onValueChange={(val) => {
-                  setScreenReader(val);
-                  saveSetting('byahero_screen_reader', val ? '1' : '0');
-                }}
-                trackColor={{ false: '#cbd5e1', true: '#93c5fd' }}
-                thumbColor={screenReader ? '#1e3a8a' : '#f4f3f4'}
-              />
-            </View>
+          <View style={tw`bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden`}>
+            <SettingsRowSwitch
+              title="Screen Reader Support"
+              description="Optimize for screen reader compatibility."
+              value={screenReader}
+              onValueChange={(val) => {
+                setScreenReader(val);
+                saveSetting('byahero_screen_reader', val ? '1' : '0');
+              }}
+            />
           </View>
         </View>
       </ScrollView>
