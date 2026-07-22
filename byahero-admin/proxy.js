@@ -18,22 +18,33 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  // Strip Origin and Referer so the target backend treats it like a non-CORS request
+  const isApi = req.url.startsWith('/api');
+  const targetHost = isApi ? TARGET_HOST : 'localhost';
+  const targetPort = isApi ? 443 : 8081;
+  const targetProtocol = isApi ? https : http;
+
+  console.log(`[Proxy] Incoming request: ${req.method} ${req.url} -> Forwarding to ${isApi ? 'API' : 'Metro'} (${targetHost}:${targetPort})`);
+
   const forwardHeaders = { ...req.headers };
-  delete forwardHeaders.origin;
-  delete forwardHeaders.referer;
-  forwardHeaders.host = TARGET_HOST;
+  if (isApi) {
+    delete forwardHeaders.origin;
+    delete forwardHeaders.referer;
+    forwardHeaders.host = TARGET_HOST;
+  } else {
+    forwardHeaders.host = `localhost:${targetPort}`;
+  }
 
   // Forward the request to the target host
   const options = {
-    hostname: TARGET_HOST,
-    port: 443,
+    hostname: targetHost,
+    port: targetPort,
     path: req.url,
     method: req.method,
     headers: forwardHeaders
   };
 
-  const proxyReq = https.request(options, (proxyRes) => {
+  const proxyReq = targetProtocol.request(options, (proxyRes) => {
+    console.log(`[Proxy] Response from ${targetHost}:${targetPort} for ${req.url}: Status ${proxyRes.statusCode}`);
     // Copy headers from target response, but don't overwrite our CORS headers
     Object.keys(proxyRes.headers).forEach(key => {
       if (!key.toLowerCase().startsWith('access-control-')) {
@@ -56,6 +67,7 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Local CORS Proxy running at http://0.0.0.0:${PORT}`);
-  console.log(`Forwarding requests to https://${TARGET_HOST}`);
+  console.log(`Local CORS Proxy running at http://localhost:${PORT}`);
+  console.log(`Forwarding /api requests to https://${TARGET_HOST}`);
+  console.log(`Forwarding other requests to Metro at http://localhost:8081`);
 });

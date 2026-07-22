@@ -5,11 +5,11 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -24,6 +24,21 @@ export default function LoginScreen() {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  // Custom Alert Modal States
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'error'>('error');
+  const [onAlertConfirm, setOnAlertConfirm] = useState<(() => void) | null>(null);
+
+  const showCustomAlert = (title: string, message: string, type: 'success' | 'error', onConfirm?: () => void) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setOnAlertConfirm(() => onConfirm || null);
+    setAlertVisible(true);
+  };
+
   // Check if already logged in
   useEffect(() => {
     const checkLogin = async () => {
@@ -37,11 +52,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      if (Platform.OS === 'web') {
-        window.alert('Please enter both email and password');
-      } else {
-        Alert.alert('Error', 'Please enter both email and password');
-      }
+      showCustomAlert('Error', 'Please enter both email and password', 'error');
       return;
     }
 
@@ -51,23 +62,32 @@ export default function LoginScreen() {
       
       if (response.success) {
         // Only allow admins
-        if (response.redirect && response.redirect.includes('admin') || response.role === 'admin') {
+        if ((response.redirect && response.redirect.includes('admin')) || response.role === 'admin') {
           await AsyncStorage.setItem('byahero_cached_email', email);
           await AsyncStorage.setItem('byahero_cached_role', 'admin');
           await AsyncStorage.setItem('byahero_admin_user', JSON.stringify(response.user || { email }));
           
-          router.replace('/admin');
+          const displayName = response.user?.name || email.split('@')[0];
+          const formattedName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+          
+          showCustomAlert(
+            'Success',
+            `Hello, welcome back ${formattedName}`,
+            'success',
+            () => {
+              router.replace('/admin');
+            }
+          );
         } else {
-          const msg = 'Unauthorized. Admin access only.';
-          Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+          showCustomAlert('Error', 'Unauthorized. Admin access only.', 'error');
         }
       } else {
         const msg = response.message || response.error || 'Invalid email or password.';
-        Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+        showCustomAlert('Error', msg, 'error');
       }
     } catch (e: any) {
       const msg = e.message || 'An error occurred during login. Please try again.';
-      Platform.OS === 'web' ? window.alert(msg) : Alert.alert('Error', msg);
+      showCustomAlert('Error', msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -142,7 +162,7 @@ export default function LoginScreen() {
 
               {/* Forgot Password Link */}
               <TouchableOpacity
-                onPress={() => Alert.alert('Forgot Password', 'Not implemented for admin.')}
+                onPress={() => showCustomAlert('Forgot Password', 'Not implemented for admin.', 'error')}
                 style={tw`self-start mb-6 ml-3`}
               >
                 <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>
@@ -164,6 +184,51 @@ export default function LoginScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {/* Custom Alert/Success Modal */}
+      <Modal
+        visible={alertVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setAlertVisible(false);
+          if (onAlertConfirm) onAlertConfirm();
+        }}
+      >
+        <View style={tw`flex-1 bg-black/50 justify-center items-center px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[340px] items-center border border-slate-100 shadow-2xl`}>
+            {/* Icon */}
+            <View style={tw`w-16 h-16 rounded-full ${alertType === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4`}>
+              <Ionicons
+                name={alertType === 'success' ? 'checkmark-circle' : 'close-circle'}
+                size={40}
+                color={alertType === 'success' ? '#10b981' : '#f43f5e'}
+              />
+            </View>
+            
+            {/* Title */}
+            <Text style={tw`text-slate-800 text-lg font-bold mb-2 text-center`}>
+              {alertTitle}
+            </Text>
+            
+            {/* Message */}
+            <Text style={tw`text-slate-500 text-sm mb-6 text-center leading-relaxed`}>
+              {alertMessage}
+            </Text>
+            
+            {/* Button */}
+            <TouchableOpacity
+              onPress={() => {
+                setAlertVisible(false);
+                if (onAlertConfirm) onAlertConfirm();
+              }}
+              style={tw`w-full ${alertType === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} rounded-xl py-3 items-center`}
+            >
+              <Text style={tw`text-white font-bold text-sm`}>OK</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

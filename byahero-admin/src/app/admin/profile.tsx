@@ -1,320 +1,481 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, Modal } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  SafeAreaView,
+  ScrollView,
+  Modal,
+  TextInput,
+  ActivityIndicator
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
+import AdminNavbar from '@/components/AdminNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '@/services/admin';
-import AdminNavbar from '@/components/AdminNavbar';
 
 export default function AdminProfile() {
-  const [name, setName] = useState('');
+  const [name, setName] = useState('Admin');
   const [email, setEmail] = useState('');
   const [contacts, setContacts] = useState('');
   
-  // Modal states
-  const [emailModal, setEmailModal] = useState(false);
-  const [passwordModal, setPasswordModal] = useState(false);
+  // Modals state
+  const [isNameModalOpen, setIsNameModalOpen] = useState(false);
+  const [isContactModalOpen, setIsContactModalOpen] = useState(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   
   // Form states
-  const [newEmail, setNewEmail] = useState('');
+  const [newName, setNewName] = useState('');
+  const [newContacts, setNewContacts] = useState('');
+  
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  
+  // Form security toggles
+  const [secureCurrent, setSecureCurrent] = useState(true);
+  const [secureNew, setSecureNew] = useState(true);
+  const [secureConfirm, setSecureConfirm] = useState(true);
+  
+  const [isLoading, setIsLoading] = useState(false);
 
-  const [savingProfile, setSavingProfile] = useState(false);
-  const [savingPass, setSavingPass] = useState(false);
-  const [savingEmail, setSavingEmail] = useState(false);
+  // Custom Alert Modal States
+  const [alertVisible, setAlertVisible] = useState(false);
+  const [alertTitle, setAlertTitle] = useState('');
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertType, setAlertType] = useState<'success' | 'error'>('error');
+  const [onAlertConfirm, setOnAlertConfirm] = useState<(() => void) | null>(null);
+
+  const showCustomAlert = (title: string, message: string, type: 'success' | 'error', onConfirm?: () => void) => {
+    setAlertTitle(title);
+    setAlertMessage(message);
+    setAlertType(type);
+    setOnAlertConfirm(() => onConfirm || null);
+    setAlertVisible(true);
+  };
 
   useEffect(() => {
-    const loadProfile = async () => {
-      try {
-        const userStr = await AsyncStorage.getItem('byahero_admin_user');
-        if (userStr) {
-          const parsed = JSON.parse(userStr);
-          setEmail(parsed.email || '');
-          setName(parsed.name || (parsed.email ? parsed.email.split('@')[0] : 'Admin'));
-          setContacts(parsed.contacts || '');
-        }
-      } catch (e) {
-        console.error('Failed to load profile', e);
-      }
-    };
-    loadProfile();
+    loadCachedDetails();
   }, []);
 
-  const handleUpdateProfile = async () => {
-    setSavingProfile(true);
+  const loadCachedDetails = async () => {
     try {
-      const data = await adminService.updateProfile({
-        action: 'update_info',
-        name,
-        contacts
-      });
-
-      if (data.success) {
-        const userStr = await AsyncStorage.getItem('byahero_admin_user');
-        if (userStr) {
-          const parsed = JSON.parse(userStr);
-          await AsyncStorage.setItem('byahero_admin_user', JSON.stringify({ ...parsed, name, contacts }));
-        }
-        Alert.alert('Success', 'Profile information updated successfully.');
-      } else {
-        Alert.alert('Error', data.error || 'Failed to update profile.');
-      }
-    } catch (e) {
-      Alert.alert('Error', 'Network error while saving profile.');
-    } finally {
-      setSavingProfile(false);
-    }
-  };
-
-  const handleUpdateEmail = async () => {
-    if (!newEmail) {
-      Alert.alert('Error', 'Please enter a valid email address.');
-      return;
-    }
-    setSavingEmail(true);
-    try {
-      const data = await adminService.updateProfile({
-        action: 'update_info',
-        email: newEmail
-      });
-
-      if (data.success) {
-        setEmail(newEmail);
-        setEmailModal(false);
-        setNewEmail('');
+      const userStr = await AsyncStorage.getItem('byahero_admin_user');
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        const fetchedEmail = parsed.email || '';
+        let fetchedName = parsed.name || '';
         
-        const userStr = await AsyncStorage.getItem('byahero_admin_user');
-        if (userStr) {
-          const parsed = JSON.parse(userStr);
-          await AsyncStorage.setItem('byahero_admin_user', JSON.stringify({ ...parsed, email: newEmail }));
+        // Strip email suffix if name contains '@'
+        if (!fetchedName || fetchedName.includes('@')) {
+          fetchedName = (parsed.name || fetchedEmail || 'Admin').split('@')[0];
         }
-        Alert.alert('Success', 'Email updated successfully.');
-      } else {
-        Alert.alert('Error', data.error || 'Failed to update email.');
+        
+        // Capitalize the name
+        fetchedName = fetchedName.charAt(0).toUpperCase() + fetchedName.slice(1);
+        
+        const fetchedContacts = parsed.contacts || '';
+
+        setEmail(fetchedEmail);
+        setName(fetchedName);
+        setNewName(fetchedName);
+        setContacts(fetchedContacts);
+        setNewContacts(fetchedContacts);
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while updating email.');
-    } finally {
-      setSavingEmail(false);
+      console.error('Failed to load profile', e);
     }
   };
 
-  const handleUpdatePassword = async () => {
-    if (!passwordModal) return;
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match!');
+  const handleNameSubmit = async () => {
+    if (!newName.trim()) {
+      showCustomAlert('Validation Error', 'Name cannot be empty.', 'error');
       return;
     }
-    
-    setSavingPass(true);
+
+    setIsLoading(true);
     try {
-      const data = await adminService.updateProfile({
+      const cleanName = newName.trim();
+      const formattedName = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
+      
+      const userStr = await AsyncStorage.getItem('byahero_admin_user');
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        await AsyncStorage.setItem('byahero_admin_user', JSON.stringify({ ...parsed, name: formattedName }));
+      }
+      
+      showCustomAlert('Success', 'Name updated successfully.', 'success', () => {
+        setIsNameModalOpen(false);
+        setName(formattedName);
+        setNewName(formattedName);
+      });
+    } catch (e: any) {
+      showCustomAlert('Error', 'Failed to save name.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleContactSubmit = async () => {
+    const trimmedContact = newContacts.trim();
+    if (!trimmedContact) {
+      showCustomAlert('Validation Error', 'Contact number cannot be empty.', 'error');
+      return;
+    }
+
+    // Regular expression to match digits only
+    const digitRegex = /^[0-9]+$/;
+    if (!digitRegex.test(trimmedContact)) {
+      showCustomAlert('Validation Error', 'Contact number must contain only numbers.', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const userStr = await AsyncStorage.getItem('byahero_admin_user');
+      if (userStr) {
+        const parsed = JSON.parse(userStr);
+        await AsyncStorage.setItem('byahero_admin_user', JSON.stringify({ ...parsed, contacts: trimmedContact }));
+      }
+      
+      showCustomAlert('Success', 'Contact updated successfully.', 'success', () => {
+        setIsContactModalOpen(false);
+        setContacts(trimmedContact);
+        setNewContacts(trimmedContact);
+      });
+    } catch (e: any) {
+      showCustomAlert('Error', 'Failed to save contact.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePasswordSubmit = async () => {
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      showCustomAlert('Validation Error', 'All password fields are required.', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showCustomAlert('Validation Error', 'New passwords do not match.', 'error');
+      return;
+    }
+    if (newPassword.length < 6) {
+      showCustomAlert('Validation Error', 'Password must be at least 6 characters.', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await adminService.updateProfile({
         action: 'update_password',
         password: newPassword,
         confirm_password: confirmPassword,
         current_password: currentPassword
       });
 
-      if (data.success) {
-        setPasswordModal(false);
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        Alert.alert('Success', 'Password successfully updated!');
+      if (res && res.success) {
+        showCustomAlert('Success', 'Password updated successfully.', 'success', () => {
+          setIsPasswordModalOpen(false);
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+        });
       } else {
-        Alert.alert('Error', data.error || 'Failed to update password.');
+        showCustomAlert('Error', res.error || res.message || 'Failed to update password.', 'error');
       }
-    } catch (e) {
-      Alert.alert('Error', 'Network error while updating password.');
+    } catch (e: any) {
+      showCustomAlert('Network Error', e.message || 'Failed to connect to server.', 'error');
     } finally {
-      setSavingPass(false);
+      setIsLoading(false);
     }
   };
 
-  const displayHeaderName = name ? name.charAt(0).toUpperCase() + name.slice(1) : 'Admin';
-  const initial = displayHeaderName.charAt(0).toUpperCase() || '?';
+  const initial = name ? name.charAt(0).toUpperCase() : 'A';
 
   return (
-    <SafeAreaView style={tw`flex-1 bg-white`}>
-      <AdminNavbar title="" />
+    <SafeAreaView style={tw`flex-1 bg-slate-50`}>
+      <AdminNavbar title="Profile" />
 
-      <ScrollView contentContainerStyle={tw`pb-10`}>
-        {/* Header Avatar Section */}
-        <View style={tw`items-center pt-8 px-4 pb-6`}>
-          <View style={tw`items-center justify-center rounded-full bg-slate-200 mb-2 w-28 h-28`}>
-            <Text style={tw`font-bold text-slate-800 text-5xl`}>{initial}</Text>
+      <ScrollView contentContainerStyle={tw`p-5 items-center`} style={tw`flex-1`}>
+        {/* Profile Avatar Initials */}
+        <View style={tw`items-center my-6`}>
+          <View style={tw`w-24 h-24 rounded-full bg-slate-300 items-center justify-center shadow-md mb-3`}>
+            <Text style={tw`text-slate-800 text-4xl font-extrabold uppercase`}>
+              {initial}
+            </Text>
           </View>
-          <Text style={tw`font-bold text-[#1d4ed8] text-xl`}>{displayHeaderName}</Text>
+          <Text style={tw`text-slate-800 text-lg font-black`}>{name}</Text>
         </View>
 
-        {/* Form Container */}
-        <View style={tw`bg-slate-50 p-6 rounded-t-3xl min-h-[500px]`}>
-          <Text style={tw`font-bold text-slate-800 mt-2 mb-4 ml-1 text-xs uppercase tracking-wider`}>
+        {/* Info Cards */}
+        <View style={tw`w-full bg-slate-100 rounded-3xl p-4 border border-slate-200 gap-4 mb-6`}>
+          <Text style={tw`text-[10px] font-bold text-slate-400 uppercase tracking-widest px-1`}>
             Account Details
           </Text>
 
-          {/* Email Card (Web Style) */}
-          <View style={tw`p-4 mb-4 rounded-3xl bg-slate-200 flex-row items-center`}>
-            <View style={tw`w-10 h-10 bg-white rounded-full items-center justify-center mr-4`}>
-              <Ionicons name="mail" size={18} color="#1d4ed8" />
+          {/* Name Info Row */}
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm`}>
+            <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
+              <Ionicons name="person" size={20} color="#0f3878" />
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-[9px] font-bold text-slate-400 uppercase`}>Full Name</Text>
+                <Text style={tw`text-slate-800 font-bold text-xs`} numberOfLines={1}>
+                  {name || 'Loading...'}
+                </Text>
+              </View>
             </View>
-            <View style={tw`flex-1`}>
-              <Text style={tw`text-slate-500 font-bold mb-1 text-[10px] uppercase tracking-wider`}>Email Address</Text>
-              <Text style={tw`font-bold text-slate-800 text-sm`} numberOfLines={1}>{email || 'Not set'}</Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => setEmailModal(true)}
-              style={tw`w-10 h-10 bg-white rounded-full items-center justify-center`}
-            >
-              <Ionicons name="pencil" size={16} color="#64748b" />
+            <TouchableOpacity onPress={() => setIsNameModalOpen(true)} style={tw`p-2 bg-slate-50 rounded-xl border border-slate-200`}>
+              <Ionicons name="create-outline" size={16} color="#475569" />
             </TouchableOpacity>
           </View>
 
-          {/* Password Card (Web Style) */}
-          <View style={tw`p-4 mb-6 rounded-3xl bg-slate-200 flex-row items-center`}>
-            <View style={tw`w-10 h-10 bg-white rounded-full items-center justify-center mr-4`}>
-              <Ionicons name="key" size={18} color="#1d4ed8" />
+          {/* Contact Info Row */}
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm`}>
+            <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
+              <Ionicons name="call" size={20} color="#0f3878" />
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-[9px] font-bold text-slate-400 uppercase`}>Contact Number</Text>
+                <Text style={tw`text-slate-800 font-bold text-xs`} numberOfLines={1}>
+                  {contacts || 'No contact number'}
+                </Text>
+              </View>
             </View>
-            <View style={tw`flex-1`}>
-              <Text style={tw`text-slate-500 font-bold mb-1 text-[10px] uppercase tracking-wider`}>Password</Text>
-              <Text style={tw`font-bold text-slate-800 text-sm`}>••••••••••••</Text>
-            </View>
-            <TouchableOpacity 
-              onPress={() => setPasswordModal(true)}
-              style={tw`w-10 h-10 bg-white rounded-full items-center justify-center`}
-            >
-              <Ionicons name="pencil" size={16} color="#64748b" />
+            <TouchableOpacity onPress={() => setIsContactModalOpen(true)} style={tw`p-2 bg-slate-50 rounded-xl border border-slate-200`}>
+              <Ionicons name="create-outline" size={16} color="#475569" />
             </TouchableOpacity>
           </View>
 
-          <Text style={tw`font-bold text-slate-800 mb-4 ml-1 text-xs uppercase tracking-wider`}>
-            Personal Info
-          </Text>
-
-          <View style={tw`mb-4`}>
-            <Text style={tw`text-xs font-bold text-slate-500 mb-1 ml-1`}>Full Name</Text>
-            <TextInput 
-              style={tw`bg-white border border-slate-200 rounded-xl p-3 text-slate-800 font-medium`} 
-              value={name} 
-              onChangeText={setName} 
-              placeholder="Your Name" 
-            />
+          {/* Email Info Row (Disabled/Read-Only) */}
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm opacity-75`}>
+            <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
+              <Ionicons name="mail" size={20} color="#0f3878" />
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-[9px] font-bold text-slate-400 uppercase`}>Email Address</Text>
+                <Text style={tw`text-slate-800 font-bold text-xs`} numberOfLines={1}>
+                  {email || 'Loading...'}
+                </Text>
+              </View>
+            </View>
           </View>
 
-          <View style={tw`mb-6`}>
-            <Text style={tw`text-xs font-bold text-slate-500 mb-1 ml-1`}>Contact Number</Text>
-            <TextInput 
-              style={tw`bg-white border border-slate-200 rounded-xl p-3 text-slate-800 font-medium`} 
-              value={contacts} 
-              onChangeText={(text) => setContacts(text.replace(/\D/g, '').slice(0, 11))} 
-              placeholder="e.g. 09171234567"
-              placeholderTextColor="#94a3b8"
-              keyboardType="phone-pad"
-              maxLength={11}
-            />
+          {/* Password Info Row */}
+          <View style={tw`bg-white rounded-2xl p-4 border border-slate-200 flex-row justify-between items-center shadow-sm`}>
+            <View style={tw`flex-row items-center gap-3 flex-1 mr-2`}>
+              <Ionicons name="lock-closed" size={20} color="#0f3878" />
+              <View style={tw`flex-1`}>
+                <Text style={tw`text-[9px] font-bold text-slate-400 uppercase`}>Password</Text>
+                <Text style={tw`text-slate-800 font-bold text-xs`}>••••••••••••</Text>
+              </View>
+            </View>
+            <TouchableOpacity onPress={() => setIsPasswordModalOpen(true)} style={tw`p-2 bg-slate-50 rounded-xl border border-slate-200`}>
+              <Ionicons name="create-outline" size={16} color="#475569" />
+            </TouchableOpacity>
           </View>
-
-          <TouchableOpacity 
-            onPress={handleUpdateProfile} 
-            disabled={savingProfile} 
-            style={tw`bg-[#1d4ed8] rounded-xl py-3.5 items-center flex-row justify-center shadow-sm`}
-          >
-            {savingProfile ? (
-              <ActivityIndicator color="white" style={tw`mr-2`} size="small" />
-            ) : (
-              <Ionicons name="save-outline" size={16} color="white" style={tw`mr-2`} />
-            )}
-            <Text style={tw`text-white font-bold text-[13px]`}>{savingProfile ? 'Saving...' : 'Save Personal Info'}</Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
 
-      {/* Email Edit Modal */}
-      <Modal visible={emailModal} transparent animationType="fade">
-        <View style={tw`flex-1 bg-black/50 justify-center px-4`}>
-          <View style={tw`bg-white rounded-3xl p-6 shadow-2xl`}>
-            <Text style={tw`text-lg font-bold text-slate-900 mb-2`}>Edit Email</Text>
-            <Text style={tw`text-slate-500 text-sm mb-4`}>Enter your new email address below.</Text>
-            
-            <TextInput 
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 mb-6 font-medium`}
-              placeholder="New email address" 
-              value={newEmail}
-              onChangeText={setNewEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+      {/* Edit Name Modal */}
+      <Modal visible={isNameModalOpen} transparent animationType="fade">
+        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
+            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Name</Text>
+            <Text style={tw`text-slate-500 text-xs mb-4`}>Update your full name below.</Text>
+
+            <TextInput
+              value={newName}
+              onChangeText={setNewName}
+              placeholder="Name"
+              autoCapitalize="words"
+              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 mb-5 text-slate-800 font-semibold`}
             />
-            
-            <View style={tw`flex-row justify-between gap-3`}>
-              <TouchableOpacity 
-                style={tw`flex-1 bg-slate-100 py-3 rounded-xl items-center`}
-                onPress={() => setEmailModal(false)}
+
+            <View style={tw`flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsNameModalOpen(false);
+                  setNewName(name);
+                }}
+                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
               >
-                <Text style={tw`text-slate-700 font-bold`}>Cancel</Text>
+                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={tw`flex-1 bg-[#1d4ed8] py-3 rounded-xl items-center flex-row justify-center`}
-                onPress={handleUpdateEmail}
-                disabled={savingEmail}
+              <TouchableOpacity
+                onPress={handleNameSubmit}
+                disabled={isLoading}
+                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
               >
-                {savingEmail ? <ActivityIndicator size="small" color="white" style={tw`mr-2`} /> : null}
-                <Text style={tw`text-white font-bold`}>Save</Text>
+                {isLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={tw`text-white font-bold`}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* Password Edit Modal */}
-      <Modal visible={passwordModal} transparent animationType="fade">
-        <View style={tw`flex-1 bg-black/50 justify-center px-4`}>
-          <View style={tw`bg-white rounded-3xl p-6 shadow-2xl`}>
-            <Text style={tw`text-lg font-bold text-slate-900 mb-2`}>Edit Password</Text>
-            <Text style={tw`text-slate-500 text-sm mb-4`}>Enter your current and new password below.</Text>
-            
-            <TextInput 
-              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3 font-medium`, { color: '#0f172a' }]}
-              placeholder="Current password"
-              placeholderTextColor="#94a3b8"
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
+      {/* Edit Contact Modal */}
+      <Modal visible={isContactModalOpen} transparent animationType="fade">
+        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
+            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Contact Number</Text>
+            <Text style={tw`text-slate-500 text-xs mb-4`}>Update your contact number below.</Text>
+
+            <TextInput
+              value={newContacts}
+              onChangeText={(text) => {
+                const filtered = text.replace(/[^0-9]/g, '');
+                setNewContacts(filtered);
+              }}
+              placeholder="Contact Number"
+              keyboardType="phone-pad"
+              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 mb-5 text-slate-800 font-semibold`}
             />
-            <TextInput 
-              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-3 font-medium`, { color: '#0f172a' }]}
-              placeholder="New password"
-              placeholderTextColor="#94a3b8"
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-            />
-            <TextInput 
-              style={[tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 mb-6 font-medium`, { color: '#0f172a' }]}
-              placeholder="Confirm new password"
-              placeholderTextColor="#94a3b8"
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-            />
-            
-            <View style={tw`flex-row justify-between gap-3`}>
-              <TouchableOpacity 
-                style={tw`flex-1 bg-slate-100 py-3 rounded-xl items-center`}
-                onPress={() => setPasswordModal(false)}
+
+            <View style={tw`flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsContactModalOpen(false);
+                  setNewContacts(contacts);
+                }}
+                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
               >
-                <Text style={tw`text-slate-700 font-bold`}>Cancel</Text>
+                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
               </TouchableOpacity>
-              <TouchableOpacity 
-                style={tw`flex-1 bg-[#1d4ed8] py-3 rounded-xl items-center flex-row justify-center`}
-                onPress={handleUpdatePassword}
-                disabled={savingPass}
+              <TouchableOpacity
+                onPress={handleContactSubmit}
+                disabled={isLoading}
+                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
               >
-                {savingPass ? <ActivityIndicator size="small" color="white" style={tw`mr-2`} /> : null}
-                <Text style={tw`text-white font-bold`}>Save</Text>
+                {isLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={tw`text-white font-bold`}>Save</Text>
+                )}
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Edit Password Modal */}
+      <Modal visible={isPasswordModalOpen} transparent animationType="fade">
+        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
+            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Password</Text>
+            <Text style={tw`text-slate-500 text-xs mb-4`}>Enter your current and new password below.</Text>
+
+            {/* Current Password */}
+            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-3`}>
+              <TextInput
+                value={currentPassword}
+                onChangeText={setCurrentPassword}
+                secureTextEntry={secureCurrent}
+                placeholder="Current password"
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+              />
+              <TouchableOpacity onPress={() => setSecureCurrent(!secureCurrent)}>
+                <Ionicons name={secureCurrent ? "eye-off" : "eye"} size={16} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* New Password */}
+            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-3`}>
+              <TextInput
+                value={newPassword}
+                onChangeText={setNewPassword}
+                secureTextEntry={secureNew}
+                placeholder="New password"
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+              />
+              <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
+                <Ionicons name={secureNew ? "eye-off" : "eye"} size={16} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Confirm Password */}
+            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-5`}>
+              <TextInput
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={secureConfirm}
+                placeholder="Confirm new password"
+                placeholderTextColor="#94a3b8"
+                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+              />
+              <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
+                <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={16} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={tw`flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => setIsPasswordModalOpen(false)}
+                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
+              >
+                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={handlePasswordSubmit}
+                disabled={isLoading}
+                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
+              >
+                {isLoading ? (
+                  <ActivityIndicator color="white" size="small" />
+                ) : (
+                  <Text style={tw`text-white font-bold`}>Save</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Alert/Success Modal */}
+      <Modal
+        visible={alertVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setAlertVisible(false);
+          if (onAlertConfirm) onAlertConfirm();
+        }}
+      >
+        <View style={tw`flex-1 bg-black/50 justify-center items-center px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[340px] items-center border border-slate-100 shadow-2xl`}>
+            {/* Icon */}
+            <View style={tw`w-16 h-16 rounded-full ${alertType === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4`}>
+              <Ionicons
+                name={alertType === 'success' ? 'checkmark-circle' : 'close-circle'}
+                size={40}
+                color={alertType === 'success' ? '#10b981' : '#f43f5e'}
+              />
+            </View>
+            
+            {/* Title */}
+            <Text style={tw`text-slate-800 text-lg font-bold mb-2 text-center`}>
+              {alertTitle}
+            </Text>
+            
+            {/* Message */}
+            <Text style={tw`text-slate-500 text-sm mb-6 text-center leading-relaxed`}>
+              {alertMessage}
+            </Text>
+            
+            {/* Button */}
+            <TouchableOpacity
+              onPress={() => {
+                setAlertVisible(false);
+                if (onAlertConfirm) onAlertConfirm();
+              }}
+              style={tw`w-full ${alertType === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} rounded-xl py-3 items-center`}
+            >
+              <Text style={tw`text-white font-bold text-sm`}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

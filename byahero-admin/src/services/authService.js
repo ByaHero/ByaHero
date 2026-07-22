@@ -4,7 +4,9 @@ import { Platform } from 'react-native';
 const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 
 export async function getServerUrl() {
-  // Temporarily bypass AsyncStorage because it may be caching an old/wrong IP
+  if (Platform.OS === 'web') {
+    return window.location.origin;
+  }
   return DEFAULT_SERVER_URL;
 }
 
