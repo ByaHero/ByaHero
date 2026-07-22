@@ -5,6 +5,7 @@ import {
   ChevronDown,
   ChevronUp,
   Clock3,
+  Download,
   History,
   Loader2,
   MapPinned,
@@ -164,6 +165,7 @@ export default function Analytics() {
   const [expandedBus, setExpandedBus] = useState<string | null>(null);
   const [recentLimit, setRecentLimit] = useState(10);
   const [logLimit, setLogLimit] = useState(10);
+  const [downloading, setDownloading] = useState(false);
 
   const fetchAnalytics = async () => {
     try {
@@ -342,6 +344,179 @@ export default function Analytics() {
     { label: 'Avg Fare', value: `₱${data.averageFare.toFixed(2)}`, icon: <Clock3 size={18} /> },
   ];
 
+  const generatePDF = async () => {
+    if (!data || downloading) return;
+    setDownloading(true);
+    try {
+      const container = document.createElement('div');
+      container.style.padding = '20px';
+      container.style.fontFamily = "'Helvetica', 'Arial', sans-serif";
+      container.style.color = '#333';
+
+      container.innerHTML = `
+        <style>
+          .pdf-section {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-bottom: 20px;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+            font-size: 11px;
+          }
+          tr {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+          thead {
+            display: table-header-group;
+          }
+          .section-header {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e293b;
+            margin-bottom: 8px;
+            border-left: 4px solid #1d4ed8;
+            padding-left: 8px;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+          }
+        </style>
+
+        <div style="border-bottom: 2px solid #0f3878; padding-bottom: 10px; margin-bottom: 20px; page-break-inside: avoid;">
+          <h1 style="color: #0f3878; margin: 0 0 5px 0; font-size: 22px;">ByaHero Analytics Report</h1>
+          <div style="color: #666; font-size: 13px;">Period: ${periodLabels[period]} | Generated: ${new Date().toLocaleDateString()}</div>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; margin-bottom: 25px; justify-content: space-between; page-break-inside: avoid;">
+          <div style="width: 22%; padding: 12px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #1d4ed8;">${Number(data.totalTrips || 0).toLocaleString()}</div>
+            <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 4px;">Total Trips</div>
+          </div>
+          <div style="width: 22%; padding: 12px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #1d4ed8;">${Number(data.totalPassengers || 0).toLocaleString()}</div>
+            <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 4px;">Pax Boarded</div>
+          </div>
+          <div style="width: 22%; padding: 12px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #1d4ed8;">${Number(data.totalDeparted || 0).toLocaleString()}</div>
+            <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 4px;">Pax Departed</div>
+          </div>
+          <div style="width: 22%; padding: 12px 8px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; text-align: center;">
+            <div style="font-size: 20px; font-weight: bold; color: #1d4ed8;">${Math.round(Number(data.averageTripMinutes || 0))}m</div>
+            <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 4px;">Avg Trip Time</div>
+          </div>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Boarding Locations</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Location</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers Boarded</th></tr>
+            </thead>
+            <tbody>
+              ${data.boardingLocations?.map(l => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.location_name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(l.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No data</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Route Breakdown</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th></tr>
+            </thead>
+            <tbody>
+              ${data.routes?.map(r => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${r.name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(r.count).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No data</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Bus Performance</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus Code</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trips</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Routes</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductors</th></tr>
+            </thead>
+            <tbody>
+              ${data.buses?.map(b => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.trips}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(b.passengers).toLocaleString()}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.routes}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${(b.conductors || '').substring(0, 30)}${(b.conductors && b.conductors.length > 30) ? '...' : ''}</td></tr>`).join('') || '<tr><td colspan="5" style="padding: 8px;">No data</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Conductor Activity</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductor</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trips</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th></tr>
+            </thead>
+            <tbody>
+              ${data.conductors?.map(c => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${c.email}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${c.trips}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(c.passengers).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="padding: 8px;">No conductor data yet</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Recent Operations</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductor</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Boarded</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Status</th></tr>
+            </thead>
+            <tbody>
+              ${data.recentOperations?.map(o => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.bus_code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.route}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${(o.conductor_email || '').split('@')[0]}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(o.total_boarded || 0)}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.status}</td></tr>`).join('') || '<tr><td colspan="5" style="padding: 8px;">No operations recorded yet</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Passenger Flow (Hourly)</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Hour</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers Boarded</th></tr>
+            </thead>
+            <tbody>
+              ${data.hourlyFlow?.map(f => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${f.hr}:00</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(f.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No hourly data</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+
+        <div class="pdf-section">
+          <div class="section-header">Location Activity Log</div>
+          <table>
+            <thead>
+              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Location</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Time</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Boarded</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Departed</th></tr>
+            </thead>
+            <tbody>
+              ${data.locationLogs?.map(l => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.location_name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${new Date(l.recorded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.bus_code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.route}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.boarded}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.departed}</td></tr>`).join('') || '<tr><td colspan="6" style="padding: 8px;">No location logs recorded</td></tr>'}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      const opt = {
+        margin:       10,
+        filename:     `ByaHero_Analytics_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image:        { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true, logging: false },
+        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+      };
+
+      // @ts-ignore
+      const html2pdfModule = await import('html2pdf.js');
+      const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
+      await html2pdf().set(opt).from(container).save();
+    } catch (err) {
+      console.warn('PDF Download Error:', err);
+      alert('Failed to download PDF report.');
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {loading ? (
@@ -356,28 +531,52 @@ export default function Analytics() {
               <h1 className="analytics-title">Analytics Dashboard</h1>
               <p className="analytics-subtitle">Boarding activity, route share, bus performance, and operational logs in a cleaner, denser view.</p>
 
-              <div style={{ display: 'flex', gap: '8px', marginTop: '24px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '12px', width: 'fit-content' }}>
-                {(Object.keys(periodLabels) as PeriodKey[]).map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    style={{
-                      padding: '8px 20px',
-                      borderRadius: '8px',
-                      fontSize: '0.875rem',
-                      fontWeight: 600,
-                      border: 'none',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s ease',
-                      backgroundColor: period === key ? '#ffffff' : 'transparent',
-                      color: period === key ? 'var(--primary-color)' : '#64748b',
-                      boxShadow: period === key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                    }}
-                    onClick={() => setPeriod(key)}
-                  >
-                    {periodLabels[key]}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '12px', width: 'fit-content' }}>
+                  {(Object.keys(periodLabels) as PeriodKey[]).map((key) => (
+                    <button
+                      key={key}
+                      type="button"
+                      style={{
+                        padding: '8px 20px',
+                        borderRadius: '8px',
+                        fontSize: '0.875rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
+                        backgroundColor: period === key ? '#ffffff' : 'transparent',
+                        color: period === key ? 'var(--primary-color)' : '#64748b',
+                        boxShadow: period === key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
+                      }}
+                      onClick={() => setPeriod(key)}
+                    >
+                      {periodLabels[key]}
+                    </button>
+                  ))}
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={generatePDF}
+                  disabled={downloading}
+                  style={{
+                    borderRadius: '12px',
+                    padding: '10px 18px',
+                    fontSize: '0.875rem',
+                    fontWeight: 700,
+                    boxShadow: '0 2px 4px rgba(29, 78, 216, 0.25)',
+                    opacity: downloading ? 0.7 : 1
+                  }}
+                >
+                  {downloading ? (
+                    <Loader2 size={16} className="animate-spin" />
+                  ) : (
+                    <Download size={16} />
+                  )}
+                  {downloading ? 'Downloading...' : 'Export PDF'}
+                </button>
               </div>
             </div>
 

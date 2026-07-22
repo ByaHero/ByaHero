@@ -13,12 +13,14 @@ use App\Http\Controllers\LostAndFoundController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\ConductorController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\AppVersionController;
 
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
     \Illuminate\Session\Middleware\StartSession::class,
 ])->group(function () {
+    Route::get('/app-version', [AppVersionController::class, 'getVersion']);
     Route::post('/auth', [AuthController::class, 'handle']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/ping', function () {

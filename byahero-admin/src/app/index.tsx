@@ -160,41 +160,6 @@ export default function LoginScreen() {
                   <Text style={tw`text-white text-sm font-bold tracking-wider`}>LOGIN</Text>
                 )}
               </TouchableOpacity>
-
-              {/* Divider */}
-              <View style={tw`flex-row items-center w-full mb-5`}>
-                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
-                <Text style={tw`text-slate-400 text-[10px] font-bold mx-3`}>OR</Text>
-                <View style={tw`flex-1 h-[1px] bg-slate-200`} />
-              </View>
-
-              {/* Google sign-in button */}
-              <TouchableOpacity
-                onPress={() => Alert.alert('Google Sign-In', 'Not implemented for admin.')}
-                activeOpacity={0.85}
-                style={tw`flex-row items-center justify-center border border-slate-200 rounded-full py-2.5 px-4 w-full bg-white mb-6 shadow-sm`}
-              >
-                <Image
-                  source={{ uri: 'https://developers.google.com/static/identity/images/g-logo.png' }}
-                  style={tw`w-4 h-4 mr-3`}
-                  contentFit="contain"
-                />
-                <Text style={tw`text-slate-700 text-xs font-semibold`}>
-                  Continue with Google
-                </Text>
-              </TouchableOpacity>
-
-              {/* Sign Up Navigation link */}
-              <View style={tw`flex-row justify-center items-center`}>
-                <Text style={tw`text-slate-500 text-xs font-medium`}>
-                  Don't have an account?{' '}
-                </Text>
-                <TouchableOpacity onPress={() => Alert.alert('Sign Up', 'Admin accounts must be created by super admins.')}>
-                  <Text style={tw`text-[#1d72f8] text-xs font-bold`}>
-                    Sign up
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
           </View>
         </ScrollView>

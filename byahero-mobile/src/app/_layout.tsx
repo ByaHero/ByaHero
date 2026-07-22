@@ -4,6 +4,7 @@ import { useColorScheme } from 'react-native';
 
 import { AnimatedSplashOverlay } from '@/components/animated-icon';
 import OfflineBanner from '@/components/OfflineBanner';
+import UpdateModal from '@/components/UpdateModal';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -11,6 +12,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <AnimatedSplashOverlay />
       <OfflineBanner />
+      <UpdateModal />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="signUp" />
