@@ -1,4 +1,4 @@
-name: Deploy Landing Page to InfinityFree
+name: Deploy Landing Page to FTP
 
 on:
   push:
@@ -20,7 +20,7 @@ jobs:
           mkdir -p deploy
           cp index.html deploy/
 
-      - name: Upload via FTP to InfinityFree
+      - name: Upload via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4
         with:
           server: ${{ secrets.FTP_SERVER }}
@@ -29,4 +29,4 @@ jobs:
           port: 21
           protocol: ftp
           local-dir: ./deploy/
-          server-dir: ./htdocs/
+          server-dir: ./byahero.app/htdocs/
