@@ -166,11 +166,19 @@ export default function LiveTrackingScreen() {
     });
   }, []);
 
-  // Restore full media session when app comes back to foreground after being swiped
+  // Restore full media session & sync seat count when app comes back to foreground
   useEffect(() => {
     if (Platform.OS !== 'android' || !LocationServiceModule) return;
-    const sub = AppState.addEventListener('change', state => {
-      if (state === 'active') LocationServiceModule.notifyAppForeground();
+    const sub = AppState.addEventListener('change', async state => {
+      if (state === 'active') {
+        LocationServiceModule.notifyAppForeground();
+        try {
+          const persisted = await LocationServiceModule.getPersistedSeats();
+          if (persisted !== -1) {
+            setSeats(persisted);
+          }
+        } catch (_) {}
+      }
     });
     return () => sub.remove();
   }, []);
@@ -188,15 +196,6 @@ export default function LiveTrackingScreen() {
     const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current());
     return () => { nextListener.remove(); prevListener.remove(); };
   }, []);
-
-  // Update service notification metadata whenever session or seats change
-  useEffect(() => {
-    if (!session || Platform.OS !== 'android' || !LocationServiceModule) return;
-    LocationServiceModule.updateMetadata(
-      `Bus ${session.code} | Seats: ${seatsRef.current}`,
-      `Route: ${session.route}`
-    );
-  }, [session, seats]);
 
   const cleanup = () => {
     if (locationSubscription.current) {
@@ -239,6 +238,22 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      getServerUrl().then(async baseUrl => {
+        const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
+        LocationServiceModule.updateSessionData({
+          bus_id: String(payload.bus_id),
+          code: payload.code || '',
+          route: payload.route || '',
+          seats_total: payload.seats_total || 25,
+          seats_available: restoredSeats,
+          force_seats: true,
+          server_url: baseUrl,
+          email: cachedEmail
+        });
+      });
+    }
     
     let restoredPending = payload.pending_tickets !== undefined
       ? payload.pending_tickets
@@ -385,7 +400,17 @@ export default function LiveTrackingScreen() {
       pan: true
     });
 
-    sendDataToServer(lat, lng, speed, resolved, computedStatus);
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        lat,
+        lng,
+        speed,
+        location_name: resolved
+      });
+      setNetStatus('Live');
+    } else {
+      sendDataToServer(lat, lng, speed, resolved, computedStatus);
+    }
   };
 
   const resolvedLocationNameCached = (lat: number, lng: number): string => {
@@ -482,29 +507,45 @@ export default function LiveTrackingScreen() {
       clearTimeout(syncTimer.current);
     }
     syncTimer.current = setTimeout(() => {
-      triggerManualUpdate();
+      if (Platform.OS !== 'android') {
+        triggerManualUpdate();
+      }
       flushPendingEvents();
       syncTimer.current = null;
     }, 3000);
   };
 
-  const incrementPassengers = (count = 1) => {
+  const incrementPassengers = (count = 1, isManualUi = false) => {
     const currentSeats = seatsRef.current;
     if (sessionRef.current && currentSeats > 0) {
       const actualCount = Math.min(count, currentSeats);
-      setSeats(currentSeats - actualCount);
+      const newSeats = currentSeats - actualCount;
+      setSeats(newSeats);
       pendingBoards.current += actualCount;
       scheduleSync();
+      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+        LocationServiceModule.updateSessionData({
+          seats_available: newSeats,
+          force_seats: true
+        });
+      }
     }
   };
 
-  const decrementPassengers = () => {
+  const decrementPassengers = (isManualUi = false) => {
     const currentSeats = seatsRef.current;
     if (sessionRef.current && currentSeats < sessionRef.current.seats_total) {
-      setSeats(currentSeats + 1);
+      const newSeats = currentSeats + 1;
+      setSeats(newSeats);
       pendingDeparts.current++;
       setPendingTickets(prev => Math.max(0, prev - 1));
       scheduleSync();
+      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+        LocationServiceModule.updateSessionData({
+          seats_available: newSeats,
+          force_seats: true
+        });
+      }
     }
   };
 
@@ -674,7 +715,7 @@ export default function LiveTrackingScreen() {
           <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3`}>Passenger Count</Text>
           <View style={tw`flex-row items-center gap-6`}>
             {/* Minus */}
-            <TouchableOpacity onPress={decrementPassengers}>
+            <TouchableOpacity onPress={() => decrementPassengers(true)}>
               <Image source={require('../../assets/images/decrease.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
 
@@ -683,7 +724,7 @@ export default function LiveTrackingScreen() {
             </Text>
 
             {/* Plus */}
-            <TouchableOpacity onPress={() => incrementPassengers(1)}>
+            <TouchableOpacity onPress={() => incrementPassengers(1, true)}>
               <Image source={require('../../assets/images/increase.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
           </View>

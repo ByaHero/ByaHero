@@ -30,6 +30,17 @@ class LocationForegroundService : Service() {
         @Volatile var isRunning   = false
         @Volatile var currentTitle  = "ByaHero – Tracking Active"
         @Volatile var currentArtist = "Bus location is being shared."
+        @Volatile var busId = ""
+        @Volatile var code = ""
+        @Volatile var route = ""
+        @Volatile var seatsTotal = 25
+        @Volatile var seatsAvailable = 25
+        @Volatile var serverUrl = "https://byahero.alwaysdata.net"
+        @Volatile var cachedEmail = ""
+        @Volatile var lastLat = 0.0
+        @Volatile var lastLng = 0.0
+        @Volatile var lastSpeed = 0.0
+        @Volatile var lastLocName = ""
     }
 
     private lateinit var fusedClient: FusedLocationProviderClient
@@ -57,7 +68,13 @@ class LocationForegroundService : Service() {
         }
         locationCallback = object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { broadcastLocation(it) }
+                result.lastLocation?.let {
+                    lastLat = it.latitude
+                    lastLng = it.longitude
+                    lastSpeed = if (it.hasSpeed()) it.speed.toDouble() else 0.0
+                    broadcastLocation(it)
+                    scheduleNativeBackendUpdate()
+                }
             }
         }
     }
@@ -75,11 +92,11 @@ class LocationForegroundService : Service() {
                 return START_STICKY
             }
             ACTION_MEDIA_NEXT -> {
-                broadcastMediaButton("media-session-next")
+                handleMediaBoard()
                 return START_STICKY
             }
             ACTION_MEDIA_PREV -> {
-                broadcastMediaButton("media-session-prev")
+                handleMediaDepart()
                 return START_STICKY
             }
         }
@@ -110,13 +127,13 @@ class LocationForegroundService : Service() {
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
-        // App was swiped — drop media session, show reopen notification
         appInForeground = false
         refreshNotification()
         super.onTaskRemoved(rootIntent)
     }
 
     override fun onDestroy() {
+        nativeSyncRunnable?.let { nativeSyncHandler.removeCallbacks(it) }
         fusedClient.removeLocationUpdates(locationCallback)
         try { unregisterReceiver(metaReceiver) } catch (e: Exception) {}
         mediaSession?.release()
@@ -127,13 +144,145 @@ class LocationForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
+    private var lastMediaClickTime = 0L
+    private var nativeSyncRunnable: Runnable? = null
+    private val nativeSyncHandler by lazy { android.os.Handler(android.os.Looper.getMainLooper()) }
+
+    private fun scheduleNativeBackendUpdate() {
+        nativeSyncRunnable?.let { nativeSyncHandler.removeCallbacks(it) }
+        nativeSyncRunnable = Runnable {
+            sendNativeLocationUpdate()
+        }
+        nativeSyncHandler.postDelayed(nativeSyncRunnable!!, 3000L)
+    }
+
+    private fun getFormattedTitle(): String {
+        val passengers = (seatsTotal - seatsAvailable).coerceAtLeast(0)
+        return "Passengers: $passengers | Seats: $seatsAvailable"
+    }
+
+    private fun handleMediaBoard() {
+        val now = System.currentTimeMillis()
+        if (now - lastMediaClickTime < 80) return
+        lastMediaClickTime = now
+
+        if (seatsAvailable > 0) {
+            seatsAvailable -= 1
+            saveSeatsToPrefs(seatsAvailable)
+            currentTitle = getFormattedTitle()
+            if (code.isNotEmpty() || route.isNotEmpty()) {
+                currentArtist = "Bus $code - Route: $route"
+            }
+            refreshNotification()
+            scheduleNativeBackendUpdate()
+        }
+        if (appInForeground) {
+            broadcastMediaButton("media-session-next")
+        }
+    }
+
+    private fun handleMediaDepart() {
+        val now = System.currentTimeMillis()
+        if (now - lastMediaClickTime < 80) return
+        lastMediaClickTime = now
+
+        if (seatsAvailable < seatsTotal) {
+            seatsAvailable += 1
+            saveSeatsToPrefs(seatsAvailable)
+            currentTitle = getFormattedTitle()
+            if (code.isNotEmpty() || route.isNotEmpty()) {
+                currentArtist = "Bus $code - Route: $route"
+            }
+            refreshNotification()
+            scheduleNativeBackendUpdate()
+        }
+        if (appInForeground) {
+            broadcastMediaButton("media-session-prev")
+        }
+    }
+
+    private fun saveSeatsToPrefs(seats: Int) {
+        val prefs = getSharedPreferences("byahero_conductor_prefs", MODE_PRIVATE)
+        prefs.edit().putInt("seats_available", seats).apply()
+    }
+
+    private fun sendNativeLocationUpdate() {
+        val sUrl = serverUrl.ifEmpty { return }
+        val bId = busId.ifEmpty { return }
+
+        java.util.concurrent.Executors.newSingleThreadExecutor().execute {
+            try {
+                val cleanBase = if (sUrl.endsWith("/")) sUrl.dropLast(1) else sUrl
+                var targetUrl = "$cleanBase/api/conductor/update-location"
+                if (!cleanBase.contains("alwaysdata.net") && !cleanBase.contains("public/")) {
+                    targetUrl = "$cleanBase/public/api/conductor/update-location"
+                }
+
+                val url = java.net.URL(targetUrl)
+                val conn = url.openConnection() as java.net.HttpURLConnection
+                conn.requestMethod = "POST"
+                conn.connectTimeout = 5000
+                conn.readTimeout = 5000
+                conn.doOutput = true
+                conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
+                conn.setRequestProperty("Accept", "application/json")
+                conn.setRequestProperty("User-Agent", "ByaHeroConductor/1.0")
+
+                val statusStr = if (seatsAvailable <= 0) "full" else "available"
+
+                val geojsonObj = org.json.JSONObject().apply {
+                    put("type", "Feature")
+                    put("geometry", org.json.JSONObject().apply {
+                        put("type", "Point")
+                        put("coordinates", org.json.JSONArray().apply {
+                            put(lastLng)
+                            put(lastLat)
+                        })
+                    })
+                    put("properties", org.json.JSONObject().apply {
+                        put("bus_id", bId)
+                        put("code", code)
+                        put("route", route)
+                        put("seats_available", seatsAvailable)
+                        put("status", statusStr)
+                        put("current_location_name", lastLocName)
+                    })
+                }
+
+                val payloadObj = org.json.JSONObject().apply {
+                    put("bus_id", bId.toIntOrNull() ?: 0)
+                    put("route", route)
+                    put("seats_available", seatsAvailable)
+                    put("status", statusStr)
+                    put("speed", lastSpeed)
+                    put("current_location_name", lastLocName)
+                    put("geojson", geojsonObj)
+                    if (cachedEmail.isNotEmpty()) {
+                        put("email", cachedEmail)
+                    }
+                }
+
+                val bodyBytes = payloadObj.toString().toByteArray(Charsets.UTF_8)
+                conn.setFixedLengthStreamingMode(bodyBytes.size)
+                conn.outputStream.use { os ->
+                    os.write(bodyBytes)
+                }
+
+                val responseCode = conn.responseCode
+                conn.disconnect()
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     private fun setupMediaSession() {
         mediaSession = MediaSessionCompat(this, "ByaHeroSession").apply {
             setCallback(object : MediaSessionCompat.Callback() {
-                override fun onSkipToNext()     = broadcastMediaButton("media-session-next")
-                override fun onSkipToPrevious() = broadcastMediaButton("media-session-prev")
-                override fun onPlay()           = broadcastMediaButton("media-session-next")
-                override fun onPause()          = broadcastMediaButton("media-session-prev")
+                override fun onSkipToNext()     = handleMediaBoard()
+                override fun onSkipToPrevious() = handleMediaDepart()
+                override fun onPlay()           = handleMediaBoard()
+                override fun onPause()          = handleMediaDepart()
             })
             setPlaybackState(
                 PlaybackStateCompat.Builder()
@@ -158,18 +307,25 @@ class LocationForegroundService : Service() {
     }
 
     private fun refreshNotification() {
-        if (appInForeground) {
-            mediaSession?.isActive = true
-            mediaSession?.setMetadata(
-                MediaMetadataCompat.Builder()
-                    .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
-                    .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "ByaHero")
-                    .build()
-            )
-        } else {
-            mediaSession?.isActive = false
-        }
+        mediaSession?.isActive = true
+        mediaSession?.setPlaybackState(
+            PlaybackStateCompat.Builder()
+                .setActions(
+                    PlaybackStateCompat.ACTION_SKIP_TO_NEXT or
+                    PlaybackStateCompat.ACTION_SKIP_TO_PREVIOUS or
+                    PlaybackStateCompat.ACTION_PLAY or
+                    PlaybackStateCompat.ACTION_PAUSE
+                )
+                .setState(PlaybackStateCompat.STATE_PLAYING, PlaybackStateCompat.PLAYBACK_POSITION_UNKNOWN, 1f)
+                .build()
+        )
+        mediaSession?.setMetadata(
+            MediaMetadataCompat.Builder()
+                .putString(MediaMetadataCompat.METADATA_KEY_TITLE, currentTitle)
+                .putString(MediaMetadataCompat.METADATA_KEY_ARTIST, currentArtist)
+                .putString(MediaMetadataCompat.METADATA_KEY_ALBUM, "ByaHero")
+                .build()
+        )
         getSystemService(NotificationManager::class.java).notify(NOTIF_ID, buildNotification())
     }
 
@@ -182,19 +338,6 @@ class LocationForegroundService : Service() {
             PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        if (!appInForeground) {
-            // Plain notification — no media controls
-            return NotificationCompat.Builder(this, CHANNEL_ID)
-                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
-                .setContentTitle("ByaHero – Still Tracking")
-                .setContentText("Tap to reopen the app and manage passengers.")
-                .setContentIntent(openIntent)
-                .setOngoing(true)
-                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-                .build()
-        }
-
-        // Full media-style notification when app is open
         val session = mediaSession ?: return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_menu_mylocation)
             .setContentTitle(currentTitle)

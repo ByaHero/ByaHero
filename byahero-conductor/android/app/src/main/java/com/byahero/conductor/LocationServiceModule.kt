@@ -46,14 +46,54 @@ class LocationServiceModule(private val reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun updateMetadata(title: String, artist: String) {
-        LocationForegroundService.currentTitle  = title
+        val nativeSeats = LocationForegroundService.seatsAvailable
+        val total = LocationForegroundService.seatsTotal
+        val passengers = (total - nativeSeats).coerceAtLeast(0)
+        val currentTitle = "Passengers: $passengers | Seats: $nativeSeats"
+        LocationForegroundService.currentTitle  = currentTitle
         LocationForegroundService.currentArtist = artist
         if (LocationForegroundService.isRunning) {
             reactContext.sendBroadcast(Intent(LocationForegroundService.ACTION_UPDATE_META).apply {
-                putExtra(LocationForegroundService.EXTRA_TITLE, title)
+                putExtra(LocationForegroundService.EXTRA_TITLE, currentTitle)
                 putExtra(LocationForegroundService.EXTRA_ARTIST, artist)
                 `package` = reactContext.packageName
             })
+        }
+    }
+
+    @ReactMethod
+    fun updateSessionData(map: ReadableMap) {
+        if (map.hasKey("bus_id")) LocationForegroundService.busId = map.getString("bus_id") ?: ""
+        if (map.hasKey("code")) LocationForegroundService.code = map.getString("code") ?: ""
+        if (map.hasKey("route")) LocationForegroundService.route = map.getString("route") ?: ""
+        if (map.hasKey("seats_total")) LocationForegroundService.seatsTotal = map.getInt("seats_total")
+        
+        val forceSeats = map.hasKey("force_seats") && map.getBoolean("force_seats")
+        if (map.hasKey("seats_available") && forceSeats) {
+            LocationForegroundService.seatsAvailable = map.getInt("seats_available")
+            val prefs = reactContext.getSharedPreferences("byahero_conductor_prefs", Context.MODE_PRIVATE)
+            prefs.edit().putInt("seats_available", LocationForegroundService.seatsAvailable).apply()
+        }
+
+        if (map.hasKey("server_url")) LocationForegroundService.serverUrl = map.getString("server_url") ?: ""
+        if (map.hasKey("email")) LocationForegroundService.cachedEmail = map.getString("email") ?: ""
+        if (map.hasKey("lat")) LocationForegroundService.lastLat = map.getDouble("lat")
+        if (map.hasKey("lng")) LocationForegroundService.lastLng = map.getDouble("lng")
+        if (map.hasKey("speed")) LocationForegroundService.lastSpeed = map.getDouble("speed")
+        if (map.hasKey("location_name")) LocationForegroundService.lastLocName = map.getString("location_name") ?: ""
+    }
+
+    @ReactMethod
+    fun getPersistedSeats(promise: Promise) {
+        try {
+            val prefs = reactContext.getSharedPreferences("byahero_conductor_prefs", Context.MODE_PRIVATE)
+            val seats = prefs.getInt("seats_available", -1)
+            if (seats != -1) {
+                LocationForegroundService.seatsAvailable = seats
+            }
+            promise.resolve(seats)
+        } catch (e: Exception) {
+            promise.reject("ERR_PREFS", e)
         }
     }
 
