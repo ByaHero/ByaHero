@@ -32,7 +32,7 @@ export default function UpdateModal() {
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <MaterialIcons name="system-update" size={42} color="#0D9488" />
+            <MaterialIcons name="system-update" size={42} color="#0F3878" />
           </View>
 
           <Text style={styles.title}>New Update Available!</Text>
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#CCFBF1',
+    backgroundColor: '#E0F2FE',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -111,8 +111,8 @@ const styles = StyleSheet.create({
   versionBadge: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0D9488',
-    backgroundColor: '#F0FDFA',
+    color: '#0F3878',
+    backgroundColor: '#F0F9FF',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     flexDirection: 'row',
-    backgroundColor: '#0D9488',
+    backgroundColor: '#0F3878',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',

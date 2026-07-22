@@ -49,6 +49,55 @@ export function useAppUpdate() {
     let isMounted = true;
 
     async function checkVersion() {
+      console.log('[useAppUpdate Admin] Current version:', currentVersion);
+
+      // 1. Direct GitHub Releases API Check (Fastest, zero server dependency)
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/ByaHero/ByaHero/releases');
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          for (const release of releases) {
+            const tagName: string = release.tag_name || '';
+            const assets: any[] = release.assets || [];
+
+            let isMatch = false;
+            let matchedUrl = '';
+
+            if (tagName.toLowerCase().includes('admin')) {
+              isMatch = true;
+            } else {
+              const asset = assets.find((a: any) => a.name && a.name.toLowerCase().includes('admin'));
+              if (asset) {
+                isMatch = true;
+                matchedUrl = asset.browser_download_url;
+              }
+            }
+
+            if (isMatch) {
+              const match = tagName.match(/(\d+\.\d+\.\d+)/);
+              const targetVersion = match ? match[1] : tagName.replace(/^v/i, '');
+              const needsUpdate = isVersionLower(currentVersion, targetVersion);
+              console.log(`[useAppUpdate Admin] GitHub match found: ${tagName} (v${targetVersion}). Needs update?`, needsUpdate);
+
+              if (needsUpdate && isMounted) {
+                setUpdateInfo({
+                  latest_version: targetVersion,
+                  min_required_version: '1.0.0',
+                  download_url: matchedUrl || assets[0]?.browser_download_url || 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-admin.apk',
+                  release_notes: release.body || 'Bug fixes and performance improvements.',
+                  force_update: false,
+                });
+                setIsUpdateAvailable(true);
+                return;
+              }
+            }
+          }
+        }
+      } catch (ghErr) {
+        console.log('[useAppUpdate Admin] Direct GitHub check skipped:', ghErr);
+      }
+
+      // 2. Fallback to Laravel Backend
       try {
         const baseUrl = await getServerUrl();
         const response = await fetch(`${baseUrl}/api/app-version?app=admin`);
@@ -69,7 +118,7 @@ export function useAppUpdate() {
           }
         }
       } catch (err) {
-        console.log('[useAppUpdate Admin] Version check skipped:', err);
+        console.log('[useAppUpdate Admin] Backend check skipped:', err);
       }
     }
 
