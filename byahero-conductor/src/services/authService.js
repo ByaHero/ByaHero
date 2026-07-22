@@ -65,7 +65,7 @@ async function apiRequest(action, dataObj) {
       headers: {
         'Accept': 'application/json',
       },
-      credentials: (typeof window !== 'undefined') ? 'same-origin' : 'include'
+      credentials: 'include'
     });
 
     if (!response.ok) {
@@ -132,7 +132,7 @@ export async function login(email, password, isOnline = true) {
 export async function logout() {
   try {
     const baseUrl = await getServerUrl();
-    await fetch(`${baseUrl}/api/logout`, { method: 'POST', credentials: (typeof window !== 'undefined') ? 'same-origin' : 'include' }).catch(() => {});
+    await fetch(`${baseUrl}/api/logout`, { method: 'POST', credentials: 'include' }).catch(() => {});
     await AsyncStorage.multiRemove([
       'byahero_cached_email',
       'byahero_cached_role',

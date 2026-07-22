@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Shield, Eye, EyeOff, Loader2, CheckCircle, XCircle, X } from 'lucide-react';
+import { Shield, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { adminService } from '../services/admin';
 
 interface LoginProps {
@@ -13,22 +13,17 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // Custom modal states
-  const [showModal, setShowModal] = useState(false);
-  const [modalType, setModalType] = useState<'success' | 'error'>('success');
-  const [modalMessage, setModalMessage] = useState('');
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      setModalType('error');
-      setModalMessage('Please fill in all fields.');
-      setShowModal(true);
+      setError('Please fill in all fields.');
       return;
     }
 
     setLoading(true);
+    setError('');
 
     try {
       const data = await adminService.login(email.trim(), password);
@@ -39,39 +34,19 @@ export default function Login({ onLoginSuccess }: LoginProps) {
         const user = data.user || {};
         
         if (redirect.includes('admin') || user.role === 'admin') {
-          let adminName = user.name || user.username || email.trim();
-          if (adminName.includes('@')) {
-            adminName = adminName.split('@')[0];
-          }
-          // Capitalize first letter
-          adminName = adminName.charAt(0).toUpperCase() + adminName.slice(1);
-
-          localStorage.setItem('byahero_admin_user', JSON.stringify({ email: email.trim(), name: adminName }));
-          
-          setModalType('success');
-          setModalMessage(`Hello, welcome back ${adminName}!`);
-          setShowModal(true);
-          
-          setTimeout(() => {
-            onLoginSuccess(email.trim());
-            navigate('/');
-          }, 2000);
+          localStorage.setItem('byahero_admin_user', JSON.stringify({ email: email.trim() }));
+          onLoginSuccess(email.trim());
+          navigate('/');
         } else {
-          setModalType('error');
-          setModalMessage('Access Denied. Only administrators are allowed to login.');
-          setShowModal(true);
+          setError('Access Denied. Only administrators are allowed to login.');
           await adminService.logout();
         }
       } else {
-        setModalType('error');
-        setModalMessage(data.message || 'Invalid email or password.');
-        setShowModal(true);
+        setError(data.message || 'Invalid email or password.');
       }
     } catch (e: any) {
       console.error(e);
-      setModalType('error');
-      setModalMessage('Connection failure. Please verify backend state.');
-      setShowModal(true);
+      setError('Connection failure. Please verify backend state.');
     } finally {
       setLoading(false);
     }
@@ -79,17 +54,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
   return (
     <div className="login-container">
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; }
-          to { opacity: 1; }
-        }
-        @keyframes scaleUp {
-          from { transform: scale(0.95); opacity: 0; }
-          to { transform: scale(1); opacity: 1; }
-        }
-      `}</style>
-
       <div className="login-card">
         {/* Decorative Badge logo */}
         <div style={{
@@ -105,6 +69,22 @@ export default function Login({ onLoginSuccess }: LoginProps) {
 
         <h1 className="login-title">ByaHero Admin</h1>
         <p className="login-subtitle">Sign in to control and monitor the bus system</p>
+
+        {error && (
+          <div style={{
+            backgroundColor: 'var(--error-light)',
+            color: 'var(--error)',
+            padding: '12px',
+            borderRadius: 'var(--radius-md)',
+            fontSize: '0.8rem',
+            fontWeight: 600,
+            marginBottom: '20px',
+            textAlign: 'left',
+            border: '1px solid rgba(239, 68, 68, 0.15)'
+          }}>
+            {error}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
           <div className="form-group">
@@ -165,111 +145,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
           </button>
         </form>
       </div>
-
-      {/* Premium Notification Popup Modal */}
-      {showModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100%',
-          height: '100%',
-          backgroundColor: 'rgba(15, 23, 42, 0.6)',
-          backdropFilter: 'blur(4px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10000,
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--surface)',
-            borderRadius: 'var(--radius-lg)',
-            padding: '30px 24px',
-            width: '90%',
-            maxWidth: '380px',
-            boxShadow: 'var(--shadow-lg)',
-            textAlign: 'center',
-            border: `1px solid ${modalType === 'success' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`,
-            position: 'relative',
-            animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
-          }}>
-            {/* Close button for errors only */}
-            {modalType === 'error' && (
-              <button 
-                onClick={() => setShowModal(false)}
-                style={{
-                  position: 'absolute',
-                  top: '16px',
-                  right: '16px',
-                  background: 'none',
-                  border: 'none',
-                  color: 'var(--text-muted)',
-                  cursor: 'pointer',
-                  padding: '4px'
-                }}
-              >
-                <X size={18} />
-              </button>
-            )}
-
-            {/* Icon */}
-            <div style={{
-              display: 'inline-flex',
-              padding: '16px',
-              borderRadius: '50%',
-              backgroundColor: modalType === 'success' ? 'var(--success-light)' : 'var(--error-light)',
-              color: modalType === 'success' ? 'var(--success)' : 'var(--error)',
-              marginBottom: '20px'
-            }}>
-              {modalType === 'success' ? <CheckCircle size={36} /> : <XCircle size={36} />}
-            </div>
-
-            {/* Title */}
-            <h3 style={{
-              fontSize: '1.25rem',
-              fontWeight: 700,
-              color: 'var(--text-main)',
-              marginBottom: '10px'
-            }}>
-              {modalType === 'success' ? 'Access Granted' : 'Login Failed'}
-            </h3>
-
-            {/* Message */}
-            <p style={{
-              fontSize: '0.9rem',
-              color: 'var(--text-muted)',
-              marginBottom: modalType === 'error' ? '24px' : '0px',
-              lineHeight: 1.5
-            }}>
-              {modalMessage}
-            </p>
-
-            {/* Button (Errors Only) */}
-            {modalType === 'error' && (
-              <button
-                onClick={() => setShowModal(false)}
-                style={{
-                  backgroundColor: 'var(--error)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: '10px 24px',
-                  fontSize: '0.9rem',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  width: '100%',
-                  transition: 'background-color 0.2s',
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#dc2626'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'var(--error)'}
-              >
-                Try Again
-              </button>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
