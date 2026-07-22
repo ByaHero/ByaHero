@@ -15,7 +15,7 @@ class AppVersionController extends Controller
             'success' => true,
             'latest_version' => '1.0.1',
             'min_required_version' => '1.0.0',
-            'download_url' => 'https://byahero.app/byahero.apk',
+            'download_url' => 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk',
             'release_notes' => 'Bug fixes and performance improvements.',
             'force_update' => false
         ]);

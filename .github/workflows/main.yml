@@ -1,4 +1,4 @@
-name: Deploy Landing Page & APK to FTP
+name: Deploy Landing Page to InfinityFree
 
 on:
   push:
@@ -6,7 +6,6 @@ on:
       - main
     paths:
       - 'index.html'
-      - 'byahero.apk'
 
 jobs:
   deploy:
@@ -16,13 +15,10 @@ jobs:
       - name: Get latest code
         uses: actions/checkout@v3
 
-      - name: Prepare files for deployment
+      - name: Prepare landing page
         run: |
           mkdir -p deploy
           cp index.html deploy/
-          if [ -f "byahero.apk" ]; then
-            cp byahero.apk deploy/
-          fi
 
       - name: Upload via FTP to InfinityFree
         uses: SamKirkland/FTP-Deploy-Action@v4.3.4

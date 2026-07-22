@@ -1,0 +1,44 @@
+name: Build & Attach APK to GitHub Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: byahero-mobile/package-lock.json
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: 17
+
+      - name: Install Mobile Dependencies
+        run: |
+          cd byahero-mobile
+          npm ci --legacy-peer-deps || npm install
+
+      - name: Build Android APK
+        run: |
+          cd byahero-mobile/android
+          chmod +x gradlew
+          ./gradlew assembleRelease
+
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: byahero-mobile/android/app/build/outputs/apk/release/app-release.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
