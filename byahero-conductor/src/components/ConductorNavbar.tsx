@@ -81,31 +81,25 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
     ]).start(() => setMenuVisible(false));
   };
 
-  const handleLogout = () => {
-    const performLogout = async () => {
-      // First close the drawer animatedly to avoid unmounting race conditions
-      Animated.parallel([
-        Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
-      ]).start(async () => {
-        setMenuVisible(false);
-        await AsyncStorage.removeItem('byahero_cached_email');
-        await AsyncStorage.removeItem('byahero_cached_role');
-        await AsyncStorage.removeItem('byahero_cached_name');
-        router.replace('/');
-      });
-    };
+  const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to log out?')) {
-        performLogout();
-      }
-    } else {
-      Alert.alert('Log Out', 'Are you sure you want to log out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log out', style: 'destructive', onPress: performLogout }
-      ]);
-    }
+  const handleLogout = () => {
+    setLogoutModalOpen(true);
+  };
+
+  const confirmLogout = async () => {
+    setLogoutModalOpen(false);
+    // First close the drawer animatedly to avoid unmounting race conditions
+    Animated.parallel([
+      Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
+    ]).start(async () => {
+      setMenuVisible(false);
+      await AsyncStorage.removeItem('byahero_cached_email');
+      await AsyncStorage.removeItem('byahero_cached_role');
+      await AsyncStorage.removeItem('byahero_cached_name');
+      router.replace('/');
+    });
   };
 
   return (
@@ -241,6 +235,56 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
               </TouchableOpacity>
             </View>
           </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Custom Logout Confirmation Modal */}
+      <Modal
+        visible={logoutModalOpen}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutModalOpen(false)}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            {/* Close Button */}
+            <TouchableOpacity
+              onPress={() => setLogoutModalOpen(false)}
+              style={tw`absolute top-4 right-4 p-1 z-10`}
+            >
+              <MaterialIcons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            {/* Icon */}
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="logout" size={32} color="#ef4444" />
+            </View>
+
+            {/* Title & Subtitle */}
+            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
+              Log Out of ByaHero?
+            </Text>
+            <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-6`}>
+              Are you sure you want to log out of your conductor account? You will need to log back in to manage your shift.
+            </Text>
+
+            {/* Action Buttons */}
+            <View style={tw`w-full flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => setLogoutModalOpen(false)}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmLogout}
+                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
 

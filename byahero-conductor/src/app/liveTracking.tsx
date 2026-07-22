@@ -20,7 +20,7 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -60,6 +60,7 @@ export default function LiveTrackingScreen() {
   const [locationName, setLocationName] = useState('Waiting for GPS...');
   const [lastUpdate, setLastUpdate] = useState('00:00');
   const [isLoading, setIsLoading] = useState(false);
+  const [isStopTrackingModalVisible, setIsStopTrackingModalVisible] = useState(false);
 
   // Ticketing Mode States
   const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);
@@ -568,21 +569,12 @@ export default function LiveTrackingScreen() {
   };
 
   const handleStopTracking = () => {
-    if (Platform.OS === 'web') {
-      const confirmStop = window.confirm('Are you sure you want to end this transit tracking session?');
-      if (confirmStop) {
-        performStopTracking();
-      }
-    } else {
-      Alert.alert('Stop Tracking', 'Are you sure you want to end this transit tracking session?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Stop Tracking',
-          style: 'destructive',
-          onPress: performStopTracking
-        }
-      ]);
-    }
+    setIsStopTrackingModalVisible(true);
+  };
+
+  const confirmStopTracking = () => {
+    setIsStopTrackingModalVisible(false);
+    performStopTracking();
   };
 
   const loadTicketingData = async () => {
@@ -1002,6 +994,52 @@ export default function LiveTrackingScreen() {
           </Animated.View>
         </View>
       )}
+
+      {/* Custom Stop Tracking Modal */}
+      <Modal
+        visible={isStopTrackingModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsStopTrackingModalVisible(false)}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity
+              onPress={() => setIsStopTrackingModalVisible(false)}
+              style={tw`absolute top-4 right-4 p-1 z-10`}
+            >
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="bus-alert" size={32} color="#ef4444" />
+            </View>
+
+            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
+              End Transit Session?
+            </Text>
+            <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-6`}>
+              Are you sure you want to end live transit tracking for this bus? Passengers will no longer see live GPS updates.
+            </Text>
+
+            <View style={tw`w-full flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => setIsStopTrackingModalVisible(false)}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmStopTracking}
+                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
