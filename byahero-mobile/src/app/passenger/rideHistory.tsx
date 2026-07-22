@@ -176,8 +176,8 @@ export default function RideHistoryScreen() {
                 <MaterialIcons name="commute" size={48} color="#1e3a8a" />
               </View>
               <Text style={tw`text-lg font-black text-slate-800 mb-2`}>No Rides Yet</Text>
-              <Text style={tw`text-xs text-slate-400 font-semibold text-center leading-relaxed mb-6`}>
-                Your journey starts here! Take your first ride and see your history grow.
+              <Text style={tw`text-xs text-slate-400 font-semibold text-center leading-relaxed mb-6 px-4`}>
+                To build your ride history, you need to ride a bus while keeping your app open. Take your first ride and watch your history grow!
               </Text>
               <TouchableOpacity 
                 onPress={() => router.replace('/passenger')}
