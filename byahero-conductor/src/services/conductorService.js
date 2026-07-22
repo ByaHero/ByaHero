@@ -31,7 +31,7 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET') {
 
   const options = {
     method,
-    credentials: (typeof window !== 'undefined') ? 'same-origin' : 'include',
+    credentials: 'include',
     headers
   };
 

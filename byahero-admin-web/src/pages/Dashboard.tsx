@@ -37,8 +37,7 @@ import {
   Navigation,
   BrainCircuit,
   Maximize,
-  X,
-  CheckCircle
+  X
 } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { ActiveBus } from '../types';
