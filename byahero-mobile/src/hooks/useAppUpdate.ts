@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import Constants from 'expo-constants';
+import * as Application from 'expo-application';
 import pkg from '../../package.json';
 import { getServerUrl } from '../services/authService';
 
@@ -33,7 +34,7 @@ export function useAppUpdate() {
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
   const [dismissed, setDismissed] = useState<boolean>(false);
 
-  const currentVersion = Constants.expoConfig?.version || pkg.version || '1.0.0';
+  const currentVersion = Application.nativeApplicationVersion || Constants.expoConfig?.version || pkg.version || '1.0.0';
 
   useEffect(() => {
     let isMounted = true;
