@@ -24,8 +24,14 @@ interface SidebarProps {
 
 export default function Sidebar({ onLogout }: SidebarProps) {
   const navigate = useNavigate();
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
-  const handleLogoutClick = async () => {
+  const handleLogoutClick = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     try {
       await adminService.logout();
     } catch (e) {
@@ -133,6 +139,109 @@ export default function Sidebar({ onLogout }: SidebarProps) {
           <span>Sign Out</span>
         </button>
       </div>
+
+      {showLogoutModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.6)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999,
+          animation: 'fadeIn 0.2s ease-out'
+        }}>
+          <style>{`
+            @keyframes fadeIn {
+              from { opacity: 0; }
+              to { opacity: 1; }
+            }
+            @keyframes scaleUp {
+              from { transform: scale(0.95); opacity: 0; }
+              to { transform: scale(1); opacity: 1; }
+            }
+          `}</style>
+          <div style={{
+            backgroundColor: 'var(--surface)',
+            borderRadius: 'var(--radius-lg)',
+            padding: '30px 24px',
+            width: '90%',
+            maxWidth: '380px',
+            boxShadow: 'var(--shadow-lg)',
+            textAlign: 'center',
+            border: '1px solid rgba(239, 68, 68, 0.15)',
+            animation: 'scaleUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)'
+          }}>
+            <div style={{
+              display: 'inline-flex',
+              padding: '16px',
+              borderRadius: '50%',
+              backgroundColor: 'var(--error-light)',
+              color: 'var(--error)',
+              marginBottom: '20px'
+            }}>
+              <LogOut size={36} />
+            </div>
+
+            <h3 style={{
+              fontSize: '1.25rem',
+              fontWeight: 700,
+              color: 'var(--text-main)',
+              marginBottom: '10px'
+            }}>
+              Sign Out?
+            </h3>
+
+            <p style={{
+              fontSize: '0.9rem',
+              color: 'var(--text-muted)',
+              marginBottom: '24px',
+              lineHeight: 1.5
+            }}>
+              Are you sure you want to end your session and sign out of the ByaHero Admin Panel?
+            </p>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                onClick={() => setShowLogoutModal(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--primary-light)',
+                  color: 'var(--primary-color)',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 0',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmLogout}
+                style={{
+                  flex: 1,
+                  backgroundColor: 'var(--error)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 'var(--radius-sm)',
+                  padding: '10px 0',
+                  fontSize: '0.9rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
+              >
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
