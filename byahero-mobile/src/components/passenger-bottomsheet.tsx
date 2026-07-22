@@ -12,7 +12,9 @@ import {
   Share,
   Alert,
   Modal,
+  StyleSheet,
 } from 'react-native';
+import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
@@ -99,6 +101,23 @@ export default function PassengerBottomSheet({
   const scrollOffset = useRef(0);
   const [isExpanded, setIsExpanded] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
+  const [scannerModalVisible, setScannerModalVisible] = useState(false);
+  const [scanned, setScanned] = useState(false);
+  const [permission, requestPermission] = useCameraPermissions();
+
+  const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
+    setScanned(true);
+    setScannerModalVisible(false);
+
+    let extractedCode = data.trim();
+    const match = extractedCode.match(/\b[A-Za-z0-9]{6}\b/);
+    if (match) {
+      extractedCode = match[0];
+    }
+
+    setJoinCode(extractedCode);
+    Alert.alert('QR Code Scanned', `Scanned invite code: ${extractedCode}`, [{ text: 'OK' }]);
+  };
 
   const tabLocationRef = useRef<any>(null);
   const tabRoutesRef = useRef<any>(null);
@@ -658,8 +677,12 @@ export default function PassengerBottomSheet({
               <View style={tw`flex-row justify-between items-center mb-3`}>
                 <Text style={tw`text-[15px] font-black text-slate-800`}>Join a Circle</Text>
                 <TouchableOpacity
-                  onPress={() => {
-                    Alert.alert('Scan QR Code', 'Camera QR code scanner is currently available on native devices.');
+                  onPress={async () => {
+                    setScanned(false);
+                    setScannerModalVisible(true);
+                    if (!permission?.granted) {
+                      await requestPermission();
+                    }
                   }}
                   style={tw`flex-row bg-[#1d72f8] rounded-full px-3 py-1.5 justify-center items-center gap-1.5 shadow-sm`}
                 >
@@ -918,6 +941,75 @@ export default function PassengerBottomSheet({
               style={tw`mt-6 w-full bg-[#103d7c] py-3 rounded-full justify-center items-center shadow-md`}
             >
               <Text style={tw`text-white font-extrabold text-sm`}>Close</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* QR Code Scanner Modal */}
+      <Modal
+        animationType="slide"
+        transparent={false}
+        visible={scannerModalVisible}
+        onRequestClose={() => setScannerModalVisible(false)}
+      >
+        <View style={tw`flex-1 bg-black justify-between`}>
+          {/* Top Header */}
+          <View style={tw`pt-12 pb-4 px-6 flex-row justify-between items-center bg-black/80 z-10`}>
+            <Text style={tw`text-white font-black text-lg`}>Scan Circle QR Code</Text>
+            <TouchableOpacity
+              onPress={() => setScannerModalVisible(false)}
+              style={tw`w-9 h-9 rounded-full bg-white/20 justify-center items-center`}
+            >
+              <MaterialIcons name="close" size={22} color="white" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Camera View or Permission Prompt */}
+          {!permission ? (
+            <View style={tw`flex-1 justify-center items-center p-6 bg-black`}>
+              <Text style={tw`text-white text-center mb-4`}>Requesting camera permission...</Text>
+            </View>
+          ) : !permission.granted ? (
+            <View style={tw`flex-1 justify-center items-center p-6 bg-black`}>
+              <MaterialIcons name="camera-alt" size={48} color="#94a3b8" />
+              <Text style={tw`text-white text-center font-bold text-base mt-4 mb-2`}>Camera Access Needed</Text>
+              <Text style={tw`text-slate-400 text-center text-xs mb-6 px-4`}>
+                ByaHero needs permission to use your camera to scan QR codes for joining circles.
+              </Text>
+              <TouchableOpacity
+                onPress={requestPermission}
+                style={tw`bg-[#1d72f8] px-6 py-3 rounded-full shadow-lg`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>Grant Permission</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={tw`flex-1 relative justify-center items-center`}>
+              <CameraView
+                style={StyleSheet.absoluteFillObject}
+                facing="back"
+                barcodeScannerSettings={{
+                  barcodeTypes: ['qr'],
+                }}
+                onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+              />
+              <View style={tw`w-64 h-64 border-2 border-white/80 rounded-3xl justify-center items-center bg-black/10`}>
+                <View style={tw`w-full h-full border-2 border-[#1d72f8] rounded-3xl`} />
+              </View>
+              <Text style={tw`text-white/90 text-xs font-semibold mt-6 bg-black/60 px-4 py-2 rounded-full`}>
+                Align QR code inside the frame
+              </Text>
+            </View>
+          )}
+
+          {/* Bottom Footer */}
+          <View style={tw`pb-8 pt-4 px-6 bg-black/80 flex-row justify-center items-center z-10`}>
+            <TouchableOpacity
+              onPress={() => setScannerModalVisible(false)}
+              style={tw`bg-white/20 px-8 py-3 rounded-full`}
+            >
+              <Text style={tw`text-white font-bold text-sm`}>Cancel</Text>
             </TouchableOpacity>
           </View>
         </View>
