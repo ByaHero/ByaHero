@@ -30,6 +30,7 @@ import TourOverlay, { tourSteps } from '../../components/TourOverlay';
 import { handleTourLayout } from '../../components/TourRegistry';
 import { getLeafletHTML } from '../../components/passengerMapHtml';
 import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
+import { resolveBusLocationName } from '../../utils/locationUtils';
 
 // Custom Hooks
 import { usePassengerProfile } from '../../hooks/passenger/usePassengerProfile';
@@ -175,11 +176,11 @@ export default function PassengerDashboard() {
     }
   }, [userLocation, userInitial, userProfilePic, isWaiting, postToMap, getFullProfilePicUrl, baseUrl, isFollowingUser]);
   
-  // Sync circles to map
+  // Sync circles to map (only when on Circles tab)
   useEffect(() => {
     postToMap({
       type: 'UPDATE_FRIENDS',
-      friends: circles,
+      friends: sheetTab === 'groups' ? circles : [],
       user: userLocation ? {
         lat: userLocation.lat,
         lng: userLocation.lng,
@@ -187,7 +188,7 @@ export default function PassengerDashboard() {
         profilePic: getFullProfilePicUrl(baseUrl)
       } : null
     });
-  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap]);
+  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap, sheetTab]);
 
   const fetchInviteCode = async (reset = false) => {
     try {
@@ -325,40 +326,19 @@ export default function PassengerDashboard() {
 
   // Helper to resolve recognized location from GeoJSON polygons or proximity to database stops
   const resolveNearestStop = React.useCallback(() => {
-    if (!userLocation) return null;
+    if (!userLocation) return { name: 'Roadside Pickup Point' };
 
-    // 1. Check polygons first
-    if (routeGeoJSON && routeGeoJSON.features) {
-      const x = userLocation.lng;
-      const y = userLocation.lat;
-
-      for (let feature of routeGeoJSON.features) {
-        if (feature.geometry && feature.geometry.type === 'Polygon') {
-          const polygon = feature.geometry.coordinates;
-          let inside = false;
-          // Check exterior ring (polygon[0])
-          const ring = polygon[0];
-          for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
-            let xi = ring[i][0], yi = ring[i][1];
-            let xj = ring[j][0], yj = ring[j][1];
-
-            let intersect = ((yi > y) !== (yj > y)) &&
-              (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-            if (intersect) inside = !inside;
-          }
-
-          if (inside) {
-            return { name: feature.properties['Current Location'] || 'Route Polygon' };
-          }
-        }
-      }
+    // 1. Check GeoJSON polygons first (supports Polygon & MultiPolygon)
+    const polygonName = resolveBusLocationName(userLocation.lat, userLocation.lng);
+    if (polygonName) {
+      return { name: polygonName };
     }
 
-    // 2. Proximity fallback: check if user is within 150m of any bus stop/terminal
-    if (busStops && busStops.length > 0) {
-      let closestStop = null;
-      let minDistance = 0.15; // 150 meters threshold in km
+    // 2. Proximity check: check nearest bus stop/terminal
+    let closestStop: any = null;
+    let minDistance = Infinity;
 
+    if (busStops && busStops.length > 0) {
       for (let stop of busStops) {
         const stopLat = parseFloat(stop.lat || stop.latitude);
         const stopLng = parseFloat(stop.lng || stop.longitude);
@@ -383,12 +363,23 @@ export default function PassengerDashboard() {
       }
 
       if (closestStop) {
-        return { name: closestStop.name || closestStop.location_name };
+        const stopName = closestStop.name || closestStop.location_name;
+        if (minDistance <= 0.15) {
+          return { name: stopName };
+        }
+        if (minDistance <= 5.0) {
+          return { name: `Near ${stopName}` };
+        }
       }
     }
 
-    return null;
-  }, [userLocation, routeGeoJSON, busStops]);
+    // 3. Fallback: Allow waiting anywhere with a roadside pickup label
+    const fallbackName = closestStop
+      ? `Near ${closestStop.name || closestStop.location_name}`
+      : 'Roadside Pickup Point';
+    return { name: fallbackName };
+  }, [userLocation, busStops]);
+
 
   const handleSetWaiting = async (stopName: string, silent: boolean = false) => {
     setIsUpdatingWaiting(true);
@@ -519,6 +510,22 @@ export default function PassengerDashboard() {
       });
     }
   };
+
+  const handleFriendPress = React.useCallback((friend: any) => {
+    setIsFollowingUser(false);
+    const lat = parseFloat(friend.latitude);
+    const lng = parseFloat(friend.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      postToMap({
+        type: 'SET_CENTER',
+        lat,
+        lng,
+        zoom: 16
+      });
+    } else {
+      Alert.alert('Location Unavailable', `${friend.name || friend.email}'s location is currently unavailable.`);
+    }
+  }, [postToMap]);
 
   const generateInviteCode = () => {
     fetchInviteCode(true);
@@ -713,6 +720,7 @@ export default function PassengerDashboard() {
               filteredStops={filteredStops}
               handleStopPress={handleStopPress}
               handleBusPress={handleBusPress}
+              handleFriendPress={handleFriendPress}
               userLocation={userLocation}
               baseUrl={baseUrl}
               isBoarded={isBoarded}
