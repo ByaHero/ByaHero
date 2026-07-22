@@ -39,4 +39,10 @@ return [
         'url' => env('PYTHON_ML_API_URL', 'http://localhost:8001'),
     ],
 
+    'firebase' => [
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'client_email' => env('FIREBASE_CLIENT_EMAIL'),
+        'private_key' => env('FIREBASE_PRIVATE_KEY'),
+    ],
+
 ];

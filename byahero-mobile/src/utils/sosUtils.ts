@@ -27,6 +27,8 @@ export const executeSOS = async ({ baseUrl, locationText = 'Mobile Device', lat 
       credentials: 'include'
     });
     const data = await res.json();
+    console.log('[SOS-API-RESPONSE]', data);
+    
     if (data.success) {
       if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
         try {

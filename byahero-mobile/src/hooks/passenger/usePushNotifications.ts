@@ -1,18 +1,35 @@
 import { useEffect } from 'react';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { getServerUrl } from '../../services/authService';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export function usePushNotifications() {
   useEffect(() => {
     async function autoEnablePushNotifications() {
       try {
-        const storedToken = await AsyncStorage.getItem('sos_fcm_active_token');
-        if (storedToken) return; // Already registered locally
+        if (Platform.OS === 'android') {
+          await Notifications.setNotificationChannelAsync('sos_alerts_v2', {
+            name: 'SOS Alerts',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#FF231F7C',
+          });
+        }
 
         const { status: existingStatus } = await Notifications.getPermissionsAsync();
         let finalStatus = existingStatus;
-        
+
         if (existingStatus !== 'granted') {
           const { status } = await Notifications.requestPermissionsAsync();
           finalStatus = status;
@@ -22,6 +39,12 @@ export function usePushNotifications() {
           const tokenData = await Notifications.getDevicePushTokenAsync();
           const token = tokenData.data;
           
+          const storedToken = await AsyncStorage.getItem('sos_fcm_active_token');
+          if (storedToken === token) {
+            console.log('[Auto-FCM] Token unchanged. No need to update server.');
+            return;
+          }
+
           const currentBaseUrl = await getServerUrl();
           const formData = new FormData();
           formData.append('fcm_token', token);

@@ -12,7 +12,7 @@ export async function sendFcmPushes(pushData) {
   try {
     console.log('[SOS-Notification] Requesting Access Token...');
     const bodyParams = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${encodeURIComponent(pushData.jwt)}`;
-    
+
     const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -51,12 +51,12 @@ export async function sendFcmPushes(pushData) {
                   location_text: pushData.location_text || ''
                 },
                 android: {
-                  priority: 'high',
+                  priority: 'HIGH',
                   notification: {
                     channel_id: 'sos_alerts_v2',
                     sound: 'default',
                     notification_priority: 'PRIORITY_HIGH',
-                    visibility: 'public'
+                    visibility: 'PUBLIC'
                   }
                 },
                 apns: {
@@ -77,8 +77,13 @@ export async function sendFcmPushes(pushData) {
 
           const resultText = await res.text();
           console.log(`[SOS-Notification] Single push dispatch result: ${res.status} - ${resultText}`);
+          
+          if (!res.ok) {
+            throw new Error(`FCM API Error ${res.status}: ${resultText}`);
+          }
         } catch (e) {
           console.error('[SOS-Notification] Single push send failed:', e);
+          throw e; // Bubble up the error so the UI catch block can alert us
         }
       })
     );

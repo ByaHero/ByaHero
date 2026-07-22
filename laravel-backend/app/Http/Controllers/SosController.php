@@ -68,9 +68,9 @@ class SosController extends Controller
             DB::commit();
 
             // Generate self-signed JWT for FCM Bypass
-            $clientEmail = env('FIREBASE_CLIENT_EMAIL', '');
-            $privateKey = env('FIREBASE_PRIVATE_KEY', '');
-            $projectId = env('FIREBASE_PROJECT_ID', '');
+            $clientEmail = config('services.firebase.client_email', '');
+            $privateKey = config('services.firebase.private_key', '');
+            $projectId = config('services.firebase.project_id', '');
 
             // Decode private key if it contains literal \n characters
             $privateKey = str_replace('\n', "\n", $privateKey);
