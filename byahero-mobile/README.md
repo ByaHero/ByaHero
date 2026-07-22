@@ -199,3 +199,27 @@ The conductor-specific operations use session-scoped cookies and require `creden
 *   **Update Profile / Password**: `POST /api/conductor/profile`
     *   *Body (JSON)*: `{"name": "New Name", "email": "new@gmail.com", "current_password": "old_password", "new_password": "new_password123", "confirm_password": "new_password123"}`
     *   *Response*: `{"success": true, "message": "Profile and password updated successfully!", "user": {...}}`
+
+---
+
+## 📱 How to Publish an App Release & Trigger Auto-Updates
+
+1. **Bump Version Number**:
+   Edit `android/app/build.gradle`:
+   - Increment `versionCode` (e.g. `2` ➔ `3`).
+   - Update `versionName` (e.g. `"1.0.1"` ➔ `"1.0.2"`).
+   - Also update `version` in `app.json` and `package.json`.
+
+2. **Compile Release APK**:
+   ```bash
+   cd android
+   .\gradlew assembleRelease
+   ```
+
+3. **Publish on GitHub**:
+   - Create a release on GitHub.
+   - For **Passenger**: Tag `v1.0.2` and attach `byahero.apk`.
+   - For **Conductor**: Tag `conductor-v1.0.2` and attach `byahero-conductor.apk`.
+   - For **Admin**: Tag `admin-v1.0.2` and attach `byahero-admin.apk`.
+   - The app will automatically prompt users with an in-app update popup modal!
+
