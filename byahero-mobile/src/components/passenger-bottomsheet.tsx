@@ -39,6 +39,7 @@ interface PassengerBottomSheetProps {
   baseUrl: string;
   translateY: Animated.Value;
   handleRemoveCircleMember: (friendId: number, name: string) => void;
+  handleFriendPress?: (friend: any) => void;
   activeStep?: number | null;
   menuVisible: boolean;
   isBoarded?: boolean;
@@ -87,6 +88,7 @@ export default function PassengerBottomSheet({
   baseUrl,
   translateY,
   handleRemoveCircleMember,
+  handleFriendPress,
   activeStep,
   menuVisible,
   isBoarded,
@@ -663,8 +665,10 @@ export default function PassengerBottomSheet({
                   }
 
                   return (
-                    <View
+                    <TouchableOpacity
                       key={friend.id || friend.email}
+                      onPress={() => handleFriendPress && handleFriendPress(friend)}
+                      activeOpacity={0.75}
                       style={[
                         tw`flex-row items-center py-3.5`,
                         index < circles.length - 1 && tw`border-b border-[#e2e8f0]/50`
@@ -719,7 +723,7 @@ export default function PassengerBottomSheet({
                       >
                         <MaterialIcons name="person-remove-alt-1" size={22} color="#103d7c" />
                       </TouchableOpacity>
-                    </View>
+                    </TouchableOpacity>
                   );
                 })}
               </View>

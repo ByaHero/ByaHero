@@ -171,11 +171,11 @@ export default function PassengerDashboard() {
     }
   }, [userLocation, userInitial, userProfilePic, isWaiting, postToMap, getFullProfilePicUrl, baseUrl, isFollowingUser]);
   
-  // Sync circles to map
+  // Sync circles to map (only when on Circles tab)
   useEffect(() => {
     postToMap({
       type: 'UPDATE_FRIENDS',
-      friends: circles,
+      friends: sheetTab === 'groups' ? circles : [],
       user: userLocation ? {
         lat: userLocation.lat,
         lng: userLocation.lng,
@@ -183,7 +183,7 @@ export default function PassengerDashboard() {
         profilePic: getFullProfilePicUrl(baseUrl)
       } : null
     });
-  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap]);
+  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap, sheetTab]);
 
   const fetchInviteCode = async (reset = false) => {
     try {
@@ -506,6 +506,22 @@ export default function PassengerDashboard() {
     }
   };
 
+  const handleFriendPress = React.useCallback((friend: any) => {
+    setIsFollowingUser(false);
+    const lat = parseFloat(friend.latitude);
+    const lng = parseFloat(friend.longitude);
+    if (!isNaN(lat) && !isNaN(lng)) {
+      postToMap({
+        type: 'SET_CENTER',
+        lat,
+        lng,
+        zoom: 16
+      });
+    } else {
+      Alert.alert('Location Unavailable', `${friend.name || friend.email}'s location is currently unavailable.`);
+    }
+  }, [postToMap]);
+
   const generateInviteCode = () => {
     fetchInviteCode(true);
   };
@@ -739,6 +755,7 @@ export default function PassengerDashboard() {
               filteredStops={filteredStops}
               handleStopPress={handleStopPress}
               handleBusPress={handleBusPress}
+              handleFriendPress={handleFriendPress}
               userLocation={userLocation}
               baseUrl={baseUrl}
               isBoarded={isBoarded}
