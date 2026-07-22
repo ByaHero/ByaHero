@@ -12,9 +12,6 @@ export interface UpdateInfo {
   force_update?: boolean;
 }
 
-/**
- * Utility to compare semantic version strings (e.g., '1.0.0' vs '1.0.1')
- */
 function isVersionLower(currentVersion: string, targetVersion: string): boolean {
   const currentParts = currentVersion.split('.').map((v) => parseInt(v, 10) || 0);
   const targetParts = targetVersion.split('.').map((v) => parseInt(v, 10) || 0);
@@ -40,6 +37,61 @@ export function useAppUpdate() {
     let isMounted = true;
 
     async function checkVersion() {
+      // 1. Direct GitHub Releases API Check (Find ABSOLUTE HIGHEST version available)
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/ByaHero/ByaHero/releases');
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          let highestVersion = currentVersion;
+          let highestRelease: any = null;
+          let highestDownloadUrl = '';
+
+          for (const release of releases) {
+            const tagName: string = release.tag_name || '';
+            const assets: any[] = release.assets || [];
+
+            let isMatch = false;
+            let matchedUrl = '';
+
+            if (!tagName.toLowerCase().includes('conductor') && !tagName.toLowerCase().includes('admin')) {
+              isMatch = true;
+            } else {
+              const asset = assets.find((a: any) => a.name === 'byahero.apk' || (a.name && a.name.toLowerCase().includes('passenger')));
+              if (asset) {
+                isMatch = true;
+                matchedUrl = asset.browser_download_url;
+              }
+            }
+
+            if (isMatch) {
+              const match = tagName.match(/(\d+\.\d+\.\d+)/);
+              const candidateVersion = match ? match[1] : tagName.replace(/^v/i, '');
+
+              if (isVersionLower(highestVersion, candidateVersion)) {
+                highestVersion = candidateVersion;
+                highestRelease = release;
+                highestDownloadUrl = matchedUrl || assets[0]?.browser_download_url || 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk';
+              }
+            }
+          }
+
+          if (highestRelease && isMounted) {
+            setUpdateInfo({
+              latest_version: highestVersion,
+              min_required_version: '1.0.0',
+              download_url: highestDownloadUrl,
+              release_notes: highestRelease.body || 'Bug fixes and performance improvements.',
+              force_update: false,
+            });
+            setIsUpdateAvailable(true);
+            return;
+          }
+        }
+      } catch (ghErr) {
+        console.log('[useAppUpdate Passenger] Direct GitHub check skipped:', ghErr);
+      }
+
+      // 2. Fallback to Backend
       try {
         const baseUrl = await getServerUrl();
         const response = await fetch(`${baseUrl}/api/app-version?app=passenger`);
@@ -52,7 +104,7 @@ export function useAppUpdate() {
             setUpdateInfo({
               latest_version: data.latest_version,
               min_required_version: data.min_required_version || '1.0.0',
-              download_url: data.download_url,
+              download_url: data.download_url || 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk',
               release_notes: data.release_notes,
               force_update: data.force_update || isVersionLower(currentVersion, data.min_required_version || '1.0.0'),
             });
@@ -60,7 +112,7 @@ export function useAppUpdate() {
           }
         }
       } catch (err) {
-        console.log('[useAppUpdate] Version check skipped:', err);
+        console.log('[useAppUpdate Passenger] Backend check skipped:', err);
       }
     }
 

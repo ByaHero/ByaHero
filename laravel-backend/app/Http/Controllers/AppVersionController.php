@@ -24,6 +24,9 @@ class AppVersionController extends Controller
 
                 if ($response->successful()) {
                     $releases = $response->json();
+                    $highestVersion = '1.0.0';
+                    $highestData = null;
+
                     foreach ($releases as $release) {
                         $tagName = $release['tag_name'] ?? '';
                         $assets = $release['assets'] ?? [];
@@ -72,15 +75,23 @@ class AppVersionController extends Controller
                         if ($isMatch) {
                             preg_match('/(\d+\.\d+\.\d+)/', $tagName, $matches);
                             $version = $matches[1] ?? ltrim($tagName, 'vV');
-                            $notes = !empty($release['body']) ? $release['body'] : 'Bug fixes and performance improvements.';
-                            $downloadUrl = $matchedAssetUrl ?? ($assets[0]['browser_download_url'] ?? "https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-{$appName}.apk");
 
-                            return [
-                                'latest_version' => $version,
-                                'download_url' => $downloadUrl,
-                                'release_notes' => $notes,
-                            ];
+                            if (version_compare($version, $highestVersion, '>')) {
+                                $highestVersion = $version;
+                                $notes = !empty($release['body']) ? $release['body'] : 'Bug fixes and performance improvements.';
+                                $downloadUrl = $matchedAssetUrl ?? ($assets[0]['browser_download_url'] ?? "https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-{$appName}.apk");
+
+                                $highestData = [
+                                    'latest_version' => $version,
+                                    'download_url' => $downloadUrl,
+                                    'release_notes' => $notes,
+                                ];
+                            }
                         }
+                    }
+
+                    if ($highestData) {
+                        return $highestData;
                     }
                 }
             } catch (\Exception $e) {
