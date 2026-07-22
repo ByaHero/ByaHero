@@ -56,11 +56,10 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
             </div>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-              <button
-                type="button"
-                onClick={() => {
-                  alert('Launching ByaHero Admin Mobile Application preview!');
-                }}
+              <a
+                href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-admin.apk"
+                target="_blank"
+                rel="noopener noreferrer"
                 style={{
                   backgroundColor: '#ffffff',
                   color: '#0f3878',
@@ -68,8 +67,7 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
                   borderRadius: '8px',
                   fontWeight: 700,
                   fontSize: '0.8rem',
-                  border: 'none',
-                  cursor: 'pointer',
+                  textDecoration: 'none',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '6px',
@@ -77,9 +75,9 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
                 }}
               >
                 <Sparkles size={14} color="#0f3878" />
-                Try Admin App
+                Download Admin App
                 <ArrowRight size={14} />
-              </button>
+              </a>
 
               <button
                 type="button"

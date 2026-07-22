@@ -42,7 +42,7 @@ export function useAppUpdate() {
     async function checkVersion() {
       try {
         const baseUrl = await getServerUrl();
-        const response = await fetch(`${baseUrl}/api/app-version`);
+        const response = await fetch(`${baseUrl}/api/app-version?app=passenger`);
         if (!response.ok) return;
 
         const data = await response.json();
