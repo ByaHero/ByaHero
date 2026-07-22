@@ -5,6 +5,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { getServerUrl } from '../services/authService';
+
 interface OfflineBannerProps {
   topOffset?: number;
 }
@@ -22,10 +24,11 @@ export default function OfflineBanner({ topOffset }: OfflineBannerProps) {
 
   const checkPing = async () => {
     try {
+      const baseUrl = await getServerUrl();
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 3500);
-      const res = await fetch('https://byahero.alwaysdata.net/api/passenger/get_buses.php', {
-        method: 'HEAD',
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      const res = await fetch(`${baseUrl}/api/buses`, {
+        method: 'GET',
         signal: controller.signal,
         cache: 'no-store'
       });
