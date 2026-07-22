@@ -28,7 +28,8 @@
         "ACCESS_FINE_LOCATION",
         "ACCESS_BACKGROUND_LOCATION",
         "FOREGROUND_SERVICE",
-        "FOREGROUND_SERVICE_LOCATION"
+        "FOREGROUND_SERVICE_LOCATION",
+        "CAMERA"
       ],
       "navigationBar": {
         "backgroundColor": "#ffffff",
@@ -60,6 +61,12 @@
           "locationWhenInUsePermission": "Allow ByaHero to use your location.",
           "isAndroidBackgroundLocationEnabled": false,
           "isAndroidForegroundServiceEnabled": true
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow ByaHero to access your camera to scan QR codes."
         }
       ]
     ],
