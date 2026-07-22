@@ -25,6 +25,8 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
   const [userEmail, setUserEmail] = useState('admin@byahero.com');
   const [userInitial, setUserInitial] = useState('A');
 
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+
   const slideAnim = React.useRef(new Animated.Value(width)).current;
   const backdropOpacity = React.useRef(new Animated.Value(0)).current;
   const insets = useSafeAreaInsets();
@@ -81,31 +83,23 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
   };
 
   const handleLogout = () => {
-    const performLogout = async () => {
-      // First close the drawer animatedly to avoid unmounting race conditions
-      Animated.parallel([
-        Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
-        Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
-      ]).start(async () => {
-        setMenuVisible(false);
-        await AsyncStorage.removeItem('byahero_cached_email');
-        await AsyncStorage.removeItem('byahero_cached_role');
-        await AsyncStorage.removeItem('byahero_cached_name');
-        await AsyncStorage.removeItem('byahero_admin_user');
-        router.replace('/' as any);
-      });
-    };
+    setLogoutModalVisible(true);
+  };
 
-    if (Platform.OS === 'web') {
-      if (window.confirm('Are you sure you want to log out?')) {
-        performLogout();
-      }
-    } else {
-      Alert.alert('Log Out', 'Are you sure you want to log out?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Log out', style: 'destructive', onPress: performLogout }
-      ]);
-    }
+  const performLogout = async () => {
+    setLogoutModalVisible(false);
+    // First close the drawer animatedly to avoid unmounting race conditions
+    Animated.parallel([
+      Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
+      Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
+    ]).start(async () => {
+      setMenuVisible(false);
+      await AsyncStorage.removeItem('byahero_cached_email');
+      await AsyncStorage.removeItem('byahero_cached_role');
+      await AsyncStorage.removeItem('byahero_cached_name');
+      await AsyncStorage.removeItem('byahero_admin_user');
+      router.replace('/' as any);
+    });
   };
 
   return (
@@ -213,6 +207,49 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
               </TouchableOpacity>
             </View>
           </Animated.View>
+        </View>
+      </Modal>
+
+      {/* Custom Logout Confirmation Modal */}
+      <Modal
+        visible={logoutModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={tw`flex-1 bg-black/50 justify-center items-center px-6`}>
+          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[340px] items-center border border-slate-100 shadow-2xl`}>
+            {/* Logout Icon */}
+            <View style={tw`w-16 h-16 rounded-full bg-rose-50 items-center justify-center mb-4`}>
+              <MaterialIcons name="logout" size={32} color="#ef4444" />
+            </View>
+            
+            {/* Title */}
+            <Text style={tw`text-slate-800 text-lg font-bold mb-2 text-center`}>
+              Log Out
+            </Text>
+            
+            {/* Message */}
+            <Text style={tw`text-slate-500 text-sm mb-6 text-center leading-relaxed`}>
+              Are you sure you want to log out of your ByaHero Admin account?
+            </Text>
+            
+            {/* Button Actions */}
+            <View style={tw`flex-row w-full gap-3`}>
+              <TouchableOpacity
+                onPress={() => setLogoutModalVisible(false)}
+                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center border border-slate-200`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={performLogout}
+                style={tw`flex-1 bg-rose-500 rounded-xl py-3 items-center`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>Log Out</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
       </Modal>
 

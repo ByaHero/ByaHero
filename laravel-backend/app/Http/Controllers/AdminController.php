@@ -590,6 +590,7 @@ class AdminController extends Controller
 
         $name = trim((string)$request->input('name', ''));
         $email = trim((string)$request->input('email', ''));
+        $contacts = trim((string)$request->input('contacts', ''));
         $currentPassword = $request->input('current_password');
         $newPassword = $request->input('new_password');
         $confirmPassword = $request->input('confirm_password');
@@ -610,6 +611,7 @@ class AdminController extends Controller
                 $admin->password = Hash::make($newPassword);
                 $admin->name = $name;
                 $admin->email = $email;
+                $admin->contacts = $contacts;
                 if ($admin->save()) {
                     $message = "Profile and password updated successfully!";
                 } else {
@@ -619,6 +621,7 @@ class AdminController extends Controller
         } else {
             $admin->name = $name;
             $admin->email = $email;
+            $admin->contacts = $contacts;
             if ($admin->save()) {
                 $message = "Profile updated successfully!";
             } else {
@@ -632,7 +635,8 @@ class AdminController extends Controller
             'error' => $error,
             'user' => [
                 'name' => $admin->name ?? $admin->email,
-                'email' => $admin->email ?? ''
+                'email' => $admin->email ?? '',
+                'contacts' => $admin->contacts ?? ''
             ]
         ]);
     }
