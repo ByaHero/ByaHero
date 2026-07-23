@@ -30,10 +30,12 @@ export default function ProfileScreen() {
   const [isNameModalOpen, setIsNameModalOpen] = useState(false);
   const [isContactModalOpen, setIsContactModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+  const [isPhotoOptionsModalOpen, setIsPhotoOptionsModalOpen] = useState(false);
   
   // Form states
   const [newName, setNewName] = useState('');
   const [newContacts, setNewContacts] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
   
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -71,19 +73,7 @@ export default function ProfileScreen() {
   };
 
   const handlePictureOptions = () => {
-    Alert.alert(
-      'Profile Picture',
-      'What would you like to do?',
-      [
-        { text: 'Change Photo', onPress: pickImage },
-        { 
-          text: 'Remove Photo', 
-          onPress: removePicture,
-          style: 'destructive'
-        },
-        { text: 'Cancel', style: 'cancel' }
-      ]
-    );
+    setIsPhotoOptionsModalOpen(true);
   };
 
   const removePicture = async () => {
@@ -157,15 +147,32 @@ export default function ProfileScreen() {
     }
   };
 
+  const handleContactChange = (text: string) => {
+    const cleaned = text.replace(/[^0-9]/g, '').slice(0, 11);
+    setNewContacts(cleaned);
+    if (contactError) setContactError(null);
+  };
+
   const handleContactSubmit = async () => {
+    const cleaned = newContacts.trim();
+    if (!cleaned) {
+      setContactError('Contact number cannot be empty.');
+      return;
+    }
+    if (!/^09\d{9}$/.test(cleaned)) {
+      setContactError('Please enter a valid 11-digit Philippine mobile number starting with 09 (e.g. 09171234567).');
+      return;
+    }
+
+    setContactError(null);
     setIsLoading(true);
     try {
-      const res = await updateProfile({ contacts: newContacts.trim() });
+      const res = await updateProfile({ contacts: cleaned });
       if (res && res.success) {
         Alert.alert('Success', 'Contact updated successfully.');
         setIsContactModalOpen(false);
-        setContacts(newContacts.trim());
-        await cacheSession(email, 'conductor', { name, email, contacts: newContacts.trim(), profile_picture: profilePicture });
+        setContacts(cleaned);
+        await cacheSession(email, 'conductor', { name, email, contacts: cleaned, profile_picture: profilePicture });
       } else {
         Alert.alert('Error', res.error || res.message || 'Failed to update contact.');
       }
@@ -308,39 +315,48 @@ export default function ProfileScreen() {
       </ScrollView>
 
       {/* Edit Name Modal */}
-      <Modal visible={isNameModalOpen} transparent animationType="fade">
-        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
-          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
-            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Name</Text>
-            <Text style={tw`text-slate-500 text-xs mb-4`}>Update your full name below.</Text>
+      <Modal visible={isNameModalOpen} transparent animationType="fade" onRequestClose={() => setIsNameModalOpen(false)}>
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity onPress={() => setIsNameModalOpen(false)} style={tw`absolute top-4 right-4 p-1 z-10`}>
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-14 h-14 rounded-full bg-blue-100 items-center justify-center mb-3`}>
+              <Ionicons name="person" size={26} color="#0f3878" />
+            </View>
+
+            <Text style={tw`text-slate-800 text-lg font-black mb-1`}>Edit Full Name</Text>
+            <Text style={tw`text-slate-500 text-xs text-center mb-5`}>Update your conductor profile display name.</Text>
 
             <TextInput
               value={newName}
               onChangeText={setNewName}
-              placeholder="Name"
+              placeholder="Full Name"
+              placeholderTextColor="#94a3b8"
               autoCapitalize="words"
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 mb-5 text-slate-800 font-semibold`}
+              style={tw`w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 mb-5 text-slate-800 font-bold text-sm`}
             />
 
-            <View style={tw`flex-row gap-3`}>
+            <View style={tw`w-full flex-row gap-3`}>
               <TouchableOpacity
                 onPress={() => {
                   setIsNameModalOpen(false);
                   setNewName(name);
                 }}
-                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
               >
-                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleNameSubmit}
                 disabled={isLoading}
-                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
+                style={tw`flex-1 bg-[#0f3878] py-3.5 rounded-2xl items-center justify-center shadow-md`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={tw`text-white font-bold`}>Save</Text>
+                  <Text style={tw`text-white font-bold text-sm`}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -349,39 +365,58 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* Edit Contact Modal */}
-      <Modal visible={isContactModalOpen} transparent animationType="fade">
-        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
-          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
-            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Contact Number</Text>
-            <Text style={tw`text-slate-500 text-xs mb-4`}>Update your contact number below.</Text>
+      <Modal visible={isContactModalOpen} transparent animationType="fade" onRequestClose={() => setIsContactModalOpen(false)}>
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity onPress={() => setIsContactModalOpen(false)} style={tw`absolute top-4 right-4 p-1 z-10`}>
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-14 h-14 rounded-full bg-emerald-100 items-center justify-center mb-3`}>
+              <Ionicons name="call" size={26} color="#059669" />
+            </View>
+
+            <Text style={tw`text-slate-800 text-lg font-black mb-1`}>Edit Contact Number</Text>
+            <Text style={tw`text-slate-500 text-xs text-center mb-4`}>Enter your 11-digit Philippine mobile number starting with 09.</Text>
 
             <TextInput
               value={newContacts}
-              onChangeText={setNewContacts}
-              placeholder="Contact Number"
-              keyboardType="phone-pad"
-              style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl py-3 px-4 mb-5 text-slate-800 font-semibold`}
+              onChangeText={handleContactChange}
+              placeholder="09171234567"
+              placeholderTextColor="#94a3b8"
+              keyboardType="number-pad"
+              maxLength={11}
+              style={tw`w-full bg-slate-50 border border-slate-200 rounded-2xl py-3.5 px-4 mb-2 text-slate-800 font-bold text-sm`}
             />
 
-            <View style={tw`flex-row gap-3`}>
+            {contactError ? (
+              <Text style={tw`text-red-500 text-[11px] font-semibold text-center mb-3 px-2`}>
+                {contactError}
+              </Text>
+            ) : (
+              <View style={tw`mb-3`} />
+            )}
+
+            <View style={tw`w-full flex-row gap-3`}>
               <TouchableOpacity
                 onPress={() => {
                   setIsContactModalOpen(false);
                   setNewContacts(contacts);
+                  setContactError(null);
                 }}
-                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
               >
-                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handleContactSubmit}
                 disabled={isLoading}
-                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
+                style={tw`flex-1 bg-[#0f3878] py-3.5 rounded-2xl items-center justify-center shadow-md`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={tw`text-white font-bold`}>Save</Text>
+                  <Text style={tw`text-white font-bold text-sm`}>Save</Text>
                 )}
               </TouchableOpacity>
             </View>
@@ -390,74 +425,133 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* Edit Password Modal */}
-      <Modal visible={isPasswordModalOpen} transparent animationType="fade">
-        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
-          <View style={tw`bg-white rounded-3xl p-6 border border-slate-200`}>
-            <Text style={tw`text-slate-800 text-base font-bold mb-1`}>Edit Password</Text>
-            <Text style={tw`text-slate-500 text-xs mb-4`}>Enter your current and new password below.</Text>
+      <Modal visible={isPasswordModalOpen} transparent animationType="fade" onRequestClose={() => setIsPasswordModalOpen(false)}>
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity onPress={() => setIsPasswordModalOpen(false)} style={tw`absolute top-4 right-4 p-1 z-10`}>
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-14 h-14 rounded-full bg-amber-100 items-center justify-center mb-3`}>
+              <Ionicons name="lock-closed" size={26} color="#d97706" />
+            </View>
+
+            <Text style={tw`text-slate-800 text-lg font-black mb-1`}>Change Password</Text>
+            <Text style={tw`text-slate-500 text-xs text-center mb-5`}>Enter your current password and new password.</Text>
 
             {/* Current Password */}
-            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-3`}>
+            <View style={tw`w-full flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 mb-3`}>
               <TextInput
                 value={currentPassword}
                 onChangeText={setCurrentPassword}
                 secureTextEntry={secureCurrent}
                 placeholder="Current password"
                 placeholderTextColor="#94a3b8"
-                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+                style={tw`flex-1 font-bold text-slate-800 text-sm`}
               />
               <TouchableOpacity onPress={() => setSecureCurrent(!secureCurrent)}>
-                <Ionicons name={secureCurrent ? "eye-off" : "eye"} size={16} color="#64748b" />
+                <Ionicons name={secureCurrent ? "eye-off" : "eye"} size={18} color="#64748b" />
               </TouchableOpacity>
             </View>
 
             {/* New Password */}
-            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-3`}>
+            <View style={tw`w-full flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 mb-3`}>
               <TextInput
                 value={newPassword}
                 onChangeText={setNewPassword}
                 secureTextEntry={secureNew}
                 placeholder="New password"
                 placeholderTextColor="#94a3b8"
-                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+                style={tw`flex-1 font-bold text-slate-800 text-sm`}
               />
               <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
-                <Ionicons name={secureNew ? "eye-off" : "eye"} size={16} color="#64748b" />
+                <Ionicons name={secureNew ? "eye-off" : "eye"} size={18} color="#64748b" />
               </TouchableOpacity>
             </View>
 
             {/* Confirm Password */}
-            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-4 py-2 mb-5`}>
+            <View style={tw`w-full flex-row items-center bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 mb-5`}>
               <TextInput
                 value={confirmPassword}
                 onChangeText={setConfirmPassword}
                 secureTextEntry={secureConfirm}
                 placeholder="Confirm new password"
                 placeholderTextColor="#94a3b8"
-                style={[tw`flex-1 font-semibold`, { color: '#0f172a' }]}
+                style={tw`flex-1 font-bold text-slate-800 text-sm`}
               />
               <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
-                <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={16} color="#64748b" />
+                <Ionicons name={secureConfirm ? "eye-off" : "eye"} size={18} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <View style={tw`flex-row gap-3`}>
+            <View style={tw`w-full flex-row gap-3`}>
               <TouchableOpacity
                 onPress={() => setIsPasswordModalOpen(false)}
-                style={tw`flex-1 bg-slate-100 rounded-xl py-3 items-center`}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
               >
-                <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={handlePasswordSubmit}
                 disabled={isLoading}
-                style={tw`flex-1 bg-[#0f3878] rounded-xl py-3 items-center justify-center`}
+                style={tw`flex-1 bg-[#0f3878] py-3.5 rounded-2xl items-center justify-center shadow-md`}
               >
                 {isLoading ? (
                   <ActivityIndicator color="white" size="small" />
                 ) : (
-                  <Text style={tw`text-white font-bold`}>Save</Text>
+                  <Text style={tw`text-white font-bold text-sm`}>Save</Text>
                 )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Profile Photo Options Modal */}
+      <Modal visible={isPhotoOptionsModalOpen} transparent animationType="fade" onRequestClose={() => setIsPhotoOptionsModalOpen(false)}>
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity onPress={() => setIsPhotoOptionsModalOpen(false)} style={tw`absolute top-4 right-4 p-1 z-10`}>
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-14 h-14 rounded-full bg-blue-100 items-center justify-center mb-3`}>
+              <Ionicons name="camera" size={26} color="#0f3878" />
+            </View>
+
+            <Text style={tw`text-slate-800 text-lg font-black mb-1`}>Profile Picture</Text>
+            <Text style={tw`text-slate-500 text-xs text-center mb-6`}>Update or remove your profile picture.</Text>
+
+            <View style={tw`w-full gap-3`}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsPhotoOptionsModalOpen(false);
+                  pickImage();
+                }}
+                style={tw`w-full bg-[#0f3878] py-3.5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm`}
+              >
+                <Ionicons name="image-outline" size={18} color="white" />
+                <Text style={tw`text-white font-bold text-sm`}>Choose New Photo</Text>
+              </TouchableOpacity>
+
+              {profilePicture && (
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsPhotoOptionsModalOpen(false);
+                    removePicture();
+                  }}
+                  style={tw`w-full bg-red-50 border border-red-100 py-3.5 rounded-2xl flex-row items-center justify-center gap-2`}
+                >
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
+                  <Text style={tw`text-red-600 font-bold text-sm`}>Remove Photo</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                onPress={() => setIsPhotoOptionsModalOpen(false)}
+                style={tw`w-full bg-slate-100 py-3 rounded-2xl items-center justify-center mt-1`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
