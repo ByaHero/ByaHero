@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build-conductor-apk:
     if: startsWith(github.ref, 'refs/tags/conductor-')
