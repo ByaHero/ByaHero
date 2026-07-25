@@ -75,7 +75,7 @@ export default function LiveTrackingScreen() {
   const [locationSearch, setLocationSearch] = useState('');
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
-  const [pendingTickets, setPendingTickets] = useState(0);
+  const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
 
   // References & Tracking states
   const slideAnim = useRef(new Animated.Value(800)).current;
@@ -104,11 +104,11 @@ export default function LiveTrackingScreen() {
       try {
         const p = JSON.parse(str);
         p.current_seats = seats;
-        p.pending_tickets = pendingTickets;
+        p.pending_pre_departure = pendingPreDeparture;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, pendingTickets]);
+  }, [seats, pendingPreDeparture]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -256,12 +256,10 @@ export default function LiveTrackingScreen() {
       });
     }
     
-    let restoredPending = payload.pending_tickets !== undefined
-      ? payload.pending_tickets
-      : (payload.pending_pre_departure !== undefined 
-          ? payload.pending_pre_departure 
-          : (payload.pre_departure_count || 0));
-    setPendingTickets(restoredPending);
+    let restoredPending = payload.pending_pre_departure !== undefined
+      ? payload.pending_pre_departure
+      : (payload.pre_departure_count || 0);
+    setPendingPreDeparture(restoredPending);
 
     // Load route features for geofenced location parsing
     try {
@@ -523,10 +521,6 @@ export default function LiveTrackingScreen() {
       const newSeats = currentSeats - actualCount;
       setSeats(newSeats);
       pendingBoards.current += actualCount;
-      
-      if (!skipPending && sessionRef.current.ticketing_mode === 'Automatic') {
-        setPendingTickets(prev => prev + actualCount);
-      }
 
       scheduleSync();
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
@@ -544,7 +538,6 @@ export default function LiveTrackingScreen() {
       const newSeats = currentSeats + 1;
       setSeats(newSeats);
       pendingDeparts.current++;
-      setPendingTickets(prev => Math.max(0, prev - 1));
       scheduleSync();
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
         LocationServiceModule.updateSessionData({
@@ -632,18 +625,16 @@ export default function LiveTrackingScreen() {
     }
     
     let remainingToDeduct = ticketQuantity;
-    let pendingDeducted = 0;
-
-    // Use up pending tickets queue first
-    if (pendingTickets > 0) {
-      pendingDeducted = Math.min(remainingToDeduct, pendingTickets);
-      setPendingTickets(prev => prev - pendingDeducted);
-      remainingToDeduct -= pendingDeducted;
+    let preDepartureDeducted = 0;
+    // Use up pending pre-departure queue first
+    if (pendingPreDeparture > 0) {
+      preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
+      setPendingPreDeparture(prev => prev - preDepartureDeducted);
+      remainingToDeduct -= preDepartureDeducted;
     }
-
-    // Only increment new passengers (deducts seats) if not from pending queue
+    // Only increment new passengers (deducts seats) if not from pre-departure
     if (remainingToDeduct > 0) {
-      incrementPassengers(remainingToDeduct, false, true);
+      incrementPassengers(remainingToDeduct);
     }
 
     const ticketData = {
@@ -747,13 +738,13 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TICKETS BANNER */}
-        {pendingTickets > 0 && (
+        {/* PENDING TERMINAL TICKETS BANNER */}
+        {pendingPreDeparture > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
             <Ionicons name="warning" size={24} color="#d97706" />
             <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket.</Text>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Terminal Tickets</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pre-departure passenger(s) to ticket.</Text>
             </View>
           </View>
         )}
