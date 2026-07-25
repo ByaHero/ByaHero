@@ -644,7 +644,8 @@ export default function LiveTrackingScreen() {
       alighting: alightingStop.location_name,
       fare: ticketFare * ticketQuantity,
       discount: discountType,
-      quantity: ticketQuantity
+      quantity: ticketQuantity,
+      ticketNumber: 'TKT-' + Math.floor(10000000 + Math.random() * 90000000)
     };
     setIssuedTicket(ticketData);
     
@@ -781,49 +782,49 @@ export default function LiveTrackingScreen() {
         onRequestClose={() => setIsTicketingModalVisible(false)}
       >
         <SafeAreaView style={tw`flex-1 bg-white`}>
-          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center`}>
-            <Text style={tw`text-xl font-black text-slate-800`}>Issue Ticket</Text>
-            <TouchableOpacity onPress={() => setIsTicketingModalVisible(false)}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row items-center justify-center relative`}>
+            <Text style={tw`text-xl font-black text-slate-800 text-center`}>Issue Ticket</Text>
+            <TouchableOpacity onPress={() => setIsTicketingModalVisible(false)} style={tw`absolute right-5`}>
               <Ionicons name="close" size={28} color="#64748b" />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={tw`flex-1 p-5`} keyboardShouldPersistTaps="handled">
             {/* Boarding Stop */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Boarding Location</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2 text-center`}>Boarding Location</Text>
             <TouchableOpacity 
-              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 items-center`}
               onPress={() => {
                 setSelectingLocationType('boarding');
                 setLocationSearch('');
                 setIsLocationModalVisible(true);
               }}
             >
-              <Text style={tw`text-slate-800 font-medium`}>{boardingStop ? boardingStop.location_name : 'Select Boarding Stop'}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+              <Text style={tw`text-slate-800 font-bold text-center mb-1`}>{boardingStop ? boardingStop.location_name : 'Select Boarding Stop'}</Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
 
             {/* Alighting Stop */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Alighting Location</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2 text-center mt-2`}>Alighting Location</Text>
             <TouchableOpacity 
-              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 items-center`}
               onPress={() => {
                 setSelectingLocationType('alighting');
                 setLocationSearch('');
                 setIsLocationModalVisible(true);
               }}
             >
-              <Text style={tw`text-slate-800 font-medium`}>{alightingStop ? alightingStop.location_name : 'Select Alighting Stop'}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+              <Text style={tw`text-slate-800 font-bold text-center mb-1`}>{alightingStop ? alightingStop.location_name : 'Select Alighting Stop'}</Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
 
             {/* Discount Type */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2 mt-2`}>Discount Type</Text>
-            <View style={tw`flex-row flex-wrap gap-2 mb-6`}>
+            <Text style={tw`text-sm font-bold text-slate-500 mb-3 mt-4 text-center`}>Discount Type</Text>
+            <View style={tw`flex-row flex-wrap justify-center gap-2 mb-8`}>
               {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
                 <TouchableOpacity
                   key={type}
-                  style={tw`px-4 py-2 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
+                  style={tw`px-5 py-2.5 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
                   onPress={() => setDiscountType(type)}
                 >
                   <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
@@ -832,29 +833,29 @@ export default function LiveTrackingScreen() {
             </View>
 
             {/* Ticket Quantity */}
-            <View style={tw`flex-row justify-between items-center mb-6`}>
-              <Text style={tw`text-sm font-bold text-slate-500`}>Ticket Quantity</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 text-center mb-3`}>Ticket Quantity</Text>
+            <View style={tw`flex-row justify-center mb-8`}>
               <View style={tw`flex-row items-center border border-slate-200 rounded-full bg-slate-50 overflow-hidden`}>
                 <TouchableOpacity 
                   onPress={() => setTicketQuantity(q => Math.max(1, q - 1))}
-                  style={tw`px-4 py-3 bg-slate-100`}
+                  style={tw`px-5 py-4 bg-slate-100`}
                 >
-                  <Ionicons name="remove" size={20} color="#64748b" />
+                  <Ionicons name="remove" size={24} color="#64748b" />
                 </TouchableOpacity>
-                <Text style={tw`px-4 font-bold text-slate-800 text-lg`}>{ticketQuantity}</Text>
+                <Text style={tw`px-6 font-black text-slate-800 text-2xl`}>{ticketQuantity}</Text>
                 <TouchableOpacity 
                   onPress={() => setTicketQuantity(q => q + 1)}
-                  style={tw`px-4 py-3 bg-slate-100`}
+                  style={tw`px-5 py-4 bg-slate-100`}
                 >
-                  <Ionicons name="add" size={20} color="#64748b" />
+                  <Ionicons name="add" size={24} color="#64748b" />
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Fare Summary */}
-            <View style={tw`bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-8 items-center`}>
-              <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-1`}>Total Fare</Text>
-              <Text style={tw`text-4xl font-black text-blue-600`}>₱{(ticketFare * ticketQuantity).toFixed(2)}</Text>
+            <View style={tw`bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8 items-center shadow-sm`}>
+              <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-2`}>Total Fare</Text>
+              <Text style={tw`text-5xl font-black text-blue-600`}>₱{(ticketFare * ticketQuantity).toFixed(2)}</Text>
             </View>
             
           </ScrollView>
@@ -879,11 +880,11 @@ export default function LiveTrackingScreen() {
         onRequestClose={() => setIsLocationModalVisible(false)}
       >
         <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center bg-white`}>
-            <Text style={tw`text-lg font-black text-slate-800`}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row justify-center items-center bg-white relative`}>
+            <Text style={tw`text-lg font-black text-slate-800 text-center`}>
               {selectingLocationType === 'boarding' ? 'Select Boarding Stop' : 'Select Alighting Stop'}
             </Text>
-            <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
+            <TouchableOpacity onPress={() => setIsLocationModalVisible(false)} style={tw`absolute right-5`}>
               <Ionicons name="close" size={28} color="#64748b" />
             </TouchableOpacity>
           </View>
@@ -949,9 +950,13 @@ export default function LiveTrackingScreen() {
           >
             {/* Ticket Header */}
             <View style={tw`bg-blue-600 p-6 items-center`}>
-              <Ionicons name="bus" size={32} color="white" />
-              <Text style={tw`text-white font-black text-xl tracking-widest mt-2`}>BYAHERO</Text>
-              <Text style={tw`text-blue-200 text-xs font-bold uppercase mt-1 tracking-wider`}>E-Ticket Receipt</Text>
+              <Image 
+                source={require('../../assets/images/byaheroLogo.png')} 
+                style={tw`w-36 h-10 mb-3`} 
+                contentFit="contain" 
+              />
+              <Text style={tw`text-blue-200 text-xs font-bold uppercase tracking-widest`}>E-Ticket Receipt</Text>
+              <Text style={tw`text-white text-sm font-black mt-2 tracking-widest`}>{issuedTicket.ticketNumber}</Text>
             </View>
 
             {/* Ticket Details */}
