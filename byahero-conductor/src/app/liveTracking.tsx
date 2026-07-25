@@ -744,24 +744,22 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
         )}
 
-        {/* MANUAL TICKETING BUTTON */}
-        {session && session.ticketing_mode === 'Manual' && (
-          <TouchableOpacity 
-            style={tw`bg-slate-100 border border-slate-200 rounded-xl p-4 mb-4 flex-row items-center justify-between shadow-sm`}
-            onPress={() => {
-              setTicketQuantity(1);
-              setIsTicketingModalVisible(true);
-            }}
-          >
-            <View style={tw`flex-row items-center`}>
-              <Ionicons name="ticket" size={24} color="#475569" />
-              <View style={tw`ml-3`}>
-                <Text style={tw`text-slate-700 font-bold`}>Issue Manual Ticket</Text>
-              </View>
+        {/* ISSUE TICKET BUTTON */}
+        <TouchableOpacity 
+          style={tw`bg-slate-100 border border-slate-200 rounded-xl p-4 mb-4 flex-row items-center justify-between shadow-sm`}
+          onPress={() => {
+            setTicketQuantity(1);
+            setIsTicketingModalVisible(true);
+          }}
+        >
+          <View style={tw`flex-row items-center`}>
+            <Ionicons name="ticket" size={24} color="#475569" />
+            <View style={tw`ml-3`}>
+              <Text style={tw`text-slate-700 font-bold`}>Issue Ticket</Text>
             </View>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-          </TouchableOpacity>
-        )}
+          </View>
+          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+        </TouchableOpacity>
 
         {/* Informative Stats */}
         <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3 mb-5`}>
