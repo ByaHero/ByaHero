@@ -34,6 +34,25 @@ jobs:
           cd byahero-conductor
           npm ci --legacy-peer-deps || npm install
 
+      - name: Inject Version from Tag
+        run: |
+          TAG_NAME=${GITHUB_REF#refs/tags/}
+          VERSION=${TAG_NAME#conductor-v}
+          VERSION=${VERSION#conductor-}
+          echo "Injecting version: $VERSION"
+          
+          cd byahero-conductor
+          node -e "
+            const fs = require('fs');
+            const appJson = JSON.parse(fs.readFileSync('app.json'));
+            appJson.expo.version = '$VERSION';
+            fs.writeFileSync('app.json', JSON.stringify(appJson, null, 2));
+            
+            const pkgJson = JSON.parse(fs.readFileSync('package.json'));
+            pkgJson.version = '$VERSION';
+            fs.writeFileSync('package.json', JSON.stringify(pkgJson, null, 2));
+          "
+
       - name: Verify Expo Bundling
         run: |
           cd byahero-conductor
