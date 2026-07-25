@@ -516,13 +516,18 @@ export default function LiveTrackingScreen() {
     }, 3000);
   };
 
-  const incrementPassengers = (count = 1, isManualUi = false) => {
+  const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
     const currentSeats = seatsRef.current;
     if (sessionRef.current && currentSeats > 0) {
       const actualCount = Math.min(count, currentSeats);
       const newSeats = currentSeats - actualCount;
       setSeats(newSeats);
       pendingBoards.current += actualCount;
+      
+      if (!skipPending && sessionRef.current.ticketing_mode === 'Automatic') {
+        setPendingTickets(prev => prev + actualCount);
+      }
+
       scheduleSync();
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
         LocationServiceModule.updateSessionData({
@@ -638,7 +643,7 @@ export default function LiveTrackingScreen() {
 
     // Only increment new passengers (deducts seats) if not from pending queue
     if (remainingToDeduct > 0) {
-      incrementPassengers(remainingToDeduct);
+      incrementPassengers(remainingToDeduct, false, true);
     }
 
     const ticketData = {
@@ -721,6 +726,44 @@ export default function LiveTrackingScreen() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Ticketing UI */}
+        {session && session.ticketing_mode === 'Automatic' ? (
+          <View style={tw`bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 flex-row items-center justify-between shadow-sm`}>
+            <View>
+              <Text style={tw`text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1`}>Automatic Ticketing</Text>
+              <Text style={tw`text-lg font-bold text-slate-800`}>
+                Pending: <Text style={tw`text-blue-600 font-black`}>{pendingTickets}</Text>
+              </Text>
+            </View>
+            <TouchableOpacity
+              style={tw`bg-blue-600 px-5 py-3 rounded-xl shadow-md ${pendingTickets === 0 ? 'opacity-50' : ''}`}
+              disabled={pendingTickets === 0}
+              onPress={() => {
+                setTicketQuantity(pendingTickets);
+                setIsTicketingModalVisible(true);
+              }}
+            >
+              <Text style={tw`text-white font-bold tracking-wider`}>Issue Tickets</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View style={tw`bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5 flex-row items-center justify-between shadow-sm`}>
+            <View>
+              <Text style={tw`text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1`}>Manual Ticketing</Text>
+              <Text style={tw`text-sm font-bold text-slate-700`}>Issue a ticket</Text>
+            </View>
+            <TouchableOpacity
+              style={tw`bg-slate-800 px-5 py-3 rounded-xl shadow-md`}
+              onPress={() => {
+                setTicketQuantity(1);
+                setIsTicketingModalVisible(true);
+              }}
+            >
+              <Text style={tw`text-white font-bold tracking-wider`}>New Ticket</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Informative Stats */}
         <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3 mb-5`}>
