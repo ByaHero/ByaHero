@@ -727,42 +727,40 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* Ticketing UI */}
-        {session && session.ticketing_mode === 'Automatic' ? (
-          <View style={tw`bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 flex-row items-center justify-between shadow-sm`}>
-            <View>
-              <Text style={tw`text-[10px] font-black text-blue-500 uppercase tracking-widest mb-1`}>Automatic Ticketing</Text>
-              <Text style={tw`text-lg font-bold text-slate-800`}>
-                Pending: <Text style={tw`text-blue-600 font-black`}>{pendingTickets}</Text>
-              </Text>
+        {/* PENDING TICKETS BANNER */}
+        {session && session.ticketing_mode === 'Automatic' && pendingTickets > 0 && (
+          <TouchableOpacity 
+            style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center shadow-sm`}
+            onPress={() => {
+              setTicketQuantity(pendingTickets);
+              setIsTicketingModalVisible(true);
+            }}
+          >
+            <Ionicons name="warning" size={24} color="#d97706" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket. Tap to issue.</Text>
             </View>
-            <TouchableOpacity
-              style={tw`bg-blue-600 px-5 py-3 rounded-xl shadow-md ${pendingTickets === 0 ? 'opacity-50' : ''}`}
-              disabled={pendingTickets === 0}
-              onPress={() => {
-                setTicketQuantity(pendingTickets);
-                setIsTicketingModalVisible(true);
-              }}
-            >
-              <Text style={tw`text-white font-bold tracking-wider`}>Issue Tickets</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View style={tw`bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-5 flex-row items-center justify-between shadow-sm`}>
-            <View>
-              <Text style={tw`text-[10px] font-black text-slate-500 uppercase tracking-widest mb-1`}>Manual Ticketing</Text>
-              <Text style={tw`text-sm font-bold text-slate-700`}>Issue a ticket</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* MANUAL TICKETING BUTTON */}
+        {session && session.ticketing_mode === 'Manual' && (
+          <TouchableOpacity 
+            style={tw`bg-slate-100 border border-slate-200 rounded-xl p-4 mb-4 flex-row items-center justify-between shadow-sm`}
+            onPress={() => {
+              setTicketQuantity(1);
+              setIsTicketingModalVisible(true);
+            }}
+          >
+            <View style={tw`flex-row items-center`}>
+              <Ionicons name="ticket" size={24} color="#475569" />
+              <View style={tw`ml-3`}>
+                <Text style={tw`text-slate-700 font-bold`}>Issue Manual Ticket</Text>
+              </View>
             </View>
-            <TouchableOpacity
-              style={tw`bg-slate-800 px-5 py-3 rounded-xl shadow-md`}
-              onPress={() => {
-                setTicketQuantity(1);
-                setIsTicketingModalVisible(true);
-              }}
-            >
-              <Text style={tw`text-white font-bold tracking-wider`}>New Ticket</Text>
-            </TouchableOpacity>
-          </View>
+            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
+          </TouchableOpacity>
         )}
 
         {/* Informative Stats */}
