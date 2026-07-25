@@ -76,6 +76,7 @@ export default function LiveTrackingScreen() {
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
+  const [ticketCounter, setTicketCounter] = useState(1);
 
   // References & Tracking states
   const slideAnim = useRef(new Animated.Value(800)).current;
@@ -105,10 +106,11 @@ export default function LiveTrackingScreen() {
         const p = JSON.parse(str);
         p.current_seats = seats;
         p.pending_pre_departure = pendingPreDeparture;
+        p.ticket_counter = ticketCounter;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, pendingPreDeparture]);
+  }, [seats, pendingPreDeparture, ticketCounter]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -260,6 +262,9 @@ export default function LiveTrackingScreen() {
       ? payload.pending_pre_departure
       : (payload.pre_departure_count || 0);
     setPendingPreDeparture(restoredPending);
+
+    let restoredCounter = payload.ticket_counter !== undefined ? payload.ticket_counter : 1;
+    setTicketCounter(restoredCounter);
 
     // Load route features for geofenced location parsing
     try {
@@ -645,9 +650,10 @@ export default function LiveTrackingScreen() {
       fare: ticketFare * ticketQuantity,
       discount: discountType,
       quantity: ticketQuantity,
-      ticketNumber: 'TKT-' + Math.floor(10000000 + Math.random() * 90000000)
+      ticketNumber: String(ticketCounter).padStart(5, '0')
     };
     setIssuedTicket(ticketData);
+    setTicketCounter(prev => prev + 1);
     
     // Close modal and reset
     setIsTicketingModalVisible(false);
@@ -951,12 +957,17 @@ export default function LiveTrackingScreen() {
             {/* Ticket Header */}
             <View style={tw`bg-blue-600 p-6 items-center`}>
               <Image 
-                source={require('../../assets/images/byaheroLogo.png')} 
-                style={tw`w-36 h-10 mb-3`} 
+                source={require('../../assets/images/byaheroLogoBlue.svg')} 
+                style={tw`w-12 h-12 mb-1`} 
+                contentFit="contain" 
+              />
+              <Image 
+                source={require('../../assets/images/ByaHero.svg')} 
+                style={tw`w-24 h-6 mb-3`} 
                 contentFit="contain" 
               />
               <Text style={tw`text-blue-200 text-xs font-bold uppercase tracking-widest`}>E-Ticket Receipt</Text>
-              <Text style={tw`text-white text-sm font-black mt-2 tracking-widest`}>{issuedTicket.ticketNumber}</Text>
+              <Text style={tw`text-white text-sm font-black mt-2 tracking-widest`}>TKT-{issuedTicket.ticketNumber}</Text>
             </View>
 
             {/* Ticket Details */}
@@ -968,18 +979,20 @@ export default function LiveTrackingScreen() {
                 ))}
               </View>
 
-              <View style={tw`items-center border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
-                <Text style={tw`text-slate-500 font-bold text-xs uppercase mb-1`}>Total Fare Paid</Text>
-                <Text style={tw`text-5xl font-black text-slate-800`}>₱{issuedTicket.fare.toFixed(2)}</Text>
-                <View style={tw`flex-row gap-2 mt-2`}>
-                  <View style={tw`bg-blue-50 px-3 py-1 rounded-full`}>
-                    <Text style={tw`text-blue-600 font-bold text-xs uppercase`}>{issuedTicket.discount} Fare</Text>
+              <View style={tw`w-full border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
+                <View style={tw`flex-row justify-between mb-3`}>
+                  <Text style={tw`text-slate-500 font-bold text-xs uppercase`}>Passenger Breakdown</Text>
+                </View>
+                {Array.from({length: issuedTicket.quantity}).map((_, idx) => (
+                  <View key={idx} style={tw`flex-row justify-between mb-2`}>
+                    <Text style={tw`text-slate-700 font-medium`}>{issuedTicket.discount} Fare</Text>
+                    <Text style={tw`text-slate-800 font-bold`}>₱{(issuedTicket.fare / issuedTicket.quantity).toFixed(2)}</Text>
                   </View>
-                  {issuedTicket.quantity > 1 && (
-                    <View style={tw`bg-indigo-50 px-3 py-1 rounded-full`}>
-                      <Text style={tw`text-indigo-600 font-bold text-xs uppercase`}>{issuedTicket.quantity}x Tickets</Text>
-                    </View>
-                  )}
+                ))}
+                
+                <View style={tw`flex-row justify-between mt-4 pt-4 border-t border-slate-200`}>
+                  <Text style={tw`text-slate-800 font-black text-lg uppercase`}>Total Paid</Text>
+                  <Text style={tw`text-blue-600 font-black text-2xl`}>₱{issuedTicket.fare.toFixed(2)}</Text>
                 </View>
               </View>
 
