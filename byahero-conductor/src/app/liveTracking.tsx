@@ -730,36 +730,22 @@ export default function LiveTrackingScreen() {
         {/* PENDING TICKETS BANNER */}
         {session && session.ticketing_mode === 'Automatic' && pendingTickets > 0 && (
           <TouchableOpacity 
-            style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center shadow-sm`}
+            style={tw`bg-white border border-slate-200 rounded-2xl p-4 mb-5 flex-row items-center shadow-sm`}
             onPress={() => {
               setTicketQuantity(pendingTickets);
               setIsTicketingModalVisible(true);
             }}
           >
-            <Ionicons name="warning" size={24} color="#d97706" />
-            <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket. Tap to issue.</Text>
+            <View style={tw`bg-orange-50 rounded-full p-2`}>
+              <Ionicons name="warning" size={20} color="#ea580c" />
             </View>
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-slate-800 font-bold text-sm`}>Pending Unticketed</Text>
+              <Text style={tw`text-slate-500 text-xs mt-0.5`}>{pendingTickets} passenger(s) need a ticket. Tap to issue.</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
           </TouchableOpacity>
         )}
-
-        {/* ISSUE TICKET BUTTON */}
-        <TouchableOpacity 
-          style={tw`bg-slate-100 border border-slate-200 rounded-xl p-4 mb-4 flex-row items-center justify-between shadow-sm`}
-          onPress={() => {
-            setTicketQuantity(1);
-            setIsTicketingModalVisible(true);
-          }}
-        >
-          <View style={tw`flex-row items-center`}>
-            <Ionicons name="ticket" size={24} color="#475569" />
-            <View style={tw`ml-3`}>
-              <Text style={tw`text-slate-700 font-bold`}>Issue Ticket</Text>
-            </View>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-        </TouchableOpacity>
 
         {/* Informative Stats */}
         <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3 mb-5`}>
@@ -781,6 +767,17 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
+
+        {/* ISSUE TICKET BUTTON */}
+        <TouchableOpacity
+          onPress={() => {
+            setTicketQuantity(1);
+            setIsTicketingModalVisible(true);
+          }}
+          style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
+        >
+          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Issue Ticket</Text>
+        </TouchableOpacity>
 
         {/* STOP BUTTON */}
         <TouchableOpacity
