@@ -727,26 +727,6 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TICKETS BANNER */}
-        {session && session.ticketing_mode === 'Automatic' && pendingTickets > 0 && (
-          <TouchableOpacity 
-            style={tw`bg-white border border-slate-200 rounded-2xl p-4 mb-5 flex-row items-center shadow-sm`}
-            onPress={() => {
-              setTicketQuantity(pendingTickets);
-              setIsTicketingModalVisible(true);
-            }}
-          >
-            <View style={tw`bg-orange-50 rounded-full p-2`}>
-              <Ionicons name="warning" size={20} color="#ea580c" />
-            </View>
-            <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-slate-800 font-bold text-sm`}>Pending Unticketed</Text>
-              <Text style={tw`text-slate-500 text-xs mt-0.5`}>{pendingTickets} passenger(s) need a ticket. Tap to issue.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={20} color="#94a3b8" />
-          </TouchableOpacity>
-        )}
-
         {/* Informative Stats */}
         <View style={tw`bg-slate-50 rounded-2xl p-4 border border-slate-200 gap-3 mb-5`}>
           <View style={tw`flex-row justify-between border-b border-slate-200 pb-2`}>
@@ -767,16 +747,26 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
+        {/* PENDING TICKETS BANNER */}
+        {pendingTickets > 0 && (
+          <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
+            <Ionicons name="warning" size={24} color="#d97706" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Unticketed Passengers</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingTickets} passenger(s) on board without a ticket.</Text>
+            </View>
+          </View>
+        )}
 
-        {/* ISSUE TICKET BUTTON */}
+        {/* PRODUCE TICKET BUTTON */}
         <TouchableOpacity
           onPress={() => {
-            setTicketQuantity(1);
             setIsTicketingModalVisible(true);
+            if (busStops.length === 0) loadTicketingData();
           }}
           style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
         >
-          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Issue Ticket</Text>
+          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
         </TouchableOpacity>
 
         {/* STOP BUTTON */}
