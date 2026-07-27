@@ -511,9 +511,11 @@ class ConductorController extends Controller
     {
         $userId = $this->checkAuth();
 
-        $history = BusOperation::where('conductor_id', $userId)
-            ->where('status', 'completed')
-            ->orderBy('started_at', 'desc')
+        $history = BusOperation::select('bus_operations.*', 'busses.code as bus_code')
+            ->leftJoin('busses', 'bus_operations.bus_id', '=', 'busses.Bus_ID')
+            ->where('bus_operations.conductor_id', $userId)
+            ->where('bus_operations.status', 'completed')
+            ->orderBy('bus_operations.started_at', 'desc')
             ->get();
 
         return response()->json([
