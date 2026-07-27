@@ -104,3 +104,4 @@ Panel Suggestions:
 4. Enhanced conductor ticketing system
 5. Add Fare integration 
 6. Native Application
+7. E-ticket transfer
