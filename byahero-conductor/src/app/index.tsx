@@ -136,14 +136,20 @@ export default function LoginScreen() {
 
       const hasLivePayload = await AsyncStorage.getItem('byahero_conductor_payload');
       const targetRoute = hasLivePayload ? '/liveTracking' : '/dashboard';
+      const userName = result.user?.name || email.split('@')[0];
 
       setAuthModalConfig({
         visible: true,
         type: 'success',
         title: 'Login Successful',
-        message: 'Hello, welcome back user.',
+        message: `Hello, welcome back ${userName}.`,
         targetRoute,
       });
+
+      setTimeout(() => {
+        setAuthModalConfig(prev => ({ ...prev, visible: false }));
+        router.replace(targetRoute as any);
+      }, 1500);
     } catch (error) {
       clearTimeout(timer);
       setIsLoading(false);
@@ -316,21 +322,21 @@ export default function LoginScreen() {
               {authModalConfig.message}
             </Text>
 
-            <TouchableOpacity
-              onPress={() => {
-                const target = authModalConfig.targetRoute;
-                setAuthModalConfig(prev => ({ ...prev, visible: false }));
-                if (target) {
-                  router.replace(target as any);
-                }
-              }}
-              activeOpacity={0.8}
-              style={tw`w-full ${authModalConfig.type === 'success' ? 'bg-[#1d72f8]' : 'bg-slate-800'} py-3 rounded-full items-center shadow-md`}
-            >
-              <Text style={tw`text-white text-sm font-bold tracking-wider`}>
-                {authModalConfig.type === 'success' ? 'CONTINUE' : 'OK'}
-              </Text>
-            </TouchableOpacity>
+            {authModalConfig.type === 'success' ? (
+              <View style={tw`py-3 items-center justify-center`}>
+                <ActivityIndicator color="#1d72f8" size="large" />
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={() => {
+                  setAuthModalConfig(prev => ({ ...prev, visible: false }));
+                }}
+                activeOpacity={0.8}
+                style={tw`w-full bg-slate-800 py-3 rounded-full items-center shadow-md`}
+              >
+                <Text style={tw`text-white text-sm font-bold tracking-wider`}>OK</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       </Modal>

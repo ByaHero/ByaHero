@@ -97,9 +97,16 @@ export default function OperationHistoryScreen() {
                 {/* Header: Date & Route */}
                 <View style={tw`flex-row justify-between items-center mb-3 border-b border-slate-100 pb-3`}>
                   <View>
-                    <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest`}>
-                      {formatDate(item.started_at)}
-                    </Text>
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest`}>
+                        {formatDate(item.started_at)}
+                      </Text>
+                      {item.bus_code && (
+                        <View style={tw`bg-slate-100 px-2 py-0.5 rounded`}>
+                          <Text style={tw`text-slate-600 text-[10px] font-bold`}>{item.bus_code}</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={tw`text-[#0f3878] font-black text-base mt-0.5`}>
                       {item.route || 'Unknown Route'}
                     </Text>
