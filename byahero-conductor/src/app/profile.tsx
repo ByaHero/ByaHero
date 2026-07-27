@@ -48,6 +48,25 @@ export default function ProfileScreen() {
   
   const [isLoading, setIsLoading] = useState(false);
 
+  const [resultModalConfig, setResultModalConfig] = useState<{
+    visible: boolean;
+    type: 'success' | 'error' | 'info';
+    title: string;
+    message: string;
+  }>({
+    visible: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (title: string, message: string) => {
+    let type: 'success' | 'error' | 'info' = 'info';
+    if (title.toLowerCase().includes('success')) type = 'success';
+    else if (title.toLowerCase().includes('error')) type = 'error';
+    setResultModalConfig({ visible: true, type, title, message });
+  };
+
   useEffect(() => {
     loadCachedDetails();
   }, []);
@@ -83,12 +102,12 @@ export default function ProfileScreen() {
       if (res && res.success) {
         setProfilePicture(null);
         await cacheSession(email, 'conductor', { name, email, contacts, profile_picture: null });
-        Alert.alert('Success', 'Profile picture removed successfully.');
+        showAlert('Success', 'Profile picture removed successfully.');
       } else {
-        Alert.alert('Error', res.error || res.message || 'Failed to remove picture.');
+        showAlert('Error', res.error || res.message || 'Failed to remove picture.');
       }
     } catch (e: any) {
-      Alert.alert('Network Error', e.message || 'Failed to connect to server.');
+      showAlert('Network Error', e.message || 'Failed to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -111,12 +130,12 @@ export default function ProfileScreen() {
         if (res && res.success) {
           setProfilePicture(base64Img);
           await cacheSession(email, 'conductor', { name, email, contacts, profile_picture: base64Img });
-          Alert.alert('Success', 'Profile picture updated successfully.');
+          showAlert('Success', 'Profile picture updated successfully.');
         } else {
-          Alert.alert('Error', res.error || res.message || 'Failed to update picture.');
+          showAlert('Error', res.error || res.message || 'Failed to update picture.');
         }
       } catch (e: any) {
-        Alert.alert('Network Error', e.message || 'Failed to connect to server.');
+        showAlert('Network Error', e.message || 'Failed to connect to server.');
       } finally {
         setIsLoading(false);
       }
@@ -125,7 +144,7 @@ export default function ProfileScreen() {
 
   const handleNameSubmit = async () => {
     if (!newName.trim()) {
-      Alert.alert('Validation Error', 'Name cannot be empty.');
+      showAlert('Validation Error', 'Name cannot be empty.');
       return;
     }
 
@@ -133,15 +152,15 @@ export default function ProfileScreen() {
     try {
       const res = await updateProfile({ name: newName.trim() });
       if (res && res.success) {
-        Alert.alert('Success', 'Name updated successfully.');
+        showAlert('Success', 'Name updated successfully.');
         setIsNameModalOpen(false);
         setName(newName.trim());
         await cacheSession(email, 'conductor', { name: newName.trim(), email, contacts, profile_picture: profilePicture });
       } else {
-        Alert.alert('Error', res.error || res.message || 'Failed to update name.');
+        showAlert('Error', res.error || res.message || 'Failed to update name.');
       }
     } catch (e: any) {
-      Alert.alert('Network Error', e.message || 'Failed to connect to server.');
+      showAlert('Network Error', e.message || 'Failed to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -169,15 +188,15 @@ export default function ProfileScreen() {
     try {
       const res = await updateProfile({ contacts: cleaned });
       if (res && res.success) {
-        Alert.alert('Success', 'Contact updated successfully.');
+        showAlert('Success', 'Contact updated successfully.');
         setIsContactModalOpen(false);
         setContacts(cleaned);
         await cacheSession(email, 'conductor', { name, email, contacts: cleaned, profile_picture: profilePicture });
       } else {
-        Alert.alert('Error', res.error || res.message || 'Failed to update contact.');
+        showAlert('Error', res.error || res.message || 'Failed to update contact.');
       }
     } catch (e: any) {
-      Alert.alert('Network Error', e.message || 'Failed to connect to server.');
+      showAlert('Network Error', e.message || 'Failed to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -185,15 +204,15 @@ export default function ProfileScreen() {
 
   const handlePasswordSubmit = async () => {
     if (!currentPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Validation Error', 'All password fields are required.');
+      showAlert('Validation Error', 'All password fields are required.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Validation Error', 'New passwords do not match.');
+      showAlert('Validation Error', 'New passwords do not match.');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+      showAlert('Validation Error', 'Password must be at least 6 characters.');
       return;
     }
 
@@ -208,16 +227,16 @@ export default function ProfileScreen() {
       });
 
       if (res && res.success) {
-        Alert.alert('Success', 'Password updated successfully.');
+        showAlert('Success', 'Password updated successfully.');
         setIsPasswordModalOpen(false);
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
       } else {
-        Alert.alert('Error', res.error || res.message || 'Failed to update password.');
+        showAlert('Error', res.error || res.message || 'Failed to update password.');
       }
     } catch (e: any) {
-      Alert.alert('Network Error', e.message || 'Failed to connect to server.');
+      showAlert('Network Error', e.message || 'Failed to connect to server.');
     } finally {
       setIsLoading(false);
     }
@@ -554,6 +573,42 @@ export default function ProfileScreen() {
                 <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Result Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={resultModalConfig.visible}
+        onRequestClose={() => setResultModalConfig(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-6`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-[28px] p-7 items-center shadow-lg border border-slate-100`}>
+            <View style={tw`w-16 h-16 rounded-full ${resultModalConfig.type === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4 border ${resultModalConfig.type === 'success' ? 'border-emerald-100' : 'border-rose-100'}`}>
+              <Ionicons
+                name={resultModalConfig.type === 'success' ? 'checkmark-circle' : (resultModalConfig.type === 'info' ? 'information-circle' : 'alert-circle')}
+                size={38}
+                color={resultModalConfig.type === 'success' ? '#10b981' : (resultModalConfig.type === 'info' ? '#3b82f6' : '#f43f5e')}
+              />
+            </View>
+
+            <Text style={tw`text-slate-800 text-base font-extrabold mb-1 text-center tracking-wide`}>
+              {resultModalConfig.title}
+            </Text>
+
+            <Text style={tw`text-slate-500 text-sm text-center mb-6 leading-5 px-2 font-semibold`}>
+              {resultModalConfig.message}
+            </Text>
+
+            <TouchableOpacity
+              onPress={() => setResultModalConfig(prev => ({ ...prev, visible: false }))}
+              activeOpacity={0.8}
+              style={tw`w-full ${resultModalConfig.type === 'success' ? 'bg-[#0f3878]' : 'bg-slate-800'} py-3 rounded-full items-center shadow-md`}
+            >
+              <Text style={tw`text-white text-sm font-bold tracking-wider`}>OK</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
