@@ -32,10 +32,10 @@ export default function UpdateModal() {
       <View style={styles.overlay}>
         <View style={styles.card}>
           <View style={styles.iconContainer}>
-            <MaterialIcons name="system-update" size={42} color="#0F3878" />
+            <MaterialIcons name="system-update" size={42} color="#1d4ed8" />
           </View>
 
-          <Text style={styles.title}>Admin App Update Available!</Text>
+          <Text style={styles.title}>New Update Available!</Text>
           <Text style={styles.versionBadge}>
             v{currentVersion} ➔ v{updateInfo.latest_version}
           </Text>
@@ -49,8 +49,8 @@ export default function UpdateModal() {
 
           <Text style={styles.subtext}>
             {updateInfo.force_update
-              ? 'A required update is available for ByaHero Admin. Please update to continue.'
-              : 'Please download the latest Admin App version for the newest management features.'}
+              ? 'A required update is available. Please update to continue using ByaHero Admin.'
+              : 'Please download the latest version to get the newest features and improvements.'}
           </Text>
 
           <View style={styles.buttonContainer}>
@@ -96,7 +96,7 @@ const styles = StyleSheet.create({
     width: 68,
     height: 68,
     borderRadius: 34,
-    backgroundColor: '#E0F2FE',
+    backgroundColor: '#eff6ff',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -104,15 +104,15 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 20,
     fontWeight: '700',
-    color: '#111827',
+    color: '#1e293b',
     textAlign: 'center',
     marginBottom: 6,
   },
   versionBadge: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#0F3878',
-    backgroundColor: '#F0F9FF',
+    color: '#1d4ed8',
+    backgroundColor: '#eff6ff',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -121,27 +121,27 @@ const styles = StyleSheet.create({
   },
   notesBox: {
     width: '100%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: '#f8fafc',
     borderRadius: 10,
     padding: 12,
     marginBottom: 14,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: '#e2e8f0',
   },
   notesHeader: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#4B5563',
+    color: '#475569',
     marginBottom: 4,
   },
   notesText: {
     fontSize: 13,
-    color: '#374151',
+    color: '#334155',
     lineHeight: 18,
   },
   subtext: {
     fontSize: 13,
-    color: '#6B7280',
+    color: '#64748b',
     textAlign: 'center',
     lineHeight: 18,
     marginBottom: 20,
@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   updateButton: {
     flexDirection: 'row',
-    backgroundColor: '#0F3878',
+    backgroundColor: '#1d4ed8',
     borderRadius: 12,
     paddingVertical: 14,
     alignItems: 'center',
@@ -169,7 +169,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   laterButtonText: {
-    color: '#6B7280',
+    color: '#64748b',
     fontWeight: '600',
     fontSize: 14,
   },
