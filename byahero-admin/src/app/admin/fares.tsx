@@ -168,7 +168,7 @@ export default function AdminFares() {
         {/* Flat Fare Adjustment */}
         <View style={tw`bg-white rounded-3xl p-5 mx-5 mb-6 shadow-sm border border-slate-200`}>
           <View style={tw`flex-row items-center mb-4`}>
-            <Ionicons name="pricetag" size={20} color="#10b981" style={tw`mr-2`} />
+            <Ionicons name="pricetag" size={20} color="#1d4ed8" style={tw`mr-2`} />
             <Text style={tw`font-bold text-slate-800 text-[15px]`}>Flat Fare Adjustment</Text>
           </View>
           
@@ -178,7 +178,7 @@ export default function AdminFares() {
               <Text style={tw`text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2`}>Action</Text>
               <View style={tw`flex-row bg-slate-100 p-1 rounded-xl`}>
                 <TouchableOpacity onPress={() => setFlatAdjustType('increase')} style={tw`flex-1 py-3 rounded-lg items-center ${flatAdjustType === 'increase' ? 'bg-white shadow-sm' : ''}`}>
-                  <Text style={tw`font-bold text-[12px] ${flatAdjustType === 'increase' ? 'text-[#10b981]' : 'text-slate-500'}`}>+ Inc</Text>
+                  <Text style={tw`font-bold text-[12px] ${flatAdjustType === 'increase' ? 'text-[#1d4ed8]' : 'text-slate-500'}`}>+ Inc</Text>
                 </TouchableOpacity>
                 <TouchableOpacity onPress={() => setFlatAdjustType('decrease')} style={tw`flex-1 py-3 rounded-lg items-center ${flatAdjustType === 'decrease' ? 'bg-white shadow-sm' : ''}`}>
                   <Text style={tw`font-bold text-[12px] ${flatAdjustType === 'decrease' ? 'text-rose-500' : 'text-slate-500'}`}>- Dec</Text>
@@ -199,7 +199,7 @@ export default function AdminFares() {
             </View>
           </View>
 
-          <TouchableOpacity onPress={confirmFlatAdjustment} style={tw`bg-[#10b981] w-full py-4 rounded-xl items-center flex-row justify-center`}>
+          <TouchableOpacity onPress={confirmFlatAdjustment} style={tw`bg-[#1d4ed8] w-full py-4 rounded-xl items-center flex-row justify-center`}>
             <Ionicons name="layers" size={16} color="white" style={tw`mr-2`} />
             <Text style={tw`text-white font-bold text-[14px]`}>Apply to All Fares</Text>
           </TouchableOpacity>
