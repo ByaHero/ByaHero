@@ -198,6 +198,7 @@ export default function AdminDashboard() {
         <ScrollView 
           contentContainerStyle={tw`p-4 pb-10`} 
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4C85C5" />}
+          nestedScrollEnabled={true}
         >
           {/* Control Center Header */}
           <View style={tw`mb-4 pb-4 border-b border-gray-200 mt-2 flex-col`}>
@@ -275,6 +276,8 @@ export default function AdminDashboard() {
                   style={{ flex: 1 }}
                   javaScriptEnabled={true}
                   domStorageEnabled={true}
+                  nestedScrollEnabled={true}
+                  overScrollMode="never"
                   onLoad={() => {
                     if (webViewRef.current && activeBuses.length > 0) {
                       webViewRef.current.postMessage(JSON.stringify(activeBuses));
