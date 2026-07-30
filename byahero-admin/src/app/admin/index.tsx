@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Platform } from 'react-native';
+import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -46,6 +47,7 @@ export default function AdminDashboard() {
 
   const [activeBuses, setActiveBuses] = useState<any[]>([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const webViewRef = useRef<any>(null);
 
   const fetchActiveBuses = async () => {
     try {
@@ -54,6 +56,8 @@ export default function AdminDashboard() {
         setActiveBuses(data.buses);
         if (Platform.OS === 'web' && iframeRef.current?.contentWindow) {
           iframeRef.current.contentWindow.postMessage(JSON.stringify(data.buses), '*');
+        } else if (Platform.OS !== 'web' && webViewRef.current) {
+          webViewRef.current.postMessage(JSON.stringify(data.buses));
         }
       }
     } catch (e) {
@@ -147,7 +151,7 @@ export default function AdminDashboard() {
 
       let markers = {};
 
-      window.addEventListener('message', function(event) {
+      function handleMsg(event) {
         try {
           const buses = JSON.parse(event.data);
           const currentIds = new Set();
@@ -173,7 +177,10 @@ export default function AdminDashboard() {
             }
           });
         } catch (e) {}
-      });
+      }
+
+      window.addEventListener('message', handleMsg);
+      document.addEventListener('message', handleMsg);
     </script>
   </body>
   </html>
@@ -191,6 +198,7 @@ export default function AdminDashboard() {
         <ScrollView 
           contentContainerStyle={tw`p-4 pb-10`} 
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#4C85C5" />}
+          nestedScrollEnabled={true}
         >
           {/* Control Center Header */}
           <View style={tw`mb-4 pb-4 border-b border-gray-200 mt-2 flex-col`}>
@@ -262,9 +270,20 @@ export default function AdminDashboard() {
                   }}
                 />
               ) : (
-                <View style={tw`flex-1 items-center justify-center`}>
-                  <Text style={tw`text-slate-400 font-medium text-sm`}>Map only supported on Web version.</Text>
-                </View>
+                <WebView
+                  ref={webViewRef}
+                  source={{ html: mapHtmlTemplate }}
+                  style={{ flex: 1 }}
+                  javaScriptEnabled={true}
+                  domStorageEnabled={true}
+                  nestedScrollEnabled={true}
+                  overScrollMode="never"
+                  onLoad={() => {
+                    if (webViewRef.current && activeBuses.length > 0) {
+                      webViewRef.current.postMessage(JSON.stringify(activeBuses));
+                    }
+                  }}
+                />
               )}
             </View>
           </View>
