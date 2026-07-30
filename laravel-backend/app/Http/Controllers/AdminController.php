@@ -815,6 +815,31 @@ class AdminController extends Controller
                 return response()->json(['success' => true, 'message' => 'LTFRB Matrix applied successfully.']);
             } 
             
+            elseif ($action === 'adjust_fares_flat') {
+                $amount = (float)$request->input('amount', 0);
+                
+                if ($amount == 0) {
+                    return response()->json(['success' => false, 'error' => 'Adjustment amount cannot be zero.']);
+                }
+
+                DB::statement("
+                    UPDATE bus_fares 
+                    SET 
+                        regular_fare = GREATEST(0, regular_fare + ?),
+                        discounted_fare = GREATEST(0, discounted_fare + ?),
+                        updated_at = NOW()
+                ", [
+                    $amount, $amount
+                ]);
+
+                // Ensure discounted <= regular
+                DB::table('bus_fares')
+                    ->whereRaw('discounted_fare > regular_fare')
+                    ->update(['discounted_fare' => DB::raw('regular_fare')]);
+
+                return response()->json(['success' => true, 'message' => "Successfully adjusted all fares by ₱" . number_format($amount, 2) . "."]);
+            } 
+            
             elseif ($action === 'reset_to_base') {
                 DB::table('bus_fares')->update([
                     'regular_fare' => DB::raw('base_regular_fare'),

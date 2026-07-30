@@ -37,6 +37,10 @@ export default function AdminFares() {
   const [regRate, setRegRate] = useState('2.20');
   const [discRate, setDiscRate] = useState('1.76');
 
+  // Flat Adjustment form
+  const [flatAdjustAmount, setFlatAdjustAmount] = useState('1.00');
+  const [flatAdjustType, setFlatAdjustType] = useState<'increase' | 'decrease'>('increase');
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -96,6 +100,26 @@ export default function AdminFares() {
     );
   };
 
+  const confirmFlatAdjustment = () => {
+    const isDecrease = flatAdjustType === 'decrease';
+    const finalAmount = isDecrease ? `-${flatAdjustAmount}` : flatAdjustAmount;
+
+    Alert.alert(
+      'Flat Fare Adjustment',
+      `WARNING: This will instantly ${isDecrease ? 'reduce' : 'add'} ₱${flatAdjustAmount} ${isDecrease ? 'from' : 'to'} all fares (regular and discounted). Proceed?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Proceed', 
+          style: 'destructive',
+          onPress: () => handleAction('adjust_fares_flat', { 
+            amount: finalAmount 
+          })
+        }
+      ]
+    );
+  };
+
   // Extract fares for current direction
   const displayFares = data?.fares?.filter(f => f.direction === directionFilter) || [];
 
@@ -138,6 +162,46 @@ export default function AdminFares() {
           <TouchableOpacity onPress={confirmGenerateMatrix} style={tw`bg-[#1d4ed8] w-full py-4 rounded-xl items-center flex-row justify-center`}>
             <Ionicons name="flash" size={16} color="white" style={tw`mr-2`} />
             <Text style={tw`text-white font-bold text-[14px]`}>Generate All Rows</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Flat Fare Adjustment */}
+        <View style={tw`bg-white rounded-3xl p-5 mx-5 mb-6 shadow-sm border border-slate-200`}>
+          <View style={tw`flex-row items-center mb-4`}>
+            <Ionicons name="pricetag" size={20} color="#10b981" style={tw`mr-2`} />
+            <Text style={tw`font-bold text-slate-800 text-[15px]`}>Flat Fare Adjustment</Text>
+          </View>
+          
+          <View style={tw`flex-row justify-between items-end mb-5`}>
+            {/* Column 1: Action Toggle */}
+            <View style={tw`w-[48%]`}>
+              <Text style={tw`text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-2`}>Action</Text>
+              <View style={tw`flex-row bg-slate-100 p-1 rounded-xl`}>
+                <TouchableOpacity onPress={() => setFlatAdjustType('increase')} style={tw`flex-1 py-3 rounded-lg items-center ${flatAdjustType === 'increase' ? 'bg-white shadow-sm' : ''}`}>
+                  <Text style={tw`font-bold text-[12px] ${flatAdjustType === 'increase' ? 'text-[#10b981]' : 'text-slate-500'}`}>+ Inc</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => setFlatAdjustType('decrease')} style={tw`flex-1 py-3 rounded-lg items-center ${flatAdjustType === 'decrease' ? 'bg-white shadow-sm' : ''}`}>
+                  <Text style={tw`font-bold text-[12px] ${flatAdjustType === 'decrease' ? 'text-rose-500' : 'text-slate-500'}`}>- Dec</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Column 2: Amount Input */}
+            <View style={tw`w-[48%]`}>
+              <Text style={tw`text-slate-500 text-[10px] font-bold uppercase tracking-wider mb-1.5`}>Amount (₱)</Text>
+              <TextInput 
+                style={tw`bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-800 font-medium`} 
+                value={flatAdjustAmount} 
+                onChangeText={setFlatAdjustAmount} 
+                keyboardType="numeric" 
+                placeholder="e.g. 1.00" 
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity onPress={confirmFlatAdjustment} style={tw`bg-[#10b981] w-full py-4 rounded-xl items-center flex-row justify-center`}>
+            <Ionicons name="layers" size={16} color="white" style={tw`mr-2`} />
+            <Text style={tw`text-white font-bold text-[14px]`}>Apply to All Fares</Text>
           </TouchableOpacity>
         </View>
 
