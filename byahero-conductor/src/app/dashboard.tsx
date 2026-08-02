@@ -24,6 +24,9 @@ import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl, logout } from '../services/authService';
 import ConductorNavbar from '../components/ConductorNavbar';
 import { getBusesConductor, getActiveBuses, startOperation } from '../services/conductorService';
+import TourOverlay from '../components/TourOverlay';
+import { handleTourLayout } from '../components/TourRegistry';
+import { useTourSync } from '../hooks/useTourSync';
 
 export default function DashboardScreen() {
   const [buses, setBuses] = useState<any[]>([]);
@@ -46,6 +49,8 @@ export default function DashboardScreen() {
 
   const webViewRef = useRef<WebView>(null);
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+
+  const { activeStep, setActiveStep } = useTourSync('/dashboard');
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -72,6 +77,11 @@ export default function DashboardScreen() {
     const interval = setInterval(fetchLiveBusesForMap, 15000);
     return () => clearInterval(interval);
   }, [currentFilter]);
+
+  const startTrackingRef = useRef<any>(null);
+  const selectBusRef = useRef<any>(null);
+  const selectRouteRef = useRef<any>(null);
+  const ticketingModeRef = useRef<any>(null);
 
   const checkAutoResume = async () => {
     const payloadStr = await AsyncStorage.getItem('byahero_conductor_payload');
@@ -304,7 +314,11 @@ export default function DashboardScreen() {
             <Text style={tw`text-lg font-bold text-slate-900 mb-4`}>Route Dispatch Setup</Text>
             
             {/* Ticketing Mode Switch */}
-            <View style={tw`flex-row bg-slate-100 rounded-full p-1 w-full max-w-[280px]`}>
+            <View 
+              ref={ticketingModeRef}
+              onLayout={() => handleTourLayout('ticketing-mode', ticketingModeRef)}
+              style={tw`flex-row bg-slate-100 rounded-full p-1 w-full max-w-[280px]`}
+            >
               <TouchableOpacity
                 onPress={() => setTicketingMode('Manual')}
                 style={tw`flex-1 py-2.5 rounded-full ${ticketingMode === 'Manual' ? 'bg-blue-600 shadow-sm' : ''}`}
@@ -325,39 +339,44 @@ export default function DashboardScreen() {
           </View>
 
           {/* Active Bus Select */}
-          <View style={tw`mb-5`}>
+          <View ref={selectBusRef} onLayout={() => handleTourLayout('select-bus', selectBusRef)} style={tw`mb-5`}>
             <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>ACTIVE BUS UNIT</Text>
-            <TouchableOpacity
-              onPress={() => setIsBusDropdownOpen(true)}
-              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
-            >
-              <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-900'}`}>
-                {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus'}
-              </Text>
-              <Ionicons name="caret-down" size={16} color="#1e293b" />
-            </TouchableOpacity>
+            <View>
+              <TouchableOpacity
+                onPress={() => setIsBusDropdownOpen(true)}
+                style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
+              >
+                <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-900'}`}>
+                  {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus'}
+                </Text>
+                <Ionicons name="caret-down" size={16} color="#1e293b" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Scheduled Route Select */}
-          <View style={tw`mb-8`}>
+          <View ref={selectRouteRef} onLayout={() => handleTourLayout('select-route', selectRouteRef)} style={tw`mb-8`}>
             <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>SCHEDULED TRANSIT ROUTE</Text>
-            <TouchableOpacity
-              onPress={() => setIsRouteDropdownOpen(true)}
-              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
-            >
-              <Text style={tw`text-sm font-bold ${selectedRoute ? 'text-slate-900' : 'text-slate-900'}`}>
-                {selectedRoute || 'Select Route'}
-              </Text>
-              <Ionicons name="caret-down" size={16} color="#1e293b" />
-            </TouchableOpacity>
+            <View>
+              <TouchableOpacity
+                onPress={() => setIsRouteDropdownOpen(true)}
+                style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
+              >
+                <Text style={tw`text-sm font-bold ${selectedRoute ? 'text-slate-900' : 'text-slate-900'}`}>
+                  {selectedRoute || 'Select Route'}
+                </Text>
+                <Ionicons name="caret-down" size={16} color="#1e293b" />
+              </TouchableOpacity>
+            </View>
           </View>
 
-          {/* Start tracking button */}
-          <TouchableOpacity
-            onPress={handleStartTracking}
-            disabled={isLoading}
-            style={tw`w-full items-center justify-center mt-2 mb-2`}
-          >
+          {/* Start Tracking Button */}
+          <View ref={startTrackingRef} onLayout={() => handleTourLayout('start-tracking', startTrackingRef)}>
+            <TouchableOpacity
+              onPress={handleStartTracking}
+              disabled={isLoading}
+              style={tw`w-full items-center justify-center mt-2 mb-2`}
+            >
             {isLoading ? (
               <View style={tw`bg-[#1D5CAE] rounded-[35px] w-full py-4 items-center justify-center shadow-md`}>
                 <ActivityIndicator color="white" />
@@ -369,7 +388,8 @@ export default function DashboardScreen() {
                 contentFit="contain"
               />
             )}
-          </TouchableOpacity>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
 
@@ -573,6 +593,15 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Tour Overlay */}
+      {activeStep !== null && (
+        <TourOverlay 
+          currentStep={activeStep} 
+          onStepChange={setActiveStep} 
+          onClose={() => setActiveStep(null)} 
+        />
+      )}
 
     </SafeAreaView>
   );
