@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Image, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, RefreshControl, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface Bus {
   Bus_ID?: number | string;
@@ -27,6 +28,45 @@ export default function AdminBuses() {
   // Local state for dropdown edits
   const [editedStatuses, setEditedStatuses] = useState<Record<string, string>>({});
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchBuses = async () => {
     try {
       const data = await adminService.listBuses();
@@ -45,7 +85,7 @@ export default function AdminBuses() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to fetch buses.');
+      showAlert('Error', 'Failed to fetch buses.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -63,7 +103,7 @@ export default function AdminBuses() {
 
   const handleAddBus = async () => {
     if (!newBusCode.trim()) {
-      Alert.alert('Error', 'Please enter a bus code before saving.');
+      showAlert('Error', 'Please enter a bus code before saving.', 'error');
       return;
     }
     setSaving(true);
@@ -76,10 +116,10 @@ export default function AdminBuses() {
         setNewBusCode('');
         fetchBuses();
       } else {
-        Alert.alert('Error', data.message || data.error || 'Failed to add bus.');
+        showAlert('Error', data.message || data.error || 'Failed to add bus.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while adding bus.');
+      showAlert('Error', 'Network error while adding bus.', 'error');
     } finally {
       setSaving(false);
     }
@@ -98,10 +138,10 @@ export default function AdminBuses() {
         setSuccessModal({ visible: true, message: `Bus ${busCode} has been deleted.`, type: 'delete' });
         fetchBuses();
       } else {
-        Alert.alert('Error', data.error || data.message || 'Failed to delete bus.');
+        showAlert('Error', data.error || data.message || 'Failed to delete bus.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while deleting bus.');
+      showAlert('Error', 'Network error while deleting bus.', 'error');
     }
   };
 
@@ -125,11 +165,11 @@ export default function AdminBuses() {
       } else {
         // Revert on failure
         setEditedStatuses(prev => ({ ...prev, [busId]: currentStatus }));
-        Alert.alert('Error', data.message || data.error || 'Failed to update status.');
+        showAlert('Error', data.message || data.error || 'Failed to update status.', 'error');
       }
     } catch (e) {
       setEditedStatuses(prev => ({ ...prev, [busId]: currentStatus }));
-      Alert.alert('Error', 'Network error while updating status.');
+      showAlert('Error', 'Network error while updating status.', 'error');
     } finally {
       setUpdatingId(null);
     }
@@ -282,6 +322,14 @@ export default function AdminBuses() {
           )}
         </ScrollView>
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

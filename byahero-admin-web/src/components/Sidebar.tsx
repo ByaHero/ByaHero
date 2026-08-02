@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
@@ -17,6 +17,7 @@ import {
   LogOut 
 } from 'lucide-react';
 import { adminService } from '../services/admin';
+import AlertModal from './AlertModal';
 
 interface SidebarProps {
   onLogout: () => void;
@@ -24,8 +25,14 @@ interface SidebarProps {
 
 export default function Sidebar({ onLogout }: SidebarProps) {
   const navigate = useNavigate();
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
 
-  const handleLogoutClick = async () => {
+  const handleLogoutClick = () => {
+    setIsLogoutModalOpen(true);
+  };
+
+  const confirmLogout = async () => {
+    setIsLogoutModalOpen(false);
     try {
       await adminService.logout();
     } catch (e) {
@@ -133,6 +140,16 @@ export default function Sidebar({ onLogout }: SidebarProps) {
           <span>Sign Out</span>
         </button>
       </div>
+      <AlertModal
+        isOpen={isLogoutModalOpen}
+        title="Confirm Sign Out"
+        message="Are you sure you want to sign out of the ByaHero Admin portal?"
+        type="confirm"
+        confirmText="Sign Out"
+        cancelText="Cancel"
+        onConfirm={confirmLogout}
+        onCancel={() => setIsLogoutModalOpen(false)}
+      />
     </aside>
   );
 }

@@ -6,8 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -27,6 +27,47 @@ export default function AccountSettingsScreen() {
   const [newImageData, setNewImageData] = useState('');
   const [removeImageFlag, setRemoveImageFlag] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
 
   useEffect(() => {
     async function loadData() {
@@ -73,7 +114,7 @@ export default function AccountSettingsScreen() {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please grant library permissions to upload images.');
+        showAlert('Permission Denied', 'Please grant library permissions to upload images.', 'warning');
         return;
       }
 
@@ -92,7 +133,7 @@ export default function AccountSettingsScreen() {
         setRemoveImageFlag(false);
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to pick image.');
+      showAlert('Error', 'Failed to pick image.', 'error');
     }
   };
 
@@ -105,7 +146,7 @@ export default function AccountSettingsScreen() {
   const handleSaveChanges = async () => {
     const trimmedName = name.trim();
     if (!trimmedName) {
-      Alert.alert('Validation Error', 'Full Name is required.');
+      showAlert('Validation Error', 'Full Name is required.', 'warning');
       return;
     }
 
@@ -139,16 +180,16 @@ export default function AccountSettingsScreen() {
       setIsSaving(false);
       
       if (data && data.success) {
-        Alert.alert('Success', 'Profile updated successfully on server!');
+        showAlert('Success', 'Profile updated successfully on server!', 'success');
         setOriginalName(trimmedName);
         setNewImageData('');
         setRemoveImageFlag(false);
       } else {
-        Alert.alert('Saved Locally', `Notice: ${data.message || 'Server did not acknowledge save.'}`);
+        showAlert('Saved Locally', `Notice: ${data.message || 'Server did not acknowledge save.'}`, 'info');
       }
     } catch (err) {
       setIsSaving(false);
-      Alert.alert('Saved Locally', 'Saved locally. Connection to server failed (queued for sync).');
+      showAlert('Saved Locally', 'Saved locally. Connection to server failed (queued for sync).', 'info');
     }
   };
 
@@ -308,6 +349,14 @@ export default function AccountSettingsScreen() {
       </ScrollView>
 
       <PassengerFooter activeTab="location" />
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

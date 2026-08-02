@@ -6,9 +6,9 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
   Switch,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -22,6 +22,47 @@ export default function DeleteAccountScreen() {
   const [understandCheck, setUnderstandCheck] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
+
   useEffect(() => {
     async function loadName() {
       const name = await AsyncStorage.getItem('byahero_cached_name') || 'User';
@@ -32,62 +73,58 @@ export default function DeleteAccountScreen() {
 
   const handleDeleteAccount = async () => {
     if (inputText.trim().toLowerCase() !== 'delete') {
-      Alert.alert('Validation Error', 'Please type exactly "delete" to confirm.');
+      showAlert('Validation Error', 'Please type exactly "delete" to confirm.', 'warning');
       return;
     }
     if (!understandCheck) {
-      Alert.alert('Validation Error', 'Please confirm you understand that this action is irreversible.');
+      showAlert('Validation Error', 'Please confirm you understand that this action is irreversible.', 'warning');
       return;
     }
 
-    Alert.alert(
+    showAlert(
       'Final Warning',
       'Are you absolutely sure you want to delete your account? This action is IRREVERSIBLE.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'PERMANENTLY DELETE',
-          style: 'destructive',
-          onPress: async () => {
-            setIsLoading(true);
-            try {
-              const serverUrl = await getServerUrl();
-              const email = await AsyncStorage.getItem('byahero_cached_email') || '';
+      'confirm',
+      async () => {
+        setIsLoading(true);
+        try {
+          const serverUrl = await getServerUrl();
+          const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
-              const response = await fetch(`${serverUrl}/api/passenger/profile/delete-account`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  confirmText: inputText.trim(),
-                  email: email
-                }),
-                credentials: 'include',
-              });
+          const response = await fetch(`${serverUrl}/api/passenger/profile/delete-account`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              confirmText: inputText.trim(),
+              email: email
+            }),
+            credentials: 'include',
+          });
 
-              const data = await response.json();
-              setIsLoading(false);
+          const data = await response.json();
+          setIsLoading(false);
 
-              if (data && data.success) {
-                await AsyncStorage.removeItem('byahero_cached_email');
-                await AsyncStorage.removeItem('byahero_cached_role');
-                await AsyncStorage.removeItem('byahero_cached_name');
-                await AsyncStorage.removeItem('byahero_cached_profile_picture');
-                await AsyncStorage.removeItem('byahero_cached_contacts');
-                await AsyncStorage.removeItem('byahero_cached_phone');
-                await AsyncStorage.removeItem('sos_fcm_active_token');
+          if (data && data.success) {
+            await AsyncStorage.removeItem('byahero_cached_email');
+            await AsyncStorage.removeItem('byahero_cached_role');
+            await AsyncStorage.removeItem('byahero_cached_name');
+            await AsyncStorage.removeItem('byahero_cached_profile_picture');
+            await AsyncStorage.removeItem('byahero_cached_contacts');
+            await AsyncStorage.removeItem('byahero_cached_phone');
+            await AsyncStorage.removeItem('sos_fcm_active_token');
 
-                Alert.alert('Account Deleted', 'Your account and data have been permanently removed.');
-                router.replace('/');
-              } else {
-                Alert.alert('Deletion Failed', data.message || 'Failed to delete account.');
-              }
-            } catch (err) {
-              setIsLoading(false);
-              Alert.alert('Error', 'Failed to communicate with server.');
-            }
+            showAlert('Account Deleted', 'Your account and data have been permanently removed.', 'success', () => {
+              router.replace('/');
+            });
+          } else {
+            showAlert('Deletion Failed', data.message || 'Failed to delete account.', 'error');
           }
+        } catch (err) {
+          setIsLoading(false);
+          showAlert('Error', 'Failed to communicate with server.', 'error');
         }
-      ]
+      },
+      () => {}
     );
   };
 
@@ -173,6 +210,14 @@ export default function DeleteAccountScreen() {
       </ScrollView>
 
       <PassengerFooter activeTab="location" />
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

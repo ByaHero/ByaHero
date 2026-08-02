@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -35,25 +35,51 @@ export default function SignUpScreen() {
   const [otp, setOtp] = useState('');
   const [devOtp, setDevOtp] = useState('');
 
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false, title: '', message: '', type: 'error', onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
+
   const handleSignUpSubmit = async () => {
     if (!email.trim()) {
-      Alert.alert('Validation Error', 'Email address is required.');
+      showAlert('Validation Error', 'Email address is required.', 'warning');
       return;
     }
     
     const contactVal = contacts.trim();
     if (!/^(09|639)\d{9}$/.test(contactVal)) {
-      Alert.alert('Validation Error', 'Please enter a valid Philippine mobile number (e.g., 09123456789).');
+      showAlert('Validation Error', 'Please enter a valid Philippine mobile number (e.g., 09123456789).', 'warning');
       return;
     }
 
     if (password.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+      showAlert('Validation Error', 'Password must be at least 6 characters.', 'warning');
       return;
     }
 
     if (password !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match.');
+      showAlert('Validation Error', 'Passwords do not match.', 'warning');
       return;
     }
 
@@ -72,13 +98,13 @@ export default function SignUpScreen() {
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Registration Request Failed', (error as any).message || 'Server error. Please try again.');
+      showAlert('Registration Request Failed', (error as any).message || 'Server error. Please try again.', 'error');
     }
   };
 
   const handleOtpVerify = async () => {
     if (otp.trim().length !== 6) {
-      Alert.alert('Validation Error', 'Please enter the 6-digit OTP code.');
+      showAlert('Validation Error', 'Please enter the 6-digit OTP code.', 'warning');
       return;
     }
 
@@ -87,16 +113,13 @@ export default function SignUpScreen() {
       const response = await signupVerifyOtp(email, otp);
       setIsLoading(false);
       if (response.success) {
-        Alert.alert('Success', 'Verification complete!', [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/passenger/completeProfile' as any),
-          },
-        ]);
+        showAlert('Success', 'Verification complete! You can now log in.', 'success', () => {
+          router.replace('/passenger/completeProfile' as any);
+        });
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Verification Failed', (error as any).message || 'Invalid code.');
+      showAlert('Verification Failed', (error as any).message || 'Invalid code.', 'error');
     }
   };
 
@@ -244,6 +267,14 @@ export default function SignUpScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

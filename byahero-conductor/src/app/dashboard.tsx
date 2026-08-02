@@ -7,12 +7,12 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Alert,
   ActivityIndicator,
   StyleSheet,
   Platform,
   Linking
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
@@ -156,6 +156,51 @@ export default function DashboardScreen() {
     sendBusesToMap(rawBusesList, filter);
   };
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+    confirmText?: string;
+    cancelText?: string;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void,
+    confirmText?: string,
+    cancelText?: string
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      confirmText,
+      cancelText,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const handleGrantBgPermission = async () => {
     try {
       const { status } = await Location.requestBackgroundPermissionsAsync();
@@ -163,16 +208,18 @@ export default function DashboardScreen() {
       if (status === 'granted') {
         setIsPreDepartureVisible(true);
       } else {
-        Alert.alert(
+        showAlert(
           'Settings Required',
           'Android requires selecting "Allow all the time" in app settings to keep location active in the background.',
-          [
-            { text: 'Continue Anyway', onPress: () => setIsPreDepartureVisible(true) },
-            {
-              text: 'Open Settings',
-              onPress: () => Linking.openSettings()
-            }
-          ]
+          'confirm',
+          () => {
+            Linking.openSettings();
+          },
+          () => {
+            setIsPreDepartureVisible(true);
+          },
+          'Open Settings',
+          'Continue Anyway'
         );
       }
     } catch (e) {
@@ -183,18 +230,18 @@ export default function DashboardScreen() {
 
   const handleStartTracking = async () => {
     if (!selectedBus) {
-      Alert.alert('Selection Required', 'Please select an active bus unit.');
+      showAlert('Selection Required', 'Please select an active bus unit.', 'warning');
       return;
     }
     if (!selectedRoute) {
-      Alert.alert('Selection Required', 'Please select a transit route.');
+      showAlert('Selection Required', 'Please select a transit route.', 'warning');
       return;
     }
 
     // Step 1: Request foreground location permission
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Foreground location permission is required for bus tracking.');
+      showAlert('Permission Denied', 'Foreground location permission is required for bus tracking.', 'error');
       return;
     }
 
@@ -213,7 +260,7 @@ export default function DashboardScreen() {
     const seatsTotal = selectedBus.total_seats || 25;
 
     if (boardingCount > seatsTotal) {
-      Alert.alert('Error', `Passenger count cannot exceed maximum seats (${seatsTotal})`);
+      showAlert('Error', `Passenger count cannot exceed maximum seats (${seatsTotal})`, 'error');
       return;
     }
 
@@ -244,10 +291,10 @@ export default function DashboardScreen() {
         await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
         router.replace('/liveTracking');
       } else {
-        Alert.alert('Dispatch Failed', res.error || 'Failed to start transit tracking.');
+        showAlert('Dispatch Failed', res.error || 'Failed to start transit tracking.', 'error');
       }
     } catch (e: any) {
-      Alert.alert('Network Error', e.message || 'Could not connect to the server.');
+      showAlert('Network Error', e.message || 'Could not connect to the server.', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -574,6 +621,16 @@ export default function DashboardScreen() {
         </View>
       </Modal>
 
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+      />
     </SafeAreaView>
   );
 }

@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2, Users, RefreshCw, XCircle, MapPin, Filter } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { WaitingPassenger } from '../types';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function WaitingPassengers() {
   const [waitingList, setWaitingList] = useState<WaitingPassenger[]>([]);
@@ -9,6 +11,7 @@ export default function WaitingPassengers() {
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [filterLocation, setFilterLocation] = useState('All Stop Locations');
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   const fetchPassengers = async () => {
     try {
@@ -50,23 +53,28 @@ export default function WaitingPassengers() {
   };
 
   const handleDismissLocation = async (location: string) => {
-    if (!window.confirm(`Dismiss all waiting passenger signals for ${location}?`)) return;
-    try {
-      setRefreshing(true);
-      const data = await adminService.manageWaitingPassengers({
-        action: 'cancel_location',
-        location
-      });
-      if (data.success) {
-        fetchPassengers();
-      } else {
-        alert(data.error || 'Failed to dismiss signals.');
+    showConfirm(
+      'Dismiss Signals',
+      `Dismiss all waiting passenger signals for ${location}?`,
+      async () => {
+        try {
+          setRefreshing(true);
+          const data = await adminService.manageWaitingPassengers({
+            action: 'cancel_location',
+            location
+          });
+          if (data.success) {
+            fetchPassengers();
+          } else {
+            showAlert('Error', data.error || 'Failed to dismiss signals.', 'error');
+          }
+        } catch (e) {
+          showAlert('Network Error', 'Network error while dismissing signals.', 'error');
+        } finally {
+          setRefreshing(false);
+        }
       }
-    } catch (e) {
-      alert('Network error while dismissing signals.');
-    } finally {
-      setRefreshing(false);
-    }
+    );
   };
 
   // Grouping / Location Counts
@@ -222,5 +230,13 @@ export default function WaitingPassengers() {
         )}
       </div>
     </div>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
   );
 }

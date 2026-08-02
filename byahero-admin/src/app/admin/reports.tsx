@@ -1,15 +1,55 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Alert, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
 import { IncidentReport } from '@/types';
+import AlertModal from '@/components/AlertModal';
 
 export default function AdminReports() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
 
   const fetchReports = async () => {
     try {
@@ -19,7 +59,7 @@ export default function AdminReports() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to fetch reports.');
+      showAlert('Error', 'Failed to fetch reports.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -44,40 +84,35 @@ export default function AdminReports() {
       });
 
       if (data.success) {
-        Alert.alert('Success', data.message || 'Report status updated.');
+        showAlert('Success', data.message || 'Report status updated.', 'success');
         fetchReports();
       } else {
-        Alert.alert('Error', data.error || 'Failed to update report status.');
+        showAlert('Error', data.error || 'Failed to update report status.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while updating status.');
+      showAlert('Error', 'Network error while updating status.', 'error');
     }
   };
 
   const executeDelete = async (id: number) => {
-    Alert.alert(
+    showAlert(
       'Delete Report',
       'Are you sure you want to permanently delete this passenger report? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const data = await adminService.manageReports({ action: 'delete_report', id });
-              if (data.success) {
-                Alert.alert('Success', data.message || 'Report deleted successfully.');
-                fetchReports();
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete report.');
-              }
-            } catch (e) {
-              Alert.alert('Error', 'Network error while deleting report.');
-            }
+      'confirm',
+      async () => {
+        try {
+          const data = await adminService.manageReports({ action: 'delete_report', id });
+          if (data.success) {
+            showAlert('Success', data.message || 'Report deleted successfully.', 'success');
+            fetchReports();
+          } else {
+            showAlert('Error', data.error || 'Failed to delete report.', 'error');
           }
+        } catch (e) {
+          showAlert('Error', 'Network error while deleting report.', 'error');
         }
-      ]
+      },
+      () => {}
     );
   };
 
@@ -94,14 +129,14 @@ export default function AdminReports() {
   };
 
   const promptStatusUpdate = (report: IncidentReport) => {
-    Alert.alert(
+    const isResolved = report.status === 'resolved';
+    const nextStatus = isResolved ? 'pending' : 'resolved';
+    showAlert(
       'Update Status',
-      'Select new status for this report:',
-      [
-        { text: 'Pending', onPress: () => updateStatus(report.id, 'pending') },
-        { text: 'Resolved', onPress: () => updateStatus(report.id, 'resolved') },
-        { text: 'Cancel', style: 'cancel' }
-      ]
+      `Mark this report as ${nextStatus === 'resolved' ? 'Resolved' : 'Pending'}?`,
+      'confirm',
+      () => updateStatus(report.id, nextStatus),
+      () => {}
     );
   };
 
@@ -238,6 +273,14 @@ export default function AdminReports() {
           )}
         </ScrollView>
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }
