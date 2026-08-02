@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { AlertManager } from '../components/WebAlert';
 
 import icon from 'leaflet/dist/images/marker-icon.png';
 import iconShadow from 'leaflet/dist/images/marker-shadow.png';
@@ -149,8 +150,8 @@ export default function Dashboard() {
           <button 
             className="btn btn-secondary" 
             style={{ backgroundColor: '#e2e8f0', color: '#334155' }}
-            onClick={async () => {
-              if (window.confirm("Retrain the ETA AI Model using latest historical data?")) {
+            onClick={() => {
+              AlertManager.confirm("Retrain the ETA AI Model using latest historical data?", async () => {
                 setLoading(true);
                 try {
                   const res = await adminService.trainAiModel();
@@ -159,7 +160,7 @@ export default function Dashboard() {
                   alert(e.message || "Failed to train model");
                 }
                 setLoading(false);
-              }
+              });
             }} 
             disabled={loading}
           >

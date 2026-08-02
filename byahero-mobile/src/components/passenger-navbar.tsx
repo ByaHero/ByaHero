@@ -198,12 +198,7 @@ export function PassengerHeader({
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm('Are you sure you want to log out?');
-      if (confirm) confirmLogout();
-    } else {
-      setLogoutModalVisible(true);
-    }
+    setLogoutModalVisible(true);
   };
 
   const getRef = (key: string | null) => {
