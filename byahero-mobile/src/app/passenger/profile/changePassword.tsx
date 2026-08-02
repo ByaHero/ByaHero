@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -24,6 +25,8 @@ export default function ChangePasswordScreen() {
   const [secureNew, setSecureNew] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
 
   useEffect(() => {
     async function checkPasswordStatus() {
@@ -45,15 +48,15 @@ export default function ChangePasswordScreen() {
 
   const handleUpdatePassword = async () => {
     if (hasPassword && !currentPassword) {
-      Alert.alert('Validation Error', 'Current password is required.');
+      setErrorMessage('Current password is required.');
       return;
     }
     if (newPassword.length < 6) {
-      Alert.alert('Validation Error', 'New password must be at least 6 characters.');
+      setErrorMessage('New password must be at least 6 characters.');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match.');
+      setErrorMessage('Passwords do not match.');
       return;
     }
 
@@ -82,17 +85,17 @@ export default function ChangePasswordScreen() {
       setIsLoading(false);
       
       if (data && data.success) {
-        Alert.alert('Success', data.message || 'Password updated successfully!');
+        setSuccessMessage(data.message || 'Password updated successfully!');
         setCurrentPassword('');
         setNewPassword('');
         setConfirmPassword('');
         setHasPassword(true);
       } else {
-        Alert.alert('Error', data.error || 'Failed to update password.');
+        setErrorMessage(data.error || 'Failed to update password.');
       }
     } catch (err) {
       setIsLoading(false);
-      Alert.alert('Error', 'Failed to communicate with server.');
+      setErrorMessage('Failed to communicate with server.');
     }
   };
 
@@ -131,7 +134,7 @@ export default function ChangePasswordScreen() {
                   />
                   <TouchableOpacity onPress={() => setSecureCurrent(!secureCurrent)}>
                     <MaterialIcons 
-                      name={secureCurrent ? 'visibility' : 'visibility-off'} 
+                      name={secureCurrent ? 'visibility-off' : 'visibility'} 
                       size={20} 
                       color="#64748b" 
                     />
@@ -154,7 +157,7 @@ export default function ChangePasswordScreen() {
                 />
                 <TouchableOpacity onPress={() => setSecureNew(!secureNew)}>
                   <MaterialIcons 
-                    name={secureNew ? 'visibility' : 'visibility-off'} 
+                    name={secureNew ? 'visibility-off' : 'visibility'} 
                     size={20} 
                     color="#64748b" 
                   />
@@ -176,7 +179,7 @@ export default function ChangePasswordScreen() {
                 />
                 <TouchableOpacity onPress={() => setSecureConfirm(!secureConfirm)}>
                   <MaterialIcons 
-                    name={secureConfirm ? 'visibility' : 'visibility-off'} 
+                    name={secureConfirm ? 'visibility-off' : 'visibility'} 
                     size={20} 
                     color="#64748b" 
                   />
@@ -213,6 +216,68 @@ export default function ChangePasswordScreen() {
       </ScrollView>
 
       <PassengerFooter activeTab="location" />
+
+      {/* Custom Error Modal */}
+      <Modal
+        visible={!!errorMessage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setErrorMessage('')}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
+          <View style={tw`w-full bg-white rounded-3xl p-6 shadow-xl items-center w-[85%]`}>
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="error-outline" size={40} color="#ef4444" />
+            </View>
+            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>
+              Error
+            </Text>
+            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-6`}>
+              {errorMessage}
+            </Text>
+            
+            <TouchableOpacity 
+              onPress={() => setErrorMessage('')}
+              style={tw`bg-slate-100 py-3 px-8 rounded-full`}
+            >
+              <Text style={tw`text-sm font-bold text-slate-600`}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Success Modal */}
+      <Modal
+        visible={!!successMessage}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setSuccessMessage('')}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
+          <View style={tw`w-full bg-white rounded-3xl p-6 shadow-xl items-center w-[85%]`}>
+            <View style={tw`w-16 h-16 rounded-full bg-emerald-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="check-circle" size={40} color="#10b981" />
+            </View>
+            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>
+              Success
+            </Text>
+            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-6`}>
+              {successMessage}
+            </Text>
+            
+            <TouchableOpacity 
+              onPress={() => {
+                setSuccessMessage('');
+                router.back();
+              }}
+              style={tw`bg-[#10b981] py-3 px-8 rounded-full`}
+            >
+              <Text style={tw`text-sm font-bold text-white`}>Done</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }
