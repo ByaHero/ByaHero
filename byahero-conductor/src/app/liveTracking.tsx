@@ -28,6 +28,9 @@ import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData } from '../services/conductorService';
 import { NativeModules } from 'react-native';
+import TourOverlay from '../components/TourOverlay';
+import { handleTourLayout } from '../components/TourRegistry';
+import { useTourSync } from '../hooks/useTourSync';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -54,6 +57,10 @@ function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number):
 }
 
 export default function LiveTrackingScreen() {
+  const { activeStep, setActiveStep } = useTourSync('/liveTracking');
+  const manualTicketingRef = useRef<any>(null);
+  const paxCountsRef = useRef<any>(null);
+  const stopTrackingRef = useRef<any>(null);
   const [session, setSession] = useState<any>(null);
   const [seats, setSeats] = useState(0);
   const [netStatus, setNetStatus] = useState('Active');
@@ -233,7 +240,7 @@ export default function LiveTrackingScreen() {
       ? payload.current_seats
       : payload.seats_total - payload.pre_departure_count;
 
-    if (Platform.OS === 'android' && LocationServiceModule) {
+    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule) {
       try {
         const persisted = await LocationServiceModule.getPersistedSeats();
         if (persisted !== -1) restoredSeats = persisted;
@@ -241,6 +248,10 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+
+    if (payload.isSimulation) {
+      return; // SIMULATION MODE: Do not connect to background location services or real backend tracking
+    }
 
     if (Platform.OS === 'android' && LocationServiceModule) {
       getServerUrl().then(async baseUrl => {
@@ -381,6 +392,7 @@ export default function LiveTrackingScreen() {
   };
 
   const onLocationUpdate = (location: Location.LocationObject) => {
+    if (sessionRef.current?.isSimulation) return;
     const lat = location.coords.latitude;
     const lng = location.coords.longitude;
     const speed = location.coords.speed || 0;
@@ -478,6 +490,7 @@ export default function LiveTrackingScreen() {
   };
 
   const flushPendingEvents = () => {
+    if (sessionRef.current?.isSimulation) return;
     const netBoards = pendingBoards.current;
     const netDeparts = pendingDeparts.current;
     pendingBoards.current = 0;
@@ -558,7 +571,7 @@ export default function LiveTrackingScreen() {
     cleanup();
     flushPendingEvents();
 
-    if (session) {
+    if (session && !session.isSimulation) {
       const endLocName = lastResolvedLocation.current?.name || null;
       await stopTracking({
         bus_id: session.bus_id,
@@ -708,15 +721,17 @@ export default function LiveTrackingScreen() {
         {/* Passenger Seats Increment Counter */}
         <View style={tw`items-center mb-5`}>
           <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3`}>Passenger Count</Text>
-          <View style={tw`flex-row items-center gap-6`}>
+          <View ref={manualTicketingRef} onLayout={() => handleTourLayout('manual-ticketing', manualTicketingRef)} style={tw`flex-row items-center gap-6`}>
             {/* Minus */}
             <TouchableOpacity onPress={() => decrementPassengers(true)}>
               <Image source={require('../../assets/images/decrease.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
 
-            <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
-              {session ? session.seats_total - seats : 0}
-            </Text>
+            <View ref={paxCountsRef} onLayout={() => handleTourLayout('pax-counts', paxCountsRef)}>
+              <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
+                {session ? session.seats_total - seats : 0}
+              </Text>
+            </View>
 
             {/* Plus */}
             <TouchableOpacity onPress={() => incrementPassengers(1, true)}>
@@ -769,6 +784,8 @@ export default function LiveTrackingScreen() {
 
         {/* STOP BUTTON */}
         <TouchableOpacity
+          ref={stopTrackingRef}
+          onLayout={() => handleTourLayout('stop-tracking', stopTrackingRef)}
           onPress={handleStopTracking}
           disabled={isLoading}
           style={tw`bg-red-500 rounded-full py-4 items-center justify-center shadow-md`}
@@ -1075,6 +1092,15 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Tour Overlay */}
+      {activeStep !== null && (
+        <TourOverlay 
+          currentStep={activeStep} 
+          onStepChange={setActiveStep} 
+          onClose={() => setActiveStep(null)} 
+        />
+      )}
     </SafeAreaView>
   );
 }
