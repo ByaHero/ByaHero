@@ -450,3 +450,112 @@
   border-top: 1px solid var(--border);
   padding-top: 16px;
 }
+
+/* Web Custom Alert Modals */
+.web-alert-overlay-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 9999;
+  pointer-events: none;
+}
+
+.web-alert-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto;
+  animation: fade-in 0.25s ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.web-alert-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 360px;
+  padding: 24px;
+  box-shadow: 0 10px 25px -5px rgba(15, 56, 120, 0.15), 0 8px 10px -6px rgba(15, 56, 120, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  animation: scale-up 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes scale-up {
+  from { transform: scale(0.92); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
+
+.web-alert-icon-container {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.web-alert-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.web-alert-message {
+  font-size: 0.9rem;
+  color: #475569;
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.web-alert-buttons {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.web-alert-btn {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+
+.web-alert-btn-confirm {
+  background-color: #0F3878;
+  color: #ffffff;
+}
+
+.web-alert-btn-confirm:hover {
+  background-color: #0b2a5c;
+}
+
+.web-alert-btn-cancel {
+  background-color: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+}
+
+.web-alert-btn-cancel:hover {
+  background-color: #e2e8f0;
+}

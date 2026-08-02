@@ -588,21 +588,14 @@ export default function PassengerDashboard() {
       }
     };
 
-    if (Platform.OS === 'web') {
-      const confirm = window.confirm(`Are you sure you want to remove ${friendName} from your circle?`);
-      if (confirm) {
-        performRemove();
-      }
-    } else {
-      Alert.alert(
-        'Remove Member',
-        `Are you sure you want to remove ${friendName} from your circle?`,
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Remove', style: 'destructive', onPress: performRemove }
-        ]
-      );
-    }
+    Alert.alert(
+      'Remove Member',
+      `Are you sure you want to remove ${friendName} from your circle?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Remove', style: 'destructive', onPress: performRemove }
+      ]
+    );
   };
 
   const handleTriggerSOS = () => {

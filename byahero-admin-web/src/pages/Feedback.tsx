@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, MessageSquare, Trash2, Star } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { Feedback } from '../types';
+import { AlertManager } from '../components/WebAlert';
 
 export default function FeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
@@ -26,21 +27,22 @@ export default function FeedbackPage() {
     fetchFeedbacks();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this passenger feedback?')) return;
-    setDeletingId(id);
-    try {
-      const data = await adminService.deleteFeedback(id);
-      if (data.success) {
-        setFeedbacks(feedbacks.filter((f) => f.id !== id));
-      } else {
-        alert(data.error || 'Failed to delete feedback.');
+  const handleDelete = (id: number) => {
+    AlertManager.confirm('Are you sure you want to delete this passenger feedback?', async () => {
+      setDeletingId(id);
+      try {
+        const data = await adminService.deleteFeedback(id);
+        if (data.success) {
+          setFeedbacks(feedbacks.filter((f) => f.id !== id));
+        } else {
+          alert(data.error || 'Failed to delete feedback.');
+        }
+      } catch (e) {
+        alert('Network error while deleting feedback.');
+      } finally {
+        setDeletingId(null);
       }
-    } catch (e) {
-      alert('Network error while deleting feedback.');
-    } finally {
-      setDeletingId(null);
-    }
+    });
   };
 
   return (
