@@ -286,6 +286,7 @@ export default function AccountSettingsScreen() {
           </View>
 
           {/* Danger Zone */}
+          {/* 
           <Text style={tw`text-xs font-bold text-[#ef4444] uppercase tracking-wider mb-2.5`}>Danger Zone</Text>
           <View style={tw`bg-red-50 border border-red-100 rounded-3xl overflow-hidden`}>
             <TouchableOpacity 
@@ -302,6 +303,7 @@ export default function AccountSettingsScreen() {
               <MaterialIcons name="chevron-right" size={24} color="#fca5a5" />
             </TouchableOpacity>
           </View>
+          */}
         </View>
       </ScrollView>
 
