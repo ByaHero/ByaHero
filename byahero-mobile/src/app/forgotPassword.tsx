@@ -5,12 +5,12 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -31,6 +31,47 @@ export default function ForgotPasswordScreen() {
 
   const [timeLeft, setTimeLeft] = useState(900); // 15 mins
   const timerIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
 
   useEffect(() => {
     if (step === 2) {
@@ -68,7 +109,7 @@ export default function ForgotPasswordScreen() {
 
   const handleRequestOtp = async () => {
     if (!email.trim()) {
-      Alert.alert('Validation Error', 'Please enter your email address.');
+      showAlert('Validation Error', 'Please enter your email address.', 'warning');
       return;
     }
 
@@ -86,17 +127,17 @@ export default function ForgotPasswordScreen() {
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Request Failed', (error as any).message || 'Error occurred. Try again.');
+      showAlert('Request Failed', (error as any).message || 'Error occurred. Try again.', 'error');
     }
   };
 
   const handleVerifyOtp = async () => {
     if (otp.trim().length !== 6) {
-      Alert.alert('Validation Error', 'Please enter the 6-digit OTP code.');
+      showAlert('Validation Error', 'Please enter the 6-digit OTP code.', 'warning');
       return;
     }
     if (timeLeft <= 0) {
-      Alert.alert('Code Expired', 'The recovery code has expired. Please request a new one.');
+      showAlert('Code Expired', 'The recovery code has expired. Please request a new one.', 'warning');
       return;
     }
 
@@ -109,17 +150,17 @@ export default function ForgotPasswordScreen() {
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Verification Failed', (error as any).message || 'Invalid code.');
+      showAlert('Verification Failed', (error as any).message || 'Invalid code.', 'error');
     }
   };
 
   const handleResetPassword = async () => {
     if (newPassword.length < 6) {
-      Alert.alert('Validation Error', 'Password must be at least 6 characters.');
+      showAlert('Validation Error', 'Password must be at least 6 characters.', 'warning');
       return;
     }
     if (newPassword !== confirmPassword) {
-      Alert.alert('Validation Error', 'Passwords do not match.');
+      showAlert('Validation Error', 'Passwords do not match.', 'warning');
       return;
     }
 
@@ -132,7 +173,7 @@ export default function ForgotPasswordScreen() {
       }
     } catch (error) {
       setIsLoading(false);
-      Alert.alert('Reset Failed', (error as any).message || 'Error occurred. Try again.');
+      showAlert('Reset Failed', (error as any).message || 'Error occurred. Try again.', 'error');
     }
   };
 
@@ -300,6 +341,14 @@ export default function ForgotPasswordScreen() {
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Alert, Modal, Image, Linking } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Modal, Image, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface LostFoundTicket {
   id: number;
@@ -28,6 +29,45 @@ export default function AdminLostFound() {
   const [refreshing, setRefreshing] = useState(false);
   const [imageModal, setImageModal] = useState<{ isOpen: boolean; src: string }>({ isOpen: false, src: '' });
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchTickets = async () => {
     try {
       const data = await adminService.listLostAndFound();
@@ -36,7 +76,7 @@ export default function AdminLostFound() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to fetch tickets.');
+      showAlert('Error', 'Failed to fetch tickets.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -61,53 +101,51 @@ export default function AdminLostFound() {
       });
 
       if (data.success) {
-        Alert.alert('Success', data.message || 'Ticket status updated.');
+        showAlert('Success', data.message || 'Ticket status updated.', 'success');
         fetchTickets();
       } else {
-        Alert.alert('Error', data.error || 'Failed to update ticket status.');
+        showAlert('Error', data.error || 'Failed to update ticket status.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while updating status.');
+      showAlert('Error', 'Network error while updating status.', 'error');
     }
   };
 
   const executeDelete = (id: number) => {
-    Alert.alert(
+    showAlert(
       'Delete Ticket',
       'Are you sure you want to permanently delete this lost & found ticket? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const data = await adminService.manageLostAndFound({ action: 'delete_ticket', id });
-              if (data.success) {
-                Alert.alert('Success', data.message || 'Ticket deleted successfully.');
-                fetchTickets();
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete ticket.');
-              }
-            } catch (e) {
-              Alert.alert('Error', 'Network error while deleting ticket.');
-            }
+      'confirm',
+      async () => {
+        try {
+          const data = await adminService.manageLostAndFound({ action: 'delete_ticket', id });
+          if (data.success) {
+            showAlert('Success', data.message || 'Ticket deleted successfully.', 'success');
+            fetchTickets();
+          } else {
+            showAlert('Error', data.error || 'Failed to delete ticket.', 'error');
           }
+        } catch (e) {
+          showAlert('Error', 'Network error while deleting ticket.', 'error');
         }
-      ]
+      },
+      () => {}
     );
   };
 
   const promptStatusUpdate = (ticket: LostFoundTicket) => {
-    Alert.alert(
+    const nextStatusMap: Record<string, string> = {
+      open: 'resolved',
+      resolved: 'closed',
+      closed: 'open'
+    };
+    const nextStatus = nextStatusMap[ticket.status] || 'open';
+    showAlert(
       'Update Status',
-      'Select new status for this ticket:',
-      [
-        { text: 'Open', onPress: () => updateStatus(ticket.id, 'open') },
-        { text: 'Resolved', onPress: () => updateStatus(ticket.id, 'resolved') },
-        { text: 'Closed', onPress: () => updateStatus(ticket.id, 'closed') },
-        { text: 'Cancel', style: 'cancel' }
-      ]
+      `Move ticket status from "${ticket.status.toUpperCase()}" to "${nextStatus.toUpperCase()}"?`,
+      'confirm',
+      () => updateStatus(ticket.id, nextStatus),
+      () => {}
     );
   };
 
@@ -292,6 +330,14 @@ export default function AdminLostFound() {
         </View>
       </Modal>
 
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

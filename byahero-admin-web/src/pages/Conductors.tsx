@@ -3,11 +3,14 @@ import { Plus, Trash2, Loader2, UserCheck, ShieldAlert } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { StaffMember } from '../types';
 import Modal from '../components/Modal';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Conductors() {
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   // Form states
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -51,7 +54,7 @@ export default function Conductors() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) {
-      alert('Email and Password are required.');
+      showAlert('Validation Error', 'Email and Password are required.', 'error');
       return;
     }
 
@@ -62,10 +65,10 @@ export default function Conductors() {
         setIsFormOpen(false);
         fetchStaff();
       } else {
-        alert(data.error || 'Failed to add staff member.');
+        showAlert('Error', data.error || 'Failed to add staff member.', 'error');
       }
     } catch (e) {
-      alert('Network error while registering staff.');
+      showAlert('Network Error', 'Network error while registering staff.', 'error');
     } finally {
       setSaving(false);
     }
@@ -80,10 +83,10 @@ export default function Conductors() {
         setIsDeleteOpen(false);
         fetchStaff();
       } else {
-        alert(data.error || 'Failed to delete staff member.');
+        showAlert('Error', data.error || 'Failed to delete staff member.', 'error');
       }
     } catch (e) {
-      alert('Network error while deleting staff.');
+      showAlert('Network Error', 'Network error while deleting staff.', 'error');
     } finally {
       setSaving(false);
     }
@@ -213,6 +216,14 @@ export default function Conductors() {
           </button>
         </div>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

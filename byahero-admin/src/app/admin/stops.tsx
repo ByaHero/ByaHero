@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, TextInput, Modal, Alert, Platform, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, TextInput, Modal, Platform, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { WebView } from 'react-native-webview';
 import tw from 'twrnc';
@@ -7,6 +7,7 @@ import { adminService } from '@/services/admin';
 import { apiRequest } from '@/services/api';
 import AdminNavbar from '@/components/AdminNavbar';
 import { getStopMapHTML } from '@/components/stopMapHtml';
+import AlertModal from '@/components/AlertModal';
 
 interface BusStop {
   id: number;
@@ -52,6 +53,45 @@ export default function AdminStops() {
   const filterRef = useRef('ALL ROUTES');
   const iconSizeRef = useRef(42);
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   useEffect(() => {
     stopsRef.current = stops;
     filterRef.current = currentFilter;
@@ -68,7 +108,7 @@ export default function AdminStops() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to fetch stops.');
+      showAlert('Error', 'Failed to fetch stops.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -138,11 +178,11 @@ export default function AdminStops() {
 
   const handleSaveStop = async () => {
     if (!name || !locationName) {
-      Alert.alert('Error', 'Name and Location Name are required.');
+      showAlert('Error', 'Name and Location Name are required.', 'error');
       return;
     }
     if (!lat || !lng) {
-      Alert.alert('Error', 'Latitude and Longitude are required.');
+      showAlert('Error', 'Latitude and Longitude are required.', 'error');
       return;
     }
 
@@ -161,43 +201,39 @@ export default function AdminStops() {
       });
 
       if (data.success) {
-        Alert.alert('Success', 'Stop saved successfully.');
-        setIsFormOpen(false);
-        fetchStops();
+        showAlert('Success', 'Stop saved successfully.', 'success', () => {
+          setIsFormOpen(false);
+          fetchStops();
+        });
       } else {
-        Alert.alert('Error', data.error || 'Failed to add stop.');
+        showAlert('Error', data.error || 'Failed to add stop.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while saving.');
+      showAlert('Error', 'Network error while saving.', 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const executeDelete = (id: number, stopName: string) => {
-    Alert.alert(
+    showAlert(
       'Delete Stop',
       `Are you sure you want to permanently delete ${stopName}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const data = await adminService.deleteStop(id);
-              if (data.success) {
-                Alert.alert('Success', 'Stop deleted.');
-                fetchStops();
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete stop.');
-              }
-            } catch (e) {
-              Alert.alert('Error', 'Network error.');
-            }
+      'confirm',
+      async () => {
+        try {
+          const data = await adminService.deleteStop(id);
+          if (data.success) {
+            showAlert('Success', 'Stop deleted.', 'success');
+            fetchStops();
+          } else {
+            showAlert('Error', data.error || 'Failed to delete stop.', 'error');
           }
+        } catch (e) {
+          showAlert('Error', 'Network error.', 'error');
         }
-      ]
+      },
+      () => {}
     );
   };
 
@@ -225,13 +261,13 @@ export default function AdminStops() {
         body: JSON.stringify({ action, order: orderStr })
       });
       if (data.success) {
-        Alert.alert('Success', `Order saved for ${routeName}.`);
+        showAlert('Success', `Order saved for ${routeName}.`, 'success');
         fetchStops();
       } else {
-        Alert.alert('Error', data.error || 'Failed to save order.');
+        showAlert('Error', data.error || 'Failed to save order.', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error while saving order.');
+      showAlert('Error', 'Network error while saving order.', 'error');
     }
   };
 
@@ -524,8 +560,14 @@ export default function AdminStops() {
             </View>
           </View>
         </ScrollView>
-      )}
-
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

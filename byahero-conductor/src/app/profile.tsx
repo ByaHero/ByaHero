@@ -7,7 +7,6 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Alert,
   ActivityIndicator,
   Image
 } from 'react-native';
@@ -16,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import * as ImagePicker from 'expo-image-picker';
 import ConductorNavbar from '../components/ConductorNavbar';
+import AlertModal from '../components/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { updateProfile } from '../services/conductorService';
 import { cacheSession } from '../services/authService';
@@ -48,23 +48,37 @@ export default function ProfileScreen() {
   
   const [isLoading, setIsLoading] = useState(false);
 
-  const [resultModalConfig, setResultModalConfig] = useState<{
+  const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
-    type: 'success' | 'error' | 'info';
     title: string;
     message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
   }>({
     visible: false,
-    type: 'success',
     title: '',
     message: '',
+    type: 'error',
+    onConfirm: () => {},
   });
 
-  const showAlert = (title: string, message: string) => {
-    let type: 'success' | 'error' | 'info' = 'info';
-    if (title.toLowerCase().includes('success')) type = 'success';
-    else if (title.toLowerCase().includes('error')) type = 'error';
-    setResultModalConfig({ visible: true, type, title, message });
+  const showAlert = (title: string, message: string, customType?: 'success' | 'error' | 'info' | 'warning' | 'confirm', onConfirm?: () => void) => {
+    let type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = customType || 'info';
+    if (!customType) {
+      if (title.toLowerCase().includes('success')) type = 'success';
+      else if (title.toLowerCase().includes('error') || title.toLowerCase().includes('validation')) type = 'error';
+    }
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+    });
   };
 
   useEffect(() => {
@@ -578,40 +592,14 @@ export default function ProfileScreen() {
       </Modal>
 
       {/* Custom Result Modal */}
-      <Modal
-        animationType="fade"
-        transparent={true}
-        visible={resultModalConfig.visible}
-        onRequestClose={() => setResultModalConfig(prev => ({ ...prev, visible: false }))}
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/50 px-6`}>
-          <View style={tw`bg-white w-full max-w-[340px] rounded-[28px] p-7 items-center shadow-lg border border-slate-100`}>
-            <View style={tw`w-16 h-16 rounded-full ${resultModalConfig.type === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4 border ${resultModalConfig.type === 'success' ? 'border-emerald-100' : 'border-rose-100'}`}>
-              <Ionicons
-                name={resultModalConfig.type === 'success' ? 'checkmark-circle' : (resultModalConfig.type === 'info' ? 'information-circle' : 'alert-circle')}
-                size={38}
-                color={resultModalConfig.type === 'success' ? '#10b981' : (resultModalConfig.type === 'info' ? '#3b82f6' : '#f43f5e')}
-              />
-            </View>
-
-            <Text style={tw`text-slate-800 text-base font-extrabold mb-1 text-center tracking-wide`}>
-              {resultModalConfig.title}
-            </Text>
-
-            <Text style={tw`text-slate-500 text-sm text-center mb-6 leading-5 px-2 font-semibold`}>
-              {resultModalConfig.message}
-            </Text>
-
-            <TouchableOpacity
-              onPress={() => setResultModalConfig(prev => ({ ...prev, visible: false }))}
-              activeOpacity={0.8}
-              style={tw`w-full ${resultModalConfig.type === 'success' ? 'bg-[#0f3878]' : 'bg-slate-800'} py-3 rounded-full items-center shadow-md`}
-            >
-              <Text style={tw`text-white text-sm font-bold tracking-wider`}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

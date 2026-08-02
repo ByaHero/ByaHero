@@ -7,8 +7,8 @@ import {
   ScrollView,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
@@ -29,6 +29,25 @@ export default function PassengerProfileScreen() {
   const [phoneModalVisible, setPhoneModalVisible] = useState(false);
   const [inputPhone, setInputPhone] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean; title: string; message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void; onCancel?: () => void;
+  }>({ visible: false, title: '', message: '', type: 'error', onConfirm: () => {} });
+
+  const showAlert = (
+    title: string, message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void, onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
 
   useEffect(() => {
     async function loadProfile() {
@@ -69,7 +88,7 @@ export default function PassengerProfileScreen() {
   const handleUpdatePhone = async () => {
     const digits = inputPhone.trim();
     if (digits.length !== 10 || !/^\d+$/.test(digits)) {
-      Alert.alert('Validation Error', 'Please enter exactly 10 digits.');
+      showAlert('Validation Error', 'Please enter exactly 10 digits.', 'warning');
       return;
     }
 
@@ -90,14 +109,14 @@ export default function PassengerProfileScreen() {
       setIsSaving(false);
       setPhoneModalVisible(false);
       if (data.success) {
-        Alert.alert('Success', 'Mobile number updated successfully!');
+        showAlert('Success', 'Mobile number updated successfully!', 'success');
       } else {
-        Alert.alert('Saved Locally', `Notice: ${data.message}`);
+        showAlert('Saved Locally', `Notice: ${data.message}`, 'info');
       }
     } catch (err) {
       setIsSaving(false);
       setPhoneModalVisible(false);
-      Alert.alert('Saved Locally', 'Saved locally. Connection to server failed (queued for sync).');
+      showAlert('Saved Locally', 'Saved locally. Connection to server failed (queued for sync).', 'info');
     }
   };
 
@@ -219,6 +238,14 @@ export default function PassengerProfileScreen() {
           </View>
         </View>
       </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Platform,
   DeviceEventEmitter,
@@ -16,6 +15,7 @@ import {
   Animated,
   Linking
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
@@ -54,6 +54,47 @@ function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number):
 }
 
 export default function LiveTrackingScreen() {
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
+
   const [session, setSession] = useState<any>(null);
   const [seats, setSeats] = useState(0);
   const [netStatus, setNetStatus] = useState('Active');
@@ -621,11 +662,11 @@ export default function LiveTrackingScreen() {
 
   const handleIssueTicket = () => {
     if (!boardingStop || !alightingStop) {
-      Alert.alert('Incomplete', 'Please select boarding and alighting locations.');
+      showAlert('Incomplete', 'Please select boarding and alighting locations.', 'warning');
       return;
     }
     if (ticketFare <= 0) {
-      Alert.alert('Invalid Fare', 'No fare matrix available for these locations.');
+      showAlert('Invalid Fare', 'No fare matrix available for these locations.', 'warning');
       return;
     }
     
@@ -1075,6 +1116,14 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
       </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

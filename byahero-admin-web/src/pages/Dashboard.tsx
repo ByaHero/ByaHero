@@ -41,11 +41,14 @@ import {
 } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { ActiveBus } from '../types';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [isMapModalOpen, setIsMapModalOpen] = useState(false);
   const [activeBuses, setActiveBuses] = useState<ActiveBus[]>([]);
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
   const [stats, setStats] = useState({
     total_buses: 0,
     active_buses: 0,
@@ -150,16 +153,20 @@ export default function Dashboard() {
             className="btn btn-secondary" 
             style={{ backgroundColor: '#e2e8f0', color: '#334155' }}
             onClick={async () => {
-              if (window.confirm("Retrain the ETA AI Model using latest historical data?")) {
-                setLoading(true);
-                try {
-                  const res = await adminService.trainAiModel();
-                  alert(res.message || "Model trained");
-                } catch (e: any) {
-                  alert(e.message || "Failed to train model");
+              showConfirm(
+                'Retrain ETA AI Model',
+                'Retrain the ETA AI Model using latest historical data?',
+                async () => {
+                  setLoading(true);
+                  try {
+                    const res = await adminService.trainAiModel();
+                    showAlert('Model Trained', res.message || 'Model trained successfully.', 'success');
+                  } catch (e: any) {
+                    showAlert('Training Failed', e.message || 'Failed to train model.', 'error');
+                  }
+                  setLoading(false);
                 }
-                setLoading(false);
-              }
+              );
             }} 
             disabled={loading}
           >
@@ -393,6 +400,16 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import { WaitingPassenger } from '@/types';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 const LOCATION_WHITELIST = [
   "All Stop Locations",
@@ -25,6 +26,45 @@ export default function AdminWaitingPax() {
   const [filterLocation, setFilterLocation] = useState('All Stop Locations');
   const [filterModalVisible, setFilterModalVisible] = useState(false);
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchPassengers = useCallback(async () => {
     try {
       const data = await adminService.listWaitingPassengers();
@@ -33,7 +73,7 @@ export default function AdminWaitingPax() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to load waiting passengers from the server.');
+      showAlert('Error', 'Failed to load waiting passengers from the server.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -70,21 +110,20 @@ export default function AdminWaitingPax() {
       if (data.success) {
         fetchPassengers();
       } else {
-        Alert.alert('Error', data.error || 'Failed to cancel signals.');
+        showAlert('Error', data.error || 'Failed to cancel signals.', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error while cancelling signals.');
+      showAlert('Error', 'Network error while cancelling signals.', 'error');
     }
   };
 
   const handleCancelClick = (location: string) => {
-    Alert.alert(
+    showAlert(
       'Dismiss Signals',
       `Are you sure you want to dismiss all waiting signals for ${location}?\nThis will clear the queue.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes, dismiss them', style: 'destructive', onPress: () => executeCancel(location) }
-      ]
+      'confirm',
+      () => executeCancel(location),
+      () => {}
     );
   };
 
@@ -324,6 +363,14 @@ export default function AdminWaitingPax() {
           </View>
         </View>
       </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

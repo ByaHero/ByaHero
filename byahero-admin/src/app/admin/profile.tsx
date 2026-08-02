@@ -12,6 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { adminService } from '@/services/admin';
 
@@ -41,18 +42,42 @@ export default function AdminProfile() {
   const [isLoading, setIsLoading] = useState(false);
 
   // Custom Alert Modal States
-  const [alertVisible, setAlertVisible] = useState(false);
-  const [alertTitle, setAlertTitle] = useState('');
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertType, setAlertType] = useState<'success' | 'error'>('error');
-  const [onAlertConfirm, setOnAlertConfirm] = useState<(() => void) | null>(null);
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
 
-  const showCustomAlert = (title: string, message: string, type: 'success' | 'error', onConfirm?: () => void) => {
-    setAlertTitle(title);
-    setAlertMessage(message);
-    setAlertType(type);
-    setOnAlertConfirm(() => onConfirm || null);
-    setAlertVisible(true);
+  const showCustomAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
   };
 
   useEffect(() => {
@@ -436,49 +461,14 @@ export default function AdminProfile() {
       </Modal>
 
       {/* Custom Alert/Success Modal */}
-      <Modal
-        visible={alertVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => {
-          setAlertVisible(false);
-          if (onAlertConfirm) onAlertConfirm();
-        }}
-      >
-        <View style={tw`flex-1 bg-black/50 justify-center items-center px-6`}>
-          <View style={tw`bg-white rounded-3xl p-6 w-full max-w-[340px] items-center border border-slate-100 shadow-2xl`}>
-            {/* Icon */}
-            <View style={tw`w-16 h-16 rounded-full ${alertType === 'success' ? 'bg-emerald-50' : 'bg-rose-50'} items-center justify-center mb-4`}>
-              <Ionicons
-                name={alertType === 'success' ? 'checkmark-circle' : 'close-circle'}
-                size={40}
-                color={alertType === 'success' ? '#10b981' : '#f43f5e'}
-              />
-            </View>
-            
-            {/* Title */}
-            <Text style={tw`text-slate-800 text-lg font-bold mb-2 text-center`}>
-              {alertTitle}
-            </Text>
-            
-            {/* Message */}
-            <Text style={tw`text-slate-500 text-sm mb-6 text-center leading-relaxed`}>
-              {alertMessage}
-            </Text>
-            
-            {/* Button */}
-            <TouchableOpacity
-              onPress={() => {
-                setAlertVisible(false);
-                if (onAlertConfirm) onAlertConfirm();
-              }}
-              style={tw`w-full ${alertType === 'success' ? 'bg-emerald-500' : 'bg-rose-500'} rounded-xl py-3 items-center`}
-            >
-              <Text style={tw`text-white font-bold text-sm`}>OK</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

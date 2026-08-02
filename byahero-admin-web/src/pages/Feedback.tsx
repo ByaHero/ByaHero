@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, MessageSquare, Trash2, Star } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { Feedback } from '../types';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function FeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   const fetchFeedbacks = async () => {
     try {
@@ -27,20 +30,25 @@ export default function FeedbackPage() {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this passenger feedback?')) return;
-    setDeletingId(id);
-    try {
-      const data = await adminService.deleteFeedback(id);
-      if (data.success) {
-        setFeedbacks(feedbacks.filter((f) => f.id !== id));
-      } else {
-        alert(data.error || 'Failed to delete feedback.');
+    showConfirm(
+      'Delete Feedback',
+      'Are you sure you want to delete this passenger feedback?',
+      async () => {
+        setDeletingId(id);
+        try {
+          const data = await adminService.deleteFeedback(id);
+          if (data.success) {
+            setFeedbacks(feedbacks.filter((f) => f.id !== id));
+          } else {
+            showAlert('Error', data.error || 'Failed to delete feedback.', 'error');
+          }
+        } catch (e) {
+          showAlert('Network Error', 'Network error while deleting feedback.', 'error');
+        } finally {
+          setDeletingId(null);
+        }
       }
-    } catch (e) {
-      alert('Network error while deleting feedback.');
-    } finally {
-      setDeletingId(null);
-    }
+    );
   };
 
   return (
@@ -108,6 +116,14 @@ export default function FeedbackPage() {
           </table>
         </div>
       )}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }
