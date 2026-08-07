@@ -470,9 +470,17 @@ export default function LiveTrackingScreen() {
     };
 
     try {
-      await updateGeoLocation(payload);
+      const res = await updateGeoLocation(payload);
+      if (res && res.success === false && res.error && res.error.includes('403')) {
+        handleAdminStop();
+        return;
+      }
       setNetStatus('Live');
     } catch (e) {
+      if (e instanceof Error && e.message.includes('403')) {
+        handleAdminStop();
+        return;
+      }
       setNetStatus('Offline');
     }
   };
@@ -515,6 +523,8 @@ export default function LiveTrackingScreen() {
     }).then(res => {
       if (res && res.success) {
         console.log(`Passenger ${eventType} event logged successfully.`);
+      } else if (res && res.success === false && res.error && res.error.includes('403')) {
+        handleAdminStop();
       }
     });
   };
@@ -582,6 +592,17 @@ export default function LiveTrackingScreen() {
     await AsyncStorage.removeItem('byahero_conductor_payload');
     setIsLoading(false);
     router.replace('/dashboard');
+  };
+
+  const handleAdminStop = () => {
+    cleanup();
+    AsyncStorage.removeItem('byahero_conductor_payload').then(() => {
+      Alert.alert(
+        "Session Terminated",
+        "Your tracking session was forcefully stopped by an Administrator.",
+        [{ text: "OK", onPress: () => router.replace('/dashboard') }]
+      );
+    });
   };
 
   const handleStopTracking = () => {

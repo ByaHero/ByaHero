@@ -79,6 +79,7 @@ Route::middleware([
     Route::post('/admin/feedbacks/delete', [AdminController::class, 'deleteFeedback']);
     Route::get('/admin/analytics', [AdminController::class, 'getAnalytics']);
     Route::get('/admin/active-buses', [AdminController::class, 'listActiveBuses']);
+    Route::post('/admin/active-buses/stop', [AdminController::class, 'stopActiveBus']);
     Route::get('/admin/waiting-passengers', [AdminController::class, 'listWaitingPassengers']);
     Route::post('/admin/waiting-passengers', [AdminController::class, 'manageWaitingPassengers']);
     Route::match(['get', 'post'], '/admin/profile', [AdminController::class, 'updateProfile']);

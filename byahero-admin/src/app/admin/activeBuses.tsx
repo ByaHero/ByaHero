@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, TouchableOpacity, Alert, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
@@ -17,6 +17,13 @@ export default function AdminActiveBuses() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [pulse, setPulse] = useState(true);
+  const [stoppingId, setStoppingId] = useState<number | null>(null);
+  const [stopModalVisible, setStopModalVisible] = useState(false);
+  const [selectedBusToStop, setSelectedBusToStop] = useState<ActiveBus | null>(null);
+  
+  // Custom Error Modal State
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const fetchActiveBuses = async () => {
     try {
@@ -31,6 +38,34 @@ export default function AdminActiveBuses() {
     } finally {
       setLoading(false);
       setRefreshing(false);
+    }
+  };
+
+  const confirmStopBus = (bus: ActiveBus) => {
+    setSelectedBusToStop(bus);
+    setStopModalVisible(true);
+  };
+
+  const handleStop = async () => {
+    if (!selectedBusToStop) return;
+    const busId = selectedBusToStop.Bus_ID;
+    try {
+      setStopModalVisible(false);
+      setStoppingId(busId);
+      const res = await adminService.stopActiveBus(busId);
+      if (res.success) {
+        await fetchActiveBuses();
+      } else {
+        setErrorMessage(res.error || "Failed to stop tracking");
+        setErrorModalVisible(true);
+      }
+    } catch (e: any) {
+      console.error(e);
+      setErrorMessage(e.message || "An error occurred");
+      setErrorModalVisible(true);
+    } finally {
+      setStoppingId(null);
+      setSelectedBusToStop(null);
     }
   };
 
@@ -82,6 +117,8 @@ export default function AdminActiveBuses() {
           {buses.length > 0 ? (
             buses.map((bus) => {
               const isUnavailable = bus.status?.toLowerCase() === 'unavailable';
+              const isStopping = stoppingId === bus.Bus_ID;
+              
               return (
                 <View key={bus.Bus_ID} style={tw`bg-white rounded-3xl p-4 mb-4 shadow-sm border border-slate-100 flex-row items-center`}>
                   <View style={tw`w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 border border-blue-100`}>
@@ -103,11 +140,26 @@ export default function AdminActiveBuses() {
                       </View>
                     </View>
                     
-                    <View style={tw`flex-row justify-between items-center`}>
+                    <View style={tw`flex-row justify-between items-center mb-2`}>
                       <Text style={tw`text-slate-500 text-[11px] font-bold uppercase tracking-wider`}>Conductor</Text>
                       <Text style={tw`text-slate-600 text-[12px] font-medium max-w-[60%]`} numberOfLines={1}>
                         {bus.conductor_email || 'N/A'}
                       </Text>
+                    </View>
+                    
+                    <View style={tw`mt-2 pt-2 border-t border-slate-100 flex-row justify-end`}>
+                      <TouchableOpacity 
+                        style={tw`bg-red-50 px-4 py-1.5 rounded-full flex-row items-center border border-red-100`}
+                        onPress={() => confirmStopBus(bus)}
+                        disabled={isStopping}
+                      >
+                        {isStopping ? (
+                          <ActivityIndicator size="small" color="#ef4444" style={tw`mr-1`} />
+                        ) : (
+                          <Ionicons name="stop-circle" size={14} color="#ef4444" style={tw`mr-1`} />
+                        )}
+                        <Text style={tw`text-red-500 font-bold text-[11px] tracking-wider uppercase`}>Stop Tracking</Text>
+                      </TouchableOpacity>
                     </View>
 
                   </View>
@@ -122,6 +174,66 @@ export default function AdminActiveBuses() {
           )}
         </ScrollView>
       )}
+
+      <Modal visible={stopModalVisible} transparent animationType="fade">
+        <View style={tw`flex-1 bg-black/50 justify-center items-center p-4`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-3xl p-6 shadow-xl`}>
+            <View style={tw`items-center mb-4`}>
+              <View style={tw`w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-3`}>
+                <Ionicons name="warning" size={24} color="#ef4444" />
+              </View>
+              <Text style={tw`text-lg font-extrabold text-slate-800 text-center tracking-tight`}>Authorization Required</Text>
+            </View>
+
+            <Text style={tw`text-slate-600 text-sm text-center mb-3 leading-5`}>
+              By proceeding, you authorize the system to forcefully terminate the current tracking session for <Text style={tw`font-bold text-slate-800`}>{selectedBusToStop?.code}</Text>.
+            </Text>
+            <Text style={tw`text-slate-600 text-sm text-center mb-6 leading-5`}>
+              This will mark all ongoing rides as completed and unassign the conductor. Are you sure you want to continue?
+            </Text>
+
+            <View style={tw`flex-row gap-3`}>
+              <TouchableOpacity 
+                style={tw`flex-1 py-3 px-4 rounded-xl border border-slate-200 bg-white`}
+                onPress={() => setStopModalVisible(false)}
+              >
+                <Text style={tw`text-slate-600 font-bold text-center`}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={tw`flex-1 py-3 px-4 rounded-xl bg-red-500`}
+                onPress={handleStop}
+              >
+                <Text style={tw`text-white font-bold text-center`}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ERROR MODAL */}
+      <Modal visible={errorModalVisible} transparent animationType="fade">
+        <View style={tw`flex-1 bg-black/50 justify-center items-center p-4`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-3xl p-6 shadow-xl`}>
+            <View style={tw`items-center mb-4`}>
+              <View style={tw`w-12 h-12 bg-red-100 rounded-full items-center justify-center mb-3`}>
+                <Ionicons name="close-circle" size={28} color="#ef4444" />
+              </View>
+              <Text style={tw`text-lg font-extrabold text-slate-800 text-center tracking-tight`}>Error Encountered</Text>
+            </View>
+
+            <Text style={tw`text-slate-600 text-sm text-center mb-6 leading-5`}>
+              {errorMessage}
+            </Text>
+
+            <TouchableOpacity 
+              style={tw`w-full py-3 px-4 rounded-xl bg-[#0f3878]`}
+              onPress={() => setErrorModalVisible(false)}
+            >
+              <Text style={tw`text-white font-bold text-center`}>Okay</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
