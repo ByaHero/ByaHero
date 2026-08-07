@@ -16,6 +16,9 @@ export default function ActiveBuses() {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const fetchActiveBuses = async () => {
     try {
       setLoading(true);
@@ -44,6 +47,8 @@ export default function ActiveBuses() {
       const res = await adminService.stopActiveBus(busId);
       if (res.success) {
         await fetchActiveBuses();
+        setSuccessMessage(`Tracking session for Bus ${selectedBusToStop.bus_no} was successfully terminated.`);
+        setSuccessModalVisible(true);
       } else {
         setErrorMessage(res.error || 'Failed to stop tracking');
         setErrorModalVisible(true);
@@ -167,6 +172,18 @@ export default function ActiveBuses() {
         </div>
         <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
           <button className="btn btn-primary" onClick={() => setErrorModalVisible(false)}>Okay</button>
+        </div>
+      </Modal>
+
+      <Modal isOpen={successModalVisible} onClose={() => setSuccessModalVisible(false)} title="Session Terminated">
+        <div style={{ marginBottom: '20px', lineHeight: '1.5', display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ color: '#16a34a', background: '#dcfce7', padding: '10px', borderRadius: '50%' }}>
+            <StopCircle size={24} />
+          </div>
+          <p>{successMessage}</p>
+        </div>
+        <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
+          <button className="btn btn-primary" onClick={() => setSuccessModalVisible(false)}>Okay</button>
         </div>
       </Modal>
     </div>

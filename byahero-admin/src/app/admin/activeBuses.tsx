@@ -25,6 +25,9 @@ export default function AdminActiveBuses() {
   const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successMessage, setSuccessMessage] = useState("");
+
   const fetchActiveBuses = async () => {
     try {
       const data = await adminService.listActiveBuses();
@@ -55,6 +58,8 @@ export default function AdminActiveBuses() {
       const res = await adminService.stopActiveBus(busId);
       if (res.success) {
         await fetchActiveBuses();
+        setSuccessMessage(`Tracking session for Bus ${selectedBusToStop.code} was successfully terminated.`);
+        setSuccessModalVisible(true);
       } else {
         setErrorMessage(res.error || "Failed to stop tracking");
         setErrorModalVisible(true);
@@ -228,6 +233,31 @@ export default function AdminActiveBuses() {
             <TouchableOpacity 
               style={tw`w-full py-3 px-4 rounded-xl bg-[#0f3878]`}
               onPress={() => setErrorModalVisible(false)}
+            >
+              <Text style={tw`text-white font-bold text-center`}>Okay</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* SUCCESS MODAL */}
+      <Modal visible={successModalVisible} transparent animationType="fade">
+        <View style={tw`flex-1 bg-black/50 justify-center items-center p-4`}>
+          <View style={tw`bg-white w-full max-w-[340px] rounded-3xl p-6 shadow-xl`}>
+            <View style={tw`items-center mb-4`}>
+              <View style={tw`w-12 h-12 bg-green-100 rounded-full items-center justify-center mb-3`}>
+                <Ionicons name="checkmark-circle" size={28} color="#16a34a" />
+              </View>
+              <Text style={tw`text-lg font-extrabold text-slate-800 text-center tracking-tight`}>Session Terminated</Text>
+            </View>
+
+            <Text style={tw`text-slate-600 text-sm text-center mb-6 leading-5`}>
+              {successMessage}
+            </Text>
+
+            <TouchableOpacity 
+              style={tw`w-full py-3 px-4 rounded-xl bg-[#0f3878]`}
+              onPress={() => setSuccessModalVisible(false)}
             >
               <Text style={tw`text-white font-bold text-center`}>Okay</Text>
             </TouchableOpacity>

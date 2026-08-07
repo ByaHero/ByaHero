@@ -269,6 +269,10 @@ class LocationForegroundService : Service() {
                 }
 
                 val responseCode = conn.responseCode
+                if (responseCode == 403) {
+                    broadcastMediaButton("admin_stop")
+                    stopSelf()
+                }
                 conn.disconnect()
             } catch (e: Exception) {
                 e.printStackTrace()

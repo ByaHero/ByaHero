@@ -68,6 +68,7 @@ export default function LiveTrackingScreen() {
   const [lastUpdate, setLastUpdate] = useState('00:00');
   const [isLoading, setIsLoading] = useState(false);
   const [isStopTrackingModalVisible, setIsStopTrackingModalVisible] = useState(false);
+  const [isAdminStopModalVisible, setIsAdminStopModalVisible] = useState(false);
 
   // Ticketing Mode States
   const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);
@@ -196,15 +197,18 @@ export default function LiveTrackingScreen() {
   // Stable refs so media button listeners never hold stale closures
   const incrementRef = useRef<() => void>(() => {});
   const decrementRef = useRef<() => void>(() => {});
+  const adminStopRef = useRef<() => void>(() => {});
   useEffect(() => { incrementRef.current = incrementPassengers; });
   useEffect(() => { decrementRef.current = decrementPassengers; });
+  useEffect(() => { adminStopRef.current = handleAdminStop; });
 
   // Wire media button events — registered once, never stale
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const nextListener = DeviceEventEmitter.addListener('media-session-next', () => incrementRef.current());
     const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current());
-    return () => { nextListener.remove(); prevListener.remove(); };
+    const stopListener = DeviceEventEmitter.addListener('admin_stop', () => adminStopRef.current());
+    return () => { nextListener.remove(); prevListener.remove(); stopListener.remove(); };
   }, []);
 
   const cleanup = () => {
@@ -597,12 +601,13 @@ export default function LiveTrackingScreen() {
   const handleAdminStop = () => {
     cleanup();
     AsyncStorage.removeItem('byahero_conductor_payload').then(() => {
-      Alert.alert(
-        "Session Terminated",
-        "Your tracking session was forcefully stopped by an Administrator.",
-        [{ text: "OK", onPress: () => router.replace('/dashboard') }]
-      );
+      setIsAdminStopModalVisible(true);
     });
+  };
+
+  const confirmAdminStop = () => {
+    setIsAdminStopModalVisible(false);
+    router.replace('/dashboard');
   };
 
   const handleStopTracking = () => {
@@ -1108,6 +1113,38 @@ export default function LiveTrackingScreen() {
                 style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
               >
                 <Text style={tw`text-white font-bold text-sm`}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Admin Terminated Modal */}
+      <Modal
+        visible={isAdminStopModalVisible}
+        transparent
+        animationType="fade"
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="gpp-bad" size={32} color="#ef4444" />
+            </View>
+
+            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
+              Session Terminated
+            </Text>
+            <Text style={tw`text-sm text-slate-500 text-center leading-relaxed mb-6`}>
+              Your tracking session was forcefully stopped by an Administrator.
+            </Text>
+
+            <View style={tw`w-full flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={confirmAdminStop}
+                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>OK</Text>
               </TouchableOpacity>
             </View>
           </View>
