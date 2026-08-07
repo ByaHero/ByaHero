@@ -32,6 +32,10 @@ export const adminService = {
 
   // Active Buses
   listActiveBuses: () => apiRequest('/api/admin/active-buses'),
+  stopActiveBus: (busId: number) => apiRequest('/api/admin/active-buses/stop', {
+    method: 'POST',
+    body: JSON.stringify({ bus_id: busId })
+  }),
 
   // Stops (Pick up Points / Terminals)
   listStops: () => apiRequest('/api/admin/stops'),
