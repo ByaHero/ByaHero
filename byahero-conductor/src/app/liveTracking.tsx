@@ -77,6 +77,9 @@ export default function LiveTrackingScreen() {
   const [boardingStop, setBoardingStop] = useState<any>(null);
   const [alightingStop, setAlightingStop] = useState<any>(null);
   const [discountType, setDiscountType] = useState('Regular');
+  const [discountCounts, setDiscountCounts] = useState({ Regular: 1, Student: 0, Senior: 0, PWD: 0 });
+  const [baseRegularFare, setBaseRegularFare] = useState(0);
+  const [baseDiscountedFare, setBaseDiscountedFare] = useState(0);
   const [ticketFare, setTicketFare] = useState(0);
   const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
   const [selectingLocationType, setSelectingLocationType] = useState<'boarding'|'alighting'|null>(null);
@@ -244,7 +247,9 @@ export default function LiveTrackingScreen() {
       ? payload.current_seats
       : payload.seats_total - payload.pre_departure_count;
 
-    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule) {
+    // Only restore from native module if this is a resumed active session.
+    // If it's a new session (current_seats is undefined), we ignore the native module to prevent ghost passengers from previous unclean sessions.
+    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule && payload.current_seats !== undefined) {
       try {
         const persisted = await LocationServiceModule.getPersistedSeats();
         if (persisted !== -1) restoredSeats = persisted;
@@ -640,23 +645,72 @@ export default function LiveTrackingScreen() {
 
       const fareObj = busFares.find(f => f.direction === direction && parseInt(f.distance_km) === distance);
 
+      let rFare = 0, dFare = 0;
       if (fareObj) {
-        const fare = discountType === 'Regular' ? parseFloat(fareObj.regular_fare) : parseFloat(fareObj.discounted_fare);
-        setTicketFare(fare);
+        rFare = parseFloat(fareObj.regular_fare);
+        dFare = parseFloat(fareObj.discounted_fare);
       } else {
         // Fallback LTFRB
         if (distance <= 4) {
-          setTicketFare(discountType === 'Regular' ? 14.00 : 11.25);
+          rFare = 14.00;
+          dFare = 11.25;
         } else {
-          const reg = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
-          const disc = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
-          setTicketFare(discountType === 'Regular' ? reg : disc);
+          rFare = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
+          dFare = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
         }
       }
+      setBaseRegularFare(rFare);
+      setBaseDiscountedFare(dFare);
+      
+      const total = (discountCounts.Regular * rFare) + ((discountCounts.Student + discountCounts.Senior + discountCounts.PWD) * dFare);
+      setTicketFare(total);
     } else {
+      setBaseRegularFare(0);
+      setBaseDiscountedFare(0);
       setTicketFare(0);
     }
-  }, [boardingStop, alightingStop, discountType, busFares]);
+  }, [boardingStop, alightingStop, discountCounts, busFares]);
+
+
+  const handleIncreaseQuantity = () => {
+    setTicketQuantity(q => q + 1);
+    setDiscountCounts(prev => ({ ...prev, Regular: prev.Regular + 1 }));
+  };
+
+  const handleDecreaseQuantity = () => {
+    setTicketQuantity(q => {
+      if (q <= 1) return 1;
+      setDiscountCounts(prev => {
+        const next = { ...prev };
+        if (next.Regular > 0) next.Regular--;
+        else if (next.Student > 0) next.Student--;
+        else if (next.Senior > 0) next.Senior--;
+        else if (next.PWD > 0) next.PWD--;
+        return next;
+      });
+      return q - 1;
+    });
+  };
+
+  const updateDiscountCount = (type: string, delta: number) => {
+    setDiscountCounts(prev => {
+      const next = { ...prev };
+      const current = next[type as keyof typeof next];
+      if (delta > 0) {
+         const availableType = Object.keys(next).find(k => k !== type && next[k as keyof typeof next] > 0);
+         if (availableType) {
+           next[availableType as keyof typeof next]--;
+           next[type as keyof typeof next]++;
+         }
+      } else if (delta < 0) {
+         if (current > 0) {
+            next[type as keyof typeof next]--;
+            next['Regular']++; 
+         }
+      }
+      return next;
+    });
+  };
 
   const handleIssueTicket = () => {
     if (!boardingStop || !alightingStop) {
@@ -686,10 +740,13 @@ export default function LiveTrackingScreen() {
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       boarding: boardingStop.location_name,
       alighting: alightingStop.location_name,
-      fare: ticketFare * ticketQuantity,
-      discount: discountType,
+      fare: ticketFare,
+      discount: ticketQuantity > 1 ? 'Mixed' : discountType,
       quantity: ticketQuantity,
-      ticketNumber: String(ticketCounter).padStart(5, '0')
+      ticketNumber: String(ticketCounter).padStart(5, '0'),
+      breakdown: discountCounts,
+      baseRegularFare: baseRegularFare,
+      baseDiscountedFare: baseDiscountedFare
     };
     setIssuedTicket(ticketData);
     setTicketCounter(prev => prev + 1);
@@ -699,6 +756,7 @@ export default function LiveTrackingScreen() {
     setBoardingStop(null);
     setAlightingStop(null);
     setDiscountType('Regular');
+    setDiscountCounts({ Regular: 1, Student: 0, Senior: 0, PWD: 0 });
     setTicketQuantity(1);
     
     Animated.spring(slideAnim, {
@@ -798,15 +856,17 @@ export default function LiveTrackingScreen() {
         )}
 
         {/* PRODUCE TICKET BUTTON */}
-        <TouchableOpacity
-          onPress={() => {
-            setIsTicketingModalVisible(true);
-            if (busStops.length === 0) loadTicketingData();
-          }}
-          style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
-        >
-          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
-        </TouchableOpacity>
+        {session?.ticketing_mode === 'Automatic' && (
+          <TouchableOpacity
+            onPress={() => {
+              setIsTicketingModalVisible(true);
+              if (busStops.length === 0) loadTicketingData();
+            }}
+            style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
+          >
+            <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
+          </TouchableOpacity>
+        )}
 
         {/* STOP BUTTON */}
         <TouchableOpacity
@@ -867,33 +927,19 @@ export default function LiveTrackingScreen() {
               <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
 
-            {/* Discount Type */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-3 mt-4 text-center`}>Discount Type</Text>
-            <View style={tw`flex-row flex-wrap justify-center gap-2 mb-8`}>
-              {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
-                <TouchableOpacity
-                  key={type}
-                  style={tw`px-5 py-2.5 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
-                  onPress={() => setDiscountType(type)}
-                >
-                  <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* Ticket Quantity */}
-            <Text style={tw`text-sm font-bold text-slate-500 text-center mb-3`}>Ticket Quantity</Text>
-            <View style={tw`flex-row justify-center mb-8`}>
+            <Text style={tw`text-sm font-bold text-slate-500 text-center mb-3 mt-4`}>Ticket Quantity</Text>
+            <View style={tw`flex-row justify-center mb-6`}>
               <View style={tw`flex-row items-center border border-slate-200 rounded-full bg-slate-50 overflow-hidden`}>
                 <TouchableOpacity 
-                  onPress={() => setTicketQuantity(q => Math.max(1, q - 1))}
+                  onPress={handleDecreaseQuantity}
                   style={tw`px-5 py-4 bg-slate-100`}
                 >
                   <Ionicons name="remove" size={24} color="#64748b" />
                 </TouchableOpacity>
                 <Text style={tw`px-6 font-black text-slate-800 text-2xl`}>{ticketQuantity}</Text>
                 <TouchableOpacity 
-                  onPress={() => setTicketQuantity(q => q + 1)}
+                  onPress={handleIncreaseQuantity}
                   style={tw`px-5 py-4 bg-slate-100`}
                 >
                   <Ionicons name="add" size={24} color="#64748b" />
@@ -901,10 +947,52 @@ export default function LiveTrackingScreen() {
               </View>
             </View>
 
+            {/* Discount Type */}
+            <Text style={tw`text-sm font-bold text-slate-500 mb-3 mt-4 text-center`}>Discount Type</Text>
+            {ticketQuantity === 1 ? (
+              <View style={tw`flex-row flex-wrap justify-center gap-2 mb-8`}>
+                {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
+                  <TouchableOpacity
+                    key={type}
+                    style={tw`px-5 py-2.5 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
+                    onPress={() => {
+                      setDiscountType(type);
+                      setDiscountCounts({ Regular: 0, Student: 0, Senior: 0, PWD: 0, [type]: 1 });
+                    }}
+                  >
+                    <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={tw`px-4 mb-8`}>
+                {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
+                  <View key={type} style={tw`flex-row justify-between items-center mb-2 bg-slate-50 p-3 rounded-xl border border-slate-200`}>
+                    <Text style={tw`font-bold text-slate-700`}>{type}</Text>
+                    <View style={tw`flex-row items-center`}>
+                      <TouchableOpacity 
+                        onPress={() => updateDiscountCount(type, -1)}
+                        style={tw`px-3 py-2 bg-slate-200 rounded-l-lg`}
+                      >
+                        <Ionicons name="remove" size={16} color="#64748b" />
+                      </TouchableOpacity>
+                      <Text style={tw`px-4 font-bold text-slate-800`}>{discountCounts[type as keyof typeof discountCounts]}</Text>
+                      <TouchableOpacity 
+                        onPress={() => updateDiscountCount(type, 1)}
+                        style={tw`px-3 py-2 bg-slate-200 rounded-r-lg`}
+                      >
+                        <Ionicons name="add" size={16} color="#64748b" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Fare Summary */}
             <View style={tw`bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8 items-center shadow-sm`}>
               <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-2`}>Total Fare</Text>
-              <Text style={tw`text-5xl font-black text-blue-600`}>₱{(ticketFare * ticketQuantity).toFixed(2)}</Text>
+              <Text style={tw`text-5xl font-black text-blue-600`}>₱{(ticketFare).toFixed(2)}</Text>
             </View>
             
           </ScrollView>
@@ -1026,12 +1114,24 @@ export default function LiveTrackingScreen() {
                 <View style={tw`flex-row justify-between mb-3`}>
                   <Text style={tw`text-slate-500 font-bold text-xs uppercase`}>Passenger Breakdown</Text>
                 </View>
-                {Array.from({length: issuedTicket.quantity}).map((_, idx) => (
-                  <View key={idx} style={tw`flex-row justify-between mb-2`}>
+                {issuedTicket.quantity === 1 ? (
+                  <View style={tw`flex-row justify-between mb-2`}>
                     <Text style={tw`text-slate-700 font-medium`}>{issuedTicket.discount} Fare</Text>
-                    <Text style={tw`text-slate-800 font-bold`}>₱{(issuedTicket.fare / issuedTicket.quantity).toFixed(2)}</Text>
+                    <Text style={tw`text-slate-800 font-bold`}>₱{issuedTicket.fare.toFixed(2)}</Text>
                   </View>
-                ))}
+                ) : (
+                  ['Regular', 'Student', 'Senior', 'PWD'].map(type => {
+                    const count = issuedTicket.breakdown?.[type] || 0;
+                    if (count === 0) return null;
+                    const fareType = type === 'Regular' ? issuedTicket.baseRegularFare : issuedTicket.baseDiscountedFare;
+                    return (
+                      <View key={type} style={tw`flex-row justify-between mb-2`}>
+                        <Text style={tw`text-slate-700 font-medium`}>{count}x {type} Fare</Text>
+                        <Text style={tw`text-slate-800 font-bold`}>₱{(count * fareType).toFixed(2)}</Text>
+                      </View>
+                    );
+                  })
+                )}
                 
                 <View style={tw`flex-row justify-between mt-4 pt-4 border-t border-slate-200`}>
                   <Text style={tw`text-slate-800 font-black text-lg uppercase`}>Total Paid</Text>
