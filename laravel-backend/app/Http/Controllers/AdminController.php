@@ -493,6 +493,68 @@ class AdminController extends Controller
         ]);
     }
 
+    public function stopActiveBus(Request $request)
+    {
+        $this->checkAuth();
+        $busId = (int)$request->input('bus_id');
+
+        if ($busId <= 0) {
+            return response()->json(['success' => false, 'error' => 'Missing bus_id'], 400);
+        }
+
+        $bus = Bus::where('Bus_ID', $busId)->first();
+        if (!$bus) {
+            return response()->json(['success' => false, 'error' => 'Bus not found'], 404);
+        }
+
+        $conductorId = $bus->current_conductor_id;
+
+        // 1) Cascade complete active passenger rides for this active operation
+        \App\Models\PassengerRide::join('bus_operations', 'passenger_rides.operation_id', '=', 'bus_operations.id')
+            ->where('bus_operations.bus_id', $busId)
+            ->where('bus_operations.status', 'active')
+            ->whereIn('passenger_rides.status', ['active', 'ongoing'])
+            ->update([
+                'passenger_rides.departed_at' => now(),
+                'passenger_rides.status' => 'completed'
+            ]);
+
+        // 2) Complete the bus operation
+        \App\Models\BusOperation::where('bus_id', $busId)
+            ->where('status', 'active')
+            ->update([
+                'ended_at' => now(),
+                'end_location' => 'Forced Stop by Admin',
+                'status' => 'completed'
+            ]);
+
+        // 3) Release bus and conductor
+        Bus::where('Bus_ID', $busId)->update([
+            'current_location' => null,
+            'status' => 'unavailable',
+            'route' => null,
+            'seat_availability' => null,
+            'current_conductor_id' => null
+        ]);
+
+        if ($conductorId) {
+            Conductor::where('id', $conductorId)->where('current_bus_id', $busId)->update([
+                'current_bus_id' => null
+            ]);
+        }
+
+        // Remove GeoJSON file
+        $file = base_path('../data/current_locations/bus_' . $busId . '.geojson');
+        if (\Illuminate\Support\Facades\File::exists($file)) {
+            \Illuminate\Support\Facades\File::delete($file);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Stopped tracking for bus'
+        ]);
+    }
+
     // --- WAITING PASSENGERS MONITORING ---
     public function listWaitingPassengers(Request $request)
     {
@@ -813,6 +875,31 @@ class AdminController extends Controller
                     ->update(['discounted_fare' => DB::raw('regular_fare')]);
 
                 return response()->json(['success' => true, 'message' => 'LTFRB Matrix applied successfully.']);
+            } 
+            
+            elseif ($action === 'adjust_fares_flat') {
+                $amount = (float)$request->input('amount', 0);
+                
+                if ($amount == 0) {
+                    return response()->json(['success' => false, 'error' => 'Adjustment amount cannot be zero.']);
+                }
+
+                DB::statement("
+                    UPDATE bus_fares 
+                    SET 
+                        regular_fare = GREATEST(0, regular_fare + ?),
+                        discounted_fare = GREATEST(0, discounted_fare + ?),
+                        updated_at = NOW()
+                ", [
+                    $amount, $amount
+                ]);
+
+                // Ensure discounted <= regular
+                DB::table('bus_fares')
+                    ->whereRaw('discounted_fare > regular_fare')
+                    ->update(['discounted_fare' => DB::raw('regular_fare')]);
+
+                return response()->json(['success' => true, 'message' => "Successfully adjusted all fares by ₱" . number_format($amount, 2) . "."]);
             } 
             
             elseif ($action === 'reset_to_base') {

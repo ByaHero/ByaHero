@@ -95,9 +95,35 @@ export function getLeafletHTML(baseUrl: string): string {
           border-radius: 50%;
           box-shadow: 0 2px 6px rgba(0,0,0,0.3);
         }
+
+        #loading-overlay {
+          position: absolute;
+          top: 0; left: 0; right: 0; bottom: 0;
+          background: #f8fafc;
+          z-index: 9999;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          transition: opacity 0.5s ease;
+        }
+        .spinner {
+          border: 4px solid rgba(0,0,0,0.1);
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          border-left-color: #3b82f6;
+          animation: spin 1s linear infinite;
+          margin-bottom: 16px;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
       </style>
     </head>
     <body>
+      <div id="loading-overlay">
+        <div class="spinner"></div>
+        <div style="color: #475569; font-family: sans-serif; font-weight: 600; font-size: 14px;">Loading map...</div>
+      </div>
       <div id="map"></div>
       <script>
         var phBounds = L.latLngBounds(
@@ -127,8 +153,8 @@ export function getLeafletHTML(baseUrl: string): string {
             subdomains: 'abc',
             crossOrigin: true,
             minZoom: 6,
-            maxZoom: 18,
-            maxNativeZoom: 18
+            maxZoom: 22,
+            maxNativeZoom: 17
           }).addTo(map);
         } else {
           baseLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -139,6 +165,24 @@ export function getLeafletHTML(baseUrl: string): string {
             maxNativeZoom: 19
           }).addTo(map);
         }
+
+        var loaderStartTime = Date.now();
+        function hideLoader() {
+          var elapsed = Date.now() - loaderStartTime;
+          var delay = Math.max(0, 800 - elapsed); // Show for at least 800ms
+          setTimeout(function() {
+            var loader = document.getElementById('loading-overlay');
+            if (loader && loader.style.display !== 'none') {
+              loader.style.opacity = '0';
+              setTimeout(function() { loader.style.display = 'none'; }, 500);
+            }
+          }, delay);
+        }
+        // Leaflet fires 'load' when tiles finish loading. In offline mode, this might fail or finish instantly.
+        baseLayer.on('load', hideLoader);
+        
+        // Extended fallback to 6 seconds in case offline indexedDB is slow
+        setTimeout(hideLoader, 6000);
 
         // Setup automatic offline caching for a specific area
         var targetAreaGeoJson = {

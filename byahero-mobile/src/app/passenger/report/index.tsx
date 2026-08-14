@@ -21,7 +21,7 @@ import { SuccessScreen } from '../../../components/ui/SuccessScreen';
 
 export default function ReportProblemScreen() {
   const { bus_number } = useLocalSearchParams<{ bus_number?: string }>();
-  const { activeStep, setActiveStep } = useTourSync('/passenger/report/index');
+  const { activeStep, setActiveStep } = useTourSync('/passenger/report');
   const reportCardRef = useRef<any>(null);
   
   const [buses, setBuses] = useState<any[]>([]);

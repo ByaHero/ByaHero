@@ -36,6 +36,8 @@ export default function LoginScreen() {
   const [lastTapTime, setLastTapTime] = useState(0);
   const [isDevModalVisible, setIsDevModalVisible] = useState(false);
   const [inputServerUrl, setInputServerUrl] = useState('');
+  const [loginSuccessVisible, setLoginSuccessVisible] = useState(false);
+  const [loginUserName, setLoginUserName] = useState('');
 
   useEffect(() => {
     getServerUrl().then(url => {
@@ -131,8 +133,6 @@ export default function LoginScreen() {
       setIsLoading(false);
       setShowWarmingUpMsg(false);
 
-      Alert.alert('Login Successful', `Logged in as ${result.role}`);
-
       // Navigate to matched roles:
       if (result.role === 'conductor' || result.role === 'admin') {
         await AsyncStorage.multiRemove([
@@ -147,11 +147,22 @@ export default function LoginScreen() {
         Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
       } else {
         const hasContacts = result.user?.contacts || '';
-        if (!hasContacts) {
-          router.replace('/passenger/completeProfile' as any);
-        } else {
-          router.replace('/passenger');
+        const cachedName = await AsyncStorage.getItem('byahero_cached_name') || email;
+        let displayName = cachedName;
+        if (displayName.includes('@')) {
+          displayName = displayName.split('@')[0];
         }
+        setLoginUserName(displayName.split(' ')[0]);
+
+        setLoginSuccessVisible(true);
+        setTimeout(() => {
+          setLoginSuccessVisible(false);
+          if (!hasContacts) {
+            router.replace('/passenger/completeProfile' as any);
+          } else {
+            router.replace('/passenger');
+          }
+        }, 1500);
       }
     } catch (error) {
       clearTimeout(timer);
@@ -198,11 +209,23 @@ export default function LoginScreen() {
           setShowWarmingUpMsg(false);
 
           const hasContacts = authResult.user?.contacts || '';
-          if (!hasContacts) {
-            router.replace('/passenger/completeProfile' as any);
-          } else {
-            router.replace('/passenger');
+          
+          const cachedName = await AsyncStorage.getItem('byahero_cached_name') || authResult.user?.name || 'User';
+          let displayName = cachedName;
+          if (displayName.includes('@')) {
+            displayName = displayName.split('@')[0];
           }
+          setLoginUserName(displayName.split(' ')[0]);
+          
+          setLoginSuccessVisible(true);
+          setTimeout(() => {
+            setLoginSuccessVisible(false);
+            if (!hasContacts) {
+              router.replace('/passenger/completeProfile' as any);
+            } else {
+              router.replace('/passenger');
+            }
+          }, 1500);
         } else {
           clearTimeout(timer);
           setIsLoading(false);
@@ -396,6 +419,28 @@ export default function LoginScreen() {
           </View>
         </View>
       </Modal>
+
+      {/* Login Success Modal */}
+      <Modal
+        visible={loginSuccessVisible}
+        transparent={true}
+        animationType="fade"
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
+          <View style={tw`bg-white rounded-3xl p-6 shadow-xl items-center w-[80%]`}>
+            <View style={tw`w-16 h-16 rounded-full bg-blue-100 items-center justify-center mb-4`}>
+              <Ionicons name="checkmark-circle" size={40} color="#1d72f8" />
+            </View>
+            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>
+              Login Successful
+            </Text>
+            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-2`}>
+              Welcome back, {loginUserName}!
+            </Text>
+          </View>
+        </View>
+      </Modal>
+
     </SafeAreaView>
   );
 }

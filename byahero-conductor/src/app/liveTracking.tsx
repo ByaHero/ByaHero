@@ -20,7 +20,7 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -28,6 +28,9 @@ import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
 import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData } from '../services/conductorService';
 import { NativeModules } from 'react-native';
+import TourOverlay from '../components/TourOverlay';
+import { handleTourLayout } from '../components/TourRegistry';
+import { useTourSync } from '../hooks/useTourSync';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -54,12 +57,18 @@ function distanceMeters(lat1: number, lon1: number, lat2: number, lon2: number):
 }
 
 export default function LiveTrackingScreen() {
+  const { activeStep, setActiveStep } = useTourSync('/liveTracking');
+  const manualTicketingRef = useRef<any>(null);
+  const paxCountsRef = useRef<any>(null);
+  const stopTrackingRef = useRef<any>(null);
   const [session, setSession] = useState<any>(null);
   const [seats, setSeats] = useState(0);
   const [netStatus, setNetStatus] = useState('Active');
   const [locationName, setLocationName] = useState('Waiting for GPS...');
   const [lastUpdate, setLastUpdate] = useState('00:00');
   const [isLoading, setIsLoading] = useState(false);
+  const [isStopTrackingModalVisible, setIsStopTrackingModalVisible] = useState(false);
+  const [isAdminStopModalVisible, setIsAdminStopModalVisible] = useState(false);
 
   // Ticketing Mode States
   const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);
@@ -68,13 +77,17 @@ export default function LiveTrackingScreen() {
   const [boardingStop, setBoardingStop] = useState<any>(null);
   const [alightingStop, setAlightingStop] = useState<any>(null);
   const [discountType, setDiscountType] = useState('Regular');
+  const [discountCounts, setDiscountCounts] = useState({ Regular: 1, Student: 0, Senior: 0, PWD: 0 });
+  const [baseRegularFare, setBaseRegularFare] = useState(0);
+  const [baseDiscountedFare, setBaseDiscountedFare] = useState(0);
   const [ticketFare, setTicketFare] = useState(0);
   const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
   const [selectingLocationType, setSelectingLocationType] = useState<'boarding'|'alighting'|null>(null);
   const [locationSearch, setLocationSearch] = useState('');
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
-  const [pendingTickets, setPendingTickets] = useState(0);
+  const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
+  const [ticketCounter, setTicketCounter] = useState(1);
 
   // References & Tracking states
   const slideAnim = useRef(new Animated.Value(800)).current;
@@ -103,11 +116,12 @@ export default function LiveTrackingScreen() {
       try {
         const p = JSON.parse(str);
         p.current_seats = seats;
-        p.pending_tickets = pendingTickets;
+        p.pending_pre_departure = pendingPreDeparture;
+        p.ticket_counter = ticketCounter;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, pendingTickets]);
+  }, [seats, pendingPreDeparture, ticketCounter]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -186,15 +200,18 @@ export default function LiveTrackingScreen() {
   // Stable refs so media button listeners never hold stale closures
   const incrementRef = useRef<() => void>(() => {});
   const decrementRef = useRef<() => void>(() => {});
+  const adminStopRef = useRef<() => void>(() => {});
   useEffect(() => { incrementRef.current = incrementPassengers; });
   useEffect(() => { decrementRef.current = decrementPassengers; });
+  useEffect(() => { adminStopRef.current = handleAdminStop; });
 
   // Wire media button events — registered once, never stale
   useEffect(() => {
     if (Platform.OS === 'web') return;
     const nextListener = DeviceEventEmitter.addListener('media-session-next', () => incrementRef.current());
     const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current());
-    return () => { nextListener.remove(); prevListener.remove(); };
+    const stopListener = DeviceEventEmitter.addListener('admin_stop', () => adminStopRef.current());
+    return () => { nextListener.remove(); prevListener.remove(); stopListener.remove(); };
   }, []);
 
   const cleanup = () => {
@@ -230,7 +247,9 @@ export default function LiveTrackingScreen() {
       ? payload.current_seats
       : payload.seats_total - payload.pre_departure_count;
 
-    if (Platform.OS === 'android' && LocationServiceModule) {
+    // Only restore from native module if this is a resumed active session.
+    // If it's a new session (current_seats is undefined), we ignore the native module to prevent ghost passengers from previous unclean sessions.
+    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule && payload.current_seats !== undefined) {
       try {
         const persisted = await LocationServiceModule.getPersistedSeats();
         if (persisted !== -1) restoredSeats = persisted;
@@ -238,6 +257,10 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+
+    if (payload.isSimulation) {
+      return; // SIMULATION MODE: Do not connect to background location services or real backend tracking
+    }
 
     if (Platform.OS === 'android' && LocationServiceModule) {
       getServerUrl().then(async baseUrl => {
@@ -255,12 +278,13 @@ export default function LiveTrackingScreen() {
       });
     }
     
-    let restoredPending = payload.pending_tickets !== undefined
-      ? payload.pending_tickets
-      : (payload.pending_pre_departure !== undefined 
-          ? payload.pending_pre_departure 
-          : (payload.pre_departure_count || 0));
-    setPendingTickets(restoredPending);
+    let restoredPending = payload.pending_pre_departure !== undefined
+      ? payload.pending_pre_departure
+      : (payload.pre_departure_count || 0);
+    setPendingPreDeparture(restoredPending);
+
+    let restoredCounter = payload.ticket_counter !== undefined ? payload.ticket_counter : 1;
+    setTicketCounter(restoredCounter);
 
     // Load route features for geofenced location parsing
     try {
@@ -377,6 +401,7 @@ export default function LiveTrackingScreen() {
   };
 
   const onLocationUpdate = (location: Location.LocationObject) => {
+    if (sessionRef.current?.isSimulation) return;
     const lat = location.coords.latitude;
     const lng = location.coords.longitude;
     const speed = location.coords.speed || 0;
@@ -454,9 +479,17 @@ export default function LiveTrackingScreen() {
     };
 
     try {
-      await updateGeoLocation(payload);
+      const res = await updateGeoLocation(payload);
+      if (res && res.success === false && res.error && res.error.includes('403')) {
+        handleAdminStop();
+        return;
+      }
       setNetStatus('Live');
     } catch (e) {
+      if (e instanceof Error && e.message.includes('403')) {
+        handleAdminStop();
+        return;
+      }
       setNetStatus('Offline');
     }
   };
@@ -474,6 +507,7 @@ export default function LiveTrackingScreen() {
   };
 
   const flushPendingEvents = () => {
+    if (sessionRef.current?.isSimulation) return;
     const netBoards = pendingBoards.current;
     const netDeparts = pendingDeparts.current;
     pendingBoards.current = 0;
@@ -498,6 +532,8 @@ export default function LiveTrackingScreen() {
     }).then(res => {
       if (res && res.success) {
         console.log(`Passenger ${eventType} event logged successfully.`);
+      } else if (res && res.success === false && res.error && res.error.includes('403')) {
+        handleAdminStop();
       }
     });
   };
@@ -515,13 +551,14 @@ export default function LiveTrackingScreen() {
     }, 3000);
   };
 
-  const incrementPassengers = (count = 1, isManualUi = false) => {
+  const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
     const currentSeats = seatsRef.current;
     if (sessionRef.current && currentSeats > 0) {
       const actualCount = Math.min(count, currentSeats);
       const newSeats = currentSeats - actualCount;
       setSeats(newSeats);
       pendingBoards.current += actualCount;
+
       scheduleSync();
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
         LocationServiceModule.updateSessionData({
@@ -538,7 +575,6 @@ export default function LiveTrackingScreen() {
       const newSeats = currentSeats + 1;
       setSeats(newSeats);
       pendingDeparts.current++;
-      setPendingTickets(prev => Math.max(0, prev - 1));
       scheduleSync();
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
         LocationServiceModule.updateSessionData({
@@ -554,7 +590,7 @@ export default function LiveTrackingScreen() {
     cleanup();
     flushPendingEvents();
 
-    if (session) {
+    if (session && !session.isSimulation) {
       const endLocName = lastResolvedLocation.current?.name || null;
       await stopTracking({
         bus_id: session.bus_id,
@@ -567,22 +603,25 @@ export default function LiveTrackingScreen() {
     router.replace('/dashboard');
   };
 
+  const handleAdminStop = () => {
+    cleanup();
+    AsyncStorage.removeItem('byahero_conductor_payload').then(() => {
+      setIsAdminStopModalVisible(true);
+    });
+  };
+
+  const confirmAdminStop = () => {
+    setIsAdminStopModalVisible(false);
+    router.replace('/dashboard');
+  };
+
   const handleStopTracking = () => {
-    if (Platform.OS === 'web') {
-      const confirmStop = window.confirm('Are you sure you want to end this transit tracking session?');
-      if (confirmStop) {
-        performStopTracking();
-      }
-    } else {
-      Alert.alert('Stop Tracking', 'Are you sure you want to end this transit tracking session?', [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Stop Tracking',
-          style: 'destructive',
-          onPress: performStopTracking
-        }
-      ]);
-    }
+    setIsStopTrackingModalVisible(true);
+  };
+
+  const confirmStopTracking = () => {
+    setIsStopTrackingModalVisible(false);
+    performStopTracking();
   };
 
   const loadTicketingData = async () => {
@@ -606,23 +645,72 @@ export default function LiveTrackingScreen() {
 
       const fareObj = busFares.find(f => f.direction === direction && parseInt(f.distance_km) === distance);
 
+      let rFare = 0, dFare = 0;
       if (fareObj) {
-        const fare = discountType === 'Regular' ? parseFloat(fareObj.regular_fare) : parseFloat(fareObj.discounted_fare);
-        setTicketFare(fare);
+        rFare = parseFloat(fareObj.regular_fare);
+        dFare = parseFloat(fareObj.discounted_fare);
       } else {
         // Fallback LTFRB
         if (distance <= 4) {
-          setTicketFare(discountType === 'Regular' ? 14.00 : 11.25);
+          rFare = 14.00;
+          dFare = 11.25;
         } else {
-          const reg = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
-          const disc = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
-          setTicketFare(discountType === 'Regular' ? reg : disc);
+          rFare = Math.round((14.00 + (distance - 4) * 2.20) * 4) / 4;
+          dFare = Math.round((11.25 + (distance - 4) * 1.76) * 4) / 4;
         }
       }
+      setBaseRegularFare(rFare);
+      setBaseDiscountedFare(dFare);
+      
+      const total = (discountCounts.Regular * rFare) + ((discountCounts.Student + discountCounts.Senior + discountCounts.PWD) * dFare);
+      setTicketFare(total);
     } else {
+      setBaseRegularFare(0);
+      setBaseDiscountedFare(0);
       setTicketFare(0);
     }
-  }, [boardingStop, alightingStop, discountType, busFares]);
+  }, [boardingStop, alightingStop, discountCounts, busFares]);
+
+
+  const handleIncreaseQuantity = () => {
+    setTicketQuantity(q => q + 1);
+    setDiscountCounts(prev => ({ ...prev, Regular: prev.Regular + 1 }));
+  };
+
+  const handleDecreaseQuantity = () => {
+    setTicketQuantity(q => {
+      if (q <= 1) return 1;
+      setDiscountCounts(prev => {
+        const next = { ...prev };
+        if (next.Regular > 0) next.Regular--;
+        else if (next.Student > 0) next.Student--;
+        else if (next.Senior > 0) next.Senior--;
+        else if (next.PWD > 0) next.PWD--;
+        return next;
+      });
+      return q - 1;
+    });
+  };
+
+  const updateDiscountCount = (type: string, delta: number) => {
+    setDiscountCounts(prev => {
+      const next = { ...prev };
+      const current = next[type as keyof typeof next];
+      if (delta > 0) {
+         const availableType = Object.keys(next).find(k => k !== type && next[k as keyof typeof next] > 0);
+         if (availableType) {
+           next[availableType as keyof typeof next]--;
+           next[type as keyof typeof next]++;
+         }
+      } else if (delta < 0) {
+         if (current > 0) {
+            next[type as keyof typeof next]--;
+            next['Regular']++; 
+         }
+      }
+      return next;
+    });
+  };
 
   const handleIssueTicket = () => {
     if (!boardingStop || !alightingStop) {
@@ -635,16 +723,14 @@ export default function LiveTrackingScreen() {
     }
     
     let remainingToDeduct = ticketQuantity;
-    let pendingDeducted = 0;
-
-    // Use up pending tickets queue first
-    if (pendingTickets > 0) {
-      pendingDeducted = Math.min(remainingToDeduct, pendingTickets);
-      setPendingTickets(prev => prev - pendingDeducted);
-      remainingToDeduct -= pendingDeducted;
+    let preDepartureDeducted = 0;
+    // Use up pending pre-departure queue first
+    if (pendingPreDeparture > 0) {
+      preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
+      setPendingPreDeparture(prev => prev - preDepartureDeducted);
+      remainingToDeduct -= preDepartureDeducted;
     }
-
-    // Only increment new passengers (deducts seats) if not from pending queue
+    // Only increment new passengers (deducts seats) if not from pre-departure
     if (remainingToDeduct > 0) {
       incrementPassengers(remainingToDeduct);
     }
@@ -654,17 +740,23 @@ export default function LiveTrackingScreen() {
       date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       boarding: boardingStop.location_name,
       alighting: alightingStop.location_name,
-      fare: ticketFare * ticketQuantity,
-      discount: discountType,
-      quantity: ticketQuantity
+      fare: ticketFare,
+      discount: ticketQuantity > 1 ? 'Mixed' : discountType,
+      quantity: ticketQuantity,
+      ticketNumber: String(ticketCounter).padStart(5, '0'),
+      breakdown: discountCounts,
+      baseRegularFare: baseRegularFare,
+      baseDiscountedFare: baseDiscountedFare
     };
     setIssuedTicket(ticketData);
+    setTicketCounter(prev => prev + 1);
     
     // Close modal and reset
     setIsTicketingModalVisible(false);
     setBoardingStop(null);
     setAlightingStop(null);
     setDiscountType('Regular');
+    setDiscountCounts({ Regular: 1, Student: 0, Senior: 0, PWD: 0 });
     setTicketQuantity(1);
     
     Animated.spring(slideAnim, {
@@ -713,15 +805,17 @@ export default function LiveTrackingScreen() {
         {/* Passenger Seats Increment Counter */}
         <View style={tw`items-center mb-5`}>
           <Text style={tw`text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3`}>Passenger Count</Text>
-          <View style={tw`flex-row items-center gap-6`}>
+          <View ref={manualTicketingRef} onLayout={() => handleTourLayout('manual-ticketing', manualTicketingRef)} style={tw`flex-row items-center gap-6`}>
             {/* Minus */}
             <TouchableOpacity onPress={() => decrementPassengers(true)}>
               <Image source={require('../../assets/images/decrease.svg')} style={tw`w-14 h-14`} contentFit="contain" />
             </TouchableOpacity>
 
-            <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
-              {session ? session.seats_total - seats : 0}
-            </Text>
+            <View ref={paxCountsRef} onLayout={() => handleTourLayout('pax-counts', paxCountsRef)}>
+              <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
+                {session ? session.seats_total - seats : 0}
+              </Text>
+            </View>
 
             {/* Plus */}
             <TouchableOpacity onPress={() => incrementPassengers(1, true)}>
@@ -750,9 +844,34 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
+        {/* PENDING TERMINAL TICKETS BANNER */}
+        {pendingPreDeparture > 0 && (
+          <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
+            <Ionicons name="warning" size={24} color="#d97706" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Terminal Tickets</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pre-departure passenger(s) to ticket.</Text>
+            </View>
+          </View>
+        )}
+
+        {/* PRODUCE TICKET BUTTON */}
+        {session?.ticketing_mode === 'Automatic' && (
+          <TouchableOpacity
+            onPress={() => {
+              setIsTicketingModalVisible(true);
+              if (busStops.length === 0) loadTicketingData();
+            }}
+            style={tw`bg-blue-600 rounded-full py-4 items-center justify-center shadow-md mb-4`}
+          >
+            <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Produce Ticket</Text>
+          </TouchableOpacity>
+        )}
 
         {/* STOP BUTTON */}
         <TouchableOpacity
+          ref={stopTrackingRef}
+          onLayout={() => handleTourLayout('stop-tracking', stopTrackingRef)}
           onPress={handleStopTracking}
           disabled={isLoading}
           style={tw`bg-red-500 rounded-full py-4 items-center justify-center shadow-md`}
@@ -772,80 +891,108 @@ export default function LiveTrackingScreen() {
         onRequestClose={() => setIsTicketingModalVisible(false)}
       >
         <SafeAreaView style={tw`flex-1 bg-white`}>
-          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center`}>
-            <Text style={tw`text-xl font-black text-slate-800`}>Issue Ticket</Text>
-            <TouchableOpacity onPress={() => setIsTicketingModalVisible(false)}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row items-center justify-center relative`}>
+            <Text style={tw`text-xl font-black text-slate-800 text-center`}>Issue Ticket</Text>
+            <TouchableOpacity onPress={() => setIsTicketingModalVisible(false)} style={tw`absolute right-5`}>
               <Ionicons name="close" size={28} color="#64748b" />
             </TouchableOpacity>
           </View>
 
           <ScrollView style={tw`flex-1 p-5`} keyboardShouldPersistTaps="handled">
             {/* Boarding Stop */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Boarding Location</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2 text-center`}>Boarding Location</Text>
             <TouchableOpacity 
-              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 items-center`}
               onPress={() => {
                 setSelectingLocationType('boarding');
                 setLocationSearch('');
                 setIsLocationModalVisible(true);
               }}
             >
-              <Text style={tw`text-slate-800 font-medium`}>{boardingStop ? boardingStop.location_name : 'Select Boarding Stop'}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+              <Text style={tw`text-slate-800 font-bold text-center mb-1`}>{boardingStop ? boardingStop.location_name : 'Select Boarding Stop'}</Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
 
             {/* Alighting Stop */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2`}>Alighting Location</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 mb-2 text-center mt-2`}>Alighting Location</Text>
             <TouchableOpacity 
-              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 flex-row justify-between items-center`}
+              style={tw`bg-slate-50 border border-slate-200 rounded-xl p-4 mb-4 items-center`}
               onPress={() => {
                 setSelectingLocationType('alighting');
                 setLocationSearch('');
                 setIsLocationModalVisible(true);
               }}
             >
-              <Text style={tw`text-slate-800 font-medium`}>{alightingStop ? alightingStop.location_name : 'Select Alighting Stop'}</Text>
-              <Ionicons name="chevron-forward" size={20} color="#64748b" />
+              <Text style={tw`text-slate-800 font-bold text-center mb-1`}>{alightingStop ? alightingStop.location_name : 'Select Alighting Stop'}</Text>
+              <Ionicons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
 
-            {/* Discount Type */}
-            <Text style={tw`text-sm font-bold text-slate-500 mb-2 mt-2`}>Discount Type</Text>
-            <View style={tw`flex-row flex-wrap gap-2 mb-6`}>
-              {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
-                <TouchableOpacity
-                  key={type}
-                  style={tw`px-4 py-2 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
-                  onPress={() => setDiscountType(type)}
-                >
-                  <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
             {/* Ticket Quantity */}
-            <View style={tw`flex-row justify-between items-center mb-6`}>
-              <Text style={tw`text-sm font-bold text-slate-500`}>Ticket Quantity</Text>
+            <Text style={tw`text-sm font-bold text-slate-500 text-center mb-3 mt-4`}>Ticket Quantity</Text>
+            <View style={tw`flex-row justify-center mb-6`}>
               <View style={tw`flex-row items-center border border-slate-200 rounded-full bg-slate-50 overflow-hidden`}>
                 <TouchableOpacity 
-                  onPress={() => setTicketQuantity(q => Math.max(1, q - 1))}
-                  style={tw`px-4 py-3 bg-slate-100`}
+                  onPress={handleDecreaseQuantity}
+                  style={tw`px-5 py-4 bg-slate-100`}
                 >
-                  <Ionicons name="remove" size={20} color="#64748b" />
+                  <Ionicons name="remove" size={24} color="#64748b" />
                 </TouchableOpacity>
-                <Text style={tw`px-4 font-bold text-slate-800 text-lg`}>{ticketQuantity}</Text>
+                <Text style={tw`px-6 font-black text-slate-800 text-2xl`}>{ticketQuantity}</Text>
                 <TouchableOpacity 
-                  onPress={() => setTicketQuantity(q => q + 1)}
-                  style={tw`px-4 py-3 bg-slate-100`}
+                  onPress={handleIncreaseQuantity}
+                  style={tw`px-5 py-4 bg-slate-100`}
                 >
-                  <Ionicons name="add" size={20} color="#64748b" />
+                  <Ionicons name="add" size={24} color="#64748b" />
                 </TouchableOpacity>
               </View>
             </View>
 
+            {/* Discount Type */}
+            <Text style={tw`text-sm font-bold text-slate-500 mb-3 mt-4 text-center`}>Discount Type</Text>
+            {ticketQuantity === 1 ? (
+              <View style={tw`flex-row flex-wrap justify-center gap-2 mb-8`}>
+                {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
+                  <TouchableOpacity
+                    key={type}
+                    style={tw`px-5 py-2.5 rounded-full border ${discountType === type ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300'}`}
+                    onPress={() => {
+                      setDiscountType(type);
+                      setDiscountCounts({ Regular: 0, Student: 0, Senior: 0, PWD: 0, [type]: 1 });
+                    }}
+                  >
+                    <Text style={tw`font-semibold ${discountType === type ? 'text-white' : 'text-slate-600'}`}>{type}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            ) : (
+              <View style={tw`px-4 mb-8`}>
+                {['Regular', 'Student', 'Senior', 'PWD'].map(type => (
+                  <View key={type} style={tw`flex-row justify-between items-center mb-2 bg-slate-50 p-3 rounded-xl border border-slate-200`}>
+                    <Text style={tw`font-bold text-slate-700`}>{type}</Text>
+                    <View style={tw`flex-row items-center`}>
+                      <TouchableOpacity 
+                        onPress={() => updateDiscountCount(type, -1)}
+                        style={tw`px-3 py-2 bg-slate-200 rounded-l-lg`}
+                      >
+                        <Ionicons name="remove" size={16} color="#64748b" />
+                      </TouchableOpacity>
+                      <Text style={tw`px-4 font-bold text-slate-800`}>{discountCounts[type as keyof typeof discountCounts]}</Text>
+                      <TouchableOpacity 
+                        onPress={() => updateDiscountCount(type, 1)}
+                        style={tw`px-3 py-2 bg-slate-200 rounded-r-lg`}
+                      >
+                        <Ionicons name="add" size={16} color="#64748b" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            )}
+
             {/* Fare Summary */}
-            <View style={tw`bg-blue-50 p-5 rounded-2xl border border-blue-100 mb-8 items-center`}>
-              <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-1`}>Total Fare</Text>
-              <Text style={tw`text-4xl font-black text-blue-600`}>₱{(ticketFare * ticketQuantity).toFixed(2)}</Text>
+            <View style={tw`bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8 items-center shadow-sm`}>
+              <Text style={tw`text-blue-500 font-bold uppercase tracking-widest text-xs mb-2`}>Total Fare</Text>
+              <Text style={tw`text-5xl font-black text-blue-600`}>₱{(ticketFare).toFixed(2)}</Text>
             </View>
             
           </ScrollView>
@@ -870,11 +1017,11 @@ export default function LiveTrackingScreen() {
         onRequestClose={() => setIsLocationModalVisible(false)}
       >
         <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-          <View style={tw`p-5 border-b border-slate-200 flex-row justify-between items-center bg-white`}>
-            <Text style={tw`text-lg font-black text-slate-800`}>
+          <View style={tw`p-5 border-b border-slate-200 flex-row justify-center items-center bg-white relative`}>
+            <Text style={tw`text-lg font-black text-slate-800 text-center`}>
               {selectingLocationType === 'boarding' ? 'Select Boarding Stop' : 'Select Alighting Stop'}
             </Text>
-            <TouchableOpacity onPress={() => setIsLocationModalVisible(false)}>
+            <TouchableOpacity onPress={() => setIsLocationModalVisible(false)} style={tw`absolute right-5`}>
               <Ionicons name="close" size={28} color="#64748b" />
             </TouchableOpacity>
           </View>
@@ -940,9 +1087,18 @@ export default function LiveTrackingScreen() {
           >
             {/* Ticket Header */}
             <View style={tw`bg-blue-600 p-6 items-center`}>
-              <Ionicons name="bus" size={32} color="white" />
-              <Text style={tw`text-white font-black text-xl tracking-widest mt-2`}>BYAHERO</Text>
-              <Text style={tw`text-blue-200 text-xs font-bold uppercase mt-1 tracking-wider`}>E-Ticket Receipt</Text>
+              <Image 
+                source={require('../../assets/images/byaheroLogoBlue.svg')} 
+                style={tw`w-12 h-12 mb-1`} 
+                contentFit="contain" 
+              />
+              <Image 
+                source={require('../../assets/images/ByaHero.svg')} 
+                style={tw`w-24 h-6 mb-3`} 
+                contentFit="contain" 
+              />
+              <Text style={tw`text-blue-200 text-xs font-bold uppercase tracking-widest`}>E-Ticket Receipt</Text>
+              <Text style={tw`text-white text-sm font-black mt-2 tracking-widest`}>TKT-{issuedTicket.ticketNumber}</Text>
             </View>
 
             {/* Ticket Details */}
@@ -954,18 +1110,32 @@ export default function LiveTrackingScreen() {
                 ))}
               </View>
 
-              <View style={tw`items-center border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
-                <Text style={tw`text-slate-500 font-bold text-xs uppercase mb-1`}>Total Fare Paid</Text>
-                <Text style={tw`text-5xl font-black text-slate-800`}>₱{issuedTicket.fare.toFixed(2)}</Text>
-                <View style={tw`flex-row gap-2 mt-2`}>
-                  <View style={tw`bg-blue-50 px-3 py-1 rounded-full`}>
-                    <Text style={tw`text-blue-600 font-bold text-xs uppercase`}>{issuedTicket.discount} Fare</Text>
+              <View style={tw`w-full border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
+                <View style={tw`flex-row justify-between mb-3`}>
+                  <Text style={tw`text-slate-500 font-bold text-xs uppercase`}>Passenger Breakdown</Text>
+                </View>
+                {issuedTicket.quantity === 1 ? (
+                  <View style={tw`flex-row justify-between mb-2`}>
+                    <Text style={tw`text-slate-700 font-medium`}>{issuedTicket.discount} Fare</Text>
+                    <Text style={tw`text-slate-800 font-bold`}>₱{issuedTicket.fare.toFixed(2)}</Text>
                   </View>
-                  {issuedTicket.quantity > 1 && (
-                    <View style={tw`bg-indigo-50 px-3 py-1 rounded-full`}>
-                      <Text style={tw`text-indigo-600 font-bold text-xs uppercase`}>{issuedTicket.quantity}x Tickets</Text>
-                    </View>
-                  )}
+                ) : (
+                  ['Regular', 'Student', 'Senior', 'PWD'].map(type => {
+                    const count = issuedTicket.breakdown?.[type] || 0;
+                    if (count === 0) return null;
+                    const fareType = type === 'Regular' ? issuedTicket.baseRegularFare : issuedTicket.baseDiscountedFare;
+                    return (
+                      <View key={type} style={tw`flex-row justify-between mb-2`}>
+                        <Text style={tw`text-slate-700 font-medium`}>{count}x {type} Fare</Text>
+                        <Text style={tw`text-slate-800 font-bold`}>₱{(count * fareType).toFixed(2)}</Text>
+                      </View>
+                    );
+                  })
+                )}
+                
+                <View style={tw`flex-row justify-between mt-4 pt-4 border-t border-slate-200`}>
+                  <Text style={tw`text-slate-800 font-black text-lg uppercase`}>Total Paid</Text>
+                  <Text style={tw`text-blue-600 font-black text-2xl`}>₱{issuedTicket.fare.toFixed(2)}</Text>
                 </View>
               </View>
 
@@ -1001,6 +1171,93 @@ export default function LiveTrackingScreen() {
             </View>
           </Animated.View>
         </View>
+      )}
+
+      {/* Custom Stop Tracking Modal */}
+      <Modal
+        visible={isStopTrackingModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsStopTrackingModalVisible(false)}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            <TouchableOpacity
+              onPress={() => setIsStopTrackingModalVisible(false)}
+              style={tw`absolute top-4 right-4 p-1 z-10`}
+            >
+              <Ionicons name="close" size={20} color="#94a3b8" />
+            </TouchableOpacity>
+
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="bus-alert" size={32} color="#ef4444" />
+            </View>
+
+            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
+              End Transit Session?
+            </Text>
+            <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-6`}>
+              Are you sure you want to end live transit tracking for this bus? Passengers will no longer see live GPS updates.
+            </Text>
+
+            <View style={tw`w-full flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={() => setIsStopTrackingModalVisible(false)}
+                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
+              >
+                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={confirmStopTracking}
+                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>End Session</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Admin Terminated Modal */}
+      <Modal
+        visible={isAdminStopModalVisible}
+        transparent
+        animationType="fade"
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+            
+            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
+              <MaterialIcons name="gpp-bad" size={32} color="#ef4444" />
+            </View>
+
+            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
+              Session Terminated
+            </Text>
+            <Text style={tw`text-sm text-slate-500 text-center leading-relaxed mb-6`}>
+              Your tracking session was forcefully stopped by an Administrator.
+            </Text>
+
+            <View style={tw`w-full flex-row gap-3`}>
+              <TouchableOpacity
+                onPress={confirmAdminStop}
+                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold text-sm`}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Tour Overlay */}
+      {activeStep !== null && (
+        <TourOverlay 
+          currentStep={activeStep} 
+          onStepChange={setActiveStep} 
+          onClose={() => setActiveStep(null)} 
+        />
       )}
     </SafeAreaView>
   );

@@ -25,123 +25,90 @@ export interface TourStep {
 
 export const tourSteps: TourStep[] = [
   {
-    title: 'Welcome to ByaHero!',
-    description: "Let's take a quick interactive tour to show you how to navigate your live commuter dashboard.",
-    screen: '/passenger',
+    title: 'Welcome Conductor!',
+    description: "Let's take a quick interactive tour of your new dispatch dashboard.",
+    screen: '/dashboard',
     highlight: null,
   },
   {
-    title: 'Bus Locations',
-    description: 'See all live buses operating on routes, including their capacity and real-time ETAs.',
-    screen: '/passenger',
-    highlight: 'tab-location',
+    title: 'Ticketing Mode',
+    description: 'Switch between Manual and Automatic ticketing here. Use Manual for cash or manual counts.',
+    screen: '/dashboard',
+    highlight: 'ticketing-mode',
   },
   {
-    title: 'Filter Routes',
-    description: 'Filter routes in one click to track only the buses heading in your direction.',
-    screen: '/passenger',
-    highlight: 'tab-routes',
+    title: 'Select Active Bus',
+    description: 'Tap here to assign yourself to an active bus unit for your route.',
+    screen: '/dashboard',
+    highlight: 'select-bus',
   },
   {
-    title: 'Circle Groups',
-    description: 'Track your private circle members and friends on the map in real time.',
-    screen: '/passenger',
-    highlight: 'tab-groups',
+    title: 'Select Route',
+    description: 'Choose your scheduled transit route so passengers can track you correctly.',
+    screen: '/dashboard',
+    highlight: 'select-route',
   },
   {
-    title: 'Pickup Stops',
-    description: 'Discover pick-up terminals and designated boarding stops nearby.',
-    screen: '/passenger',
-    highlight: 'tab-busstops',
-  },
-  {
-    title: 'Recenter Map',
-    description: 'Tap this target button anytime to snap the map view directly back to your live GPS coordinates.',
-    screen: '/passenger',
-    highlight: 'recenter',
-  },
-  {
-    title: 'Commuter Location',
-    description: 'Focuses on your avatar marker on the map (loading simulated mockup coordinates if your live location is currently unavailable).',
-    screen: '/passenger',
-    highlight: 'user-marker',
-  },
-  {
-    title: 'SOS Emergency Button',
-    description: 'Trigger instant SOS alerts to notify emergency contacts and operator control centers with your live location.',
-    screen: '/passenger',
-    highlight: 'sos-btn',
-  },
-  {
-    title: 'Notifications Bell',
-    description: 'Tap this bell icon to see history feeds of SOS emergencies and route alerts in real-time.',
-    screen: '/passenger',
-    highlight: 'notifications',
-  },
-  {
-    title: 'Passenger Menu Drawer',
-    description: 'Tap this hamburger menu button to open additional features, profile details, and account settings.',
-    screen: '/passenger',
-    highlight: 'hamburger',
-  },
-  {
-    title: 'Ride History Link',
-    description: "This is your Ride History link. Tap here to view all your past boarding records, routes taken, and operator details. Let's check it out.",
-    screen: '/passenger',
-    highlight: 'menu-history',
-    actionBeforeNext: () => {
-      router.push('/passenger/rideHistory');
+    title: 'Start Tracking',
+    description: "Ready to roll? Tap this to begin your operation. For this tour, we'll run a quick simulation!",
+    screen: '/dashboard',
+    highlight: 'start-tracking',
+    actionBeforeNext: async () => {
+      // Simulate live tracking payload
+      const payload = {
+        bus_id: 'SIMULATION',
+        code: 'SIM-BUS',
+        seats_total: 45,
+        route: 'Simulation Route',
+        initial_available_seats: 45,
+        pre_departure_count: 0,
+        operation_id: 'sim_operation_123',
+        ticketing_mode: 'Manual',
+        isSimulation: true // Flag to prevent real backend calls
+      };
+      await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
     }
   },
   {
-    title: 'Ride History Logs',
-    description: 'Access all details about your past travel logs, duration, and even report issues with specific buses here.',
-    screen: '/passenger/rideHistory',
-    highlight: 'history-list',
-    actionBeforeBack: () => {
+    title: 'Live Tracking Simulator',
+    description: "You're now in the Live Tracking view! This tracks your location and passenger load in real-time.",
+    screen: '/liveTracking',
+    highlight: null,
+    actionBeforeBack: async () => {
       router.back();
     }
   },
   {
-    title: 'Commuter Feedback Link',
-    description: "This is the Feedback link. Share your ratings and feedback on your commuting experience. Let's open it.",
-    screen: '/passenger',
-    highlight: 'menu-feedback',
-    actionBeforeNext: () => {
-      router.push('/passenger/settings/feedback');
+    title: 'Manual Ticketing',
+    description: 'Since you are in Manual Mode, you need to click the plus (+) button if a passenger boards, and the minus (-) button if a passenger departs.',
+    screen: '/liveTracking',
+    highlight: 'manual-ticketing',
+  },
+  {
+    title: 'Live Passenger Count',
+    description: 'This shows your current passenger count vs total capacity. This updates the mobile app live for commuters!',
+    screen: '/liveTracking',
+    highlight: 'pax-counts',
+  },
+  {
+    title: 'Stop Tracking',
+    description: 'When your route is complete, tap this button to stop tracking and end your current operation.',
+    screen: '/liveTracking',
+    highlight: 'stop-tracking',
+    actionBeforeNext: async () => {
+      await AsyncStorage.removeItem('byahero_conductor_payload');
     }
   },
   {
-    title: 'Commuter Feedback Card',
-    description: 'Rate your travel experience out of 5 stars and tell us how we can make your ByaHero journeys even better!',
-    screen: '/passenger/settings/feedback',
-    highlight: 'feedback-card',
-    actionBeforeBack: () => {
-      router.back();
-    }
-  },
-  {
-    title: 'Report a Problem Link',
-    description: "This is the Report a Problem link. Report any transit delays, reckless drivers, or app issues directly. Let's open it.",
-    screen: '/passenger',
-    highlight: 'menu-report',
-    actionBeforeNext: () => {
-      router.push('/passenger/report');
-    }
-  },
-  {
-    title: 'Report a Problem Form',
-    description: 'Submit direct incident reports, choose issue types, specify details, and help keep ByaHero commutes safe and orderly.',
-    screen: '/passenger/report',
-    highlight: 'report-card',
-    actionBeforeBack: () => {
-      router.back();
-    }
+    title: 'Operation History',
+    description: 'All your completed routes and tracked sessions are securely recorded here for your reference. (This is just an example!)',
+    screen: '/operationHistory',
+    highlight: 'history-header',
   },
   {
     title: "You're All Set!",
-    description: "You've successfully completed the guide! Enjoy smart, safe, and efficient travel with ByaHero.",
-    screen: '/passenger',
+    description: "You've successfully completed the guide.",
+    screen: '/dashboard',
     highlight: null,
   }
 ];
@@ -179,11 +146,12 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
   }, []);
 
   useEffect(() => {
-    if (currentStep === 10 || currentStep === 12 || currentStep === 14) {
+    // Slight delay when switching screens
+    if (currentStep === 5) {
       setModalVisible(false);
       const timer = setTimeout(() => {
         setModalVisible(true);
-      }, 350);
+      }, 500);
       return () => clearTimeout(timer);
     } else {
       setModalVisible(true);
@@ -198,17 +166,6 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
       ])
     ).start();
   }, [currentStep]);
-
-  const isHighlightInMenu =
-    step?.highlight === 'menu-history' ||
-    step?.highlight === 'menu-feedback' ||
-    step?.highlight === 'menu-report';
-
-  const isBottomSheetTab =
-    step?.highlight === 'tab-location' ||
-    step?.highlight === 'tab-routes' ||
-    step?.highlight === 'tab-groups' ||
-    step?.highlight === 'tab-busstops';
 
   const SCREEN_WIDTH = Dimensions.get('window').width;
   const SCREEN_HEIGHT = Dimensions.get('window').height;
@@ -248,9 +205,6 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
           if (active && width > 0 && height > 0) {
             const statusBarOffset = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
             let adjustedY = y + statusBarOffset;
-            if (key.startsWith('menu-')) {
-              adjustedY -= 30;
-            }
             setActiveLayout({ x, y: adjustedY, width, height });
           }
         });
@@ -259,17 +213,7 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
         if (cached) {
           const statusBarOffset = Platform.OS === 'android' ? (StatusBar.currentHeight || 0) : 0;
           let adjustedY = cached.y + statusBarOffset;
-          if (key.startsWith('menu-')) {
-            adjustedY -= 30;
-          }
           setActiveLayout({ ...cached, y: adjustedY });
-        } else if (key === 'user-marker') {
-          setActiveLayout({
-            x: SCREEN_WIDTH / 2 - 40,
-            y: SCREEN_HEIGHT / 2 - 85,
-            width: 80,
-            height: 80,
-          });
         } else {
           setActiveLayout(null);
         }
@@ -277,15 +221,15 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
     };
 
     measure();
-    const timer1 = setTimeout(measure, 100);
-    const timer2 = setTimeout(measure, 300);
+    const timer1 = setTimeout(measure, 200);
+    const timer2 = setTimeout(measure, 500);
 
     return () => {
       active = false;
       clearTimeout(timer1);
       clearTimeout(timer2);
     };
-  }, [currentStep, step?.highlight, layouts, SCREEN_WIDTH, SCREEN_HEIGHT, translateYVal, isBottomSheetTab]);
+  }, [currentStep, step?.highlight, layouts, SCREEN_WIDTH, SCREEN_HEIGHT, translateYVal]);
 
   if (!step) return null;
 
@@ -300,15 +244,16 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
     }
     if (currentStep < tourSteps.length - 1) {
       const nextStep = currentStep + 1;
-      await AsyncStorage.setItem('byahero_active_tour_step', nextStep.toString());
+      await AsyncStorage.setItem('byahero_conductor_tour_step', nextStep.toString());
       onStepChange(nextStep);
 
       const nextStepInfo = tourSteps[nextStep];
       if (nextStepInfo && nextStepInfo.screen !== step.screen) {
-        router.push(nextStepInfo.screen as any);
+        router.replace(nextStepInfo.screen as any);
       }
     } else {
-      await AsyncStorage.removeItem('byahero_active_tour_step');
+      await AsyncStorage.removeItem('byahero_conductor_tour_step');
+      await AsyncStorage.removeItem('byahero_conductor_payload');
       onClose();
     }
   };
@@ -319,44 +264,39 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
     }
     if (currentStep > 0) {
       const prevStep = currentStep - 1;
-      await AsyncStorage.setItem('byahero_active_tour_step', prevStep.toString());
+      await AsyncStorage.setItem('byahero_conductor_tour_step', prevStep.toString());
       onStepChange(prevStep);
 
       const prevStepInfo = tourSteps[prevStep];
       if (prevStepInfo && prevStepInfo.screen !== step.screen) {
-        router.push(prevStepInfo.screen as any);
+        router.replace(prevStepInfo.screen as any);
       }
     }
   };
 
   const handleSkip = async () => {
-    await AsyncStorage.removeItem('byahero_active_tour_step');
+    await AsyncStorage.removeItem('byahero_conductor_tour_step');
+    await AsyncStorage.removeItem('byahero_conductor_payload');
     onClose();
-    router.replace('/passenger');
+    router.replace('/dashboard');
   };
 
   if (!modalVisible) return null;
 
   return (
-    <Modal transparent={true} statusBarTranslucent={true} animationType="none" visible={true}>
+    <View style={[tw`absolute inset-0 z-50`, { elevation: 100 }]}>
       <View style={tw`flex-1 relative`}>
         {activeLayout ? (
           <>
-            {/* 4 dark background panels surrounding the cutout (adjacent columns layout to eliminate horizontal overlap seams) */}
-            {/* Left column */}
-            <View style={[tw`absolute left-0 top-0 bottom-0 bg-slate-950/60`, { width: activeLayout.x }]} />
-            {/* Right column */}
-            <View style={[tw`absolute right-0 top-0 bottom-0 bg-slate-950/60`, { left: activeLayout.x + activeLayout.width }]} />
-            {/* Top panel (middle column) */}
-            <View style={[tw`absolute bg-slate-950/60`, { left: activeLayout.x, width: activeLayout.width, top: 0, height: activeLayout.y }]} />
-            {/* Bottom panel (middle column) */}
-            <View style={[tw`absolute bg-slate-950/60`, { left: activeLayout.x, width: activeLayout.width, top: activeLayout.y + activeLayout.height, bottom: 0 }]} />
+            <View style={[tw`absolute left-0 top-0 bottom-0 bg-slate-950/70`, { width: activeLayout.x }]} />
+            <View style={[tw`absolute right-0 top-0 bottom-0 bg-slate-950/70`, { left: activeLayout.x + activeLayout.width }]} />
+            <View style={[tw`absolute bg-slate-950/70`, { left: activeLayout.x, width: activeLayout.width, top: 0, height: activeLayout.y }]} />
+            <View style={[tw`absolute bg-slate-950/70`, { left: activeLayout.x, width: activeLayout.width, top: activeLayout.y + activeLayout.height, bottom: 0 }]} />
 
-            {/* Pulsing highlight border */}
             <Animated.View
               pointerEvents="none"
               style={[
-                tw`absolute border-4 border-yellow-400 rounded-2xl`,
+                tw`absolute border-4 border-[#3b82f6] rounded-2xl`,
                 {
                   left: activeLayout.x - 4,
                   top: activeLayout.y - 4,
@@ -368,11 +308,9 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
             />
           </>
         ) : (
-          /* Full dark backdrop overlay for steps without elements */
-          <View style={tw`absolute inset-0 bg-slate-950/60`} />
+          <View style={tw`absolute inset-0 bg-slate-950/70`} />
         )}
 
-        {/* Dynamic Card Popover Container */}
         <View
           style={[
             tw`absolute left-4 right-4 justify-center items-center`,
@@ -380,23 +318,19 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
               ? (() => {
                 const spaceAbove = activeLayout.y;
                 const spaceBelow = SCREEN_HEIGHT - (activeLayout.y + activeLayout.height);
-                const CARD_SAFE = 220; // approx popover height + padding
-                if (isBottomSheetTab || isHighlightInMenu || spaceAbove >= spaceBelow) {
-                  // Place above, but clamp so card doesn't go off top
+                const CARD_SAFE = 220; 
+                if (spaceAbove >= spaceBelow) {
                   const bottomVal = SCREEN_HEIGHT - activeLayout.y + 30;
                   return { bottom: Math.min(bottomVal, SCREEN_HEIGHT - CARD_SAFE) };
                 } else {
-                  // Place below, but clamp so card doesn't go off bottom
                   const topVal = activeLayout.y + activeLayout.height + 7;
                   return { top: Math.min(topVal, SCREEN_HEIGHT - CARD_SAFE) };
                 }
               })()
-              : { top: SCREEN_HEIGHT / 2 - 120 },
-            isHighlightInMenu && tw`w-[70%] mr-auto`
+              : { top: SCREEN_HEIGHT / 2 - 120 }
           ]}
         >
-          {/* Arrow BEFORE card — when target is above (card below target, arrow points up) */}
-          {activeLayout && !isBottomSheetTab && activeLayout.y < (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
+          {activeLayout && activeLayout.y < (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
             <View
               style={[
                 tw`w-0 h-0 border-8 border-transparent`,
@@ -412,13 +346,15 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
 
           <View style={tw`w-full bg-white rounded-3xl p-5 border border-slate-100 shadow-2xl`}>
             <View style={tw`flex-row justify-between items-center mb-3`}>
-              <Text style={tw`text-xs font-bold text-[#1e3a8a] uppercase tracking-wider`}>Spotlight Onboarding</Text>
+              <Text style={tw`text-xs font-bold text-[#3b82f6] uppercase tracking-wider`}>Spotlight Onboarding</Text>
               <Text style={tw`text-xs font-bold text-slate-400`}>{currentStep + 1} / {tourSteps.length}</Text>
             </View>
 
             <Text style={tw`text-lg font-black text-slate-800 mb-2`}>
               {currentStep === tourSteps.length - 1 && userName 
                 ? `You're all Set ${userName}!` 
+                : currentStep === 0 && userName
+                ? `Welcome ${userName}!`
                 : step.title}
             </Text>
             <Text style={tw`text-xs text-slate-500 font-semibold leading-relaxed mb-5`}>
@@ -433,31 +369,20 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
               ) : (
                 <View style={tw`py-2 px-3`} />
               )}
-
-              <View style={tw`flex-row gap-2`}>
+              <View style={tw`flex-row gap-3`}>
                 {currentStep > 0 && (
-                  <TouchableOpacity
-                    onPress={handleBack}
-                    style={tw`border border-slate-200 bg-slate-50 px-4 py-2 rounded-full`}
-                  >
-                    <Text style={tw`text-xs font-bold text-slate-500`}>Back</Text>
+                  <TouchableOpacity onPress={handleBack} style={tw`bg-slate-100 px-5 py-2.5 rounded-full items-center justify-center`}>
+                    <Text style={tw`text-slate-600 font-bold`}>Back</Text>
                   </TouchableOpacity>
                 )}
-
-                <TouchableOpacity
-                  onPress={handleNext}
-                  style={tw`bg-[#1e3a8a] px-5 py-2 rounded-full shadow-md`}
-                >
-                  <Text style={tw`text-xs font-bold text-white`}>
-                    {currentStep === tourSteps.length - 1 ? 'Finish' : 'Next'}
-                  </Text>
+                <TouchableOpacity onPress={handleNext} style={tw`bg-[#3b82f6] px-5 py-2.5 rounded-full items-center justify-center shadow-md`}>
+                  <Text style={tw`text-white font-bold`}>{currentStep === tourSteps.length - 1 ? 'Finish' : 'Next'}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           </View>
 
-          {/* Arrow AFTER card — when target is below (card above target, arrow points down) */}
-          {activeLayout && (isBottomSheetTab || activeLayout.y >= (SCREEN_HEIGHT - activeLayout.y - activeLayout.height)) && (
+          {activeLayout && activeLayout.y >= (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
             <View
               style={[
                 tw`w-0 h-0 border-8 border-transparent`,
@@ -472,6 +397,6 @@ export default function TourOverlay({ currentStep, onStepChange, onClose, transl
           )}
         </View>
       </View>
-    </Modal>
+    </View>
   );
 }

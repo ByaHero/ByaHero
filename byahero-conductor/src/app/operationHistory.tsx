@@ -11,8 +11,14 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
 import { getOperationHistory } from '../services/conductorService';
+import { useTourSync } from '../hooks/useTourSync';
+import { handleTourLayout } from '../components/TourRegistry';
+import TourOverlay from '../components/TourOverlay';
+import { useRef } from 'react';
 
 export default function OperationHistoryScreen() {
+  const { activeStep, setActiveStep } = useTourSync('/operationHistory');
+  const historyHeaderRef = useRef<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -72,7 +78,11 @@ export default function OperationHistoryScreen() {
       <ConductorNavbar title="Operation History" />
 
       <ScrollView contentContainerStyle={tw`p-5 pb-10`} style={tw`flex-1`}>
-        <View style={tw`mb-5 flex-row justify-between items-center`}>
+        <View 
+          ref={historyHeaderRef} 
+          onLayout={() => handleTourLayout('history-header', historyHeaderRef)} 
+          style={tw`mb-5 flex-row justify-between items-center`}
+        >
           <Text style={tw`text-lg font-extrabold text-slate-800`}>Your Travel History</Text>
           <TouchableOpacity onPress={fetchHistory} style={tw`bg-slate-200 p-2 rounded-full`}>
             <Ionicons name="refresh" size={18} color="#475569" />
@@ -97,9 +107,16 @@ export default function OperationHistoryScreen() {
                 {/* Header: Date & Route */}
                 <View style={tw`flex-row justify-between items-center mb-3 border-b border-slate-100 pb-3`}>
                   <View>
-                    <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest`}>
-                      {formatDate(item.started_at)}
-                    </Text>
+                    <View style={tw`flex-row items-center gap-2`}>
+                      <Text style={tw`text-xs font-bold text-slate-400 uppercase tracking-widest`}>
+                        {formatDate(item.started_at)}
+                      </Text>
+                      {item.bus_code && (
+                        <View style={tw`bg-slate-100 px-2 py-0.5 rounded`}>
+                          <Text style={tw`text-slate-600 text-[10px] font-bold`}>{item.bus_code}</Text>
+                        </View>
+                      )}
+                    </View>
                     <Text style={tw`text-[#0f3878] font-black text-base mt-0.5`}>
                       {item.route || 'Unknown Route'}
                     </Text>
@@ -165,6 +182,15 @@ export default function OperationHistoryScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Tour Overlay */}
+      {activeStep !== null && (
+        <TourOverlay 
+          currentStep={activeStep} 
+          onStepChange={setActiveStep} 
+          onClose={() => setActiveStep(null)} 
+        />
+      )}
     </SafeAreaView>
   );
 }

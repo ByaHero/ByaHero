@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByaHero Admin",
     "slug": "byahero-admin",
-    "version": "1.0.0",
+    "version": "2.0.5",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "byaheroadmin",
@@ -18,7 +18,8 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.byahero.admin"
+      "package": "com.byahero.admin",
+      "versionCode": 205
     },
     "web": {
       "output": "static",
