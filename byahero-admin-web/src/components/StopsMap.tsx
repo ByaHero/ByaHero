@@ -121,7 +121,7 @@ export default function StopsMap({ stops, onMapClick }: StopsMapProps) {
     <iframe 
       srcDoc={htmlContent} 
       title="Stops Map"
-      style={{ width: '100%', height: '100%', border: 'none' }} 
+      className="w-full h-full border-0" 
       sandbox="allow-scripts allow-same-origin allow-popups"
     />
   );

@@ -30,7 +30,7 @@ export default function Stops() {
     try {
       setLoading(true);
       const data = await adminService.listStops();
-      if (data.success) {
+      if (data && data.success) {
         setStops(data.stops || []);
       }
     } catch (e) {
@@ -110,11 +110,11 @@ export default function Stops() {
         data = await adminService.addStop(payload);
       }
 
-      if (data.success) {
+      if (data && data.success) {
         setIsFormOpen(false);
         fetchStops();
       } else {
-        alert(data.error || 'Failed to save bus stop.');
+        alert(data?.error || 'Failed to save bus stop.');
       }
     } catch (e) {
       alert('Network error while saving stop.');
@@ -128,11 +128,11 @@ export default function Stops() {
     setSaving(true);
     try {
       const data = await adminService.deleteStop(currentStop.id);
-      if (data.success) {
+      if (data && data.success) {
         setIsDeleteOpen(false);
         fetchStops();
       } else {
-        alert(data.error || 'Failed to delete stop.');
+        alert(data?.error || 'Failed to delete stop.');
       }
     } catch (e) {
       alert('Network error while deleting stop.');
@@ -157,14 +157,17 @@ export default function Stops() {
   }));
 
   return (
-    <div className="dashboard-grid">
-      <div className="card" style={{ marginBottom: 0 }}>
-        <div className="page-header-actions">
-          <h2 className="card-title">Transit Network Stops</h2>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+    <div className="grid grid-cols-1 xl:grid-cols-[1.5fr_1fr] gap-6">
+      {/* Left: Stops Table */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Transit Network Stops</h2>
+            <p className="text-xs text-slate-500 font-medium mt-1">Maintain coordinates, terminals, and pick-up points.</p>
+          </div>
+          <div className="flex items-center gap-3 flex-wrap">
             <select 
-              className="form-input" 
-              style={{ width: '170px', margin: 0, padding: '6px 10px', fontSize: '0.8rem', height: '34px' }}
+              className="py-2 px-3 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 text-slate-700 focus:outline-none focus:border-[#4C85C5] focus:bg-white"
               value={routeFilter}
               onChange={(e) => setRouteFilter(e.target.value)}
             >
@@ -172,63 +175,82 @@ export default function Stops() {
               <option value="LAUREL - TANAUAN">Laurel - Tanauan</option>
               <option value="TANAUAN - LAUREL">Tanauan - Laurel</option>
             </select>
-            <button className="btn btn-primary" onClick={openAddModal}>
+            <button 
+              className="inline-flex items-center justify-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-[#0f3878] hover:bg-[#0a2958] text-white transition shadow-sm cursor-pointer" 
+              onClick={openAddModal}
+            >
               <Plus size={16} /> New Pick-up Point
             </button>
           </div>
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-            <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+          <div className="flex justify-center py-16">
+            <Loader2 className="animate-spin text-[#0f3878]" size={32} />
           </div>
         ) : filteredStops.length === 0 ? (
-          <div className="empty-state">
-            <MapPin size={48} className="empty-state-icon" />
-            <p>No transit stops mapped for this filter. Add one using the button above or by clicking on the map.</p>
+          <div className="text-center py-12 px-4 text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
+            <MapPin size={48} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-xs font-semibold">No transit stops mapped for this filter. Add one using the button above.</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="table">
+          <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="w-full border-collapse text-left text-xs">
               <thead>
-                <tr>
-                  <th>Stop name</th>
-                  <th>Route</th>
-                  <th>Designation Type</th>
-                  <th>Latitude</th>
-                  <th>Longitude</th>
-                  <th>Status</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3.5 px-4">Stop name</th>
+                  <th className="py-3.5 px-4">Route</th>
+                  <th className="py-3.5 px-4">Designation</th>
+                  <th className="py-3.5 px-4">Latitude</th>
+                  <th className="py-3.5 px-4">Longitude</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filteredStops.map((stop) => (
-                  <tr key={stop.id}>
-                    <td style={{ fontWeight: 700 }}>{stop.name}</td>
-                    <td style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{stop.route || 'LAUREL - TANAUAN'}</td>
-                    <td>
-                      <span className={`badge badge-${stop.type === 'TERMINAL' ? 'primary' : 'secondary'}`}>
+                  <tr key={stop.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{stop.name}</td>
+                    <td className="py-3.5 px-4 text-[11px] text-slate-500 font-medium">{stop.route || 'LAUREL - TANAUAN'}</td>
+                    <td className="py-3.5 px-4">
+                      <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                        stop.type === 'TERMINAL' 
+                          ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                          : 'bg-slate-100 text-slate-700 border border-slate-200'
+                      }`}>
                         {stop.type === 'TERMINAL' ? 'Terminal' : stop.type === 'PICKUP_POINT' ? 'Pickup Point' : 'Bus Stop'}
                       </span>
                     </td>
-                    <td style={{ fontFamily: 'monospace' }}>
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
                       {(stop.latitude ?? (stop as any).lat) ? parseFloat((stop.latitude ?? (stop as any).lat) as any).toFixed(6) : '0.000000'}
                     </td>
-                    <td style={{ fontFamily: 'monospace' }}>
+                    <td className="py-3.5 px-4 font-mono text-[11px] text-slate-600">
                       {(stop.longitude ?? (stop as any).lng) ? parseFloat((stop.longitude ?? (stop as any).lng) as any).toFixed(6) : '0.000000'}
                     </td>
-                    <td>
-                      <span className={`badge badge-${stop.status === 'active' ? 'success' : 'error'}`}>
+                    <td className="py-3.5 px-4">
+                      <span className={`inline-flex items-center py-1 px-2.5 text-[10px] font-extrabold rounded-full uppercase tracking-wider ${
+                        stop.status === 'active' 
+                          ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                          : 'bg-red-50 text-red-700 border border-red-200'
+                      }`}>
                         {stop.status}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                        <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openEditModal(stop)}>
-                          <Edit2 size={12} />
+                    <td className="py-3.5 px-4 text-right">
+                      <div className="flex justify-end gap-1.5 items-center">
+                        <button 
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer" 
+                          onClick={() => openEditModal(stop)}
+                          title="Edit Stop"
+                        >
+                          <Edit2 size={13} />
                         </button>
-                        <button className="btn btn-danger" style={{ padding: '6px 10px' }} onClick={() => openDeleteModal(stop)}>
-                          <Trash2 size={12} />
+                        <button 
+                          className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition cursor-pointer" 
+                          onClick={() => openDeleteModal(stop)}
+                          title="Delete Stop"
+                        >
+                          <Trash2 size={13} />
                         </button>
                       </div>
                     </td>
@@ -240,31 +262,35 @@ export default function Stops() {
         )}
       </div>
 
-      <div className="card" style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: '560px', padding: '20px', marginBottom: 0 }}>
-        <h3 className="card-title" style={{ fontSize: '1rem', marginBottom: '8px' }}>Stops Visualizer Map</h3>
-        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
-          All mapped transit stops are displayed below. Click on a marker to view details.
-        </p>
-        <div style={{ flex: 1, borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+      {/* Right: Map Visualizer */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col min-h-[500px]">
+        <div className="mb-4">
+          <h3 className="text-base font-extrabold text-slate-800">Stops Visualizer Map</h3>
+          <p className="text-xs text-slate-500 font-medium mt-0.5">
+            Geographic overview of registered pick-up points and route nodes.
+          </p>
+        </div>
+        <div className="flex-1 rounded-2xl overflow-hidden border border-slate-200 shadow-inner relative min-h-[360px]">
           <StopsMap stops={mapFriendlyStops} />
         </div>
       </div>
 
       {/* Save Modal with Map Inside */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={currentStop ? 'Edit Transit Stop' : 'Map New Transit Stop'}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ height: '220px', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
+        <div className="space-y-4">
+          <div className="h-[200px] rounded-2xl overflow-hidden border border-slate-200 shadow-inner">
             <StopsMap stops={mapFriendlyStops} onMapClick={handleMapClick} />
           </div>
-          <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
+          <p className="text-[11px] text-slate-400 italic">
             Click on the map above to select and update the latitude/longitude coordinates automatically.
           </p>
-          <form onSubmit={handleSave}>
-            <div className="form-group">
-              <label className="form-label">Stop / Terminal Name</label>
+
+          <form onSubmit={handleSave} className="space-y-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Stop / Terminal Name</label>
               <input 
                 type="text" 
-                className="form-input" 
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
                 placeholder="e.g. Quezon Avenue Terminal" 
                 value={name}
                 onChange={(e) => setName(e.target.value)}
@@ -272,24 +298,24 @@ export default function Stops() {
               />
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Latitude</label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Latitude</label>
                 <input 
                   type="number" 
                   step="0.000001" 
-                  className="form-input" 
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
                   value={latitude}
                   onChange={(e) => setLatitude(e.target.value)}
                   required
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Longitude</label>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Longitude</label>
                 <input 
                   type="number" 
                   step="0.000001" 
-                  className="form-input" 
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
                   value={longitude}
                   onChange={(e) => setLongitude(e.target.value)}
                   required
@@ -297,37 +323,58 @@ export default function Stops() {
               </div>
             </div>
 
-            <div className="form-group">
-              <label className="form-label">Transit Route Segment</label>
-              <select className="form-input" value={route} onChange={(e) => setRoute(e.target.value)}>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Transit Route Segment</label>
+              <select 
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+                value={route} 
+                onChange={(e) => setRoute(e.target.value)}
+              >
                 <option value="LAUREL - TANAUAN">Laurel - Tanauan</option>
                 <option value="TANAUAN - LAUREL">Tanauan - Laurel</option>
               </select>
             </div>
 
-            <div className="form-row">
-              <div className="form-group">
-                <label className="form-label">Designation Type</label>
-                <select className="form-input" value={type} onChange={(e) => setType(e.target.value)}>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Designation Type</label>
+                <select 
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+                  value={type} 
+                  onChange={(e) => setType(e.target.value)}
+                >
                   <option value="PICKUP_POINT">Pickup Point</option>
                   <option value="TERMINAL">Terminal</option>
                   <option value="BUS_STOP">Bus Stop</option>
                 </select>
               </div>
-              <div className="form-group">
-                <label className="form-label">Operational Status</label>
-                <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Operational Status</label>
+                <select 
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+                  value={status} 
+                  onChange={(e) => setStatus(e.target.value as any)}
+                >
                   <option value="active">Active</option>
                   <option value="inactive">Inactive</option>
                 </select>
               </div>
             </div>
 
-            <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0, marginTop: '16px' }}>
-              <button type="button" className="btn btn-secondary" onClick={() => setIsFormOpen(false)} disabled={saving}>
+            <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+              <button 
+                type="button" 
+                className="py-2 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer" 
+                onClick={() => setIsFormOpen(false)} 
+                disabled={saving}
+              >
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button 
+                type="submit" 
+                className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-[#0f3878] hover:bg-[#0a2958] transition shadow-md cursor-pointer disabled:opacity-60" 
+                disabled={saving}
+              >
                 {saving ? 'Saving...' : 'Save Stop'}
               </button>
             </div>
@@ -337,16 +384,28 @@ export default function Stops() {
 
       {/* Delete Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="Decommission Transit Stop">
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Are you sure you want to remove <strong>{currentStop?.name}</strong> from active transit operations?
-        </p>
-        <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
-          <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteOpen(false)} disabled={saving}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={saving}>
-            {saving ? 'Deleting...' : 'Delete Permanently'}
-          </button>
+        <div className="space-y-3">
+          <p className="text-xs text-slate-600">
+            Are you sure you want to remove <strong>{currentStop?.name}</strong> from active transit operations?
+          </p>
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer" 
+              onClick={() => setIsDeleteOpen(false)} 
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-60" 
+              onClick={handleDelete} 
+              disabled={saving}
+            >
+              {saving ? 'Deleting...' : 'Delete Permanently'}
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
