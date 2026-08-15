@@ -29,7 +29,6 @@ export default function Login({ onLoginSuccess }: LoginProps) {
       const data = await adminService.login(email.trim(), password);
       
       if (data.success) {
-        // Double check if redirect is admin or user has admin capabilities
         const redirect = data.redirect || '';
         const user = data.user || {};
         
@@ -53,45 +52,29 @@ export default function Login({ onLoginSuccess }: LoginProps) {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
+    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0f3878] via-[#1e40af] to-[#4C85C5] p-5">
+      <div className="bg-white rounded-3xl p-8 sm:p-10 w-full max-w-[420px] shadow-2xl text-center border border-white/20 backdrop-blur-md">
         {/* Decorative Badge logo */}
-        <div style={{
-          display: 'inline-flex',
-          padding: '12px',
-          borderRadius: '50%',
-          backgroundColor: 'var(--primary-light)',
-          color: 'var(--primary-color)',
-          marginBottom: '20px'
-        }}>
+        <div className="inline-flex p-3.5 rounded-2xl bg-blue-50 text-[#0f3878] mb-5 shadow-sm border border-blue-100/50">
           <Shield size={32} />
         </div>
 
-        <h1 className="login-title">ByaHero Admin</h1>
-        <p className="login-subtitle">Sign in to control and monitor the bus system</p>
+        <h1 className="text-2xl font-black text-[#0f3878] tracking-tight mb-1.5">ByaHero Admin</h1>
+        <p className="text-xs text-slate-500 font-medium mb-7">Sign in to control and monitor the bus system</p>
 
         {error && (
-          <div style={{
-            backgroundColor: 'var(--error-light)',
-            color: 'var(--error)',
-            padding: '12px',
-            borderRadius: 'var(--radius-md)',
-            fontSize: '0.8rem',
-            fontWeight: 600,
-            marginBottom: '20px',
-            textAlign: 'left',
-            border: '1px solid rgba(239, 68, 68, 0.15)'
-          }}>
-            {error}
+          <div className="bg-red-50 text-red-700 p-3.5 rounded-xl text-xs font-bold mb-5 text-left border border-red-200/80 flex items-center gap-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-red-500 shrink-0"></span>
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ textAlign: 'left' }}>
-          <div className="form-group">
-            <label className="form-label">Admin Email Address</label>
+        <form onSubmit={handleSubmit} className="text-left flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Admin Email Address</label>
             <input
               type="email"
-              className="form-input"
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 transition duration-150 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20 disabled:opacity-60 disabled:cursor-not-allowed"
               placeholder="admin@byahero.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -100,47 +83,40 @@ export default function Login({ onLoginSuccess }: LoginProps) {
             />
           </div>
 
-          <div className="form-group" style={{ position: 'relative' }}>
-            <label className="form-label">Password</label>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="form-input"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              disabled={loading}
-              required
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                bottom: '10px',
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer'
-              }}
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+          <div className="flex flex-col gap-1.5 relative">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Password</label>
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="w-full py-2.5 px-3.5 pr-10 rounded-xl border border-slate-200 text-xs bg-slate-50 transition duration-150 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20 disabled:opacity-60 disabled:cursor-not-allowed"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={loading}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 text-slate-400 hover:text-slate-700 cursor-pointer transition p-1"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ width: '100%', marginTop: '16px', height: '42px' }}
+            className="w-full mt-2 h-11 inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold rounded-xl bg-[#0f3878] hover:bg-[#0a2958] text-white transition duration-150 shadow-md hover:shadow-lg disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
             disabled={loading}
           >
             {loading ? (
               <>
-                <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} />
+                <Loader2 size={16} className="animate-spin mr-1.5" />
                 Authenticating...
               </>
             ) : (
-              'Sign In'
+              'Sign In to Dashboard'
             )}
           </button>
         </form>

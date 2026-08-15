@@ -14,7 +14,7 @@ export default function WaitingPassengers() {
   const fetchPassengers = async () => {
     try {
       const data = await adminService.listWaitingPassengers();
-      if (data.success) {
+      if (data && data.success) {
         setWaitingList(data.waitingList || []);
       }
     } catch (e) {
@@ -50,23 +50,18 @@ export default function WaitingPassengers() {
     fetchPassengers();
   };
 
-  const handleDismissLocation = (location: string) => {
-    AlertManager.confirm(`Dismiss all waiting passenger signals for ${location}?`, async () => {
-      try {
-        setRefreshing(true);
-        const data = await adminService.manageWaitingPassengers({
-          action: 'cancel_location',
-          location
-        });
-        if (data.success) {
-          fetchPassengers();
-        } else {
-          alert(data.error || 'Failed to dismiss signals.');
-        }
-      } catch (e) {
-        alert('Network error while dismissing signals.');
-      } finally {
-        setRefreshing(false);
+  const handleDismissLocation = async (location: string) => {
+    if (!window.confirm(`Dismiss all waiting passenger signals for ${location}?`)) return;
+    try {
+      setRefreshing(true);
+      const data = await adminService.manageWaitingPassengers({
+        action: 'cancel_location',
+        location
+      });
+      if (data && data.success) {
+        fetchPassengers();
+      } else {
+        alert(data?.error || 'Failed to dismiss signals.');
       }
     });
   };
@@ -94,58 +89,60 @@ export default function WaitingPassengers() {
   }, [waitingList, filterLocation]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="space-y-6">
       {/* Top Stats Overview Card */}
-      <div className="card">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-wrap justify-between items-center gap-4">
           <div>
-            <span className="form-label">Total Waiting Passengers</span>
-            <div style={{ display: 'flex', alignItems: 'center', marginTop: '6px' }}>
-              <span style={{ fontSize: '2.5rem', fontWeight: 800, marginRight: '12px', lineHeight: 1 }}>
+            <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider">Total Waiting Passengers</span>
+            <div className="flex items-center gap-3 mt-1.5">
+              <span className="text-4xl font-black text-slate-900 leading-none">
                 {waitingList.length}
               </span>
-              <span className="badge badge-success" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                <span className="status-dot pulse" style={{ width: '6px', height: '6px', backgroundColor: 'var(--success)' }}></span>
-                Live Track
+              <span className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 px-3 py-1 rounded-full text-xs font-extrabold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Live Signal</span>
               </span>
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '12px' }}>
-            <div className="system-status" style={{ height: '36px' }}>
-              <span>Auto-refresh in: <strong>{countdown}s</strong></span>
+          <div className="flex items-center gap-3">
+            <div className="bg-slate-50 border border-slate-200 py-2 px-3.5 rounded-xl text-xs font-semibold text-slate-600">
+              Auto-refresh in: <strong className="text-slate-900">{countdown}s</strong>
             </div>
-            <button className="btn btn-secondary" onClick={handleManualRefresh} disabled={refreshing}>
+            <button 
+              className="inline-flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-bold bg-[#0f3878] hover:bg-[#0a2958] text-white transition shadow-sm cursor-pointer disabled:opacity-60" 
+              onClick={handleManualRefresh} 
+              disabled={refreshing}
+            >
               <RefreshCw size={14} className={refreshing ? 'animate-spin' : ''} />
               Sync Now
             </button>
           </div>
         </div>
 
-        {/* ProgressBar */}
-        <div style={{ width: '100%', height: '4px', backgroundColor: 'var(--border)', borderRadius: '2px', overflow: 'hidden', marginTop: '16px' }}>
-          <div style={{ height: '100%', backgroundColor: 'var(--accent-color)', width: `${((30 - countdown) / 30) * 100}%`, transition: 'width 1s linear' }}></div>
+        {/* Progress Bar */}
+        <div className="w-full h-1 bg-slate-100 rounded-full overflow-hidden mt-5">
+          <div 
+            className="h-full bg-[#4C85C5] transition-all duration-1000 ease-linear"
+            style={{ width: `${((30 - countdown) / 30) * 100}%` }}
+          ></div>
         </div>
 
         {/* Busiest Locations Section */}
-        <div style={{ marginTop: '20px' }}>
-          <span className="form-label" style={{ display: 'block', marginBottom: '8px' }}>Busiest Terminals</span>
+        <div className="mt-5 pt-4 border-t border-slate-100">
+          <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block mb-2">Busiest Passenger Terminals</span>
           {locationCounts.length === 0 ? (
-            <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>No active passenger queue signals.</p>
+            <p className="text-xs text-slate-400 italic">No active passenger queue signals.</p>
           ) : (
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            <div className="flex flex-wrap gap-2">
               {locationCounts.slice(0, 5).map(([location, count], idx) => (
-                <div key={idx} style={{
-                  display: 'flex', alignItems: 'center', gap: '8px', 
-                  backgroundColor: 'var(--primary-light)', color: 'var(--primary-color)',
-                  padding: '6px 12px', borderRadius: 'var(--radius-full)', border: '1px solid var(--border)',
-                  fontSize: '0.75rem', fontWeight: 600
-                }}>
-                  <MapPin size={12} />
+                <div key={idx} className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 border border-blue-200/70 py-1.5 px-3 rounded-full text-xs font-bold">
+                  <MapPin size={12} className="text-blue-600" />
                   <span>{location.split(',')[0]}: <strong>{count}</strong> waiting</span>
                   <button 
                     onClick={() => handleDismissLocation(location)}
-                    style={{ background: 'none', border: 'none', color: 'var(--error)', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: 0 }}
+                    className="text-red-500 hover:text-red-700 transition cursor-pointer p-0.5"
                     title="Dismiss entire queue"
                   >
                     <XCircle size={14} />
@@ -158,16 +155,18 @@ export default function WaitingPassengers() {
       </div>
 
       {/* Directory and filtering */}
-      <div className="card">
-        <div className="page-header-actions" style={{ marginBottom: '20px' }}>
-          <h2 className="card-title">Waiting Passengers Directory</h2>
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+          <div>
+            <h2 className="text-xl font-black text-slate-800 tracking-tight">Waiting Passengers Directory</h2>
+            <p className="text-xs text-slate-500 font-medium mt-1">Live passenger density reports categorized by terminal pickup points.</p>
+          </div>
           
           {/* Filtering Dropdown */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Filter size={16} color="var(--text-muted)" />
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-slate-400" />
             <select 
-              className="form-input" 
-              style={{ width: '220px', padding: '6px 12px' }}
+              className="py-2 px-3.5 rounded-xl border border-slate-200 text-xs font-semibold bg-slate-50 text-slate-700 focus:outline-none focus:border-[#4C85C5] focus:bg-white min-w-[200px]" 
               value={filterLocation}
               onChange={(e) => setFilterLocation(e.target.value)}
             >
@@ -179,43 +178,45 @@ export default function WaitingPassengers() {
         </div>
 
         {loading && !refreshing ? (
-          <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-            <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+          <div className="flex justify-center py-16">
+            <Loader2 className="animate-spin text-[#0f3878]" size={32} />
           </div>
         ) : filteredList.length === 0 ? (
-          <div className="empty-state">
-            <Users size={48} className="empty-state-icon" />
-            <p>No waiting passenger reports match the selected filters.</p>
+          <div className="text-center py-12 px-4 text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
+            <Users size={48} className="mx-auto mb-3 text-slate-300" />
+            <p className="text-xs font-semibold">No waiting passenger reports match the selected filters.</p>
           </div>
         ) : (
-          <div className="table-responsive">
-            <table className="table">
+          <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
+            <table className="w-full border-collapse text-left text-xs">
               <thead>
-                <tr>
-                  <th>Passenger</th>
-                  <th>Location / Terminal</th>
-                  <th>Status</th>
-                  <th>Signal Date</th>
+                <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                  <th className="py-3.5 px-4">Passenger</th>
+                  <th className="py-3.5 px-4">Location / Terminal</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">Signal Date</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {filteredList.map((wp) => (
-                  <tr key={wp.id}>
-                    <td>
-                      <div style={{ display: 'flex', flexDirection: 'column' }}>
-                        <span style={{ fontWeight: 700 }}>{wp.registered_name || wp.user_name || 'Passenger'}</span>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{wp.registered_email || 'No email info'}</span>
+                  <tr key={wp.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-4">
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-900">{wp.registered_name || wp.user_name || 'Passenger'}</span>
+                        <span className="text-[11px] text-slate-400 font-medium">{wp.registered_email || 'No email info'}</span>
                       </div>
                     </td>
-                    <td>
-                      <span style={{ fontWeight: 600 }}>{wp.location_name}</span>
+                    <td className="py-3.5 px-4 font-semibold text-slate-800">
+                      {wp.location_name}
                     </td>
-                    <td>
-                      <span className="badge badge-success">
+                    <td className="py-3.5 px-4">
+                      <span className="inline-flex items-center py-1 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                         {wp.status || 'waiting'}
                       </span>
                     </td>
-                    <td>{wp.created_at ? new Date(wp.created_at).toLocaleString() : 'N/A'}</td>
+                    <td className="py-3.5 px-4 text-slate-500 font-medium">
+                      {wp.created_at ? new Date(wp.created_at).toLocaleString() : 'N/A'}
+                    </td>
                   </tr>
                 ))}
               </tbody>

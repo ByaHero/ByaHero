@@ -43,8 +43,8 @@ export default function App() {
 
   if (checkingAuth) {
     return (
-      <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--background)' }}>
-        <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-muted)' }}>Checking access credentials...</div>
+      <div className="flex h-screen items-center justify-center bg-slate-50">
+        <div className="text-sm font-bold text-slate-500 animate-pulse">Checking access credentials...</div>
       </div>
     );
   }

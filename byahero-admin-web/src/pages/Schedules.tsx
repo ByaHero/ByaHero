@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Loader2, Calendar, Save, ShieldAlert, CheckCircle } from 'lucide-react';
+import { Loader2, Save, ShieldAlert, CheckCircle } from 'lucide-react';
 import { adminService } from '../services/admin';
 
 interface RouteSchedule {
@@ -56,9 +56,8 @@ export default function Schedules() {
       setLoading(true);
       const data = await adminService.listSchedules();
       
-      if (data.success && data.schedules) {
+      if (data && data.success && data.schedules) {
         data.schedules.forEach((sch: any) => {
-          // Helper to convert time format to standard AM/PM if raw 24h
           const formatTime = (timeStr: string) => {
             if (!timeStr) return '';
             if (timeStr.includes('AM') || timeStr.includes('PM')) return timeStr;
@@ -117,11 +116,11 @@ export default function Schedules() {
         tl_message: tlSchedule.suspend_message
       });
 
-      if (data.success) {
+      if (data && data.success) {
         setSavedSuccess(true);
         setTimeout(() => setSavedSuccess(false), 3000);
       } else {
-        alert(data.message || 'Failed to update schedules.');
+        alert(data?.message || 'Failed to update schedules.');
       }
     } catch (err) {
       console.error(err);
@@ -137,46 +136,36 @@ export default function Schedules() {
     setter: React.Dispatch<React.SetStateAction<RouteSchedule>>
   ) => {
     return (
-      <div className="card" style={{ flex: 1 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 className="card-title" style={{ border: 'none', padding: 0, margin: 0 }}>{title}</h3>
+      <div className="flex-1 min-w-[320px] bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-slate-100">
+          <h3 className="text-base font-extrabold text-slate-800 tracking-tight">{title}</h3>
           
           {/* Suspension Checkbox Toggle */}
-          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600 }}>
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-bold">
             <input 
               type="checkbox" 
               checked={data.is_suspended}
               onChange={(e) => setter({ ...data, is_suspended: e.target.checked })}
-              style={{
-                width: '18px',
-                height: '18px',
-                accentColor: 'var(--error)',
-                cursor: 'pointer'
-              }}
+              className="w-4 h-4 accent-red-600 rounded cursor-pointer"
             />
-            <span style={{ color: data.is_suspended ? 'var(--error)' : 'var(--text-main)' }}>
+            <span className={data.is_suspended ? 'text-red-600' : 'text-slate-700'}>
               Suspend Route
             </span>
           </label>
         </div>
 
         {data.is_suspended && (
-          <div style={{
-            display: 'flex', gap: '8px', alignItems: 'center',
-            backgroundColor: 'var(--error-light)', color: 'var(--error)',
-            padding: '10px 14px', borderRadius: 'var(--radius-md)',
-            fontSize: '0.75rem', fontWeight: 600, marginBottom: '16px'
-          }}>
-            <ShieldAlert size={16} />
-            <span>This route operations are currently suspended. Passengers will be notified.</span>
+          <div className="flex items-center gap-2 bg-red-50 text-red-700 p-3 rounded-xl text-xs font-bold mb-4 border border-red-200/80">
+            <ShieldAlert size={16} className="shrink-0" />
+            <span>This route is currently suspended. Passengers will be alerted in real-time.</span>
           </div>
         )}
 
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">Opening Time</label>
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Opening Time</label>
             <select 
-              className="form-input" 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
               value={data.time_open} 
               onChange={(e) => setter({ ...data, time_open: e.target.value })}
             >
@@ -185,10 +174,10 @@ export default function Schedules() {
               ))}
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Closing Time</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Closing Time</label>
             <select 
-              className="form-input" 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
               value={data.time_close} 
               onChange={(e) => setter({ ...data, time_close: e.target.value })}
             >
@@ -199,10 +188,10 @@ export default function Schedules() {
           </div>
         </div>
 
-        <div className="form-group" style={{ marginTop: '8px' }}>
-          <label className="form-label">Suspension Message (If Suspended)</label>
+        <div className="flex flex-col gap-1.5">
+          <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Suspension Broadcast Reason</label>
           <textarea 
-            className="form-input" 
+            className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20 disabled:opacity-50 disabled:cursor-not-allowed" 
             rows={3} 
             placeholder="e.g. Operation suspended due to heavy rain and road blockage." 
             value={data.suspend_message}
@@ -215,45 +204,44 @@ export default function Schedules() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div className="page-header-actions">
-        <h2 className="page-title">Operations schedules & suspensions</h2>
+    <div className="space-y-6">
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <h2 className="text-xl font-black text-slate-800 tracking-tight">Operations Schedules & Suspensions</h2>
+        <p className="text-xs text-slate-500 font-medium mt-1">Configure operating operational hours, service alerts, and route suspensions.</p>
       </div>
 
       {loading ? (
-        <div className="card" style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+        <div className="bg-white border border-slate-200 rounded-3xl p-16 flex justify-center shadow-sm">
+          <Loader2 className="animate-spin text-[#0f3878]" size={36} />
         </div>
       ) : (
-        <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          
+        <form onSubmit={handleSave} className="space-y-6">
           {savedSuccess && (
-            <div style={{
-              display: 'flex', gap: '8px', alignItems: 'center',
-              backgroundColor: 'var(--success-light)', color: 'var(--success)',
-              padding: '12px 16px', borderRadius: 'var(--radius-md)',
-              fontSize: '0.85rem', fontWeight: 600, border: '1px solid rgba(16, 185, 129, 0.15)'
-            }}>
+            <div className="flex items-center gap-2.5 bg-emerald-50 text-emerald-700 p-4 rounded-2xl text-xs font-bold border border-emerald-200 shadow-sm animate-modal-enter">
               <CheckCircle size={18} />
               <span>Operating route schedules updated successfully!</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap' }}>
+          <div className="flex flex-wrap gap-6">
             {renderScheduleCard('Laurel - Tanauan Route', ltSchedule, setLtSchedule)}
             {renderScheduleCard('Tanauan - Laurel Route', tlSchedule, setTlSchedule)}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-            <button type="submit" className="btn btn-primary" style={{ padding: '12px 24px', minWidth: '160px' }} disabled={saving}>
+          <div className="flex justify-end">
+            <button 
+              type="submit" 
+              className="inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-xs font-extrabold text-white bg-[#0f3878] hover:bg-[#0a2958] transition shadow-md cursor-pointer disabled:opacity-60 min-w-[160px]" 
+              disabled={saving}
+            >
               {saving ? (
                 <>
-                  <Loader2 size={16} className="animate-spin" style={{ marginRight: '6px' }} />
+                  <Loader2 size={16} className="animate-spin" />
                   Saving schedules...
                 </>
               ) : (
                 <>
-                  <Save size={16} style={{ marginRight: '6px' }} />
+                  <Save size={16} />
                   Save Settings
                 </>
               )}

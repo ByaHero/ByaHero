@@ -10,6 +10,7 @@ export interface User {
 
 export interface Bus {
   id: number;
+  Bus_ID?: number;
   plate_no: string;
   bus_no: string;
   status: 'active' | 'inactive' | 'maintenance';
