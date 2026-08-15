@@ -15,6 +15,7 @@ import LostFound from './pages/LostFound';
 import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import WebAlertContainer from './components/WebAlert';
 
 export default function App() {
   const [adminEmail, setAdminEmail] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
+      <WebAlertContainer />
       <Routes>
         <Route 
           path="/login" 

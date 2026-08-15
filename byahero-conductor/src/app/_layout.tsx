@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { Linking } from 'react-native';
 import UpdateModal from '../components/UpdateModal';
+import { CustomAlertModal } from '../components/CustomAlert';
 
 export default function RootLayout() {
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function RootLayout() {
     <ThemeProvider value={DefaultTheme}>
       <StatusBar style="light" backgroundColor="#0f3878" />
       <UpdateModal />
+      <CustomAlertModal />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="index" />
         <Stack.Screen name="dashboard" />
