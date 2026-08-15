@@ -2,12 +2,15 @@ import React, { useEffect, useState } from 'react';
 import { Plus, Edit2, Loader2, DollarSign } from 'lucide-react';
 import { adminService } from '../services/admin';
 import Modal from '../components/Modal';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Fares() {
   const [fares, setFares] = useState<any[]>([]);
   const [stops, setStops] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -67,7 +70,7 @@ export default function Fares() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!regularFare || !discountedFare || !stopId) {
-      alert('Please fill out all required fields.');
+      showAlert('Validation Error', 'Please fill out all required fields.', 'error');
       return;
     }
 
@@ -92,10 +95,10 @@ export default function Fares() {
         setIsFormOpen(false);
         fetchInitialData();
       } else {
-        alert(data.error || 'Failed to save fare rules.');
+        showAlert('Error', data.error || 'Failed to save fare rules.', 'error');
       }
     } catch (e) {
-      alert('Network error while saving fares.');
+      showAlert('Network Error', 'Network error while saving fares.', 'error');
     } finally {
       setSaving(false);
     }
@@ -269,6 +272,14 @@ export default function Fares() {
           </div>
         </form>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

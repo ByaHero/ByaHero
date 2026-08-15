@@ -6,8 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   Switch,
-  Alert,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -20,6 +20,25 @@ import { GuestNotice } from '../../../components/ui/GuestNotice';
 export default function PrivacySecurityScreen() {
   const [locationServices, setLocationServices] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean; title: string; message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void; onCancel?: () => void;
+  }>({ visible: false, title: '', message: '', type: 'info', onConfirm: () => {} });
+
+  const showAlert = (
+    title: string, message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'info',
+    onConfirm?: () => void, onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -73,7 +92,7 @@ export default function PrivacySecurityScreen() {
       }
 
       if (!value) {
-        Alert.alert('Location Services Disabled', 'Bus tracking and sharing may not work properly while this is disabled.');
+        showAlert('Location Services Disabled', 'Bus tracking and sharing may not work properly while this is disabled.', 'warning');
       }
     } catch (e) {
       console.error('Failed to update privacy setting:', e);
@@ -150,6 +169,14 @@ export default function PrivacySecurityScreen() {
       </ScrollView>
 
       <PassengerFooter activeTab="location" />
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

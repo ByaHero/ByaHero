@@ -6,8 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -33,6 +33,25 @@ export default function ReportProblemScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
+
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean; title: string; message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void; onCancel?: () => void;
+  }>({ visible: false, title: '', message: '', type: 'error', onConfirm: () => {} });
+
+  const showAlert = (
+    title: string, message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void, onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
 
   const reasons = [
     'No Air Conditioning / Poor Ventilation in Bus',
@@ -78,11 +97,11 @@ export default function ReportProblemScreen() {
 
   const handleSubmit = async () => {
     if (!selectedBus) {
-      Alert.alert('Validation Error', 'Please select or enter a bus number.');
+      showAlert('Validation Error', 'Please select or enter a bus number.', 'warning');
       return;
     }
     if (!reportReason && !othersDetails.trim()) {
-      Alert.alert('Validation Error', 'Please select a reason or specify details in the others field.');
+      showAlert('Validation Error', 'Please select a reason or specify details in the others field.', 'warning');
       return;
     }
 
@@ -117,12 +136,12 @@ export default function ReportProblemScreen() {
           router.replace('/passenger');
         }, 2500);
       } else {
-        Alert.alert('Saved Locally', 'Saved report locally. Server sync failed (queued).');
+        showAlert('Saved Locally', 'Saved report locally. Server sync failed (queued).', 'info');
         await queueReportOffline(payload);
       }
     } catch (err) {
       setIsSubmitting(false);
-      Alert.alert('Saved Locally', 'Saved report locally. Connection to server failed (queued).');
+      showAlert('Saved Locally', 'Saved report locally. Connection to server failed (queued).', 'info');
       await queueReportOffline(payload);
     }
   };
@@ -263,6 +282,14 @@ export default function ReportProblemScreen() {
           onClose={() => setActiveStep(null)} 
         />
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

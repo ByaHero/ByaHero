@@ -5,7 +5,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   Platform,
   DeviceEventEmitter,
@@ -16,6 +15,7 @@ import {
   Animated,
   Linking
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { WebView } from 'react-native-webview';
@@ -714,11 +714,11 @@ export default function LiveTrackingScreen() {
 
   const handleIssueTicket = () => {
     if (!boardingStop || !alightingStop) {
-      Alert.alert('Incomplete', 'Please select boarding and alighting locations.');
+      showAlert('Incomplete', 'Please select boarding and alighting locations.', 'warning');
       return;
     }
     if (ticketFare <= 0) {
-      Alert.alert('Invalid Fare', 'No fare matrix available for these locations.');
+      showAlert('Invalid Fare', 'No fare matrix available for these locations.', 'warning');
       return;
     }
     

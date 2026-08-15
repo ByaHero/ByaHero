@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface PassengerFeedback {
   id: number;
@@ -29,6 +30,45 @@ export default function AdminFeedback() {
   const [stats, setStats] = useState<FeedbackStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
 
   const fetchFeedbacks = async () => {
     try {
@@ -58,7 +98,7 @@ export default function AdminFeedback() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to fetch feedbacks.');
+      showAlert('Error', 'Failed to fetch feedbacks.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -75,29 +115,24 @@ export default function AdminFeedback() {
   }, []);
 
   const executeDelete = async (id: number) => {
-    Alert.alert(
+    showAlert(
       'Delete Feedback',
       'Are you sure you want to permanently delete this passenger feedback? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const data = await adminService.deleteFeedback(id);
-              if (data.success) {
-                Alert.alert('Success', 'Feedback deleted successfully.');
-                fetchFeedbacks();
-              } else {
-                Alert.alert('Error', data.error || 'Failed to delete feedback.');
-              }
-            } catch (e) {
-              Alert.alert('Error', 'Network error while deleting feedback.');
-            }
+      'confirm',
+      async () => {
+        try {
+          const data = await adminService.deleteFeedback(id);
+          if (data.success) {
+            showAlert('Success', 'Feedback deleted successfully.', 'success');
+            fetchFeedbacks();
+          } else {
+            showAlert('Error', data.error || 'Failed to delete feedback.', 'error');
           }
+        } catch (e) {
+          showAlert('Error', 'Network error while deleting feedback.', 'error');
         }
-      ]
+      },
+      () => {}
     );
   };
 
@@ -253,6 +288,14 @@ export default function AdminFeedback() {
           )}
         </ScrollView>
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2, Save, ShieldAlert, CheckCircle } from 'lucide-react';
 import { adminService } from '../services/admin';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 interface RouteSchedule {
   time_open: string;
@@ -36,6 +38,7 @@ export default function Schedules() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   const [ltSchedule, setLtSchedule] = useState<RouteSchedule>({
     time_open: '04:00 AM',
@@ -89,7 +92,7 @@ export default function Schedules() {
       }
     } catch (e) {
       console.error(e);
-      alert('Failed to load schedules from the server.');
+      showAlert('Error', 'Failed to load schedules from the server.', 'error');
     } finally {
       setLoading(false);
     }
@@ -124,7 +127,7 @@ export default function Schedules() {
       }
     } catch (err) {
       console.error(err);
-      alert('Network error occurred while saving schedules.');
+      showAlert('Network Error', 'Network error occurred while saving schedules.', 'error');
     } finally {
       setSaving(false);
     }
@@ -249,6 +252,14 @@ export default function Schedules() {
           </div>
         </form>
       )}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

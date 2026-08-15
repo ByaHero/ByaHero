@@ -14,6 +14,8 @@ import {
   Users,
 } from 'lucide-react';
 import { adminService } from '../services/admin';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 type PeriodKey = 'today' | 'week' | 'month';
 
@@ -164,6 +166,7 @@ export default function Analytics() {
   const [recentLimit, setRecentLimit] = useState(10);
   const [logLimit, setLogLimit] = useState(10);
   const [downloading, setDownloading] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   const fetchAnalytics = async () => {
     try {
@@ -388,7 +391,7 @@ export default function Analytics() {
       await html2pdf().set(opt).from(container).save();
     } catch (err) {
       console.warn('PDF Download Error:', err);
-      alert('Failed to download PDF report.');
+      showAlert('Download Failed', 'Failed to download PDF report.', 'error');
     } finally {
       setDownloading(false);
     }
@@ -832,6 +835,14 @@ export default function Analytics() {
           </div>
         </>
       )}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

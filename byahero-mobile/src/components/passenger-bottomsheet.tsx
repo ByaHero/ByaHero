@@ -10,10 +10,10 @@ import {
   Dimensions,
   Clipboard,
   Share,
-  Alert,
   Modal,
   StyleSheet,
 } from 'react-native';
+import AlertModal from './AlertModal';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -92,10 +92,52 @@ export default function PassengerBottomSheet({
   handleRemoveCircleMember,
   handleFriendPress,
   activeStep,
+  setActiveStep,
   menuVisible,
   isBoarded,
   boardedBus,
 }: PassengerBottomSheetProps) {
+
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
 
   const lastTranslatedY = useRef(MED_UP);
   const scrollOffset = useRef(0);
@@ -116,7 +158,7 @@ export default function PassengerBottomSheet({
     }
 
     setJoinCode(extractedCode);
-    Alert.alert('QR Code Scanned', `Scanned invite code: ${extractedCode}`, [{ text: 'OK' }]);
+    showAlert('QR Code Scanned', `Scanned invite code: ${extractedCode}`, 'success');
   };
 
   const tabLocationRef = useRef<any>(null);
@@ -635,7 +677,7 @@ export default function PassengerBottomSheet({
                 <TouchableOpacity
                   onPress={() => {
                     Clipboard.setString(inviteCode);
-                    Alert.alert('Copied', 'Invite code copied to clipboard!');
+                    showAlert('Copied', 'Invite code copied to clipboard!', 'success');
                   }}
                   style={tw`w-14 h-12 bg-[#103d7c] rounded-2xl justify-center items-center shadow-md`}
                 >
@@ -1014,6 +1056,14 @@ export default function PassengerBottomSheet({
           </View>
         </View>
       </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
       </View>
     </Animated.View>
   );

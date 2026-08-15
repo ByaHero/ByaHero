@@ -14,6 +14,8 @@ import {
 import { adminService } from '../services/admin';
 import { Bus, ActiveBus } from '../types';
 import Modal from '../components/Modal';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Buses() {
   const [buses, setBuses] = useState<Bus[]>([]);
@@ -21,6 +23,7 @@ export default function Buses() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -145,7 +148,7 @@ export default function Buses() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!busNo.trim() || !plateNo.trim() || !capacity) {
-      alert('Please fill out all required fields.');
+      showAlert('Validation Error', 'Please fill out all required fields.', 'error');
       return;
     }
 
@@ -175,10 +178,10 @@ export default function Buses() {
         setIsFormOpen(false);
         fetchBusesAndActive();
       } else {
-        alert(data.error || 'Failed to save bus info.');
+        showAlert('Error', data.error || 'Failed to save bus info.', 'error');
       }
     } catch (e) {
-      alert('Network error while saving bus.');
+      showAlert('Network Error', 'Network error while saving bus.', 'error');
     } finally {
       setSaving(false);
     }
@@ -193,10 +196,10 @@ export default function Buses() {
         setIsDeleteOpen(false);
         fetchBusesAndActive();
       } else {
-        alert(data.error || 'Failed to delete bus.');
+        showAlert('Error', data.error || 'Failed to delete bus.', 'error');
       }
     } catch (e) {
-      alert('Network error while deleting bus.');
+      showAlert('Network Error', 'Network error while deleting bus.', 'error');
     } finally {
       setSaving(false);
     }
@@ -556,6 +559,16 @@ export default function Buses() {
           </button>
         </div>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

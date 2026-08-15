@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, Alert, RefreshControl, TextInput, Platform } from 'react-native';
+import { View, Text, ScrollView, SafeAreaView, ActivityIndicator, TouchableOpacity, RefreshControl, TextInput, Platform } from 'react-native';
+import AlertModal from '@/components/AlertModal';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { apiRequest } from '@/services/api';
@@ -34,6 +35,47 @@ export default function AdminAnalytics() {
   const [expandedBuses, setExpandedBuses] = useState<Record<string, boolean>>({});
   const [seeMoreOps, setSeeMoreOps] = useState(false);
   const [seeMoreLogs, setSeeMoreLogs] = useState(false);
+
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
 
   const fetchAnalytics = useCallback(async () => {
     try {
@@ -190,7 +232,7 @@ export default function AdminAnalytics() {
       }
     } catch (err) {
       console.warn('PDF Error:', err);
-      Alert.alert('Error', 'Failed to generate PDF');
+      showAlert('Error', 'Failed to generate PDF', 'error');
     }
   };
 
@@ -551,6 +593,14 @@ export default function AdminAnalytics() {
         </View>
       )}
 
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

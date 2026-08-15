@@ -4,11 +4,14 @@ import { adminService } from '../services/admin';
 import { API_BASE_URL } from '../services/api';
 import { LostItem } from '../types';
 import Modal from '../components/Modal';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function LostFound() {
   const [items, setItems] = useState<LostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -68,7 +71,7 @@ export default function LostFound() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!itemName.trim() || !description.trim() || !reportedBy.trim() || !contactNumber.trim()) {
-      alert('All fields are required.');
+      showAlert('Validation Error', 'All fields are required.', 'error');
       return;
     }
 
@@ -93,10 +96,10 @@ export default function LostFound() {
         setIsFormOpen(false);
         fetchItems();
       } else {
-        alert(data.error || 'Failed to save lost item information.');
+        showAlert('Error', data.error || 'Failed to save lost item information.', 'error');
       }
     } catch (e) {
-      alert('Network error while saving item.');
+      showAlert('Network Error', 'Network error while saving item.', 'error');
     } finally {
       setSaving(false);
     }
@@ -111,10 +114,10 @@ export default function LostFound() {
         setIsDeleteOpen(false);
         fetchItems();
       } else {
-        alert(data.error || 'Failed to remove lost item.');
+        showAlert('Error', data.error || 'Failed to remove lost item.', 'error');
       }
     } catch (e) {
-      alert('Network error while deleting item.');
+      showAlert('Network Error', 'Network error while deleting item.', 'error');
     } finally {
       setSaving(false);
     }
@@ -351,6 +354,14 @@ export default function LostFound() {
           </div>
         </div>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }
