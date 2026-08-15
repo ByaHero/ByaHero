@@ -89,31 +89,21 @@ export default function Sidebar({ onLogout }: SidebarProps) {
   ];
 
   return (
-    <aside className="sidebar">
-      <div className="sidebar-header">
-        {/* Placeholder Logo representation */}
-        <div style={{
-          width: '32px', 
-          height: '32px', 
-          backgroundColor: 'white', 
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 800,
-          color: 'var(--primary-color)',
-          fontSize: '1rem'
-        }}>
+    <aside className="w-[260px] bg-[#0f3878] text-white h-screen fixed left-0 top-0 flex flex-col shadow-2xl z-20">
+      <div className="p-5 flex items-center gap-3 border-b border-white/10">
+        <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center font-black text-[#0f3878] text-sm shadow-sm">
           B
         </div>
-        <span className="sidebar-brand">BYAHERO ADMIN</span>
+        <span className="text-base font-extrabold tracking-wider text-white">BYAHERO ADMIN</span>
       </div>
 
-      <div className="sidebar-menu">
+      <div className="flex-1 py-4 px-3 overflow-y-auto flex flex-col gap-5">
         {sections.map((section, idx) => (
-          <div key={idx} className="sidebar-section">
-            <h3 className="menu-section-title">{section.title}</h3>
-            <div className="sidebar-links">
+          <div key={idx}>
+            <h3 className="text-[10px] font-bold uppercase tracking-widest text-[#93c5fd] px-3 mb-1.5 opacity-80">
+              {section.title}
+            </h3>
+            <div className="flex flex-col gap-1">
               {section.links.map((link) => {
                 const Icon = link.icon;
                 return (
@@ -121,10 +111,14 @@ export default function Sidebar({ onLogout }: SidebarProps) {
                     key={link.to}
                     to={link.to}
                     className={({ isActive }) => 
-                      `sidebar-link ${isActive ? 'active' : ''}`
+                      `flex items-center gap-3 py-2 px-3 text-xs font-semibold rounded-xl transition duration-150 ${
+                        isActive 
+                          ? 'bg-[#4C85C5] text-white shadow-md' 
+                          : 'text-white/70 hover:bg-white/10 hover:text-white'
+                      }`
                     }
                   >
-                    <Icon size={18} />
+                    <Icon size={16} />
                     <span>{link.label}</span>
                   </NavLink>
                 );
@@ -134,9 +128,12 @@ export default function Sidebar({ onLogout }: SidebarProps) {
         ))}
       </div>
 
-      <div className="sidebar-footer">
-        <button className="logout-btn" onClick={handleLogoutClick}>
-          <LogOut size={18} />
+      <div className="p-3.5 border-t border-white/10">
+        <button 
+          className="flex items-center gap-2 text-xs font-bold text-white/70 hover:text-red-300 hover:bg-red-500/20 p-2.5 rounded-xl w-full transition duration-150 cursor-pointer" 
+          onClick={handleLogoutClick}
+        >
+          <LogOut size={16} />
           <span>Sign Out</span>
         </button>
       </div>

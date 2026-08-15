@@ -9,7 +9,6 @@ interface NavbarProps {
 export default function Navbar({ adminEmail }: NavbarProps) {
   const location = useLocation();
 
-  // Map path routes to readable names and descriptions
   const getPageMeta = (pathname: string) => {
     switch (pathname) {
       case '/':
@@ -89,26 +88,26 @@ export default function Navbar({ adminEmail }: NavbarProps) {
   const initials = adminEmail ? adminEmail.split('@')[0].substring(0, 2).toUpperCase() : 'AD';
 
   return (
-    <nav className="navbar">
-      <div className="navbar-left">
-        <h1 className="navbar-title">{meta.title}</h1>
-        <span className="navbar-subtitle">{meta.subtitle}</span>
+    <nav className="h-[72px] bg-white border border-slate-200 flex items-center justify-between px-6 mb-6 rounded-2xl shadow-sm">
+      <div className="flex flex-col">
+        <h1 className="text-xl font-extrabold text-slate-800 tracking-tight">{meta.title}</h1>
+        <span className="text-xs text-slate-500 font-medium">{meta.subtitle}</span>
       </div>
 
-      <div className="navbar-right">
-        <div className="system-status">
-          <span className="status-dot pulse"></span>
-          <span>Live System: <span style={{ color: 'var(--success)' }}>Operational</span></span>
+      <div className="flex items-center gap-5">
+        <div className="flex items-center gap-2 bg-slate-50 py-1.5 px-3 rounded-full border border-slate-200 text-xs font-semibold text-slate-700">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>Live System: <span className="text-emerald-600 font-bold">Operational</span></span>
         </div>
 
-        <div className="profile-trigger" title={adminEmail}>
-          <div className="avatar">
+        <div className="flex items-center gap-2.5 cursor-pointer" title={adminEmail}>
+          <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center font-extrabold text-[#0f3878] text-xs border-2 border-[#0f3878]">
             {initials}
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700 }}>{adminEmail.split('@')[0]}</span>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '3px' }}>
-              <ShieldCheck size={10} color="var(--primary-color)" /> Administrator
+          <div className="flex flex-col items-start">
+            <span className="text-xs font-bold text-slate-800">{adminEmail.split('@')[0]}</span>
+            <span className="text-[10px] text-slate-500 flex items-center gap-1 font-medium">
+              <ShieldCheck size={11} className="text-[#0f3878]" /> Administrator
             </span>
           </div>
         </div>

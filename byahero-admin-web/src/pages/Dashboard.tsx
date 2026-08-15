@@ -9,18 +9,19 @@ import iconShadow from 'leaflet/dist/images/marker-shadow.png';
 import busIconSvg from '../assets/busStopMarkerFinalBlue.svg';
 
 let DefaultIcon = L.icon({
-    iconUrl: icon,
-    shadowUrl: iconShadow,
-    iconAnchor: [12, 41]
+  iconUrl: icon,
+  shadowUrl: iconShadow,
+  iconAnchor: [12, 41]
 });
 L.Marker.prototype.options.icon = DefaultIcon;
 
 const BusIcon = L.icon({
-    iconUrl: busIconSvg,
-    iconSize: [32, 42],
-    iconAnchor: [16, 42],
-    popupAnchor: [0, -42],
+  iconUrl: busIconSvg,
+  iconSize: [32, 42],
+  iconAnchor: [16, 42],
+  popupAnchor: [0, -42],
 });
+
 import { 
   Bus, 
   Activity, 
@@ -34,7 +35,6 @@ import {
   DollarSign, 
   BarChart3, 
   RefreshCw, 
-  Navigation,
   BrainCircuit,
   Maximize,
   X
@@ -143,15 +143,16 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
-      <div className="page-header-actions">
-        <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)' }}>
-          System Monitor
-        </h2>
-        <div style={{ display: 'flex', gap: '10px' }}>
+    <div className="space-y-6">
+      {/* Top Header */}
+      <div className="flex flex-wrap justify-between items-center gap-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+        <div>
+          <h2 className="text-xl font-black text-[#0f3878] tracking-tight">System Monitor & Control Center</h2>
+          <p className="text-xs text-slate-500 font-medium mt-1">Real-time status overview of bus telemetry, schedules, staff, and AI predictors.</p>
+        </div>
+        <div className="flex items-center gap-2.5 flex-wrap">
           <button 
-            className="btn btn-secondary" 
-            style={{ backgroundColor: '#e2e8f0', color: '#334155' }}
+            className="inline-flex items-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition cursor-pointer disabled:opacity-60" 
             onClick={async () => {
               showConfirm(
                 'Retrain ETA AI Model',
@@ -173,31 +174,43 @@ export default function Dashboard() {
             <Activity size={14} />
             Retrain ETA AI
           </button>
-          <button className="btn btn-secondary" onClick={fetchStats} disabled={loading}>
+          <button 
+            className="inline-flex items-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-[#0f3878] text-white hover:bg-[#0a2958] transition cursor-pointer disabled:opacity-60 shadow-sm" 
+            onClick={fetchStats} 
+            disabled={loading}
+          >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
             Refresh Stats
           </button>
         </div>
       </div>
 
-      <div className="dashboard-grid">
-        <div className="dashboard-left">
+      <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6">
+        {/* Left column: Categories & Stat Cards */}
+        <div className="space-y-6">
           {sections.map((sec, sIdx) => (
-            <div key={sIdx}>
-              <h3 className="dashboard-section-title">{sec.title}</h3>
-              <div className="stats-grid">
+            <div key={sIdx} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+              <h3 className="text-xs font-black text-[#0f3878] uppercase tracking-wider pl-2.5 border-l-4 border-[#4C85C5] mb-4">
+                {sec.title}
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
                 {sec.items.map((item, iIdx) => {
                   const Icon = item.icon;
                   return (
-                    <div key={iIdx} className="stat-card">
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                        <span className="stat-label">{item.label}</span>
-                        <Icon size={20} style={{ opacity: 0.8 }} />
+                    <div key={iIdx} className="bg-gradient-to-br from-[#4C85C5] to-[#3b70ad] text-white p-5 rounded-2xl flex flex-col justify-between min-h-[130px] shadow-sm hover:shadow-md transition hover:-translate-y-0.5">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-bold tracking-wide opacity-90">{item.label}</span>
+                        <div className="p-2 rounded-xl bg-white/15 backdrop-blur-xs">
+                          <Icon size={18} />
+                        </div>
                       </div>
-                      <div className="stat-row">
-                        <span className="stat-count">{item.count}</span>
-                        <Link to={item.route} className="stat-action">
-                          {item.action}
+                      <div className="flex justify-between items-end mt-4">
+                        <span className="text-3xl font-black tracking-tight leading-none">{item.count}</span>
+                        <Link 
+                          to={item.route} 
+                          className="bg-white/20 hover:bg-white/30 text-white text-[11px] font-bold py-1.5 px-3 rounded-full transition no-underline border border-white/20"
+                        >
+                          {item.action} &rarr;
                         </Link>
                       </div>
                     </div>
@@ -208,25 +221,25 @@ export default function Dashboard() {
           ))}
         </div>
 
-        <div className="dashboard-right" style={{ marginTop: '32px' }}>
-          <div className="map-tracker-container">
-            <div className="map-header">
-              <div className="map-logo-area">
-                <div style={{
-                  width: '16px', height: '16px', borderRadius: '50%', backgroundColor: 'var(--primary-color)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '9px', color: 'white', fontWeight: 900
-                }}>
+        {/* Right column: Bus Tracker Live Map & AI Info */}
+        <div className="space-y-6">
+          {/* Map Preview Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm overflow-hidden">
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-[#0f3878] text-white flex items-center justify-center font-black text-[10px]">
                   B
                 </div>
-                <span className="map-logo-text">BUS TRACKER</span>
+                <span className="text-xs font-black tracking-wider text-slate-800 uppercase">Live Map Tracker</span>
               </div>
-              <div className="map-updates" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span className="status-dot" style={{ backgroundColor: 'var(--success)', width: '6px', height: '6px' }}></span>
-                <span>Live Feed</span>
+              <div className="flex items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-full text-[10px] font-bold border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  <span>{activeBuses.length} Active</span>
+                </div>
                 <button 
                   onClick={() => setIsMapModalOpen(true)} 
-                  className="btn btn-secondary" 
-                  style={{ padding: '4px 8px', fontSize: '0.75rem', marginLeft: '4px' }}
+                  className="inline-flex items-center gap-1 py-1 px-2.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
                 >
                   <Maximize size={12} />
                   Expand
@@ -234,7 +247,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="map-viewport" style={{ padding: 0, overflow: 'hidden' }}>
+            <div className="h-[280px] rounded-2xl overflow-hidden border border-slate-200 relative">
               <MapContainer 
                 center={[14.076, 120.931]}
                 zoom={12} 
@@ -253,9 +266,19 @@ export default function Dashboard() {
                         icon={BusIcon}
                       >
                         <Popup>
-                          <strong>Bus {bus.bus_no}</strong><br />
-                          Plate: {bus.plate_no}<br />
-                          Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}
+                          <div className="p-1 text-slate-800 text-xs">
+                            <strong className="text-sm font-extrabold text-slate-900 block mb-1">Bus {bus.bus_no}</strong>
+                            <div>Plate: {bus.plate_no}</div>
+                            <div>Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}</div>
+                            <div className="mt-2 pt-2 border-t border-slate-200">
+                              <Link 
+                                to="/active-buses" 
+                                className="inline-block py-1 px-2 text-[11px] font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition no-underline"
+                              >
+                                Manage Live Tracking &rarr;
+                              </Link>
+                            </div>
+                          </div>
                         </Popup>
                       </Marker>
                     );
@@ -266,109 +289,106 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="dashboard-section-title" style={{ marginTop: '24px' }}>AI Model Intelligence</div>
-          <div style={{ display: 'block', padding: '24px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ padding: '10px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb' }}>
-                <BrainCircuit size={28} />
+          {/* AI Intelligence Card */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
+            <div className="flex items-center gap-3.5">
+              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
+                <BrainCircuit size={26} />
               </div>
               <div>
-                <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1e293b' }}>ETA Prediction Engine</div>
-                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</div>
+                <h4 className="text-base font-black text-slate-900 leading-tight">ETA Prediction Engine</h4>
+                <p className="text-[11px] text-slate-400 font-medium">Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</p>
               </div>
             </div>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', paddingBottom: '16px', borderBottom: '1px solid #e2e8f0', marginBottom: '16px' }}>
+            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
               <div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>What the AI has learned from</div>
-                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--primary-color)' }}>{aiStats?.total_data_points ? aiStats.total_data_points.toLocaleString() : 0} GPS Records</div>
-                <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '4px' }}>
-                  <span style={{ color: '#10b981', fontWeight: 700 }}>{aiStats?.moving_points ? aiStats.moving_points.toLocaleString() : 0} moving records</span> <span style={{ opacity: 0.5 }}>•</span> <span style={{ color: '#ef4444', fontWeight: 700 }}>{aiStats?.stationary_points ? aiStats.stationary_points.toLocaleString() : 0} traffic stops</span>
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Training Dataset Size</span>
+                <span className="text-xl font-black text-[#0f3878]">{aiStats?.total_data_points ? aiStats.total_data_points.toLocaleString() : 0} Records</span>
+                <div className="text-[10px] text-slate-500 mt-0.5 space-x-1">
+                  <span className="text-emerald-600 font-bold">{aiStats?.moving_points ? aiStats.moving_points.toLocaleString() : 0} moving</span>
+                  <span>•</span>
+                  <span className="text-red-500 font-bold">{aiStats?.stationary_points ? aiStats.stationary_points.toLocaleString() : 0} stops</span>
                 </div>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>AI Status</div>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--success)', backgroundColor: 'rgba(16, 185, 129, 0.1)', padding: '4px 12px', borderRadius: '12px', display: 'inline-block', marginTop: '4px' }}>Active & Learning</div>
+              <div className="text-right">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Engine State</span>
+                <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1 px-3 rounded-full">
+                  Active & Learning
+                </span>
               </div>
             </div>
 
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Average Speeds by Route (How fast buses usually go)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-              {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #f1f5f9' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: '#334155' }}>{r.route}</span>
-                  <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--primary-color)' }}>{r.avg_speed_kmh} km/h</span>
-                </div>
-              )) : (
-                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>Not enough trips yet.</div>
-              )}
-            </div>
-
-            <div style={{ fontSize: '0.85rem', fontWeight: 600, color: '#475569', marginBottom: '8px' }}>Detected Rush Hours (Slowest Times)</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
-              {(() => {
-                if (aiStats?.hourly_speeds?.length > 0) {
-                  const sorted = [...aiStats.hourly_speeds].sort((a: any, b: any) => a.avg_speed_kmh - b.avg_speed_kmh).slice(0, 3);
-                  return sorted.map((h: any, idx: number) => {
-                    const hour = h.hr % 12 || 12;
-                    const ampm = h.hr >= 12 ? 'PM' : 'AM';
-                    return (
-                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', backgroundColor: '#fef2f2', borderRadius: '8px', border: '1px solid #fee2e2' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <AlertTriangle size={16} color="#ef4444" />
-                          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: '#991b1b' }}>{hour}:00 {ampm}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#b91c1c' }}>Heavy Traffic</span>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: '#ef4444' }}>{h.avg_speed_kmh} <span style={{ fontSize: '0.65rem', fontWeight: 700 }}>km/h</span></span>
-                        </div>
-                      </div>
-                    );
-                  });
-                }
-                return <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontStyle: 'italic', padding: '10px 0' }}>Not enough data to detect rush hours yet.</div>;
-              })()}
-            </div>
-
-            <div style={{ padding: '16px', backgroundColor: '#f0fdf4', borderRadius: '8px', border: '1px solid #bbf7d0' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 800, color: '#166534', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Activity size={16} />
-                Why this AI is smart
+            <div>
+              <span className="text-xs font-bold text-slate-700 block mb-2">Average Speeds by Route</span>
+              <div className="space-y-2">
+                {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
+                    <span className="text-xs font-semibold text-slate-700">{r.route}</span>
+                    <span className="text-xs font-extrabold text-[#0f3878]">{r.avg_speed_kmh} km/h</span>
+                  </div>
+                )) : (
+                  <div className="text-xs text-slate-400 italic py-2">Not enough trip telemetry yet.</div>
+                )}
               </div>
-              <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '0.8rem', color: '#15803d', display: 'flex', flexDirection: 'column', gap: '8px', fontWeight: 500 }}>
-                <li><strong>Rush Hour Aware:</strong> It knows when traffic is bad (like Friday at 5 PM) and adjusts ETAs so passengers aren't left guessing.</li>
-                <li><strong>No Jumping ETAs:</strong> If a bus stops at a red light, the passenger's ETA stays steady instead of suddenly breaking or saying "infinity".</li>
-                <li><strong>Always Improving:</strong> Every time a conductor uses the app, the AI silently learns where the new traffic hotspots are.</li>
+            </div>
+
+            <div>
+              <span className="text-xs font-bold text-slate-700 block mb-2">Detected Rush Hours</span>
+              <div className="space-y-2">
+                {(() => {
+                  if (aiStats?.hourly_speeds?.length > 0) {
+                    const sorted = [...aiStats.hourly_speeds].sort((a: any, b: any) => a.avg_speed_kmh - b.avg_speed_kmh).slice(0, 3);
+                    return sorted.map((h: any, idx: number) => {
+                      const hour = h.hr % 12 || 12;
+                      const ampm = h.hr >= 12 ? 'PM' : 'AM';
+                      return (
+                        <div key={idx} className="flex justify-between items-center p-2.5 bg-red-50/70 border border-red-100 rounded-xl">
+                          <div className="flex items-center gap-2 text-red-700">
+                            <AlertTriangle size={14} className="text-red-500" />
+                            <span className="text-xs font-bold">{hour}:00 {ampm}</span>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-[11px] font-semibold text-red-700">Heavy Traffic</span>
+                            <span className="text-xs font-black text-red-600">{h.avg_speed_kmh} km/h</span>
+                          </div>
+                        </div>
+                      );
+                    });
+                  }
+                  return <div className="text-xs text-slate-400 italic py-2">Not enough historical data to detect rush hours yet.</div>;
+                })()}
+              </div>
+            </div>
+
+            <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100 space-y-2">
+              <div className="text-xs font-black text-emerald-900 flex items-center gap-2">
+                <Activity size={15} />
+                <span>Why this AI is smart</span>
+              </div>
+              <ul className="text-[11px] text-emerald-800 space-y-1.5 list-disc list-inside font-medium leading-relaxed">
+                <li><strong>Rush Hour Aware:</strong> Dynamically factors in seasonal traffic peaks to calibrate passenger ETAs.</li>
+                <li><strong>No Jumping ETAs:</strong> Eliminates erratic predictions when buses make brief traffic signal stops.</li>
+                <li><strong>Continuous Learning:</strong> Auto-updates speed profiles on every newly concluded conductor session.</li>
               </ul>
             </div>
           </div>
         </div>
       </div>
 
+      {/* Expanded Map Modal */}
       {isMapModalOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.7)',
-          zIndex: 9999,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '24px'
-        }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'white',
-            padding: '16px 24px',
-            borderRadius: '12px 12px 0 0'
-          }}>
-            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--primary-color)' }}>Live Dispatch Operations Map</h2>
-            <button onClick={() => setIsMapModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-              <X size={24} />
+        <div className="fixed inset-0 bg-slate-900/70 backdrop-blur-sm z-50 flex flex-col p-6 animate-modal-enter">
+          <div className="flex justify-between items-center bg-white p-4 px-6 rounded-t-2xl border-b border-slate-200">
+            <h2 className="text-lg font-black text-[#0f3878]">Live Dispatch Operations Map</h2>
+            <button 
+              onClick={() => setIsMapModalOpen(false)} 
+              className="text-slate-400 hover:text-slate-700 p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+            >
+              <X size={22} />
             </button>
           </div>
-          <div style={{ flex: 1, backgroundColor: 'white', borderRadius: '0 0 12px 12px', overflow: 'hidden' }}>
+          <div className="flex-1 bg-white rounded-b-2xl overflow-hidden relative shadow-2xl">
             <MapContainer 
               center={[14.076, 120.931]}
               zoom={12} 
@@ -387,9 +407,19 @@ export default function Dashboard() {
                       icon={BusIcon}
                     >
                       <Popup>
-                        <strong>Bus {bus.bus_no}</strong><br />
-                        Plate: {bus.plate_no}<br />
-                        Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}
+                        <div className="p-1 text-slate-800 text-xs">
+                          <strong className="text-sm font-extrabold text-slate-900 block mb-1">Bus {bus.bus_no}</strong>
+                          <div>Plate: {bus.plate_no}</div>
+                          <div>Speed: {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}</div>
+                          <div className="mt-2 pt-2 border-t border-slate-200">
+                            <Link 
+                              to="/active-buses" 
+                              className="inline-block py-1 px-2.5 text-xs font-bold text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition no-underline"
+                            >
+                              Manage Live Tracking &rarr;
+                            </Link>
+                          </div>
+                        </div>
                       </Popup>
                     </Marker>
                   );

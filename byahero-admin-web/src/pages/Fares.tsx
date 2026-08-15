@@ -30,10 +30,10 @@ export default function Fares() {
         adminService.listFares(),
         adminService.listStops()
       ]);
-      if (faresData.success) {
+      if (faresData && faresData.success) {
         setFares(faresData.fares || []);
       }
-      if (stopsData.success) {
+      if (stopsData && stopsData.success) {
         setStops(stopsData.stops || []);
       }
     } catch (e) {
@@ -108,28 +108,34 @@ export default function Fares() {
   const faresTL = fares.filter(f => f.direction === 'TL');
 
   const renderTable = (title: string, directionFares: any[]) => (
-    <div style={{ flex: 1, minWidth: '350px' }}>
-      <h3 style={{ marginBottom: '16px', color: 'var(--text-color)', fontWeight: 600, textAlign: 'center' }}>{title}</h3>
-      <div className="table-responsive">
-        <table className="table" style={{ fontSize: '0.9rem' }}>
+    <div className="flex-1 min-w-[320px] bg-slate-50/50 p-4 rounded-2xl border border-slate-200">
+      <h3 className="text-xs font-black text-[#0f3878] uppercase tracking-wider text-center mb-3.5 pb-2 border-b border-slate-200/80">
+        {title}
+      </h3>
+      <div className="w-full overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table className="w-full border-collapse text-left text-xs">
           <thead>
-            <tr>
-              <th style={{ width: '40px' }}>KM</th>
-              <th>PARTICULARS</th>
-              <th style={{ textAlign: 'right' }}>REGULAR</th>
-              <th style={{ textAlign: 'right' }}>S/E/D</th>
-              <th style={{ textAlign: 'right', width: '50px' }}>Acts</th>
+            <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+              <th className="py-3 px-3 w-12 text-center">KM</th>
+              <th className="py-3 px-3">Particulars</th>
+              <th className="py-3 px-3 text-right">Regular</th>
+              <th className="py-3 px-3 text-right">S/E/D</th>
+              <th className="py-3 px-3 text-right w-14">Edit</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody className="divide-y divide-slate-100">
             {directionFares.map((fare) => (
-              <tr key={fare.fare_id}>
-                <td style={{ fontWeight: 500 }}>{fare.distance_km}</td>
-                <td>{fare.stop_name}</td>
-                <td style={{ textAlign: 'right', fontWeight: 600 }}>{parseFloat(fare.regular_fare).toFixed(2)}</td>
-                <td style={{ textAlign: 'right' }}>{parseFloat(fare.discounted_fare).toFixed(2)}</td>
-                <td style={{ textAlign: 'right' }}>
-                  <button className="btn btn-secondary" style={{ padding: '4px 8px' }} onClick={() => openEditModal(fare)}>
+              <tr key={fare.fare_id} className="hover:bg-slate-50/70 transition">
+                <td className="py-2.5 px-3 font-mono font-bold text-center text-slate-700">{fare.distance_km}</td>
+                <td className="py-2.5 px-3 font-semibold text-slate-800">{fare.stop_name}</td>
+                <td className="py-2.5 px-3 text-right font-extrabold text-emerald-700">₱{parseFloat(fare.regular_fare).toFixed(2)}</td>
+                <td className="py-2.5 px-3 text-right font-semibold text-slate-600">₱{parseFloat(fare.discounted_fare).toFixed(2)}</td>
+                <td className="py-2.5 px-3 text-right">
+                  <button 
+                    className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer" 
+                    onClick={() => openEditModal(fare)}
+                    title="Edit Fare"
+                  >
                     <Edit2 size={12} />
                   </button>
                 </td>
@@ -137,7 +143,7 @@ export default function Fares() {
             ))}
             {directionFares.length === 0 && (
               <tr>
-                <td colSpan={5} style={{ textAlign: 'center', padding: '24px' }}>No fares found for this direction.</td>
+                <td colSpan={5} className="text-center py-8 text-xs text-slate-400 italic">No fares configured for this direction.</td>
               </tr>
             )}
           </tbody>
@@ -147,25 +153,33 @@ export default function Fares() {
   );
 
   return (
-    <div className="card">
-      <div className="page-header-actions" style={{ marginBottom: '24px' }}>
-        <h2 className="card-title">Fare Matrices</h2>
-        <button className="btn btn-primary" onClick={openAddModal}>
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">Bus Fares Matrix</h2>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Update base fare values, distance-based incremental rates, and statutory discount tariffs.
+          </p>
+        </div>
+        <button 
+          className="inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold rounded-xl bg-[#0f3878] hover:bg-[#0a2958] text-white transition shadow-sm cursor-pointer" 
+          onClick={openAddModal}
+        >
           <Plus size={16} /> Add Fare Row
         </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+        <div className="flex justify-center py-16">
+          <Loader2 className="animate-spin text-[#0f3878]" size={32} />
         </div>
       ) : fares.length === 0 ? (
-        <div className="empty-state">
-          <DollarSign size={48} className="empty-state-icon" />
-          <p>No fare matrices configured. Please generate matrix first or add manually.</p>
+        <div className="text-center py-12 px-4 text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
+          <DollarSign size={48} className="mx-auto mb-3 text-slate-300" />
+          <p className="text-xs font-semibold">No fare matrices configured. Please add rows or generate matrix.</p>
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+        <div className="flex flex-wrap gap-6">
           {renderTable('LAUREL - TANAUAN', faresLT)}
           {renderTable('TANAUAN - LAUREL', faresTL)}
         </div>
@@ -173,40 +187,86 @@ export default function Fares() {
 
       {/* Save Fare Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={currentFare ? 'Edit Fare Config' : 'Create Fare Config'}>
-        <form onSubmit={handleSave}>
-          <div className="form-group">
-            <label className="form-label">Direction</label>
-            <select className="form-input" value={direction} onChange={(e) => setDirection(e.target.value)} required>
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Direction</label>
+            <select 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+              value={direction} 
+              onChange={(e) => setDirection(e.target.value)} 
+              required
+            >
               <option value="LT">LAUREL - TANAUAN</option>
               <option value="TL">TANAUAN - LAUREL</option>
             </select>
           </div>
-          <div className="form-group">
-            <label className="form-label">Distance (KM)</label>
-            <input type="number" className="form-input" value={distanceKm} onChange={(e) => setDistanceKm(e.target.value)} required />
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Distance (KM)</label>
+            <input 
+              type="number" 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+              value={distanceKm} 
+              onChange={(e) => setDistanceKm(e.target.value)} 
+              required 
+            />
           </div>
-          <div className="form-group">
-            <label className="form-label">Stop</label>
-            <select className="form-input" value={stopId} onChange={(e) => setStopId(e.target.value)} required>
+
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Stop Destination</label>
+            <select 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+              value={stopId} 
+              onChange={(e) => setStopId(e.target.value)} 
+              required
+            >
               <option value="">Select Stop</option>
               {stops.map(s => (
-                <option key={s.stop_id} value={s.stop_id}>{s.location_name} (KM {s.km_marker})</option>
+                <option key={s.id || s.stop_id} value={s.id || s.stop_id}>
+                  {s.location_name || s.name} (KM {s.km_marker || 0})
+                </option>
               ))}
             </select>
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div className="form-group">
-              <label className="form-label">Regular Fare (₱)</label>
-              <input type="number" step="0.01" className="form-input" value={regularFare} onChange={(e) => setRegularFare(e.target.value)} required />
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Regular Fare (₱)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+                value={regularFare} 
+                onChange={(e) => setRegularFare(e.target.value)} 
+                required 
+              />
             </div>
-            <div className="form-group">
-              <label className="form-label">Discounted Fare (₱)</label>
-              <input type="number" step="0.01" className="form-input" value={discountedFare} onChange={(e) => setDiscountedFare(e.target.value)} required />
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Discounted Fare (₱)</label>
+              <input 
+                type="number" 
+                step="0.01" 
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+                value={discountedFare} 
+                onChange={(e) => setDiscountedFare(e.target.value)} 
+                required 
+              />
             </div>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsFormOpen(false)}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer" 
+              onClick={() => setIsFormOpen(false)}
+            >
+              Cancel
+            </button>
+            <button 
+              type="submit" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-[#0f3878] hover:bg-[#0a2958] transition shadow-md cursor-pointer disabled:opacity-60" 
+              disabled={saving}
+            >
               {saving ? 'Saving...' : 'Save Fare'}
             </button>
           </div>

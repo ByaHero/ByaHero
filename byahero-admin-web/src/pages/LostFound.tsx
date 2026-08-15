@@ -29,7 +29,7 @@ export default function LostFound() {
     try {
       setLoading(true);
       const data = await adminService.listLostAndFound();
-      if (data.success) {
+      if (data && data.success) {
         setItems(data.items || []);
       }
     } catch (e) {
@@ -124,69 +124,88 @@ export default function LostFound() {
   };
 
   return (
-    <div className="card">
-      <div className="page-header-actions">
-        <h2 className="card-title">Lost & Found Inventory</h2>
-        <button className="btn btn-primary" onClick={openAddModal}>
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+      <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 tracking-tight">Lost & Found Inventory</h2>
+          <p className="text-xs text-slate-500 font-medium mt-1">Review reported commuter belongings, attachments, and claim resolutions.</p>
+        </div>
+        <button 
+          className="inline-flex items-center justify-center gap-2 py-2.5 px-4 text-xs font-bold rounded-xl bg-[#0f3878] hover:bg-[#0a2958] text-white transition shadow-sm cursor-pointer" 
+          onClick={openAddModal}
+        >
           <Plus size={16} /> Log New Item
         </button>
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', justifyContent: 'center', padding: '40px' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+        <div className="flex justify-center py-16">
+          <Loader2 className="animate-spin text-[#0f3878]" size={32} />
         </div>
       ) : items.length === 0 ? (
-        <div className="empty-state">
-          <HelpCircle size={48} className="empty-state-icon" />
-          <p>No active lost or found item logs in database.</p>
+        <div className="text-center py-12 px-4 text-slate-500 bg-slate-50/50 rounded-2xl border border-dashed border-slate-300">
+          <HelpCircle size={48} className="mx-auto mb-3 text-slate-300" />
+          <p className="text-xs font-semibold">No active lost or found item logs in database.</p>
         </div>
       ) : (
-        <div className="table-responsive">
-          <table className="table">
+        <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
+          <table className="w-full border-collapse text-left text-xs">
             <thead>
-              <tr>
-                <th>Item name</th>
-                <th>Item Description</th>
-                <th>Reported By</th>
-                <th>Contact Details</th>
-                <th>Status</th>
-                <th>Date Logged</th>
-                <th style={{ textAlign: 'right' }}>Actions</th>
+              <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                <th className="py-3.5 px-4">Item name</th>
+                <th className="py-3.5 px-4">Item Description</th>
+                <th className="py-3.5 px-4">Reported By</th>
+                <th className="py-3.5 px-4">Contact Details</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4">Date Logged</th>
+                <th className="py-3.5 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100">
               {items.map((item) => (
-                <tr key={item.id}>
-                  <td style={{ fontWeight: 700 }}>{item.item_name}</td>
-                  <td>{item.description}</td>
-                  <td>{item.reported_by}</td>
-                  <td>{item.contact_number}</td>
-                  <td>
-                    <span className={`badge badge-${item.status === 'claimed' ? 'success' :
-                        item.status === 'found' ? 'primary' : 'error'
-                      }`}>
+                <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                  <td className="py-3.5 px-4 font-bold text-slate-900">{item.item_name}</td>
+                  <td className="py-3.5 px-4 text-slate-600 max-w-xs">{item.description}</td>
+                  <td className="py-3.5 px-4 font-semibold text-slate-800">{item.reported_by}</td>
+                  <td className="py-3.5 px-4 font-mono text-slate-700">{item.contact_number}</td>
+                  <td className="py-3.5 px-4">
+                    <span className={`inline-flex items-center py-1 px-2.5 text-[10px] font-extrabold rounded-full uppercase tracking-wider ${
+                      item.status === 'claimed' 
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                        : item.status === 'found' 
+                        ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
                       {item.status}
                     </span>
                   </td>
-                  <td>{item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}</td>
-                  <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                  <td className="py-3.5 px-4 text-slate-500 font-medium">
+                    {item.created_at ? new Date(item.created_at).toLocaleDateString() : 'N/A'}
+                  </td>
+                  <td className="py-3.5 px-4 text-right">
+                    <div className="flex justify-end gap-1.5 items-center">
                       {(item.image1_path || item.image2_path) && (
                         <button 
-                          className="btn btn-primary" 
-                          style={{ padding: '6px 10px' }} 
+                          className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition cursor-pointer" 
                           onClick={() => window.open(`${API_BASE_URL}/${item.image1_path || item.image2_path}`, '_blank')}
-                          title="View Image"
+                          title="View Attached Photo"
                         >
-                          <ImageIcon size={12} />
+                          <ImageIcon size={13} />
                         </button>
                       )}
-                      <button className="btn btn-secondary" style={{ padding: '6px 10px' }} onClick={() => openEditModal(item)}>
-                        <Edit2 size={12} />
+                      <button 
+                        className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer" 
+                        onClick={() => openEditModal(item)}
+                        title="Edit Item"
+                      >
+                        <Edit2 size={13} />
                       </button>
-                      <button className="btn btn-danger" style={{ padding: '6px 10px' }} onClick={() => openDeleteModal(item)}>
-                        <Trash2 size={12} />
+                      <button 
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition cursor-pointer" 
+                        onClick={() => openDeleteModal(item)}
+                        title="Delete Item"
+                      >
+                        <Trash2 size={13} />
                       </button>
                     </div>
                   </td>
@@ -199,17 +218,17 @@ export default function LostFound() {
 
       {/* Save Modal */}
       <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={currentItem ? 'Update Item Log' : 'Log New Item'}>
-        <form onSubmit={handleSave}>
+        <form onSubmit={handleSave} className="space-y-4">
           {currentItem && (currentItem.image1_path || currentItem.image2_path) && (
-            <div className="form-group">
-              <label className="form-label">Attached Images (From Passenger)</label>
-              <div style={{ display: 'flex', gap: '12px', marginTop: '5px' }}>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Attached Images</label>
+              <div className="flex gap-3 mt-1">
                 {currentItem.image1_path && (
                   <a href={`${API_BASE_URL}/${currentItem.image1_path}`} target="_blank" rel="noreferrer">
                     <img
                       src={`${API_BASE_URL}/${currentItem.image1_path}`}
                       alt="Lost Item 1"
-                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                      className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm hover:opacity-90"
                     />
                   </a>
                 )}
@@ -218,7 +237,7 @@ export default function LostFound() {
                     <img
                       src={`${API_BASE_URL}/${currentItem.image2_path}`}
                       alt="Lost Item 2"
-                      style={{ width: '100px', height: '100px', objectFit: 'cover', borderRadius: '8px', border: '1px solid var(--border-color)' }}
+                      className="w-24 h-24 object-cover rounded-xl border border-slate-200 shadow-sm hover:opacity-90"
                     />
                   </a>
                 )}
@@ -226,11 +245,11 @@ export default function LostFound() {
             </div>
           )}
 
-          <div className="form-group">
-            <label className="form-label">Item Name</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Item Name</label>
             <input
               type="text"
-              className="form-input"
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20"
               placeholder="e.g. Leather Wallet"
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
@@ -238,35 +257,35 @@ export default function LostFound() {
             />
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Item Description</label>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Item Description</label>
             <textarea
-              className="form-input"
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20"
               rows={3}
-              placeholder="e.g. Black leather containing IDs and cards. Found under row 5 seat."
+              placeholder="e.g. Black leather containing IDs. Found under row 5 seat."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               required
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label className="form-label">Reported By</label>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Reported By</label>
               <input
                 type="text"
-                className="form-input"
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20"
                 placeholder="Passenger Name"
                 value={reportedBy}
                 onChange={(e) => setReportedBy(e.target.value)}
                 required
               />
             </div>
-            <div className="form-group">
-              <label className="form-label">Contact Number</label>
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Contact Number</label>
               <input
                 type="text"
-                className="form-input"
+                className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20"
                 placeholder="e.g. 09171234567"
                 maxLength={11}
                 value={contactNumber}
@@ -276,20 +295,33 @@ export default function LostFound() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Status</label>
-            <select className="form-input" value={status} onChange={(e) => setStatus(e.target.value as any)}>
+          <div className="flex flex-col gap-1.5">
+            <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">Status</label>
+            <select 
+              className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20" 
+              value={status} 
+              onChange={(e) => setStatus(e.target.value as any)}
+            >
               <option value="lost">Lost</option>
               <option value="found">Found</option>
               <option value="claimed">Claimed / Returned</option>
             </select>
           </div>
 
-          <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
-            <button type="button" className="btn btn-secondary" onClick={() => setIsFormOpen(false)} disabled={saving}>
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer" 
+              onClick={() => setIsFormOpen(false)} 
+              disabled={saving}
+            >
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>
+            <button 
+              type="submit" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-[#0f3878] hover:bg-[#0a2958] transition shadow-md cursor-pointer disabled:opacity-60" 
+              disabled={saving}
+            >
               {saving ? 'Saving...' : 'Save Item'}
             </button>
           </div>
@@ -298,16 +330,28 @@ export default function LostFound() {
 
       {/* Delete Modal */}
       <Modal isOpen={isDeleteOpen} onClose={() => setIsDeleteOpen(false)} title="De-register Lost Item Log">
-        <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          Are you sure you want to remove the inventory log for <strong>{currentItem?.item_name}</strong>?
-        </p>
-        <div className="modal-footer" style={{ paddingBottom: 0, marginBottom: 0 }}>
-          <button type="button" className="btn btn-secondary" onClick={() => setIsDeleteOpen(false)} disabled={saving}>
-            Cancel
-          </button>
-          <button type="button" className="btn btn-danger" onClick={handleDelete} disabled={saving}>
-            {saving ? 'Deleting...' : 'Delete Permanently'}
-          </button>
+        <div className="space-y-3">
+          <p className="text-xs text-slate-600">
+            Are you sure you want to remove the inventory log for <strong>{currentItem?.item_name}</strong>?
+          </p>
+          <div className="flex justify-end gap-3 pt-3 border-t border-slate-100">
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition cursor-pointer" 
+              onClick={() => setIsDeleteOpen(false)} 
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button 
+              type="button" 
+              className="py-2 px-4 rounded-xl text-xs font-bold text-white bg-red-600 hover:bg-red-700 transition cursor-pointer disabled:opacity-60" 
+              onClick={handleDelete} 
+              disabled={saving}
+            >
+              {saving ? 'Deleting...' : 'Delete Permanently'}
+            </button>
+          </div>
         </div>
       </Modal>
       <AlertModal

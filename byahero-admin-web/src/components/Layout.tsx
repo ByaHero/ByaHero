@@ -13,89 +13,42 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
   const [showBanner, setShowBanner] = useState(true);
 
   return (
-    <div className="app-container">
+    <div className="flex min-h-screen bg-slate-50 text-slate-900">
       <Sidebar onLogout={onLogout} />
-      <main className="main-content">
+      <main className="flex-1 ml-[260px] p-6 min-h-screen flex flex-col">
         {showBanner && (
-          <div
-            className="admin-app-banner"
-            style={{
-              background: 'linear-gradient(135deg, #0f3878 0%, #1d4ed8 50%, #2563eb 100%)',
-              color: '#ffffff',
-              padding: '10px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              boxShadow: '0 2px 8px rgba(15, 56, 120, 0.15)',
-              fontSize: '0.875rem',
-              fontWeight: 500,
-              gap: '16px',
-              position: 'relative',
-              zIndex: 50,
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div
-                style={{
-                  backgroundColor: 'rgba(255, 255, 255, 0.18)',
-                  borderRadius: '8px',
-                  padding: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-              >
-                <Smartphone size={18} color="#ffffff" />
+          <div className="bg-gradient-to-r from-[#0f3878] via-[#1d4ed8] to-[#2563eb] text-white py-2.5 px-5 rounded-2xl flex items-center justify-between shadow-md mb-6 gap-4 relative z-10">
+            <div className="flex items-center gap-3">
+              <div className="bg-white/20 backdrop-blur-xs rounded-xl p-2 flex items-center justify-center shrink-0">
+                <Smartphone size={18} className="text-white" />
               </div>
               <div>
-                <span style={{ fontWeight: 700, marginRight: '6px' }}>Try the ByaHero Admin Application!</span>
-                <span style={{ opacity: 0.9, fontSize: '0.8rem' }}>
+                <span className="font-extrabold text-xs mr-2">Try the ByaHero Admin Application!</span>
+                <span className="text-[11px] text-white/80 hidden sm:inline">
                   Experience real-time mobile fleet management, conductor monitoring, and live analytics on Android.
                 </span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div className="flex items-center gap-3 shrink-0">
               <a
                 href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-admin.apk"
                 target="_blank"
                 rel="noopener noreferrer"
-                style={{
-                  backgroundColor: '#ffffff',
-                  color: '#0f3878',
-                  padding: '6px 14px',
-                  borderRadius: '8px',
-                  fontWeight: 700,
-                  fontSize: '0.8rem',
-                  textDecoration: 'none',
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
-                }}
+                className="bg-white text-[#0f3878] hover:bg-slate-100 py-1.5 px-3.5 rounded-xl font-bold text-xs no-underline inline-flex items-center gap-1.5 shadow-sm transition"
               >
-                <Sparkles size={14} color="#0f3878" />
-                Download Admin App
-                <ArrowRight size={14} />
+                <Sparkles size={13} className="text-[#0f3878]" />
+                <span>Download APK</span>
+                <ArrowRight size={13} />
               </a>
 
               <button
                 type="button"
                 onClick={() => setShowBanner(false)}
                 title="Dismiss Banner"
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'rgba(255, 255, 255, 0.8)',
-                  cursor: 'pointer',
-                  padding: '4px',
-                  borderRadius: '6px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                className="bg-transparent border-0 text-white/80 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition cursor-pointer"
               >
-                <X size={16} />
+                <X size={15} />
               </button>
             </div>
           </div>
@@ -106,4 +59,3 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
     </div>
   );
 }
-

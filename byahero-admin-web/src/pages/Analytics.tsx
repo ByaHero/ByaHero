@@ -13,7 +13,6 @@ import {
   TrendingUp,
   Users,
 } from 'lucide-react';
-import { API_BASE_URL } from '../services/api';
 import { adminService } from '../services/admin';
 import AlertModal from '../components/AlertModal';
 import { useAlertModal } from '../hooks/useAlertModal';
@@ -159,7 +158,6 @@ const fallbackAnalytics: Record<PeriodKey, AnalyticsView> = {
   month: emptyAnalytics,
 };
 
-
 export default function Analytics() {
   const [apiData, setApiData] = useState<ApiAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
@@ -173,14 +171,10 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const url = `/api/admin/analytics?period=${encodeURIComponent(period)}`;
-      console.log('[Analytics] Fetching', url, 'base API:', API_BASE_URL);
       const res = await adminService.getAnalytics({ period });
-      console.log('[Analytics] API response', res);
       if (res && res.success) {
         setApiData(res as ApiAnalytics);
       } else {
-        console.warn('[Analytics] API returned non-success response', res);
         setApiData(null);
       }
     } catch (e: any) {
@@ -333,18 +327,18 @@ export default function Analytics() {
   const conductorName = (email: string) => email.split('@')[0];
 
   const renderEmptyState = (icon: React.ReactNode, message: string) => (
-    <div className="text-center py-5 text-muted">
-      <div className="d-inline-flex align-items-center justify-content-center rounded-circle bg-light mb-3" style={{ width: '52px', height: '52px' }}>
+    <div className="text-center py-12 text-slate-400">
+      <div className="inline-flex items-center justify-center rounded-2xl bg-slate-50 mb-3 w-12 h-12 border border-slate-100">
         {icon}
       </div>
-      <p className="fw-bold small mb-0">{message}</p>
+      <p className="font-bold text-xs text-slate-500">{message}</p>
     </div>
   );
 
   const heroMiniStats = [
-    { label: 'Revenue', value: `₱${data.estimatedRevenue.toLocaleString()}`, icon: <Route size={18} /> },
-    { label: 'Passengers', value: data.totalPassengers.toLocaleString(), icon: <Users size={18} /> },
-    { label: 'Avg Fare', value: `₱${data.averageFare.toFixed(2)}`, icon: <Clock3 size={18} /> },
+    { label: 'Revenue', value: `₱${data.estimatedRevenue.toLocaleString()}`, icon: <Route size={16} /> },
+    { label: 'Passengers', value: data.totalPassengers.toLocaleString(), icon: <Users size={16} /> },
+    { label: 'Avg Fare', value: `₱${data.averageFare.toFixed(2)}`, icon: <Clock3 size={16} /> },
   ];
 
   const generatePDF = async () => {
@@ -357,39 +351,6 @@ export default function Analytics() {
       container.style.color = '#333';
 
       container.innerHTML = `
-        <style>
-          .pdf-section {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-            margin-bottom: 20px;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 20px;
-            font-size: 11px;
-          }
-          tr {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-          thead {
-            display: table-header-group;
-          }
-          .section-header {
-            font-size: 14px;
-            font-weight: bold;
-            color: #1e293b;
-            margin-bottom: 8px;
-            border-left: 4px solid #1d4ed8;
-            padding-left: 8px;
-            page-break-after: avoid !important;
-            break-after: avoid !important;
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-          }
-        </style>
-
         <div style="border-bottom: 2px solid #0f3878; padding-bottom: 10px; margin-bottom: 20px; page-break-inside: avoid;">
           <h1 style="color: #0f3878; margin: 0 0 5px 0; font-size: 22px;">ByaHero Analytics Report</h1>
           <div style="color: #666; font-size: 13px;">Period: ${periodLabels[period]} | Generated: ${new Date().toLocaleDateString()}</div>
@@ -413,99 +374,15 @@ export default function Analytics() {
             <div style="font-size: 9px; color: #64748b; text-transform: uppercase; font-weight: bold; margin-top: 4px;">Avg Trip Time</div>
           </div>
         </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Boarding Locations</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Location</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers Boarded</th></tr>
-            </thead>
-            <tbody>
-              ${data.boardingLocations?.map(l => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.location_name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(l.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No data</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Route Breakdown</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th></tr>
-            </thead>
-            <tbody>
-              ${data.routes?.map(r => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${r.name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(r.count).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No data</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Bus Performance</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus Code</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trips</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Routes</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductors</th></tr>
-            </thead>
-            <tbody>
-              ${data.buses?.map(b => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.trips}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(b.passengers).toLocaleString()}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${b.routes}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${(b.conductors || '').substring(0, 30)}${(b.conductors && b.conductors.length > 30) ? '...' : ''}</td></tr>`).join('') || '<tr><td colspan="5" style="padding: 8px;">No data</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Conductor Activity</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductor</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Trips</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers</th></tr>
-            </thead>
-            <tbody>
-              ${data.conductors?.map(c => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${c.email}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${c.trips}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(c.passengers).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="3" style="padding: 8px;">No conductor data yet</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Recent Operations</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Conductor</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Boarded</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Status</th></tr>
-            </thead>
-            <tbody>
-              ${data.recentOperations?.map(o => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.bus_code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.route}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${(o.conductor_email || '').split('@')[0]}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(o.total_boarded || 0)}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${o.status}</td></tr>`).join('') || '<tr><td colspan="5" style="padding: 8px;">No operations recorded yet</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Passenger Flow (Hourly)</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Hour</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Passengers Boarded</th></tr>
-            </thead>
-            <tbody>
-              ${data.hourlyFlow?.map(f => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${f.hr}:00</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${Number(f.total).toLocaleString()}</td></tr>`).join('') || '<tr><td colspan="2" style="padding: 8px;">No hourly data</td></tr>'}
-            </tbody>
-          </table>
-        </div>
-
-        <div class="pdf-section">
-          <div class="section-header">Location Activity Log</div>
-          <table>
-            <thead>
-              <tr><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Location</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Time</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Bus</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Route</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Boarded</th><th style="background: #f1f5f9; padding: 8px; text-align: left; border-bottom: 2px solid #cbd5e1;">Departed</th></tr>
-            </thead>
-            <tbody>
-              ${data.locationLogs?.map(l => `<tr><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.location_name}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${new Date(l.recorded_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.bus_code}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.route}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.boarded}</td><td style="padding: 8px; border-bottom: 1px solid #e2e8f0;">${l.departed}</td></tr>`).join('') || '<tr><td colspan="6" style="padding: 8px;">No location logs recorded</td></tr>'}
-            </tbody>
-          </table>
-        </div>
       `;
 
       const opt = {
-        margin:       10,
-        filename:     `ByaHero_Analytics_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`,
-        image:        { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas:  { scale: 2, useCORS: true, logging: false },
-        jsPDF:        { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
-        pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
+        margin: 10,
+        filename: `ByaHero_Analytics_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       // @ts-ignore
@@ -521,37 +398,35 @@ export default function Analytics() {
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+    <div className="space-y-6">
       {loading ? (
-        <div className="card" style={{ display: 'flex', justifyContent: 'center', padding: '60px' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary-color)" />
+        <div className="bg-white border border-slate-200 rounded-3xl p-16 flex justify-center shadow-sm">
+          <Loader2 className="animate-spin text-[#0f3878]" size={36} />
         </div>
       ) : (
         <>
-          <section className="analytics-hero analytics-surface">
-            <div className="analytics-hero-copy">
-              <div className="analytics-eyebrow">Bus intelligence</div>
-              <h1 className="analytics-title">Analytics Dashboard</h1>
-              <p className="analytics-subtitle">Boarding activity, route share, bus performance, and operational logs in a cleaner, denser view.</p>
+          {/* Hero Banner with Period Selector */}
+          <section className="bg-gradient-to-br from-[#0f3878] via-[#164893] to-[#2563eb] text-white p-6 sm:p-8 rounded-3xl shadow-md grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-center">
+            <div className="space-y-4">
+              <span className="text-[11px] font-extrabold uppercase tracking-widest text-blue-200 bg-white/10 py-1 px-3 rounded-full inline-block">
+                Transit Fleet Intelligence
+              </span>
+              <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">Analytics Dashboard</h1>
+              <p className="text-xs sm:text-sm text-blue-100/90 max-w-xl font-medium leading-relaxed">
+                Live boarding activity, route distribution, individual bus throughput, and telemetry history.
+              </p>
 
-              <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '24px', flexWrap: 'wrap' }}>
-                <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '12px', width: 'fit-content' }}>
+              <div className="flex flex-wrap items-center gap-3 pt-2">
+                <div className="flex bg-black/20 p-1 rounded-xl backdrop-blur-xs">
                   {(Object.keys(periodLabels) as PeriodKey[]).map((key) => (
                     <button
                       key={key}
                       type="button"
-                      style={{
-                        padding: '8px 20px',
-                        borderRadius: '8px',
-                        fontSize: '0.875rem',
-                        fontWeight: 600,
-                        border: 'none',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                        backgroundColor: period === key ? '#ffffff' : 'transparent',
-                        color: period === key ? 'var(--primary-color)' : '#64748b',
-                        boxShadow: period === key ? '0 1px 3px rgba(0,0,0,0.1)' : 'none'
-                      }}
+                      className={`py-1.5 px-4 rounded-lg text-xs font-bold transition cursor-pointer ${
+                        period === key 
+                          ? 'bg-white text-[#0f3878] shadow-sm' 
+                          : 'text-white/80 hover:text-white hover:bg-white/10'
+                      }`}
                       onClick={() => setPeriod(key)}
                     >
                       {periodLabels[key]}
@@ -561,268 +436,243 @@ export default function Analytics() {
 
                 <button
                   type="button"
-                  className="btn btn-primary"
                   onClick={generatePDF}
                   disabled={downloading}
-                  style={{
-                    borderRadius: '12px',
-                    padding: '10px 18px',
-                    fontSize: '0.875rem',
-                    fontWeight: 700,
-                    boxShadow: '0 2px 4px rgba(29, 78, 216, 0.25)',
-                    opacity: downloading ? 0.7 : 1
-                  }}
+                  className="inline-flex items-center gap-2 py-2 px-4 rounded-xl text-xs font-bold bg-white text-[#0f3878] hover:bg-slate-100 transition shadow-sm cursor-pointer disabled:opacity-60"
                 >
-                  {downloading ? (
-                    <Loader2 size={16} className="animate-spin" />
-                  ) : (
-                    <Download size={16} />
-                  )}
-                  {downloading ? 'Downloading...' : 'Export PDF'}
+                  {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  {downloading ? 'Exporting...' : 'Export PDF'}
                 </button>
               </div>
             </div>
 
-            <div className="analytics-hero-panel">
-              <div className="analytics-hero-panel-top">
+            {/* Quick Hero Panel */}
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 space-y-4">
+              <div className="flex justify-between items-center pb-3 border-b border-white/10">
                 <div>
-                  <div className="analytics-panel-label">Current period</div>
-                  <div className="analytics-panel-value">{periodLabels[period]}</div>
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block">Selected Window</span>
+                  <span className="text-sm font-black text-white">{periodLabels[period]}</span>
                 </div>
-                <div className="analytics-panel-badge">Live data</div>
+                <span className="inline-flex items-center gap-1.5 bg-emerald-400/20 text-emerald-300 px-2.5 py-1 rounded-full text-[10px] font-bold border border-emerald-400/30">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Live Data
+                </span>
               </div>
 
-              <div className="analytics-hero-number">{data.totalPassengers.toLocaleString()}</div>
-              <div className="analytics-hero-caption">Passengers boarded across all tracked terminals and stops.</div>
+              <div>
+                <span className="text-3xl font-black text-white block leading-none">{data.totalPassengers.toLocaleString()}</span>
+                <span className="text-[11px] text-blue-100/80 mt-1 block">Passengers boarded across all routes</span>
+              </div>
 
-              <div className="analytics-mini-grid">
+              <div className="grid grid-cols-3 gap-2 pt-2">
                 {heroMiniStats.map((stat) => (
-                  <div key={stat.label} className="analytics-mini-stat">
-                    <div className="analytics-mini-stat-icon">{stat.icon}</div>
-                    <div>
-                      <div className="analytics-mini-stat-label">{stat.label}</div>
-                      <div className="analytics-mini-stat-value">{stat.value}</div>
-                    </div>
+                  <div key={stat.label} className="bg-white/10 p-2 rounded-xl text-center border border-white/10">
+                    <span className="text-[10px] text-blue-200 font-bold block">{stat.label}</span>
+                    <span className="text-xs font-black text-white mt-0.5 block">{stat.value}</span>
                   </div>
                 ))}
-              </div>
-
-              <div className="analytics-hero-actions">
-                <div className="analytics-hero-action-pill">{data.totalTrips.toLocaleString()} trips</div>
-                <div className="analytics-hero-action-pill">{data.recentOperations.length} recent operations</div>
               </div>
             </div>
           </section>
 
-          <div className="stats-grid">
-            <div className="stat-card analytics-stat-primary">
-              <span className="stat-label">Total Trips</span>
-              <div className="stat-row">
-                <span className="stat-count">{data.totalTrips.toLocaleString()}</span>
-                <Route size={20} style={{ opacity: 0.8 }} />
-              </div>
-            </div>
-            
-            <div className="stat-card analytics-stat-success">
-              <span className="stat-label">Passengers Boarded</span>
-              <div className="stat-row">
-                <span className="stat-count">{data.totalPassengers.toLocaleString()}</span>
-                <Users size={20} style={{ opacity: 0.8 }} />
-              </div>
-            </div>
-
-            <div className="stat-card analytics-stat-accent">
-              <span className="stat-label">Passengers Departed</span>
-              <div className="stat-row">
-                <span className="stat-count">{data.totalDeparted.toLocaleString()}</span>
-                <BusFront size={20} style={{ opacity: 0.8 }} />
-              </div>
-            </div>
-
-            <div className="stat-card analytics-stat-warn">
-              <span className="stat-label">Avg Trip Duration</span>
-              <div className="stat-row">
-                <span className="stat-count">{Math.round(data.averageTripMinutes)}<span style={{ fontSize: '1rem', fontWeight: 700 }}> min</span></span>
-                <Clock3 size={20} style={{ opacity: 0.8 }} />
-              </div>
-            </div>
-          </div>
-
-          <div className="analytics-summary-band">
-            <div>
-              <div className="analytics-section-kicker">Total Boarded Passengers</div>
-              <div className="analytics-summary-value">{data.totalPassengers.toLocaleString()}</div>
-              <div className="analytics-summary-copy">Activity across all tracked terminals & stops</div>
-              
-              <div className="analytics-location-cloud">
-                <div className="analytics-location-pill">
-                  <strong>BOARDING LOCATIONS</strong>
+          {/* KPI Stat Cards Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Trips</span>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-2xl font-black text-slate-900">{data.totalTrips.toLocaleString()}</span>
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                  <Route size={18} />
                 </div>
-                {data.boardingLocations.map((loc) => (
-                  <div key={loc.location_name} className="analytics-location-pill">
-                    {loc.location_name} <strong>{loc.total} Boarded</strong>
-                  </div>
-                ))}
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Passengers Boarded</span>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-2xl font-black text-emerald-600">{data.totalPassengers.toLocaleString()}</span>
+                <div className="p-2.5 rounded-xl bg-emerald-50 text-emerald-600">
+                  <Users size={18} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Passengers Departed</span>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-2xl font-black text-blue-600">{data.totalDeparted.toLocaleString()}</span>
+                <div className="p-2.5 rounded-xl bg-blue-50 text-blue-600">
+                  <BusFront size={18} />
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition">
+              <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Avg Trip Duration</span>
+              <div className="flex justify-between items-center mt-3">
+                <span className="text-2xl font-black text-amber-600">
+                  {Math.round(data.averageTripMinutes)} <span className="text-xs font-bold text-slate-500">min</span>
+                </span>
+                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600">
+                  <Clock3 size={18} />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="analytics-surface analytics-card-tight">
-            <div className="analytics-section-head">
-              <div>
-                <div className="analytics-section-kicker">HOURLY TRENDS</div>
-                <h3 className="analytics-section-title"><TrendingUp size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Passenger Flow</h3>
-              </div>
+          {/* Boarding Locations Cloud */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Boarding Locations Distribution</span>
+            <div className="text-2xl font-black text-slate-900 mt-1">{data.totalPassengers.toLocaleString()} Boarded</div>
+            <div className="flex flex-wrap gap-2 mt-4">
+              {data.boardingLocations.map((loc) => (
+                <div key={loc.location_name} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-xs text-slate-700 font-medium">
+                  {loc.location_name} <strong className="text-blue-700 ml-1">{loc.total} Boarded</strong>
+                </div>
+              ))}
             </div>
-            <div className="analytics-chart-wrap" style={{ width: '100%', position: 'relative' }}>
-              <svg viewBox="0 0 100 100" preserveAspectRatio="none" style={{ width: '100%', height: '100%', overflow: 'visible' }} aria-label="Passenger flow chart">
+          </div>
+
+          {/* Hourly Passenger Flow SVG Chart */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Hourly Trends</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <TrendingUp size={18} className="text-blue-600" /> Passenger Flow
+              </h3>
+            </div>
+
+            <div className="h-44 w-full relative rounded-2xl bg-slate-50/50 p-4 border border-slate-100">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-full overflow-visible" aria-label="Passenger flow chart">
                 <defs>
                   <linearGradient id="analyticsArea" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.25}/>
                     <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 {[0, 25, 50, 75, 100].map((line) => (
-                  <line key={line} x1="0" x2="100" y1={line} y2={line} stroke="rgba(148,163,184,0.1)" strokeWidth="0.5" />
+                  <line key={line} x1="0" x2="100" y1={line} y2={line} stroke="rgba(203,213,225,0.4)" strokeWidth="0.5" />
                 ))}
                 {points.length > 0 && (
                   <>
                     <path d={areaPath} fill="url(#analyticsArea)" />
-                    <path d={curvePath} fill="none" stroke="#2563eb" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+                    <path d={curvePath} fill="none" stroke="#2563eb" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                   </>
                 )}
               </svg>
               {points.map((pt, idx) => (
                 <div 
                   key={idx}
-                  style={{
-                    position: 'absolute',
-                    left: `${pt.x}%`,
-                    top: `${pt.y}%`,
-                    width: '14px',
-                    height: '14px',
-                    transform: 'translate(-50%, -50%)',
-                    pointerEvents: 'none',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
+                  className="absolute w-3.5 h-3.5 -translate-x-1/2 -translate-y-1/2 pointer-events-none flex items-center justify-center"
+                  style={{ left: `${pt.x}%`, top: `${pt.y}%` }}
                 >
-                  <div style={{
-                    position: 'absolute',
-                    width: '12px',
-                    height: '12px',
-                    borderRadius: '50%',
-                    backgroundColor: 'rgba(37, 99, 235, 0.15)',
-                    border: '1px solid rgba(37, 99, 235, 0.3)'
-                  }} />
-                  <div style={{
-                    position: 'absolute',
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: '#ffffff',
-                    border: '2px solid #2563eb',
-                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
-                  }} />
+                  <div className="w-3 h-3 rounded-full bg-blue-500/20 border border-blue-500/30 absolute" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-white border-2 border-blue-600 shadow-xs absolute" />
                 </div>
               ))}
             </div>
-            <div className="analytics-hour-row">
+
+            <div className="flex flex-wrap gap-2 pt-2">
               {data.hourlyFlow.slice(0, 6).map((entry) => (
-                <div key={entry.hr} className="analytics-hour-chip">
-                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'}: <strong>{entry.total}</strong>
+                <div key={entry.hr} className="bg-slate-50 border border-slate-200 px-3 py-1 rounded-lg text-xs font-semibold text-slate-700">
+                  {entry.hr % 12 || 12}{entry.hr >= 12 ? 'PM' : 'AM'}: <strong className="text-blue-700">{entry.total}</strong>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="analytics-table-card">
-            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
-              <div>
-                <div className="analytics-section-kicker">VOLUME SHARE</div>
-                <h3 className="analytics-section-title"><Route size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Route Breakdown</h3>
-              </div>
+          {/* Route Breakdown */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Volume Share</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <Route size={18} className="text-blue-600" /> Route Breakdown
+              </h3>
             </div>
-            <div className="table-responsive" style={{ padding: '20px' }}>
-              <div className="analytics-route-list">
-                {data.routes.map((route) => (
-                  <div key={route.name} className="analytics-route-row">
-                    <div className="analytics-route-label">{route.name}</div>
-                    <div className="analytics-route-track">
-                      <div className="analytics-route-fill" style={{ width: `${Math.max(2, (route.count / routeChartMax) * 100)}%` }} />
-                    </div>
-                    <div className="analytics-route-value">{route.count.toLocaleString()} pax</div>
+
+            <div className="space-y-3 pt-2">
+              {data.routes.map((route) => (
+                <div key={route.name} className="flex items-center gap-4">
+                  <span className="w-48 text-xs font-bold text-slate-700 truncate">{route.name}</span>
+                  <div className="flex-1 bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                    <div 
+                      className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all duration-500"
+                      style={{ width: `${Math.max(2, (route.count / routeChartMax) * 100)}%` }} 
+                    />
                   </div>
-                ))}
-              </div>
+                  <span className="w-24 text-right text-xs font-extrabold text-slate-900">{route.count.toLocaleString()} pax</span>
+                </div>
+              ))}
             </div>
           </div>
 
-          <div className="analytics-table-card">
-            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
-              <div>
-                <div className="analytics-section-kicker">BUS STATS</div>
-                <h3 className="analytics-section-title"><BusFront size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Bus Performance</h3>
-              </div>
+          {/* Bus Performance Table */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Fleet Telemetry</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <BusFront size={18} className="text-blue-600" /> Bus Performance
+              </h3>
+              <p className="text-[11px] text-slate-400 font-medium mt-1">Click on a bus to expand specific departure hotspots.</p>
             </div>
-            <p style={{ fontSize: '.75rem', color: '#64748b', padding: '0 20px', marginBottom: '0', fontWeight: 600 }}>Click on a bus to view its specific departure hotspots.</p>
-            <div style={{ overflowX: 'auto' }}>
+
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
               {data.buses.length ? (
-                <table className="analytics-table">
+                <table className="w-full border-collapse text-left text-xs">
                   <thead>
-                    <tr>
-                      <th>Bus Code</th>
-                      <th>Trips</th>
-                      <th>Passengers</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Bus Code</th>
+                      <th className="py-3.5 px-4">Trips Completed</th>
+                      <th className="py-3.5 px-4">Passengers Served</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {data.buses.map((bus) => {
                       const isOpen = expandedBus === bus.code;
                       return (
                         <React.Fragment key={bus.code}>
-                          <tr style={{ cursor: 'pointer' }} onClick={() => setExpandedBus(isOpen ? null : bus.code)}>
-                            <td className="text-dark fw-bold py-2">
-                              {isOpen ? (
-                                <ChevronUp className="expand-icon align-middle" size={18} style={{ marginRight: 4 }} />
-                              ) : (
-                                <ChevronDown className="expand-icon align-middle" size={18} style={{ marginRight: 4 }} />
-                              )}
+                          <tr 
+                            className="hover:bg-slate-50/80 cursor-pointer transition"
+                            onClick={() => setExpandedBus(isOpen ? null : bus.code)}
+                          >
+                            <td className="py-3.5 px-4 font-extrabold text-slate-900 flex items-center gap-1.5">
+                              {isOpen ? <ChevronUp size={16} className="text-blue-600" /> : <ChevronDown size={16} className="text-slate-400" />}
                               {bus.code}
                             </td>
-                            <td className="py-2">{bus.trips}</td>
-                            <td className="text-primary fw-bold py-2">{bus.passengers.toLocaleString()}</td>
+                            <td className="py-3.5 px-4 font-semibold text-slate-700">{bus.trips}</td>
+                            <td className="py-3.5 px-4 font-black text-blue-700">{bus.passengers.toLocaleString()}</td>
                           </tr>
                           {isOpen && (
-                            <tr style={{ backgroundColor: '#fafafa' }}>
-                              <td colSpan={3} className="p-0 border-0">
-                                <div className="border-start border-4 border-primary p-3 bg-light-subtle rounded-end shadow-inner">
-                                  <div className="row mb-3">
-                                    <div className="col-6">
-                                      <div className="text-uppercase text-muted fw-bold small tracking-wider mb-1" style={{ fontSize: '0.7rem' }}>Routes Taken</div>
-                                      <div className="text-dark fw-bold" style={{ fontSize: '.8rem' }}>{bus.routes}</div>
+                            <tr className="bg-slate-50/70">
+                              <td colSpan={3} className="p-4 border-t border-slate-100">
+                                <div className="border-l-4 border-blue-600 pl-4 py-1 space-y-3">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Routes Taken</span>
+                                      <span className="text-xs font-bold text-slate-800">{bus.routes}</span>
                                     </div>
-                                    <div className="col-6">
-                                      <div className="text-uppercase text-muted fw-bold small tracking-wider mb-1" style={{ fontSize: '0.7rem' }}>Conductors</div>
-                                      <div className="text-dark fw-bold" style={{ fontSize: '.8rem' }}>{bus.conductors.split(', ').map(conductorName).join(', ')}</div>
+                                    <div>
+                                      <span className="text-[10px] font-bold uppercase text-slate-400 block">Conductors</span>
+                                      <span className="text-xs font-bold text-slate-800">{bus.conductors.split(', ').map(conductorName).join(', ')}</span>
                                     </div>
                                   </div>
-                                  <div className="text-uppercase text-muted fw-bold small tracking-wider mb-2" style={{ fontSize: '0.7rem' }}>Departure Hotspots</div>
-                                  {bus.hotspots.length ? bus.hotspots.map((hotspot) => {
-                                    const width = Math.max(6, (hotspot.total / Math.max(...bus.hotspots.map((item) => item.total), 1)) * 100);
-                                    return (
-                                      <div key={hotspot.location_name} className="d-flex align-items-center gap-2 mb-2">
-                                        <span className="text-muted fw-bold small" style={{ minWidth: 90, fontSize: '.75rem' }}>{hotspot.location_name}</span>
-                                        <div className="progress flex-grow-1" style={{ height: 6, backgroundColor: '#e2e8f0' }}>
-                                          <div className="progress-bar bg-primary" role="progressbar" style={{ width: `${width}%` }} />
+                                  <div>
+                                    <span className="text-[10px] font-bold uppercase text-slate-400 block mb-2">Departure Hotspots</span>
+                                    {bus.hotspots.length ? bus.hotspots.map((hotspot) => {
+                                      const width = Math.max(6, (hotspot.total / Math.max(...bus.hotspots.map((item) => item.total), 1)) * 100);
+                                      return (
+                                        <div key={hotspot.location_name} className="flex items-center gap-3 mb-1.5">
+                                          <span className="text-xs font-semibold text-slate-600 min-w-[100px]">{hotspot.location_name}</span>
+                                          <div className="flex-1 bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                                            <div className="bg-blue-600 h-full rounded-full" style={{ width: `${width}%` }} />
+                                          </div>
+                                          <span className="text-xs font-bold text-blue-700 min-w-[40px] text-right">{hotspot.total.toLocaleString()}</span>
                                         </div>
-                                        <span className="text-primary fw-bold small text-end" style={{ minWidth: 35, fontSize: '.75rem' }}>{hotspot.total.toLocaleString()}</span>
-                                      </div>
-                                    );
-                                  }) : (
-                                    <p className="small text-muted fw-bold mb-0">No departure data recorded for this bus.</p>
-                                  )}
+                                      );
+                                    }) : (
+                                      <p className="text-xs text-slate-400 italic">No departure data recorded for this bus.</p>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                             </tr>
@@ -832,134 +682,157 @@ export default function Analytics() {
                     })}
                   </tbody>
                 </table>
-              ) : renderEmptyState(<BusFront size={18} className="text-primary" />, 'No bus data yet')}
+              ) : renderEmptyState(<BusFront size={20} className="text-blue-600" />, 'No bus data recorded yet')}
             </div>
           </div>
 
-          <div className="analytics-table-card">
-            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
-              <div>
-                <div className="analytics-section-kicker">PERSONNEL</div>
-                <h3 className="analytics-section-title"><BadgeInfo size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Conductor Activity</h3>
-              </div>
+          {/* Conductor Activity Table */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Personnel</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <BadgeInfo size={18} className="text-blue-600" /> Conductor Activity
+              </h3>
             </div>
-            <div className="table-responsive">
+
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
               {data.conductors.length ? (
-                <table className="analytics-table">
+                <table className="w-full border-collapse text-left text-xs">
                   <thead>
-                    <tr>
-                      <th>Conductor</th>
-                      <th>Trips</th>
-                      <th>Passengers</th>
+                    <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                      <th className="py-3.5 px-4">Conductor</th>
+                      <th className="py-3.5 px-4">Trips Completed</th>
+                      <th className="py-3.5 px-4">Passengers Served</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-slate-100">
                     {data.conductors.map((conductor) => (
-                      <tr key={conductor.email}>
-                        <td className="text-dark fw-bold py-2">{conductor.email}</td>
-                        <td className="py-2">{conductor.trips}</td>
-                        <td className="text-primary fw-bold py-2">{conductor.passengers.toLocaleString()}</td>
+                      <tr key={conductor.email} className="hover:bg-slate-50/80 transition">
+                        <td className="py-3.5 px-4 font-bold text-slate-900">{conductor.email}</td>
+                        <td className="py-3.5 px-4 font-semibold text-slate-700">{conductor.trips}</td>
+                        <td className="py-3.5 px-4 font-black text-blue-700">{conductor.passengers.toLocaleString()}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
-              ) : renderEmptyState(<BadgeInfo size={18} className="text-primary" />, 'No conductor data yet')}
+              ) : renderEmptyState(<BadgeInfo size={20} className="text-blue-600" />, 'No conductor telemetry recorded yet')}
             </div>
           </div>
 
-          <div className="analytics-table-card">
-            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
-              <div>
-                <div className="analytics-section-kicker">REAL-TIME</div>
-                <h3 className="analytics-section-title"><MapPinned size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Location Activity Log</h3>
-              </div>
+          {/* Location Activity Log */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Live Stream</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <MapPinned size={18} className="text-blue-600" /> Location Activity Log
+              </h3>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
               {data.locationLogs.length ? (
                 <>
-                  <table className="analytics-table">
+                  <table className="w-full border-collapse text-left text-xs">
                     <thead>
-                      <tr>
-                        <th>Time</th>
-                        <th>Location</th>
-                        <th>Bus</th>
-                        <th>Conductor</th>
-                        <th>Route</th>
-                        <th>Board</th>
-                        <th>Depart</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Time</th>
+                        <th className="py-3.5 px-4">Location</th>
+                        <th className="py-3.5 px-4">Bus</th>
+                        <th className="py-3.5 px-4">Conductor</th>
+                        <th className="py-3.5 px-4">Route</th>
+                        <th className="py-3.5 px-4">Boarded</th>
+                        <th className="py-3.5 px-4">Departed</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {data.locationLogs.slice(0, logLimit).map((log) => (
-                        <tr key={`${log.recorded_at}-${log.bus_code}`}>
-                          <td className="py-2" style={{ whiteSpace: 'nowrap' }}>{formatTimestamp(log.recorded_at)}</td>
-                          <td className="text-primary fw-bold py-2">{log.location_name || 'Terminal'}</td>
-                          <td className="text-dark fw-bold py-2">{log.bus_code}</td>
-                          <td className="py-2">{conductorName(log.conductor_email)}</td>
-                          <td className="py-2" style={{ fontSize: '.75rem' }}>{log.route}</td>
-                          <td className="text-success fw-bold py-2">+{log.boarded}</td>
-                          <td className="text-danger fw-bold py-2">-{log.departed}</td>
+                        <tr key={`${log.recorded_at}-${log.bus_code}`} className="hover:bg-slate-50/80 transition">
+                          <td className="py-3.5 px-4 whitespace-nowrap text-slate-500">{formatTimestamp(log.recorded_at)}</td>
+                          <td className="py-3.5 px-4 font-bold text-blue-700">{log.location_name || 'Terminal'}</td>
+                          <td className="py-3.5 px-4 font-bold text-slate-900">{log.bus_code}</td>
+                          <td className="py-3.5 px-4 text-slate-700">{conductorName(log.conductor_email)}</td>
+                          <td className="py-3.5 px-4 text-[11px] text-slate-500">{log.route}</td>
+                          <td className="py-3.5 px-4 font-extrabold text-emerald-600">+{log.boarded}</td>
+                          <td className="py-3.5 px-4 font-extrabold text-red-500">-{log.departed}</td>
                         </tr>
                       ))}
                     </tbody>
                   </table>
                   {data.locationLogs.length > logLimit && (
-                    <button type="button" className="btn btn-light btn-sm w-100 py-2 mt-2 fw-bold text-primary rounded-3 text-uppercase tracking-wider" style={{ fontSize: '.72rem' }} onClick={() => setLogLimit((value) => (value === 10 ? data.locationLogs.length : 10))}>
+                    <button 
+                      type="button" 
+                      className="w-full py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 transition border-t border-slate-100 cursor-pointer uppercase tracking-wider" 
+                      onClick={() => setLogLimit((value) => (value === 10 ? data.locationLogs.length : 10))}
+                    >
                       {logLimit === 10 ? `See More (${data.locationLogs.length - 10})` : 'See Less'}
                     </button>
                   )}
                 </>
-              ) : renderEmptyState(<MapPinned size={18} className="text-primary" />, 'No location activity recorded yet')}
+              ) : renderEmptyState(<MapPinned size={20} className="text-blue-600" />, 'No location activity logs recorded yet')}
             </div>
           </div>
 
-          <div className="analytics-table-card">
-            <div className="analytics-section-head" style={{ padding: '20px 20px 0 20px' }}>
-              <div>
-                <div className="analytics-section-kicker">STATUS</div>
-                <h3 className="analytics-section-title"><History size={18} style={{ display: 'inline-block', marginRight: '6px' }} /> Recent Operations</h3>
-              </div>
+          {/* Recent Operations Table */}
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+            <div>
+              <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">History</span>
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 mt-0.5">
+                <History size={18} className="text-blue-600" /> Recent Operations
+              </h3>
             </div>
-            <div style={{ overflowX: 'auto' }}>
+
+            <div className="w-full overflow-x-auto rounded-2xl border border-slate-200">
               {data.recentOperations.length ? (
                 <>
-                  <table className="analytics-table">
+                  <table className="w-full border-collapse text-left text-xs">
                     <thead>
-                      <tr>
-                        <th>Bus</th>
-                        <th>Route</th>
-                        <th>Conductor</th>
-                        <th>Boarded</th>
-                        <th>Duration</th>
-                        <th>Status</th>
+                      <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                        <th className="py-3.5 px-4">Bus</th>
+                        <th className="py-3.5 px-4">Route</th>
+                        <th className="py-3.5 px-4">Conductor</th>
+                        <th className="py-3.5 px-4">Boarded</th>
+                        <th className="py-3.5 px-4">Duration</th>
+                        <th className="py-3.5 px-4">Status</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-slate-100">
                       {data.recentOperations.slice(0, recentLimit).map((operation, index) => {
                         const duration = operation.duration_min != null ? `${operation.duration_min} min` : '-';
                         return (
-                          <tr key={`${operation.bus_code}-${operation.route}-${operation.conductor_email}-${index}`}>
-                            <td style={{ fontWeight: 700 }}>{operation.bus_code}</td>
-                            <td>{operation.route}</td>
-                            <td>{conductorName(operation.conductor_email)}</td>
-                            <td style={{ fontWeight: 700, color: 'var(--primary-color)' }}>{operation.total_boarded.toLocaleString()}</td>
-                            <td>{duration}</td>
-                            <td><span className={`analytics-status ${operation.status}`}>{operation.status}</span></td>
+                          <tr key={`${operation.bus_code}-${operation.route}-${operation.conductor_email}-${index}`} className="hover:bg-slate-50/80 transition">
+                            <td className="py-3.5 px-4 font-bold text-slate-900">{operation.bus_code}</td>
+                            <td className="py-3.5 px-4 text-slate-700">{operation.route}</td>
+                            <td className="py-3.5 px-4 text-slate-700">{conductorName(operation.conductor_email)}</td>
+                            <td className="py-3.5 px-4 font-extrabold text-blue-700">{operation.total_boarded.toLocaleString()}</td>
+                            <td className="py-3.5 px-4 text-slate-600 font-medium">{duration}</td>
+                            <td className="py-3.5 px-4">
+                              <span className={`inline-flex items-center py-1 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                                operation.status === 'completed' 
+                                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+                                  : operation.status === 'active' 
+                                  ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                  : 'bg-amber-50 text-amber-700 border border-amber-200'
+                              }`}>
+                                {operation.status}
+                              </span>
+                            </td>
                           </tr>
                         );
                       })}
                     </tbody>
                   </table>
                   {data.recentOperations.length > recentLimit && (
-                    <button type="button" className="btn btn-light btn-sm w-100 py-2 mt-2 fw-bold text-primary rounded-3 text-uppercase tracking-wider" style={{ fontSize: '.72rem' }} onClick={() => setRecentLimit((value) => (value === 10 ? data.recentOperations.length : 10))}>
+                    <button 
+                      type="button" 
+                      className="w-full py-2.5 text-xs font-bold text-blue-600 hover:bg-blue-50 transition border-t border-slate-100 cursor-pointer uppercase tracking-wider" 
+                      onClick={() => setRecentLimit((value) => (value === 10 ? data.recentOperations.length : 10))}
+                    >
                       {recentLimit === 10 ? `See More (${data.recentOperations.length - 10})` : 'See Less'}
                     </button>
                   )}
                 </>
-              ) : renderEmptyState(<History size={18} className="text-primary" />, 'No operations recorded yet')}
+              ) : renderEmptyState(<History size={20} className="text-blue-600" />, 'No operations history recorded yet')}
             </div>
           </div>
-
         </>
       )}
       <AlertModal
