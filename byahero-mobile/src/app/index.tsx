@@ -5,13 +5,13 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   SafeAreaView,
   ScrollView,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -39,6 +39,45 @@ export default function LoginScreen() {
   const [loginSuccessVisible, setLoginSuccessVisible] = useState(false);
   const [loginUserName, setLoginUserName] = useState('');
 
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   useEffect(() => {
     getServerUrl().then(url => {
       setServerUrlState(url);
@@ -65,7 +104,7 @@ export default function LoginScreen() {
               'byahero_cached_profile_picture'
             ]);
             const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
-            Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
+            showAlert('Access Restricted', `You must use the ${targetApp}.`, 'warning');
           } else {
             // Restore backend session to re-hydrate cookies for /api/group/view and notifications
             try {
@@ -109,15 +148,15 @@ export default function LoginScreen() {
       const updatedUrl = await getServerUrl();
       setServerUrlState(updatedUrl);
       setIsDevModalVisible(false);
-      Alert.alert('Success', `Backend URL set to: ${updatedUrl}`);
+      showAlert('Success', `Backend URL set to: ${updatedUrl}`, 'success');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save server URL.');
+      showAlert('Error', 'Failed to save server URL.', 'error');
     }
   };
 
   const handleLogin = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Validation Error', 'Email and password are required.');
+      showAlert('Validation Error', 'Email and password are required.', 'warning');
       return;
     }
 
@@ -144,7 +183,7 @@ export default function LoginScreen() {
           'byahero_cached_profile_picture'
         ]);
         const targetApp = result.role === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
-        Alert.alert('Access Restricted', `You must use the ${targetApp}.`);
+        showAlert('Access Restricted', `You must use the ${targetApp}.`, 'warning');
       } else {
         const hasContacts = result.user?.contacts || '';
         const cachedName = await AsyncStorage.getItem('byahero_cached_name') || email;
@@ -168,7 +207,7 @@ export default function LoginScreen() {
       clearTimeout(timer);
       setIsLoading(false);
       setShowWarmingUpMsg(false);
-      Alert.alert('Authentication Failed', (error as any).message || 'Check network connection or configuration.');
+      showAlert('Authentication Failed', (error as any).message || 'Check network connection or configuration.', 'error');
     }
   };
 
@@ -230,19 +269,19 @@ export default function LoginScreen() {
           clearTimeout(timer);
           setIsLoading(false);
           setShowWarmingUpMsg(false);
-          Alert.alert('Authentication Error', 'Google authentication succeeded but no verification token was returned.');
+          showAlert('Authentication Error', 'Google authentication succeeded but no verification token was returned.', 'error');
         }
       } else {
         clearTimeout(timer);
         setIsLoading(false);
         setShowWarmingUpMsg(false);
-        Alert.alert('Authentication Failed', 'Google authentication was cancelled, blocked, or failed to complete.');
+        showAlert('Authentication Failed', 'Google authentication was cancelled, blocked, or failed to complete.', 'warning');
       }
     } catch (error) {
       clearTimeout(timer);
       setIsLoading(false);
       setShowWarmingUpMsg(false);
-      Alert.alert('Authentication Error', (error as any).message || 'Failed to authenticate via Google.');
+      showAlert('Authentication Error', (error as any).message || 'Failed to authenticate via Google.', 'error');
     }
   };
 
@@ -441,6 +480,14 @@ export default function LoginScreen() {
         </View>
       </Modal>
 
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

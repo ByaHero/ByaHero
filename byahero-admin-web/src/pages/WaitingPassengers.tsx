@@ -2,7 +2,8 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { Loader2, Users, RefreshCw, XCircle, MapPin, Filter } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { WaitingPassenger } from '../types';
-import { AlertManager } from '../components/WebAlert';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function WaitingPassengers() {
   const [waitingList, setWaitingList] = useState<WaitingPassenger[]>([]);
@@ -10,6 +11,7 @@ export default function WaitingPassengers() {
   const [refreshing, setRefreshing] = useState(false);
   const [countdown, setCountdown] = useState(30);
   const [filterLocation, setFilterLocation] = useState('All Stop Locations');
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   const fetchPassengers = async () => {
     try {
@@ -63,7 +65,7 @@ export default function WaitingPassengers() {
       } else {
         alert(data?.error || 'Failed to dismiss signals.');
       }
-    });
+    );
   };
 
   // Grouping / Location Counts
@@ -225,5 +227,13 @@ export default function WaitingPassengers() {
         )}
       </div>
     </div>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
   );
 }

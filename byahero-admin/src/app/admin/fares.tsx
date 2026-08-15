@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { apiRequest } from '@/services/api';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface Snapshot {
   snapshot_id: string;
@@ -41,6 +42,45 @@ export default function AdminFares() {
   const [flatAdjustAmount, setFlatAdjustAmount] = useState('1.00');
   const [flatAdjustType, setFlatAdjustType] = useState<'increase' | 'decrease'>('increase');
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -48,11 +88,11 @@ export default function AdminFares() {
       if (resData.success !== false) {
         setData(resData as FareData);
       } else {
-        Alert.alert('Error', resData.error || 'Failed to fetch data.');
+        showAlert('Error', resData.error || 'Failed to fetch data.', 'error');
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Network error while fetching data.');
+      showAlert('Error', 'Network error while fetching data.', 'error');
     } finally {
       setLoading(false);
     }
@@ -69,34 +109,29 @@ export default function AdminFares() {
         body: JSON.stringify({ action: actionName, ...bodyData })
       });
       if (res.success) {
-        Alert.alert('Success', res.message || 'Action successful.');
+        showAlert('Success', res.message || 'Action successful.', 'success');
         fetchData();
       } else {
-        Alert.alert('Error', res.error || 'Action failed.');
+        showAlert('Error', res.error || 'Action failed.', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Server connection failed.');
+      showAlert('Error', 'Server connection failed.', 'error');
     }
   };
 
   const confirmGenerateMatrix = () => {
-    Alert.alert(
+    showAlert(
       'Generate Matrix',
       'WARNING: This will instantly overwrite all rows with mathematical matrix calculations. Proceed?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Proceed', 
-          style: 'destructive',
-          onPress: () => handleAction('generate_matrix', { 
-            base_km: baseKm, 
-            reg_base: regBase, 
-            disc_base: discBase, 
-            reg_rate: regRate, 
-            disc_rate: discRate 
-          })
-        }
-      ]
+      'confirm',
+      () => handleAction('generate_matrix', { 
+        base_km: baseKm, 
+        reg_base: regBase, 
+        disc_base: discBase, 
+        reg_rate: regRate, 
+        disc_rate: discRate 
+      }),
+      () => {}
     );
   };
 
@@ -104,19 +139,14 @@ export default function AdminFares() {
     const isDecrease = flatAdjustType === 'decrease';
     const finalAmount = isDecrease ? `-${flatAdjustAmount}` : flatAdjustAmount;
 
-    Alert.alert(
+    showAlert(
       'Flat Fare Adjustment',
       `WARNING: This will instantly ${isDecrease ? 'reduce' : 'add'} ₱${flatAdjustAmount} ${isDecrease ? 'from' : 'to'} all fares (regular and discounted). Proceed?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Proceed', 
-          style: 'destructive',
-          onPress: () => handleAction('adjust_fares_flat', { 
-            amount: finalAmount 
-          })
-        }
-      ]
+      'confirm',
+      () => handleAction('adjust_fares_flat', { 
+        amount: finalAmount 
+      }),
+      () => {}
     );
   };
 
@@ -275,6 +305,14 @@ export default function AdminFares() {
           </View>
         </View>
       </ScrollView>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

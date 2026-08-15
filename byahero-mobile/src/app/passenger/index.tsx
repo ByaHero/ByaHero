@@ -7,13 +7,13 @@ import {
   TextInput,
   ScrollView,
   Platform,
-  Alert,
   Dimensions,
   Animated,
   Modal,
   NativeModules,
   DeviceEventEmitter,
 } from 'react-native';
+import AlertModal from '../../components/AlertModal';
 import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
@@ -48,6 +48,46 @@ const { LocationServiceModule } = NativeModules;
 const LOCATION_TASK_NAME = 'background-location-task';
 
 export default function PassengerDashboard() {
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
   const [menuVisible, setMenuVisible] = useState(false);
   const [activeTab, setActiveTab] = useState<'location' | 'sos' | 'info'>('location');
   const [sheetTab, setSheetTab] = useState<'location' | 'routes' | 'groups' | 'busstops'>('location');
@@ -200,9 +240,9 @@ export default function PassengerDashboard() {
         const data = await res.json();
         if (data.success && data.invite_code) {
           setInviteCode(data.invite_code);
-          if (reset) {
-            Alert.alert('New Code Generated', `Your new circle invite code is: ${data.invite_code}`);
-          }
+            if (reset) {
+              showAlert('New Code Generated', `Your new circle invite code is: ${data.invite_code}`, 'success');
+            }
         }
       }
     } catch (err) {
@@ -416,12 +456,12 @@ export default function PassengerDashboard() {
         }
       } else {
         if (!silent) {
-          Alert.alert('Error', data.message || 'Failed to update waiting status.');
+          showAlert('Error', data.message || 'Failed to update waiting status.', 'error');
         }
       }
     } catch (e) {
       if (!silent) {
-        Alert.alert('Error', 'Network error. Failed to set waiting status.');
+        showAlert('Error', 'Network error. Failed to set waiting status.', 'error');
       }
     } finally {
       setIsUpdatingWaiting(false);
@@ -461,12 +501,12 @@ export default function PassengerDashboard() {
         }
       } else {
         if (!silent) {
-          Alert.alert('Error', data.message || 'Failed to cancel waiting status.');
+          showAlert('Error', data.message || 'Failed to cancel waiting status.', 'error');
         }
       }
     } catch (e) {
       if (!silent) {
-        Alert.alert('Error', 'Network error. Failed to cancel waiting status.');
+        showAlert('Error', 'Network error. Failed to cancel waiting status.', 'error');
       }
     } finally {
       setIsUpdatingWaiting(false);
@@ -523,7 +563,7 @@ export default function PassengerDashboard() {
         zoom: 16
       });
     } else {
-      Alert.alert('Location Unavailable', `${friend.name || friend.email}'s location is currently unavailable.`);
+      showAlert('Location Unavailable', `${friend.name || friend.email}'s location is currently unavailable.`, 'warning');
     }
   }, [postToMap]);
 
@@ -533,7 +573,7 @@ export default function PassengerDashboard() {
 
   const handleJoinCircle = async () => {
     if (joinCode.trim().length !== 6) {
-      Alert.alert('Error', 'Invite code must be 6 alphanumeric characters.');
+      showAlert('Error', 'Invite code must be 6 alphanumeric characters.', 'warning');
       return;
     }
     try {
@@ -546,18 +586,18 @@ export default function PassengerDashboard() {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          Alert.alert('Success', data.message || `Successfully joined circle with code: ${joinCode}`);
+          showAlert('Success', data.message || `Successfully joined circle with code: ${joinCode}`, 'success');
           setJoinCode('');
           fetchGroupMembers(baseUrl);
         } else {
-          Alert.alert('Error', data.message || 'Failed to join circle.');
+          showAlert('Error', data.message || 'Failed to join circle.', 'error');
         }
       } else {
-        Alert.alert('Error', 'Server error joining circle.');
+        showAlert('Error', 'Server error joining circle.', 'error');
       }
     } catch (err) {
       console.error('Error joining circle:', err);
-      Alert.alert('Error', 'Network error joining circle.');
+      showAlert('Error', 'Network error joining circle.', 'error');
     }
   };
 
@@ -574,28 +614,34 @@ export default function PassengerDashboard() {
         if (res.ok) {
           const data = await res.json();
           if (data.success) {
-            Alert.alert('Success', data.message || `Successfully removed ${friendName} from circle.`);
+            showAlert('Success', data.message || `Successfully removed ${friendName} from circle.`, 'success');
             fetchGroupMembers(baseUrl);
           } else {
-            Alert.alert('Error', data.message || 'Failed to remove member.');
+            showAlert('Error', data.message || 'Failed to remove member.', 'error');
           }
         } else {
-          Alert.alert('Error', 'Server error removing member.');
+          showAlert('Error', 'Server error removing member.', 'error');
         }
       } catch (err) {
         console.error('Error removing member:', err);
-        Alert.alert('Error', 'Network error removing member.');
+        showAlert('Error', 'Network error removing member.', 'error');
       }
     };
 
-    Alert.alert(
-      'Remove Member',
-      `Are you sure you want to remove ${friendName} from your circle?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Remove', style: 'destructive', onPress: performRemove }
-      ]
-    );
+    if (Platform.OS === 'web') {
+      const confirm = window.confirm(`Are you sure you want to remove ${friendName} from your circle?`);
+      if (confirm) {
+        performRemove();
+      }
+    } else {
+      showAlert(
+        'Remove Member',
+        `Are you sure you want to remove ${friendName} from your circle?`,
+        'confirm',
+        performRemove,
+        () => {}
+      );
+    }
   };
 
   const handleTriggerSOS = () => {
@@ -603,7 +649,8 @@ export default function PassengerDashboard() {
       baseUrl,
       lat: userLocation ? userLocation.lat : null,
       lng: userLocation ? userLocation.lng : null,
-      promptMessage: 'Trigger Panic Alert? This will broadcast your live location to emergency contacts and nearby buses.'
+      promptMessage: 'Trigger Panic Alert? This will broadcast your live location to emergency contacts and nearby buses.',
+      showAlertFn: showAlert
     });
   };
 
@@ -809,6 +856,14 @@ export default function PassengerDashboard() {
           onReject={rejectDepart}
         />
       </View>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

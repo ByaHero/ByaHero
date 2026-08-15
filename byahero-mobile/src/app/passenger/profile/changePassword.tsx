@@ -6,14 +6,13 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
-  Modal,
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
+import AlertModal from '../../../components/AlertModal';
 
 export default function ChangePasswordScreen() {
   const [hasPassword, setHasPassword] = useState(true);
@@ -25,8 +24,39 @@ export default function ChangePasswordScreen() {
   const [secureNew, setSecureNew] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-  const [successMessage, setSuccessMessage] = useState('');
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+    });
+  };
 
   useEffect(() => {
     async function checkPasswordStatus() {
@@ -48,15 +78,15 @@ export default function ChangePasswordScreen() {
 
   const handleUpdatePassword = async () => {
     if (hasPassword && !currentPassword) {
-      setErrorMessage('Current password is required.');
+      showAlert('Validation Error', 'Current password is required.', 'error');
       return;
     }
     if (newPassword.length < 6) {
-      setErrorMessage('New password must be at least 6 characters.');
+      showAlert('Validation Error', 'New password must be at least 6 characters.', 'error');
       return;
     }
     if (newPassword !== confirmPassword) {
-      setErrorMessage('Passwords do not match.');
+      showAlert('Validation Error', 'Passwords do not match.', 'error');
       return;
     }
 
@@ -85,17 +115,19 @@ export default function ChangePasswordScreen() {
       setIsLoading(false);
       
       if (data && data.success) {
-        setSuccessMessage(data.message || 'Password updated successfully!');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setHasPassword(true);
+        showAlert('Success', data.message || 'Password updated successfully!', 'success', () => {
+          setCurrentPassword('');
+          setNewPassword('');
+          setConfirmPassword('');
+          setHasPassword(true);
+          router.back();
+        });
       } else {
-        setErrorMessage(data.error || 'Failed to update password.');
+        showAlert('Error', data.error || 'Failed to update password.', 'error');
       }
     } catch (err) {
       setIsLoading(false);
-      setErrorMessage('Failed to communicate with server.');
+      showAlert('Error', 'Failed to communicate with server.', 'error');
     }
   };
 
@@ -217,66 +249,13 @@ export default function ChangePasswordScreen() {
 
       <PassengerFooter activeTab="location" />
 
-      {/* Custom Error Modal */}
-      <Modal
-        visible={!!errorMessage}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setErrorMessage('')}
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
-          <View style={tw`w-full bg-white rounded-3xl p-6 shadow-xl items-center w-[85%]`}>
-            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
-              <MaterialIcons name="error-outline" size={40} color="#ef4444" />
-            </View>
-            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>
-              Error
-            </Text>
-            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-6`}>
-              {errorMessage}
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={() => setErrorMessage('')}
-              style={tw`bg-slate-100 py-3 px-8 rounded-full`}
-            >
-              <Text style={tw`text-sm font-bold text-slate-600`}>Dismiss</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Custom Success Modal */}
-      <Modal
-        visible={!!successMessage}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setSuccessMessage('')}
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
-          <View style={tw`w-full bg-white rounded-3xl p-6 shadow-xl items-center w-[85%]`}>
-            <View style={tw`w-16 h-16 rounded-full bg-emerald-100 items-center justify-center mb-4`}>
-              <MaterialIcons name="check-circle" size={40} color="#10b981" />
-            </View>
-            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>
-              Success
-            </Text>
-            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-6`}>
-              {successMessage}
-            </Text>
-            
-            <TouchableOpacity 
-              onPress={() => {
-                setSuccessMessage('');
-                router.back();
-              }}
-              style={tw`bg-[#10b981] py-3 px-8 rounded-full`}
-            >
-              <Text style={tw`text-sm font-bold text-white`}>Done</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </Modal>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+      />
 
     </SafeAreaView>
   );

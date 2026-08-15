@@ -2,12 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { Loader2, MessageSquare, Trash2, Star } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { Feedback } from '../types';
-import { AlertManager } from '../components/WebAlert';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function FeedbackPage() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   const fetchFeedbacks = async () => {
     try {
@@ -37,7 +39,7 @@ export default function FeedbackPage() {
       } else {
         alert(data.error || 'Failed to delete feedback.');
       }
-    });
+    );
   };
 
   return (
@@ -114,6 +116,14 @@ export default function FeedbackPage() {
           </table>
         </div>
       )}
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

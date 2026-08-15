@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, RefreshControl, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, RefreshControl, Modal } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface StaffMember {
   id: number;
@@ -32,6 +33,45 @@ export default function AdminConductors() {
   const [successModal, setSuccessModal] = useState({ visible: false, message: '', type: 'add' });
   const [deleteConfirmModal, setDeleteConfirmModal] = useState({ visible: false, id: 0, roleName: '', userEmail: '' });
 
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchStaff = async () => {
     try {
       const data = await adminService.listStaff();
@@ -42,7 +82,7 @@ export default function AdminConductors() {
       }
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to load staff list.');
+      showAlert('Error', 'Failed to load staff list.', 'error');
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -60,7 +100,7 @@ export default function AdminConductors() {
 
   const handleSave = async () => {
     if (!email.trim() || !password) {
-      Alert.alert('Error', 'Email and password are required.');
+      showAlert('Error', 'Email and password are required.', 'error');
       return;
     }
     setSaving(true);
@@ -76,10 +116,10 @@ export default function AdminConductors() {
         setPassword('');
         fetchStaff();
       } else {
-        Alert.alert('Error', data.error || 'Failed to add user.');
+        showAlert('Error', data.error || 'Failed to add user.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while adding user.');
+      showAlert('Error', 'Network error while adding user.', 'error');
     } finally {
       setSaving(false);
     }
@@ -98,10 +138,10 @@ export default function AdminConductors() {
         setSuccessModal({ visible: true, message: `${userEmail} has been deleted.`, type: 'delete' });
         fetchStaff();
       } else {
-        Alert.alert('Error', data.error || 'Failed to delete user.');
+        showAlert('Error', data.error || 'Failed to delete user.', 'error');
       }
     } catch (e) {
-      Alert.alert('Error', 'Network error while deleting user.');
+      showAlert('Error', 'Network error while deleting user.', 'error');
     }
   };
 
@@ -304,6 +344,14 @@ export default function AdminConductors() {
         </View>
 
       </ScrollView>
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

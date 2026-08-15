@@ -6,12 +6,12 @@ import {
   SafeAreaView,
   ScrollView,
   Platform,
-  Alert,
   Dimensions,
   Animated,
   PanResponder,
   Linking,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -45,6 +45,25 @@ export default function SOSScreen() {
   const [friends, setFriends] = useState<any[]>([]);
   const [loadingFriends, setLoadingFriends] = useState(true);
   const [isOffline, setIsOffline] = useState(false);
+
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean; title: string; message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void; onCancel?: () => void;
+  }>({ visible: false, title: '', message: '', type: 'error', onConfirm: () => {} });
+
+  const showAlert = (
+    title: string, message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void, onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
 
   // Countdown States
   const [showCountdown, setShowCountdown] = useState(false);
@@ -113,7 +132,7 @@ export default function SOSScreen() {
 
   const handleCall = (phone: string) => {
     Linking.openURL(`tel:${phone}`).catch(() => {
-      Alert.alert('Error', 'Unable to initiate call.');
+      showAlert('Error', 'Unable to initiate call.', 'error');
     });
   };
 
@@ -126,7 +145,8 @@ export default function SOSScreen() {
       locationText,
       lat: coords ? coords.lat : null,
       lng: coords ? coords.lng : null,
-      skipPrompt: true
+      skipPrompt: true,
+      showAlertFn: showAlert
     });
   };
 
@@ -447,6 +467,14 @@ export default function SOSScreen() {
           </View>
         </View>
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

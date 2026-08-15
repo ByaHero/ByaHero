@@ -6,9 +6,9 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
   ActivityIndicator,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -39,6 +39,25 @@ export default function FeedbackScreen() {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
 
+  // AlertModal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean; title: string; message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void; onCancel?: () => void;
+  }>({ visible: false, title: '', message: '', type: 'error', onConfirm: () => {} });
+
+  const showAlert = (
+    title: string, message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void, onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true, title, message, type,
+      onConfirm: () => { setAlertConfig(p => ({ ...p, visible: false })); if (onConfirm) onConfirm(); },
+      onCancel: onCancel ? () => { setAlertConfig(p => ({ ...p, visible: false })); onCancel(); } : undefined,
+    });
+  };
+
   useEffect(() => {
     async function loadInitialData() {
       const email = (await AsyncStorage.getItem('byahero_cached_email')) || 'Guest';
@@ -46,7 +65,7 @@ export default function FeedbackScreen() {
       setIsLoggedIn(loggedIn);
 
       if (!loggedIn) {
-        Alert.alert('Authentication Required', 'Please log in to submit or manage your feedback.');
+        showAlert('Authentication Required', 'Please log in to submit or manage your feedback.', 'warning');
         router.back();
         return;
       }
@@ -112,7 +131,7 @@ export default function FeedbackScreen() {
 
   const handleSubmit = async () => {
     if (rating === 0) {
-      Alert.alert('Validation Error', 'Please select a star rating.');
+      showAlert('Validation Error', 'Please select a star rating.', 'warning');
       return;
     }
 
@@ -140,7 +159,7 @@ export default function FeedbackScreen() {
         setExistingFeedback(updatedData);
         setIsEditing(false);
         await AsyncStorage.setItem('byahero_cached_user_feedback', JSON.stringify(updatedData));
-        Alert.alert('Success', existingFeedback ? 'Your feedback has been updated.' : 'Thank you for your feedback!');
+        showAlert('Success', existingFeedback ? 'Your feedback has been updated.' : 'Thank you for your feedback!', 'success');
       } else {
         await saveFeedbackOffline();
       }
@@ -167,24 +186,19 @@ export default function FeedbackScreen() {
       queue.push({ rating, feedback: feedback.trim(), timestamp: Date.now() });
       await AsyncStorage.setItem('byahero_pending_feedback', JSON.stringify(queue));
 
-      Alert.alert('Saved Locally', 'Feedback saved offline. It will sync automatically when back online.');
+      showAlert('Saved Locally', 'Feedback saved offline. It will sync automatically when back online.', 'info');
     } catch (e) {
       console.error(e);
     }
   };
 
   const handleDeletePrompt = () => {
-    Alert.alert(
+    showAlert(
       'Remove Feedback',
       'Are you sure you want to delete your feedback and rating?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: performDelete,
-        },
-      ]
+      'confirm',
+      performDelete,
+      () => {}
     );
   };
 
@@ -202,15 +216,15 @@ export default function FeedbackScreen() {
 
       if (data && data.success) {
         await clearLocalFeedbackState();
-        Alert.alert('Removed', 'Your feedback has been deleted.');
+        showAlert('Removed', 'Your feedback has been deleted.', 'success');
       } else {
         await clearLocalFeedbackState();
-        Alert.alert('Removed', 'Feedback removed locally.');
+        showAlert('Removed', 'Feedback removed locally.', 'info');
       }
     } catch (e) {
       setIsDeleting(false);
       await clearLocalFeedbackState();
-      Alert.alert('Removed', 'Feedback removed locally.');
+      showAlert('Removed', 'Feedback removed locally.', 'info');
     }
   };
 
@@ -398,6 +412,14 @@ export default function FeedbackScreen() {
           onClose={() => setActiveStep(null)}
         />
       )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

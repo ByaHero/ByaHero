@@ -6,8 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   TextInput,
-  Alert,
 } from 'react-native';
+import AlertModal from '../../../components/AlertModal';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -24,16 +24,57 @@ export default function LostAndFoundFormScreen() {
   const [selectedPhotos, setSelectedPhotos] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // AlertModal State
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel
+        ? () => {
+            setAlertConfig((prev) => ({ ...prev, visible: false }));
+            onCancel();
+          }
+        : undefined,
+    });
+  };
+
   const handlePickImage = async () => {
     if (selectedPhotos.length >= 2) {
-      Alert.alert('Limit Reached', 'You can only upload a maximum of 2 photos.');
+      showAlert('Limit Reached', 'You can only upload a maximum of 2 photos.', 'warning');
       return;
     }
 
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Please grant library permissions to select photos.');
+        showAlert('Permission Denied', 'Please grant library permissions to select photos.', 'warning');
         return;
       }
 
@@ -47,7 +88,7 @@ export default function LostAndFoundFormScreen() {
         setSelectedPhotos([...selectedPhotos, result.assets[0].uri]);
       }
     } catch (e) {
-      Alert.alert('Error', 'Failed to pick image.');
+      showAlert('Error', 'Failed to pick image.', 'error');
     }
   };
 
@@ -57,7 +98,7 @@ export default function LostAndFoundFormScreen() {
 
   const handleSubmitReport = async () => {
     if (!description.trim()) {
-      Alert.alert('Validation Error', 'Description is required.');
+      showAlert('Validation Error', 'Description is required.', 'warning');
       return;
     }
 
@@ -90,7 +131,7 @@ export default function LostAndFoundFormScreen() {
       setIsSubmitting(false);
 
       if (res.ok) {
-        Alert.alert('Success', 'Report successfully submitted to the server!');
+        showAlert('Success', 'Report successfully submitted to the server!', 'success');
         setDescription('');
         setBusNumber('');
         setSelectedPhotos([]);
@@ -111,15 +152,16 @@ export default function LostAndFoundFormScreen() {
         });
         await AsyncStorage.setItem('byahero_pending_lost_found', JSON.stringify(pending));
         
-        Alert.alert(
+        showAlert(
           'Saved Locally',
-          'Network connection issue. Report saved locally and queued for synchronization.'
+          'Network connection issue. Report saved locally and queued for synchronization.',
+          'info'
         );
         setDescription('');
         setBusNumber('');
         setSelectedPhotos([]);
       } catch (e) {
-        Alert.alert('Error', 'Failed to save report.');
+        showAlert('Error', 'Failed to save report.', 'error');
       }
     }
   };
@@ -255,6 +297,14 @@ export default function LostAndFoundFormScreen() {
       </ScrollView>
 
       <PassengerFooter activeTab="location" />
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

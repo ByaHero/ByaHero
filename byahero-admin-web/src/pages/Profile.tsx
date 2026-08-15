@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Save, User, Loader2, Key } from 'lucide-react';
 import { adminService } from '../services/admin';
+import AlertModal from '../components/AlertModal';
 
 interface ProfileProps {
   adminEmail: string;
@@ -14,6 +15,39 @@ export default function Profile({ adminEmail }: ProfileProps) {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
   const [savingPass, setSavingPass] = useState(false);
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type?: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void
+  ) => {
+    setAlertConfig({
+      isOpen: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, isOpen: false }));
+        if (onConfirm) onConfirm();
+      },
+    });
+  };
 
   useEffect(() => {
     const userStr = localStorage.getItem('byahero_admin_user');
@@ -40,12 +74,12 @@ export default function Profile({ adminEmail }: ProfileProps) {
           const parsed = JSON.parse(userStr);
           localStorage.setItem('byahero_admin_user', JSON.stringify({ ...parsed, name, contacts }));
         }
-        alert('Profile information updated successfully.');
+        showAlert('Success', 'Profile information updated successfully.', 'success');
       } else {
         alert(data?.error || 'Failed to update profile.');
       }
     } catch (e) {
-      alert('Network error while saving profile.');
+      showAlert('Error', 'Network error while saving profile.', 'error');
     } finally {
       setSavingProfile(false);
     }
@@ -54,7 +88,7 @@ export default function Profile({ adminEmail }: ProfileProps) {
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!password || password !== confirmPassword) {
-      alert('Passwords do not match.');
+      showAlert('Validation Error', 'Passwords do not match.', 'warning');
       return;
     }
 
@@ -69,12 +103,12 @@ export default function Profile({ adminEmail }: ProfileProps) {
       if (data && data.success) {
         setPassword('');
         setConfirmPassword('');
-        alert('Password changed successfully.');
+        showAlert('Success', 'Password changed successfully.', 'success');
       } else {
         alert(data?.error || 'Failed to change password.');
       }
     } catch (e) {
-      alert('Network error while changing password.');
+      showAlert('Error', 'Network error while changing password.', 'error');
     } finally {
       setSavingPass(false);
     }
@@ -186,6 +220,14 @@ export default function Profile({ adminEmail }: ProfileProps) {
           </button>
         </form>
       </div>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

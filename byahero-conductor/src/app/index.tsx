@@ -5,7 +5,6 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
   Modal,
   SafeAreaView,
   ScrollView,
@@ -18,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { login, getServerUrl, setServerUrl, preWarmServer } from '../services/authService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import AlertModal from '../components/AlertModal';
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -81,9 +81,19 @@ export default function LoginScreen() {
       const updatedUrl = await getServerUrl();
       setServerUrlState(updatedUrl);
       setIsDevModalVisible(false);
-      Alert.alert('Success', `Backend URL set to: ${updatedUrl}`);
+      setAuthModalConfig({
+        visible: true,
+        type: 'success',
+        title: 'Success',
+        message: `Backend URL set to: ${updatedUrl}`,
+      });
     } catch (error) {
-      Alert.alert('Error', 'Failed to save server URL.');
+      setAuthModalConfig({
+        visible: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Failed to save server URL.',
+      });
     }
   };
 
@@ -228,7 +238,12 @@ export default function LoginScreen() {
 
               {/* Forgot Password */}
               <TouchableOpacity
-                onPress={() => Alert.alert('Information', 'Please contact ByaHero Admin to request a password reset.')}
+                onPress={() => setAuthModalConfig({
+                  visible: true,
+                  type: 'info',
+                  title: 'Information',
+                  message: 'Please contact ByaHero Admin to request a password reset.'
+                })}
                 style={tw`self-start mb-6 ml-3`}
               >
                 <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>

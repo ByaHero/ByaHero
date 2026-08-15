@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Alert, Switch, Modal } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, SafeAreaView, ActivityIndicator, TextInput, Switch, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { apiRequest } from '@/services/api';
 import AdminNavbar from '@/components/AdminNavbar';
+import AlertModal from '@/components/AlertModal';
 
 interface ScheduleData {
   time_open: string;
@@ -98,40 +99,39 @@ const CustomTimePickerModal = ({ visible, onClose, value, onSelect, label }: any
 
             {/* Minute Column */}
             <View style={tw`items-center`}>
-              <TouchableOpacity onPress={() => setMinute(m => m >= 55 ? 0 : m + 5)} style={tw`p-2 bg-slate-100 rounded-full mb-2`}>
+              <TouchableOpacity onPress={() => setMinute(m => m === 59 ? 0 : m + 1)} style={tw`p-2 bg-slate-100 rounded-full mb-2`}>
                 <Ionicons name="chevron-up" size={24} color="#0f3878" />
               </TouchableOpacity>
               <View style={tw`bg-slate-50 border border-slate-200 rounded-xl w-16 h-16 items-center justify-center`}>
                 <Text style={tw`text-2xl font-black text-[#0f3878]`}>{minute < 10 ? `0${minute}` : minute}</Text>
               </View>
-              <TouchableOpacity onPress={() => setMinute(m => m <= 0 ? 55 : m - 5)} style={tw`p-2 bg-slate-100 rounded-full mt-2`}>
+              <TouchableOpacity onPress={() => setMinute(m => m === 0 ? 59 : m - 1)} style={tw`p-2 bg-slate-100 rounded-full mt-2`}>
                 <Ionicons name="chevron-down" size={24} color="#0f3878" />
               </TouchableOpacity>
             </View>
 
-            {/* AM/PM Toggle */}
-            <View style={tw`items-center justify-center ml-2`}>
-              <TouchableOpacity 
-                onPress={() => setPeriod('AM')}
-                style={tw`px-3 py-2 rounded-lg mb-2 w-14 items-center ${period === 'AM' ? 'bg-[#0f3878]' : 'bg-slate-100'}`}
-              >
-                <Text style={tw`font-bold ${period === 'AM' ? 'text-white' : 'text-slate-500'}`}>AM</Text>
+            <Text style={tw`text-3xl font-black text-[#0f3878] pb-10`}> </Text>
+
+            {/* Period Column */}
+            <View style={tw`items-center`}>
+              <TouchableOpacity onPress={() => setPeriod(p => p === 'AM' ? 'PM' : 'AM')} style={tw`p-2 bg-slate-100 rounded-full mb-2`}>
+                <Ionicons name="chevron-up" size={24} color="#0f3878" />
               </TouchableOpacity>
-              <TouchableOpacity 
-                onPress={() => setPeriod('PM')}
-                style={tw`px-3 py-2 rounded-lg w-14 items-center ${period === 'PM' ? 'bg-[#0f3878]' : 'bg-slate-100'}`}
-              >
-                <Text style={tw`font-bold ${period === 'PM' ? 'text-white' : 'text-slate-500'}`}>PM</Text>
+              <View style={tw`bg-slate-50 border border-slate-200 rounded-xl w-16 h-16 items-center justify-center`}>
+                <Text style={tw`text-2xl font-black text-[#0f3878]`}>{period}</Text>
+              </View>
+              <TouchableOpacity onPress={() => setPeriod(p => p === 'AM' ? 'PM' : 'AM')} style={tw`p-2 bg-slate-100 rounded-full mt-2`}>
+                <Ionicons name="chevron-down" size={24} color="#0f3878" />
               </TouchableOpacity>
             </View>
           </View>
 
-          <View style={tw`flex-row justify-between gap-3`}>
-            <TouchableOpacity onPress={onClose} style={tw`flex-1 py-3 bg-slate-200 rounded-full items-center`}>
-              <Text style={tw`font-bold text-slate-700`}>Cancel</Text>
+          <View style={tw`flex-row gap-3`}>
+            <TouchableOpacity onPress={onClose} style={tw`flex-1 py-3 bg-slate-100 rounded-full items-center`}>
+              <Text style={tw`text-slate-600 font-bold`}>Cancel</Text>
             </TouchableOpacity>
             <TouchableOpacity onPress={handleConfirm} style={tw`flex-1 py-3 bg-[#1d4ed8] rounded-full items-center`}>
-              <Text style={tw`font-bold text-white`}>Confirm</Text>
+              <Text style={tw`text-white font-bold`}>Confirm</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -171,8 +171,8 @@ const TimeInput = ({ value, onChange, placeholder, label }: any) => {
 
 export default function AdminSchedules() {
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   const [ltSchedule, setLtSchedule] = useState<ScheduleData>({
     time_open: '04:00:00',
@@ -188,14 +188,57 @@ export default function AdminSchedules() {
     suspend_message: ''
   });
 
+  // Modal pickers
+  const [activePicker, setActivePicker] = useState<{ type: 'open' | 'close', terminal: 'LT' | 'TL' } | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+
+  // Alert Modal state
+  const [alertConfig, setAlertConfig] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    onConfirm: () => void;
+    onCancel?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+    type: 'error',
+    onConfirm: () => {},
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    onConfirm?: () => void,
+    onCancel?: () => void
+  ) => {
+    setAlertConfig({
+      visible: true,
+      title,
+      message,
+      type,
+      onConfirm: () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        if (onConfirm) onConfirm();
+      },
+      onCancel: onCancel ? () => {
+        setAlertConfig((prev) => ({ ...prev, visible: false }));
+        onCancel();
+      } : undefined,
+    });
+  };
+
   const fetchSchedules = useCallback(async () => {
     try {
       const data = await apiRequest('/api/admin/schedules');
       if (data.success && data.schedules) {
         data.schedules.forEach((sch: any) => {
           const mappedData = {
-            time_open: sch.time_open || '00:00:00',
-            time_close: sch.time_close || '00:00:00',
+            time_open: sch.time_open || '05:00:00',
+            time_close: sch.time_close || '21:00:00',
             is_suspended: sch.is_suspended === 1 || sch.is_suspended === true,
             suspend_message: sch.suspend_message || ''
           };
@@ -209,7 +252,7 @@ export default function AdminSchedules() {
       }
     } catch (error) {
       console.error(error);
-      Alert.alert('Error', 'Failed to load schedules from the server.');
+      showAlert('Error', 'Failed to load schedules from the server.', 'error');
     } finally {
       setLoading(false);
     }
@@ -240,10 +283,10 @@ export default function AdminSchedules() {
       if (data.success) {
         setShowSuccessModal(true);
       } else {
-        Alert.alert('Error', data.message || 'Failed to update schedules.');
+        showAlert('Error', data.message || 'Failed to update schedules.', 'error');
       }
     } catch (error) {
-      Alert.alert('Error', 'Network error occurred while saving schedules.');
+      showAlert('Error', 'Network error occurred while saving schedules.', 'error');
     } finally {
       setSaving(false);
     }
@@ -380,8 +423,14 @@ export default function AdminSchedules() {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
-      )}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

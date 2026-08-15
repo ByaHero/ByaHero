@@ -4,11 +4,14 @@ import { adminService } from '../services/admin';
 import { Stop } from '../types';
 import Modal from '../components/Modal';
 import StopsMap from '../components/StopsMap';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Stops() {
   const [stops, setStops] = useState<Stop[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);
@@ -87,7 +90,7 @@ export default function Stops() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !latitude || !longitude) {
-      alert('Please fill out all required fields.');
+      showAlert('Validation Error', 'Please fill out all required fields.', 'error');
       return;
     }
 
@@ -117,7 +120,7 @@ export default function Stops() {
         alert(data?.error || 'Failed to save bus stop.');
       }
     } catch (e) {
-      alert('Network error while saving stop.');
+      showAlert('Network Error', 'Network error while saving stop.', 'error');
     } finally {
       setSaving(false);
     }
@@ -135,7 +138,7 @@ export default function Stops() {
         alert(data?.error || 'Failed to delete stop.');
       }
     } catch (e) {
-      alert('Network error while deleting stop.');
+      showAlert('Network Error', 'Network error while deleting stop.', 'error');
     } finally {
       setSaving(false);
     }
@@ -408,6 +411,14 @@ export default function Stops() {
           </div>
         </div>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }

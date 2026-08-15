@@ -3,11 +3,14 @@ import { Edit2, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { IncidentReport } from '../types';
 import Modal from '../components/Modal';
+import AlertModal from '../components/AlertModal';
+import { useAlertModal } from '../hooks/useAlertModal';
 
 export default function Reports() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const { alertConfig, showAlert } = useAlertModal();
 
   // Modals
   const [isResolveOpen, setIsResolveOpen] = useState(false);
@@ -56,7 +59,7 @@ export default function Reports() {
         alert(data?.error || 'Failed to update report status.');
       }
     } catch (e) {
-      alert('Network error while updating report.');
+      showAlert('Network Error', 'Network error while updating report.', 'error');
     } finally {
       setSaving(false);
     }
@@ -189,6 +192,14 @@ export default function Reports() {
           </div>
         </form>
       </Modal>
+      <AlertModal
+        isOpen={alertConfig.isOpen}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </div>
   );
 }
