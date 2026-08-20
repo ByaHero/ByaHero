@@ -1153,84 +1153,98 @@ export default function LiveTrackingScreen() {
               { transform: [{ translateY: slideAnim }] }
             ]}
           >
-            {/* Ticket Header */}
-            <View style={tw`bg-blue-600 p-6 items-center`}>
-              <Image 
-                source={require('../../assets/images/byaheroLogoBlue.svg')} 
-                style={tw`w-12 h-12 mb-1`} 
-                contentFit="contain" 
-              />
-              <Image 
-                source={require('../../assets/images/ByaHero.svg')} 
-                style={tw`w-24 h-6 mb-3`} 
-                contentFit="contain" 
-              />
-              <Text style={tw`text-blue-200 text-xs font-bold uppercase tracking-widest`}>E-Ticket Receipt</Text>
-              <Text style={tw`text-white text-sm font-black mt-2 tracking-widest`}>TKT-{issuedTicket.ticketNumber}</Text>
-            </View>
-
-            {/* Ticket Details */}
-            <View style={tw`p-6 bg-white relative`}>
+            {/* Thermal Receipt Style Ticket */}
+            <View style={tw`bg-white p-6 relative`}>
               {/* Jagged edge overlay simulation */}
               <View style={tw`absolute -top-3 left-0 right-0 flex-row justify-between px-2`}>
                 {Array.from({length: 20}).map((_, i) => (
-                  <View key={i} style={tw`w-3 h-3 bg-blue-600 rounded-full`} />
+                  <View key={i} style={tw`w-3 h-3 bg-white rounded-full border-t border-slate-200`} />
                 ))}
               </View>
 
-              <View style={tw`w-full border-b border-dashed border-slate-300 pb-5 mb-5 mt-2`}>
-                <View style={tw`flex-row justify-between mb-3`}>
-                  <Text style={tw`text-slate-500 font-bold text-xs uppercase`}>Passenger Breakdown</Text>
+              <View style={tw`items-center mb-6`}>
+                <Text style={tw`font-mono text-slate-800 text-[11px] mb-1`}>
+                  {issuedTicket.busNumber} {issuedTicket.ticketNumber}
+                </Text>
+                <Text style={tw`font-mono text-slate-800 text-sm mb-1`}>
+                  {receiptConfig?.company_name || 'ByaHero Transport'}
+                </Text>
+                <Text style={tw`font-mono text-slate-800 text-[13px] font-bold mb-1`}>
+                  Fare Payment
+                </Text>
+                <Text style={tw`font-mono text-slate-800 text-[11px]`}>
+                  {issuedTicket.date}
+                </Text>
+              </View>
+
+              <View style={tw`flex-col gap-2 mb-6`}>
+                <View style={tw`flex-row justify-between`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Route:</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>{session?.route || 'Unknown'}</Text>
                 </View>
+                <View style={tw`flex-row justify-between`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Board At:</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>{issuedTicket.boarding}</Text>
+                </View>
+                <View style={tw`flex-row justify-between`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Alight At:</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>{issuedTicket.alighting}</Text>
+                </View>
+
                 {issuedTicket.quantity === 1 ? (
-                  <View style={tw`flex-row justify-between mb-2`}>
-                    <Text style={tw`text-slate-700 font-medium`}>{issuedTicket.discount} Fare</Text>
-                    <Text style={tw`text-slate-800 font-bold`}>₱{issuedTicket.fare.toFixed(2)}</Text>
-                  </View>
+                  <>
+                    <View style={tw`flex-row justify-between`}>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>Fare Type:</Text>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>{issuedTicket.discount}</Text>
+                    </View>
+                    <View style={tw`flex-row justify-between`}>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>Fare Amount:</Text>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>P{issuedTicket.fare.toFixed(2)}</Text>
+                    </View>
+                  </>
                 ) : (
-                  ['Regular', 'Student', 'Senior', 'PWD'].map(type => {
-                    const count = issuedTicket.breakdown?.[type] || 0;
-                    if (count === 0) return null;
-                    const fareType = type === 'Regular' ? issuedTicket.baseRegularFare : issuedTicket.baseDiscountedFare;
-                    return (
-                      <View key={type} style={tw`flex-row justify-between mb-2`}>
-                        <Text style={tw`text-slate-700 font-medium`}>{count}x {type} Fare</Text>
-                        <Text style={tw`text-slate-800 font-bold`}>₱{(count * fareType).toFixed(2)}</Text>
+                  <>
+                    <View style={tw`flex-row justify-between`}>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>Fare Types:</Text>
+                      <View style={tw`items-end`}>
+                        {['Regular', 'Student', 'Senior', 'PWD'].map(type => {
+                          const count = issuedTicket.breakdown?.[type] || 0;
+                          if (count === 0) return null;
+                          return <Text key={type} style={tw`font-mono text-slate-800 text-[13px]`}>{count}x {type}</Text>;
+                        })}
                       </View>
-                    );
-                  })
+                    </View>
+                    <View style={tw`flex-row justify-between`}>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>Fare Amount:</Text>
+                      <Text style={tw`font-mono text-slate-800 text-[13px]`}>P{issuedTicket.fare.toFixed(2)}</Text>
+                    </View>
+                  </>
                 )}
-                
-                <View style={tw`flex-row justify-between mt-4 pt-4 border-t border-slate-200`}>
-                  <Text style={tw`text-slate-800 font-black text-lg uppercase`}>Total Paid</Text>
-                  <Text style={tw`text-blue-600 font-black text-2xl`}>₱{issuedTicket.fare.toFixed(2)}</Text>
+              </View>
+
+              <View style={tw`flex-col gap-2 mb-8`}>
+                <View style={tw`flex-row justify-between`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Payment:</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Cash</Text>
+                </View>
+                <View style={tw`flex-row justify-between`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Service Fee:</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>P0.00</Text>
+                </View>
+                <View style={tw`flex-row justify-between mt-2`}>
+                  <Text style={tw`font-mono text-slate-800 text-[13px]`}>Total Amount</Text>
+                  <Text style={tw`font-mono text-slate-800 text-[18px] font-bold tracking-widest`}>P{issuedTicket.fare.toFixed(2)}</Text>
                 </View>
               </View>
 
-              <View style={tw`flex-row justify-between mb-4`}>
-                <View>
-                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Boarding</Text>
-                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.boarding}</Text>
-                </View>
-                <View style={tw`items-end`}>
-                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Alighting</Text>
-                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.alighting}</Text>
-                </View>
-              </View>
-
-              <View style={tw`flex-row justify-between mb-6`}>
-                <View>
-                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Bus Number</Text>
-                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.busNumber}</Text>
-                </View>
-                <View style={tw`items-end`}>
-                  <Text style={tw`text-xs font-bold text-slate-400 uppercase mb-1`}>Date & Time</Text>
-                  <Text style={tw`text-sm font-bold text-slate-800`}>{issuedTicket.date}</Text>
-                </View>
+              <View style={tw`items-center`}>
+                <Text style={tw`font-mono text-slate-800 text-[11px]`}>
+                  {session?.code || 'MTC T013'}
+                </Text>
               </View>
 
               {/* Close / Print Button */}
-              <View style={tw`flex-row gap-3`}>
+              <View style={tw`flex-row gap-3 mt-6`}>
                 <TouchableOpacity
                   onPress={closeReceipt}
                   style={tw`flex-1 bg-slate-100 rounded-full py-4 items-center justify-center`}
