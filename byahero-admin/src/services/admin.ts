@@ -135,4 +135,11 @@ export const adminService = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+
+  // Receipt Config
+  getReceiptConfig: () => apiRequest('/api/admin/receipt-config'),
+  saveReceiptConfig: (data: any) => apiRequest('/api/admin/receipt-config', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
 };

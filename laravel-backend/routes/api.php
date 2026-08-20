@@ -86,6 +86,10 @@ Route::middleware([
     Route::post('/admin/ai/train', [AdminController::class, 'trainAiModel']);
     Route::get('/admin/ai/stats', [AdminController::class, 'getAiStats']);
     
+    // Receipt Config
+    Route::get('/admin/receipt-config', [AdminController::class, 'getReceiptConfig']);
+    Route::post('/admin/receipt-config', [AdminController::class, 'saveReceiptConfig']);
+    
     // Missing Admin Modules
     Route::get('/admin/fares', [AdminController::class, 'listFares']);
     Route::post('/admin/fares', [AdminController::class, 'manageFares']);
@@ -105,6 +109,7 @@ Route::middleware([
     Route::match(['get', 'post'], '/conductor/profile', [ConductorController::class, 'updateProfile']);
     Route::get('/conductor/waiting-passengers', [ConductorController::class, 'getWaitingPassengers']);
     Route::get('/conductor/history', [ConductorController::class, 'getHistory']);
+    Route::get('/conductor/receipt-config', [ConductorController::class, 'getReceiptConfig']);
 
     // Passenger profile routes
     Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);

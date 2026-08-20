@@ -14,7 +14,7 @@ use App\Models\BusStopsTerminal;
 use App\Models\BusSchedule;
 use App\Models\Feedback;
 use App\Models\Admin;
-
+use App\Models\SystemSetting;
 class AdminController extends Controller
 {
     private function checkAuth()
@@ -1224,6 +1224,62 @@ class AdminController extends Controller
                 'routes' => $avgSpeeds,
                 'hourly_speeds' => $hourlySpeeds
             ]
+        ]);
+    }
+
+    // --- RECEIPT CONFIGURATION ---
+    public function getReceiptConfig(Request $request)
+    {
+        $this->checkAuth();
+
+        $keys = ['receipt_company_name', 'receipt_tin_number', 'receipt_header_message', 'receipt_footer_message'];
+        
+        $settings = [];
+        try {
+            $settings = SystemSetting::whereIn('setting_key', $keys)->pluck('setting_value', 'setting_key')->toArray();
+        } catch (\Exception $e) {
+            // In case table doesn't exist yet, return defaults
+        }
+
+        return response()->json([
+            'success' => true,
+            'config' => [
+                'company_name' => $settings['receipt_company_name'] ?? 'ByaHero Transit',
+                'tin_number' => $settings['receipt_tin_number'] ?? '000-000-000-000',
+                'header_message' => $settings['receipt_header_message'] ?? 'Welcome aboard!',
+                'footer_message' => $settings['receipt_footer_message'] ?? 'Thank you for riding with us!',
+            ]
+        ]);
+    }
+
+    public function saveReceiptConfig(Request $request)
+    {
+        $this->checkAuth();
+        
+        $data = [
+            'receipt_company_name' => $request->input('company_name', 'ByaHero Transit'),
+            'receipt_tin_number' => $request->input('tin_number', '000-000-000-000'),
+            'receipt_header_message' => $request->input('header_message', 'Welcome aboard!'),
+            'receipt_footer_message' => $request->input('footer_message', 'Thank you for riding with us!'),
+        ];
+
+        try {
+            foreach ($data as $key => $value) {
+                SystemSetting::updateOrCreate(
+                    ['setting_key' => $key],
+                    ['setting_value' => $value]
+                );
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Database error. Make sure migrations are run.'
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Receipt configuration saved successfully.'
         ]);
     }
 }
