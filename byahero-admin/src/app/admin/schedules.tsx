@@ -423,6 +423,9 @@ export default function AdminSchedules() {
               </TouchableOpacity>
             </View>
           </View>
+        </ScrollView>
+      )}
+
       <AlertModal
         visible={alertConfig.visible}
         title={alertConfig.title}

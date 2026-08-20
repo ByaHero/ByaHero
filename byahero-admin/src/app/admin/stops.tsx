@@ -560,6 +560,8 @@ export default function AdminStops() {
             </View>
           </View>
         </ScrollView>
+      )}
+
       <AlertModal
         visible={alertConfig.visible}
         title={alertConfig.title}

@@ -152,3 +152,10 @@ export async function getSyncData() {
 export async function getOperationHistory() {
   return safeRequest('api/conductor/history');
 }
+
+/**
+ * Fetches receipt configuration (header, footer, etc.) for PT-210 portable printer.
+ */
+export async function getReceiptConfig() {
+  return safeRequest('api/conductor/receipt-config');
+}

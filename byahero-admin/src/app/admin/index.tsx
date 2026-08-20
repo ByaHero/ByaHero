@@ -117,6 +117,12 @@ export default function AdminDashboard() {
         { label: 'Bus Fares', count: stats.bus_fares, route: '/admin/fares', action: 'Manage' },
         { label: 'Analytics (Boarded)', count: stats.analytics_boarded || 0, route: '/admin/analytics', action: 'View' },
       ],
+    },
+    {
+      title: 'System Configuration',
+      items: [
+        { label: 'Receipt Format', count: 'PT-210', route: '/admin/receipts', action: 'Configure' },
+      ],
     }
   ];
 

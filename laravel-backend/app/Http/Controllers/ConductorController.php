@@ -13,6 +13,7 @@ use App\Models\Bus;
 use App\Models\BusOperation;
 use App\Models\PassengerEvent;
 use App\Models\PassengerRide;
+use App\Models\SystemSetting;
 
 class ConductorController extends Controller
 {
@@ -521,6 +522,30 @@ class ConductorController extends Controller
         return response()->json([
             'success' => true,
             'history' => $history
+        ]);
+    }
+
+    public function getReceiptConfig(Request $request)
+    {
+        $this->checkAuth();
+
+        $keys = ['receipt_company_name', 'receipt_tin_number', 'receipt_header_message', 'receipt_footer_message'];
+        
+        $settings = [];
+        try {
+            $settings = SystemSetting::whereIn('setting_key', $keys)->pluck('setting_value', 'setting_key')->toArray();
+        } catch (\Exception $e) {
+            // In case table doesn't exist yet, return defaults
+        }
+
+        return response()->json([
+            'success' => true,
+            'config' => [
+                'company_name' => $settings['receipt_company_name'] ?? 'ByaHero Transit',
+                'tin_number' => $settings['receipt_tin_number'] ?? '000-000-000-000',
+                'header_message' => $settings['receipt_header_message'] ?? 'Welcome aboard!',
+                'footer_message' => $settings['receipt_footer_message'] ?? 'Thank you for riding with us!',
+            ]
         ]);
     }
 }
