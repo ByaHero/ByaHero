@@ -31,6 +31,7 @@ import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
+import { usePrinter } from '../hooks/usePrinter';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -90,8 +91,7 @@ export default function LiveTrackingScreen() {
   const [ticketCounter, setTicketCounter] = useState(1);
 
   // Printer States
-  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
-  const [printerStatus, setPrinterStatus] = useState<'disconnected'|'scanning'|'pairing'|'connected'>('disconnected');
+  const printer = usePrinter();
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
 
@@ -808,7 +808,7 @@ export default function LiveTrackingScreen() {
   };
 
   const openPrinterSetup = async () => {
-    setIsPrinterModalVisible(true);
+    // Already setup in dashboard, just fetch config if missing
     if (!receiptConfig) {
       try {
         const res = await getReceiptConfig();
@@ -821,18 +821,18 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const simulatePrint = () => {
-    if (printerStatus !== 'connected') {
-      showAlert('Printer Not Connected', 'Please connect the PT-210 printer first in Printer Setup.', 'warning');
-      return;
-    }
-    
+  const executePrint = async () => {
     setIsPrinting(true);
-    setTimeout(() => {
-      setIsPrinting(false);
+    try {
+      await printer.printReceipt(issuedTicket, receiptConfig);
       showAlert('Print Successful', 'Ticket has been printed via PT-210.', 'success');
       closeReceipt();
-    }, 2000);
+    } catch (e: any) {
+      console.error(e);
+      showAlert('Print Error', e.message || 'Failed to print receipt.', 'error');
+    } finally {
+      setIsPrinting(false);
+    }
   };
 
   return (
@@ -927,13 +927,13 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
         )}
 
-        {/* PRINTER SETUP BUTTON */}
+        {/* PRINTER CONFIG RELOAD */}
         <TouchableOpacity
           onPress={openPrinterSetup}
           style={tw`bg-slate-800 rounded-full py-4 items-center justify-center shadow-md mb-4 flex-row`}
         >
-          <Ionicons name="print-outline" size={20} color="white" style={tw`mr-2`} />
-          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Printer Setup</Text>
+          <Ionicons name="receipt-outline" size={20} color="white" style={tw`mr-2`} />
+          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Reload Receipt Config</Text>
         </TouchableOpacity>
 
         {/* STOP BUTTON */}
@@ -1253,7 +1253,7 @@ export default function LiveTrackingScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={simulatePrint}
+                  onPress={executePrint}
                   disabled={isPrinting}
                   style={tw`flex-1 bg-blue-600 rounded-full py-4 items-center justify-center flex-row`}
                 >
@@ -1350,87 +1350,7 @@ export default function LiveTrackingScreen() {
         </View>
       </Modal>
 
-      {/* Printer Setup Modal */}
-      <Modal
-        visible={isPrinterModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsPrinterModalVisible(false)}
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
-          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
-            <TouchableOpacity
-              onPress={() => setIsPrinterModalVisible(false)}
-              style={tw`absolute top-4 right-4 p-1 z-10`}
-            >
-              <Ionicons name="close" size={20} color="#94a3b8" />
-            </TouchableOpacity>
 
-            <View style={tw`w-16 h-16 rounded-full bg-slate-100 items-center justify-center mb-4`}>
-              <Ionicons name="print" size={32} color={printerStatus === 'connected' ? "#16a34a" : "#64748b"} />
-            </View>
-
-            <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
-              Printer Setup
-            </Text>
-            
-            {printerStatus === 'disconnected' && (
-              <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-6`}>
-                Connect to PT-210 portable thermal printer. Make sure Bluetooth is enabled.
-              </Text>
-            )}
-            
-            {printerStatus === 'scanning' && (
-              <View style={tw`items-center mb-6`}>
-                <ActivityIndicator size="small" color="#3b82f6" />
-                <Text style={tw`text-xs text-slate-500 mt-2`}>Scanning for PT-210...</Text>
-              </View>
-            )}
-
-            {printerStatus === 'pairing' && (
-              <View style={tw`items-center mb-6`}>
-                <ActivityIndicator size="small" color="#3b82f6" />
-                <Text style={tw`text-xs text-slate-500 mt-2`}>Pairing with PT-210...</Text>
-              </View>
-            )}
-
-            {printerStatus === 'connected' && (
-              <View style={tw`items-center mb-6`}>
-                <Text style={tw`text-green-600 font-bold mb-1`}>Connected to PT-210</Text>
-                {receiptConfig && (
-                  <View style={tw`bg-slate-50 p-2 rounded-lg mt-2 w-full border border-slate-200`}>
-                    <Text style={tw`text-[10px] text-center text-slate-500 mb-1 uppercase font-bold`}>Active Configuration</Text>
-                    <Text style={tw`text-xs text-center text-slate-800 font-medium`}>{receiptConfig.company_name}</Text>
-                    <Text style={tw`text-[10px] text-center text-slate-500`}>TIN: {receiptConfig.tin_number}</Text>
-                  </View>
-                )}
-              </View>
-            )}
-
-            <View style={tw`w-full`}>
-              {printerStatus === 'disconnected' ? (
-                <TouchableOpacity
-                  onPress={() => {
-                    setPrinterStatus('scanning');
-                    setTimeout(() => setPrinterStatus('pairing'), 1500);
-                    setTimeout(() => setPrinterStatus('connected'), 3000);
-                  }}
-                  style={tw`w-full bg-blue-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
-                >
-                  <Text style={tw`text-white font-bold text-sm`}>Scan & Connect</Text>
-                </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  onPress={() => setPrinterStatus('disconnected')}
-                  style={tw`w-full bg-slate-200 py-3.5 rounded-2xl items-center justify-center`}
-                >
-                  <Text style={tw`text-slate-700 font-bold text-sm`}>Disconnect</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       {/* Tour Overlay */}
       {activeStep !== null && (

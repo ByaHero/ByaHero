@@ -27,6 +27,8 @@ import { getBusesConductor, getActiveBuses, startOperation } from '../services/c
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
+import { usePrinter } from '../hooks/usePrinter';
+import PrinterModal from '../components/PrinterModal';
 
 export default function DashboardScreen() {
   const [buses, setBuses] = useState<any[]>([]);
@@ -42,6 +44,8 @@ export default function DashboardScreen() {
   const [isRouteDropdownOpen, setIsRouteDropdownOpen] = useState(false);
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isLocationInstructionModalVisible, setIsLocationInstructionModalVisible] = useState(false);
+  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
+  const printer = usePrinter();
 
   // Map filter
   const [currentFilter, setCurrentFilter] = useState('ALL ROUTES');
@@ -247,6 +251,11 @@ export default function DashboardScreen() {
       showAlert('Selection Required', 'Please select a transit route.', 'warning');
       return;
     }
+    if (!printer.connectedPrinter) {
+      showAlert('Printer Required', 'Please connect a Bluetooth printer before starting tracking.', 'warning');
+      setIsPrinterModalVisible(true);
+      return;
+    }
 
     // Step 1: Request foreground location permission
     const { status } = await Location.requestForegroundPermissionsAsync();
@@ -415,6 +424,23 @@ export default function DashboardScreen() {
                 <Ionicons name="caret-down" size={16} color="#1e293b" />
               </TouchableOpacity>
             </View>
+          </View>
+
+          {/* Bluetooth Printer Setup */}
+          <View style={tw`mb-8`}>
+            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>BLUETOOTH PRINTER</Text>
+            <TouchableOpacity
+              onPress={() => setIsPrinterModalVisible(true)}
+              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
+            >
+              <View style={tw`flex-row items-center`}>
+                <Ionicons name="print-outline" size={18} color={printer.connectedPrinter ? '#3b82f6' : '#64748b'} style={tw`mr-2`} />
+                <Text style={tw`text-sm font-bold ${printer.connectedPrinter ? 'text-blue-600' : 'text-slate-900'}`}>
+                  {printer.connectedPrinter ? printer.connectedPrinter.name || 'Printer Connected' : 'Connect Printer'}
+                </Text>
+              </View>
+              <Ionicons name={printer.connectedPrinter ? "checkmark-circle" : "chevron-forward"} size={20} color={printer.connectedPrinter ? "#3b82f6" : "#cbd5e1"} />
+            </TouchableOpacity>
           </View>
 
           {/* Start Tracking Button */}
@@ -640,6 +666,20 @@ export default function DashboardScreen() {
           </View>
         </View>
       </Modal>
+
+      <PrinterModal 
+        visible={isPrinterModalVisible}
+        onClose={() => setIsPrinterModalVisible(false)}
+        devices={printer.devices}
+        pairedDevices={printer.pairedDevices}
+        isScanning={printer.isScanning}
+        onScan={printer.scanDevices}
+        onConnect={(device) => {
+          printer.connectPrinter(device);
+          setIsPrinterModalVisible(false);
+        }}
+        connectedPrinter={printer.connectedPrinter}
+      />
 
       {/* Tour Overlay */}
       {activeStep !== null && (

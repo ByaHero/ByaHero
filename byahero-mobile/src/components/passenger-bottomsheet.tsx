@@ -43,6 +43,7 @@ interface PassengerBottomSheetProps {
   handleRemoveCircleMember: (friendId: number, name: string) => void;
   handleFriendPress?: (friend: any) => void;
   activeStep?: number | null;
+  setActiveStep?: (step: number | null) => void;
   menuVisible: boolean;
   isBoarded?: boolean;
   boardedBus?: string;
