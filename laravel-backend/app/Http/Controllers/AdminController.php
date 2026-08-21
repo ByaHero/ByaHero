@@ -1232,7 +1232,7 @@ class AdminController extends Controller
     {
         $this->checkAuth();
 
-        $keys = ['receipt_company_name', 'receipt_tin_number', 'receipt_header_message', 'receipt_footer_message'];
+        $keys = ['receipt_company_name', 'receipt_client_name', 'receipt_tin_number', 'receipt_header_message', 'receipt_footer_message'];
         
         $settings = [];
         try {
@@ -1245,6 +1245,7 @@ class AdminController extends Controller
             'success' => true,
             'config' => [
                 'company_name' => $settings['receipt_company_name'] ?? 'ByaHero Transit',
+                'client_name' => $settings['receipt_client_name'] ?? '',
                 'tin_number' => $settings['receipt_tin_number'] ?? '000-000-000-000',
                 'header_message' => $settings['receipt_header_message'] ?? 'Welcome aboard!',
                 'footer_message' => $settings['receipt_footer_message'] ?? 'Thank you for riding with us!',
@@ -1258,6 +1259,7 @@ class AdminController extends Controller
         
         $data = [
             'receipt_company_name' => $request->input('company_name', 'ByaHero Transit'),
+            'receipt_client_name' => $request->input('client_name', ''),
             'receipt_tin_number' => $request->input('tin_number', '000-000-000-000'),
             'receipt_header_message' => $request->input('header_message', 'Welcome aboard!'),
             'receipt_footer_message' => $request->input('footer_message', 'Thank you for riding with us!'),

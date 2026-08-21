@@ -5,12 +5,29 @@ import { adminService } from '@/services/admin';
 import AdminNavbar from '@/components/AdminNavbar';
 import AlertModal from '@/components/AlertModal';
 import { Ionicons } from '@expo/vector-icons';
+import PrinterModal from '@/components/PrinterModal';
+import { usePrinter } from '@/hooks/usePrinter';
 
 export default function AdminReceiptConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
   const [companyName, setCompanyName] = useState('ByaHero Transit');
+  const [clientName, setClientName] = useState('');
+  
+  // Web Bluetooth state
+  const [isPrinterConnected, setIsPrinterConnected] = useState(false);
+  const [bleDevice, setBleDevice] = useState<any>(null);
+  const [bleCharacteristic, setBleCharacteristic] = useState<any>(null);
+
+  // Native Printer state
+  const printer = usePrinter();
+  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
+  const isNativePrinterConnected = !!printer.connectedPrinter;
+  
+  const isPrinterReady = Platform.OS === 'web' ? isPrinterConnected : isNativePrinterConnected;
+
+  const [sampleFare, setSampleFare] = useState<{origin: string, destination: string, regular_fare: number} | null>(null);
   const [tinNumber, setTinNumber] = useState('000-000-000-000');
   const [headerMessage, setHeaderMessage] = useState('Welcome aboard!');
   const [footerMessage, setFooterMessage] = useState('Thank you for riding with us!');
@@ -46,9 +63,25 @@ export default function AdminReceiptConfig() {
       const res = await adminService.getReceiptConfig();
       if (res.success && res.config) {
         setCompanyName(res.config.company_name || '');
+        setClientName(res.config.client_name || '');
         setTinNumber(res.config.tin_number || '');
         setHeaderMessage(res.config.header_message || '');
         setFooterMessage(res.config.footer_message || '');
+      }
+      
+      // Fetch fare guide for sample
+      try {
+        const fareRes = await adminService.listFares();
+        if (fareRes.success && fareRes.fares && fareRes.fares.length > 0) {
+          const fare = fareRes.fares[0];
+          setSampleFare({
+            origin: fare.origin_name || 'TANAUAN',
+            destination: fare.stop_name || fare.destination_name || 'LAUREL',
+            regular_fare: fare.regular_fare || 25
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load fares for preview', e);
       }
     } catch (e) {
       console.error('Failed to fetch receipt config', e);
@@ -67,6 +100,7 @@ export default function AdminReceiptConfig() {
     try {
       const data = {
         company_name: companyName,
+        client_name: clientName,
         tin_number: tinNumber,
         header_message: headerMessage,
         footer_message: footerMessage,
@@ -86,10 +120,146 @@ export default function AdminReceiptConfig() {
     }
   };
 
+  const connectWebBluetooth = async () => {
+    try {
+      if (typeof navigator === 'undefined' || !(navigator as any).bluetooth) {
+        showAlert('Not Supported', 'Web Bluetooth is not supported on this browser. Please use Chrome or Edge.', 'error');
+        return;
+      }
+      
+      const device = await (navigator as any).bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: [
+          '000018f0-0000-1000-8000-00805f9b34fb', // Standard ESC/POS
+          'e7810a71-73ae-499d-8c15-faa9aef0c3f2'  // PT-210 specific
+        ]
+      });
+
+      device.addEventListener('gattserverdisconnected', () => {
+        setIsPrinterConnected(false);
+        setBleDevice(null);
+        setBleCharacteristic(null);
+        showAlert('Disconnected', 'Printer disconnected.', 'info');
+      });
+
+      const server = await device.gatt.connect();
+      let characteristic = null;
+      
+      const services = await server.getPrimaryServices();
+      for (const service of services) {
+        const characteristics = await service.getCharacteristics();
+        for (const char of characteristics) {
+          if (char.properties.write || char.properties.writeWithoutResponse) {
+            characteristic = char;
+            break;
+          }
+        }
+        if (characteristic) break;
+      }
+
+      if (characteristic) {
+        setBleDevice(device);
+        setBleCharacteristic(characteristic);
+        setIsPrinterConnected(true);
+        showAlert('Success', `Connected to ${device.name || 'Printer'}`, 'success');
+      } else {
+        showAlert('Error', 'No writable characteristic found on this device.', 'error');
+      }
+    } catch (e: any) {
+      console.error(e);
+      if (e.message && !e.message.toLowerCase().includes('cancelled')) {
+        showAlert('Connection Failed', e.message || 'Could not connect.', 'error');
+      }
+    }
+  };
+
+  const handleTestPrint = async () => {
+    if (!isPrinterReady) {
+      showAlert('Bluetooth Printer', 'Please connect a Bluetooth printer (e.g. PT-210) first.', 'warning');
+      return;
+    }
+    
+    try {
+      if (Platform.OS !== 'web') {
+        const ticketMock = {
+          busNumber: 'BUS-001',
+          ticketNumber: 'TEST',
+          date: '08/20/2026',
+          discount: 'REGULAR',
+          boarding: sampleFare ? sampleFare.origin : 'TANAUAN',
+          alighting: sampleFare ? sampleFare.destination : 'LAUREL',
+          fare: sampleFare ? sampleFare.regular_fare : 25.00
+        };
+        const configMock = { company_name: companyName, client_name: clientName, tin_number: tinNumber, header_message: headerMessage, footer_message: footerMessage };
+        await printer.printReceipt(ticketMock, configMock);
+        showAlert('Test Print', 'Test receipt sent to native printer.', 'success');
+        return;
+      }
+
+      // Web handling below
+      if (!bleCharacteristic) return;
+      const encoder = new TextEncoder();
+      
+      let text = "";
+      const C = "\x1B\x61\x01"; // Center align
+      const L = "\x1B\x61\x00"; // Left align
+      
+      text += `${C}${companyName || 'COMPANY NAME'}\n`;
+      if (clientName) text += `${C}${clientName}\n`;
+      if (tinNumber) text += `${C}TIN: ${tinNumber}\n`;
+      text += "--------------------------------\n";
+      
+      if (headerMessage) {
+        text += `${C}${headerMessage}\n`;
+        text += "--------------------------------\n";
+      }
+
+      text += `${L}DATE: 08/20/2026\n`;
+      text += `${L}TIME: 1:00 PM\n`;
+      text += `${L}BUS: BUS-001\n`;
+      text += `${L}PAX: 1\n`;
+      text += "--------------------------------\n";
+      text += `${L}TYPE: REGULAR\n`;
+      text += `${L}BOARDED: ${sampleFare ? sampleFare.origin : 'TANAUAN'}\n`;
+      text += `${L}ALIGHT: ${sampleFare ? sampleFare.destination : 'LAUREL'}\n`;
+      text += "--------------------------------\n";
+      text += `${L}TOTAL: PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}\n`;
+      
+      if (footerMessage) {
+        text += `\n${C}${footerMessage}\n`;
+      }
+      text += "\n\n\n";
+
+      const initCmd = new Uint8Array([0x1B, 0x40]);
+      const textData = encoder.encode(text);
+      const payload = new Uint8Array(initCmd.length + textData.length);
+      payload.set(initCmd);
+      payload.set(textData, initCmd.length);
+      
+      const CHUNK_SIZE = 512;
+      for (let i = 0; i < payload.length; i += CHUNK_SIZE) {
+        const chunk = payload.slice(i, i + CHUNK_SIZE);
+        if (bleCharacteristic.properties.writeWithoutResponse) {
+           await bleCharacteristic.writeValueWithoutResponse(chunk);
+        } else {
+           await bleCharacteristic.writeValue(chunk);
+        }
+      }
+      
+      showAlert('Test Print', 'Test receipt sent to printer.', 'success');
+    } catch (e: any) {
+      console.error(e);
+      showAlert('Print Error', e.message || 'Failed to print.', 'error');
+    }
+  };
+
   const ReceiptPreview = () => (
     <View style={tw`bg-gray-100 p-4 rounded-xl items-center`}>
       <View style={tw`w-[300px] bg-white border border-gray-300 p-4 rounded-lg shadow-sm`}>
         <Text style={tw`text-center font-bold text-lg mb-1`}>{companyName || 'COMPANY NAME'}</Text>
+        {!!clientName && (
+          <Text style={tw`text-center font-semibold text-sm mb-1`}>{clientName}</Text>
+        )}
         <Text style={tw`text-center text-xs text-gray-600 mb-4`}>TIN: {tinNumber || '000-000-000-000'}</Text>
         
         <Text style={tw`text-center text-sm mb-4 border-b border-dashed border-gray-300 pb-2`}>
@@ -98,15 +268,31 @@ export default function AdminReceiptConfig() {
         
         <View style={tw`flex-row justify-between mb-1`}>
           <Text style={tw`text-xs`}>DATE: 08/20/2026</Text>
-          <Text style={tw`text-xs`}>TIME: 14:30</Text>
+          <Text style={tw`text-xs`}>TIME: 1:00 PM</Text>
         </View>
         <View style={tw`flex-row justify-between mb-1`}>
           <Text style={tw`text-xs`}>BUS: BUS-001</Text>
           <Text style={tw`text-xs`}>PAX: 1</Text>
         </View>
+
+        <View style={tw`mt-2 mb-2 w-full border-t border-dashed border-gray-300 pt-2`}>
+          <View style={tw`flex-row justify-between mb-1`}>
+            <Text style={tw`text-xs`}>TYPE:</Text>
+            <Text style={tw`text-xs text-right`}>REGULAR</Text>
+          </View>
+          <View style={tw`flex-row justify-between mb-1`}>
+            <Text style={tw`text-xs`}>BOARDED:</Text>
+            <Text style={tw`text-xs text-right max-w-[70%]`} numberOfLines={1}>{sampleFare ? sampleFare.origin : 'TANAUAN'}</Text>
+          </View>
+          <View style={tw`flex-row justify-between`}>
+            <Text style={tw`text-xs`}>ALIGHT:</Text>
+            <Text style={tw`text-xs text-right max-w-[70%]`} numberOfLines={1}>{sampleFare ? sampleFare.destination : 'LAUREL'}</Text>
+          </View>
+        </View>
+
         <View style={tw`flex-row justify-between mb-4 border-b border-dashed border-gray-300 pb-2`}>
           <Text style={tw`text-xs font-bold`}>TOTAL:</Text>
-          <Text style={tw`text-xs font-bold`}>PHP 25.00</Text>
+          <Text style={tw`text-xs font-bold`}>PHP {sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}</Text>
         </View>
         
         <Text style={tw`text-center text-xs italic text-gray-500 mt-2`}>
@@ -118,7 +304,7 @@ export default function AdminReceiptConfig() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      <AdminNavbar title="RECEIPT CONFIG" showBack />
+      <AdminNavbar title="RECEIPT CONFIG" />
       
       {loading ? (
         <View style={tw`flex-1 justify-center items-center`}>
@@ -151,6 +337,16 @@ export default function AdminReceiptConfig() {
                       value={companyName}
                       onChangeText={setCompanyName}
                       placeholder="e.g. ByaHero Transit"
+                    />
+                  </View>
+
+                  <View style={tw`mb-4`}>
+                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>CLIENT COMPANY NAME</Text>
+                    <TextInput
+                      style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50`}
+                      value={clientName}
+                      onChangeText={setClientName}
+                      placeholder="e.g. ABC Corporation"
                     />
                   </View>
 
@@ -209,15 +405,44 @@ export default function AdminReceiptConfig() {
               {/* Preview Section */}
               <View style={tw`w-full lg:w-[48%]`}>
                 <View style={tw`bg-white p-5 rounded-2xl shadow-sm border border-gray-200`}>
-                  <View style={tw`flex-row items-center mb-4`}>
-                    <Ionicons name="print-outline" size={20} color="#64748b" style={tw`mr-2`} />
-                    <Text style={tw`text-sm font-bold text-slate-700`}>PT-210 RECEIPT PREVIEW</Text>
+                  <View style={tw`flex-row items-center justify-between mb-4`}>
+                    <View style={tw`flex-row items-center`}>
+                      <Ionicons name="print-outline" size={20} color="#64748b" style={tw`mr-2`} />
+                      <Text style={tw`text-sm font-bold text-slate-700`}>PT-210 RECEIPT PREVIEW</Text>
+                    </View>
+                    <TouchableOpacity 
+                      onPress={() => {
+                        if (Platform.OS === 'web') {
+                          if (isPrinterConnected && bleDevice) {
+                            bleDevice.gatt.disconnect();
+                          } else {
+                            connectWebBluetooth();
+                          }
+                        } else {
+                          setIsPrinterModalVisible(true);
+                        }
+                      }}
+                      style={tw`flex-row items-center bg-gray-50 px-2 py-1 rounded-full border border-gray-200`}
+                    >
+                      <Ionicons name="bluetooth" size={12} color={isPrinterReady ? '#3b82f6' : '#94a3b8'} style={tw`mr-1`} />
+                      <Text style={tw`text-[10px] font-bold ${isPrinterReady ? 'text-blue-500' : 'text-slate-500'}`}>
+                        {isPrinterReady ? 'CONNECTED' : (Platform.OS === 'web' && isPrinterConnected) ? 'DISCONNECT' : 'CONNECT'}
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                   
                   <ReceiptPreview />
                   
+                  <TouchableOpacity
+                    onPress={handleTestPrint}
+                    style={tw`${isPrinterReady ? 'bg-slate-800' : 'bg-slate-300'} rounded-full py-3 mt-6 items-center shadow-md flex-row justify-center`}
+                  >
+                    <Ionicons name="print" size={18} color="white" style={tw`mr-2`} />
+                    <Text style={tw`text-white font-bold text-[14px]`}>TEST PRINT</Text>
+                  </TouchableOpacity>
+                  
                   <Text style={tw`text-xs text-gray-400 mt-4 text-center px-4`}>
-                    Note: This is a simulation. Actual print layout may slightly vary depending on the Bluetooth printer's paper width.
+                    Note: Connection works natively on Chrome/Edge via Web Bluetooth. Print layout depends on 58mm printer width.
                   </Text>
                 </View>
               </View>
@@ -235,6 +460,18 @@ export default function AdminReceiptConfig() {
         onConfirm={alertConfig.onConfirm}
         onCancel={alertConfig.onCancel}
       />
+      {Platform.OS !== 'web' && (
+        <PrinterModal
+          visible={isPrinterModalVisible}
+          onClose={() => setIsPrinterModalVisible(false)}
+          devices={printer.devices}
+          pairedDevices={printer.pairedDevices}
+          isScanning={printer.isScanning}
+          onScan={printer.scanDevices}
+          onConnect={printer.connectPrinter}
+          connectedPrinter={printer.connectedPrinter}
+        />
+      )}
     </SafeAreaView>
   );
 }
