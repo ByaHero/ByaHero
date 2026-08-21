@@ -86,20 +86,15 @@ export function usePrinter() {
 
   const printReceipt = async (ticket: any, config: any) => {
     try {
-      const CENTER = COMMANDS.TEXT_FORMAT.TXT_ALIGN_CT;
-      const LEFT = COMMANDS.TEXT_FORMAT.TXT_ALIGN_LT;
-      const BOLD_ON = COMMANDS.TEXT_FORMAT.TXT_BOLD_ON;
-      const BOLD_OFF = COMMANDS.TEXT_FORMAT.TXT_BOLD_OFF;
-      
       let text = "";
-      text += `${CENTER}${BOLD_ON}${config?.company_name || 'ByaHero Transit'}\n${BOLD_OFF}`;
-      if (config?.client_name) text += `${CENTER}${config.client_name}\n`;
-      if (config?.tin_number) text += `${CENTER}TIN: ${config.tin_number}\n`;
-      text += `${LEFT}--------------------------------\n`;
+      text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
+      if (config?.client_name) text += `<C>${config.client_name}</C>\n`;
+      if (config?.tin_number) text += `<C>TIN: ${config.tin_number}</C>\n`;
+      text += "--------------------------------\n";
       
       if (config?.header_message) {
-        text += `${CENTER}${config.header_message}\n`;
-        text += `${LEFT}--------------------------------\n`;
+        text += `<C>${config.header_message}</C>\n`;
+        text += "--------------------------------\n";
       }
       
       const pad = (label: string, value: string) => {
@@ -107,7 +102,6 @@ export function usePrinter() {
         return spaces > 0 ? label + " ".repeat(spaces) + value + "\n" : label + " " + value + "\n";
       };
 
-      text += `${LEFT}`;
       text += pad("TICKET:", `${ticket.busNumber} ${ticket.ticketNumber}`);
       text += pad("DATE:", ticket.date);
       text += pad("TYPE:", ticket.discount);
@@ -118,9 +112,8 @@ export function usePrinter() {
       text += pad("TOTAL:", `PHP ${Number(ticket.fare).toFixed(2)}`);
       
       if (config?.footer_message) {
-        text += `\n${CENTER}${config.footer_message}\n`;
+        text += `\n<C>${config.footer_message}</C>`;
       }
-      text += "\n\n";
 
       BLEPrinter.printBill(text);
     } catch (e: any) {
