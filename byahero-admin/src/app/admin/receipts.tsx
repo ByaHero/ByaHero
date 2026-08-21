@@ -236,7 +236,7 @@ export default function AdminReceiptConfig() {
       if (footerMessage) {
         text += `\n${C}${footerMessage}\n`;
       }
-      text += "\n\n\n";
+      text += "\n";
 
       const initCmd = new Uint8Array([0x1B, 0x40]);
       const textData = encoder.encode(text);
