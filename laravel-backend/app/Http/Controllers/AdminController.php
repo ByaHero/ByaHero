@@ -1275,7 +1275,7 @@ class AdminController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Database error. Make sure migrations are run.'
+                'error' => 'Database error: ' . $e->getMessage()
             ]);
         }
 
