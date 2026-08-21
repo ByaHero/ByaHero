@@ -251,8 +251,8 @@ export default function DashboardScreen() {
       showAlert('Selection Required', 'Please select a transit route.', 'warning');
       return;
     }
-    if (!printer.connectedPrinter) {
-      showAlert('Printer Required', 'Please connect a Bluetooth printer before starting tracking.', 'warning');
+    if (ticketingMode === 'Automatic' && !printer.connectedPrinter) {
+      showAlert('Printer Required', 'Please connect a Bluetooth printer before starting tracking in Auto Ticketing mode.', 'warning');
       setIsPrinterModalVisible(true);
       return;
     }
@@ -380,7 +380,7 @@ export default function DashboardScreen() {
                 style={tw`flex-1 py-2.5 rounded-full ${ticketingMode === 'Manual' ? 'bg-blue-600 shadow-sm' : ''}`}
               >
                 <Text style={tw`text-center font-bold text-[13px] ${ticketingMode === 'Manual' ? 'text-white' : 'text-slate-500'}`}>
-                  Manual Ticketing
+                  Manual Counting
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -426,22 +426,24 @@ export default function DashboardScreen() {
             </View>
           </View>
 
-          {/* Bluetooth Printer Setup */}
-          <View style={tw`mb-8`}>
-            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>BLUETOOTH PRINTER</Text>
-            <TouchableOpacity
-              onPress={() => setIsPrinterModalVisible(true)}
-              style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
-            >
-              <View style={tw`flex-row items-center`}>
-                <Ionicons name="print-outline" size={18} color={printer.connectedPrinter ? '#3b82f6' : '#64748b'} style={tw`mr-2`} />
-                <Text style={tw`text-sm font-bold ${printer.connectedPrinter ? 'text-blue-600' : 'text-slate-900'}`}>
-                  {printer.connectedPrinter ? printer.connectedPrinter.name || 'Printer Connected' : 'Connect Printer'}
-                </Text>
-              </View>
-              <Ionicons name={printer.connectedPrinter ? "checkmark-circle" : "chevron-forward"} size={20} color={printer.connectedPrinter ? "#3b82f6" : "#cbd5e1"} />
-            </TouchableOpacity>
-          </View>
+          {/* Bluetooth Printer Setup - Only shown for Auto Ticketing */}
+          {ticketingMode === 'Automatic' && (
+            <View style={tw`mb-8`}>
+              <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>BLUETOOTH PRINTER</Text>
+              <TouchableOpacity
+                onPress={() => setIsPrinterModalVisible(true)}
+                style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
+              >
+                <View style={tw`flex-row items-center`}>
+                  <Ionicons name="print-outline" size={18} color={printer.connectedPrinter ? '#3b82f6' : '#64748b'} style={tw`mr-2`} />
+                  <Text style={tw`text-sm font-bold ${printer.connectedPrinter ? 'text-blue-600' : 'text-slate-900'}`}>
+                    {printer.connectedPrinter ? printer.connectedPrinter.name || 'Printer Connected' : 'Connect Printer'}
+                  </Text>
+                </View>
+                <Ionicons name={printer.connectedPrinter ? "checkmark-circle" : "chevron-forward"} size={20} color={printer.connectedPrinter ? "#3b82f6" : "#cbd5e1"} />
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Start Tracking Button */}
           <View ref={startTrackingRef} onLayout={() => handleTourLayout('start-tracking', startTrackingRef)}>
