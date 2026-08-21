@@ -927,15 +927,6 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
         )}
 
-        {/* PRINTER CONFIG RELOAD */}
-        <TouchableOpacity
-          onPress={openPrinterSetup}
-          style={tw`bg-slate-800 rounded-full py-4 items-center justify-center shadow-md mb-4 flex-row`}
-        >
-          <Ionicons name="receipt-outline" size={20} color="white" style={tw`mr-2`} />
-          <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Reload Receipt Config</Text>
-        </TouchableOpacity>
-
         {/* STOP BUTTON */}
         <TouchableOpacity
           ref={stopTrackingRef}

@@ -203,8 +203,10 @@ export default function AdminReceiptConfig() {
       let text = "";
       const C = "\x1B\x61\x01"; // Center align
       const L = "\x1B\x61\x00"; // Left align
+      const BOLD_ON = "\x1B\x45\x01"; 
+      const BOLD_OFF = "\x1B\x45\x00";
       
-      text += `${C}${companyName || 'COMPANY NAME'}\n`;
+      text += `${C}${BOLD_ON}${companyName || 'COMPANY NAME'}${BOLD_OFF}\n`;
       if (clientName) text += `${C}${clientName}\n`;
       if (tinNumber) text += `${C}TIN: ${tinNumber}\n`;
       text += "--------------------------------\n";
@@ -214,16 +216,22 @@ export default function AdminReceiptConfig() {
         text += "--------------------------------\n";
       }
 
-      text += `${L}DATE: 08/20/2026\n`;
-      text += `${L}TIME: 1:00 PM\n`;
-      text += `${L}BUS: BUS-001\n`;
-      text += `${L}PAX: 1\n`;
+      const pad = (label: string, value: string) => {
+        const spaces = 32 - label.length - String(value).length;
+        return spaces > 0 ? label + " ".repeat(spaces) + value + "\n" : label + " " + value + "\n";
+      };
+
+      text += `${L}`;
+      text += pad("DATE:", "08/20/2026");
+      text += pad("TIME:", "1:00 PM");
+      text += pad("BUS:", "BUS-001");
+      text += pad("PAX:", "1");
       text += "--------------------------------\n";
-      text += `${L}TYPE: REGULAR\n`;
-      text += `${L}BOARDED: ${sampleFare ? sampleFare.origin : 'TANAUAN'}\n`;
-      text += `${L}ALIGHT: ${sampleFare ? sampleFare.destination : 'LAUREL'}\n`;
+      text += pad("TYPE:", "REGULAR");
+      text += pad("BOARDED:", sampleFare ? sampleFare.origin : 'TANAUAN');
+      text += pad("ALIGHT:", sampleFare ? sampleFare.destination : 'LAUREL');
       text += "--------------------------------\n";
-      text += `${L}TOTAL: PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}\n`;
+      text += pad("TOTAL:", `PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}`);
       
       if (footerMessage) {
         text += `\n${C}${footerMessage}\n`;

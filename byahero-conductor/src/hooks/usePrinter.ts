@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
-import { BLEPrinter } from 'react-native-thermal-receipt-printer-image-qr';
+import { BLEPrinter, COMMANDS } from 'react-native-thermal-receipt-printer-image-qr';
 
 export interface IPrinterDevice {
   name: string;
@@ -77,34 +77,43 @@ export function usePrinter() {
 
   const printReceipt = async (ticket: any, config: any) => {
     try {
-      const C = "<C>"; const _C = "</C>";
+      const CENTER = COMMANDS.TEXT_FORMAT.TXT_ALIGN_CT;
+      const LEFT = COMMANDS.TEXT_FORMAT.TXT_ALIGN_LT;
+      const BOLD_ON = COMMANDS.TEXT_FORMAT.TXT_BOLD_ON;
+      const BOLD_OFF = COMMANDS.TEXT_FORMAT.TXT_BOLD_OFF;
       
       let text = "";
-      text += `${C}${config?.company_name || 'ByaHero Transit'}${_C}\n`;
-      if (config?.client_name) text += `${C}${config.client_name}${_C}\n`;
-      if (config?.tin_number) text += `${C}TIN: ${config.tin_number}${_C}\n`;
-      text += "--------------------------------\n";
+      text += `${CENTER}${BOLD_ON}${config?.company_name || 'ByaHero Transit'}\n${BOLD_OFF}`;
+      if (config?.client_name) text += `${CENTER}${config.client_name}\n`;
+      if (config?.tin_number) text += `${CENTER}TIN: ${config.tin_number}\n`;
+      text += `${LEFT}--------------------------------\n`;
       
       if (config?.header_message) {
-        text += `${C}${config.header_message}${_C}\n`;
-        text += "--------------------------------\n";
+        text += `${CENTER}${config.header_message}\n`;
+        text += `${LEFT}--------------------------------\n`;
       }
+      
+      const pad = (label: string, value: string) => {
+        const spaces = 32 - label.length - String(value).length;
+        return spaces > 0 ? label + " ".repeat(spaces) + value + "\n" : label + " " + value + "\n";
+      };
 
-      text += `TICKET: ${ticket.busNumber} ${ticket.ticketNumber}\n`;
-      text += `DATE: ${ticket.date}\n`;
-      text += `TYPE: ${ticket.discount}\n`;
-      text += `BOARDED: ${ticket.boarding}\n`;
-      text += `ALIGHT: ${ticket.alighting}\n`;
+      text += `${LEFT}`;
+      text += pad("TICKET:", `${ticket.busNumber} ${ticket.ticketNumber}`);
+      text += pad("DATE:", ticket.date);
+      text += pad("TYPE:", ticket.discount);
+      text += pad("BOARDED:", ticket.boarding);
+      text += pad("ALIGHT:", ticket.alighting);
       
       text += "--------------------------------\n";
-      text += `TOTAL: PHP ${Number(ticket.fare).toFixed(2)}\n`;
+      text += pad("TOTAL:", `PHP ${Number(ticket.fare).toFixed(2)}`);
       
       if (config?.footer_message) {
-        text += `\n${C}${config.footer_message}${_C}\n`;
+        text += `\n${CENTER}${config.footer_message}\n`;
       }
-      text += "\n\n\n";
+      text += "\n\n";
 
-      BLEPrinter.printText(text, { encoding: 'GBK' });
+      BLEPrinter.printBill(text);
     } catch (e: any) {
       console.error(e);
       Alert.alert('Print Error', e.message || 'Failed to print receipt.');
