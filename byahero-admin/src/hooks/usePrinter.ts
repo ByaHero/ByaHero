@@ -49,6 +49,12 @@ export function usePrinter() {
 
     setIsScanning(true);
     try {
+      if (!BLEPrinter) {
+        Alert.alert('Expo Go Not Supported', 'The Bluetooth printer module requires native code. You cannot test this in Expo Go. Please run "npm run android" to build the dev app, or build the APK.');
+        setIsScanning(false);
+        return;
+      }
+      
       await BLEPrinter.init();
       const scanned = await BLEPrinter.getDeviceList();
       
@@ -89,36 +95,74 @@ export function usePrinter() {
       let text = "";
       text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
       if (config?.client_name) text += `<C>${config.client_name}</C>\n`;
-      if (config?.tin_number) text += `<C>TIN: ${config.tin_number}</C>\n`;
-      text += "--------------------------------\n";
+      text += `<C>TICKET NO: ${ticket.ticketNumber || 'N/A'}</C>\n`;
       
       if (config?.header_message) {
-        text += `<C>${config.header_message}</C>\n`;
-        text += "--------------------------------\n";
+        text += `\n<C>${config.header_message}</C>\n`;
+      } else {
+        text += "\n";
       }
+      text += "--------------------------------\n";
       
-      const pad = (label: string, value: string) => {
-        const spaces = 32 - label.length - String(value).length;
-        return spaces > 0 ? label + " ".repeat(spaces) + value + "\n" : label + " " + value + "\n";
+      const printRow = (left: string, right: string) => {
+        const spaces = 32 - left.length - String(right).length;
+        return spaces > 0 ? left + " ".repeat(spaces) + right + "\n" : left + " " + right + "\n";
       };
 
-      text += pad("TICKET:", `${ticket.busNumber} ${ticket.ticketNumber}`);
-      text += pad("DATE:", ticket.date);
-      text += pad("TYPE:", ticket.discount);
-      text += pad("BOARDED:", ticket.boarding);
-      text += pad("ALIGHT:", ticket.alighting);
+      // Sanitize non-ASCII characters (like \u202F Narrow No-Break Space) that break printer column counting
+      const dateStr = (ticket.date || "").replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim();
+      let justDate = dateStr;
+      let justTime = "";
+      if (dateStr.includes(' ')) {
+        const parts = dateStr.split(' ');
+        justDate = parts[0].replace(',', '');
+        justTime = parts.slice(1).join(' ').replace(/(\d{1,2}:\d{2}):\d{2}/, '$1');
+      }
+
+      text += printRow(`DATE: ${justDate}`, justTime ? `TIME: ${justTime}` : "");
+      text += printRow(`BUS: ${ticket.busNumber || ""}`, `PAX: ${ticket.quantity || "1"}`);
       
       text += "--------------------------------\n";
-      text += pad("TOTAL:", `PHP ${Number(ticket.fare).toFixed(2)}`);
+      text += printRow("TYPE:", String(ticket.discount || ""));
+      text += printRow("BOARDED:", String(ticket.boarding || ""));
+      text += printRow("ALIGHT:", String(ticket.alighting || ""));
+      text += printRow("TOTAL:", `PHP ${Number(ticket.fare).toFixed(2)}`);
+      text += "--------------------------------\n";
       
       if (config?.footer_message) {
         text += `\n<C>${config.footer_message}</C>`;
       }
 
-      BLEPrinter.printBill(text);
+      // Aggressively strip any accidental trailing newlines from earlier lines
+      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
     } catch (e: any) {
       console.error(e);
       Alert.alert('Print Error', e.message || 'Failed to print receipt.');
+    }
+  };
+
+  const testPrint = async () => {
+    if (!BLEPrinter) {
+      Alert.alert('Not Supported', 'Native printer module is not available in Expo Go. Please build the custom dev app (npm run android) or APK.');
+      return;
+    }
+    try {
+      const now = new Date().toLocaleString();
+      let text = "";
+      text += "<CB>BYAHERO TRANSIT</CB>\n";
+      text += "--------------------------------\n";
+      text += "<C>** PRINTER TEST PAGE **</C>\n";
+      text += "--------------------------------\n";
+      text += `<C>${now}</C>\n`;
+      text += "--------------------------------\n";
+      text += "<C>Printer is working correctly.</C>\n";
+      text += "<C>Ready to print receipts.</C>";
+
+      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      Alert.alert('Test Print', 'Test page sent to printer.');
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Print Error', e.message || 'Failed to send test print.');
     }
   };
 
@@ -129,6 +173,7 @@ export function usePrinter() {
     connectedPrinter,
     scanDevices,
     connectPrinter,
-    printReceipt
+    printReceipt,
+    testPrint
   };
 }

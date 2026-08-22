@@ -13,10 +13,11 @@ interface Props {
   onScan: () => void;
   onConnect: (device: IPrinterDevice) => void;
   connectedPrinter: IPrinterDevice | null;
+  onTestPrint?: () => void;
 }
 
 export default function PrinterModal({
-  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter
+  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter, onTestPrint
 }: Props) {
   
   const renderDevice = (device: IPrinterDevice, idx: number) => {
@@ -54,6 +55,27 @@ export default function PrinterModal({
               <Ionicons name="close" size={20} color="#64748b" />
             </TouchableOpacity>
           </View>
+
+          {/* Connected Printer Status Banner */}
+          {connectedPrinter && (
+            <View style={tw`flex-row items-center justify-between bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4`}>
+              <View style={tw`flex-row items-center flex-1`}>
+                <Ionicons name="checkmark-circle" size={20} color="#3b82f6" style={tw`mr-2`} />
+                <View style={tw`flex-1`}>
+                  <Text style={tw`text-blue-700 font-bold text-xs`}>CONNECTED</Text>
+                  <Text style={tw`text-blue-600 text-xs`} numberOfLines={1}>{connectedPrinter.name || connectedPrinter.macAddress}</Text>
+                </View>
+              </View>
+              {onTestPrint && (
+                <TouchableOpacity
+                  onPress={onTestPrint}
+                  style={tw`bg-blue-600 rounded-lg px-3 py-2 ml-3`}
+                >
+                  <Text style={tw`text-white font-bold text-xs`}>Test Print</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
 
           <TouchableOpacity 
             onPress={onScan}

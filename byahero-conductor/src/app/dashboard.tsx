@@ -681,6 +681,7 @@ export default function DashboardScreen() {
           setIsPrinterModalVisible(false);
         }}
         connectedPrinter={printer.connectedPrinter}
+        onTestPrint={printer.testPrint}
       />
 
       {/* Tour Overlay */}
