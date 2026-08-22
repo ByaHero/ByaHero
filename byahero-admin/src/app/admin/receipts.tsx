@@ -208,7 +208,7 @@ export default function AdminReceiptConfig() {
       
       text += `${C}${BOLD_ON}${companyName || 'COMPANY NAME'}${BOLD_OFF}\n`;
       if (clientName) text += `${C}${clientName}\n`;
-      if (tinNumber) text += `${C}TIN: ${tinNumber}\n`;
+      text += `${C}TICKET NO: TEST\n`;
       text += "--------------------------------\n";
       
       if (headerMessage) {
@@ -216,22 +216,20 @@ export default function AdminReceiptConfig() {
         text += "--------------------------------\n";
       }
 
-      const pad = (label: string, value: string) => {
-        const spaces = 32 - label.length - String(value).length;
-        return spaces > 0 ? label + " ".repeat(spaces) + value + "\n" : label + " " + value + "\n";
+      const printRow = (left: string, right: string) => {
+        const spaces = 32 - left.length - String(right).length;
+        return spaces > 0 ? left + " ".repeat(spaces) + right + "\n" : left + " " + right + "\n";
       };
 
       text += `${L}`;
-      text += pad("DATE:", "08/20/2026");
-      text += pad("TIME:", "1:00 PM");
-      text += pad("BUS:", "BUS-001");
-      text += pad("PAX:", "1");
+      text += printRow("DATE: 08/20/2026", "TIME: 1:00 PM");
+      text += printRow("BUS: BUS-001", "PAX: 1");
       text += "--------------------------------\n";
-      text += pad("TYPE:", "REGULAR");
-      text += pad("BOARDED:", sampleFare ? sampleFare.origin : 'TANAUAN');
-      text += pad("ALIGHT:", sampleFare ? sampleFare.destination : 'LAUREL');
+      text += printRow("TYPE:", "REGULAR");
+      text += printRow("BOARDED:", sampleFare ? sampleFare.origin : 'TANAUAN');
+      text += printRow("ALIGHT:", sampleFare ? sampleFare.destination : 'LAUREL');
+      text += printRow("TOTAL:", `PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}`);
       text += "--------------------------------\n";
-      text += pad("TOTAL:", `PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}`);
       
       if (footerMessage) {
         text += `\n${C}${footerMessage}\n`;
@@ -268,7 +266,7 @@ export default function AdminReceiptConfig() {
         {!!clientName && (
           <Text style={tw`text-center font-semibold text-sm mb-1`}>{clientName}</Text>
         )}
-        <Text style={tw`text-center text-xs text-gray-600 mb-4`}>TIN: {tinNumber || '000-000-000-000'}</Text>
+        <Text style={tw`text-center text-xs text-gray-600 mb-4`}>TICKET NO: TEST</Text>
         
         <Text style={tw`text-center text-sm mb-4 border-b border-dashed border-gray-300 pb-2`}>
           {headerMessage || 'Header text here'}
@@ -478,6 +476,7 @@ export default function AdminReceiptConfig() {
           onScan={printer.scanDevices}
           onConnect={printer.connectPrinter}
           connectedPrinter={printer.connectedPrinter}
+          onTestPrint={printer.testPrint}
         />
       )}
     </SafeAreaView>

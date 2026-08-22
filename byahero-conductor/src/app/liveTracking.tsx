@@ -157,6 +157,7 @@ export default function LiveTrackingScreen() {
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
+    openPrinterSetup();
     
     initSession().then(() => {
       if (Platform.OS === 'web') {
