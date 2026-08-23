@@ -1,0 +1,13 @@
+/**
+ * operationSchedule.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the terminal operational schedule inputs.
+ * Extracted from public/admin/operationSchedule.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+body {
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}

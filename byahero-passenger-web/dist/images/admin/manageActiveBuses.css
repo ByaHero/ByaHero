@@ -1,0 +1,13 @@
+/**
+ * manageActiveBuses.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Active Buses dashboard.
+ * Extracted from public/admin/manageActiveBuses.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+body {
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}

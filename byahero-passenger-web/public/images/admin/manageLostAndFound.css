@@ -1,0 +1,13 @@
+/**
+ * manageLostAndFound.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Lost and Found Management system.
+ * Extracted from public/admin/manageLostAndFound.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+body {
+    background: #f8f9fa;
+    color: #212529;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
