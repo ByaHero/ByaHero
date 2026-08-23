@@ -1,0 +1,76 @@
+/*
+ * global.css - High-Performance Global Rules for ByaHero
+ * Optimizes GPU rendering layers, layout painting, text rendering, and touch responsiveness.
+ */
+
+/* 1. Reset Box Model Calculations */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+/* 2. Hardware Acceleration Hints (will-change) on critical viewport components */
+.modal, 
+.offcanvas, 
+.bottom-sheet, 
+.passenger-bottom-sheet, 
+#map, 
+#mainMap,
+.leaflet-marker-icon,
+.leaflet-pane {
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    transform: translate3d(0, 0, 0); /* Force GPU composition layer */
+}
+
+/* 3. Global Touch Responsive Overrides */
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+a, button, [role="button"], .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill, .btn-seat, .btn-stop {
+    touch-action: manipulation;
+}
+
+/* Disable text selection on interactive components, but keep text fields selectable */
+body, button, a, .nav-btn, .sheet-tab, .bus-stop-card, .route-filter-option, .submit-pill, .brand-wrap, header, footer, .form-heading, .form-subheading, .btn-seat, .btn-stop {
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+input, textarea, [contenteditable="true"] {
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+/* 4. Text and Font Rendering Optimizations */
+body {
+    text-rendering: optimizeSpeed;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* 5. Scroll Momentum and Overscroll Behavior */
+html, body {
+    overscroll-behavior: none;
+    overscroll-behavior-y: contain;
+}
+
+.bottom-sheet-body, 
+.offcanvas-body, 
+.modal-body, 
+.custom-select-options {
+    -webkit-overflow-scrolling: touch; /* Enable inertial physics-based scrolling on iOS */
+    overscroll-behavior: contain;
+}
+
+/* 6. Image Rendering & GPU Layer Uplift */
+img {
+    image-rendering: -webkit-optimize-contrast;
+}
+
+img[src$=".svg"] {
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    transform: translateZ(0);
+}

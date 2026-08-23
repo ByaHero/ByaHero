@@ -1,0 +1,61 @@
+/**
+ * busFare.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and styling for the Admin Bus Fare management screen.
+ * Extracted from public/admin/busFare.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+:root {
+    --brand: #0f3878;
+}
+
+body {
+    background: #f8fafc;
+    color: #1e293b;
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.mono {
+    font-variant-numeric: tabular-nums;
+    font-family: var(--bs-font-monospace);
+}
+
+.form-label {
+    color: #0f3878 !important;
+}
+
+.btn-primary {
+    background-color: #0f3878 !important;
+    border-color: #0f3878 !important;
+    color: #fff !important;
+}
+
+/* all outline buttons become solid like Save */
+.btn-outline-primary {
+    background-color: var(--brand) !important;
+    border-color: var(--brand) !important;
+    color: #fff !important;
+}
+
+.btn-outline-secondary {
+    background-color: #64748b !important;   /* solid gray */
+    border-color: #64748b !important;
+    color: #fff !important;
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus,
+.btn-outline-secondary:hover,
+.btn-outline-secondary:focus {
+    filter: brightness(0.95);
+}
+
+@media (max-width: 991.98px) {
+    .table-responsive {
+        border-radius: 14px;
+    }
+    .table td, .table th {
+        white-space: nowrap;
+    }
+}

@@ -1,0 +1,70 @@
+/**
+ * analytics.css
+ * ──────────────────────────────────────────────────────────────────────────
+ * Layout and component styling for the Admin Analytics Dashboard.
+ * Extracted from public/admin/analytics.php
+ * ──────────────────────────────────────────────────────────────────────────
+ */
+
+:root {
+    --brand: #0f3878;
+    --brand-light: #1d4ed8;
+    --surface: #ffffff;
+    --bg: #f8fafc;
+    --text: #1e293b;
+    --muted: #64748b;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+/* Period filter pills */
+.period-pill {
+    padding: 8px 20px;
+    border-radius: 999px;
+    font-weight: 800;
+    font-size: .82rem;
+    border: 2px solid #cbd5e1;
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all .2s;
+}
+
+.period-pill.active, .period-pill:hover {
+    background: var(--brand);
+    color: #fff;
+    border-color: var(--brand);
+}
+
+/* Chart container */
+.chart-wrap {
+    position: relative;
+    height: 220px;
+}
+
+@media (min-width: 768px) {
+    .chart-wrap {
+        height: 280px;
+    }
+}
+
+/* Expandable Table Transition styling */
+.expand-icon {
+    transition: transform .3s;
+}
+
+.expanded .expand-icon {
+    transform: rotate(180deg);
+}
+
+/* Loading state spinner container */
+.loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 40px;
+}
