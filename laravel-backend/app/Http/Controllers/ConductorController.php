@@ -286,6 +286,13 @@ class ConductorController extends Controller
         ]);
         Conductor::where('id', $userId)->update(['current_bus_id' => $busId]);
 
+        // Delete old GeoJSON file to clear stale location and seats data
+        $dir = base_path('../data/current_locations');
+        $file = $dir . "/bus_{$busId}.geojson";
+        if (\Illuminate\Support\Facades\File::exists($file)) {
+            \Illuminate\Support\Facades\File::delete($file);
+        }
+
         // Close any dangling operations for this bus or conductor
         BusOperation::where('bus_id', $busId)
             ->where('status', 'active')
