@@ -466,9 +466,9 @@ export default function LiveTrackingScreen() {
         location_name: resolved
       });
       setNetStatus('Live');
-    } else {
-      sendDataToServer(lat, lng, speed, resolved, computedStatus);
     }
+    
+    sendDataToServer(lat, lng, speed, resolved, computedStatus);
   };
 
   const resolvedLocationNameCached = (lat: number, lng: number): string => {
@@ -576,9 +576,7 @@ export default function LiveTrackingScreen() {
       clearTimeout(syncTimer.current);
     }
     syncTimer.current = setTimeout(() => {
-      if (Platform.OS !== 'android') {
-        triggerManualUpdate();
-      }
+      triggerManualUpdate();
       flushPendingEvents();
       syncTimer.current = null;
     }, 3000);
