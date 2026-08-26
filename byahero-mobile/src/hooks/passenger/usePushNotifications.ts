@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import { router } from 'expo-router';
 import { getServerUrl } from '../../services/authService';
 
 Notifications.setNotificationHandler({
@@ -19,11 +20,20 @@ export function usePushNotifications() {
     async function autoEnablePushNotifications() {
       try {
         if (Platform.OS === 'android') {
+          // Register SOS channel
           await Notifications.setNotificationChannelAsync('sos_alerts_v2', {
             name: 'SOS Alerts',
             importance: Notifications.AndroidImportance.HIGH,
             vibrationPattern: [0, 250, 250, 250],
             lightColor: '#FF231F7C',
+          });
+
+          // Register Schedule Updates channel
+          await Notifications.setNotificationChannelAsync('schedule_updates', {
+            name: 'Bus Schedule Updates',
+            importance: Notifications.AndroidImportance.HIGH,
+            vibrationPattern: [0, 250, 250, 250],
+            lightColor: '#103D7C',
           });
         }
 
@@ -65,6 +75,25 @@ export function usePushNotifications() {
         console.log('[Auto-FCM Error]', e);
       }
     }
+
     autoEnablePushNotifications();
+
+    // Listen for notification tap / interaction to route user
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+      try {
+        const data = response?.notification?.request?.content?.data;
+        if (data?.type === 'schedule_update' || data?.route === '/passenger/busInfo') {
+          router.push('/passenger/busInfo' as any);
+        } else if (data?.type === 'sos_alert') {
+          router.push('/passenger/notifications' as any);
+        }
+      } catch (err) {
+        console.warn('[Notification Tap Error]', err);
+      }
+    });
+
+    return () => {
+      responseSubscription.remove();
+    };
   }, []);
 }

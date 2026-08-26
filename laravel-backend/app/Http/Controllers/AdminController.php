@@ -15,6 +15,10 @@ use App\Models\BusSchedule;
 use App\Models\Feedback;
 use App\Models\Admin;
 use App\Models\SystemSetting;
+use App\Models\Notification;
+use App\Models\UserSetting;
+use App\Models\UserFcmToken;
+use App\Services\FirebaseNotificationService;
 class AdminController extends Controller
 {
     private function checkAuth()
@@ -295,18 +299,33 @@ class AdminController extends Controller
                 return date('H:i:s', strtotime($timeStr));
             };
 
+            $formatTime = function($timeStr) {
+                if (!$timeStr) return '';
+                return date('g:i A', strtotime($timeStr));
+            };
+
+            $ltOpen = $request->input('lt_open');
+            $ltClose = $request->input('lt_close');
+            $ltSuspended = (bool)$request->input('lt_suspended');
+            $ltMessage = trim((string)$request->input('lt_message', ''));
+
+            $tlOpen = $request->input('tl_open');
+            $tlClose = $request->input('tl_close');
+            $tlSuspended = (bool)$request->input('tl_suspended');
+            $tlMessage = trim((string)$request->input('tl_message', ''));
+
             $schedules = [
                 'LAUREL - TANAUAN' => [
-                    'time_open' => $parseTime($request->input('lt_open')),
-                    'time_close' => $parseTime($request->input('lt_close')),
-                    'is_suspended' => $request->input('lt_suspended') ? 1 : 0,
-                    'suspend_message' => $request->input('lt_message'),
+                    'time_open' => $parseTime($ltOpen),
+                    'time_close' => $parseTime($ltClose),
+                    'is_suspended' => $ltSuspended ? 1 : 0,
+                    'suspend_message' => $ltMessage,
                 ],
                 'TANAUAN - LAUREL' => [
-                    'time_open' => $parseTime($request->input('tl_open')),
-                    'time_close' => $parseTime($request->input('tl_close')),
-                    'is_suspended' => $request->input('tl_suspended') ? 1 : 0,
-                    'suspend_message' => $request->input('tl_message'),
+                    'time_open' => $parseTime($tlOpen),
+                    'time_close' => $parseTime($tlClose),
+                    'is_suspended' => $tlSuspended ? 1 : 0,
+                    'suspend_message' => $tlMessage,
                 ]
             ];
 
@@ -317,7 +336,85 @@ class AdminController extends Controller
                 );
             }
 
-            return response()->json(['success' => true, 'message' => 'Schedules updated successfully.']);
+            // Construct notification title and body
+            $notifTitle = '🚌 Bus Schedule Updated';
+            if ($ltSuspended && $tlSuspended) {
+                $notifTitle = '⚠️ All Bus Trips Suspended';
+                $reasons = array_filter([$ltMessage, $tlMessage]);
+                $notifMessage = 'All trips between Laurel and Tanauan are temporarily suspended.' . (!empty($reasons) ? ' Notice: ' . implode(' | ', array_unique($reasons)) : '');
+            } elseif ($ltSuspended) {
+                $notifTitle = '⚠️ Laurel → Tanauan Suspended';
+                $notifMessage = 'Trips from Laurel to Tanauan are temporarily suspended' . ($ltMessage ? ": {$ltMessage}" : '.') . ($tlOpen && $tlClose ? " Tanauan to Laurel is operating ({$formatTime($tlOpen)} - {$formatTime($tlClose)})." : '');
+            } elseif ($tlSuspended) {
+                $notifTitle = '⚠️ Tanauan → Laurel Suspended';
+                $notifMessage = 'Trips from Tanauan to Laurel are temporarily suspended' . ($tlMessage ? ": {$tlMessage}" : '.') . ($ltOpen && $ltClose ? " Laurel to Tanauan is operating ({$formatTime($ltOpen)} - {$formatTime($ltClose)})." : '');
+            } else {
+                $parts = [];
+                if ($ltOpen && $ltClose) {
+                    $parts[] = "Laurel - Tanauan: {$formatTime($ltOpen)} - {$formatTime($ltClose)}";
+                }
+                if ($tlOpen && $tlClose) {
+                    $parts[] = "Tanauan - Laurel: {$formatTime($tlOpen)} - {$formatTime($tlClose)}";
+                }
+                $notifMessage = !empty($parts) ? implode(' | ', $parts) : 'Bus operation schedules have been updated.';
+            }
+
+            // Find all passenger user IDs who have not disabled schedule notifications
+            $disabledUserIds = UserSetting::where('notify_bus_schedule', 0)->pluck('user_id')->toArray();
+            $eligibleUserIds = User::whereNotIn('id', $disabledUserIds)->pluck('id')->toArray();
+
+            // Collect active FCM push tokens
+            $fcmTokens = UserFcmToken::whereNotIn('user_id', $disabledUserIds)
+                ->where('fcm_token', '!=', '')
+                ->pluck('fcm_token')
+                ->toArray();
+
+            // Record notifications in database for in-app history
+            $now = now();
+            $dedupeBase = 'schedule_update_' . date('Ymd_His');
+            $notificationRows = [];
+            foreach ($eligibleUserIds as $uId) {
+                $notificationRows[] = [
+                    'user_id' => $uId,
+                    'type' => 'schedule_update',
+                    'title' => $notifTitle,
+                    'message' => $notifMessage,
+                    'meta' => json_encode([
+                        'schedules' => $schedules,
+                        'updated_at' => $now->toDateTimeString()
+                    ]),
+                    'read_at' => null,
+                    'dedupe_key' => $dedupeBase . '_' . $uId,
+                ];
+            }
+
+            if (!empty($notificationRows)) {
+                foreach (array_chunk($notificationRows, 300) as $chunk) {
+                    Notification::insert($chunk);
+                }
+            }
+
+            // Dispatch push notifications via Firebase Cloud Messaging
+            $fcmService = app(FirebaseNotificationService::class);
+            $pushResult = $fcmService->sendNotification(
+                $fcmTokens,
+                $notifTitle,
+                $notifMessage,
+                [
+                    'type' => 'schedule_update',
+                    'route' => '/passenger/busInfo',
+                    'updated_at' => $now->toDateTimeString(),
+                ],
+                'schedule_updates'
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Schedules updated and push notifications dispatched successfully.',
+                'notified_users' => count($eligibleUserIds),
+                'fcm_dispatched' => $pushResult['sent_count'] ?? 0,
+                'push_summary' => $pushResult,
+            ]);
         }
 
         return response()->json(['success' => false, 'error' => 'Unknown action.']);

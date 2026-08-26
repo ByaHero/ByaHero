@@ -113,6 +113,9 @@ export default function NotificationsScreen() {
 
   const getIconDetails = (type: string) => {
     const t = String(type || '').toLowerCase();
+    if (t === 'schedule_update' || t === 'schedule') {
+      return { icon: 'schedule', color: '#0284c7' };
+    }
     if (t === 'bus_arrival') {
       return { icon: 'place', color: '#103d7c' };
     }
@@ -120,6 +123,13 @@ export default function NotificationsScreen() {
       return { icon: 'event-seat', color: '#ef4444' };
     }
     return { icon: 'notifications', color: '#64748b' };
+  };
+
+  const handleNotificationPress = (notif: any) => {
+    const t = String(notif?.type || '').toLowerCase();
+    if (t === 'schedule_update' || t === 'schedule') {
+      router.push('/passenger/busInfo' as any);
+    }
   };
 
   const hasSettings = notifyBusSchedule || notifyBusArrival || notifySeatAvailability;
@@ -217,7 +227,12 @@ export default function NotificationsScreen() {
                     const iconDetails = getIconDetails(notif.type);
                     const isUnread = !notif.read_at;
                     return (
-                      <View key={index} style={tw`px-4 py-4 border-b border-slate-100 flex-row gap-3.5 items-start`}>
+                      <TouchableOpacity 
+                        key={index} 
+                        activeOpacity={0.7}
+                        onPress={() => handleNotificationPress(notif)}
+                        style={tw`px-4 py-4 border-b border-slate-100 flex-row gap-3.5 items-start`}
+                      >
                         <View style={[tw`w-10 h-10 rounded-full justify-center items-center`, { backgroundColor: `${iconDetails.color}15` }]}>
                           <MaterialIcons name={iconDetails.icon as any} size={20} color={iconDetails.color} />
                         </View>
@@ -237,7 +252,7 @@ export default function NotificationsScreen() {
                         {isUnread && (
                           <View style={tw`w-2.5 h-2.5 rounded-full bg-blue-500 self-center`} />
                         )}
-                      </View>
+                      </TouchableOpacity>
                     );
                   })}
                 </View>

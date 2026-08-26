@@ -85,6 +85,9 @@ export const Notifications: React.FC = () => {
 
   const getIconDetails = (type: string) => {
     const t = String(type || '').toLowerCase();
+    if (t === 'schedule_update' || t === 'schedule') {
+      return { icon: 'schedule', color: '#0284c7' };
+    }
     if (t === 'bus_arrival') {
       return { icon: 'place', color: '#103d7c' };
     }
@@ -92,6 +95,13 @@ export const Notifications: React.FC = () => {
       return { icon: 'event_seat', color: '#ef4444' };
     }
     return { icon: 'notifications', color: '#64748b' };
+  };
+
+  const handleNotificationClick = (notif: any) => {
+    const t = String(notif?.type || '').toLowerCase();
+    if (t === 'schedule_update' || t === 'schedule') {
+      navigate('/bus-info');
+    }
   };
 
   const hasSettings = notifyBusSchedule || notifyBusArrival || notifySeatAvailability;
@@ -200,7 +210,8 @@ export const Notifications: React.FC = () => {
                       return (
                         <div
                           key={index}
-                          className="px-4 py-4 border-b border-slate-100 flex gap-3.5 items-start"
+                          onClick={() => handleNotificationClick(notif)}
+                          className="px-4 py-4 border-b border-slate-100 flex gap-3.5 items-start cursor-pointer hover:bg-slate-50 transition-colors"
                         >
                           <div
                             className="w-10 h-10 rounded-full flex justify-center items-center shrink-0"
