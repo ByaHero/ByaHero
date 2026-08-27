@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import PassengerNavbar from '../../components/PassengerNavbar';
 import PassengerFooter from '../../components/PassengerFooter';
 import PassengerMap from '../../components/PassengerMap';
@@ -36,6 +36,10 @@ export const Dashboard: React.FC = () => {
   const [waitingModalOpen, setWaitingModalOpen] = useState(false);
   const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
+
+  const handleOpenWaitingModal = useCallback(() => {
+    setWaitingModalOpen(true);
+  }, []);
 
   // Guided tour state
   const [tourStep, setTourStep] = useState<number | null>(null);
@@ -134,7 +138,7 @@ export const Dashboard: React.FC = () => {
       <main className="relative flex-1 w-full h-full flex flex-col md:flex-row overflow-hidden">
         {/* Map Container */}
         <div className="flex-1 w-full h-full relative">
-          <PassengerMap onOpenWaitingModal={() => setWaitingModalOpen(true)} />
+          <PassengerMap onOpenWaitingModal={handleOpenWaitingModal} />
         </div>
 
         {/* Bottom Sheet on Mobile / Side Panel on Desktop */}
