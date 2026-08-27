@@ -54,15 +54,13 @@ export default function ReportProblemScreen() {
   };
 
   const reasons = [
-    'No Air Conditioning / Poor Ventilation in Bus',
-    'Dirty or Unclean Bus',
-    'Broken Seats or Unsafe Interior',
-    'Reckless Driving',
-    'Over-speeding / Sudden Braking',
-    'Unprofessional Behavior of Driver or Conductor',
-    'Discount Not Applied (Senior / PWD / Student)',
-    'No Receipt',
-    'Line Cutting',
+    'Inaccurate Bus Tracking / Wrong GPS Location',
+    'Incorrect ETA or Schedule Information',
+    'App Crashes, Freezes, or Screen Errors',
+    'Slow Performance / Heavy Loading Times',
+    'Account Login, Profile, or Sign Up Issues',
+    'UI / Navigation Problems (Overlap, Alignment, etc.)',
+    'Other App Concerns / Suggestions',
   ];
 
   useEffect(() => {
@@ -184,7 +182,7 @@ export default function ReportProblemScreen() {
                   <View style={tw`flex-1`}>
                     <Text style={tw`text-base font-black text-slate-800`}>Report a Problem</Text>
                     <Text style={tw`text-[11px] text-slate-400 font-semibold leading-relaxed`}>
-                      Submit details if you encountered any issues during your trip.
+                      Submit details if you encountered any app-related issues or inaccuracies during your trip.
                     </Text>
                   </View>
                 </View>
