@@ -27,7 +27,14 @@ export async function sendFcmPushes(pushData) {
     }
 
     const fcmUrl = `https://fcm.googleapis.com/v1/projects/${pushData.project_id}/messages:send`;
-    console.log(`[SOS-Notification] Access Token retrieved. Dispatching to ${pushData.fcm_tokens.length} device(s)...`);
+    console.log(`[NotificationService] Access Token retrieved. Dispatching to ${pushData.fcm_tokens.length} device(s)...`);
+
+    const notifType = pushData.type || 'sos_alert';
+    const notifTitle = pushData.title || (notifType === 'sos_alert' ? '🚨 SOS Alert' : '🚌 Bus Schedule Update');
+    const notifBody = pushData.body || (notifType === 'sos_alert' 
+      ? (`${pushData.sender_name || 'A user'} needs help!` + (pushData.location_text ? ` Location: ${pushData.location_text}` : ''))
+      : 'Bus operation schedules have been updated.');
+    const channelId = pushData.channel_id || (notifType === 'sos_alert' ? 'sos_alerts_v2' : 'schedule_updates');
 
     await Promise.all(
       pushData.fcm_tokens.map(async (token) => {
@@ -42,18 +49,22 @@ export async function sendFcmPushes(pushData) {
               message: {
                 token: token,
                 notification: {
-                  title: '🚨 SOS Alert',
-                  body: `${pushData.sender_name} needs help!` + (pushData.location_text ? ` Location: ${pushData.location_text}` : '')
+                  title: notifTitle,
+                  body: notifBody
                 },
                 data: {
-                  type: 'sos_alert',
-                  sender_name: pushData.sender_name,
-                  location_text: pushData.location_text || ''
+                  type: notifType,
+                  title: notifTitle,
+                  message: notifBody,
+                  sender_name: pushData.sender_name || '',
+                  location_text: pushData.location_text || '',
+                  route: pushData.route || (notifType === 'schedule_update' ? '/passenger/busInfo' : ''),
+                  ...(pushData.data || {})
                 },
                 android: {
                   priority: 'HIGH',
                   notification: {
-                    channel_id: 'sos_alerts_v2',
+                    channel_id: channelId,
                     sound: 'default',
                     notification_priority: 'PRIORITY_HIGH',
                     visibility: 'PUBLIC'
@@ -63,8 +74,8 @@ export async function sendFcmPushes(pushData) {
                   payload: {
                     aps: {
                       alert: {
-                        title: '🚨 SOS Alert',
-                        body: `${pushData.sender_name} needs help!` + (pushData.location_text ? ` Location: ${pushData.location_text}` : '')
+                        title: notifTitle,
+                        body: notifBody
                       },
                       sound: 'default',
                       badge: 1
@@ -76,13 +87,13 @@ export async function sendFcmPushes(pushData) {
           });
 
           const resultText = await res.text();
-          console.log(`[SOS-Notification] Single push dispatch result: ${res.status} - ${resultText}`);
+          console.log(`[NotificationService] Single push dispatch result: ${res.status} - ${resultText}`);
           
           if (!res.ok) {
             throw new Error(`FCM API Error ${res.status}: ${resultText}`);
           }
         } catch (e) {
-          console.error('[SOS-Notification] Single push send failed:', e);
+          console.error('[NotificationService] Single push send failed:', e);
           throw e; // Bubble up the error so the UI catch block can alert us
         }
       })
