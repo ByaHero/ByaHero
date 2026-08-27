@@ -67,34 +67,10 @@ class SosController extends Controller
 
             DB::commit();
 
-            // Generate self-signed JWT for FCM Bypass
-            $clientEmail = config('services.firebase.client_email', '');
-            $privateKey = config('services.firebase.private_key', '');
+            // Generate self-signed JWT using FirebaseNotificationService
+            $fcmService = app(\App\Services\FirebaseNotificationService::class);
+            $signedJwt = $fcmService->generateSignedJwt();
             $projectId = config('services.firebase.project_id', '');
-
-            // Decode private key if it contains literal \n characters
-            $privateKey = str_replace('\n', "\n", $privateKey);
-
-            $signedJwt = null;
-            if (!empty($clientEmail) && !empty($privateKey)) {
-                $header = json_encode(['alg' => 'RS256', 'typ' => 'JWT']);
-                $now = time();
-                $payload = json_encode([
-                    'iss' => $clientEmail,
-                    'scope' => 'https://www.googleapis.com/auth/firebase.messaging',
-                    'aud' => 'https://oauth2.googleapis.com/token',
-                    'exp' => $now + 3600,
-                    'iat' => $now
-                ]);
-
-                $b64Header = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($header));
-                $b64Payload = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($payload));
-                $signatureInput = $b64Header . "." . $b64Payload;
-
-                @openssl_sign($signatureInput, $signature, $privateKey, "sha256WithRSAEncryption");
-                $b64Signature = str_replace(['+', '/', '='], ['-', '_', ''], base64_encode($signature));
-                $signedJwt = $signatureInput . "." . $b64Signature;
-            }
 
             return response()->json([
                 'success' => true,
