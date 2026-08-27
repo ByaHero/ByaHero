@@ -116,13 +116,13 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     if (!map || !userLocation) return;
 
     const userHtml = `
-      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer">
+      <div class="relative flex items-center justify-center w-full h-full cursor-pointer">
         ${isWaiting ? `
           <div class="absolute -top-7 whitespace-nowrap bg-emerald-500 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full shadow-md border border-white">
             WAITING
           </div>
         ` : ''}
-        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse">
+        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse relative">
           ${user?.profile_picture ? `
             <img src="${user.profile_picture.startsWith('http') ? user.profile_picture : `${serverUrl}/${user.profile_picture}`}" class="w-full h-full rounded-full object-cover" />
           ` : userInitial}
