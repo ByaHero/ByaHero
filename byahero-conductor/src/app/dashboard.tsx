@@ -279,11 +279,7 @@ export default function DashboardScreen() {
     const boardingCount = parseInt(paxCount) || 0;
     const seatsTotal = selectedBus.total_seats || 25;
 
-    if (boardingCount > seatsTotal) {
-      showAlert('Error', `Passenger count cannot exceed maximum seats (${seatsTotal})`, 'error');
-      return;
-    }
-
+    // Note: boarding count is allowed to exceed seats_total for analytics tracking purposes
     setIsLoading(true);
     setIsPreDepartureVisible(false);
 

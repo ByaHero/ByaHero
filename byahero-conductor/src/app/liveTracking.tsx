@@ -63,7 +63,8 @@ export default function LiveTrackingScreen() {
   const paxCountsRef = useRef<any>(null);
   const stopTrackingRef = useRef<any>(null);
   const [session, setSession] = useState<any>(null);
-  const [seats, setSeats] = useState(0);
+  const [seats, setSeats] = useState(0); // available seats (for server status)
+  const [boardedCount, setBoardedCount] = useState(0); // total passengers on board (displayed, no cap)
   const [netStatus, setNetStatus] = useState('Active');
   const [locationName, setLocationName] = useState('Waiting for GPS...');
   const [lastUpdate, setLastUpdate] = useState('00:00');
@@ -141,19 +142,22 @@ export default function LiveTrackingScreen() {
 
   // Sync seats count to ref to avoid effect recreation churn
   const seatsRef = useRef(seats);
+  const boardedCountRef = useRef(boardedCount);
   useEffect(() => {
     seatsRef.current = seats;
+    boardedCountRef.current = boardedCount;
     AsyncStorage.getItem('byahero_conductor_payload').then(str => {
       if (!str) return;
       try {
         const p = JSON.parse(str);
         p.current_seats = seats;
+        p.current_boarded = boardedCount;
         p.pending_pre_departure = pendingPreDeparture;
         p.ticket_counter = ticketCounter;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, pendingPreDeparture, ticketCounter]);
+  }, [seats, boardedCount, pendingPreDeparture, ticketCounter]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -223,6 +227,9 @@ export default function LiveTrackingScreen() {
           const persisted = await LocationServiceModule.getPersistedSeats();
           if (persisted !== -1) {
             setSeats(persisted);
+            // Recompute boarded count from the persisted available seats
+            const seatsTotal = sessionRef.current?.seats_total || 0;
+            setBoardedCount(Math.max(0, seatsTotal - persisted));
           }
         } catch (_) {}
       }
@@ -275,21 +282,38 @@ export default function LiveTrackingScreen() {
     setSession(payload);
     sessionRef.current = payload;
 
-    // Check if service mutated seats while JS was dead (app was swiped)
-    let restoredSeats = payload.current_seats !== undefined
+    const seatsTotal = payload.seats_total || 0;
+    const isResumed = payload.current_seats !== undefined;
+
+    // Compute available seats
+    // For a brand new session, seats available = seats_total - pre_departure_count
+    // For a resumed session, restore from persisted state
+    let restoredSeats = isResumed
       ? payload.current_seats
-      : payload.seats_total - payload.pre_departure_count;
+      : Math.max(0, seatsTotal - (payload.pre_departure_count || 0));
+
+    // Compute boarded count
+    // For a brand new session: pre_departure_count passengers are already on board
+    // For a resumed session: restore persisted boarded count
+    let restoredBoarded = isResumed
+      ? (payload.current_boarded !== undefined ? payload.current_boarded : seatsTotal - payload.current_seats)
+      : (payload.pre_departure_count || 0);
 
     // Only restore from native module if this is a resumed active session.
-    // If it's a new session (current_seats is undefined), we ignore the native module to prevent ghost passengers from previous unclean sessions.
-    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule && payload.current_seats !== undefined) {
+    // For new sessions, always use the freshly computed values to prevent ghost
+    // passengers from a previous unclean session bleeding in.
+    if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule && isResumed) {
       try {
         const persisted = await LocationServiceModule.getPersistedSeats();
-        if (persisted !== -1) restoredSeats = persisted;
+        if (persisted !== -1) {
+          restoredSeats = persisted;
+          restoredBoarded = Math.max(0, seatsTotal - persisted);
+        }
       } catch (_) {}
     }
 
     setSeats(restoredSeats);
+    setBoardedCount(restoredBoarded);
 
     if (payload.isSimulation) {
       return; // SIMULATION MODE: Do not connect to background location services or real backend tracking
@@ -302,7 +326,7 @@ export default function LiveTrackingScreen() {
           bus_id: String(payload.bus_id),
           code: payload.code || '',
           route: payload.route || '',
-          seats_total: payload.seats_total || 25,
+          seats_total: seatsTotal,
           seats_available: restoredSeats,
           force_seats: true,
           server_url: baseUrl,
@@ -583,36 +607,40 @@ export default function LiveTrackingScreen() {
   };
 
   const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
-    const currentSeats = seatsRef.current;
-    if (sessionRef.current && currentSeats > 0) {
-      const actualCount = Math.min(count, currentSeats);
-      const newSeats = currentSeats - actualCount;
-      setSeats(newSeats);
-      pendingBoards.current += actualCount;
+    if (!sessionRef.current) return;
+    // No upper cap — count all boarding passengers for analytics
+    const newBoarded = boardedCountRef.current + count;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
+    setBoardedCount(newBoarded);
+    setSeats(newSeats);
+    pendingBoards.current += count;
 
-      scheduleSync();
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
-      }
+    scheduleSync();
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
     }
   };
 
   const decrementPassengers = (isManualUi = false) => {
-    const currentSeats = seatsRef.current;
-    if (sessionRef.current && currentSeats < sessionRef.current.seats_total) {
-      const newSeats = currentSeats + 1;
-      setSeats(newSeats);
-      pendingDeparts.current++;
-      scheduleSync();
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
-      }
+    if (!sessionRef.current) return;
+    // Don't go below 0 boarded passengers
+    if (boardedCountRef.current <= 0) return;
+    const newBoarded = boardedCountRef.current - 1;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.min(seatsTotal, seatsRef.current + 1);
+    setBoardedCount(newBoarded);
+    setSeats(newSeats);
+    pendingDeparts.current++;
+    scheduleSync();
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
     }
   };
 
@@ -629,6 +657,16 @@ export default function LiveTrackingScreen() {
       });
     }
 
+    // Reset native module persisted seats so the next session starts clean
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      try {
+        LocationServiceModule.updateSessionData({
+          seats_available: 0,
+          force_seats: true
+        });
+      } catch (_) {}
+    }
+
     await AsyncStorage.removeItem('byahero_conductor_payload');
     setIsLoading(false);
     router.replace('/dashboard');
@@ -636,6 +674,15 @@ export default function LiveTrackingScreen() {
 
   const handleAdminStop = () => {
     cleanup();
+    // Reset native module persisted seats so the next session starts clean
+    if (Platform.OS === 'android' && LocationServiceModule) {
+      try {
+        LocationServiceModule.updateSessionData({
+          seats_available: 0,
+          force_seats: true
+        });
+      } catch (_) {}
+    }
     AsyncStorage.removeItem('byahero_conductor_payload').then(() => {
       setIsAdminStopModalVisible(true);
     });
@@ -872,7 +919,7 @@ export default function LiveTrackingScreen() {
 
             <View ref={paxCountsRef} onLayout={() => handleTourLayout('pax-counts', paxCountsRef)}>
               <Text style={tw`text-5xl font-black text-slate-800 w-16 text-center`}>
-                {session ? session.seats_total - seats : 0}
+                {boardedCount}
               </Text>
             </View>
 
