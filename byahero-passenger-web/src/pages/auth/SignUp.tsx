@@ -1,14 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { signupRequestOtp, signupVerifyOtp } from '../../services/authService';
+import { signupRequestOtp, signupVerifyOtp, googleAuth } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 import AlertModal from '../../components/AlertModal';
+
+const GOOGLE_CLIENT_ID = '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com';
 
 export const SignUp: React.FC = () => {
   const navigate = useNavigate();
+  const { login: authContextLogin } = useAuth();
 
   const [step, setStep] = useState<1 | 2>(1);
   const [isLoading, setIsLoading] = useState(false);
+
+  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
   // Step 1 Fields
   const [name, setName] = useState('');
@@ -55,6 +61,81 @@ export const SignUp: React.FC = () => {
       },
     });
   };
+
+  const handleGoogleCredentialResponse = async (response: any) => {
+    if (!response?.credential) {
+      showAlert('Authentication Error', 'No credential received from Google.', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const result = await googleAuth(response.credential);
+      setIsLoading(false);
+
+      if (result.success && result.user) {
+        const hasContacts = result.user.contacts || result.user.phone || '';
+        authContextLogin({
+          email: result.user.email,
+          name: result.user.name || result.user.email.split('@')[0],
+          phone: hasContacts,
+          role: 'passenger',
+          profile_picture: result.user.profile_picture,
+        });
+
+        if (!hasContacts) {
+          navigate('/complete-profile');
+        } else {
+          navigate('/');
+        }
+      } else {
+        throw new Error(result.message || 'Google sign-up failed.');
+      }
+    } catch (error: any) {
+      setIsLoading(false);
+      showAlert('Google Sign-Up Failed', error.message || 'Unable to sign up with Google.', 'error');
+    }
+  };
+
+  useEffect(() => {
+    if (step !== 1) return;
+
+    const initGsi = () => {
+      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          googleBtnContainerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            shape: 'pill',
+            width: Math.min(340, googleBtnContainerRef.current.offsetWidth || 340),
+            text: 'signup_with',
+            logo_alignment: 'left',
+          });
+        } catch (e) {
+          console.warn('GSI Init Error:', e);
+        }
+      }
+    };
+
+    initGsi();
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        initGsi();
+        clearInterval(interval);
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
+  }, [step]);
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -231,7 +312,7 @@ export const SignUp: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="bg-[#1d72f8] hover:bg-[#1856b0] text-white rounded-full py-3 px-12 self-center justify-center shadow-md text-sm font-bold tracking-wider transition-all disabled:opacity-75"
+                className="bg-[#1d72f8] hover:bg-[#1856b0] text-white rounded-full py-3 px-12 self-center justify-center shadow-md text-sm font-bold tracking-wider transition-all disabled:opacity-75 cursor-pointer"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -242,6 +323,21 @@ export const SignUp: React.FC = () => {
                   'SIGN UP'
                 )}
               </button>
+
+              {/* Divider */}
+              <div className="flex items-center my-5">
+                <div className="flex-1 h-[1px] bg-slate-200" />
+                <span className="text-[#94a3b8] text-[11px] font-bold mx-4">OR</span>
+                <div className="flex-1 h-[1px] bg-slate-200" />
+              </div>
+
+              {/* Google Sign-in */}
+              <div className="w-full flex flex-col items-center justify-center">
+                <div
+                  ref={googleBtnContainerRef}
+                  className="w-full flex justify-center items-center min-h-[44px]"
+                />
+              </div>
             </form>
           ) : (
             // STEP 2: OTP Verification

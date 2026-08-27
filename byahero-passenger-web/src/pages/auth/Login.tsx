@@ -1,11 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { preWarmServer, login as authServiceLogin } from '../../services/authService';
+import { preWarmServer, login as authServiceLogin, googleAuth } from '../../services/authService';
 import DevSettingsModal from '../../components/DevSettingsModal';
 import AlertModal from '../../components/AlertModal';
 import { MaterialIcons } from '../../components/ui/MaterialIcons';
+
+const GOOGLE_CLIENT_ID = '299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com';
+
+declare global {
+  interface Window {
+    google?: any;
+  }
+}
 
 export const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -16,6 +24,8 @@ export const Login: React.FC = () => {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showWarmingUpMsg, setShowWarmingUpMsg] = useState(false);
+
+  const googleBtnContainerRef = useRef<HTMLDivElement>(null);
 
   // Logo tap dev modal trigger
   const [logoTapCount, setLogoTapCount] = useState(0);
@@ -57,8 +67,98 @@ export const Login: React.FC = () => {
     });
   };
 
+  const handleGoogleCredentialResponse = async (response: any) => {
+    if (!response?.credential) {
+      showAlert('Authentication Error', 'No credential received from Google.', 'error');
+      return;
+    }
+
+    setIsLoading(true);
+    setShowWarmingUpMsg(false);
+    const timer = setTimeout(() => {
+      setShowWarmingUpMsg(true);
+    }, 3500);
+
+    try {
+      const result = await googleAuth(response.credential);
+      clearTimeout(timer);
+      setIsLoading(false);
+      setShowWarmingUpMsg(false);
+
+      if (result.success && result.user) {
+        const hasContacts = result.user.contacts || result.user.phone || '';
+        let displayName = result.user.name || result.user.email || 'User';
+        if (displayName.includes('@')) {
+          displayName = displayName.split('@')[0];
+        }
+        setLoginUserName(displayName.split(' ')[0]);
+
+        authContextLogin({
+          email: result.user.email,
+          name: result.user.name || result.user.email.split('@')[0],
+          phone: hasContacts,
+          role: 'passenger',
+          profile_picture: result.user.profile_picture,
+        });
+
+        setLoginSuccessVisible(true);
+        setTimeout(() => {
+          setLoginSuccessVisible(false);
+          if (!hasContacts) {
+            navigate('/complete-profile');
+          } else {
+            navigate('/');
+          }
+        }, 1200);
+      } else {
+        throw new Error(result.message || 'Google sign-in failed.');
+      }
+    } catch (error: any) {
+      clearTimeout(timer);
+      setIsLoading(false);
+      setShowWarmingUpMsg(false);
+      showAlert('Google Sign-In Failed', error.message || 'Unable to sign in with Google.', 'error');
+    }
+  };
+
   useEffect(() => {
     preWarmServer();
+
+    const initGsi = () => {
+      if (window.google?.accounts?.id && googleBtnContainerRef.current) {
+        try {
+          window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: handleGoogleCredentialResponse,
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+
+          googleBtnContainerRef.current.innerHTML = '';
+          window.google.accounts.id.renderButton(googleBtnContainerRef.current, {
+            theme: 'outline',
+            size: 'large',
+            type: 'standard',
+            shape: 'pill',
+            width: Math.min(340, googleBtnContainerRef.current.offsetWidth || 340),
+            text: 'continue_with',
+            logo_alignment: 'left',
+          });
+        } catch (e) {
+          console.warn('GSI Init Error:', e);
+        }
+      }
+    };
+
+    initGsi();
+    const interval = setInterval(() => {
+      if (window.google?.accounts?.id) {
+        initGsi();
+        clearInterval(interval);
+      }
+    }, 300);
+
+    return () => clearInterval(interval);
   }, []);
 
   const handleLogoTap = () => {
@@ -239,21 +339,12 @@ export const Login: React.FC = () => {
             </div>
 
             {/* Google Sign-in */}
-            <button
-              type="button"
-              onClick={() => showAlert('Google Sign-In', 'Google sign-in is managed via OAuth.', 'info')}
-              className="flex items-center justify-center bg-white border border-[#e2e8f0] rounded-full py-2.5 px-4 shadow-sm hover:bg-slate-50 transition-all cursor-pointer"
-            >
-              <img
-                src="/images/googleIcon.png"
-                alt="Google"
-                className="w-5 h-5 mr-3 object-contain"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
+            <div className="w-full flex flex-col items-center justify-center">
+              <div
+                ref={googleBtnContainerRef}
+                className="w-full flex justify-center items-center min-h-[44px]"
               />
-              <span className="text-slate-700 text-xs font-bold">Continue with Google</span>
-            </button>
+            </div>
 
             {/* Sign Up Link */}
             <div className="flex justify-center items-center mt-6">
