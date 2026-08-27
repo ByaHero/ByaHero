@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { MaterialIcons } from './ui/MaterialIcons';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
@@ -33,13 +33,131 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     removeCircleMember,
     isBoarded,
     boardedBus,
+    centerOnUser,
   } = useTracking();
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
   const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
   const [qrModalVisible, setQrModalVisible] = useState(false);
-  const [isExpanded, setIsExpanded] = useState(false);
+  type SheetState = 'expanded' | 'mid' | 'minimized';
+  const [sheetState, setSheetState] = useState<SheetState>('mid');
+  const [isDragging, setIsDragging] = useState(false);
+  
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const dragStartY = useRef(0);
+  const dragStartTranslateY = useRef(0);
+  const currentTranslateY = useRef(0);
+  const isDragAction = useRef(false);
+
+  const getBounds = () => {
+    const maxH = Math.max(360, window.innerHeight * 0.75);
+    const midH = 360;
+    const minH = 110;
+    const maxTranslate = maxH - minH;
+    return { maxH, midH, minH, maxTranslate };
+  };
+
+  const getTargetY = (state: SheetState) => {
+    const { maxH, midH, minH } = getBounds();
+    if (state === 'expanded') return 0;
+    if (state === 'mid') return maxH - midH;
+    return maxH - minH;
+  };
+
+  useLayoutEffect(() => {
+    if (sheetRef.current && !isDragging) {
+      const targetY = getTargetY(sheetState);
+      currentTranslateY.current = targetY;
+      sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+      sheetRef.current.style.transform = `translateY(${targetY}px)`;
+    }
+  }, [sheetState, isDragging]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (sheetRef.current && !isDragging) {
+        const { maxH } = getBounds();
+        sheetRef.current.style.height = `${maxH}px`;
+        const targetY = getTargetY(sheetState);
+        currentTranslateY.current = targetY;
+        sheetRef.current.style.transform = `translateY(${targetY}px)`;
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [sheetState, isDragging]);
+
+  const handleDragStart = (e: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+    isDragAction.current = false;
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = 'none';
+    }
+    setIsDragging(true);
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    dragStartY.current = clientY;
+    dragStartTranslateY.current = currentTranslateY.current;
+  };
+
+  const handleDragMove = (e: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+    if (!dragStartY.current) return;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    const deltaY = clientY - dragStartY.current;
+    
+    if (Math.abs(deltaY) > 5) {
+      isDragAction.current = true;
+    }
+    
+    const { maxTranslate } = getBounds();
+    let newTranslateY = dragStartTranslateY.current + deltaY;
+    
+    if (newTranslateY < 0) {
+      newTranslateY = newTranslateY * 0.2;
+    } else if (newTranslateY > maxTranslate) {
+      newTranslateY = maxTranslate + (newTranslateY - maxTranslate) * 0.2;
+    }
+    
+    currentTranslateY.current = newTranslateY;
+    
+    if (sheetRef.current) {
+      sheetRef.current.style.transform = `translateY(${newTranslateY}px)`;
+    }
+  };
+
+  const handleDragEnd = () => {
+    if (!dragStartY.current) return;
+    dragStartY.current = 0;
+    setIsDragging(false);
+    
+    if (sheetRef.current) {
+      sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
+    }
+
+    const { maxH, midH, minH } = getBounds();
+    const currentH = maxH - currentTranslateY.current;
+    
+    const distToExpanded = Math.abs(currentH - maxH);
+    const distToMid = Math.abs(currentH - midH);
+    const distToMinimized = Math.abs(currentH - minH);
+
+    const minDist = Math.min(distToExpanded, distToMid, distToMinimized);
+
+    if (minDist === distToExpanded) setSheetState('expanded');
+    else if (minDist === distToMid) setSheetState('mid');
+    else setSheetState('minimized');
+  };
+
+  const toggleExpand = (e?: React.MouseEvent) => {
+    if (isDragAction.current) {
+      if (e) e.preventDefault();
+      return;
+    }
+    setSheetState(prev => {
+      if (prev === 'expanded') return 'mid';
+      if (prev === 'mid') return 'expanded';
+      return 'mid';
+    });
+  };
 
   // AlertModal
   const [alertConfig, setAlertConfig] = useState<{
@@ -119,14 +237,31 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
   return (
     <div
-      className={`fixed bottom-[75px] left-0 right-0 max-w-md mx-auto bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-slate-100 z-[1000] transition-all duration-300 flex flex-col ${
-        isExpanded ? 'h-[75vh]' : 'h-[360px]'
-      }`}
+      ref={sheetRef}
+      style={{ height: `${Math.max(360, window.innerHeight * 0.75)}px` }}
+      className="absolute bottom-0 left-0 right-0 w-full bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-slate-100 z-[1000] flex flex-col will-change-transform"
     >
+      {/* Recenter Button (attached to top right of bottom sheet) */}
+      <button
+        type="button"
+        onClick={() => centerOnUser()}
+        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010]"
+        title="Center on My Location"
+      >
+        <MaterialIcons name="my_location" size={24} color="#103d7c" />
+      </button>
+
       {/* Handle / Drag Bar */}
       <div
-        onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-center pt-3 pb-2 cursor-pointer touch-none"
+        onTouchStart={handleDragStart}
+        onTouchMove={handleDragMove}
+        onTouchEnd={handleDragEnd}
+        onMouseDown={handleDragStart}
+        onMouseMove={handleDragMove}
+        onMouseUp={handleDragEnd}
+        onMouseLeave={handleDragEnd}
+        onClick={toggleExpand}
+        className="w-full flex items-center justify-center pt-4 pb-4 cursor-pointer touch-none select-none"
       >
         <div className="w-20 h-1.5 bg-[#e2e8f0] rounded-full" />
       </div>

@@ -347,44 +347,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       {/* Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Floating Action Controls */}
-      <div className="absolute right-4 bottom-24 md:bottom-8 z-[1000] flex flex-col items-end gap-2.5">
-        {/* Waiting Status Floating Trigger */}
-        <button
-          type="button"
-          onClick={onOpenWaitingModal}
-          className={`flex items-center gap-2 py-2.5 px-4 rounded-full shadow-lg font-bold text-xs border-2 border-white transition-all transform active:scale-95 ${
-            isWaiting
-              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
-              : 'bg-white hover:bg-slate-50 text-slate-700 shadow-slate-900/10'
-          }`}
-        >
-          <img
-            src="/images/waitingButton.svg"
-            alt=""
-            className="w-4 h-4 object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-          <span>{isWaiting ? 'Waiting Active' : 'Waiting for Bus?'}</span>
-        </button>
-
-        {/* GPS Recenter Button */}
-        <button
-          type="button"
-          onClick={() => {
-            centerOnUser();
-            if (mapInstanceRef.current && userLocation) {
-              mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
-            }
-          }}
-          className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-[#103d7c] flex items-center justify-center shadow-lg shadow-slate-900/15 border-2 border-white transition-all transform active:scale-95"
-          title="Center on My Location"
-        >
-          <Crosshair className="w-5 h-5" />
-        </button>
-      </div>
+      {/* Floating Action Controls Removed as requested */}
     </div>
   );
 };

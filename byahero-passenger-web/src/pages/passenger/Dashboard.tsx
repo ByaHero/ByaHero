@@ -115,7 +115,7 @@ export const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="relative w-screen h-screen flex flex-col bg-slate-100 overflow-hidden select-none">
+    <div className="relative w-screen h-[100dvh] flex flex-col bg-slate-100 overflow-hidden select-none">
       {/* Top Navbar */}
       <PassengerNavbar onStartTour={() => setTourStep(0)} />
 
@@ -138,11 +138,13 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Bottom Sheet on Mobile / Side Panel on Desktop */}
-        <div className="absolute md:relative bottom-16 md:bottom-0 left-0 right-0 md:w-96 lg:w-[420px] md:h-full z-[1050] pointer-events-auto">
-          <PassengerBottomSheet
-            currentTab={currentTab}
-            onTabChange={setCurrentTab}
-          />
+        <div className="absolute md:relative bottom-0 left-0 right-0 md:w-96 lg:w-[420px] md:h-full z-[1050] pointer-events-none md:pointer-events-auto">
+          <div className="relative w-full h-full pointer-events-auto">
+            <PassengerBottomSheet
+              currentTab={currentTab}
+              onTabChange={setCurrentTab}
+            />
+          </div>
         </div>
       </main>
 
