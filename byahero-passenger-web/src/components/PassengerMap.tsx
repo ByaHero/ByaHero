@@ -18,6 +18,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
   const stopMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const friendMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const hasAutoCenteredRef = useRef(false);
 
   const {
     userLocation,
@@ -100,6 +101,14 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       { duration: 1.2 }
     );
   }, [mapCenterTarget]);
+
+  // Auto-center on user location once when it becomes available
+  useEffect(() => {
+    if (mapInstanceRef.current && userLocation && !hasAutoCenteredRef.current) {
+      mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+      hasAutoCenteredRef.current = true;
+    }
+  }, [userLocation]);
 
   // Update User Marker
   useEffect(() => {
@@ -364,11 +373,16 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         {/* GPS Recenter Button */}
         <button
           type="button"
-          onClick={centerOnUser}
+          onClick={() => {
+            centerOnUser();
+            if (mapInstanceRef.current && userLocation) {
+              mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+            }
+          }}
           className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-[#103d7c] flex items-center justify-center shadow-lg shadow-slate-900/15 border-2 border-white transition-all transform active:scale-95"
           title="Center on My Location"
         >
-          <img src="/images/my_location.svg" alt="Recenter" className="w-5 h-5 object-contain" />
+          <Crosshair className="w-5 h-5" />
         </button>
       </div>
     </div>

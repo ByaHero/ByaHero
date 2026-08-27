@@ -29,6 +29,7 @@ export default function LoginScreen() {
   const [secureTextEntry, setSecureTextEntry] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [showWarmingUpMsg, setShowWarmingUpMsg] = useState(false);
+  const [isCheckingSession, setIsCheckingSession] = useState(true);
   const [serverUrl, setServerUrlState] = useState('');
 
   // Developer URL configuration modal state
@@ -105,6 +106,7 @@ export default function LoginScreen() {
             ]);
             const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
             showAlert('Access Restricted', `You must use the ${targetApp}.`, 'warning');
+            setIsCheckingSession(false);
           } else {
             // Restore backend session to re-hydrate cookies for /api/group/view and notifications
             try {
@@ -119,9 +121,12 @@ export default function LoginScreen() {
               router.replace('/passenger');
             }
           }
+        } else {
+          setIsCheckingSession(false);
         }
       } catch (err) {
         console.error('Auto-login session restoration failed:', err);
+        setIsCheckingSession(false);
       }
     };
     checkAutoLogin();
@@ -284,6 +289,19 @@ export default function LoginScreen() {
       showAlert('Authentication Error', (error as any).message || 'Failed to authenticate via Google.', 'error');
     }
   };
+
+  if (isCheckingSession) {
+    return (
+      <SafeAreaView style={tw`flex-1 bg-slate-100 justify-center items-center`}>
+        <Image
+          source={require('../../assets/images/byaheroLogo.png')}
+          style={tw`w-[120px] h-[120px] mb-4`}
+          contentFit="contain"
+        />
+        <ActivityIndicator size="large" color="#1d72f8" />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-100`}>

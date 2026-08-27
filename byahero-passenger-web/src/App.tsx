@@ -3,30 +3,39 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { TrackingProvider } from './context/TrackingContext';
 
-// Pages
-import Login from './pages/Login';
-import SignUp from './pages/SignUp';
-import ForgotPassword from './pages/ForgotPassword';
-import CompleteProfile from './pages/CompleteProfile';
-import Dashboard from './pages/Dashboard';
-import BusInfo from './pages/BusInfo';
-import LostAndFound from './pages/LostAndFound';
-import MyReports from './pages/MyReports';
-import SOS from './pages/SOS';
-import ReportProblem from './pages/ReportProblem';
-import RideHistory from './pages/RideHistory';
-import Notifications from './pages/Notifications';
-import Profile from './pages/Profile';
-import AccountSettings from './pages/AccountSettings';
-import ChangePassword from './pages/ChangePassword';
-import LoginActivity from './pages/LoginActivity';
-import DeleteAccount from './pages/DeleteAccount';
-import Settings from './pages/Settings';
-import SmartNotification from './pages/SmartNotification';
-import AccessibilitySettings from './pages/AccessibilitySettings';
-import PrivacySecurity from './pages/PrivacySecurity';
-import Feedback from './pages/Feedback';
-import StaticPages from './pages/StaticPages';
+// Auth Pages
+import Login from './pages/auth/Login';
+import SignUp from './pages/auth/SignUp';
+import ForgotPassword from './pages/auth/ForgotPassword';
+
+// Passenger Pages
+import CompleteProfile from './pages/passenger/CompleteProfile';
+import Dashboard from './pages/passenger/Dashboard';
+import RideHistory from './pages/passenger/RideHistory';
+
+import BusInfo from './pages/passenger/busInfo/BusInfo';
+
+import LostAndFound from './pages/passenger/lostAndFound/LostAndFound';
+import MyReports from './pages/passenger/lostAndFound/MyReports';
+
+import SOS from './pages/passenger/sos/SOS';
+import ReportProblem from './pages/passenger/report/ReportProblem';
+import Notifications from './pages/passenger/notifications/Notifications';
+
+// Profile Pages
+import Profile from './pages/passenger/profile/Profile';
+import AccountSettings from './pages/passenger/profile/AccountSettings';
+import ChangePassword from './pages/passenger/profile/ChangePassword';
+import LoginActivity from './pages/passenger/profile/LoginActivity';
+import DeleteAccount from './pages/passenger/profile/DeleteAccount';
+
+// Settings Pages
+import Settings from './pages/passenger/settings/Settings';
+import SmartNotification from './pages/passenger/settings/SmartNotification';
+import AccessibilitySettings from './pages/passenger/settings/AccessibilitySettings';
+import PrivacySecurity from './pages/passenger/settings/PrivacySecurity';
+import Feedback from './pages/passenger/settings/Feedback';
+import StaticPages from './pages/passenger/settings/StaticPages';
 
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
