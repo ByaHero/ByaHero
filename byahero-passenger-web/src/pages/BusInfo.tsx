@@ -29,16 +29,61 @@ export const BusInfo: React.FC = () => {
 
     const fetchSyncData = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/buses/sync`);
-        if (res.ok) {
-          const data = await res.json();
-          if (data && data.success && active) {
-            setIsOffline(false);
-            setSchedules(data.bus_schedule || []);
-            setFareStops(data.bus_stops || []);
-            setFareRules(data.bus_fares || []);
-            saveBusData(data.bus_schedule || [], data.bus_stops || [], data.bus_fares || [], data.stops_terminal || []);
-            return;
+        let responseData: any = null;
+        let isNetworkSuccess = false;
+
+        // Try primary configured URL
+        try {
+          const res = await fetch(`${serverUrl}/api/buses/sync`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data && data.success) {
+              responseData = data;
+              isNetworkSuccess = true;
+            }
+          }
+        } catch (err) {
+          console.warn(`Failed to fetch sync data from configured server URL: ${serverUrl}`, err);
+        }
+
+        // Failover fallback to alwaysdata production URL if primary failed
+        if (!isNetworkSuccess && serverUrl !== 'https://byahero.alwaysdata.net') {
+          try {
+            const fallbackRes = await fetch('https://byahero.alwaysdata.net/api/buses/sync');
+            if (fallbackRes.ok) {
+              const data = await fallbackRes.json();
+              if (data && data.success) {
+                responseData = data;
+                isNetworkSuccess = true;
+              }
+            }
+          } catch (fallbackErr) {
+            console.error('Fallback to alwaysdata failed:', fallbackErr);
+          }
+        }
+
+        if (isNetworkSuccess && responseData && active) {
+          setIsOffline(false);
+          setSchedules(responseData.bus_schedule || []);
+          setFareStops(responseData.bus_stops || []);
+          setFareRules(responseData.bus_fares || []);
+          await saveBusData(
+            responseData.bus_schedule || [],
+            responseData.bus_stops || [],
+            responseData.bus_fares || [],
+            responseData.stops_terminal || []
+          );
+        } else if (!isNetworkSuccess && active) {
+          const cachedData = await loadBusData();
+          if (cachedData) {
+            setIsOffline(true);
+            setCacheTime(cachedData.cached_at);
+            setSchedules(cachedData.schedules || []);
+            setFareStops(cachedData.fare_stops || []);
+            setFareRules(cachedData.fare_rules || []);
+          } else {
+            setIsOffline(true);
+            setCacheTime(null);
           }
         }
       } catch (err: any) {
@@ -53,20 +98,6 @@ export const BusInfo: React.FC = () => {
           } else {
             setIsOffline(true);
             setCacheTime(null);
-            // Default fallback
-            setFareStops([
-              { stop_id: 1, location_name: 'Laurel Public Market (Terminal)', km_marker: 0 },
-              { stop_id: 2, location_name: 'J. Leviste', km_marker: 3 },
-              { stop_id: 3, location_name: 'Sampaloc, Talisay', km_marker: 7 },
-              { stop_id: 4, location_name: 'Talisay Municipal Hall', km_marker: 10 },
-              { stop_id: 5, location_name: 'Tumaway', km_marker: 14 },
-              { stop_id: 6, location_name: 'Tanauan City Hall / Victory Mall', km_marker: 18 },
-              { stop_id: 7, location_name: 'Tanauan Central Terminal', km_marker: 21 },
-            ]);
-            setSchedules([
-              { terminal_name: 'Laurel Public Market', time_open: '05:00:00', time_close: '19:00:00', is_suspended: 0 },
-              { terminal_name: 'Tanauan Central Terminal', time_open: '06:00:00', time_close: '20:00:00', is_suspended: 0 },
-            ]);
           }
         }
       }
