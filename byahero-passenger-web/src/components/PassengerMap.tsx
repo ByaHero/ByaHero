@@ -18,6 +18,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
   const stopMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const friendMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
+  const hasAutoCenteredRef = useRef(false);
 
   const {
     userLocation,
@@ -101,19 +102,27 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     );
   }, [mapCenterTarget]);
 
+  // Auto-center on user location once when it becomes available
+  useEffect(() => {
+    if (mapInstanceRef.current && userLocation && !hasAutoCenteredRef.current) {
+      mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+      hasAutoCenteredRef.current = true;
+    }
+  }, [userLocation]);
+
   // Update User Marker
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !userLocation) return;
 
     const userHtml = `
-      <div class="relative flex items-center justify-center -translate-x-1/2 -translate-y-1/2 cursor-pointer">
+      <div class="relative flex items-center justify-center w-full h-full cursor-pointer">
         ${isWaiting ? `
           <div class="absolute -top-7 whitespace-nowrap bg-emerald-500 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full shadow-md border border-white">
             WAITING
           </div>
         ` : ''}
-        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse">
+        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse relative">
           ${user?.profile_picture ? `
             <img src="${user.profile_picture.startsWith('http') ? user.profile_picture : `${serverUrl}/${user.profile_picture}`}" class="w-full h-full rounded-full object-cover" />
           ` : userInitial}
@@ -338,39 +347,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       {/* Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* Floating Action Controls */}
-      <div className="absolute right-4 bottom-24 md:bottom-8 z-[1000] flex flex-col items-end gap-2.5">
-        {/* Waiting Status Floating Trigger */}
-        <button
-          type="button"
-          onClick={onOpenWaitingModal}
-          className={`flex items-center gap-2 py-2.5 px-4 rounded-full shadow-lg font-bold text-xs border-2 border-white transition-all transform active:scale-95 ${
-            isWaiting
-              ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-500/30'
-              : 'bg-white hover:bg-slate-50 text-slate-700 shadow-slate-900/10'
-          }`}
-        >
-          <img
-            src="/images/waitingButton.svg"
-            alt=""
-            className="w-4 h-4 object-contain"
-            onError={(e) => {
-              (e.target as HTMLElement).style.display = 'none';
-            }}
-          />
-          <span>{isWaiting ? 'Waiting Active' : 'Waiting for Bus?'}</span>
-        </button>
-
-        {/* GPS Recenter Button */}
-        <button
-          type="button"
-          onClick={centerOnUser}
-          className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-[#103d7c] flex items-center justify-center shadow-lg shadow-slate-900/15 border-2 border-white transition-all transform active:scale-95"
-          title="Center on My Location"
-        >
-          <img src="/images/my_location.svg" alt="Recenter" className="w-5 h-5 object-contain" />
-        </button>
-      </div>
+      {/* Floating Action Controls Removed as requested */}
     </div>
   );
 };

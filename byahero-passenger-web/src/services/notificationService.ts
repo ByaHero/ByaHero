@@ -1,0 +1,108 @@
+export async function sendFcmPushes(pushData: any) {
+  if (!pushData.fcm_tokens || pushData.fcm_tokens.length === 0 || !pushData.jwt || !pushData.project_id) {
+    console.log('[SOS-Notification] Missing tokens, JWT or Project ID. Skipping pushes.');
+    return;
+  }
+
+  try {
+    console.log('[SOS-Notification] Requesting Access Token...');
+    const bodyParams = `grant_type=urn%3Aietf%3Aparams%3Aoauth%3Agrant-type%3Ajwt-bearer&assertion=${encodeURIComponent(pushData.jwt)}`;
+
+    const tokenRes = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: bodyParams
+    });
+
+    const tokenData = await tokenRes.json();
+    if (!tokenData.access_token) {
+      throw new Error(`Could not get access token: ${JSON.stringify(tokenData)}`);
+    }
+
+    const fcmUrl = `https://fcm.googleapis.com/v1/projects/${pushData.project_id}/messages:send`;
+    console.log(`[NotificationService] Access Token retrieved. Dispatching to ${pushData.fcm_tokens.length} device(s)...`);
+
+    const notifType = pushData.type || 'sos_alert';
+    const notifTitle = pushData.title || (notifType === 'sos_alert' ? '🚨 SOS Alert' : '🚌 Bus Schedule Update');
+    const notifBody = pushData.body || (notifType === 'sos_alert' 
+      ? (`${pushData.sender_name || 'A user'} needs help!` + (pushData.location_text ? ` Location: ${pushData.location_text}` : ''))
+      : 'Bus operation schedules have been updated.');
+    const channelId = pushData.channel_id || (notifType === 'sos_alert' ? 'sos_alerts_v2' : 'schedule_updates');
+
+    await Promise.all(
+      pushData.fcm_tokens.map(async (token: string) => {
+        try {
+          const res = await fetch(fcmUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${tokenData.access_token}`
+            },
+            body: JSON.stringify({
+              message: {
+                token: token,
+                notification: {
+                  title: notifTitle,
+                  body: notifBody
+                },
+                data: {
+                  type: notifType,
+                  title: notifTitle,
+                  message: notifBody,
+                  sender_name: pushData.sender_name || '',
+                  location_text: pushData.location_text || '',
+                  route: pushData.route || (notifType === 'schedule_update' ? '/passenger/busInfo' : ''),
+                  ...(pushData.data || {})
+                },
+                android: {
+                  priority: 'HIGH',
+                  notification: {
+                    channel_id: channelId,
+                    sound: 'default',
+                    notification_priority: 'PRIORITY_HIGH',
+                    visibility: 'PUBLIC'
+                  }
+                },
+                apns: {
+                  payload: {
+                    aps: {
+                      alert: {
+                        title: notifTitle,
+                        body: notifBody
+                      },
+                      sound: 'default',
+                      badge: 1
+                    }
+                  }
+                },
+                webpush: {
+                  notification: {
+                    title: notifTitle,
+                    body: notifBody,
+                    icon: '/icon.png',
+                    badge: '/favicon.png'
+                  }
+                }
+              }
+            })
+          });
+
+          const resultText = await res.text();
+          console.log(`[NotificationService] Single push dispatch result: ${res.status} - ${resultText}`);
+          
+          if (!res.ok) {
+            throw new Error(`FCM API Error ${res.status}: ${resultText}`);
+          }
+        } catch (e) {
+          console.error('[NotificationService] Single push send failed:', e);
+          throw e;
+        }
+      })
+    );
+  } catch (err) {
+    console.error('[SOS-Notification] Master push send failed:', err);
+    throw err;
+  }
+}
