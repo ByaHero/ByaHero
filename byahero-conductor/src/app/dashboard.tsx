@@ -271,6 +271,7 @@ export default function DashboardScreen() {
       return;
     }
 
+    setPaxCount('');
     setIsPreDepartureVisible(true);
   };
 
@@ -304,6 +305,7 @@ export default function DashboardScreen() {
         };
 
         await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
+        setPaxCount('');
         router.replace('/liveTracking');
       } else {
         showAlert('Dispatch Failed', res.error || 'Failed to start transit tracking.', 'error');

@@ -1,54 +1,142 @@
-import React from 'react';
-import { ChevronRight, ChevronLeft, X, Sparkles } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { useTourLayouts, tourRegistry, LayoutRect } from './TourRegistry';
 
 export interface TourStep {
   title: string;
   description: string;
-  targetId?: string;
+  screen: string;
+  highlight: string | null;
+  actionBeforeNext?: () => void | Promise<void>;
+  actionBeforeBack?: () => void | Promise<void>;
 }
 
-export const TOUR_STEPS: TourStep[] = [
+export const tourSteps: TourStep[] = [
   {
     title: 'Welcome to ByaHero!',
-    description: 'Track buses in real-time, view live seat availability, and travel safely across Laurel, Talisay, and Tanauan.',
+    description: "Let's take a quick interactive tour to show you how to navigate your live commuter dashboard.",
+    screen: '/',
+    highlight: null,
   },
   {
-    title: 'Top Navigation & Menu',
-    description: 'Access your profile, notifications, ride history, lost & found, problem reporting, and settings from the top header.',
+    title: 'Bus Locations',
+    description: 'See all live buses operating on routes, including their capacity and real-time ETAs.',
+    screen: '/',
+    highlight: 'tab-location',
   },
   {
-    title: 'Emergency SOS Panic Trigger',
-    description: 'Need immediate assistance? Tap the SOS button anytime to broadcast your GPS location to emergency responders and family.',
+    title: 'Filter Routes',
+    description: 'Filter routes in one click to track only the buses heading in your direction.',
+    screen: '/',
+    highlight: 'tab-routes',
   },
   {
-    title: 'Live Interactive Transit Map',
-    description: 'View moving buses, stops, route paths, and your live GPS location marker on the map in real-time.',
+    title: 'Circle Groups',
+    description: 'Track your private circle members and friends on the map in real time.',
+    screen: '/',
+    highlight: 'tab-groups',
   },
   {
-    title: 'Active Buses Directory',
-    description: 'Filter buses by route, check seat occupancy (available / full), speeds, and conductor assignments.',
+    title: 'Pickup Stops',
+    description: 'Discover pick-up terminals and designated boarding stops nearby.',
+    screen: '/',
+    highlight: 'tab-busstops',
   },
   {
-    title: 'Routes & Timetables',
-    description: 'Check official operating schedules, departure frequency, and route paths for Laurel and Tanauan trips.',
+    title: 'Recenter Map',
+    description: 'Tap this target button anytime to snap the map view directly back to your live GPS coordinates.',
+    screen: '/',
+    highlight: 'recenter',
   },
   {
-    title: 'Circles - Family & Friends',
-    description: 'Share your live location with family and loved ones using a private 6-character circle invite code.',
+    title: 'Commuter Location',
+    description: 'Focuses on your avatar marker on the map (loading simulated mockup coordinates if your live location is currently unavailable).',
+    screen: '/',
+    highlight: 'user-marker',
   },
   {
-    title: 'Bus Stops & Distance',
-    description: 'Browse all designated pickup stops with live distance calculations from your current location.',
+    title: 'SOS Emergency Button',
+    description: 'Trigger instant SOS alerts to notify emergency contacts and operator control centers with your live location.',
+    screen: '/',
+    highlight: 'sos-btn',
   },
   {
-    title: 'Waiting for Bus Signal',
-    description: 'Tap "I am waiting" at a pickup stop to notify incoming conductors and reserve your spot.',
+    title: 'Notifications Bell',
+    description: 'Tap this bell icon to see history feeds of SOS emergencies and route alerts in real-time.',
+    screen: '/',
+    highlight: 'notifications',
   },
   {
-    title: 'GPS Recenter',
-    description: 'Tap the GPS button anytime to bring the camera view right back to your current position.',
+    title: 'Passenger Menu Drawer',
+    description: 'Tap this hamburger menu button to open additional features, profile details, and account settings.',
+    screen: '/',
+    highlight: 'hamburger',
+  },
+  {
+    title: 'Ride History Link',
+    description: "This is your Ride History link. Tap here to view all your past boarding records, routes taken, and operator details. Let's check it out.",
+    screen: '/',
+    highlight: 'menu-history',
+    actionBeforeNext: () => {
+      // we navigate before moving to next step
+      // note: caller should handle this
+    }
+  },
+  {
+    title: 'Ride History Logs',
+    description: 'Access all details about your past travel logs, duration, and even report issues with specific buses here.',
+    screen: '/ride-history',
+    highlight: 'history-list',
+    actionBeforeBack: () => {
+    }
+  },
+  {
+    title: 'Commuter Feedback Link',
+    description: "This is the Feedback link. Share your ratings and feedback on your commuting experience. Let's open it.",
+    screen: '/',
+    highlight: 'menu-feedback',
+    actionBeforeNext: () => {
+    }
+  },
+  {
+    title: 'Commuter Feedback Card',
+    description: 'Rate your travel experience out of 5 stars and tell us how we can make your ByaHero journeys even better!',
+    screen: '/settings/feedback',
+    highlight: 'feedback-card',
+    actionBeforeBack: () => {
+    }
+  },
+  {
+    title: 'Report a Problem Link',
+    description: "This is the Report a Problem link. Report any transit delays, reckless drivers, or app issues directly. Let's open it.",
+    screen: '/',
+    highlight: 'menu-report',
+    actionBeforeNext: () => {
+    }
+  },
+  {
+    title: 'Report a Problem Form',
+    description: 'Submit direct incident reports, choose issue types, specify details, and help keep ByaHero commutes safe and orderly.',
+    screen: '/report',
+    highlight: 'report-card',
+    actionBeforeBack: () => {
+    }
+  },
+  {
+    title: "You're All Set!",
+    description: "You've successfully completed the guide! Enjoy smart, safe, and efficient travel with ByaHero.",
+    screen: '/',
+    highlight: null,
   }
 ];
+
+// Re-map actions since we don't have access to router directly in static array
+tourSteps[10].actionBeforeNext = function(this: any) { this.navigate('/ride-history'); };
+tourSteps[11].actionBeforeBack = function(this: any) { this.navigate('/'); };
+tourSteps[12].actionBeforeNext = function(this: any) { this.navigate('/settings/feedback'); };
+tourSteps[13].actionBeforeBack = function(this: any) { this.navigate('/'); };
+tourSteps[14].actionBeforeNext = function(this: any) { this.navigate('/report'); };
+tourSteps[15].actionBeforeBack = function(this: any) { this.navigate('/'); };
 
 interface TourOverlayProps {
   currentStep: number;
@@ -56,91 +144,289 @@ interface TourOverlayProps {
   onClose: () => void;
 }
 
-export const TourOverlay: React.FC<TourOverlayProps> = ({
-  currentStep,
-  onStepChange,
-  onClose,
-}) => {
-  const step = TOUR_STEPS[currentStep] || TOUR_STEPS[0];
-  const isLast = currentStep === TOUR_STEPS.length - 1;
+export default function TourOverlay({ currentStep, onStepChange, onClose }: TourOverlayProps) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const layouts = useTourLayouts();
+  const step = tourSteps[currentStep];
+
+  const [modalVisible, setModalVisible] = useState(false);
+  const [userName, setUserName] = useState('');
+  const [pulseScale, setPulseScale] = useState(1);
+
+  useEffect(() => {
+    const cached = localStorage.getItem('byahero_cached_name');
+    if (cached) {
+      let name = cached;
+      if (name.includes('@')) {
+        name = name.split('@')[0];
+      }
+      setUserName(name.split(' ')[0]);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentStep === 10 || currentStep === 12 || currentStep === 14) {
+      setModalVisible(false);
+      const timer = setTimeout(() => {
+        setModalVisible(true);
+      }, 350);
+      return () => clearTimeout(timer);
+    } else {
+      setModalVisible(true);
+    }
+  }, [currentStep]);
+
+  useEffect(() => {
+    let growing = true;
+    const interval = setInterval(() => {
+      setPulseScale((prev) => {
+        if (growing) {
+          if (prev >= 1.05) { growing = false; return prev - 0.01; }
+          return prev + 0.01;
+        } else {
+          if (prev <= 1) { growing = true; return prev + 0.01; }
+          return prev - 0.01;
+        }
+      });
+    }, 50);
+    return () => clearInterval(interval);
+  }, [currentStep]);
+
+  const [activeLayout, setActiveLayout] = useState<LayoutRect | null>(null);
+  const SCREEN_WIDTH = window.innerWidth;
+  const SCREEN_HEIGHT = window.innerHeight;
+
+  const isBottomSheetTab =
+    step?.highlight === 'tab-location' ||
+    step?.highlight === 'tab-routes' ||
+    step?.highlight === 'tab-groups' ||
+    step?.highlight === 'tab-busstops';
+
+  const isHighlightInMenu =
+    step?.highlight === 'menu-history' ||
+    step?.highlight === 'menu-feedback' ||
+    step?.highlight === 'menu-report';
+
+  useEffect(() => {
+    if (!step) return;
+    let active = true;
+    const key = step.highlight;
+    if (!key) {
+      setActiveLayout(null);
+      return;
+    }
+
+    const measure = () => {
+      const ref = tourRegistry.getRef(key);
+      if (ref?.current) {
+        const rect = ref.current.getBoundingClientRect();
+        if (active && rect.width > 0 && rect.height > 0) {
+          let adjustedY = rect.top;
+          if (key.startsWith('menu-')) {
+            adjustedY -= 30;
+          }
+          setActiveLayout({ x: rect.left, y: adjustedY, width: rect.width, height: rect.height });
+        }
+      } else {
+        const cached = layouts[key];
+        if (cached) {
+          let adjustedY = cached.y;
+          if (key.startsWith('menu-')) {
+            adjustedY -= 30;
+          }
+          setActiveLayout({ ...cached, y: adjustedY });
+        } else if (key === 'user-marker') {
+          setActiveLayout({
+            x: SCREEN_WIDTH / 2 - 40,
+            y: SCREEN_HEIGHT / 2 - 85,
+            width: 80,
+            height: 80,
+          });
+        } else {
+          setActiveLayout(null);
+        }
+      }
+    };
+
+    measure();
+    const timer1 = setTimeout(measure, 100);
+    const timer2 = setTimeout(measure, 300);
+
+    return () => {
+      active = false;
+      clearTimeout(timer1);
+      clearTimeout(timer2);
+    };
+  }, [currentStep, step?.highlight, layouts, SCREEN_WIDTH, SCREEN_HEIGHT]);
+
+  if (!step) return null;
+
+  const cleanPath = (p: string) => {
+    if (p === '/') return p;
+    return p.replace(/\/$/, '').replace(/\/index$/, '');
+  };
+  
+  if (cleanPath(location.pathname) !== cleanPath(step.screen)) {
+    return null;
+  }
+
+  const handleNext = async () => {
+    if (step.actionBeforeNext) {
+      await step.actionBeforeNext.call({ navigate });
+    }
+    if (currentStep < tourSteps.length - 1) {
+      const nextStep = currentStep + 1;
+      localStorage.setItem('byahero_active_tour_step', nextStep.toString());
+      onStepChange(nextStep);
+
+      const nextStepInfo = tourSteps[nextStep];
+      if (nextStepInfo && cleanPath(nextStepInfo.screen) !== cleanPath(step.screen)) {
+        navigate(nextStepInfo.screen);
+      }
+    } else {
+      localStorage.removeItem('byahero_active_tour_step');
+      onClose();
+    }
+  };
+
+  const handleBack = async () => {
+    if (step.actionBeforeBack) {
+      await step.actionBeforeBack.call({ navigate });
+    }
+    if (currentStep > 0) {
+      const prevStep = currentStep - 1;
+      localStorage.setItem('byahero_active_tour_step', prevStep.toString());
+      onStepChange(prevStep);
+
+      const prevStepInfo = tourSteps[prevStep];
+      if (prevStepInfo && cleanPath(prevStepInfo.screen) !== cleanPath(step.screen)) {
+        navigate(prevStepInfo.screen);
+      }
+    }
+  };
+
+  const handleSkip = () => {
+    localStorage.removeItem('byahero_active_tour_step');
+    onClose();
+    navigate('/');
+  };
+
+  if (!modalVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9990] flex items-end sm:items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm animate-fade-in pointer-events-auto">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-6 border border-slate-100 text-left relative overflow-hidden mb-6 sm:mb-0">
-        {/* Top accent bar */}
-        <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#1d72f8] via-blue-500 to-indigo-600" />
+    <div className="fixed inset-0 z-[9990] flex pointer-events-auto">
+      {activeLayout ? (
+        <>
+          <div className="absolute left-0 top-0 bottom-0 bg-slate-950/60" style={{ width: activeLayout.x }} />
+          <div className="absolute right-0 top-0 bottom-0 bg-slate-950/60" style={{ left: activeLayout.x + activeLayout.width }} />
+          <div className="absolute bg-slate-950/60" style={{ left: activeLayout.x, width: activeLayout.width, top: 0, height: activeLayout.y }} />
+          <div className="absolute bg-slate-950/60" style={{ left: activeLayout.x, width: activeLayout.width, top: activeLayout.y + activeLayout.height, bottom: 0 }} />
 
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <span className="flex items-center justify-center w-7 h-7 rounded-full bg-blue-100 text-[#1d72f8] font-black text-xs">
-              {currentStep + 1}
-            </span>
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Step {currentStep + 1} of {TOUR_STEPS.length}
-            </span>
+          <div
+            className="absolute border-[4px] border-yellow-400 rounded-2xl pointer-events-none"
+            style={{
+              left: activeLayout.x - 4,
+              top: activeLayout.y - 4,
+              width: activeLayout.width + 8,
+              height: activeLayout.height + 8,
+              transform: `scale(${pulseScale})`,
+              transition: 'transform 0.05s linear'
+            }}
+          />
+        </>
+      ) : (
+        <div className="absolute inset-0 bg-slate-950/60" />
+      )}
+
+      {/* Popover */}
+      <div
+        className={`absolute left-4 right-4 flex flex-col justify-center items-center ${isHighlightInMenu ? 'w-[70%] mr-auto' : ''}`}
+        style={
+          activeLayout
+            ? (() => {
+              const spaceAbove = activeLayout.y;
+              const spaceBelow = SCREEN_HEIGHT - (activeLayout.y + activeLayout.height);
+              const CARD_SAFE = 220;
+              if (isBottomSheetTab || isHighlightInMenu || spaceAbove >= spaceBelow) {
+                const bottomVal = SCREEN_HEIGHT - activeLayout.y + 30;
+                return { bottom: Math.min(bottomVal, SCREEN_HEIGHT - CARD_SAFE) };
+              } else {
+                const topVal = activeLayout.y + activeLayout.height + 7;
+                return { top: Math.min(topVal, SCREEN_HEIGHT - CARD_SAFE) };
+              }
+            })()
+            : { top: SCREEN_HEIGHT / 2 - 120 }
+        }
+      >
+        {activeLayout && !isBottomSheetTab && activeLayout.y < (SCREEN_HEIGHT - activeLayout.y - activeLayout.height) && (
+          <div
+            className="w-0 h-0 border-[8px] border-transparent border-b-white"
+            style={{
+              marginBottom: '-1px',
+              alignSelf: 'flex-start',
+              marginLeft: Math.max(0, activeLayout.x + (activeLayout.width / 2) - 24)
+            }}
+          />
+        )}
+
+        <div className="w-full max-w-md bg-white rounded-3xl p-5 border border-slate-100 shadow-2xl z-10 flex flex-col">
+          <div className="flex flex-row justify-between items-center mb-3">
+            <span className="text-xs font-bold text-[#1e3a8a] uppercase tracking-wider">Spotlight Onboarding</span>
+            <span className="text-xs font-bold text-slate-400">{currentStep + 1} / {tourSteps.length}</span>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-1 rounded-full text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <div className="mb-6">
-          <h3 className="text-lg font-black text-slate-800 mb-2 flex items-center gap-2">
-            {currentStep === 0 && <Sparkles className="w-5 h-5 text-amber-500" />}
-            {step.title}
-          </h3>
-          <p className="text-sm text-slate-600 font-medium leading-relaxed">
+          <h2 className="text-lg font-black text-slate-800 mb-2 m-0">
+            {currentStep === tourSteps.length - 1 && userName
+              ? `You're all Set ${userName}!`
+              : step.title}
+          </h2>
+          <p className="text-xs text-slate-500 font-semibold leading-relaxed mb-5 m-0">
             {step.description}
           </p>
-        </div>
 
-        {/* Progress dots & buttons */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-          <div className="flex gap-1.5">
-            {TOUR_STEPS.map((_, idx) => (
-              <div
-                key={idx}
-                className={`h-1.5 rounded-full transition-all ${
-                  idx === currentStep ? 'w-6 bg-[#1d72f8]' : 'w-1.5 bg-slate-200'
-                }`}
-              />
-            ))}
-          </div>
-
-          <div className="flex items-center gap-2">
-            {currentStep > 0 && (
-              <button
-                type="button"
-                onClick={() => onStepChange(currentStep - 1)}
-                className="p-2 rounded-full border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
-              >
-                <ChevronLeft className="w-4 h-4" />
+          <div className="flex flex-row justify-between items-center mt-auto">
+            {currentStep < tourSteps.length - 1 ? (
+              <button onClick={handleSkip} className="py-2 px-3 bg-transparent border-none cursor-pointer">
+                <span className="text-xs font-bold text-slate-400">Skip Tour</span>
               </button>
+            ) : (
+              <div className="py-2 px-3" />
             )}
 
-            <button
-              type="button"
-              onClick={() => {
-                if (isLast) {
-                  onClose();
-                } else {
-                  onStepChange(currentStep + 1);
-                }
-              }}
-              className="flex items-center gap-1 py-2 px-5 rounded-full bg-[#1d72f8] hover:bg-[#1856b0] text-white font-bold text-xs shadow-md shadow-blue-500/20 transition-all"
-            >
-              {isLast ? 'Get Started' : 'Next'}
-              {!isLast && <ChevronRight className="w-4 h-4" />}
-            </button>
+            <div className="flex flex-row gap-2">
+              {currentStep > 0 && (
+                <button
+                  onClick={handleBack}
+                  className="border border-slate-200 bg-slate-50 px-4 py-2 rounded-full cursor-pointer"
+                >
+                  <span className="text-xs font-bold text-slate-500">Back</span>
+                </button>
+              )}
+
+              <button
+                onClick={handleNext}
+                className="bg-[#1e3a8a] px-5 py-2 rounded-full shadow-md cursor-pointer border-none"
+              >
+                <span className="text-xs font-bold text-white">
+                  {currentStep === tourSteps.length - 1 ? 'Finish' : 'Next'}
+                </span>
+              </button>
+            </div>
           </div>
         </div>
+
+        {activeLayout && (isBottomSheetTab || activeLayout.y >= (SCREEN_HEIGHT - activeLayout.y - activeLayout.height)) && (
+          <div
+            className="w-0 h-0 border-[8px] border-transparent border-t-white"
+            style={{
+              marginTop: '-1px',
+              alignSelf: 'flex-start',
+              marginLeft: Math.max(0, activeLayout.x + (activeLayout.width / 2) - 24)
+            }}
+          />
+        )}
       </div>
     </div>
   );
-};
-export default TourOverlay;
+}
