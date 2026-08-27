@@ -144,7 +144,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           }`}
         >
           <img
-            src="/images/busStopWhiteIcon.png"
+            src="/images/icons/busStopWhiteIcon.png"
             alt="Buses"
             className="w-5 h-5 object-contain"
           />
@@ -214,7 +214,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
             {filteredBuses.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-8">
                 <img
-                  src="/images/icons/noBusFound.svg"
+                  src="/images/icons/noBusBig.svg"
                   alt="No Bus"
                   className="w-[72px] h-[72px] object-contain"
                 />
@@ -712,32 +712,29 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                     <div
                       key={idx}
                       onClick={() => onSelectStop && onSelectStop(stop)}
-                      className="bg-white rounded-2xl p-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] transition-all"
+                      className="bg-white rounded-2xl p-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] transition-all text-left"
                     >
-                      <div className="flex items-center gap-3.5 flex-1 min-w-0">
-                        <div className="w-11 h-11 rounded-2xl bg-[#103d7c]/10 flex items-center justify-center shrink-0">
-                          <img
-                            src="/images/icons/KM_AWAY.svg"
-                            alt="Pin"
-                            className="w-6 h-6 object-contain"
-                          />
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">
-                            {labelType}
-                          </span>
-                          <span className="text-[15px] font-black text-slate-800 truncate block">
-                            {stop.name}
-                          </span>
-                          <span className="text-xs text-slate-400 font-semibold block truncate">
-                            {stop.location_name || 'Laurel - Tanauan Zone'}
-                          </span>
-                        </div>
+                      {/* Left: Text Details */}
+                      <div className="flex-1 min-w-0 pr-2">
+                        <span className="text-[15px] font-black text-slate-800 uppercase block truncate">
+                          {stop.name}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-semibold block truncate mt-0.5">
+                          {stop.location_name || 'Laurel - Tanauan Zone'}
+                        </span>
                       </div>
 
-                      <div className="bg-[#103d7c] text-white text-[11px] font-black px-3 py-1.5 rounded-full shrink-0 ml-2">
-                        {distanceStr}
+                      {/* Right: Badge and Distance */}
+                      <div className="flex flex-col items-end gap-2.5 shrink-0 ml-4">
+                        {/* Top: Pill Badge */}
+                        <span className="bg-[#e2e8f0] text-slate-700 text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                          {labelType}
+                        </span>
+                        {/* Bottom: Icon and Distance */}
+                        <div className="flex items-center gap-1 text-[#103d7c]">
+                          <img src="/images/KM_AWAY.svg" alt="Walk" className="w-3.5 h-3.5 object-contain" />
+                          <span className="text-[11px] font-black">{distanceStr}</span>
+                        </div>
                       </div>
                     </div>
                   );

@@ -368,7 +368,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
           className="w-12 h-12 rounded-full bg-white hover:bg-slate-50 text-[#103d7c] flex items-center justify-center shadow-lg shadow-slate-900/15 border-2 border-white transition-all transform active:scale-95"
           title="Center on My Location"
         >
-          <Crosshair className="w-5 h-5 text-[#1d72f8]" />
+          <img src="/images/my_location.svg" alt="Recenter" className="w-5 h-5 object-contain" />
         </button>
       </div>
     </div>

@@ -1,3 +1,5 @@
+import defaultData from '../constants/defaultBusDataSync.json';
+
 const CACHE_KEY = 'byahero_bus_data_cache';
 
 export interface CachedBusData {
@@ -24,15 +26,42 @@ export async function saveBusData(schedules: any[], fareStops: any[], fareRules:
 }
 
 export async function loadBusData(): Promise<CachedBusData | null> {
+  let localCache: CachedBusData | null = null;
   try {
     const jsonString = localStorage.getItem(CACHE_KEY);
     if (jsonString) {
-      return JSON.parse(jsonString) as CachedBusData;
+      localCache = JSON.parse(jsonString) as CachedBusData;
     }
   } catch (error) {
     console.error('Failed to load bus data from cache:', error);
   }
-  return null;
+
+  let defaultCache: CachedBusData | null = null;
+  try {
+    if (defaultData && defaultData.success) {
+      defaultCache = {
+        cached_at: new Date().toISOString(),
+        schedules: defaultData.bus_schedule || [],
+        fare_stops: defaultData.bus_stops || [],
+        fare_rules: defaultData.bus_fares || [],
+        pickup_points: defaultData.stops_terminal || [],
+      };
+    }
+  } catch (e) {
+    console.warn('Failed to load fallback JSON', e);
+  }
+
+  if (localCache && defaultCache) {
+    return {
+      cached_at: localCache.cached_at,
+      schedules: (localCache.schedules && localCache.schedules.length > 0) ? localCache.schedules : defaultCache.schedules,
+      fare_stops: (localCache.fare_stops && localCache.fare_stops.length > 0) ? localCache.fare_stops : defaultCache.fare_stops,
+      fare_rules: (localCache.fare_rules && localCache.fare_rules.length > 0) ? localCache.fare_rules : defaultCache.fare_rules,
+      pickup_points: (localCache.pickup_points && localCache.pickup_points.length > 0) ? localCache.pickup_points : defaultCache.pickup_points,
+    };
+  }
+
+  return localCache || defaultCache;
 }
 
 export async function getBusDataAgeHours(): Promise<number> {
@@ -46,6 +75,8 @@ export async function getBusDataAgeHours(): Promise<number> {
         const diffMs = now.getTime() - cachedDate.getTime();
         return diffMs / (1000 * 60 * 60);
       }
+    } else {
+      return 999;
     }
   } catch (error) {
     console.error('Failed to calculate cache age:', error);
