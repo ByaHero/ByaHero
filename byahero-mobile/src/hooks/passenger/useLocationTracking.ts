@@ -61,7 +61,7 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps) {
 
           // 2. Fetch precise initial location
           const initialLoc = await Location.getCurrentPositionAsync({
-            accuracy: Location.Accuracy.Balanced,
+            accuracy: Location.Accuracy.Highest,
           }).catch(() => null);
 
           if (initialLoc && isMounted) {

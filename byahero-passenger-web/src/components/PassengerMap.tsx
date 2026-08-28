@@ -3,12 +3,14 @@ import L from 'leaflet';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import routeGeoJSON from '../assets/data/laurel-talisay-tanauan.json';
+import { SheetTab } from './PassengerBottomSheet';
 
 interface PassengerMapProps {
   onOpenWaitingModal: () => void;
+  currentTab: SheetTab;
 }
 
-export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }) => {
+export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, currentTab }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   
@@ -137,13 +139,24 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     };
   }, []);
 
+  // Helper function to calculate offset map center (so marker appears higher on screen)
+  const getOffsetLatLng = (map: L.Map, lat: number, lng: number, zoom: number, offsetYPixels: number) => {
+    const targetPoint = map.project([lat, lng], zoom);
+    targetPoint.y += offsetYPixels;
+    return map.unproject(targetPoint, zoom);
+  };
+
   // Center on mapCenterTarget changes
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapCenterTarget) return;
+    
+    const zoom = mapCenterTarget.zoom || 16;
+    const targetLatLng = getOffsetLatLng(map, mapCenterTarget.lat, mapCenterTarget.lng, zoom, 160);
+
     map.flyTo(
-      [mapCenterTarget.lat, mapCenterTarget.lng],
-      mapCenterTarget.zoom || 16,
+      targetLatLng,
+      zoom,
       { duration: 1.2 }
     );
   }, [mapCenterTarget]);
@@ -152,7 +165,10 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && userLocation && !hasAutoCenteredRef.current) {
-      map.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+      const zoom = 16;
+      const targetLatLng = getOffsetLatLng(map, userLocation.lat, userLocation.lng, zoom, 160);
+
+      map.flyTo(targetLatLng, zoom, { duration: 1.2 });
       hasAutoCenteredRef.current = true;
     }
   }, [userLocation]);
@@ -352,47 +368,49 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
 
     const currentFriendIds = new Set<string>();
 
-    circles.forEach((friend) => {
-      const lat = parseFloat(friend.latitude as string);
-      const lng = parseFloat(friend.longitude as string);
-      if (isNaN(lat) || isNaN(lng)) return;
+    if (currentTab === 'groups') {
+      circles.forEach((friend) => {
+        const lat = parseFloat(friend.latitude as string);
+        const lng = parseFloat(friend.longitude as string);
+        if (isNaN(lat) || isNaN(lng)) return;
 
-      const friendKey = `friend-${friend.id || friend.email}`;
-      currentFriendIds.add(friendKey);
+        const friendKey = `friend-${friend.id || friend.email}`;
+        currentFriendIds.add(friendKey);
 
-      const fInitial = friend.name ? friend.name.charAt(0).toUpperCase() : 'F';
-      const friendHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer">
-          <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-lg border-2 border-white">
-            ${fInitial}
+        const fInitial = friend.name ? friend.name.charAt(0).toUpperCase() : 'F';
+        const friendHtml = `
+          <div class="relative flex flex-col items-center cursor-pointer">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-lg border-2 border-white">
+              ${fInitial}
+            </div>
+            <div class="bg-white/90 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded shadow-sm border border-slate-200 mt-0.5 truncate max-w-[80px]">
+              ${friend.name.split(' ')[0]}
+            </div>
           </div>
-          <div class="bg-white/90 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded shadow-sm border border-slate-200 mt-0.5 truncate max-w-[80px]">
-            ${friend.name.split(' ')[0]}
-          </div>
-        </div>
-      `;
+        `;
 
-      const friendIcon = L.divIcon({
-        className: 'custom-friend-icon',
-        html: friendHtml,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20],
-      });
+        const friendIcon = L.divIcon({
+          className: 'custom-friend-icon',
+          html: friendHtml,
+          iconSize: [40, 40],
+          iconAnchor: [20, 20],
+        });
 
-      if (friendMarkersRef.current.has(friendKey) && map.hasLayer(friendMarkersRef.current.get(friendKey)!)) {
-        const marker = friendMarkersRef.current.get(friendKey)!;
-        marker.setLatLng([lat, lng]);
-        marker.setIcon(friendIcon);
-      } else {
-        if (friendMarkersRef.current.has(friendKey)) {
-          friendMarkersRef.current.get(friendKey)!.remove();
+        if (friendMarkersRef.current.has(friendKey) && map.hasLayer(friendMarkersRef.current.get(friendKey)!)) {
+          const marker = friendMarkersRef.current.get(friendKey)!;
+          marker.setLatLng([lat, lng]);
+          marker.setIcon(friendIcon);
+        } else {
+          if (friendMarkersRef.current.has(friendKey)) {
+            friendMarkersRef.current.get(friendKey)!.remove();
+          }
+          const marker = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 800 })
+            .addTo(map)
+            .bindPopup(`<strong>${friend.name}</strong><br/>${friend.email}`);
+          friendMarkersRef.current.set(friendKey, marker);
         }
-        const marker = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 800 })
-          .addTo(map)
-          .bindPopup(`<strong>${friend.name}</strong><br/>${friend.email}`);
-        friendMarkersRef.current.set(friendKey, marker);
-      }
-    });
+      });
+    }
 
     friendMarkersRef.current.forEach((marker, key) => {
       if (!currentFriendIds.has(key)) {
@@ -400,7 +418,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         friendMarkersRef.current.delete(key);
       }
     });
-  }, [circles]);
+  }, [circles, currentTab]);
 
   return (
     <div className="relative w-full h-full flex-1">

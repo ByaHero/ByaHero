@@ -138,7 +138,7 @@ export const Dashboard: React.FC = () => {
       <main className="relative flex-1 w-full h-full flex flex-col md:flex-row overflow-hidden">
         {/* Map Container */}
         <div className="flex-1 w-full h-full relative">
-          <PassengerMap onOpenWaitingModal={handleOpenWaitingModal} />
+          <PassengerMap onOpenWaitingModal={handleOpenWaitingModal} currentTab={currentTab} />
         </div>
 
         {/* Bottom Sheet on Mobile / Side Panel on Desktop */}
