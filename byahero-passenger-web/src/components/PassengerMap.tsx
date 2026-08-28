@@ -59,7 +59,8 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       maxZoom: 19,
     }).addTo(map);
 
-    // Add GeoJSON Route Boundaries Layer
+    // Add GeoJSON Route Boundaries Layer - Disabled to keep map plain as requested
+    /*
     if (routeGeoJSON && (routeGeoJSON as any).features) {
       geojsonLayerRef.current = L.geoJSON(routeGeoJSON as any, {
         style: (feature) => ({
@@ -82,6 +83,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         }
       }).addTo(map);
     }
+    */
 
     mapInstanceRef.current = map;
 
