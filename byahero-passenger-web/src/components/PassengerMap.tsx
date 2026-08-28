@@ -139,13 +139,24 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
     };
   }, []);
 
+  // Helper function to calculate offset map center (so marker appears higher on screen)
+  const getOffsetLatLng = (map: L.Map, lat: number, lng: number, zoom: number, offsetYPixels: number) => {
+    const targetPoint = map.project([lat, lng], zoom);
+    targetPoint.y += offsetYPixels;
+    return map.unproject(targetPoint, zoom);
+  };
+
   // Center on mapCenterTarget changes
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map || !mapCenterTarget) return;
+    
+    const zoom = mapCenterTarget.zoom || 16;
+    const targetLatLng = getOffsetLatLng(map, mapCenterTarget.lat, mapCenterTarget.lng, zoom, 160);
+
     map.flyTo(
-      [mapCenterTarget.lat, mapCenterTarget.lng],
-      mapCenterTarget.zoom || 16,
+      targetLatLng,
+      zoom,
       { duration: 1.2 }
     );
   }, [mapCenterTarget]);
@@ -154,7 +165,10 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (map && userLocation && !hasAutoCenteredRef.current) {
-      map.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+      const zoom = 16;
+      const targetLatLng = getOffsetLatLng(map, userLocation.lat, userLocation.lng, zoom, 160);
+
+      map.flyTo(targetLatLng, zoom, { duration: 1.2 });
       hasAutoCenteredRef.current = true;
     }
   }, [userLocation]);

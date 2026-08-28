@@ -34,6 +34,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     isBoarded,
     boardedBus,
     centerOnUser,
+    focusOnFriend,
   } = useTracking();
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -338,7 +339,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       </div>
 
       {/* Tab Content Panels */}
-      <div className="flex-1 overflow-y-auto px-5 pb-6 pt-1 text-left">
+      <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 pb-28 pt-1 text-left">
         {/* Tab 1: BUS LOCATION */}
         {currentTab === 'location' && (
           <div>
@@ -647,7 +648,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
         {/* Tab 3: CIRCLES */}
         {currentTab === 'groups' && (
-          <div>
+          <div className="pb-48">
             <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
               CIRCLES
             </h3>
@@ -737,7 +738,8 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                   return (
                     <div
                       key={friend.id || index}
-                      className="flex items-center py-3 border-b border-[#e2e8f0]/50 last:border-0"
+                      onClick={() => focusOnFriend(friend)}
+                      className="flex items-center py-3 border-b border-[#e2e8f0]/50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
                     >
                       <div className="relative mr-3.5">
                         {friend.profile_picture ? (
