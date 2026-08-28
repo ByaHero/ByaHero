@@ -4,6 +4,7 @@ import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import routeGeoJSON from '../assets/data/laurel-talisay-tanauan.json';
 import { SheetTab } from './PassengerBottomSheet';
+import busMarkerIcon from '../assets/images/icons/marker.svg';
 
 interface PassengerMapProps {
   onOpenWaitingModal: () => void;
@@ -233,57 +234,30 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
       const isBoardedThis = isBoarded && boardedBus === bus.code;
 
       const busHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer group">
-          <div class="px-2 py-0.5 rounded-full text-[10px] font-black text-white shadow-md border-2 border-white mb-0.5 flex items-center gap-1 ${
-            isBoardedThis ? 'bg-indigo-600 ring-2 ring-indigo-400' : isFull ? 'bg-rose-600' : 'bg-[#103d7c]'
-          }">
-            <span>${bus.code || 'BUS'}</span>
-            <span class="text-[9px] opacity-90">• ${bus.seats_available || 0} left</span>
-          </div>
-          <div class="w-7 h-7 rounded-full bg-[#1856b0] text-white flex items-center justify-center shadow-lg border-2 border-white">
-            <svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M4 16c0 .88.39 1.67 1 2.22V20c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h8v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1.78c.61-.55 1-1.34 1-2.22V6c0-3.5-3.58-4-8-4s-8 .5-8 4v10zm3.5 1c-.83 0-1.5-.67-1.5-1.5S6.67 14 7.5 14s1.5.67 1.5 1.5S8.33 17 7.5 17zm9 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zm1.5-6H6V6h12v5z"/></svg>
-          </div>
+        <div class="relative flex flex-col items-center cursor-pointer group transform transition-transform hover:scale-110">
+          <img src="${busMarkerIcon}" class="w-10 h-10 object-contain drop-shadow-md" alt="Bus Marker" />
         </div>
       `;
 
       const busIcon = L.divIcon({
         className: 'custom-bus-icon',
         html: busHtml,
-        iconSize: [70, 50],
-        iconAnchor: [35, 45],
+        iconSize: [40, 40],
+        iconAnchor: [20, 40],
       });
 
-      const popupContent = `
-        <div class="p-1 min-w-[160px] text-slate-800 font-sans">
-          <div class="font-black text-sm text-[#0f2c59] flex items-center justify-between border-b pb-1 mb-1.5">
-            <span>Bus ${bus.code}</span>
-            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${isFull ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'}">
-              ${bus.status?.toUpperCase() || 'ACTIVE'}
-            </span>
-          </div>
-          <div class="text-xs space-y-1 text-slate-600">
-            <div><strong>Route:</strong> ${bus.route || 'N/A'}</div>
-            <div><strong>Seats:</strong> <span class="font-bold text-[#1d72f8]">${bus.seats_available}</span> / ${bus.seats_total || 25} available</div>
-            ${bus.current_location_name ? `<div><strong>Near:</strong> ${bus.current_location_name}</div>` : ''}
-            ${bus.speed ? `<div><strong>Speed:</strong> ${bus.speed} km/h</div>` : ''}
-          </div>
-        </div>
-      `;
-
-      if (busMarkersRef.current.has(busKey) && map.hasLayer(busMarkersRef.current.get(busKey)!)) {
-        const marker = busMarkersRef.current.get(busKey)!;
-        marker.setLatLng([lat, lng]);
-        marker.setIcon(busIcon);
-        marker.setPopupContent(popupContent);
-      } else {
-        if (busMarkersRef.current.has(busKey)) {
-          busMarkersRef.current.get(busKey)!.remove();
+        if (busMarkersRef.current.has(busKey) && map.hasLayer(busMarkersRef.current.get(busKey)!)) {
+          const marker = busMarkersRef.current.get(busKey)!;
+          marker.setLatLng([lat, lng]);
+          marker.setIcon(busIcon);
+        } else {
+          if (busMarkersRef.current.has(busKey)) {
+            busMarkersRef.current.get(busKey)!.remove();
+          }
+          const marker = L.marker([lat, lng], { icon: busIcon, zIndexOffset: 900 })
+            .addTo(map);
+          busMarkersRef.current.set(busKey, marker);
         }
-        const marker = L.marker([lat, lng], { icon: busIcon, zIndexOffset: 900 })
-          .addTo(map)
-          .bindPopup(popupContent);
-        busMarkersRef.current.set(busKey, marker);
-      }
     });
 
     // Remove deleted buses

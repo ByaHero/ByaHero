@@ -35,6 +35,8 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     boardedBus,
     centerOnUser,
     focusOnFriend,
+    focusOnBus,
+    focusOnStop,
   } = useTracking();
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
@@ -342,7 +344,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 pb-28 pt-1 text-left">
         {/* Tab 1: BUS LOCATION */}
         {currentTab === 'location' && (
-          <div>
+          <div className="pb-48">
             <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
               BUS LOCATION
             </h3>
@@ -430,7 +432,10 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                   return (
                     <div
                       key={bus.Bus_ID || idx}
-                      onClick={() => onSelectBus && onSelectBus(bus)}
+                      onClick={() => {
+                        focusOnBus(bus);
+                        if (onSelectBus) onSelectBus(bus);
+                      }}
                       className={`mb-3 rounded-2xl overflow-hidden bg-white border-[1.5px] ${
                         isNearest ? 'border-[#103d7c]' : 'border-[#e2e8f0]'
                       } shadow-sm cursor-pointer hover:shadow-md transition-all`}
@@ -785,7 +790,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
         {/* Tab 4: BUS STOPS & PICKUP POINTS */}
         {currentTab === 'busstops' && (
-          <div>
+          <div className="pb-48">
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
                 BUS STOPS & PICKUP POINTS
@@ -850,7 +855,10 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                   return (
                     <div
                       key={idx}
-                      onClick={() => onSelectStop && onSelectStop(stop)}
+                      onClick={() => {
+                        focusOnStop(stop);
+                        if (onSelectStop) onSelectStop(stop);
+                      }}
                       className="bg-white rounded-2xl p-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] transition-all text-left"
                     >
                       {/* Left: Icon & Text Details */}
