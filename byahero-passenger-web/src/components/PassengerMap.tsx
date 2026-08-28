@@ -269,71 +269,74 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
     });
   }, [filteredBuses, isBoarded, boardedBus]);
 
-  // Update Bus Stops Markers
+  // Update Bus Stops Markers — only visible on the 'busstops' tab
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
     const currentStopIds = new Set<string>();
 
-    filteredStops.forEach((stop, index) => {
-      const lat = parseFloat((stop.lat || stop.latitude) as string);
-      const lng = parseFloat((stop.lng || stop.longitude) as string);
-      if (isNaN(lat) || isNaN(lng)) return;
+    if (currentTab === 'busstops') {
+      filteredStops.forEach((stop, index) => {
+        const lat = parseFloat((stop.lat || stop.latitude) as string);
+        const lng = parseFloat((stop.lng || stop.longitude) as string);
+        if (isNaN(lat) || isNaN(lng)) return;
 
-      const stopKey = `${stop.id || stop.name}-${index}`;
-      currentStopIds.add(stopKey);
+        const stopKey = `${stop.id || stop.name}-${index}`;
+        currentStopIds.add(stopKey);
 
-      const stopHtml = `
-        <div class="relative flex flex-col items-center cursor-pointer group">
-          <div class="w-5 h-5 rounded-full bg-rose-500 text-white font-bold text-[9px] flex items-center justify-center shadow-md border-2 border-white">
-            ${index + 1}
+        const stopHtml = `
+          <div class="relative flex flex-col items-center cursor-pointer group">
+            <div class="w-5 h-5 rounded-full bg-[#1d72f8] text-white font-bold text-[9px] flex items-center justify-center shadow-md border-2 border-white">
+              ${index + 1}
+            </div>
           </div>
-        </div>
-      `;
+        `;
 
-      const stopIcon = L.divIcon({
-        className: 'custom-stop-icon',
-        html: stopHtml,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10],
-      });
+        const stopIcon = L.divIcon({
+          className: 'custom-stop-icon',
+          html: stopHtml,
+          iconSize: [20, 20],
+          iconAnchor: [10, 10],
+        });
 
-      const popupContent = `
-        <div class="p-1 min-w-[150px] text-slate-800 font-sans">
-          <div class="font-black text-sm text-slate-800 mb-1 flex items-center gap-1">
-            <span>#${index + 1} ${stop.name}</span>
+        const popupContent = `
+          <div class="p-1 min-w-[150px] text-slate-800 font-sans">
+            <div class="font-black text-sm text-slate-800 mb-1 flex items-center gap-1">
+              <span>#${index + 1} ${stop.name}</span>
+            </div>
+            <div class="text-xs text-slate-600">
+              <div><strong>Route:</strong> ${stop.route}</div>
+              ${stop.location_landmark ? `<div><strong>Landmark:</strong> ${stop.location_landmark}</div>` : ''}
+            </div>
           </div>
-          <div class="text-xs text-slate-600">
-            <div><strong>Route:</strong> ${stop.route}</div>
-            ${stop.location_landmark ? `<div><strong>Landmark:</strong> ${stop.location_landmark}</div>` : ''}
-          </div>
-        </div>
-      `;
+        `;
 
-      if (stopMarkersRef.current.has(stopKey) && map.hasLayer(stopMarkersRef.current.get(stopKey)!)) {
-        const marker = stopMarkersRef.current.get(stopKey)!;
-        marker.setLatLng([lat, lng]);
-        marker.setIcon(stopIcon);
-        marker.setPopupContent(popupContent);
-      } else {
-        if (stopMarkersRef.current.has(stopKey)) {
-          stopMarkersRef.current.get(stopKey)!.remove();
+        if (stopMarkersRef.current.has(stopKey) && map.hasLayer(stopMarkersRef.current.get(stopKey)!)) {
+          const marker = stopMarkersRef.current.get(stopKey)!;
+          marker.setLatLng([lat, lng]);
+          marker.setIcon(stopIcon);
+          marker.setPopupContent(popupContent);
+        } else {
+          if (stopMarkersRef.current.has(stopKey)) {
+            stopMarkersRef.current.get(stopKey)!.remove();
+          }
+          const marker = L.marker([lat, lng], { icon: stopIcon, zIndexOffset: 500 })
+            .addTo(map)
+            .bindPopup(popupContent);
+          stopMarkersRef.current.set(stopKey, marker);
         }
-        const marker = L.marker([lat, lng], { icon: stopIcon, zIndexOffset: 500 })
-          .addTo(map)
-          .bindPopup(popupContent);
-        stopMarkersRef.current.set(stopKey, marker);
-      }
-    });
+      });
+    }
 
+    // Remove all stop markers when not on busstops tab, or remove stale ones
     stopMarkersRef.current.forEach((marker, key) => {
       if (!currentStopIds.has(key)) {
         marker.remove();
         stopMarkersRef.current.delete(key);
       }
     });
-  }, [filteredStops]);
+  }, [filteredStops, currentTab]);
 
   // Update Friend Circles Markers
   useEffect(() => {

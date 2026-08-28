@@ -788,31 +788,38 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           </div>
         )}
 
-        {/* Tab 4: BUS STOPS & PICKUP POINTS */}
+        {/* Tab 4: BUS PICKUP POINTS */}
         {currentTab === 'busstops' && (
           <div className="pb-48">
-            <div className="flex justify-between items-center mb-2">
-              <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
-                BUS STOPS & PICKUP POINTS
+            {/* Section header row */}
+            <div className="flex justify-between items-center mb-3 mt-2">
+              <h3 className="text-[13px] font-black text-black uppercase tracking-widest px-1">
+                BUS PICK UP POINTS
               </h3>
               <button
                 type="button"
                 onClick={() => setStopsRoute(stopsRoute === 'LAUREL - TANAUAN' ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN')}
-                className="flex items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1 text-[10px] font-black text-slate-700 uppercase tracking-wider"
+                className="flex items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1.5 text-[10px] font-black text-slate-700 uppercase tracking-wider hover:bg-slate-200 transition-colors"
               >
                 <span>{stopsRoute}</span>
-                <img src="/images/swap.svg" alt="Swap" className="w-4 h-4 object-contain" />
+                {/* Swap arrows inline */}
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M16 3L20 7L16 11" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M4 7H20" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M8 21L4 17L8 13" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                  <path d="M20 17H4" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
               </button>
             </div>
 
             {filteredStops.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-8">
+              <div className="flex flex-col items-center justify-center py-12">
                 <img
                   src="/images/icons/busStopMarkerFinalBlue.svg"
                   alt="No stops"
-                  className="w-9 h-9 object-contain"
+                  className="w-12 h-12 object-contain opacity-50"
                 />
-                <span className="text-sm text-slate-500 font-bold mt-3">No stops defined</span>
+                <span className="text-sm text-slate-400 font-bold mt-3">No pickup points defined</span>
               </div>
             ) : (
               (() => {
@@ -852,6 +859,12 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                   const isBusStop = typeUpper === 'TERMINAL' || typeUpper === 'BUS_STOP';
                   const labelType = isBusStop ? 'BUS STOP' : 'PICKUP POINT';
 
+                  // Address subtext: prefer location_name, fallback to route + landmark
+                  const addressLine = [
+                    stop.location_name,
+                    stop.location_landmark,
+                  ].filter(Boolean).join(' • ') || (stop.route || 'Laurel - Tanauan');
+
                   return (
                     <div
                       key={idx}
@@ -859,41 +872,32 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                         focusOnStop(stop);
                         if (onSelectStop) onSelectStop(stop);
                       }}
-                      className="bg-white rounded-2xl p-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] transition-all text-left"
+                      className="bg-white rounded-2xl px-4 py-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] hover:shadow-md transition-all active:scale-[0.99]"
                     >
-                      {/* Left: Icon & Text Details */}
-                      <div className="flex items-center min-w-0 flex-grow pr-2">
-                        {/* Circle Icon */}
-                        <div className={`mr-3.5 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
-                          isBusStop ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-800'
-                        }`}>
-                          <MaterialIcons 
-                            name={isBusStop ? "directions_bus" : "place"} 
-                            size={20} 
-                            color={isBusStop ? "#ef4444" : "#1e3a8a"} 
-                          />
-                        </div>
-                        <div className="min-w-0">
-                          <span className="text-[15px] font-black text-slate-800 uppercase block truncate">
-                            {stop.name}
-                          </span>
-                          <span className="text-[11px] text-slate-400 font-semibold block truncate mt-0.5">
-                            {stop.location_name || 'Laurel - Tanauan Zone'}
-                          </span>
-                        </div>
+                      {/* Left: Name & Address */}
+                      <div className="min-w-0 flex-1 pr-3">
+                        <span className="text-[15px] font-black text-slate-900 uppercase leading-tight block truncate">
+                          {stop.name}
+                        </span>
+                        <span className="text-[11px] text-slate-400 font-semibold block truncate mt-0.5">
+                          {addressLine}
+                        </span>
                       </div>
 
-                      {/* Right: Badge and Distance */}
-                      <div className="flex flex-col items-end gap-2.5 shrink-0 ml-4">
-                        {/* Top: Pill Badge */}
-                        <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                          isBusStop ? 'bg-rose-100 text-rose-600' : 'bg-[#e2e8f0] text-slate-700'
+                      {/* Right: PICKUP POINT badge + walk distance */}
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap ${
+                          isBusStop
+                            ? 'bg-rose-100 text-rose-600'
+                            : 'bg-[#e8eef6] text-[#334155]'
                         }`}>
                           {labelType}
                         </span>
-                        {/* Bottom: Icon and Distance */}
                         <div className="flex items-center gap-1 text-[#103d7c]">
-                          <img src="/images/KM_AWAY.svg" alt="Walk" className="w-3.5 h-3.5 object-contain" />
+                          {/* Walking figure SVG */}
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="#103d7c" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M13.5 5.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7z"/>
+                          </svg>
                           <span className="text-[11px] font-black">{distanceStr}</span>
                         </div>
                       </div>
