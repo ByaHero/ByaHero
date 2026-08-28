@@ -279,7 +279,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           }`}
         >
           <img
-            src="/images/icons/busStopWhiteIcon.png"
+            src={currentTab === 'location' ? "/images/icons/busStopWhiteIcon.png" : "/images/icons/busStopBlueIcon.png"}
             alt="Buses"
             className="w-5 h-5 object-contain"
           />
@@ -296,7 +296,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           }`}
         >
           <img
-            src="/images/icons/routes active.svg"
+            src={currentTab === 'routes' ? "/images/icons/routes active.svg" : "/images/icons/routes idle.svg"}
             alt="Routes"
             className="w-5 h-5 object-contain"
           />
@@ -313,7 +313,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           }`}
         >
           <img
-            src="/images/icons/groupsActive.svg"
+            src={currentTab === 'groups' ? "/images/icons/groupsActive.svg" : "/images/icons/groupsIdle.svg"}
             alt="Circles"
             className="w-5 h-5 object-contain"
           />
@@ -330,7 +330,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           }`}
         >
           <img
-            src="/images/icons/busStopMarkerFinalWhite.svg"
+            src={currentTab === 'busstops' ? "/images/icons/busStopMarkerFinalWhite.svg" : "/images/icons/busStopMarkerFinalBlue.svg"}
             alt="Stops"
             className="w-5 h-5 object-contain"
           />
