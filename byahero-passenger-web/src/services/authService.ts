@@ -156,7 +156,7 @@ export async function googleAuth(idToken: string) {
     const role = 'passenger';
 
     await cacheSession(email, role, data.user);
-    return { success: true, role, redirect: data.redirect, user: data.user };
+    return { success: true, role, redirect: data.redirect, user: data.user, message: data.message };
   } else {
     throw new Error(data.message || 'Google authentication failed.');
   }

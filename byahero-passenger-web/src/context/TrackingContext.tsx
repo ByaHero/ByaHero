@@ -9,6 +9,13 @@ interface UserLocation {
   lng: number;
 }
 
+export interface MapCenterTarget {
+  lat: number;
+  lng: number;
+  zoom?: number;
+  timestamp?: number;
+}
+
 interface TrackingContextType {
   userLocation: UserLocation | null;
   buses: any[];
@@ -49,7 +56,7 @@ interface TrackingContextType {
   joinCircle: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCircleMember: (friendId: number) => Promise<{ success: boolean; message: string }>;
   
-  mapCenterTarget: { lat: number; lng: number; zoom?: number } | null;
+  mapCenterTarget: MapCenterTarget | null;
   centerOnUser: () => void;
   focusOnBus: (bus: any) => void;
   focusOnStop: (stop: any) => void;
@@ -67,11 +74,11 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [selectedRoute, setSelectedRoute] = useState<string>('');
   const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
   const [inviteCode, setInviteCode] = useState('------');
-  const [mapCenterTarget, setMapCenterTarget] = useState<{ lat: number; lng: number; zoom?: number } | null>(null);
+  const [mapCenterTarget, setMapCenterTarget] = useState<MapCenterTarget | null>(null);
 
-  const { userLocation } = useLocationTracking({
+  const { userLocation, refreshLocation } = useLocationTracking({
     onCenterLocation: (lat, lng) => {
-      setMapCenterTarget({ lat, lng, zoom: 16 });
+      setMapCenterTarget({ lat, lng, zoom: 16, timestamp: Date.now() });
     }
   });
 
@@ -230,8 +237,9 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const centerOnUser = () => {
+    refreshLocation();
     if (userLocation) {
-      setMapCenterTarget({ lat: userLocation.lat, lng: userLocation.lng, zoom: 16 });
+      setMapCenterTarget({ lat: userLocation.lat, lng: userLocation.lng, zoom: 16, timestamp: Date.now() });
     }
   };
 
@@ -239,7 +247,7 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     const lat = parseFloat(bus.lat as string);
     const lng = parseFloat(bus.lng as string);
     if (!isNaN(lat) && !isNaN(lng)) {
-      setMapCenterTarget({ lat, lng, zoom: 17 });
+      setMapCenterTarget({ lat, lng, zoom: 17, timestamp: Date.now() });
     }
   };
 
@@ -247,7 +255,7 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     const lat = parseFloat(stop.lat as string);
     const lng = parseFloat(stop.lng as string);
     if (!isNaN(lat) && !isNaN(lng)) {
-      setMapCenterTarget({ lat, lng, zoom: 17 });
+      setMapCenterTarget({ lat, lng, zoom: 17, timestamp: Date.now() });
     }
   };
 
@@ -255,7 +263,7 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     const lat = parseFloat(friend.latitude as string);
     const lng = parseFloat(friend.longitude as string);
     if (!isNaN(lat) && !isNaN(lng)) {
-      setMapCenterTarget({ lat, lng, zoom: 16 });
+      setMapCenterTarget({ lat, lng, zoom: 16, timestamp: Date.now() });
     }
   };
 

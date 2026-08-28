@@ -1,6 +1,5 @@
 import React, { useEffect, useRef } from 'react';
 import L from 'leaflet';
-import { Crosshair, MapPin, Bus, User, Users } from 'lucide-react';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import routeGeoJSON from '../assets/data/laurel-talisay-tanauan.json';
@@ -26,9 +25,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     filteredStops,
     circles,
     isWaiting,
-    waitingLocation,
     mapCenterTarget,
-    centerOnUser,
     isBoarded,
     boardedBus,
   } = useTracking();
@@ -38,7 +35,12 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
 
   // Initialize Map
   useEffect(() => {
-    if (!mapContainerRef.current || mapInstanceRef.current) return;
+    if (!mapContainerRef.current) return;
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
     // Philippines Bounds
     const phBounds = L.latLngBounds(
@@ -46,14 +48,18 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       [21.5, 126.6]
     );
 
-    // Initial center: Laurel / Talisay / Tanauan
+    const initLat = userLocation?.lat || 14.0760;
+    const initLng = userLocation?.lng || 120.9389;
+    const initZoom = userLocation ? 16 : 13;
+
+    // Initial center
     const map = L.map(mapContainerRef.current, {
       zoomControl: false,
       maxZoom: 19,
       minZoom: 9,
       maxBounds: phBounds,
       maxBoundsViscosity: 0.9,
-    }).setView([14.0760, 120.9389], 13);
+    }).setView([initLat, initLng], initZoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -63,7 +69,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     // Add GeoJSON Route Boundaries Layer
     if (routeGeoJSON && (routeGeoJSON as any).features) {
       geojsonLayerRef.current = L.geoJSON(routeGeoJSON as any, {
-        style: (feature) => ({
+        style: () => ({
           color: '#1d72f8',
           weight: 2,
           opacity: 0.7,
@@ -85,17 +91,55 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     }
 
     mapInstanceRef.current = map;
+    hasAutoCenteredRef.current = !!userLocation;
+
+    // Handle container resizing
+    const resizeObserver = new ResizeObserver(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    });
+    if (mapContainerRef.current) {
+      resizeObserver.observe(mapContainerRef.current);
+    }
+
+    const resizeTimer = setTimeout(() => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
+      }
+    }, 150);
 
     return () => {
+      clearTimeout(resizeTimer);
+      resizeObserver.disconnect();
+
+      // Clean up markers
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      busMarkersRef.current.forEach((marker) => marker.remove());
+      busMarkersRef.current.clear();
+      stopMarkersRef.current.forEach((marker) => marker.remove());
+      stopMarkersRef.current.clear();
+      friendMarkersRef.current.forEach((marker) => marker.remove());
+      friendMarkersRef.current.clear();
+      if (geojsonLayerRef.current) {
+        geojsonLayerRef.current.remove();
+        geojsonLayerRef.current = null;
+      }
+
       map.remove();
       mapInstanceRef.current = null;
+      hasAutoCenteredRef.current = false;
     };
   }, []);
 
   // Center on mapCenterTarget changes
   useEffect(() => {
-    if (!mapInstanceRef.current || !mapCenterTarget) return;
-    mapInstanceRef.current.flyTo(
+    const map = mapInstanceRef.current;
+    if (!map || !mapCenterTarget) return;
+    map.flyTo(
       [mapCenterTarget.lat, mapCenterTarget.lng],
       mapCenterTarget.zoom || 16,
       { duration: 1.2 }
@@ -104,8 +148,9 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
 
   // Auto-center on user location once when it becomes available
   useEffect(() => {
-    if (mapInstanceRef.current && userLocation && !hasAutoCenteredRef.current) {
-      mapInstanceRef.current.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
+    const map = mapInstanceRef.current;
+    if (map && userLocation && !hasAutoCenteredRef.current) {
+      map.flyTo([userLocation.lat, userLocation.lng], 16, { duration: 1.2 });
       hasAutoCenteredRef.current = true;
     }
   }, [userLocation]);
@@ -122,7 +167,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
             WAITING
           </div>
         ` : ''}
-        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse relative">
+        <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse relative overflow-hidden">
           ${user?.profile_picture ? `
             <img src="${user.profile_picture.startsWith('http') ? user.profile_picture : `${serverUrl}/${user.profile_picture}`}" class="w-full h-full rounded-full object-cover" />
           ` : userInitial}
@@ -137,10 +182,14 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
       iconAnchor: [16, 16],
     });
 
-    if (userMarkerRef.current) {
+    if (userMarkerRef.current && map.hasLayer(userMarkerRef.current)) {
       userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
       userMarkerRef.current.setIcon(userIcon);
+      userMarkerRef.current.off('click').on('click', onOpenWaitingModal);
     } else {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+      }
       userMarkerRef.current = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon, zIndexOffset: 1000 })
         .addTo(map)
         .on('click', onOpenWaitingModal);
@@ -203,12 +252,15 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         </div>
       `;
 
-      if (busMarkersRef.current.has(busKey)) {
+      if (busMarkersRef.current.has(busKey) && map.hasLayer(busMarkersRef.current.get(busKey)!)) {
         const marker = busMarkersRef.current.get(busKey)!;
         marker.setLatLng([lat, lng]);
         marker.setIcon(busIcon);
         marker.setPopupContent(popupContent);
       } else {
+        if (busMarkersRef.current.has(busKey)) {
+          busMarkersRef.current.get(busKey)!.remove();
+        }
         const marker = L.marker([lat, lng], { icon: busIcon, zIndexOffset: 900 })
           .addTo(map)
           .bindPopup(popupContent);
@@ -267,12 +319,15 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         </div>
       `;
 
-      if (stopMarkersRef.current.has(stopKey)) {
+      if (stopMarkersRef.current.has(stopKey) && map.hasLayer(stopMarkersRef.current.get(stopKey)!)) {
         const marker = stopMarkersRef.current.get(stopKey)!;
         marker.setLatLng([lat, lng]);
         marker.setIcon(stopIcon);
         marker.setPopupContent(popupContent);
       } else {
+        if (stopMarkersRef.current.has(stopKey)) {
+          stopMarkersRef.current.get(stopKey)!.remove();
+        }
         const marker = L.marker([lat, lng], { icon: stopIcon, zIndexOffset: 500 })
           .addTo(map)
           .bindPopup(popupContent);
@@ -322,11 +377,14 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
         iconAnchor: [20, 20],
       });
 
-      if (friendMarkersRef.current.has(friendKey)) {
+      if (friendMarkersRef.current.has(friendKey) && map.hasLayer(friendMarkersRef.current.get(friendKey)!)) {
         const marker = friendMarkersRef.current.get(friendKey)!;
         marker.setLatLng([lat, lng]);
         marker.setIcon(friendIcon);
       } else {
+        if (friendMarkersRef.current.has(friendKey)) {
+          friendMarkersRef.current.get(friendKey)!.remove();
+        }
         const marker = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 800 })
           .addTo(map)
           .bindPopup(`<strong>${friend.name}</strong><br/>${friend.email}`);
@@ -346,8 +404,6 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal }
     <div className="relative w-full h-full flex-1">
       {/* Leaflet Map Canvas */}
       <div ref={mapContainerRef} className="w-full h-full" />
-
-      {/* Floating Action Controls Removed as requested */}
     </div>
   );
 };
