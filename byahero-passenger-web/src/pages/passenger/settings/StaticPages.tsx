@@ -96,7 +96,7 @@ export const StaticPages: React.FC = () => {
   const content = getPageContent();
 
   return (
-    <div className="h-screen max-h-screen w-full flex flex-col bg-white overflow-hidden">
+    <div className="h-[100dvh] max-h-[100dvh] w-full flex flex-col bg-white overflow-hidden">
       <PassengerHeader pageTitle={content.title} showBackButton={true} />
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
