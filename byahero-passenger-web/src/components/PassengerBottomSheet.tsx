@@ -781,12 +781,12 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           </div>
         )}
 
-        {/* Tab 4: BUS PICK UP POINTS */}
+        {/* Tab 4: BUS STOPS & PICKUP POINTS */}
         {currentTab === 'busstops' && (
           <div>
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
-                BUS PICK UP POINTS
+                BUS STOPS & PICKUP POINTS
               </h3>
               <button
                 type="button"
@@ -841,7 +841,9 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                     }
                   }
 
-                  const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+                  const typeUpper = (stop.type || 'stop').toUpperCase();
+                  const isBusStop = typeUpper === 'TERMINAL' || typeUpper === 'BUS_STOP';
+                  const labelType = isBusStop ? 'BUS STOP' : 'PICKUP POINT';
 
                   return (
                     <div
@@ -849,20 +851,34 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                       onClick={() => onSelectStop && onSelectStop(stop)}
                       className="bg-white rounded-2xl p-4 mb-3 border border-[#e2e8f0] shadow-sm flex items-center justify-between cursor-pointer hover:border-[#103d7c] transition-all text-left"
                     >
-                      {/* Left: Text Details */}
-                      <div className="flex-1 min-w-0 pr-2">
-                        <span className="text-[15px] font-black text-slate-800 uppercase block truncate">
-                          {stop.name}
-                        </span>
-                        <span className="text-[11px] text-slate-400 font-semibold block truncate mt-0.5">
-                          {stop.location_name || 'Laurel - Tanauan Zone'}
-                        </span>
+                      {/* Left: Icon & Text Details */}
+                      <div className="flex items-center min-w-0 flex-grow pr-2">
+                        {/* Circle Icon */}
+                        <div className={`mr-3.5 w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+                          isBusStop ? 'bg-rose-100 text-rose-600' : 'bg-blue-100 text-blue-800'
+                        }`}>
+                          <MaterialIcons 
+                            name={isBusStop ? "directions_bus" : "place"} 
+                            size={20} 
+                            color={isBusStop ? "#ef4444" : "#1e3a8a"} 
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <span className="text-[15px] font-black text-slate-800 uppercase block truncate">
+                            {stop.name}
+                          </span>
+                          <span className="text-[11px] text-slate-400 font-semibold block truncate mt-0.5">
+                            {stop.location_name || 'Laurel - Tanauan Zone'}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Right: Badge and Distance */}
                       <div className="flex flex-col items-end gap-2.5 shrink-0 ml-4">
                         {/* Top: Pill Badge */}
-                        <span className="bg-[#e2e8f0] text-slate-700 text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider">
+                        <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider ${
+                          isBusStop ? 'bg-rose-100 text-rose-600' : 'bg-[#e2e8f0] text-slate-700'
+                        }`}>
                           {labelType}
                         </span>
                         {/* Bottom: Icon and Distance */}

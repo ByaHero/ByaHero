@@ -869,7 +869,7 @@ export default function PassengerBottomSheet({
         {sheetTab === 'busstops' && (
           <View>
             <View style={tw`flex-row justify-between items-center mb-2`}>
-              <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1`}>BUS PICK UP POINTS</Text>
+              <Text style={tw`text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1`}>BUS STOPS & PICKUP POINTS</Text>
               <TouchableOpacity
                 onPress={() => setStopsRoute(stopsRoute === 'LAUREL - TANAUAN' ? 'TANAUAN - LAUREL' : 'LAUREL - TANAUAN')}
                 style={tw`flex-row items-center bg-[#f1f5f9] px-3 py-1.5 rounded-full gap-1`}
@@ -920,14 +920,27 @@ export default function PassengerBottomSheet({
                     }
                   }
 
-                  const labelType = (stop.type || 'stop').toUpperCase() === 'TERMINAL' ? 'BUS STOP' : 'PICKUP POINT';
+                  const typeUpper = (stop.type || 'stop').toUpperCase();
+                  const isBusStop = typeUpper === 'TERMINAL' || typeUpper === 'BUS_STOP';
+                  const labelType = isBusStop ? 'BUS STOP' : 'PICKUP POINT';
 
                   return (
                   <TouchableOpacity
                     key={idx}
                     onPress={() => handleStopPress(stop)}
-                    style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-start shadow-sm`}
+                    style={tw`bg-white border border-[#f1f5f9] rounded-2xl p-4 mb-3 flex-row justify-between items-center shadow-sm`}
                   >
+                    {/* Left Icon */}
+                    <View style={[
+                      tw`mr-3 w-10 h-10 rounded-full justify-center items-center`,
+                      { backgroundColor: isBusStop ? '#fee2e2' : '#eff6ff' }
+                    ]}>
+                      <MaterialIcons 
+                        name={isBusStop ? "directions-bus" : "place"} 
+                        size={20} 
+                        color={isBusStop ? "#ef4444" : "#1e3a8a"} 
+                      />
+                    </View>
                     <View style={tw`flex-1 mr-2`}>
                       <Text style={tw`text-[15px] font-black text-slate-800 uppercase`}>{stop.name}</Text>
                       <Text style={tw`text-xs text-slate-400 font-semibold mt-1`}>
@@ -935,8 +948,14 @@ export default function PassengerBottomSheet({
                       </Text>
                     </View>
                     <View style={tw`items-end`}>
-                      <View style={tw`bg-[#e2e8f0] px-2.5 py-1 rounded-full mb-1.5`}>
-                        <Text style={tw`text-[9px] text-black font-black tracking-widest`}>{labelType}</Text>
+                      <View style={[
+                        tw`px-2.5 py-1 rounded-full mb-1.5`,
+                        { backgroundColor: isBusStop ? '#fee2e2' : '#e2e8f0' }
+                      ]}>
+                        <Text style={[
+                          tw`text-[9px] font-black tracking-widest`,
+                          { color: isBusStop ? '#ef4444' : 'black' }
+                        ]}>{labelType}</Text>
                       </View>
                       <View style={tw`flex-row items-center`}>
                         <Image
