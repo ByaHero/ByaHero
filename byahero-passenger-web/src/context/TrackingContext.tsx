@@ -267,8 +267,15 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
-  const filteredBuses = buses.filter(b => !selectedRoute || b.route === selectedRoute);
-  const filteredStops = busStops.filter(s => s.route === stopsRoute);
+  const filteredBuses = buses.filter(b => {
+    if (!selectedRoute) return true;
+    return b.route?.toUpperCase().includes(selectedRoute.toUpperCase());
+  });
+  
+  const filteredStops = busStops.filter(s => {
+    if (!stopsRoute) return true;
+    return s.route?.toUpperCase().includes(stopsRoute.toUpperCase());
+  });
 
   const refreshData = async () => {
      // No op, as useTrackingData auto polls. But kept for interface compatibility.
