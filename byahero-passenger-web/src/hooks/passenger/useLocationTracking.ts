@@ -1,0 +1,99 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+
+interface LocationHookProps {
+  onCenterLocation?: (lat: number, lng: number) => void;
+}
+
+export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}) {
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number }>(() => {
+    try {
+      const cachedLat = localStorage.getItem('byahero_user_lat');
+      const cachedLng = localStorage.getItem('byahero_user_lng');
+      if (cachedLat && cachedLng) {
+        const lat = parseFloat(cachedLat);
+        const lng = parseFloat(cachedLng);
+        if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+          return { lat, lng };
+        }
+      }
+    } catch (e) {}
+    // Default: Laurel Terminal / town center
+    return { lat: 14.0760, lng: 120.9389 };
+  });
+
+  const onCenterLocationRef = useRef(onCenterLocation);
+  useEffect(() => {
+    onCenterLocationRef.current = onCenterLocation;
+  }, [onCenterLocation]);
+
+  const updateLocation = useCallback((lat: number, lng: number, shouldCenter: boolean = false) => {
+    setUserLocation({ lat, lng });
+    try {
+      localStorage.setItem('byahero_user_lat', lat.toString());
+      localStorage.setItem('byahero_user_lng', lng.toString());
+    } catch (e) {}
+    if (shouldCenter && onCenterLocationRef.current) {
+      onCenterLocationRef.current(lat, lng);
+    }
+  }, []);
+
+  const refreshLocation = useCallback(() => {
+    if (!navigator.geolocation) return;
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        updateLocation(lat, lng, true);
+      },
+      (err) => {
+        console.warn('Geolocation refresh error:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
+    );
+  }, [updateLocation]);
+
+  useEffect(() => {
+    let isMounted = true;
+    let watchId: number | null = null;
+
+    if (!navigator.geolocation) {
+      console.warn('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    // 1. Get immediate position
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        if (!isMounted) return;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        updateLocation(lat, lng, false);
+      },
+      (err) => {
+        console.warn('Geolocation initial error:', err.message);
+      },
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 10000 }
+    );
+
+    // 2. Watch position continuously
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        if (!isMounted) return;
+        const lat = pos.coords.latitude;
+        const lng = pos.coords.longitude;
+        updateLocation(lat, lng, false);
+      },
+      (err) => console.warn('Watch position error:', err),
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
+    );
+
+    return () => {
+      isMounted = false;
+      if (watchId !== null) {
+        navigator.geolocation.clearWatch(watchId);
+      }
+    };
+  }, [updateLocation]);
+
+  return { userLocation, refreshLocation };
+}

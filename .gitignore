@@ -7,3 +7,5 @@ config/.schema_synced
 
 /android
 /byahero-conductor-reserve
+
+dist/
