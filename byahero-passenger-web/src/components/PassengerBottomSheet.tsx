@@ -23,10 +23,14 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   const {
     buses,
     busStops,
+    filteredBuses,
+    filteredStops,
     circles,
     userLocation,
     selectedRoute,
     setSelectedRoute,
+    stopsRoute,
+    setStopsRoute,
     inviteCode,
     generateInviteCode,
     joinCircle,
@@ -41,7 +45,6 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
   const [qrModalVisible, setQrModalVisible] = useState(false);
   type SheetState = 'expanded' | 'mid' | 'minimized';
   const [sheetState, setSheetState] = useState<SheetState>('mid');
@@ -226,17 +229,6 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       }
     );
   };
-
-  // Filter buses by route
-  const filteredBuses = buses.filter(bus => {
-    if (!selectedRoute) return true;
-    return bus.route?.toUpperCase().includes(selectedRoute.toUpperCase());
-  });
-
-  // Calculate distance for bus stops
-  const filteredStops = busStops.filter(stop => {
-    return true;
-  });
 
   return (
     <div
@@ -886,11 +878,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
                       {/* Right: PICKUP POINT badge + walk distance */}
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap ${
-                          isBusStop
-                            ? 'bg-rose-100 text-rose-600'
-                            : 'bg-[#e8eef6] text-[#334155]'
-                        }`}>
+                        <span className="text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap bg-[#e8eef6] text-[#334155]">
                           {labelType}
                         </span>
                         <div className="flex items-center gap-1 text-[#103d7c]">

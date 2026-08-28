@@ -1,10 +1,11 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import routeGeoJSON from '../assets/data/laurel-talisay-tanauan.json';
 import { SheetTab } from './PassengerBottomSheet';
 import busMarkerIcon from '../assets/images/icons/marker.svg';
+import busStopMarkerIcon from '../assets/images/icons/busStopMarkerFinalBlue.svg';
 
 interface PassengerMapProps {
   onOpenWaitingModal: () => void;
@@ -21,6 +22,8 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
   const friendMarkersRef = useRef<Map<string, L.Marker>>(new Map());
   const geojsonLayerRef = useRef<L.GeoJSON | null>(null);
   const hasAutoCenteredRef = useRef(false);
+
+  const [currentZoom, setCurrentZoom] = useState(16);
 
   const {
     userLocation,
@@ -63,6 +66,11 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
       maxBounds: phBounds,
       maxBoundsViscosity: 0.9,
     }).setView([initLat, initLng], initZoom);
+
+    map.on('zoomend', () => {
+      setCurrentZoom(map.getZoom());
+    });
+    setCurrentZoom(initZoom);
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
@@ -221,6 +229,10 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
     if (!map) return;
 
     const currentBusIds = new Set<string>();
+    
+    // Scale factor based on zoom (base 16)
+    const scale = Math.max(0.5, Math.min(3, Math.pow(1.3, currentZoom - 16)));
+    const busSize = 40 * scale;
 
     filteredBuses.forEach((bus) => {
       const lat = parseFloat(bus.lat as string);
@@ -235,15 +247,15 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
 
       const busHtml = `
         <div class="relative flex flex-col items-center cursor-pointer group transform transition-transform hover:scale-110">
-          <img src="${busMarkerIcon}" class="w-10 h-10 object-contain drop-shadow-md" alt="Bus Marker" />
+          <img src="${busMarkerIcon}" style="width: ${busSize}px; height: ${busSize}px;" class="object-contain drop-shadow-md" alt="Bus Marker" />
         </div>
       `;
 
       const busIcon = L.divIcon({
         className: 'custom-bus-icon',
         html: busHtml,
-        iconSize: [40, 40],
-        iconAnchor: [20, 40],
+        iconSize: [busSize, busSize],
+        iconAnchor: [busSize / 2, busSize],
       });
 
         if (busMarkersRef.current.has(busKey) && map.hasLayer(busMarkersRef.current.get(busKey)!)) {
@@ -267,14 +279,18 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         busMarkersRef.current.delete(key);
       }
     });
-  }, [filteredBuses, isBoarded, boardedBus]);
+  }, [filteredBuses, isBoarded, boardedBus, currentZoom]);
 
-  // Update Bus Stops Markers — only visible on the 'busstops' tab
+  // Update Bus Stops Markers – only visible on the 'busstops' tab
   useEffect(() => {
     const map = mapInstanceRef.current;
     if (!map) return;
 
     const currentStopIds = new Set<string>();
+    
+    // Scale factor based on zoom (base 16)
+    const scale = Math.max(0.5, Math.min(3, Math.pow(1.3, currentZoom - 16)));
+    const stopSize = 46 * scale;
 
     if (currentTab === 'busstops') {
       filteredStops.forEach((stop, index) => {
@@ -286,24 +302,22 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         currentStopIds.add(stopKey);
 
         const stopHtml = `
-          <div class="relative flex flex-col items-center cursor-pointer group">
-            <div class="w-5 h-5 rounded-full bg-[#1d72f8] text-white font-bold text-[9px] flex items-center justify-center shadow-md border-2 border-white">
-              ${index + 1}
-            </div>
+          <div class="relative flex flex-col items-center cursor-pointer group transform transition-transform hover:scale-110">
+            <img src="${busStopMarkerIcon}" style="width: ${stopSize}px; height: ${stopSize}px;" class="object-contain drop-shadow-md" alt="Bus Stop Marker" />
           </div>
         `;
 
         const stopIcon = L.divIcon({
           className: 'custom-stop-icon',
           html: stopHtml,
-          iconSize: [20, 20],
-          iconAnchor: [10, 10],
+          iconSize: [stopSize, stopSize],
+          iconAnchor: [stopSize / 2, stopSize],
         });
 
         const popupContent = `
           <div class="p-1 min-w-[150px] text-slate-800 font-sans">
             <div class="font-black text-sm text-slate-800 mb-1 flex items-center gap-1">
-              <span>#${index + 1} ${stop.name}</span>
+              <span>${stop.name}</span>
             </div>
             <div class="text-xs text-slate-600">
               <div><strong>Route:</strong> ${stop.route}</div>
@@ -336,7 +350,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         stopMarkersRef.current.delete(key);
       }
     });
-  }, [filteredStops, currentTab]);
+  }, [filteredStops, currentTab, currentZoom]);
 
   // Update Friend Circles Markers
   useEffect(() => {
