@@ -39,7 +39,7 @@ import StaticPages from './pages/passenger/settings/StaticPages';
 
 // Protected Route Wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isLoading } = useAuth();
+  const { isLoading, isAuthenticated } = useAuth();
 
   if (isLoading) {
     return (
@@ -52,6 +52,10 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
         </div>
       </div>
     );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
   return <>{children}</>;
