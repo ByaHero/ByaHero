@@ -146,6 +146,7 @@ export default function LiveTrackingScreen() {
   useEffect(() => {
     seatsRef.current = seats;
     boardedCountRef.current = boardedCount;
+    if (!session) return; // Wait until session is initialized to avoid writing default/stale 0 values on mount
     AsyncStorage.getItem('byahero_conductor_payload').then(str => {
       if (!str) return;
       try {
@@ -157,7 +158,7 @@ export default function LiveTrackingScreen() {
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
       } catch (e) {}
     });
-  }, [seats, boardedCount, pendingPreDeparture, ticketCounter]);
+  }, [session, seats, boardedCount, pendingPreDeparture, ticketCounter]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
