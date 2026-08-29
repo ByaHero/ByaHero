@@ -1,11 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 
+export type LocationPermissionStatus = 'prompt' | 'granted' | 'denied' | 'unavailable';
+
 interface LocationHookProps {
   onCenterLocation?: (lat: number, lng: number) => void;
 }
 
 export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}) {
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [permissionStatus, setPermissionStatus] = useState<LocationPermissionStatus>('prompt');
+  const [isLocating, setIsLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
   const onCenterLocationRef = useRef(onCenterLocation);
   useEffect(() => {
@@ -23,55 +28,127 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
     }
   }, []);
 
-  const refreshLocation = useCallback(() => {
-    if (!navigator.geolocation) return;
+  const requestLocation = useCallback((shouldCenter: boolean = true) => {
+    if (!navigator.geolocation) {
+      setPermissionStatus('unavailable');
+      setLocationError('Geolocation is not supported by your browser.');
+      return;
+    }
+
+    setIsLocating(true);
+    setLocationError(null);
+
+    const handleSuccess = (pos: GeolocationPosition) => {
+      setIsLocating(false);
+      setPermissionStatus('granted');
+      setLocationError(null);
+      const lat = pos.coords.latitude;
+      const lng = pos.coords.longitude;
+      updateLocation(lat, lng, shouldCenter);
+    };
+
+    const handleHighAccuracyError = (err: GeolocationPositionError) => {
+      console.warn('High accuracy location error:', err.code, err.message);
+
+      if (err.code === 1) { // PERMISSION_DENIED
+        setIsLocating(false);
+        setPermissionStatus('denied');
+        setLocationError('Location permission was denied. Please allow location access in your browser settings.');
+        return;
+      }
+
+      // Fallback to standard accuracy (Wi-Fi/Cell/IP), vital for iOS Safari and indoor environments
+      navigator.geolocation.getCurrentPosition(
+        handleSuccess,
+        (fallbackErr) => {
+          setIsLocating(false);
+          console.warn('Standard accuracy location error:', fallbackErr.code, fallbackErr.message);
+          if (fallbackErr.code === 1) {
+            setPermissionStatus('denied');
+            setLocationError('Location permission was denied. Please allow location access in your browser settings.');
+          } else if (fallbackErr.code === 2) {
+            setPermissionStatus('unavailable');
+            setLocationError('Location unavailable. Please check your device location services.');
+          } else {
+            setLocationError('Location request timed out. Tap the location button to retry.');
+          }
+        },
+        { enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 }
+      );
+    };
+
+    // 1. Attempt High Accuracy (GPS hardware)
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        updateLocation(lat, lng, true);
-      },
-      (err) => {
-        console.warn('Geolocation refresh error:', err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      handleSuccess,
+      handleHighAccuracyError,
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
     );
   }, [updateLocation]);
+
+  const refreshLocation = useCallback(() => {
+    requestLocation(true);
+  }, [requestLocation]);
 
   useEffect(() => {
     let isMounted = true;
     let watchId: number | null = null;
 
     if (!navigator.geolocation) {
-      console.warn('Geolocation is not supported by this browser.');
+      setPermissionStatus('unavailable');
       return;
     }
 
-    // 1. Get immediate position
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        if (!isMounted) return;
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        updateLocation(lat, lng, true);
-      },
-      (err) => {
-        console.warn('Geolocation initial error:', err.message);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    // Check Permissions API if supported
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        navigator.permissions.query({ name: 'geolocation' as PermissionName }).then((result) => {
+          if (!isMounted) return;
+          if (result.state === 'granted') {
+            setPermissionStatus('granted');
+          } else if (result.state === 'denied') {
+            setPermissionStatus('denied');
+          } else {
+            setPermissionStatus('prompt');
+          }
 
-    // 2. Watch position continuously
-    watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (!isMounted) return;
-        const lat = pos.coords.latitude;
-        const lng = pos.coords.longitude;
-        updateLocation(lat, lng, false);
-      },
-      (err) => console.warn('Watch position error:', err),
-      { enableHighAccuracy: true, maximumAge: 5000, timeout: 10000 }
-    );
+          result.onchange = () => {
+            if (!isMounted) return;
+            if (result.state === 'granted') {
+              setPermissionStatus('granted');
+              requestLocation(true);
+            } else if (result.state === 'denied') {
+              setPermissionStatus('denied');
+            }
+          };
+        }).catch(() => {});
+      } catch (e) {}
+    }
+
+    // Request position initially
+    requestLocation(true);
+
+    // Watch position continuously
+    try {
+      watchId = navigator.geolocation.watchPosition(
+        (pos) => {
+          if (!isMounted) return;
+          setPermissionStatus('granted');
+          setLocationError(null);
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          updateLocation(lat, lng, false);
+        },
+        (err) => {
+          if (!isMounted) return;
+          if (err.code === 1) {
+            setPermissionStatus('denied');
+          }
+        },
+        { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+      );
+    } catch (e) {
+      console.warn('watchPosition error:', e);
+    }
 
     return () => {
       isMounted = false;
@@ -79,7 +156,15 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
         navigator.geolocation.clearWatch(watchId);
       }
     };
-  }, [updateLocation]);
+  }, [requestLocation, updateLocation]);
 
-  return { userLocation, refreshLocation };
+  return {
+    userLocation,
+    permissionStatus,
+    isLocating,
+    locationError,
+    refreshLocation,
+    requestLocationPermission: refreshLocation,
+  };
 }
+

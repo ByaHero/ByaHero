@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { useLocationTracking } from '../hooks/passenger/useLocationTracking';
+import { useLocationTracking, LocationPermissionStatus } from '../hooks/passenger/useLocationTracking';
 import { useTrackingData } from '../hooks/passenger/useTrackingData';
 import { useAutoBoarding } from '../hooks/passenger/useAutoBoarding';
 
@@ -18,6 +18,10 @@ export interface MapCenterTarget {
 
 interface TrackingContextType {
   userLocation: UserLocation | null;
+  locationPermission: LocationPermissionStatus;
+  isLocating: boolean;
+  locationError: string | null;
+  requestLocationPermission: () => void;
   buses: any[];
   filteredBuses: any[];
   busStops: any[];
@@ -76,7 +80,14 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
   const [inviteCode, setInviteCode] = useState('------');
   const [mapCenterTarget, setMapCenterTarget] = useState<MapCenterTarget | null>(null);
 
-  const { userLocation, refreshLocation } = useLocationTracking({
+  const {
+    userLocation,
+    permissionStatus: locationPermission,
+    isLocating,
+    locationError,
+    refreshLocation,
+    requestLocationPermission,
+  } = useLocationTracking({
     onCenterLocation: (lat, lng) => {
       setMapCenterTarget({ lat, lng, zoom: 16, timestamp: Date.now() });
     }
@@ -285,6 +296,10 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     <TrackingContext.Provider
       value={{
         userLocation,
+        locationPermission,
+        isLocating,
+        locationError,
+        requestLocationPermission,
         buses,
         filteredBuses,
         busStops,
