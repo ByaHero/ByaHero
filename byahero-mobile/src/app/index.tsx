@@ -109,11 +109,10 @@ export default function LoginScreen() {
             setIsCheckingSession(false);
           } else {
             // Restore backend session to re-hydrate cookies for /api/group/view and notifications
-            try {
-              await restoreSession(cachedEmail);
-            } catch (restoreErr) {
+            // Restore backend session to re-hydrate cookies for /api/group/view and notifications in background
+            restoreSession(cachedEmail).catch(restoreErr => {
               console.warn('Silent session restore failed:', restoreErr);
-            }
+            });
 
             if (!cachedContacts) {
               router.replace('/passenger/completeProfile' as any);
