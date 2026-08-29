@@ -54,9 +54,9 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
       [21.5, 126.6]
     );
 
-    const initLat = userLocation?.lat || 14.0760;
-    const initLng = userLocation?.lng || 120.9389;
-    const initZoom = userLocation ? 16 : 13;
+    const initLat = userLocation?.lat || 14.0905;
+    const initLng = userLocation?.lng || 121.0550;
+    const initZoom = userLocation ? 16 : 12;
 
     // Initial center
     const map = L.map(mapContainerRef.current, {
@@ -185,7 +185,15 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
   // Update User Marker
   useEffect(() => {
     const map = mapInstanceRef.current;
-    if (!map || !userLocation) return;
+    if (!map) return;
+
+    if (!userLocation) {
+      if (userMarkerRef.current) {
+        userMarkerRef.current.remove();
+        userMarkerRef.current = null;
+      }
+      return;
+    }
 
     const userHtml = `
       <div class="relative flex items-center justify-center w-full h-full cursor-pointer">

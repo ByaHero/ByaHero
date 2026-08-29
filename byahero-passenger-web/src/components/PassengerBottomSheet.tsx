@@ -38,6 +38,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     isBoarded,
     boardedBus,
     centerOnUser,
+    isLocating,
     focusOnFriend,
     focusOnBus,
     focusOnStop,
@@ -240,10 +241,16 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       <button
         type="button"
         onClick={() => centerOnUser()}
-        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010]"
+        disabled={isLocating}
+        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010] disabled:opacity-80"
         title="Center on My Location"
       >
-        <MaterialIcons name="my_location" size={24} color="#103d7c" />
+        <MaterialIcons
+          name="my_location"
+          size={24}
+          color={isLocating ? '#3b82f6' : '#103d7c'}
+          className={isLocating ? 'animate-spin' : ''}
+        />
       </button>
 
       {/* Handle / Drag Bar */}
