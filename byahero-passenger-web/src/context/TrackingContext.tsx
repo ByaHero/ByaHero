@@ -77,7 +77,13 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
   
   const [selectedRoute, setSelectedRoute] = useState<string>('');
   const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
-  const [inviteCode, setInviteCode] = useState('------');
+  const [inviteCode, setInviteCode] = useState<string>(() => {
+    try {
+      return localStorage.getItem('byahero_cached_invite_code') || '------';
+    } catch (e) {
+      return '------';
+    }
+  });
   const [mapCenterTarget, setMapCenterTarget] = useState<MapCenterTarget | null>(null);
 
   const {
@@ -136,12 +142,23 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const generateInviteCode = async (reset: boolean = false) => {
     try {
-      const url = reset ? `${serverUrl}/api/group/invite-code?reset=1` : `${serverUrl}/api/group/invite-code`;
-      const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
+      const email = localStorage.getItem('byahero_cached_email') || user?.email || '';
+      const emailQuery = email ? `email=${encodeURIComponent(email)}` : '';
+      const resetQuery = reset ? 'reset=1' : '';
+      const query = [emailQuery, resetQuery].filter(Boolean).join('&');
+      const url = `${serverUrl}/api/group/invite-code${query ? '?' + query : ''}`;
+      const res = await fetch(url, {
+        headers: email ? { 'X-User-Email': email } : {},
+        credentials: 'include',
+        cache: 'no-store'
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.invite_code) {
           setInviteCode(data.invite_code);
+          try {
+            localStorage.setItem('byahero_cached_invite_code', data.invite_code);
+          } catch (e) {}
         }
       }
     } catch (e) {
@@ -149,12 +166,24 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     }
   };
 
+  // Automatically fetch invite code when user or server is ready
+  React.useEffect(() => {
+    const email = localStorage.getItem('byahero_cached_email') || user?.email;
+    if (serverUrl && email) {
+      generateInviteCode(false);
+    }
+  }, [serverUrl, user?.email]);
+
   const joinCircle = async (code: string): Promise<{ success: boolean; message: string }> => {
     try {
+      const email = localStorage.getItem('byahero_cached_email') || user?.email || '';
       const res = await fetch(`${serverUrl}/api/group/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invite_code: code.trim() }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(email ? { 'X-User-Email': email } : {})
+        },
+        body: JSON.stringify({ invite_code: code.trim(), email }),
         credentials: 'include',
       });
       const data = await res.json();
@@ -230,10 +259,14 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
 
   const removeCircleMember = async (friendId: number): Promise<{ success: boolean; message: string }> => {
     try {
+      const email = localStorage.getItem('byahero_cached_email') || user?.email || '';
       const res = await fetch(`${serverUrl}/api/group/remove`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ friend_id: friendId }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(email ? { 'X-User-Email': email } : {})
+        },
+        body: JSON.stringify({ friend_id: friendId, email }),
         credentials: 'include',
       });
       const data = await res.json();
