@@ -36,7 +36,10 @@ export async function sendFcmPushes(pushData) {
       : 'Bus operation schedules have been updated.');
     const channelId = pushData.channel_id || (notifType === 'sos_alert' ? 'sos_alerts_v2' : 'schedule_updates');
 
-    await Promise.all(
+    let successCount = 0;
+    let failureCount = 0;
+
+    await Promise.allSettled(
       pushData.fcm_tokens.map(async (token) => {
         try {
           const res = await fetch(fcmUrl, {
@@ -89,17 +92,23 @@ export async function sendFcmPushes(pushData) {
           const resultText = await res.text();
           console.log(`[NotificationService] Single push dispatch result: ${res.status} - ${resultText}`);
           
-          if (!res.ok) {
-            throw new Error(`FCM API Error ${res.status}: ${resultText}`);
+          if (res.ok) {
+            successCount++;
+          } else {
+            failureCount++;
+            console.warn(`[NotificationService] Single push returned non-OK (${res.status}): ${resultText}`);
           }
         } catch (e) {
-          console.error('[NotificationService] Single push send failed:', e);
-          throw e; // Bubble up the error so the UI catch block can alert us
+          failureCount++;
+          console.warn('[NotificationService] Single push send error (ignored):', e);
         }
       })
     );
+
+    console.log(`[SOS-Notification] Push dispatch completed: ${successCount} successful, ${failureCount} failed/unregistered.`);
+    return { success: true, successCount, failureCount };
   } catch (err) {
     console.error('[SOS-Notification] Master push send failed:', err);
-    throw err;
+    return { success: false, error: err };
   }
 }
