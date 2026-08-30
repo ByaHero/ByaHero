@@ -112,7 +112,7 @@ export const CompleteProfile: React.FC = () => {
                 placeholder="912 345 6789"
                 required
                 maxLength={12}
-                className="w-full pl-22 pr-4 py-3.5 rounded-full bg-slate-50 border border-slate-200 text-slate-800 font-mono text-sm font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
+                className="w-full pl-24 pr-4 py-3.5 rounded-full bg-slate-50 border border-slate-200 text-slate-800 font-mono text-sm font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
               />
             </div>
 

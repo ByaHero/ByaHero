@@ -17,8 +17,8 @@ export const BoardingPromptModal: React.FC<BoardingPromptModalProps> = ({
   if (!visible) return null;
 
   return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-100 transform transition-all">
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-6 text-center border border-slate-100 transform transition-all my-8">
         <div className="w-16 h-16 rounded-full bg-blue-100 text-[#1d72f8] flex items-center justify-center mx-auto mb-4">
           <Bus className="w-8 h-8 animate-bounce" />
         </div>

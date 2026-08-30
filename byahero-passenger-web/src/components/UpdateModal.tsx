@@ -15,8 +15,8 @@ export default function UpdateModal() {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/65 flex justify-center items-center p-6 z-[9999]">
-      <div className="w-full max-w-[360px] bg-white rounded-[20px] p-6 flex flex-col items-center shadow-xl">
+    <div className="fixed inset-0 bg-black/65 flex justify-center items-center p-6 z-[9999] overflow-y-auto">
+      <div className="w-full max-w-[360px] bg-white rounded-[20px] p-6 flex flex-col items-center shadow-xl my-8">
         <div className="w-[68px] h-[68px] rounded-full bg-sky-100 flex justify-center items-center mb-4">
           <span className="material-icons text-[42px] text-[#0F3878]">
             system_update
