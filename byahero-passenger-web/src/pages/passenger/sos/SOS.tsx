@@ -4,6 +4,7 @@ import PassengerFooter from '../../../components/PassengerFooter';
 import { useAuth } from '../../../context/AuthContext';
 import { useTracking } from '../../../context/TrackingContext';
 import { triggerSOS } from '../../../utils/sosUtils';
+import { resolveLocationAddress } from '../../../utils/locationUtils';
 import AlertModal from '../../../components/AlertModal';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 
@@ -23,7 +24,7 @@ const EMERGENCY_CONTACTS = [
 
 export const SOS: React.FC = () => {
   const { serverUrl } = useAuth();
-  const { userLocation, circles } = useTracking();
+  const { userLocation, circles, busStops } = useTracking();
 
   const [locationText, setLocationText] = useState('Locating...');
   const [showCountdown, setShowCountdown] = useState(false);
@@ -65,12 +66,39 @@ export const SOS: React.FC = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     if (userLocation) {
-      setLocationText(`${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)} • Batangas Transit Zone`);
-    } else {
-      setLocationText('Current Location Active');
+      resolveLocationAddress(userLocation.lat, userLocation.lng, busStops).then((addr) => {
+        if (isMounted) {
+          setLocationText(`${addr} • ${userLocation.lat.toFixed(4)}, ${userLocation.lng.toFixed(4)}`);
+        }
+      });
     }
-  }, [userLocation]);
+
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (!isMounted) return;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          resolveLocationAddress(lat, lng, busStops).then((addr) => {
+            if (isMounted) {
+              setLocationText(`${addr} • ${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            }
+          });
+        },
+        (err) => {
+          console.warn('SOS geolocation error:', err);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+
+    return () => {
+      isMounted = false;
+    };
+  }, [userLocation, busStops]);
 
   const triggerSOSAlert = async () => {
     setShowCountdown(false);
@@ -137,7 +165,7 @@ export const SOS: React.FC = () => {
           {/* Location status bar */}
           <div className="bg-[#f8fafc] rounded-2xl p-4 border border-[#e2e8f0] flex items-center gap-4 shadow-sm">
             <div className="bg-[#103d7c]/10 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
-              <img src="/images/icons/my_location.svg" alt="Location" className="w-5 h-5 object-contain" />
+              <MaterialIcons name="my_location" size={20} color="#103d7c" />
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block">

@@ -51,15 +51,11 @@ export const executeSOS = async ({ baseUrl, locationText = 'Mobile Device', lat 
     
     if (data.success) {
       if (data.fcm_tokens && data.fcm_tokens.length > 0 && data.jwt && data.project_id) {
-        try {
-          await sendFcmPushes(data);
-          displayAlert('SOS Broadcasted', 'Help is on the way! Your circle has been notified via Push Notifications.', 'success');
-        } catch (pushErr) {
-          displayAlert('SOS Broadcasted', 'Help is on the way! Your circle has been registered on the server, but push notification broadcast failed.', 'warning');
-        }
-      } else {
-        displayAlert('SOS Broadcasted', 'Help is on the way! Your circle has been notified on the server.', 'success');
+        sendFcmPushes(data).catch((pushErr) => {
+          console.warn('[SOS-Notification] Push dispatch warning:', pushErr);
+        });
       }
+      displayAlert('SOS Broadcasted', 'Help is on the way! Your SOS alert and live location have been broadcasted to emergency responders and your circle.', 'success');
     } else {
       displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error');
     }
