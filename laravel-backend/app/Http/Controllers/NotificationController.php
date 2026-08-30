@@ -74,7 +74,7 @@ class NotificationController extends Controller
 
     public function getUnreadCount(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -85,7 +85,7 @@ class NotificationController extends Controller
 
     public function getUnreadStatus(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -101,7 +101,7 @@ class NotificationController extends Controller
 
     public function getNotifications(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -116,7 +116,7 @@ class NotificationController extends Controller
 
     public function markRead(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -133,7 +133,7 @@ class NotificationController extends Controller
 
     public function createNotification(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }

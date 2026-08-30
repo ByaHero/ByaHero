@@ -376,14 +376,16 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         const friendKey = `friend-${friend.id || friend.email}`;
         currentFriendIds.add(friendKey);
 
-        const fInitial = friend.name ? friend.name.charAt(0).toUpperCase() : 'F';
+        const friendName = friend.name || friend.email || 'Friend';
+        const fInitial = friendName.charAt(0).toUpperCase();
+        const firstName = friendName.split(' ')[0] || 'Friend';
         const friendHtml = `
           <div class="relative flex flex-col items-center cursor-pointer">
             <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-lg border-2 border-white">
               ${fInitial}
             </div>
             <div class="bg-white/90 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded shadow-sm border border-slate-200 mt-0.5 truncate max-w-[80px]">
-              ${friend.name.split(' ')[0]}
+              ${firstName}
             </div>
           </div>
         `;
@@ -405,7 +407,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
           }
           const marker = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 800 })
             .addTo(map)
-            .bindPopup(`<strong>${friend.name}</strong><br/>${friend.email}`);
+            .bindPopup(`<strong>${friendName}</strong><br/>${friend.email || ''}`);
           friendMarkersRef.current.set(friendKey, marker);
         }
       });

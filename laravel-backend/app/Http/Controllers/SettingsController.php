@@ -31,7 +31,7 @@ class SettingsController extends Controller
 
     public function fetch(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -52,7 +52,7 @@ class SettingsController extends Controller
 
     public function update(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -79,7 +79,7 @@ class SettingsController extends Controller
 
     public function getPrivacy(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -110,7 +110,7 @@ class SettingsController extends Controller
 
     public function getShareLocation(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
@@ -124,7 +124,7 @@ class SettingsController extends Controller
 
     public function getFeedback(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
         }
@@ -143,7 +143,7 @@ class SettingsController extends Controller
 
     public function submitFeedback(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
         }
@@ -181,7 +181,7 @@ class SettingsController extends Controller
 
     public function deleteFeedback(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'User not logged in'], 401);
         }

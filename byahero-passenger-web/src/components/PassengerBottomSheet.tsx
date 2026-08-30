@@ -95,6 +95,12 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     return () => window.removeEventListener('resize', handleResize);
   }, [sheetState, isDragging]);
 
+  useEffect(() => {
+    if (currentTab === 'groups' && (!inviteCode || inviteCode === '------')) {
+      generateInviteCode(false);
+    }
+  }, [currentTab, inviteCode]);
+
   const handleDragStart = (e: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
     isDragAction.current = false;
     if (sheetRef.current) {
@@ -665,7 +671,10 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => generateInviteCode(true)}
+                  onClick={async () => {
+                    await generateInviteCode(false);
+                    showAlert('Synced', 'Invite code synced with server!', 'info');
+                  }}
                   className="text-[11px] font-bold text-[#103d7c] hover:underline flex items-center gap-1"
                 >
                   <MaterialIcons name="refresh" size={14} color="#103d7c" />
@@ -675,14 +684,18 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
               <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-[#e2e8f0]">
                 <span className="text-xl font-black font-mono tracking-widest text-[#103d7c]">
-                  {inviteCode || 'BYA678'}
+                  {inviteCode || '------'}
                 </span>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => {
-                      navigator.clipboard.writeText(inviteCode || 'BYA678');
-                      showAlert('Copied', 'Invite code copied to clipboard!', 'info');
+                      if (inviteCode && inviteCode !== '------') {
+                        navigator.clipboard.writeText(inviteCode);
+                        showAlert('Copied', 'Invite code copied to clipboard!', 'info');
+                      } else {
+                        showAlert('Invite Code', 'Invite code is loading. Please tap Sync code or wait a moment.', 'info');
+                      }
                     }}
                     className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
                     title="Copy Code"
@@ -919,7 +932,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
             </div>
 
             <span className="text-2xl font-black font-mono tracking-widest text-[#103d7c] block mb-5">
-              {inviteCode || 'BYA678'}
+              {inviteCode || '------'}
             </span>
 
             <button

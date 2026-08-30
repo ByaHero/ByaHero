@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { getServerUrl } from '../../services/authService';
 
 export type LocationPermissionStatus = 'prompt' | 'granted' | 'denied' | 'unavailable';
 
@@ -17,7 +18,35 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
     onCenterLocationRef.current = onCenterLocation;
   }, [onCenterLocation]);
 
-  const updateLocation = useCallback((lat: number, lng: number, shouldCenter: boolean = false) => {
+  const lastSyncTimeRef = useRef<number>(0);
+  const syncLocationToServer = useCallback(async (lat: number, lng: number, accuracy?: number) => {
+    const now = Date.now();
+    if (now - lastSyncTimeRef.current < 10000) return;
+    lastSyncTimeRef.current = now;
+
+    const email = localStorage.getItem('byahero_cached_email');
+    if (!email) return;
+
+    try {
+      const baseUrl = await getServerUrl();
+      fetch(`${baseUrl}/api/location/update`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-User-Email': email
+        },
+        body: JSON.stringify({
+          email,
+          latitude: lat,
+          longitude: lng,
+          accuracy: accuracy || 10
+        }),
+        credentials: 'include'
+      }).catch(() => {});
+    } catch (e) {}
+  }, []);
+
+  const updateLocation = useCallback((lat: number, lng: number, shouldCenter: boolean = false, accuracy?: number) => {
     setUserLocation({ lat, lng });
     try {
       localStorage.setItem('byahero_user_lat', lat.toString());
@@ -26,7 +55,8 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
     if (shouldCenter && onCenterLocationRef.current) {
       onCenterLocationRef.current(lat, lng);
     }
-  }, []);
+    syncLocationToServer(lat, lng, accuracy);
+  }, [syncLocationToServer]);
 
   const requestLocation = useCallback((shouldCenter: boolean = true) => {
     if (!navigator.geolocation) {
@@ -44,7 +74,7 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
       setLocationError(null);
       const lat = pos.coords.latitude;
       const lng = pos.coords.longitude;
-      updateLocation(lat, lng, shouldCenter);
+      updateLocation(lat, lng, shouldCenter, pos.coords.accuracy);
     };
 
     const handleHighAccuracyError = (err: GeolocationPositionError) => {
@@ -136,7 +166,7 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
           setLocationError(null);
           const lat = pos.coords.latitude;
           const lng = pos.coords.longitude;
-          updateLocation(lat, lng, false);
+          updateLocation(lat, lng, false, pos.coords.accuracy);
         },
         (err) => {
           if (!isMounted) return;
