@@ -206,8 +206,11 @@ export async function fetchBusStops(): Promise<BusStopItem[]> {
 export async function fetchGroupCircle(): Promise<CircleMember[]> {
   const baseUrl = await getServerUrl();
   try {
-    const res = await fetch(`${baseUrl}/api/group/view`, {
+    const email = localStorage.getItem('byahero_cached_email') || '';
+    const url = email ? `${baseUrl}/api/group/view?email=${encodeURIComponent(email)}` : `${baseUrl}/api/group/view`;
+    const res = await fetch(url, {
       method: 'GET',
+      headers: email ? { 'X-User-Email': email } : {},
       credentials: 'include',
     });
     if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);

@@ -4,6 +4,9 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+
 jobs:
   build-apk:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -14,9 +17,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 20
           cache: 'npm'
           cache-dependency-path: byahero-mobile/package-lock.json
 
@@ -35,7 +38,7 @@ jobs:
         run: |
           cd byahero-mobile/android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace --info
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v1

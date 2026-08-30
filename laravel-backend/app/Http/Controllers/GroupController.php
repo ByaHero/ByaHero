@@ -14,7 +14,7 @@ class GroupController extends Controller
 {
     public function groupView(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }
@@ -95,7 +95,7 @@ class GroupController extends Controller
 
     public function joinCircle(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }
@@ -144,7 +144,7 @@ class GroupController extends Controller
 
     public function removeFriend(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }
@@ -184,7 +184,7 @@ class GroupController extends Controller
 
     public function getInviteCode(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }

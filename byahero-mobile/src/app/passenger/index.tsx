@@ -232,10 +232,16 @@ export default function PassengerDashboard() {
 
   const fetchInviteCode = async (reset = false) => {
     try {
-      const url = reset
-        ? `${baseUrl}/api/group/invite-code?reset=1`
-        : `${baseUrl}/api/group/invite-code`;
-      const res = await fetch(url, { credentials: 'include', cache: 'no-store' });
+      const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+      const emailQuery = email ? `email=${encodeURIComponent(email)}` : '';
+      const resetQuery = reset ? 'reset=1' : '';
+      const query = [emailQuery, resetQuery].filter(Boolean).join('&');
+      const url = `${baseUrl}/api/group/invite-code${query ? '?' + query : ''}`;
+      const res = await fetch(url, {
+        headers: email ? { 'X-User-Email': email } : {},
+        credentials: 'include',
+        cache: 'no-store'
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.invite_code) {
@@ -577,10 +583,14 @@ export default function PassengerDashboard() {
       return;
     }
     try {
+      const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
       const res = await fetch(`${baseUrl}/api/group/join`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invite_code: joinCode }),
+        headers: {
+          'Content-Type': 'application/json',
+          ...(email ? { 'X-User-Email': email } : {})
+        },
+        body: JSON.stringify({ invite_code: joinCode, email }),
         credentials: 'include'
       });
       if (res.ok) {
@@ -605,10 +615,14 @@ export default function PassengerDashboard() {
     const performRemove = async () => {
       try {
         const currentBaseUrl = await getServerUrl();
+        const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
         const res = await fetch(`${currentBaseUrl}/api/group/remove`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ friend_id: friendId }),
+          headers: {
+            'Content-Type': 'application/json',
+            ...(email ? { 'X-User-Email': email } : {})
+          },
+          body: JSON.stringify({ friend_id: friendId, email }),
           credentials: 'include'
         });
         if (res.ok) {

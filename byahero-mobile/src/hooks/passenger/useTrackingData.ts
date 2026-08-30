@@ -20,11 +20,17 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
 
   const fetchGroupMembers = async (currentBaseUrl: string) => {
     try {
-      const res = await fetch(`${currentBaseUrl}/api/group/view`, { credentials: 'include', cache: 'no-store' });
+      const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+      const url = email ? `${currentBaseUrl}/api/group/view?email=${encodeURIComponent(email)}` : `${currentBaseUrl}/api/group/view`;
+      const res = await fetch(url, {
+        headers: email ? { 'X-User-Email': email } : {},
+        credentials: 'include',
+        cache: 'no-store'
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.friends)) {
-          const loggedInEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').toLowerCase().trim();
+          const loggedInEmail = email.toLowerCase().trim();
           
           // Deduplicate by email and filter out the logged in user
           const uniqueFriends = new Map();

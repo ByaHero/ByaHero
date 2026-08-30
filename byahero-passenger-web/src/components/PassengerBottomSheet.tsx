@@ -19,14 +19,18 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   onSelectBus,
   onSelectStop,
 }) => {
-  const { serverUrl } = useAuth();
+  const { serverUrl, isAuthenticated, user } = useAuth();
   const {
     buses,
     busStops,
+    filteredBuses,
+    filteredStops,
     circles,
     userLocation,
     selectedRoute,
     setSelectedRoute,
+    stopsRoute,
+    setStopsRoute,
     inviteCode,
     generateInviteCode,
     joinCircle,
@@ -34,6 +38,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     isBoarded,
     boardedBus,
     centerOnUser,
+    isLocating,
     focusOnFriend,
     focusOnBus,
     focusOnStop,
@@ -41,7 +46,6 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
-  const [stopsRoute, setStopsRoute] = useState<'LAUREL - TANAUAN' | 'TANAUAN - LAUREL'>('LAUREL - TANAUAN');
   const [qrModalVisible, setQrModalVisible] = useState(false);
   type SheetState = 'expanded' | 'mid' | 'minimized';
   const [sheetState, setSheetState] = useState<SheetState>('mid');
@@ -90,6 +94,12 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [sheetState, isDragging]);
+
+  useEffect(() => {
+    if (currentTab === 'groups' && (!inviteCode || inviteCode === '------')) {
+      generateInviteCode(false);
+    }
+  }, [currentTab, inviteCode]);
 
   const handleDragStart = (e: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
     isDragAction.current = false;
@@ -196,6 +206,13 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   };
 
   const handleJoinCircle = async () => {
+    if (!isAuthenticated && !user?.email) {
+      showAlert('Login Required', 'Please log in to your account to join a circle.', 'info', () => {
+        window.location.href = '/login';
+      });
+      return;
+    }
+
     if (!joinCodeInput.trim() || joinCodeInput.trim().length !== 6) {
       showAlert('Invalid Code', 'Please enter a valid 6-digit circle invite code.', 'warning');
       return;
@@ -227,17 +244,6 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     );
   };
 
-  // Filter buses by route
-  const filteredBuses = buses.filter(bus => {
-    if (!selectedRoute) return true;
-    return bus.route?.toUpperCase().includes(selectedRoute.toUpperCase());
-  });
-
-  // Calculate distance for bus stops
-  const filteredStops = busStops.filter(stop => {
-    return true;
-  });
-
   return (
     <div
       ref={sheetRef}
@@ -248,10 +254,16 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       <button
         type="button"
         onClick={() => centerOnUser()}
-        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010]"
+        disabled={isLocating}
+        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010] disabled:opacity-80"
         title="Center on My Location"
       >
-        <MaterialIcons name="my_location" size={24} color="#103d7c" />
+        <MaterialIcons
+          name="my_location"
+          size={24}
+          color={isLocating ? '#3b82f6' : '#103d7c'}
+          className={isLocating ? 'animate-spin' : ''}
+        />
       </button>
 
       {/* Handle / Drag Bar */}
@@ -658,132 +670,160 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
               CIRCLES
             </h3>
 
-            {/* Invite Code Box */}
-            <div className="bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/60 shadow-sm mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                  YOUR INVITE CODE
-                </span>
-                <button
-                  type="button"
-                  onClick={() => generateInviteCode(true)}
-                  className="text-[11px] font-bold text-[#103d7c] hover:underline flex items-center gap-1"
-                >
-                  <MaterialIcons name="refresh" size={14} color="#103d7c" />
-                  <span>Sync code</span>
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-[#e2e8f0]">
-                <span className="text-xl font-black font-mono tracking-widest text-[#103d7c]">
-                  {inviteCode || 'BYA678'}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      navigator.clipboard.writeText(inviteCode || 'BYA678');
-                      showAlert('Copied', 'Invite code copied to clipboard!', 'info');
-                    }}
-                    className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
-                    title="Copy Code"
-                  >
-                    <MaterialIcons name="content_copy" size={18} color="#103d7c" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setQrModalVisible(true)}
-                    className="p-2 rounded-xl bg-[#103d7c] text-white"
-                    title="QR Code"
-                  >
-                    <MaterialIcons name="qr_code" size={18} color="#ffffff" />
-                  </button>
+            {!isAuthenticated && !user?.email ? (
+              <div className="bg-[#f8fafc] rounded-3xl p-6 border border-[#e2e8f0] text-center shadow-sm mb-4">
+                <div className="w-14 h-14 rounded-full bg-[#103d7c]/10 text-[#103d7c] flex items-center justify-center mx-auto mb-3">
+                  <MaterialIcons name="group" size={28} color="#103d7c" />
                 </div>
-              </div>
-            </div>
-
-            {/* Join Circle Code Box */}
-            <div className="bg-white rounded-3xl p-5 border border-[#e2e8f0] shadow-sm mb-4">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
-                JOIN A CIRCLE
-              </span>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  maxLength={6}
-                  placeholder="Enter 6-digit code"
-                  value={joinCodeInput}
-                  onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
-                  className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-black font-mono uppercase tracking-widest text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#103d7c]"
-                />
-                <button
-                  type="button"
-                  onClick={handleJoinCircle}
-                  disabled={isJoining}
-                  className="w-24 shrink-0 bg-[#103d7c] hover:bg-blue-900 text-white font-bold text-xs py-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center"
+                <h4 className="text-base font-black text-slate-800 mb-1">Log in to Access Circles</h4>
+                <p className="text-xs text-slate-500 mb-5 max-w-xs mx-auto leading-relaxed">
+                  Log in to get your 6-digit invite code, join your friends' circle, and track each other's live location.
+                </p>
+                <a
+                  href="/login"
+                  className="inline-flex items-center justify-center gap-2 bg-[#103d7c] hover:bg-blue-900 text-white font-bold text-sm px-6 py-3 rounded-2xl shadow-md transition-all w-full max-w-xs"
                 >
-                  {isJoining ? 'Joining...' : 'Join'}
-                </button>
-              </div>
-            </div>
-
-            {/* Circle Members List */}
-            {circles.length === 0 ? (
-              <div className="bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/60 text-center">
-                <span className="text-xs text-slate-400 font-medium italic">No circle members yet.</span>
+                  <MaterialIcons name="login" size={18} color="#ffffff" />
+                  <span>Log In / Sign Up</span>
+                </a>
               </div>
             ) : (
-              <div className="bg-[#f8fafc] rounded-3xl p-4 border border-[#e2e8f0]/60 shadow-sm mb-6 space-y-2">
-                {circles.map((friend, index) => {
-                  const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
-                  const statusText = friend.waiting_status
-                    ? `Waiting at ${friend.waiting_location || 'Stop'}`
-                    : (friend.ride_status === 'active' ? `Onboard Bus ${friend.boarded_bus_code || ''}` : 'Live location active');
-
-                  return (
-                    <div
-                      key={friend.id || index}
-                      onClick={() => focusOnFriend(friend)}
-                      className="flex items-center py-3 border-b border-[#e2e8f0]/50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
+              <>
+                {/* Invite Code Box */}
+                <div className="bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/60 shadow-sm mb-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                      YOUR INVITE CODE
+                    </span>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await generateInviteCode(false);
+                        showAlert('Synced', 'Invite code synced with server!', 'info');
+                      }}
+                      className="text-[11px] font-bold text-[#103d7c] hover:underline flex items-center gap-1"
                     >
-                      <div className="relative mr-3.5">
-                        {friend.profile_picture ? (
-                          <img
-                            src={friend.profile_picture.startsWith('http') ? friend.profile_picture : `${serverUrl}/${friend.profile_picture}`}
-                            alt=""
-                            className="w-12 h-12 rounded-full border border-slate-200 object-cover"
-                          />
-                        ) : (
-                          <div className="w-12 h-12 rounded-full bg-[#dbeafe] flex items-center justify-center">
-                            <span className="text-[#1e3a8a] font-bold text-sm">{initials}</span>
-                          </div>
-                        )}
-                        <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white bg-[#10b981]" />
-                      </div>
+                      <MaterialIcons name="refresh" size={14} color="#103d7c" />
+                      <span>Sync code</span>
+                    </button>
+                  </div>
 
-                      <div className="flex-1">
-                        <div className="text-[15px] font-black text-slate-800">{friend.name || friend.email}</div>
-                        <div className="flex items-center mt-1">
-                          <span className="px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#15803d] text-[9px] font-black tracking-wider">
-                            ONLINE
-                          </span>
-                          <span className="text-[10px] text-[#64748b] font-bold ml-2 truncate max-w-[150px]">
-                            {statusText}
-                          </span>
-                        </div>
-                      </div>
-
+                  <div className="flex items-center justify-between bg-white rounded-2xl p-3 border border-[#e2e8f0]">
+                    <span className="text-xl font-black font-mono tracking-widest text-[#103d7c]">
+                      {inviteCode || '------'}
+                    </span>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
-                        onClick={() => handleRemoveMemberAction(friend.id, friend.name || friend.email)}
-                        className="p-2 text-[#103d7c] hover:text-red-600"
+                        onClick={() => {
+                          if (inviteCode && inviteCode !== '------') {
+                            navigator.clipboard.writeText(inviteCode);
+                            showAlert('Copied', 'Invite code copied to clipboard!', 'info');
+                          } else {
+                            showAlert('Invite Code', 'Invite code is loading. Please tap Sync code or wait a moment.', 'info');
+                          }
+                        }}
+                        className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700"
+                        title="Copy Code"
                       >
-                        <MaterialIcons name="person_remove" size={22} color="#103d7c" />
+                        <MaterialIcons name="content_copy" size={18} color="#103d7c" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setQrModalVisible(true)}
+                        className="p-2 rounded-xl bg-[#103d7c] text-white"
+                        title="QR Code"
+                      >
+                        <MaterialIcons name="qr_code" size={18} color="#ffffff" />
                       </button>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
+                </div>
+
+                {/* Join Circle Code Box */}
+                <div className="bg-white rounded-3xl p-5 border border-[#e2e8f0] shadow-sm mb-4">
+                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">
+                    JOIN A CIRCLE
+                  </span>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      maxLength={6}
+                      placeholder="Enter 6-digit code"
+                      value={joinCodeInput}
+                      onChange={(e) => setJoinCodeInput(e.target.value.toUpperCase())}
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-4 py-2.5 text-sm font-black font-mono uppercase tracking-widest text-slate-800 focus:outline-none focus:ring-2 focus:ring-[#103d7c]"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleJoinCircle}
+                      disabled={isJoining}
+                      className="w-24 shrink-0 bg-[#103d7c] hover:bg-blue-900 text-white font-bold text-xs py-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center"
+                    >
+                      {isJoining ? 'Joining...' : 'Join'}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Circle Members List */}
+                {circles.length === 0 ? (
+                  <div className="bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/60 text-center">
+                    <span className="text-xs text-slate-400 font-medium italic">No circle members yet.</span>
+                  </div>
+                ) : (
+                  <div className="bg-[#f8fafc] rounded-3xl p-4 border border-[#e2e8f0]/60 shadow-sm mb-6 space-y-2">
+                    {circles.map((friend, index) => {
+                      const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
+                      const statusText = friend.waiting_status
+                        ? `Waiting at ${friend.waiting_location || 'Stop'}`
+                        : (friend.ride_status === 'active' ? `Onboard Bus ${friend.boarded_bus_code || ''}` : 'Live location active');
+
+                      return (
+                        <div
+                          key={friend.id || index}
+                          onClick={() => focusOnFriend(friend)}
+                          className="flex items-center py-3 border-b border-[#e2e8f0]/50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
+                        >
+                          <div className="relative mr-3.5">
+                            {friend.profile_picture ? (
+                              <img
+                                src={friend.profile_picture.startsWith('http') ? friend.profile_picture : `${serverUrl}/${friend.profile_picture}`}
+                                alt=""
+                                className="w-12 h-12 rounded-full border border-slate-200 object-cover"
+                              />
+                            ) : (
+                              <div className="w-12 h-12 rounded-full bg-[#dbeafe] flex items-center justify-center">
+                                <span className="text-[#1e3a8a] font-bold text-sm">{initials}</span>
+                              </div>
+                            )}
+                            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white bg-[#10b981]" />
+                          </div>
+
+                          <div className="flex-1">
+                            <div className="text-[15px] font-black text-slate-800">{friend.name || friend.email}</div>
+                            <div className="flex items-center mt-1">
+                              <span className="px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#15803d] text-[9px] font-black tracking-wider">
+                                ONLINE
+                              </span>
+                              <span className="text-[10px] text-[#64748b] font-bold ml-2 truncate max-w-[150px]">
+                                {statusText}
+                              </span>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveMemberAction(friend.id, friend.name || friend.email)}
+                            className="p-2 text-[#103d7c] hover:text-red-600"
+                          >
+                            <MaterialIcons name="person_remove" size={22} color="#103d7c" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -886,11 +926,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
                       {/* Right: PICKUP POINT badge + walk distance */}
                       <div className="flex flex-col items-end gap-2 shrink-0">
-                        <span className={`text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap ${
-                          isBusStop
-                            ? 'bg-rose-100 text-rose-600'
-                            : 'bg-[#e8eef6] text-[#334155]'
-                        }`}>
+                        <span className="text-[9px] font-extrabold px-2.5 py-1 rounded-full uppercase tracking-wider whitespace-nowrap bg-[#e8eef6] text-[#334155]">
                           {labelType}
                         </span>
                         <div className="flex items-center gap-1 text-[#103d7c]">
@@ -924,7 +960,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
             </div>
 
             <span className="text-2xl font-black font-mono tracking-widest text-[#103d7c] block mb-5">
-              {inviteCode || 'BYA678'}
+              {inviteCode || '------'}
             </span>
 
             <button

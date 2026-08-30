@@ -15,8 +15,11 @@ class SosController extends Controller
 {
     public function sendSosAlert(Request $request)
     {
-        $userId = Session::get('user_id');
-        $senderName = Session::get('user_name', 'A user');
+        $userId = $this->getAuthUserId($request);
+        $senderName = Session::get('user_name');
+        if (empty($senderName) && !empty($userId)) {
+            $senderName = DB::table('users')->where('id', $userId)->value('name') ?: 'A user';
+        }
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
@@ -78,7 +81,7 @@ class SosController extends Controller
                 'fcm_tokens' => $fcmTokens,
                 'jwt' => $signedJwt,
                 'project_id' => $projectId,
-                'sender_name' => $senderName,
+                'sender_name' => $senderName ?: 'A user',
                 'location_text' => $locationText
             ]);
 
@@ -90,7 +93,7 @@ class SosController extends Controller
 
     public function getSosAlerts(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }
