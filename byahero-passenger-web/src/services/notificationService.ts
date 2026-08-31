@@ -32,14 +32,38 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     return 'granted';
   }
 
-  try {
-    const permission = await Notification.requestPermission();
-    console.log('[PushNotification] Notification permission result:', permission);
-    return permission;
-  } catch (e) {
-    console.warn('[PushNotification] Error requesting notification permission:', e);
-    return Notification.permission;
+  if (Notification.permission === 'denied') {
+    return 'denied';
   }
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const onDone = (res?: NotificationPermission) => {
+      if (!resolved) {
+        resolved = true;
+        const finalPerm = res || Notification.permission;
+        console.log('[PushNotification] Notification permission result:', finalPerm);
+        resolve(finalPerm);
+      }
+    };
+
+    try {
+      // Support both modern Promise API and legacy callback API
+      const result = Notification.requestPermission(onDone);
+
+      if (result && typeof result.then === 'function') {
+        result.then(onDone).catch(() => onDone());
+      }
+
+      // Safety timeout: prevents button from being stuck in "Prompting..." state if DevTools or browser suppresses dialog
+      setTimeout(() => {
+        onDone(Notification.permission);
+      }, 5000);
+    } catch (e) {
+      onDone(Notification.permission);
+    }
+  });
 }
 
 /**
