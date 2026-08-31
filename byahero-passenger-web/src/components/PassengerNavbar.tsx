@@ -203,8 +203,14 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
                   onClick={() => {
                     setMenuVisible(false);
                     if (item.isGuide) {
-                      if (onStartTour) onStartTour();
+                      localStorage.setItem('byahero_active_tour_step', '0');
+                      if (onStartTour) {
+                        onStartTour();
+                      } else {
+                        navigate('/');
+                      }
                     } else {
+                      localStorage.removeItem('byahero_active_tour_step');
                       navigate(item.route);
                     }
                   }}

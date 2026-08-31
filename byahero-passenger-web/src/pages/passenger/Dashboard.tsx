@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import PassengerNavbar from '../../components/PassengerNavbar';
 import PassengerFooter from '../../components/PassengerFooter';
 import PassengerMap from '../../components/PassengerMap';
@@ -45,6 +45,13 @@ export const Dashboard: React.FC = () => {
 
   // Guided tour state
   const [tourStep, setTourStep] = useState<number | null>(null);
+
+  useEffect(() => {
+    const stepVal = localStorage.getItem('byahero_active_tour_step');
+    if (stepVal !== null) {
+      setTourStep(parseInt(stepVal, 10));
+    }
+  }, []);
 
   // Helper to resolve nearest stop name
   const resolveNearestStop = () => {

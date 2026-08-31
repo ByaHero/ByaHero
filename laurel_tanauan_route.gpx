@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="ByaHero Simulator" xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Laurel - Tanauan Route</name>
+    <trkseg>
+      <trkpt lat="14.0463949" lon="120.9415191">
+        <name>Laurel Terminal</name>
+      </trkpt>
+      <trkpt lat="14.0861442" lon="121.0032720">
+        <name>Sta. Maria</name>
+      </trkpt>
+      <trkpt lat="14.0920913" lon="121.0130218">
+        <name>Banga</name>
+      </trkpt>
+      <trkpt lat="14.0929051" lon="121.0226466">
+        <name>Talisay Pickup point</name>
+      </trkpt>
+      <trkpt lat="14.0933576" lon="121.0274133">
+        <name>Tumaway</name>
+      </trkpt>
+      <trkpt lat="14.0941167" lon="121.0358217">
+        <name>Quiling</name>
+      </trkpt>
+      <trkpt lat="14.0944235" lon="121.0392860">
+        <name>Aya, Talisay</name>
+      </trkpt>
+      <trkpt lat="14.0939353" lon="121.0474534">
+        <name>Boundary Aya</name>
+      </trkpt>
+      <trkpt lat="14.0838808" lon="121.1438761">
+        <name>Tanauan Terminal</name>
+      </trkpt>
+    </trkseg>
+  </trk>
+</gpx>

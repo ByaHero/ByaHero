@@ -6,8 +6,11 @@ import { useAuth } from '../../../context/AuthContext';
 import { useTracking } from '../../../context/TrackingContext';
 import AlertModal from '../../../components/AlertModal';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
+import TourOverlay from '../../../components/TourOverlay';
+import { useTourSync } from '../../../hooks/passenger/useTourSync';
 
 export const ReportProblem: React.FC = () => {
+  const { activeStep, setActiveStep } = useTourSync('/report');
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, serverUrl } = useAuth();
@@ -242,6 +245,14 @@ export const ReportProblem: React.FC = () => {
         type={alertConfig.type}
         onConfirm={alertConfig.onConfirm}
       />
+
+      {activeStep !== null && (
+        <TourOverlay
+          currentStep={activeStep}
+          onStepChange={setActiveStep}
+          onClose={() => setActiveStep(null)}
+        />
+      )}
     </div>
   );
 };

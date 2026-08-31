@@ -166,16 +166,15 @@ class LocationForegroundService : Service() {
         if (now - lastMediaClickTime < 80) return
         lastMediaClickTime = now
 
-        if (seatsAvailable > 0) {
-            seatsAvailable -= 1
-            saveSeatsToPrefs(seatsAvailable)
-            currentTitle = getFormattedTitle()
-            if (code.isNotEmpty() || route.isNotEmpty()) {
-                currentArtist = "Bus $code - Route: $route"
-            }
-            refreshNotification()
-            scheduleNativeBackendUpdate()
+        seatsAvailable -= 1
+        saveSeatsToPrefs(seatsAvailable)
+        currentTitle = getFormattedTitle()
+        if (code.isNotEmpty() || route.isNotEmpty()) {
+            currentArtist = "Bus $code - Route: $route"
         }
+        refreshNotification()
+        scheduleNativeBackendUpdate()
+
         if (appInForeground) {
             broadcastMediaButton("media-session-next")
         }
