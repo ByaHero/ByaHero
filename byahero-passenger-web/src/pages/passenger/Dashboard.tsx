@@ -9,6 +9,7 @@ import DepartingPromptModal from '../../components/DepartingPromptModal';
 import TourOverlay from '../../components/TourOverlay';
 import OfflineBanner from '../../components/OfflineBanner';
 import LocationPromptBanner from '../../components/LocationPromptBanner';
+import NotificationPromptBanner from '../../components/NotificationPromptBanner';
 import { useTracking } from '../../context/TrackingContext';
 import { resolveBusLocationName } from '../../utils/locationUtils';
 import { Bus, MapPin, Sparkles } from 'lucide-react';
@@ -137,8 +138,9 @@ export const Dashboard: React.FC = () => {
 
       {/* Main Map & Panel Grid */}
       <main className="relative flex-1 w-full h-full flex flex-col md:flex-row overflow-hidden">
-        {/* Location Permission / Guidance Banner */}
+        {/* Location & Push Permission / Guidance Banners */}
         <LocationPromptBanner />
+        <NotificationPromptBanner />
 
         {/* Map Container */}
         <div className="flex-1 w-full h-full relative">
