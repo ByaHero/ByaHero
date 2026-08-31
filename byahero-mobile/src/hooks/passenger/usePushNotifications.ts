@@ -56,8 +56,12 @@ export function usePushNotifications() {
           }
 
           const currentBaseUrl = await getServerUrl();
+          const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
           const formData = new FormData();
           formData.append('fcm_token', token);
+          if (cachedEmail) {
+            formData.append('email', cachedEmail);
+          }
 
           const res = await fetch(`${currentBaseUrl}/api/fcm/register`, {
             method: 'POST',
