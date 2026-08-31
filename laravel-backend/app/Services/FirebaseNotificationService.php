@@ -186,6 +186,17 @@ class FirebaseNotificationService
                                 ],
                             ],
                         ],
+                        'webpush' => [
+                            'notification' => [
+                                'title' => $title,
+                                'body' => $body,
+                                'icon' => '/favicon.png',
+                                'badge' => '/favicon.png',
+                            ],
+                            'fcm_options' => [
+                                'link' => $data['route'] ?? '/bus-info',
+                            ],
+                        ],
                     ],
                 ];
 

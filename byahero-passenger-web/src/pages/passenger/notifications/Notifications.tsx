@@ -3,14 +3,17 @@ import { useNavigate } from 'react-router-dom';
 import PassengerHeader from '../../../components/PassengerNavbar';
 import PassengerFooter from '../../../components/PassengerFooter';
 import { useAuth } from '../../../context/AuthContext';
+import { useNotifications } from '../../../context/NotificationContext';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const { serverUrl } = useAuth();
+  const { clearUnreadCount } = useNotifications();
 
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [smartNotifications, setSmartNotifications] = useState<any[]>([]);
   const [notifyBusSchedule, setNotifyBusSchedule] = useState(false);
@@ -18,55 +21,50 @@ export const Notifications: React.FC = () => {
   const [notifySeatAvailability, setNotifySeatAvailability] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
-
-    const fetchNotifications = async () => {
+  const fetchNotifications = async (isManual = false) => {
+    if (isManual) setRefreshing(true);
+    try {
+      let data: any = null;
       try {
-        let data: any = null;
-        try {
-          const res = await fetch(`${serverUrl}/api/notifications`, {
-            credentials: 'include',
-            cache: 'no-store',
-          });
-          if (res.ok) {
-            data = await res.json();
-          }
-        } catch (e) {}
+        const res = await fetch(`${serverUrl}/api/notifications`, {
+          credentials: 'include',
+          cache: 'no-store',
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (e) {}
 
-        if (active) {
-          setLoading(false);
-          if (data && data.success) {
-            setSosAlerts(data.sos_alerts || []);
-            setSmartNotifications(data.notifications || []);
-            setNotifyBusSchedule(!!data.notify_bus_schedule);
-            setNotifyBusArrival(!!data.notify_bus_arrival);
-            setNotifySeatAvailability(!!data.notify_seat_availability);
-          } else {
-            // Default active notifications
-            setSmartNotifications([
-              {
-                title: 'Welcome to ByaHero Web',
-                message: 'Live bus tracking and passenger services are active for Laurel - Tanauan routes.',
-                created_at: new Date().toISOString(),
-                type: 'bus_arrival',
-              },
-            ]);
-          }
-        }
-      } catch (err) {
-        if (active) {
-          setLoading(false);
-          setErrorText('An unexpected network error occurred.');
-        }
+      setLoading(false);
+      setRefreshing(false);
+
+      if (data && data.success) {
+        setSosAlerts(data.sos_alerts || []);
+        setSmartNotifications(data.notifications || []);
+        setNotifyBusSchedule(!!data.notify_bus_schedule);
+        setNotifyBusArrival(!!data.notify_bus_arrival);
+        setNotifySeatAvailability(!!data.notify_seat_availability);
+        clearUnreadCount();
+      } else {
+        // Fallback default notifications
+        setSmartNotifications([
+          {
+            title: 'Welcome to ByaHero Web',
+            message: 'Live bus tracking and passenger services are active for Laurel - Tanauan routes.',
+            created_at: new Date().toISOString(),
+            type: 'bus_arrival',
+          },
+        ]);
       }
-    };
+    } catch (err) {
+      setLoading(false);
+      setRefreshing(false);
+      setErrorText('An unexpected network error occurred.');
+    }
+  };
 
+  useEffect(() => {
     fetchNotifications();
-
-    return () => {
-      active = false;
-    };
   }, [serverUrl]);
 
   const formatDate = (dateStr: string) => {
@@ -114,6 +112,20 @@ export const Notifications: React.FC = () => {
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
         <div className="max-w-md mx-auto w-full pb-8">
+          {/* Quick Refresh Bar */}
+          <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold">
+            <span>Updates synced in real-time</span>
+            <button
+              type="button"
+              onClick={() => fetchNotifications(true)}
+              disabled={refreshing || loading}
+              className="flex items-center gap-1 text-[#103d7c] font-bold hover:underline cursor-pointer"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+              <span>Refresh</span>
+            </button>
+          </div>
+
           {loading ? (
             <div className="flex justify-center items-center py-20">
               <Loader2 className="w-8 h-8 animate-spin text-[#103d7c]" />
@@ -126,7 +138,7 @@ export const Notifications: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate(-1)}
-                className="bg-[#103d7c] text-white font-bold text-sm px-6 py-2.5 rounded-full"
+                className="bg-[#103d7c] text-white font-bold text-sm px-6 py-2.5 rounded-full cursor-pointer"
               >
                 Go Back
               </button>
@@ -141,7 +153,7 @@ export const Notifications: React.FC = () => {
               <button
                 type="button"
                 onClick={() => navigate('/settings/smart-notifications')}
-                className="bg-[#103d7c] px-6 py-3 rounded-full flex items-center gap-2 text-white font-extrabold text-sm"
+                className="bg-[#103d7c] px-6 py-3 rounded-full flex items-center gap-2 text-white font-extrabold text-sm cursor-pointer"
               >
                 <MaterialIcons name="notifications_active" size={18} color="white" />
                 <span>Enable Notifications</span>
@@ -152,8 +164,11 @@ export const Notifications: React.FC = () => {
               {/* SOS Alerts Section */}
               {sosAlerts.length > 0 && (
                 <div className="mb-4">
-                  <div className="bg-red-50 px-4 py-2 border-y border-red-100">
-                    <span className="text-xs font-black text-red-600 tracking-wider">SOS ALERTS</span>
+                  <div className="bg-red-50 px-4 py-2 border-y border-red-100 flex items-center justify-between">
+                    <span className="text-xs font-black text-red-600 tracking-wider">🚨 SOS EMERGENCY ALERTS</span>
+                    <span className="text-[10px] bg-red-200 text-red-800 font-extrabold px-1.5 py-0.5 rounded-full">
+                      {sosAlerts.length}
+                    </span>
                   </div>
                   <div>
                     {sosAlerts.map((alert, index) => {
@@ -161,7 +176,9 @@ export const Notifications: React.FC = () => {
                       return (
                         <div
                           key={index}
-                          className="px-4 py-4 border-b border-slate-100 flex gap-3.5 items-start"
+                          className={`px-4 py-4 border-b border-slate-100 flex gap-3.5 items-start ${
+                            isUnread ? 'bg-red-50/50' : ''
+                          }`}
                         >
                           <div className="w-10 h-10 rounded-full bg-red-100 flex justify-center items-center shrink-0">
                             <MaterialIcons name="warning" size={20} color="#ef4444" />
@@ -180,7 +197,7 @@ export const Notifications: React.FC = () => {
                             </p>
                           </div>
                           {isUnread && (
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 self-center shrink-0" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500 self-center shrink-0 animate-ping" />
                           )}
                         </div>
                       );
@@ -191,9 +208,12 @@ export const Notifications: React.FC = () => {
 
               {/* Smart Notifications Section */}
               <div>
-                <div className="bg-[#103d7c]/5 px-4 py-2 border-y border-[#103d7c]/10">
+                <div className="bg-[#103d7c]/5 px-4 py-2 border-y border-[#103d7c]/10 flex items-center justify-between">
                   <span className="text-xs font-black text-[#103d7c] tracking-wider">
-                    SMART NOTIFICATIONS
+                    ADMIN & SMART NOTIFICATIONS
+                  </span>
+                  <span className="text-[10px] bg-blue-100 text-blue-800 font-extrabold px-1.5 py-0.5 rounded-full">
+                    {smartNotifications.length}
                   </span>
                 </div>
                 {smartNotifications.length === 0 ? (
@@ -214,7 +234,7 @@ export const Notifications: React.FC = () => {
                           className="px-4 py-4 border-b border-slate-100 flex gap-3.5 items-start cursor-pointer hover:bg-slate-50 transition-colors"
                         >
                           <div
-                            className="w-10 h-10 rounded-full flex justify-center items-center shrink-0"
+                            className="w-10 h-10 rounded-2xl flex justify-center items-center shrink-0"
                             style={{ backgroundColor: `${iconDetails.color}15` }}
                           >
                             <MaterialIcons name={iconDetails.icon} size={20} color={iconDetails.color} />
