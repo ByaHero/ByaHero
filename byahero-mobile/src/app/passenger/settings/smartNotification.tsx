@@ -138,8 +138,12 @@ export default function SmartNotificationScreen() {
       setPushEnabled(true);
 
       const serverUrl = await getServerUrl();
+      const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
       const formData = new FormData();
       formData.append('fcm_token', token);
+      if (cachedEmail) {
+        formData.append('email', cachedEmail);
+      }
 
       const res = await fetch(`${serverUrl}/api/fcm/register`, {
         method: 'POST',

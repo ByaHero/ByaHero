@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import PassengerHeader from '../../../components/PassengerNavbar';
-import PassengerFooter from '../../../components/PassengerFooter';
 import { useAuth } from '../../../context/AuthContext';
+import { useNotifications } from '../../../context/NotificationContext';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import AlertModal from '../../../components/AlertModal';
 
 export const SmartNotification: React.FC = () => {
   const { user, serverUrl } = useAuth();
+  const { isPushEnabled, permission, requestPermissionAndEnablePush } = useNotifications();
 
   const [pushEnabled, setPushEnabled] = useState(false);
   const [notifySchedule, setNotifySchedule] = useState(true);
@@ -48,6 +49,7 @@ export const SmartNotification: React.FC = () => {
   };
 
   useEffect(() => {
+    // 1. Fetch local settings
     const saved = localStorage.getItem('byahero_smart_notifs');
     if (saved) {
       try {
@@ -58,31 +60,101 @@ export const SmartNotification: React.FC = () => {
         if (parsed.pushEnabled !== undefined) setPushEnabled(parsed.pushEnabled);
       } catch (e) {}
     }
-  }, []);
 
-  const updateSetting = (key: string, val: boolean) => {
-    if (key === 'notifySchedule') setNotifySchedule(val);
-    if (key === 'notifyArrival') setNotifyArrival(val);
-    if (key === 'notifySeat') setNotifySeat(val);
+    if (isPushEnabled || permission === 'granted') {
+      setPushEnabled(true);
+    }
+
+    // 2. Fetch server settings
+    const fetchServerSettings = async () => {
+      try {
+        const res = await fetch(`${serverUrl}/api/settings/fetch`, {
+          credentials: 'include'
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success && data.settings) {
+            const s = data.settings;
+            if (s.notify_bus_schedule !== undefined) setNotifySchedule(s.notify_bus_schedule == 1);
+            if (s.notify_bus_arrival !== undefined) setNotifyArrival(s.notify_bus_arrival == 1);
+            if (s.notify_seat_availability !== undefined) setNotifySeat(s.notify_seat_availability == 1);
+          }
+        }
+      } catch (e) {}
+    };
+
+    fetchServerSettings();
+  }, [serverUrl, isPushEnabled, permission]);
+
+  const updateSetting = async (key: string, val: boolean) => {
+    let newSched = notifySchedule;
+    let newArr = notifyArrival;
+    let newSeat = notifySeat;
+
+    if (key === 'notifySchedule') { setNotifySchedule(val); newSched = val; }
+    if (key === 'notifyArrival') { setNotifyArrival(val); newArr = val; }
+    if (key === 'notifySeat') { setNotifySeat(val); newSeat = val; }
 
     const updated = {
-      notifySchedule: key === 'notifySchedule' ? val : notifySchedule,
-      notifyArrival: key === 'notifyArrival' ? val : notifyArrival,
-      notifySeat: key === 'notifySeat' ? val : notifySeat,
+      notifySchedule: newSched,
+      notifyArrival: newArr,
+      notifySeat: newSeat,
       pushEnabled,
     };
     localStorage.setItem('byahero_smart_notifs', JSON.stringify(updated));
+
+    // Sync with backend /api/settings/update
+    try {
+      const formData = new FormData();
+      formData.append('notify_bus_schedule', newSched ? '1' : '0');
+      formData.append('notify_bus_arrival', newArr ? '1' : '0');
+      formData.append('notify_seat_availability', newSeat ? '1' : '0');
+      if (user?.email) {
+        formData.append('email', user.email);
+      }
+
+      await fetch(`${serverUrl}/api/settings/update`, {
+        method: 'POST',
+        body: formData,
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.warn('[SmartNotification] Failed to sync settings to server:', e);
+    }
   };
 
-  const handleSubscribePush = () => {
+  const handleSubscribePush = async () => {
     setIsSubscribing(true);
-    setTimeout(() => {
+    try {
+      const success = await requestPermissionAndEnablePush();
       setIsSubscribing(false);
-      setPushEnabled(true);
-      const updated = { notifySchedule, notifyArrival, notifySeat, pushEnabled: true };
-      localStorage.setItem('byahero_smart_notifs', JSON.stringify(updated));
-      showAlert('Subscribed', 'Your device registered successfully for push notifications!', 'success');
-    }, 600);
+
+      if (success || Notification.permission === 'granted') {
+        setPushEnabled(true);
+        const updated = { notifySchedule, notifyArrival, notifySeat, pushEnabled: true };
+        localStorage.setItem('byahero_smart_notifs', JSON.stringify(updated));
+        showAlert(
+          'Push Notifications Active',
+          'Your web browser is registered to receive real-time bus schedule changes, SOS alerts, and live transit notifications!',
+          'success'
+        );
+      } else if (Notification.permission === 'denied') {
+        showAlert(
+          'Permission Blocked',
+          'Notifications are blocked in your browser settings. Please allow notifications for this site to receive push alerts.',
+          'warning'
+        );
+      } else {
+        showAlert(
+          'Subscription Pending',
+          'Notification permission was not confirmed. Please click Allow when prompted by your browser.',
+          'info'
+        );
+      }
+    } catch (err) {
+      setIsSubscribing(false);
+      showAlert('Error', 'Failed to enable push notifications. Please check your browser permissions.', 'error');
+    }
   };
 
   const notificationOptions = [
@@ -122,7 +194,7 @@ export const SmartNotification: React.FC = () => {
             {/* Intro */}
             <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm mb-4">
               <p className="text-sm font-semibold text-slate-700 leading-relaxed">
-                Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and seat availability.
+                Stay informed about the most relevant updates while tracking buses. Enable Smart Notifications to receive alerts for bus schedule changes, arrivals, and emergency SOS broadcasts.
               </p>
             </div>
 
@@ -132,7 +204,9 @@ export const SmartNotification: React.FC = () => {
                 <div className="flex-1 mr-4">
                   <h3 className="text-sm font-bold text-slate-800">Enable Push Notifications</h3>
                   <p className="text-xs text-slate-400 mt-1 font-semibold">
-                    Allow alerts on this device and sync your notification ID.
+                    {pushEnabled
+                      ? 'Push notifications are active on this device.'
+                      : 'Allow browser push alerts for admin schedule updates and SOS alarms.'}
                   </p>
                 </div>
                 <button
@@ -141,11 +215,11 @@ export const SmartNotification: React.FC = () => {
                   disabled={isSubscribing || pushEnabled}
                   className={`px-4 py-2.5 rounded-full text-xs font-bold transition-colors cursor-pointer ${
                     pushEnabled
-                      ? 'bg-slate-100 border border-slate-200 text-slate-400'
+                      ? 'bg-emerald-50 border border-emerald-200 text-emerald-600 font-extrabold'
                       : 'bg-[#1e3a8a] text-white shadow-sm hover:bg-blue-900'
                   }`}
                 >
-                  {pushEnabled ? 'Enabled' : (isSubscribing ? 'Registering...' : 'Enable')}
+                  {pushEnabled ? 'Active ✓' : (isSubscribing ? 'Registering...' : 'Enable')}
                 </button>
               </div>
             </div>
@@ -184,16 +258,16 @@ export const SmartNotification: React.FC = () => {
         </div>
       </div>
 
-      <PassengerFooter activeTab="location" />
-
       <AlertModal
         visible={alertConfig.visible}
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
         onConfirm={alertConfig.onConfirm}
+        onCancel={() => setAlertConfig((p) => ({ ...p, visible: false }))}
       />
     </div>
   );
 };
+
 export default SmartNotification;
