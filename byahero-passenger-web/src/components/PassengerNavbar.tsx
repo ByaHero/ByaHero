@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { MaterialIcons } from './ui/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { triggerSOS } from '../utils/sosUtils';
 
 interface PassengerNavbarProps {
@@ -21,6 +22,7 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 }) => {
   const navigate = useNavigate();
   const { user, logout, serverUrl } = useAuth();
+  const { unreadCount, hasUnread } = useNotifications();
 
   const [menuVisible, setMenuVisible] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
@@ -131,13 +133,18 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
             <div className="flex items-center gap-3">
               <Link
                 to="/notifications"
-                className="p-1 rounded-xl flex items-center justify-center focus:outline-none"
+                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none"
               >
                 <img
                   src="/images/notification bell.svg"
                   alt="Notifications"
                   className="w-[22px] h-[22px] object-contain"
                 />
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
+                    {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
+                  </span>
+                )}
               </Link>
 
               <button

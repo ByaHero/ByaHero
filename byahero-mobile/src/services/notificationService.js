@@ -84,6 +84,17 @@ export async function sendFcmPushes(pushData) {
                       badge: 1
                     }
                   }
+                },
+                webpush: {
+                  notification: {
+                    title: notifTitle,
+                    body: notifBody,
+                    icon: '/favicon.png',
+                    badge: '/favicon.png'
+                  },
+                  fcm_options: {
+                    link: pushData.route || (notifType === 'schedule_update' ? '/bus-info' : '/notifications')
+                  }
                 }
               }
             })

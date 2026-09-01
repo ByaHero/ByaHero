@@ -1,3 +1,175 @@
+import { getServerUrl } from './authService';
+
+/**
+ * Register Service Worker for background notifications
+ */
+export async function registerServiceWorker(): Promise<ServiceWorkerRegistration | null> {
+  if (!('serviceWorker' in navigator)) {
+    console.warn('[PushNotification] Service workers are not supported in this browser.');
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.register('/sw.js', { scope: '/' });
+    console.log('[PushNotification] Service Worker registered successfully:', registration.scope);
+    return registration;
+  } catch (error) {
+    console.warn('[PushNotification] Service Worker registration failed:', error);
+    return null;
+  }
+}
+
+/**
+ * Request native Notification permission from browser
+ */
+export async function requestNotificationPermission(): Promise<NotificationPermission> {
+  if (!('Notification' in window)) {
+    console.warn('[PushNotification] This browser does not support desktop notifications.');
+    return 'denied';
+  }
+
+  if (Notification.permission === 'granted') {
+    return 'granted';
+  }
+
+  if (Notification.permission === 'denied') {
+    return 'denied';
+  }
+
+  return new Promise((resolve) => {
+    let resolved = false;
+
+    const onDone = (res?: NotificationPermission) => {
+      if (!resolved) {
+        resolved = true;
+        const finalPerm = res || Notification.permission;
+        console.log('[PushNotification] Notification permission result:', finalPerm);
+        resolve(finalPerm);
+      }
+    };
+
+    try {
+      // Support both modern Promise API and legacy callback API
+      const result = Notification.requestPermission(onDone);
+
+      if (result && typeof result.then === 'function') {
+        result.then(onDone).catch(() => onDone());
+      }
+
+      // Safety timeout: prevents button from being stuck in "Prompting..." state if DevTools or browser suppresses dialog
+      setTimeout(() => {
+        onDone(Notification.permission);
+      }, 5000);
+    } catch (e) {
+      onDone(Notification.permission);
+    }
+  });
+}
+
+/**
+ * Generate or retrieve a persistent client push token for this browser device
+ */
+export function getOrCreateWebPushToken(): string {
+  const STORAGE_KEY = 'byahero_web_push_token';
+  let token = localStorage.getItem(STORAGE_KEY);
+
+  if (!token) {
+    // Generate an RFC4122-compliant unique web push identifier
+    const randomHex = Array.from(crypto.getRandomValues(new Uint8Array(16)))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    token = `web_fcm_${randomHex}_${Date.now()}`;
+    localStorage.setItem(STORAGE_KEY, token);
+  }
+
+  return token;
+}
+
+/**
+ * Register push token with Laravel backend (/api/fcm/register)
+ */
+export async function registerPushTokenToServer(token?: string, email?: string): Promise<boolean> {
+  try {
+    const activeToken = token || getOrCreateWebPushToken();
+    const currentEmail = email || localStorage.getItem('byahero_cached_email') || '';
+    const baseUrl = await getServerUrl();
+
+    const formData = new FormData();
+    formData.append('fcm_token', activeToken);
+    if (currentEmail) {
+      formData.append('email', currentEmail);
+    }
+
+    const res = await fetch(`${baseUrl}/api/fcm/register`, {
+      method: 'POST',
+      body: formData,
+      credentials: 'include'
+    });
+
+    const data = await res.json();
+    if (data && data.success) {
+      localStorage.setItem('sos_fcm_active_token', activeToken);
+      console.log('[PushNotification] Successfully registered push token to server:', activeToken);
+      return true;
+    } else {
+      console.warn('[PushNotification] Server rejected push registration:', data?.message);
+      return false;
+    }
+  } catch (err) {
+    console.warn('[PushNotification] Failed to register push token with server:', err);
+    return false;
+  }
+}
+
+/**
+ * Display native browser desktop notification (foreground or background)
+ */
+export async function showBrowserNotification(
+  title: string,
+  options: {
+    body?: string;
+    icon?: string;
+    badge?: string;
+    tag?: string;
+    data?: any;
+    requireInteraction?: boolean;
+    vibrate?: number[];
+  } = {}
+): Promise<void> {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  const defaultOptions: NotificationOptions = {
+    body: options.body || '',
+    icon: options.icon || '/favicon.png',
+    badge: options.badge || '/favicon.png',
+    tag: options.tag || 'byahero-alert-' + Date.now(),
+    data: options.data || {},
+    requireInteraction: options.requireInteraction ?? false,
+    ...options
+  };
+
+  try {
+    // Prefer Service Worker registration to show notification if available
+    if ('serviceWorker' in navigator) {
+      const reg = await navigator.serviceWorker.ready.catch(() => null);
+      if (reg && reg.showNotification) {
+        await reg.showNotification(title, defaultOptions);
+        return;
+      }
+    }
+
+    // Fallback to standard window Notification
+    new Notification(title, defaultOptions);
+  } catch (e) {
+    console.warn('[PushNotification] Error displaying browser notification:', e);
+  }
+}
+
+/**
+ * Dispatch FCM Pushes from client side (used for SOS broadcasts & live updates)
+ */
 export async function sendFcmPushes(pushData: any) {
   if (!pushData.fcm_tokens || pushData.fcm_tokens.length === 0 || !pushData.jwt || !pushData.project_id) {
     console.log('[SOS-Notification] Missing tokens, JWT or Project ID. Skipping pushes.');
@@ -84,8 +256,11 @@ export async function sendFcmPushes(pushData: any) {
                   notification: {
                     title: notifTitle,
                     body: notifBody,
-                    icon: '/icon.png',
+                    icon: '/favicon.png',
                     badge: '/favicon.png'
+                  },
+                  fcm_options: {
+                    link: pushData.route || (notifType === 'schedule_update' ? '/bus-info' : '/notifications')
                   }
                 }
               }

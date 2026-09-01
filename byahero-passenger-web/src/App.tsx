@@ -1,7 +1,11 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { NotificationProvider, useNotifications } from './context/NotificationContext';
 import { TrackingProvider } from './context/TrackingContext';
+import { usePushNotifications } from './hooks/passenger/usePushNotifications';
+import { IncomingSosModal } from './components/IncomingSosModal';
+import { NotificationToast } from './components/NotificationToast';
 
 // Auth Pages
 import Login from './pages/auth/Login';
@@ -120,14 +124,6 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/ride-history"
-        element={
-          <ProtectedRoute>
-            <RideHistory />
-          </ProtectedRoute>
-        }
-      />
-      <Route
         path="/notifications"
         element={
           <ProtectedRoute>
@@ -135,8 +131,16 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/ride-history"
+        element={
+          <ProtectedRoute>
+            <RideHistory />
+          </ProtectedRoute>
+        }
+      />
 
-      {/* Profile & Security */}
+      {/* Profile & Account Management */}
       <Route
         path="/profile"
         element={
@@ -252,13 +256,28 @@ function AppRoutes() {
   );
 }
 
+function AppContent() {
+  usePushNotifications();
+  const { latestSosAlert, dismissSosModal } = useNotifications();
+
+  return (
+    <>
+      <AppRoutes />
+      <NotificationToast />
+      <IncomingSosModal alert={latestSosAlert} onClose={dismissSosModal} />
+    </>
+  );
+}
+
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <TrackingProvider>
-          <AppRoutes />
-        </TrackingProvider>
+        <NotificationProvider>
+          <TrackingProvider>
+            <AppContent />
+          </TrackingProvider>
+        </NotificationProvider>
       </AuthProvider>
     </BrowserRouter>
   );

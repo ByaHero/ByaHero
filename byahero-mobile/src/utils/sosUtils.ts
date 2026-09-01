@@ -55,7 +55,7 @@ export const executeSOS = async ({ baseUrl, locationText = 'Mobile Device', lat 
           console.warn('[SOS-Notification] Push dispatch warning:', pushErr);
         });
       }
-      displayAlert('SOS Broadcasted', 'Help is on the way! Your SOS alert and live location have been broadcasted to emergency responders and your circle.', 'success');
+      displayAlert('SOS Broadcasted', 'Your SOS alert and live location have been broadcasted to your circle.', 'success');
     } else {
       displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error');
     }
