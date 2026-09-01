@@ -5,8 +5,11 @@ import PassengerFooter from '../../components/PassengerFooter';
 import { useAuth } from '../../context/AuthContext';
 import { MaterialIcons } from '../../components/ui/MaterialIcons';
 import { Loader2 } from 'lucide-react';
+import TourOverlay from '../../components/TourOverlay';
+import { useTourSync } from '../../hooks/passenger/useTourSync';
 
 export const RideHistory: React.FC = () => {
+  const { activeStep, setActiveStep } = useTourSync('/ride-history');
   const navigate = useNavigate();
   const { serverUrl } = useAuth();
 
@@ -257,6 +260,14 @@ export const RideHistory: React.FC = () => {
       </div>
 
       <PassengerFooter activeTab="location" />
+
+      {activeStep !== null && (
+        <TourOverlay
+          currentStep={activeStep}
+          onStepChange={setActiveStep}
+          onClose={() => setActiveStep(null)}
+        />
+      )}
     </div>
   );
 };

@@ -9,3 +9,8 @@ config/.schema_synced
 /byahero-conductor-reserve
 
 dist/
+
+# Kotlin build / session cache
+.kotlin/
+byahero-conductor/android/.kotlin/
+*.salive

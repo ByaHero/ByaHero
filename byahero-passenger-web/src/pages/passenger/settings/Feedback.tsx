@@ -6,6 +6,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import AlertModal from '../../../components/AlertModal';
 import { Loader2 } from 'lucide-react';
+import TourOverlay from '../../../components/TourOverlay';
+import { useTourSync } from '../../../hooks/passenger/useTourSync';
 
 interface UserFeedbackData {
   id?: number;
@@ -15,6 +17,7 @@ interface UserFeedbackData {
 }
 
 export const Feedback: React.FC = () => {
+  const { activeStep, setActiveStep } = useTourSync('/settings/feedback');
   const navigate = useNavigate();
   const { user, serverUrl } = useAuth();
 
@@ -345,6 +348,14 @@ export const Feedback: React.FC = () => {
         type={alertConfig.type}
         onConfirm={alertConfig.onConfirm}
       />
+
+      {activeStep !== null && (
+        <TourOverlay
+          currentStep={activeStep}
+          onStepChange={setActiveStep}
+          onClose={() => setActiveStep(null)}
+        />
+      )}
     </div>
   );
 };

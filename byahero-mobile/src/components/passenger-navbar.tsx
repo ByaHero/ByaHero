@@ -426,8 +426,14 @@ export function PassengerHeader({
                             duration: 200,
                             useNativeDriver: true,
                           }),
-                        ]).start(() => {
+                        ]).start(async () => {
                           setMenuVisible(false);
+                          if (isItemHighlighted) {
+                            const nextStep = (activeStep ?? 0) + 1;
+                            await AsyncStorage.setItem('byahero_active_tour_step', nextStep.toString());
+                          } else {
+                            await AsyncStorage.removeItem('byahero_active_tour_step');
+                          }
                           router.push(item.route as any);
                         });
                       }}

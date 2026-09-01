@@ -291,7 +291,7 @@ export default function LiveTrackingScreen() {
     // For a resumed session, restore from persisted state
     let restoredSeats = isResumed
       ? payload.current_seats
-      : Math.max(0, seatsTotal - (payload.pre_departure_count || 0));
+      : seatsTotal - (payload.pre_departure_count || 0);
 
     // Compute boarded count
     // For a brand new session: pre_departure_count passengers are already on board
@@ -612,7 +612,7 @@ export default function LiveTrackingScreen() {
     // No upper cap — count all boarding passengers for analytics
     const newBoarded = boardedCountRef.current + count;
     const seatsTotal = sessionRef.current.seats_total || 0;
-    const newSeats = Math.max(0, seatsTotal - newBoarded);
+    const newSeats = seatsTotal - newBoarded;
     setBoardedCount(newBoarded);
     setSeats(newSeats);
     pendingBoards.current += count;
