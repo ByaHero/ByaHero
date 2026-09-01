@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import { AlertTriangle, CheckCircle, Info, XCircle, X } from 'lucide-react';
 
 export interface AlertModalConfig {
@@ -56,9 +57,9 @@ export const AlertModal: React.FC<AlertModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-100 transform transition-all text-center">
+  return createPortal(
+    <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in overflow-y-auto">
+      <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full overflow-hidden border border-slate-100 transform transition-all text-center my-8">
         <div className={`p-6 flex flex-col items-center justify-center ${getHeaderBg()}`}>
           <div className="mb-2">{getIcon()}</div>
           <h3 className="text-lg font-bold text-slate-800 tracking-tight">{title}</h3>
@@ -96,7 +97,8 @@ export const AlertModal: React.FC<AlertModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 export default AlertModal;

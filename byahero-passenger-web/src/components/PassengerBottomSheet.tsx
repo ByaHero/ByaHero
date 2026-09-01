@@ -758,7 +758,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                       type="button"
                       onClick={handleJoinCircle}
                       disabled={isJoining}
-                      className="bg-[#103d7c] hover:bg-blue-900 text-white font-bold text-xs px-5 py-2.5 rounded-2xl shadow-sm transition-all"
+                      className="w-24 shrink-0 bg-[#103d7c] hover:bg-blue-900 text-white font-bold text-xs py-2.5 rounded-2xl shadow-sm transition-all flex items-center justify-center"
                     >
                       {isJoining ? 'Joining...' : 'Join'}
                     </button>

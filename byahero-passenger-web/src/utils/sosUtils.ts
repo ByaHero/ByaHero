@@ -56,7 +56,7 @@ export const executeSOS = async ({ baseUrl, locationText = 'Web Client', lat = n
       }
       displayAlert(
         'SOS Broadcasted',
-        'Help is on the way! Your SOS alert and live location have been broadcasted to emergency responders and your circle.',
+        'Your SOS alert and live location have been broadcasted to your circle.',
         'success'
       );
     } else {
