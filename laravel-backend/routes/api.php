@@ -21,6 +21,7 @@ Route::middleware([
     \Illuminate\Session\Middleware\StartSession::class,
 ])->group(function () {
     Route::get('/app-version', [AppVersionController::class, 'getVersion']);
+    Route::get('/download', [AppVersionController::class, 'download']);
     Route::post('/auth', [AuthController::class, 'handle']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/ping', function () {

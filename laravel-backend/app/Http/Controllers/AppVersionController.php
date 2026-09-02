@@ -9,14 +9,43 @@ use Illuminate\Support\Facades\Cache;
 class AppVersionController extends Controller
 {
     /**
+     * Redirect to the latest download URL for the requested app.
+     */
+    public function download(Request $request)
+    {
+        $appName = strtolower($request->query('app', 'passenger'));
+        $versionData = $this->getVersionData($appName);
+        return redirect()->away($versionData['download_url']);
+    }
+
+    /**
      * Get the latest mobile app version metadata dynamically per app (passenger, conductor, admin).
      */
     public function getVersion(Request $request)
     {
         $appName = strtolower($request->query('app', 'passenger'));
+        $versionData = $this->getVersionData($appName);
+
+        return response()->json([
+            'success' => true,
+            'app' => $appName,
+            'latest_version' => $versionData['latest_version'],
+            'min_required_version' => '1.0.0',
+            'download_url' => $versionData['download_url'],
+            'release_notes' => $versionData['release_notes'],
+            'force_update' => false
+        ]);
+    }
+
+    /**
+     * Fetch and cache latest version info for an app.
+     */
+    public function getVersionData($appName = 'passenger')
+    {
+        $appName = strtolower($appName);
         $cacheKey = 'byahero_github_release_' . $appName;
 
-        $versionData = Cache::remember($cacheKey, 300, function () use ($appName) {
+        return Cache::remember($cacheKey, 300, function () use ($appName) {
             try {
                 $response = Http::withHeaders([
                     'User-Agent' => 'ByaHero-Backend-App'
@@ -104,15 +133,5 @@ class AppVersionController extends Controller
                 'release_notes' => 'Bug fixes and performance improvements.',
             ];
         });
-
-        return response()->json([
-            'success' => true,
-            'app' => $appName,
-            'latest_version' => $versionData['latest_version'],
-            'min_required_version' => '1.0.0',
-            'download_url' => $versionData['download_url'],
-            'release_notes' => $versionData['release_notes'],
-            'force_update' => false
-        ]);
     }
 }

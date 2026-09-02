@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Download ByaHero — Latest Mobile Release</title>
+    <meta name="description" content="Download the latest version of ByaHero mobile apps for Passengers, Conductors, and Administrators." />
+    <link rel="icon" href="assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+
+    <!-- Bootstrap 5 & Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+    <style>
+        :root {
+            --brand-50: #eff6ff;
+            --brand-100: #dbeafe;
+            --brand-500: #3b82f6;
+            --brand-600: #2563eb;
+            --brand-700: #1d4ed8;
+            --brand-800: #1e3a8a;
+            --brand-900: #172554;
+            --accent: #10b981;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: linear-gradient(160deg, #f0f5ff 0%, #ffffff 40%, #f0fdf4 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+            color: #0f172a;
+        }
+
+        .download-card {
+            background: #ffffff;
+            border-radius: 24px;
+            box-shadow: 0 20px 50px rgba(15, 23, 42, 0.1);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            max-width: 440px;
+            width: 100%;
+            padding: 2.5rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .download-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(90deg, var(--brand-600), var(--accent));
+        }
+
+        .app-icon-wrapper {
+            width: 72px;
+            height: 72px;
+            border-radius: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.15);
+        }
+
+        .app-icon-conductor {
+            background: #eff6ff;
+            color: var(--brand-600);
+        }
+
+        .app-icon-admin {
+            background: #fdf2f8;
+            color: #db2777;
+        }
+
+        .app-icon-passenger {
+            background: #ecfdf5;
+            color: var(--accent);
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            padding: 4px 14px;
+            border-radius: 999px;
+            margin-bottom: 1rem;
+        }
+
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.4); opacity: 0.5; }
+        }
+
+        .btn-download-main {
+            background: var(--brand-600);
+            color: #fff;
+            font-weight: 700;
+            padding: 0.85rem 1.5rem;
+            border-radius: 999px;
+            border: none;
+            width: 100%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            box-shadow: 0 8px 25px rgba(37, 99, 235, 0.25);
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn-download-main:hover {
+            background: var(--brand-700);
+            color: #fff;
+            transform: translateY(-2px);
+            box-shadow: 0 12px 32px rgba(37, 99, 235, 0.35);
+        }
+
+        .install-guide {
+            background: #f8fafc;
+            border-radius: 14px;
+            padding: 1rem;
+            font-size: 0.82rem;
+            color: #64748b;
+            text-align: left;
+            margin-top: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="download-card">
+        <div id="appIcon" class="app-icon-wrapper app-icon-conductor">
+            <i class="bi bi-headset"></i>
+        </div>
+
+        <div class="status-pill bg-success-subtle text-success border border-success-subtle">
+            <span class="pulse-dot"></span>
+            <span>Always Latest Version: <strong id="versionLabel">Detecting...</strong></span>
+        </div>
+
+        <h3 class="fw-bold mb-1" id="appTitle">ByaHero Conductor</h3>
+        <p class="text-secondary small mb-4" id="appSubtitle">Preparing your Android APK download...</p>
+
+        <div id="loadingIndicator" class="mb-4">
+            <div class="spinner-border text-primary" role="status" style="width: 2.2rem; height: 2.2rem;">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="text-muted small mt-2">Checking GitHub releases for the latest APK...</p>
+        </div>
+
+        <div id="readyContainer" class="d-none">
+            <a id="downloadBtn" href="#" download class="btn-download-main mb-3">
+                <i class="bi bi-download"></i> Download APK (<span id="btnVersion">v3.0.4</span>)
+            </a>
+            <p class="text-muted small mb-0">
+                If your download doesn't start automatically, tap the button above.
+            </p>
+        </div>
+
+        <div class="install-guide">
+            <div class="fw-bold text-dark mb-1"><i class="bi bi-info-circle me-1 text-primary"></i> Android Install Note</div>
+            If prompted, tap <strong>"Download anyway"</strong> and allow installation from your browser or file manager.
+        </div>
+
+        <div class="mt-4 pt-3 border-top">
+            <a href="index.html" class="text-secondary small text-decoration-none d-inline-flex align-items-center gap-1">
+                <i class="bi bi-arrow-left"></i> Back to ByaHero Homepage
+            </a>
+        </div>
+    </div>
+
+    <script>
+        const APPS = {
+            conductor: {
+                title: 'ByaHero Conductor',
+                subtitle: 'Manage trips, seats, and broadcast GPS for passengers',
+                iconClass: 'app-icon-conductor',
+                iconHtml: '<i class="bi bi-headset"></i>',
+                tagPrefix: 'conductor-',
+                defaultTag: 'conductor-v3.0.4',
+                defaultVersion: 'v3.0.4',
+                defaultUrl: 'https://github.com/ByaHero/ByaHero/releases/download/conductor-v3.0.4/byahero-conductor.apk',
+                filename: 'byahero-conductor.apk'
+            },
+            admin: {
+                title: 'ByaHero Administrator',
+                subtitle: 'Manage fleet, conductors, buses, and view analytics',
+                iconClass: 'app-icon-admin',
+                iconHtml: '<i class="bi bi-gear-fill"></i>',
+                tagPrefix: 'admin-',
+                defaultTag: 'admin-v3.0.0',
+                defaultVersion: 'v3.0.0',
+                defaultUrl: 'https://github.com/ByaHero/ByaHero/releases/download/admin-v3.0.0/byahero-admin.apk',
+                filename: 'byahero-admin.apk'
+            },
+            passenger: {
+                title: 'ByaHero Passenger',
+                subtitle: 'Real-time bus tracking and seat availability for commuters',
+                iconClass: 'app-icon-passenger',
+                iconHtml: '<i class="bi bi-person-fill"></i>',
+                tagPrefix: 'v',
+                defaultTag: 'v2.0.6',
+                defaultVersion: 'v2.0.6',
+                defaultUrl: 'https://github.com/ByaHero/ByaHero/releases/download/v2.0.6/app-release.apk',
+                filename: 'byahero.apk'
+            }
+        };
+
+        // Determine which app was requested
+        const params = new URLSearchParams(window.location.search);
+        let requestedApp = (params.get('app') || params.get('download') || 'conductor').toLowerCase();
+        if (!APPS[requestedApp]) requestedApp = 'conductor';
+
+        const appConfig = APPS[requestedApp];
+        document.title = `Download ${appConfig.title} — Latest APK`;
+        document.getElementById('appTitle').textContent = appConfig.title;
+        document.getElementById('appSubtitle').textContent = appConfig.subtitle;
+        document.getElementById('appIcon').className = `app-icon-wrapper ${appConfig.iconClass}`;
+        document.getElementById('appIcon').innerHTML = appConfig.iconHtml;
+
+        async function fetchLatestRelease() {
+            let finalDownloadUrl = appConfig.defaultUrl;
+            let finalVersion = appConfig.defaultVersion;
+
+            // 1. Direct GitHub Releases API
+            try {
+                const res = await fetch('https://api.github.com/repos/ByaHero/ByaHero/releases?per_page=20');
+                if (res.ok) {
+                    const releases = await res.json();
+                    for (const release of releases) {
+                        if (release.draft) continue;
+                        const tag = (release.tag_name || '').toLowerCase();
+                        let isMatch = false;
+
+                        if (requestedApp === 'conductor') {
+                            isMatch = tag.includes('conductor');
+                        } else if (requestedApp === 'admin') {
+                            isMatch = tag.includes('admin');
+                        } else {
+                            isMatch = /^v\d/.test(tag) && !tag.includes('conductor') && !tag.includes('admin');
+                        }
+
+                        if (isMatch) {
+                            const assets = release.assets || [];
+                            const apk = assets.find(a => {
+                                const name = (a.name || '').toLowerCase();
+                                if (!name.endsWith('.apk')) return false;
+                                if (requestedApp === 'conductor') return name.includes('conductor') || name === 'app-release.apk';
+                                if (requestedApp === 'admin') return name.includes('admin') || name === 'app-release.apk';
+                                return !name.includes('conductor') && !name.includes('admin');
+                            });
+
+                            if (apk && apk.browser_download_url) {
+                                finalDownloadUrl = apk.browser_download_url;
+                                finalVersion = release.tag_name ? release.tag_name.replace(/^(conductor-|admin-)/i, '') : appConfig.defaultVersion;
+                                break;
+                            }
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn('GitHub direct fetch failed, trying backend fallback:', err);
+            }
+
+            // 2. Fallback to AlwaysData Backend API
+            if (finalDownloadUrl === appConfig.defaultUrl) {
+                try {
+                    const backendRes = await fetch(`https://byahero.alwaysdata.net/api/app-version?app=${requestedApp}`);
+                    if (backendRes.ok) {
+                        const data = await backendRes.json();
+                        if (data && data.download_url) {
+                            finalDownloadUrl = data.download_url;
+                            finalVersion = data.latest_version ? (data.latest_version.startsWith('v') ? data.latest_version : 'v' + data.latest_version) : finalVersion;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Backend fallback skipped:', e);
+                }
+            }
+
+            // Update UI
+            document.getElementById('versionLabel').textContent = finalVersion;
+            document.getElementById('btnVersion').textContent = finalVersion;
+            const dlBtn = document.getElementById('downloadBtn');
+            dlBtn.href = finalDownloadUrl;
+            dlBtn.setAttribute('download', `${appConfig.filename.replace('.apk', '')}-${finalVersion}.apk`);
+
+            document.getElementById('loadingIndicator').classList.add('d-none');
+            document.getElementById('readyContainer').classList.remove('d-none');
+
+            // Automatically trigger download
+            setTimeout(() => {
+                window.location.href = finalDownloadUrl;
+            }, 600);
+        }
+
+        fetchLatestRelease();
+    </script>
+</body>
+</html>
