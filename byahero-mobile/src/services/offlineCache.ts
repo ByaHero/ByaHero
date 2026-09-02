@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'byahero_bus_data_cache';
+const FRIENDS_CACHE_KEY = 'byahero_friends_cache';
 
 export interface CachedBusData {
   cached_at: string; // ISO 8601 string
@@ -98,6 +99,26 @@ export async function getBusDataAgeHours(): Promise<number> {
     console.error('Failed to calculate cache age:', error);
   }
   return -1;
+}
+
+export async function saveFriendsData(friends: any[]): Promise<void> {
+  try {
+    await AsyncStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify(friends));
+  } catch (error) {
+    console.error('Failed to save friends data to cache:', error);
+  }
+}
+
+export async function loadFriendsData(): Promise<any[] | null> {
+  try {
+    const jsonString = await AsyncStorage.getItem(FRIENDS_CACHE_KEY);
+    if (jsonString) {
+      return JSON.parse(jsonString) as any[];
+    }
+  } catch (error) {
+    console.error('Failed to load friends data from cache:', error);
+  }
+  return null;
 }
 
 /**

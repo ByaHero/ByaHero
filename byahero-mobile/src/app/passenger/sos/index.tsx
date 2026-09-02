@@ -21,6 +21,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 import { triggerSOS } from '../../../utils/sosUtils';
+import { saveFriendsData, loadFriendsData } from '../../../services/offlineCache';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
@@ -109,6 +110,13 @@ export default function SOSScreen() {
           setLocationText('Location permission denied.');
         }
 
+        // Instant load from cache
+        const cachedFriends = await loadFriendsData();
+        if (cachedFriends) {
+          setFriends(cachedFriends);
+          setLoadingFriends(false);
+        }
+
         // Fetch group/friends count
         try {
           const res = await fetch(`${url}/api/group/view`, { credentials: 'include' });
@@ -116,6 +124,7 @@ export default function SOSScreen() {
             const groupData = await res.json();
             if (groupData.success && Array.isArray(groupData.friends)) {
               setFriends(groupData.friends);
+              await saveFriendsData(groupData.friends);
             }
           }
         } catch (e) {

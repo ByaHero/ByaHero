@@ -22,6 +22,7 @@ import { triggerSOS } from '../../../utils/sosUtils';
 export default function BusInfoScreen() {
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [fareStops, setFareStops] = useState<any[]>([]);
   const [fareRules, setFareRules] = useState<any[]>([]);
   
@@ -44,6 +45,22 @@ export default function BusInfoScreen() {
 
   useEffect(() => {
     let active = true;
+
+    const loadInitialCache = async () => {
+      try {
+        const cachedData = await loadBusData();
+        if (cachedData && active) {
+          setSchedules(prev => prev.length ? prev : (cachedData.schedules || []));
+          setFareStops(prev => prev.length ? prev : (cachedData.fare_stops || []));
+          setFareRules(prev => prev.length ? prev : (cachedData.fare_rules || []));
+          if (cachedData.schedules && cachedData.schedules.length > 0) {
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {}
+    };
+    
+    loadInitialCache();
 
     const fetchSyncData = async () => {
       try {
@@ -85,6 +102,7 @@ export default function BusInfoScreen() {
 
         if (isNetworkSuccess && responseData && active) {
           setIsOffline(false);
+          setIsLoading(false);
           setSchedules(responseData.bus_schedule || []);
           setFareStops(responseData.bus_stops || []);
           setFareRules(responseData.bus_fares || []);
@@ -96,6 +114,7 @@ export default function BusInfoScreen() {
             responseData.stops_terminal || []
           );
         } else if (!isNetworkSuccess && active) {
+          setIsLoading(false);
           const cachedData = await loadBusData();
           if (cachedData) {
             setIsOffline(true);
@@ -111,7 +130,9 @@ export default function BusInfoScreen() {
       } catch (err: any) {
         if (err.message !== 'Network request failed') {
           console.error('Error fetching sync data:', err);
-        } else if (active) {
+        } 
+        if (active) {
+          setIsLoading(false);
           const cachedData = await loadBusData();
           if (cachedData) {
             setIsOffline(true);
@@ -210,9 +231,15 @@ export default function BusInfoScreen() {
           {/* Schedules Section */}
           <Text style={tw`text-[15px] font-bold text-[#103d7c] mt-6 mb-4 text-center`}>Bus Operation Schedule</Text>
           {schedules.length === 0 ? (
-            <View style={tw`bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
-              <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
-            </View>
+            isLoading ? (
+              <View style={tw`bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
+                <Text style={tw`text-xs text-[#64748b] italic`}>Loading schedules...</Text>
+              </View>
+            ) : (
+              <View style={tw`bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] items-center`}>
+                <Text style={tw`text-xs text-[#64748b] italic`}>No schedules available.</Text>
+              </View>
+            )
           ) : (
             schedules.map((row, idx) => {
               const formatTime = (timeStr: string) => {

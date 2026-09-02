@@ -6,7 +6,14 @@ import { loadBusData } from '../../services/offlineCache';
 export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
-  const [circles, setCircles] = useState<any[]>([]);
+  const [circles, setCircles] = useState<any[]>(() => {
+    try {
+      const cached = localStorage.getItem('byahero_friends_cache');
+      return cached ? JSON.parse(cached) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
   const [isWaiting, setIsWaiting] = useState(false);
@@ -40,7 +47,11 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
             }
           });
           
-          setCircles(Array.from(uniqueFriends.values()));
+          const uniqueFriendsArray = Array.from(uniqueFriends.values());
+          setCircles(uniqueFriendsArray);
+          try {
+            localStorage.setItem('byahero_friends_cache', JSON.stringify(uniqueFriendsArray));
+          } catch(e) {}
         }
       }
     } catch (err: any) {

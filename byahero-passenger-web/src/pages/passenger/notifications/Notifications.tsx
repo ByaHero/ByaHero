@@ -6,6 +6,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import { Loader2, RefreshCw } from 'lucide-react';
+import AlertModal from '../../../components/AlertModal';
 
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ export const Notifications: React.FC = () => {
   const { clearUnreadCount } = useNotifications();
 
   const [loading, setLoading] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [smartNotifications, setSmartNotifications] = useState<any[]>([]);
@@ -110,6 +112,35 @@ export const Notifications: React.FC = () => {
     }
   };
 
+  const handleClearAll = () => {
+    setShowClearConfirm(true);
+  };
+
+  const performClearAll = async () => {
+    try {
+      const emailParam = user?.email
+        ? `?email=${encodeURIComponent(user.email)}`
+        : '';
+      const authHeaders: Record<string, string> = user?.email
+        ? { 'X-User-Email': user.email }
+        : {};
+
+      const res = await fetch(`${serverUrl}/api/notifications/clear${emailParam}`, {
+        method: 'DELETE',
+        headers: authHeaders,
+        credentials: 'include'
+      });
+      if (res.ok) {
+        setSosAlerts([]);
+        setSmartNotifications([]);
+      }
+    } catch (err) {
+      console.error('Failed to clear notifications', err);
+    } finally {
+      setShowClearConfirm(false);
+    }
+  };
+
   const hasSettings = notifyBusSchedule || notifyBusArrival || notifySeatAvailability;
   const hasHistory = sosAlerts.length > 0 || smartNotifications.length > 0;
   const showEmptyState = !loading && !hasSettings && !hasHistory;
@@ -168,7 +199,18 @@ export const Notifications: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="bg-white">
+            <div className="bg-white flex flex-col">
+              {hasHistory && (
+                <div className="bg-white px-4 py-2 border-b border-slate-100 flex justify-end">
+                  <button 
+                    onClick={handleClearAll}
+                    className="flex items-center gap-1 text-slate-500 font-bold hover:underline cursor-pointer"
+                  >
+                    <MaterialIcons name="clear_all" size={20} color="#64748b" />
+                    <span>Clear All</span>
+                  </button>
+                </div>
+              )}
               {/* SOS Alerts Section */}
               {sosAlerts.length > 0 && (
                 <div className="mb-4">
@@ -273,6 +315,17 @@ export const Notifications: React.FC = () => {
           )}
         </div>
       </div>
+
+      <AlertModal
+        visible={showClearConfirm}
+        title="Clear Notifications"
+        message="Are you sure you want to clear all notifications? This action will hide them from your view."
+        type="confirm"
+        confirmText="Clear All"
+        cancelText="Cancel"
+        onConfirm={performClearAll}
+        onCancel={() => setShowClearConfirm(false)}
+      />
 
       <PassengerFooter activeTab="location" />
     </div>

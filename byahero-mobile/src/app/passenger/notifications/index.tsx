@@ -132,6 +132,34 @@ export default function NotificationsScreen() {
     }
   };
 
+  const handleClearAll = () => {
+    Alert.alert(
+      'Clear Notifications',
+      'Are you sure you want to clear all notifications?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { 
+          text: 'Clear', 
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const res = await fetch(`${baseUrl}/api/notifications/clear`, {
+                method: 'DELETE',
+                credentials: 'include'
+              });
+              if (res.ok) {
+                setSosAlerts([]);
+                setSmartNotifications([]);
+              }
+            } catch (err) {
+              console.error('Failed to clear notifications', err);
+            }
+          }
+        }
+      ]
+    );
+  };
+
   const hasSettings = notifyBusSchedule || notifyBusArrival || notifySeatAvailability;
   const hasHistory = sosAlerts.length > 0 || smartNotifications.length > 0;
   const showEmptyState = !loading && !hasSettings && !hasHistory;
@@ -173,7 +201,16 @@ export default function NotificationsScreen() {
             </TouchableOpacity>
           </View>
         ) : (
-          <ScrollView style={tw`flex-1 bg-white`}>
+          <View style={tw`flex-1`}>
+            {hasHistory && (
+              <View style={tw`bg-white px-4 py-2 border-b border-slate-100 flex-row justify-end`}>
+                <TouchableOpacity onPress={handleClearAll} style={tw`flex-row items-center`}>
+                  <MaterialIcons name="clear-all" size={20} color="#64748b" />
+                  <Text style={tw`text-slate-500 font-bold ml-1`}>Clear All</Text>
+                </TouchableOpacity>
+              </View>
+            )}
+            <ScrollView style={tw`flex-1 bg-white`}>
             
             {/* SOS Alerts Section */}
             {sosAlerts.length > 0 && (
@@ -260,6 +297,7 @@ export default function NotificationsScreen() {
             </View>
 
           </ScrollView>
+        </View>
         )}
       </View>
     </SafeAreaView>

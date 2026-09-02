@@ -24,7 +24,7 @@ import { getServerUrl } from '../../services/authService';
 import { sendFcmPushes } from '../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import PassengerBottomSheet from '../../components/passenger-bottomsheet';
-import OfflineBanner from '../../components/OfflineBanner';
+
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import TourOverlay, { tourSteps } from '../../components/TourOverlay';
 import { handleTourLayout } from '../../components/TourRegistry';
@@ -827,7 +827,7 @@ export default function PassengerDashboard() {
           )}
         </View>
 
-        <OfflineBanner topOffset={56 + insets.top + (isBoarded ? 24 : 0)} />
+
 
         {activeStep !== null && (
           <TourOverlay
