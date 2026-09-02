@@ -47,40 +47,52 @@ export const CompleteProfile: React.FC = () => {
   const handleComplete = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const digits = phone.trim().replace(/[^0-9]/g, '');
-    if (digits.length < 10) {
-      showAlert('Invalid Phone Number', 'Please enter a valid 10-digit mobile number (e.g. 9123456789).', 'warning');
+    const trimmedContact = phone.trim();
+
+    if (!trimmedContact) {
+      showAlert('Validation Error', 'Please enter your contact number.', 'warning');
       return;
     }
 
-    let clean10 = digits.slice(-10);
-    const fullPhone = '+63' + clean10;
+    // Validate Philippine mobile number (starting with 09 and having 11 digits) matching mobile app
+    if (!/^(09)\d{9}$/.test(trimmedContact)) {
+      showAlert(
+        'Validation Error',
+        'Please enter a valid Philippine mobile number starting with 09 (e.g., 09123456789).',
+        'warning'
+      );
+      return;
+    }
+
+    const fullPhone = '+63' + trimmedContact.substring(1);
 
     setIsLoading(true);
+
     try {
       // Save phone on backend
-      const res = await fetch(`${serverUrl}/api/profile/update-phone`, {
+      await fetch(`${serverUrl}/api/profile/update-phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: user?.email || '',
           phone: fullPhone,
+          contacts: trimmedContact,
         }),
-        credentials: 'include'
+        credentials: 'include',
       });
 
       // Update local auth context
       updateUserProfile({ phone: fullPhone });
       setIsLoading(false);
 
-      showAlert('Profile Completed', 'Your contact number has been saved for emergency alerts.', 'success', () => {
-        navigate('/');
+      showAlert('Profile Completed', 'Profile completed successfully! Redirecting...', 'success', () => {
+        navigate('/show-guide');
       });
     } catch (e: any) {
-      // Even if network update fails, save in local profile
+      // Even if network update fails, save in local profile and proceed to showGuide
       updateUserProfile({ phone: fullPhone });
       setIsLoading(false);
-      navigate('/');
+      navigate('/show-guide');
     }
   };
 
@@ -96,23 +108,22 @@ export const CompleteProfile: React.FC = () => {
             Complete Your Profile
           </h2>
           <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
-            Please enter your Philippine mobile number to enable emergency SOS features and family circle notifications.
+            Please provide a contact number to complete your registration.
           </p>
 
           <form onSubmit={handleComplete} className="space-y-4">
             <div className="relative flex items-center">
-              <div className="absolute left-4 flex items-center gap-1 text-slate-500 font-bold text-sm border-r pr-2 border-slate-300">
-                <span>🇵🇭</span>
-                <span>+63</span>
+              <div className="absolute left-4 text-slate-400">
+                <Phone className="w-5 h-5" />
               </div>
               <input
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="912 345 6789"
+                onChange={(e) => setPhone(e.target.value.replace(/[^0-9]/g, ''))}
+                placeholder="e.g. 09123456789"
                 required
-                maxLength={12}
-                className="w-full pl-24 pr-4 py-3.5 rounded-full bg-slate-50 border border-slate-200 text-slate-800 font-mono text-sm font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
+                maxLength={11}
+                className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-mono text-sm font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
               />
             </div>
 
@@ -127,7 +138,7 @@ export const CompleteProfile: React.FC = () => {
                   <span>SAVING...</span>
                 </>
               ) : (
-                <span>SAVE & GET STARTED</span>
+                <span>CONTINUE TO DASHBOARD</span>
               )}
             </button>
           </form>

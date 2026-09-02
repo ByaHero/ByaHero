@@ -14,6 +14,7 @@ import ForgotPassword from './pages/auth/ForgotPassword';
 
 // Passenger Pages
 import CompleteProfile from './pages/passenger/CompleteProfile';
+import ShowGuide from './pages/passenger/ShowGuide';
 import Dashboard from './pages/passenger/Dashboard';
 import RideHistory from './pages/passenger/RideHistory';
 
@@ -73,6 +74,8 @@ function AppRoutes() {
       <Route path="/signup" element={<SignUp />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/complete-profile" element={<CompleteProfile />} />
+      <Route path="/show-guide" element={<ShowGuide />} />
+      <Route path="/passenger/showGuide" element={<ShowGuide />} />
 
       {/* Main Passenger Dashboard & Features */}
       <Route
