@@ -16,6 +16,7 @@ class Notification extends Model
         'meta',
         'read_at',
         'dedupe_key',
+        'is_cleared',
     ];
 
     protected $casts = [

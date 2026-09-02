@@ -50,6 +50,7 @@ Route::middleware([
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
     Route::post('/notifications/create', [NotificationController::class, 'createNotification']);
     Route::get('/notifications', [NotificationController::class, 'notificationsIndex']);
+    Route::delete('/notifications/clear', [NotificationController::class, 'clearAll']);
 
     Route::get('/buses', [BusController::class, 'getBuses']);
     Route::get('/buses/stops-terminal', [BusController::class, 'getBusStopsTerminal']);

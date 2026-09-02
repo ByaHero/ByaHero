@@ -23,7 +23,7 @@ function getAudioContext(): any {
 }
 
 // Auto-unlock AudioContext on first user interaction anywhere on screen
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
   const unlockAudio = () => {
     try {
       const ctx = getAudioContext();

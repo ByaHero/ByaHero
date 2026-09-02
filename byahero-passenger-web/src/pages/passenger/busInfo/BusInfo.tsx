@@ -8,6 +8,7 @@ export const BusInfo: React.FC = () => {
   const { serverUrl } = useAuth();
 
   const [schedules, setSchedules] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [fareStops, setFareStops] = useState<any[]>([]);
   const [fareRules, setFareRules] = useState<any[]>([]);
   const [isOffline, setIsOffline] = useState(false);
@@ -26,6 +27,22 @@ export const BusInfo: React.FC = () => {
 
   useEffect(() => {
     let active = true;
+
+    const loadInitialCache = async () => {
+      try {
+        const cachedData = await loadBusData();
+        if (cachedData && active) {
+          setSchedules(prev => prev.length ? prev : (cachedData.schedules || []));
+          setFareStops(prev => prev.length ? prev : (cachedData.fare_stops || []));
+          setFareRules(prev => prev.length ? prev : (cachedData.fare_rules || []));
+          if (cachedData.schedules && cachedData.schedules.length > 0) {
+            setIsLoading(false);
+          }
+        }
+      } catch (e) {}
+    };
+    
+    loadInitialCache();
 
     const fetchSyncData = async () => {
       try {
@@ -64,6 +81,7 @@ export const BusInfo: React.FC = () => {
 
         if (isNetworkSuccess && responseData && active) {
           setIsOffline(false);
+          setIsLoading(false);
           setSchedules(responseData.bus_schedule || []);
           setFareStops(responseData.bus_stops || []);
           setFareRules(responseData.bus_fares || []);
@@ -74,6 +92,7 @@ export const BusInfo: React.FC = () => {
             responseData.stops_terminal || []
           );
         } else if (!isNetworkSuccess && active) {
+          setIsLoading(false);
           const cachedData = await loadBusData();
           if (cachedData) {
             setIsOffline(true);
@@ -88,6 +107,7 @@ export const BusInfo: React.FC = () => {
         }
       } catch (err: any) {
         if (active) {
+          setIsLoading(false);
           const cachedData = await loadBusData();
           if (cachedData) {
             setIsOffline(true);
@@ -181,9 +201,15 @@ export const BusInfo: React.FC = () => {
             </h2>
 
             {schedules.length === 0 ? (
-              <div className="bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] text-center">
-                <span className="text-xs text-[#64748b] italic">No schedules available.</span>
-              </div>
+              isLoading ? (
+                <div className="bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] text-center">
+                  <span className="text-xs text-[#64748b] italic">Loading schedules...</span>
+                </div>
+              ) : (
+                <div className="bg-white rounded-xl p-4 mb-5 border border-[#e2e8f0] text-center">
+                  <span className="text-xs text-[#64748b] italic">No schedules available.</span>
+                </div>
+              )
             ) : (
               schedules.map((row, idx) => {
                 const open = formatTime(row.time_open);
