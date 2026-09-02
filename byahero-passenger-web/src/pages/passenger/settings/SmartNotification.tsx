@@ -4,6 +4,8 @@ import { useAuth } from '../../../context/AuthContext';
 import { useNotifications } from '../../../context/NotificationContext';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import AlertModal from '../../../components/AlertModal';
+import { sendLocalTestNotification } from '../../../services/notificationService';
+import { playNotificationPing } from '../../../services/soundEffects';
 
 export const SmartNotification: React.FC = () => {
   const { user, serverUrl } = useAuth();
@@ -68,7 +70,11 @@ export const SmartNotification: React.FC = () => {
     // 2. Fetch server settings
     const fetchServerSettings = async () => {
       try {
-        const res = await fetch(`${serverUrl}/api/settings/fetch`, {
+        const emailParam = user?.email ? `?email=${encodeURIComponent(user.email)}` : '';
+        const headers: Record<string, string> = user?.email ? { 'X-User-Email': user.email } : {};
+
+        const res = await fetch(`${serverUrl}/api/settings/fetch${emailParam}`, {
+          headers,
           credentials: 'include'
         });
         if (res.ok) {
@@ -84,7 +90,7 @@ export const SmartNotification: React.FC = () => {
     };
 
     fetchServerSettings();
-  }, [serverUrl, isPushEnabled, permission]);
+  }, [serverUrl, isPushEnabled, permission, user?.email]);
 
   const updateSetting = async (key: string, val: boolean) => {
     let newSched = notifySchedule;
@@ -113,9 +119,12 @@ export const SmartNotification: React.FC = () => {
         formData.append('email', user.email);
       }
 
+      const headers: Record<string, string> = user?.email ? { 'X-User-Email': user.email } : {};
+
       await fetch(`${serverUrl}/api/settings/update`, {
         method: 'POST',
         body: formData,
+        headers,
         credentials: 'include'
       });
     } catch (e) {
@@ -154,6 +163,31 @@ export const SmartNotification: React.FC = () => {
     } catch (err) {
       setIsSubscribing(false);
       showAlert('Error', 'Failed to enable push notifications. Please check your browser permissions.', 'error');
+    }
+  };
+
+  const handleTestNotification = async () => {
+    try {
+      playNotificationPing();
+      const sent = await sendLocalTestNotification(
+        'ByaHero Test Notification',
+        'Web push and audio alerts are working properly on your browser!'
+      );
+      if (sent) {
+        showAlert(
+          'Test Notification Dispatched',
+          'A desktop notification was sent to your browser. If you did not see a popup banner, please check your operating system / browser notification settings.',
+          'success'
+        );
+      } else {
+        showAlert(
+          'Permission Required',
+          'Please click "Enable" to grant browser notification permissions before testing.',
+          'info'
+        );
+      }
+    } catch (e) {
+      showAlert('Error', 'Unable to trigger test notification.', 'error');
     }
   };
 
@@ -220,6 +254,21 @@ export const SmartNotification: React.FC = () => {
                   }`}
                 >
                   {pushEnabled ? 'Active ✓' : (isSubscribing ? 'Registering...' : 'Enable')}
+                </button>
+              </div>
+
+              <div className="pt-3.5 mt-2 border-t border-slate-100 flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-bold text-slate-700">Test Notification</p>
+                  <p className="text-[11px] text-slate-400 font-medium">Verify system banner and audio ping</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleTestNotification}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-50 hover:bg-blue-100 text-[#1e3a8a] border border-blue-200 transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <MaterialIcons name="notifications_active" size={16} color="#1e3a8a" />
+                  <span>Send Test</span>
                 </button>
               </div>
             </div>
