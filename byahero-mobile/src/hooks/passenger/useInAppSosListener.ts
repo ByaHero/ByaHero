@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import * as Notifications from 'expo-notifications';
 import { getServerUrl } from '../../services/authService';
-import { playSosAlarm } from '../../services/soundEffects';
+import { playSosAlarm, stopSosAlarm } from '../../services/soundEffects';
 import { IncomingSosAlert } from '../../components/InAppSosBanner';
 
 export function useInAppSosListener() {
@@ -101,6 +101,7 @@ export function useInAppSosListener() {
   }, [checkIncomingSos]);
 
   const dismissSosAlert = useCallback(() => {
+    stopSosAlarm();
     setActiveSosAlert(null);
   }, []);
 

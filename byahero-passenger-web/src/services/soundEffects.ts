@@ -1,8 +1,7 @@
-// Synthetic Web Audio API & HTML5 Audio Fallback Engine for ByaHero
-// Generates loud, clean emergency alert sounds without external media assets
+// Audio Engine for ByaHero
+import sosAudioFile from '../assets/soundeffects/SOS_SOUND.mp3';
 
 let audioCtx: AudioContext | null = null;
-let sirenDataUriCache: string | null = null;
 
 function getAudioContext(): AudioContext | null {
   try {
@@ -44,140 +43,41 @@ if (typeof window !== 'undefined') {
   window.addEventListener('click', unlockAudio, { passive: true });
 }
 
+let sosAudioInstance: HTMLAudioElement | null = null;
+
 /**
- * Generates an in-memory 1.2-second dual-tone Base64 WAV siren audio string
+ * Play emergency SOS alarm sound and loop it
  */
-function getSirenWavDataUri(): string {
-  if (sirenDataUriCache) return sirenDataUriCache;
-
+export function playSosAlarm(): void {
   try {
-    const sampleRate = 22050;
-    const duration = 1.2;
-    const numSamples = Math.floor(sampleRate * duration);
-    const buffer = new Uint8Array(44 + numSamples);
-
-    // RIFF header
-    buffer.set([0x52, 0x49, 0x46, 0x46], 0); // "RIFF"
-    const fileSize = 36 + numSamples;
-    buffer[4] = fileSize & 0xff;
-    buffer[5] = (fileSize >> 8) & 0xff;
-    buffer[6] = (fileSize >> 16) & 0xff;
-    buffer[7] = (fileSize >> 24) & 0xff;
-    buffer.set([0x57, 0x41, 0x56, 0x45], 8); // "WAVE"
-
-    // fmt subchunk
-    buffer.set([0x66, 0x6d, 0x74, 0x20, 16, 0, 0, 0, 1, 0, 1, 0], 12);
-    buffer[24] = sampleRate & 0xff;
-    buffer[25] = (sampleRate >> 8) & 0xff;
-    buffer[26] = (sampleRate >> 16) & 0xff;
-    buffer[27] = (sampleRate >> 24) & 0xff;
-    buffer[28] = sampleRate & 0xff;
-    buffer[29] = (sampleRate >> 8) & 0xff;
-    buffer[30] = (sampleRate >> 16) & 0xff;
-    buffer[31] = (sampleRate >> 24) & 0xff;
-    buffer[32] = 1; // block align
-    buffer[33] = 0;
-    buffer[34] = 8; // bits per sample
-    buffer[35] = 0;
-
-    // data subchunk
-    buffer.set([0x64, 0x61, 0x74, 0x61], 36); // "data"
-    buffer[40] = numSamples & 0xff;
-    buffer[41] = (numSamples >> 8) & 0xff;
-    buffer[42] = (numSamples >> 16) & 0xff;
-    buffer[43] = (numSamples >> 24) & 0xff;
-
-    // Generate dual-tone alternating siren
-    for (let i = 0; i < numSamples; i++) {
-      const t = i / sampleRate;
-      const freq = 650 + 550 * Math.abs(Math.sin(2 * Math.PI * 3.5 * t));
-      const sample = Math.sin(2 * Math.PI * freq * t);
-      const val = Math.floor(128 + 110 * sample);
-      buffer[44 + i] = Math.max(0, Math.min(255, val));
+    if (sosAudioInstance) {
+      sosAudioInstance.pause();
+      sosAudioInstance.currentTime = 0;
     }
-
-    let binary = '';
-    const len = buffer.byteLength;
-    for (let i = 0; i < len; i++) {
-      binary += String.fromCharCode(buffer[i]);
-    }
-    sirenDataUriCache = 'data:audio/wav;base64,' + btoa(binary);
-    return sirenDataUriCache;
+    const audio = new Audio(sosAudioFile);
+    audio.volume = 1.0;
+    audio.loop = true;
+    sosAudioInstance = audio;
+    audio.play().catch(e => {
+      console.warn('[SoundEffects] SOS Alarm play error:', e);
+    });
   } catch (e) {
-    return '';
+    console.warn('[SoundEffects] SOS Alarm initialization error:', e);
   }
 }
 
 /**
- * Play loud emergency SOS alarm siren sound
+ * Stop emergency SOS alarm sound
  */
-export function playSosAlarm(): void {
-  // 1. Try HTML5 Audio fallback element first for universal compatibility
+export function stopSosAlarm(): void {
   try {
-    const dataUri = getSirenWavDataUri();
-    if (dataUri) {
-      const audio = new Audio(dataUri);
-      audio.volume = 1.0;
-      audio.play().catch(() => {});
+    if (sosAudioInstance) {
+      sosAudioInstance.pause();
+      sosAudioInstance.currentTime = 0;
+      sosAudioInstance = null;
     }
-  } catch (e) {}
-
-  // 2. Play high-gain Web Audio API oscillator siren
-  try {
-    const ctx = getAudioContext();
-    if (!ctx) return;
-
-    if (ctx.state === 'suspended') {
-      ctx.resume().catch(() => {});
-    }
-
-    const now = ctx.currentTime;
-
-    // High volume master gain node
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.85, now);
-    masterGain.connect(ctx.destination);
-
-    // Siren pulse 1 (880 Hz -> 587 Hz)
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(950, now);
-    osc1.frequency.exponentialRampToValueAtTime(550, now + 0.3);
-    gain1.gain.setValueAtTime(0.8, now);
-    gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
-    osc1.connect(gain1);
-    gain1.connect(masterGain);
-    osc1.start(now);
-    osc1.stop(now + 0.3);
-
-    // Siren pulse 2 (1100 Hz -> 650 Hz)
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = 'sawtooth';
-    osc2.frequency.setValueAtTime(1100, now + 0.35);
-    osc2.frequency.exponentialRampToValueAtTime(600, now + 0.65);
-    gain2.gain.setValueAtTime(0.8, now + 0.35);
-    gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.65);
-    osc2.connect(gain2);
-    gain2.connect(masterGain);
-    osc2.start(now + 0.35);
-    osc2.stop(now + 0.65);
-
-    // Siren pulse 3 (Urgent 1250 Hz finish)
-    const osc3 = ctx.createOscillator();
-    const gain3 = ctx.createGain();
-    osc3.type = 'sawtooth';
-    osc3.frequency.setValueAtTime(1250, now + 0.7);
-    osc3.frequency.exponentialRampToValueAtTime(500, now + 1.1);
-    gain3.gain.setValueAtTime(0.85, now + 0.7);
-    gain3.gain.exponentialRampToValueAtTime(0.001, now + 1.1);
-    osc3.connect(gain3);
-    gain3.connect(masterGain);
-    osc3.start(now + 0.7);
-    osc3.stop(now + 1.1);
   } catch (e) {
-    console.warn('[SoundEffects] SOS Alarm play error:', e);
+    console.warn('[SoundEffects] SOS Alarm stop error:', e);
   }
 }
 

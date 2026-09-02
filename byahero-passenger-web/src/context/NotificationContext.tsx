@@ -7,7 +7,7 @@ import {
   registerPushTokenToServer,
   showBrowserNotification,
 } from '../services/notificationService';
-import { playSosAlarm, playNotificationPing } from '../services/soundEffects';
+import { playSosAlarm, playNotificationPing, stopSosAlarm } from '../services/soundEffects';
 import { IncomingSosData } from '../components/IncomingSosModal';
 
 export interface ToastNotification {
@@ -295,6 +295,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, []);
 
   const dismissSosModal = useCallback(() => {
+    stopSosAlarm();
     setLatestSosAlert(null);
   }, []);
 

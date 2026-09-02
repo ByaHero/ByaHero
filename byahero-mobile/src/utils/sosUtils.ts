@@ -1,7 +1,7 @@
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendFcmPushes } from '../services/notificationService';
-import { playSosAlarm } from '../services/soundEffects';
+import { playSosAlarm, stopSosAlarm } from '../services/soundEffects';
 
 interface TriggerSOSParams {
   baseUrl: string;
@@ -59,13 +59,13 @@ export const executeSOS = async ({ baseUrl, locationText = 'Mobile Device', lat 
           console.warn('[SOS-Notification] Push dispatch warning:', pushErr);
         });
       }
-      displayAlert('SOS Broadcasted', 'Your SOS alert and live location have been broadcasted to your circle.', 'success');
+      displayAlert('SOS Broadcasted', 'Your SOS alert and live location have been broadcasted to your circle.', 'success', () => stopSosAlarm());
     } else {
-      displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error');
+      displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error', () => stopSosAlarm());
     }
   } catch (err) {
     console.error('SOS Alert send error:', err);
-    displayAlert('SOS Failed', 'Network error. Failed to broadcast SOS.', 'error');
+    displayAlert('SOS Failed', 'Network error. Failed to broadcast SOS.', 'error', () => stopSosAlarm());
   }
 };
 
