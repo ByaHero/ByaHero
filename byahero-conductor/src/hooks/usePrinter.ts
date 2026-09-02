@@ -1,6 +1,17 @@
 import { useState, useEffect } from 'react';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
-import { BLEPrinter, COMMANDS } from 'react-native-thermal-receipt-printer-image-qr';
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let BLEPrinter: any = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let COMMANDS: any = {};
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const printerLib = require('react-native-thermal-receipt-printer-image-qr');
+  BLEPrinter = printerLib.BLEPrinter;
+  COMMANDS = printerLib.COMMANDS;
+} catch (e) {
+  // Library not available, printer features will be disabled
+}
 
 export interface IPrinterDevice {
   name: string;

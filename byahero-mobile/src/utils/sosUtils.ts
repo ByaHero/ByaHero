@@ -1,6 +1,7 @@
 import { Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { sendFcmPushes } from '../services/notificationService';
+import { playSosAlarm } from '../services/soundEffects';
 
 interface TriggerSOSParams {
   baseUrl: string;
@@ -19,6 +20,9 @@ interface TriggerSOSParams {
 }
 
 export const executeSOS = async ({ baseUrl, locationText = 'Mobile Device', lat = null, lng = null, showAlertFn }: TriggerSOSParams) => {
+  // Play SOS panic alarm sound immediately when user uses SOS
+  playSosAlarm();
+
   const displayAlert = (
     title: string,
     message: string,

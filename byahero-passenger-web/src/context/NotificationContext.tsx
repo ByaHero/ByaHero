@@ -136,10 +136,20 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             const sosKey = newestSos.id || `${newestSos.sender_name}_${newestSos.created_at}`;
 
             if (!seenSosIdsRef.current.has(sosKey)) {
+              let shouldAlert = true;
+
+              if (isInitialFetchRef.current) {
+                // On initial load, only alert if the active SOS was created in the last 2 minutes
+                const sosTime = newestSos.created_at ? new Date(newestSos.created_at.replace(/-/g, "/")).getTime() : 0;
+                const isRecent = sosTime > 0 && (Date.now() - sosTime < 120000);
+                if (!isRecent) {
+                  shouldAlert = false;
+                }
+              }
+
               seenSosIdsRef.current.add(sosKey);
 
-              // Don't trigger alarm sounds during cold initial page mount
-              if (!isInitialFetchRef.current) {
+              if (shouldAlert) {
                 const senderName = newestSos.sender_name || newestSos.sender_email || 'Emergency Contact';
                 const locText = newestSos.location_text || 'Coordinates shared';
 
@@ -266,8 +276,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       registerPushTokenToServer(undefined, user.email);
       refreshNotifications();
 
-      // Poll periodically every 10 seconds for real-time SOS & Admin updates
-      const interval = setInterval(refreshNotifications, 10000);
+      // Poll periodically every 4 seconds for real-time SOS & Admin updates
+      const interval = setInterval(refreshNotifications, 4000);
       return () => clearInterval(interval);
     }
   }, [user?.email, refreshNotifications]);

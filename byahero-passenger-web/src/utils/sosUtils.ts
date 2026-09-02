@@ -1,4 +1,5 @@
 import { sendFcmPushes } from '../services/notificationService';
+import { playSosAlarm } from '../services/soundEffects';
 
 interface TriggerSOSParams {
   baseUrl: string;
@@ -17,6 +18,9 @@ interface TriggerSOSParams {
 }
 
 export const executeSOS = async ({ baseUrl, locationText = 'Web Client', lat = null, lng = null, showAlertFn }: TriggerSOSParams) => {
+  // Play SOS alarm sound immediately when user uses SOS
+  playSosAlarm();
+
   const displayAlert = (
     title: string,
     message: string,

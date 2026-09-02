@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use App\Models\SosAlert;
 use App\Models\Circle;
 use App\Models\CircleMember;
+use App\Models\User;
 use App\Models\UserFcmToken;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -40,8 +41,16 @@ class SosController extends Controller
             }
         }
 
+        // If circle is empty or not set, broadcast to all other registered users
         if (empty($recipients)) {
-            return response()->json(['success' => false, 'message' => 'No recipients provided.']);
+            $recipients = User::where('id', '!=', $userId)
+                ->pluck('id')
+                ->map(fn($id) => (int)$id)
+                ->toArray();
+        }
+
+        if (empty($recipients)) {
+            return response()->json(['success' => false, 'message' => 'No recipients available to send SOS alert.']);
         }
 
         $recipients = array_values(array_unique(array_map('intval', $recipients)));
