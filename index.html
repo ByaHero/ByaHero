@@ -1282,6 +1282,314 @@
             padding: .75rem 1.5rem;
             font-size: 1rem;
         }
+
+        /* ═══════════════════════════════════════════════════════════════
+       FEATURE WALKTHROUGHS / DEMO VIDEOS
+    ═══════════════════════════════════════════════════════════════ */
+        .walkthrough-section {
+            padding: 6rem 0;
+            background: linear-gradient(180deg, var(--surface) 0%, #f8fafc 40%, #eff6ff 100%);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .walkthrough-section::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: -120px;
+            width: 480px;
+            height: 480px;
+            background: radial-gradient(circle, rgba(59, 130, 246, .07) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        .walkthrough-section::after {
+            content: '';
+            position: absolute;
+            bottom: 5%;
+            right: -100px;
+            width: 420px;
+            height: 420px;
+            background: radial-gradient(circle, rgba(16, 185, 129, .06) 0%, transparent 70%);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        /* Filter Tabs */
+        .walkthrough-filter-nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 2.5rem;
+        }
+
+        .walkthrough-filter-btn {
+            background: rgba(255, 255, 255, 0.85);
+            border: 1px solid #e2e8f0;
+            color: var(--text-secondary);
+            font-size: .85rem;
+            font-weight: 600;
+            padding: 8px 18px;
+            border-radius: 999px;
+            transition: all .25s ease;
+            cursor: pointer;
+            backdrop-filter: blur(8px);
+        }
+
+        .walkthrough-filter-btn:hover,
+        .walkthrough-filter-btn.active {
+            background: var(--brand-600);
+            border-color: var(--brand-600);
+            color: #fff;
+            box-shadow: var(--shadow-brand);
+            transform: translateY(-1px);
+        }
+
+        /* Video Card */
+        .walkthrough-card {
+            background: var(--surface);
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-xl);
+            padding: 1.25rem;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            transition: all .35s cubic-bezier(.16, 1, .3, 1);
+            position: relative;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .walkthrough-card:hover {
+            transform: translateY(-6px);
+            box-shadow: var(--shadow-xl);
+            border-color: var(--brand-200);
+        }
+
+        /* Smartphone Mockup Frame inside Card */
+        .walkthrough-mockup {
+            position: relative;
+            border-radius: 20px;
+            background: #0f172a;
+            box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), 0 8px 24px rgba(15, 23, 42, 0.15);
+            overflow: hidden;
+            width: 100%;
+            aspect-ratio: 9 / 18.5;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .walkthrough-mockup-header {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 14px;
+            z-index: 10;
+            background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, transparent 100%);
+            font-size: .65rem;
+            color: rgba(255, 255, 255, 0.85);
+            font-weight: 600;
+            letter-spacing: 0.3px;
+        }
+
+        .walkthrough-notch {
+            width: 44px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 999px;
+            margin: 0 auto;
+        }
+
+        /* Video element */
+        .walkthrough-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            cursor: pointer;
+            background: #090d16;
+        }
+
+        /* Floating Video Controls */
+        .video-floating-ctrls {
+            position: absolute;
+            top: 34px;
+            right: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 12;
+        }
+
+        .video-ctrl-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            background: rgba(15, 23, 42, 0.65);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: #ffffff;
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all .2s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+        }
+
+        .video-ctrl-btn:hover {
+            background: var(--brand-600);
+            border-color: var(--brand-500);
+            transform: scale(1.1);
+            color: #fff;
+        }
+
+        .video-ctrl-btn.active-audio {
+            background: var(--accent);
+            border-color: #a7f3d0;
+            color: #064e3b;
+        }
+
+        /* Sound status tooltip/pill */
+        .sound-status-pill {
+            position: absolute;
+            bottom: 12px;
+            right: 10px;
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 999px;
+            padding: 3px 10px;
+            font-size: .65rem;
+            font-weight: 600;
+            color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            z-index: 12;
+            pointer-events: none;
+            transition: opacity .3s;
+        }
+
+        /* Video Play Overlay Indicator */
+        .video-play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: rgba(37, 99, 235, 0.85);
+            backdrop-filter: blur(8px);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            opacity: 0;
+            pointer-events: none;
+            transition: all .25s ease;
+            z-index: 15;
+            box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+        }
+
+        .walkthrough-mockup.paused .video-play-overlay {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Video Progress Bar */
+        .walkthrough-progress {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.15);
+            z-index: 14;
+        }
+
+        .walkthrough-progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--brand-500), var(--accent));
+            transition: width .1s linear;
+        }
+
+        /* Card Content / Caption Area */
+        .walkthrough-card-body {
+            padding-top: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            flex-grow: 1;
+        }
+
+        .walkthrough-badge-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: .6rem;
+        }
+
+        .walkthrough-tag {
+            font-size: .7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            padding: 3px 10px;
+            border-radius: 999px;
+        }
+
+        .walkthrough-tag.blue { background: var(--brand-50); color: var(--brand-600); }
+        .walkthrough-tag.green { background: var(--accent-light); color: var(--accent); }
+        .walkthrough-tag.amber { background: #fef3c7; color: #d97706; }
+        .walkthrough-tag.purple { background: #f3e8ff; color: #9333ea; }
+        .walkthrough-tag.rose { background: #ffe4e6; color: #e11d48; }
+        .walkthrough-tag.sky { background: #e0f2fe; color: #0284c7; }
+
+        .walkthrough-num {
+            font-size: .75rem;
+            font-weight: 800;
+            color: var(--text-muted);
+        }
+
+        .walkthrough-title {
+            font-size: 1.12rem;
+            font-weight: 800;
+            color: var(--text-primary);
+            margin-bottom: .45rem;
+            line-height: 1.3;
+        }
+
+        .walkthrough-desc {
+            font-size: .88rem;
+            color: var(--text-secondary);
+            line-height: 1.55;
+            margin-bottom: 0;
+            flex-grow: 1;
+        }
+
+        /* Captions / Accessibility styling */
+        .walkthrough-video::cue {
+            background-color: rgba(15, 23, 42, 0.85);
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            border-radius: 4px;
+            padding: 4px 8px;
+            line-height: 1.4;
+        }
     </style>
 </head>
 
@@ -1327,6 +1635,7 @@
                 <div class="offcanvas-body">
                     <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
                         <li class="nav-item"><a class="nav-link" href="#features">Features</a></li>
+                        <li class="nav-item"><a class="nav-link" href="#walkthroughs">Walkthroughs</a></li>
                         <li class="nav-item"><a class="nav-link" href="#how-it-works">How It Works</a></li>
                         <li class="nav-item"><a class="nav-link" href="#roles">For Everyone</a></li>
                         <li class="nav-item ms-lg-2">
@@ -1534,6 +1843,400 @@
         </div>
     </section>
 
+    <!-- ════════════════ FEATURE WALKTHROUGHS ════════════════ -->
+    <section class="walkthrough-section" id="walkthroughs">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-label">See ByaHero in Action</span>
+                <h2 class="section-heading">Interactive Feature Walkthroughs</h2>
+                <p class="section-sub">
+                    Explore high-fidelity app simulations demonstrating key features in action. See how ByaHero makes every step of your commute effortless.
+                </p>
+            </div>
+
+            <!-- Category Filter Tabs -->
+            <div class="walkthrough-filter-nav reveal">
+                <button class="walkthrough-filter-btn active" data-filter="all" type="button">
+                    <i class="bi bi-grid-fill me-1"></i> All Walkthroughs (7)
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="tracking" type="button">
+                    <i class="bi bi-geo-alt-fill me-1"></i> Live Tracking
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="safety" type="button">
+                    <i class="bi bi-shield-fill-check me-1"></i> Circles & SOS Safety
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="transit" type="button">
+                    <i class="bi bi-signpost-split-fill me-1"></i> Stops & Fares
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="items" type="button">
+                    <i class="bi bi-box-seam me-1"></i> Lost & Found
+                </button>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="row g-4 justify-content-center" id="walkthroughCardsContainer">
+                
+                <!-- Video 1: BUS LOC & FILTER ROUTES -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="tracking">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/BUS LOC & FILTER ROUTES.mp4" 
+                                   poster="assets/videos/posters/bus_loc.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Real-Time Bus Location and Route Filtering">
+                                <track src="assets/videos/captions/bus_loc.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag blue">Live GPS & ETA</span>
+                                <span class="walkthrough-num">01 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Real-Time Bus Location & Filter Routes</h3>
+                            <p class="walkthrough-desc">Viewing buses approaching in real time with ETA, using the route filter.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 2: ADD CIRCLE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/ADD CIRCLE.mp4" 
+                                   poster="assets/videos/posters/add_circle.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Circle Group Location Sharing">
+                                <track src="assets/videos/captions/add_circle.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Social Circles</span>
+                                <span class="walkthrough-num">02 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Circle Group Location Sharing</h3>
+                            <p class="walkthrough-desc">Joining a Circle with friends/family/colleagues to share real-time location.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 3: PICK UP POINTS -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/PICK UP POINTS.mp4" 
+                                   poster="assets/videos/posters/pickup_points.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Designated Bus Pick-up and Drop-off Points">
+                                <track src="assets/videos/captions/pickup_points.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag sky">Stops & Landmarks</span>
+                                <span class="walkthrough-num">03 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Designated Pick-Up & Drop-Off Points</h3>
+                            <p class="walkthrough-desc">Viewing designated bus pick-up and drop-off points along active routes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 4: FARES AND SCHED -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/FARES AND SCHED.mp4" 
+                                   poster="assets/videos/posters/fares_sched.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Fares and Shift Schedules Calculator">
+                                <track src="assets/videos/captions/fares_sched.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag amber">Fares & Schedules</span>
+                                <span class="walkthrough-num">04 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Fares & Shift Schedules Calculator</h3>
+                            <p class="walkthrough-desc">Viewing shift start/end times and calculated fares per destination, including student/PWD/senior discounts.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 5: SOS SEND SOS RECEIVE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/SOS SEND SOS RECEIVE.mp4" 
+                                   poster="assets/videos/posters/sos.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: SOS Emergency Alert and Real-Time Circle Member Reception">
+                                <track src="assets/videos/captions/sos.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag purple">Emergency Safety</span>
+                                <span class="walkthrough-num">05 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">SOS Emergency Alert & Live Reception</h3>
+                            <p class="walkthrough-desc">Sending an SOS alert and a Circle member receiving it in real time with location tracking.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 6: LOST ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/LOST ITEM.mp4" 
+                                   poster="assets/videos/posters/lost_item.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Reporting a Lost Item">
+                                <track src="assets/videos/captions/lost_item.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag rose">Lost & Found</span>
+                                <span class="walkthrough-num">06 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Lost Items</h3>
+                            <p class="walkthrough-desc">Reporting a lost item left behind on a bus to coordinate swift retrieval.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 7: FOUND ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button" aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button" aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" 
+                                   src="assets/videos/FOUND ITEM.mp4" 
+                                   poster="assets/videos/posters/found_item.jpg" 
+                                   muted autoplay playsinline loop preload="metadata"
+                                   aria-label="Simulation video: Reporting a Found Item">
+                                <track src="assets/videos/captions/found_item.vtt" kind="captions" srclang="en" label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Community Registry</span>
+                                <span class="walkthrough-num">07 / 07</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Found Items</h3>
+                            <p class="walkthrough-desc">Reporting a found item to log belongings and reunite them with rightful owners.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
     <!-- ════════════════ HOW IT WORKS ════════════════ -->
     <section class="how-section" id="how-it-works">
         <div class="container">
@@ -1659,6 +2362,7 @@
                     <h6 class="footer-heading">Product</h6>
                     <ul class="footer-links">
                         <li><a href="#features">Features</a></li>
+                        <li><a href="#walkthroughs">Walkthroughs</a></li>
                         <li><a href="#how-it-works">How It Works</a></li>
                         <li><a href="#roles">For Everyone</a></li>
                         <li><a href="#download">Download</a></li>
@@ -1772,6 +2476,138 @@
                 // Close mobile offcanvas if open
                 const offcanvas = bootstrap.Offcanvas.getInstance(document.getElementById('navMenu'));
                 if (offcanvas) offcanvas.hide();
+            });
+        });
+
+        // ─── Feature Walkthrough Videos Observer & Controls ───
+        const videoElements = document.querySelectorAll('.walkthrough-video');
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                const mockup = video.closest('.walkthrough-mockup');
+                if (entry.isIntersecting) {
+                    // Play video if not paused manually by user
+                    if (!mockup.classList.contains('manual-pause')) {
+                        const playPromise = video.play();
+                        if (playPromise !== undefined) {
+                            playPromise.then(() => {
+                                mockup.classList.remove('paused');
+                            }).catch(err => {
+                                console.log('Autoplay waiting for interaction:', err);
+                            });
+                        }
+                    }
+                } else {
+                    // Pause video when scrolled out of view to save resources
+                    video.pause();
+                }
+            });
+        }, { threshold: 0.25 });
+
+        videoElements.forEach(v => {
+            videoObserver.observe(v);
+
+            // Track playback progress
+            const mockup = v.closest('.walkthrough-mockup');
+            const progressBar = mockup.querySelector('.walkthrough-progress-bar');
+            v.addEventListener('timeupdate', () => {
+                if (v.duration && progressBar) {
+                    const pct = (v.currentTime / v.duration) * 100;
+                    progressBar.style.width = pct + '%';
+                }
+            });
+
+            // Tap/Click video to toggle play/pause
+            v.addEventListener('click', () => {
+                if (v.paused) {
+                    v.play();
+                    mockup.classList.remove('paused', 'manual-pause');
+                } else {
+                    v.pause();
+                    mockup.classList.add('paused', 'manual-pause');
+                }
+            });
+
+            // Replay cleanly on loop
+            v.addEventListener('ended', () => {
+                v.currentTime = 0;
+                v.play();
+            });
+        });
+
+        // Sound toggle buttons
+        document.querySelectorAll('.video-sound-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mockup = btn.closest('.walkthrough-mockup');
+                const video = mockup.querySelector('.walkthrough-video');
+                const icon = btn.querySelector('i');
+                const statusPill = mockup.querySelector('.sound-status-pill');
+
+                if (video.muted) {
+                    // Mute all other videos first so only one video plays audio
+                    document.querySelectorAll('.walkthrough-video').forEach(otherVid => {
+                        if (otherVid !== video) {
+                            otherVid.muted = true;
+                            const otherMockup = otherVid.closest('.walkthrough-mockup');
+                            const otherBtn = otherMockup?.querySelector('.video-sound-toggle');
+                            if (otherBtn) {
+                                otherBtn.classList.remove('active-audio');
+                                const otherIcon = otherBtn.querySelector('i');
+                                if (otherIcon) otherIcon.className = 'bi bi-volume-mute-fill';
+                                otherBtn.setAttribute('aria-label', 'Unmute audio');
+                            }
+                            const otherPill = otherMockup?.querySelector('.sound-status-pill');
+                            if (otherPill) otherPill.innerHTML = '<i class="bi bi-volume-mute"></i> Muted';
+                        }
+                    });
+
+                    video.muted = false;
+                    btn.classList.add('active-audio');
+                    icon.className = 'bi bi-volume-up-fill';
+                    btn.setAttribute('aria-label', 'Mute audio');
+                    if (statusPill) statusPill.innerHTML = '<i class="bi bi-volume-up-fill"></i> Sound On';
+                } else {
+                    video.muted = true;
+                    btn.classList.remove('active-audio');
+                    icon.className = 'bi bi-volume-mute-fill';
+                    btn.setAttribute('aria-label', 'Unmute audio');
+                    if (statusPill) statusPill.innerHTML = '<i class="bi bi-volume-mute"></i> Muted';
+                }
+            });
+        });
+
+        // Fullscreen / expand button
+        document.querySelectorAll('.video-fullscreen-toggle').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const mockup = btn.closest('.walkthrough-mockup');
+                const video = mockup.querySelector('.walkthrough-video');
+                if (video.requestFullscreen) {
+                    video.requestFullscreen();
+                } else if (video.webkitRequestFullscreen) {
+                    video.webkitRequestFullscreen();
+                } else if (video.msRequestFullscreen) {
+                    video.msRequestFullscreen();
+                }
+            });
+        });
+
+        // Category Filter buttons
+        document.querySelectorAll('.walkthrough-filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.walkthrough-filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const filter = btn.getAttribute('data-filter');
+
+                document.querySelectorAll('.walkthrough-card-col').forEach(col => {
+                    if (filter === 'all' || col.getAttribute('data-category') === filter) {
+                        col.style.display = '';
+                        setTimeout(() => col.classList.add('visible'), 50);
+                    } else {
+                        col.style.display = 'none';
+                    }
+                });
             });
         });
 
