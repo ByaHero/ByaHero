@@ -151,7 +151,10 @@ class FirebaseNotificationService
             $stringifiedData[(string)$k] = is_string($v) ? $v : (is_scalar($v) ? (string)$v : json_encode($v));
         }
 
-        foreach ($uniqueTokens as $token) {
+        // Only dispatch real FCM tokens to Google FCM v1 (skipping web_ polling tokens so they are not rejected or pruned)
+        $nativeTokens = array_values(array_filter($uniqueTokens, fn($t) => !str_starts_with($t, 'web_')));
+
+        foreach ($nativeTokens as $token) {
             try {
                 $payload = [
                     'message' => [
@@ -223,11 +226,12 @@ class FirebaseNotificationService
             }
         }
 
-        // Clean up stale or unregistered tokens
-        if (!empty($invalidTokens)) {
+        // Clean up stale or unregistered tokens (strictly excluding web tokens)
+        $prunableTokens = array_values(array_filter($invalidTokens, fn($t) => !str_starts_with($t, 'web_')));
+        if (!empty($prunableTokens)) {
             try {
-                UserFcmToken::whereIn('fcm_token', $invalidTokens)->delete();
-                Log::info('FirebaseNotificationService: Removed ' . count($invalidTokens) . ' stale FCM token(s).');
+                UserFcmToken::whereIn('fcm_token', $prunableTokens)->delete();
+                Log::info('FirebaseNotificationService: Removed ' . count($prunableTokens) . ' stale FCM token(s).');
             } catch (Exception $e) {
                 Log::warning('FirebaseNotificationService: Failed deleting stale tokens: ' . $e->getMessage());
             }

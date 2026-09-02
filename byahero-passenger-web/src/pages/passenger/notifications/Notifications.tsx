@@ -9,7 +9,7 @@ import { Loader2, RefreshCw } from 'lucide-react';
 
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
-  const { serverUrl } = useAuth();
+  const { user, serverUrl } = useAuth();
   const { clearUnreadCount } = useNotifications();
 
   const [loading, setLoading] = useState(true);
@@ -26,7 +26,15 @@ export const Notifications: React.FC = () => {
     try {
       let data: any = null;
       try {
-        const res = await fetch(`${serverUrl}/api/notifications`, {
+        const emailParam = user?.email
+          ? `email=${encodeURIComponent(user.email)}&mark_read=1`
+          : 'mark_read=1';
+        const authHeaders: Record<string, string> = user?.email
+          ? { 'X-User-Email': user.email }
+          : {};
+
+        const res = await fetch(`${serverUrl}/api/notifications?${emailParam}`, {
+          headers: authHeaders,
           credentials: 'include',
           cache: 'no-store',
         });
@@ -65,7 +73,7 @@ export const Notifications: React.FC = () => {
 
   useEffect(() => {
     fetchNotifications();
-  }, [serverUrl]);
+  }, [serverUrl, user?.email]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';

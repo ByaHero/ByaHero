@@ -100,9 +100,15 @@ export async function registerPushTokenToServer(token?: string, email?: string):
       formData.append('email', currentEmail);
     }
 
+    const headers: Record<string, string> = {};
+    if (currentEmail) {
+      headers['X-User-Email'] = currentEmail;
+    }
+
     const res = await fetch(`${baseUrl}/api/fcm/register`, {
       method: 'POST',
       body: formData,
+      headers,
       credentials: 'include'
     });
 
@@ -119,6 +125,35 @@ export async function registerPushTokenToServer(token?: string, email?: string):
     console.warn('[PushNotification] Failed to register push token with server:', err);
     return false;
   }
+}
+
+/**
+ * Fire a test desktop notification with sound
+ */
+export async function sendLocalTestNotification(
+  title: string = 'ByaHero Notification Test',
+  body: string = 'Push notifications and alert sounds are functioning properly on this browser!'
+): Promise<boolean> {
+  if (!('Notification' in window)) {
+    return false;
+  }
+
+  let perm = Notification.permission;
+  if (perm !== 'granted') {
+    perm = await requestNotificationPermission();
+  }
+
+  if (perm === 'granted') {
+    await showBrowserNotification(title, {
+      body,
+      tag: 'byahero-test-' + Date.now(),
+      requireInteraction: false,
+      data: { type: 'test' }
+    });
+    return true;
+  }
+
+  return false;
 }
 
 /**

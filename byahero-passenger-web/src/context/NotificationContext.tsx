@@ -101,8 +101,14 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     if (!serverUrl || !user?.email) return;
 
     try {
+      const emailParam = `email=${encodeURIComponent(user.email)}`;
+      const authHeaders: Record<string, string> = {
+        'X-User-Email': user.email,
+      };
+
       // 1. Fetch unread status and count
-      const countRes = await fetch(`${serverUrl}/api/notifications/unread-count`, {
+      const countRes = await fetch(`${serverUrl}/api/notifications/unread-count?${emailParam}`, {
+        headers: authHeaders,
         credentials: 'include',
       }).catch(() => null);
 
@@ -114,8 +120,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         }
       }
 
-      // 2. Fetch full notification & SOS data
-      const notifRes = await fetch(`${serverUrl}/api/notifications`, {
+      // 2. Fetch full notification & SOS data (without mark_read so background polling preserves unread state)
+      const notifRes = await fetch(`${serverUrl}/api/notifications?${emailParam}`, {
+        headers: authHeaders,
         credentials: 'include',
       }).catch(() => null);
 

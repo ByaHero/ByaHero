@@ -25,7 +25,7 @@ class NotificationController extends Controller
 
     public function registerFcmToken(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         $email = trim($request->input('email', ''));
 
         // Fallback for hydrating session if not logged in but email is provided
@@ -171,25 +171,21 @@ class NotificationController extends Controller
 
     public function notificationsIndex(Request $request)
     {
-        $userId = Session::get('user_id');
+        $userId = $this->getAuthUserId($request);
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
 
         try {
-            // 1. Mark unread notifications as read
-            Notification::where('user_id', $userId)->whereNull('read_at')->update(['read_at' => now()]);
+            $markRead = $request->boolean('mark_read', false);
 
-            // 2. Mark active SOS alerts as seen
-            SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->update(['status' => 'seen']);
-
-            // 3. Fetch user settings
+            // 1. Fetch user settings (default enabled 1)
             $settings = \App\Models\UserSetting::where('user_id', $userId)->first();
-            $notifySchedule = (int)($settings->notify_bus_schedule ?? 0);
-            $notifyArrival = (int)($settings->notify_bus_arrival ?? 0);
-            $notifySeat = (int)($settings->notify_seat_availability ?? 0);
+            $notifySchedule = (int)($settings->notify_bus_schedule ?? 1);
+            $notifyArrival = (int)($settings->notify_bus_arrival ?? 1);
+            $notifySeat = (int)($settings->notify_seat_availability ?? 1);
 
-            // 4. Fetch SOS alerts
+            // 2. Fetch SOS alerts BEFORE modifying status so active alerts are returned
             $sosAlerts = DB::table('sos_alerts as sa')
                 ->join('users as u', 'u.id', '=', 'sa.sender_user_id')
                 ->select('sa.id', 'sa.location_text', 'sa.status', 'sa.created_at', 'u.name as sender_name', 'u.email as sender_email')
@@ -198,11 +194,17 @@ class NotificationController extends Controller
                 ->limit(50)
                 ->get();
 
-            // 5. Fetch Notifications
+            // 3. Fetch Notifications BEFORE marking as read
             $notifications = Notification::where('user_id', $userId)
                 ->orderBy('id', 'desc')
                 ->limit(50)
                 ->get();
+
+            // 4. Only mark unread as read and active SOS as seen if explicitly requested
+            if ($markRead) {
+                Notification::where('user_id', $userId)->whereNull('read_at')->update(['read_at' => now()]);
+                SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->update(['status' => 'seen']);
+            }
 
             return response()->json([
                 'success' => true,
