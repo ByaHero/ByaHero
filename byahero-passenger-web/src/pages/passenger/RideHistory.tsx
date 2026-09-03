@@ -7,6 +7,7 @@ import { MaterialIcons } from '../../components/ui/MaterialIcons';
 import { Loader2 } from 'lucide-react';
 import TourOverlay from '../../components/TourOverlay';
 import { useTourSync } from '../../hooks/passenger/useTourSync';
+import { handleTourLayout } from '../../components/TourRegistry';
 
 export const RideHistory: React.FC = () => {
   const { activeStep, setActiveStep } = useTourSync('/ride-history');
@@ -161,7 +162,7 @@ export const RideHistory: React.FC = () => {
                 </button>
               </div>
             ) : (
-              <div>
+              <div ref={(el) => handleTourLayout('history-list', { current: el })}>
                 {(() => {
                   let currentGroup = '';
                   return history.map((ride, idx) => {

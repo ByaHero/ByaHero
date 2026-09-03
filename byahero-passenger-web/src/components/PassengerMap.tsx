@@ -197,7 +197,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
     }
 
     const userHtml = `
-      <div class="relative flex items-center justify-center w-full h-full cursor-pointer">
+      <div id="tour-user-marker" class="relative flex items-center justify-center w-full h-full cursor-pointer">
         ${isWaiting ? `
           <div class="absolute -top-7 whitespace-nowrap bg-emerald-500 text-white font-black text-[9px] uppercase px-2 py-0.5 rounded-full shadow-md border border-white">
             WAITING

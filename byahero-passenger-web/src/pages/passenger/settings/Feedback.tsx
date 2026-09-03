@@ -8,6 +8,7 @@ import AlertModal from '../../../components/AlertModal';
 import { Loader2 } from 'lucide-react';
 import TourOverlay from '../../../components/TourOverlay';
 import { useTourSync } from '../../../hooks/passenger/useTourSync';
+import { handleTourLayout } from '../../../components/TourRegistry';
 
 interface UserFeedbackData {
   id?: number;
@@ -192,7 +193,7 @@ export const Feedback: React.FC = () => {
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
         <div className="max-w-md mx-auto w-full pb-8">
           <div className="p-5 bg-slate-100/70 min-h-[560px] mt-4 rounded-t-[32px]">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div ref={(el) => handleTourLayout('feedback-card', { current: el })} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               {isLoading ? (
                 <div className="py-12 flex flex-col items-center justify-center">
                   <Loader2 className="w-8 h-8 animate-spin text-[#1e3a8a]" />

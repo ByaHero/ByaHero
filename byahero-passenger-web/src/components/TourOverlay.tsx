@@ -222,27 +222,31 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
       if (ref?.current) {
         const rect = ref.current.getBoundingClientRect();
         if (active && rect.width > 0 && rect.height > 0) {
-          let adjustedY = rect.top;
-          if (key.startsWith('menu-')) {
-            adjustedY -= 30;
-          }
-          setActiveLayout({ x: rect.left, y: adjustedY, width: rect.width, height: rect.height });
+          setActiveLayout({ x: rect.left, y: rect.top, width: rect.width, height: rect.height });
         }
       } else {
         const cached = layouts[key];
         if (cached) {
-          let adjustedY = cached.y;
-          if (key.startsWith('menu-')) {
-            adjustedY -= 30;
-          }
-          setActiveLayout({ ...cached, y: adjustedY });
+          setActiveLayout({ ...cached });
         } else if (key === 'user-marker') {
-          setActiveLayout({
-            x: SCREEN_WIDTH / 2 - 40,
-            y: SCREEN_HEIGHT / 2 - 85,
-            width: 80,
-            height: 80,
-          });
+          const el = document.getElementById('tour-user-marker');
+          if (el && el.getBoundingClientRect().width > 0) {
+            const rect = el.getBoundingClientRect();
+            // Give it some padding so it looks like a nice highlight box
+            setActiveLayout({
+              x: rect.left - 24,
+              y: rect.top - 16,
+              width: rect.width + 48,
+              height: rect.height + 32,
+            });
+          } else {
+            setActiveLayout({
+              x: SCREEN_WIDTH / 2 - 40,
+              y: SCREEN_HEIGHT / 2 - 85 - 160,
+              width: 80,
+              height: 80,
+            });
+          }
         } else {
           setActiveLayout(null);
         }
@@ -252,11 +256,17 @@ export default function TourOverlay({ currentStep, onStepChange, onClose }: Tour
     measure();
     const timer1 = setTimeout(measure, 100);
     const timer2 = setTimeout(measure, 300);
+    const timer3 = setTimeout(measure, 500);
+    const timer4 = setTimeout(measure, 800);
+    const timer5 = setTimeout(measure, 1200);
 
     return () => {
       active = false;
       clearTimeout(timer1);
       clearTimeout(timer2);
+      clearTimeout(timer3);
+      clearTimeout(timer4);
+      clearTimeout(timer5);
     };
   }, [currentStep, step?.highlight, layouts, SCREEN_WIDTH, SCREEN_HEIGHT]);
 

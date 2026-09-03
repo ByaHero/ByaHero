@@ -239,8 +239,8 @@ export default function LiveTrackingScreen() {
   }, []);
 
   // Stable refs so media button listeners never hold stale closures
-  const incrementRef = useRef<() => void>(() => {});
-  const decrementRef = useRef<() => void>(() => {});
+  const incrementRef = useRef<(count?: number, isManualUi?: boolean) => void>(() => {});
+  const decrementRef = useRef<(isManualUi?: boolean) => void>(() => {});
   const adminStopRef = useRef<() => void>(() => {});
   useEffect(() => { incrementRef.current = incrementPassengers; });
   useEffect(() => { decrementRef.current = decrementPassengers; });
@@ -249,8 +249,8 @@ export default function LiveTrackingScreen() {
   // Wire media button events — registered once, never stale
   useEffect(() => {
     if (Platform.OS === 'web') return;
-    const nextListener = DeviceEventEmitter.addListener('media-session-next', () => incrementRef.current());
-    const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current());
+    const nextListener = DeviceEventEmitter.addListener('media-session-next', () => incrementRef.current(1, true));
+    const prevListener = DeviceEventEmitter.addListener('media-session-prev', () => decrementRef.current(true));
     const stopListener = DeviceEventEmitter.addListener('admin_stop', () => adminStopRef.current());
     return () => { nextListener.remove(); prevListener.remove(); stopListener.remove(); };
   }, []);
@@ -809,9 +809,8 @@ export default function LiveTrackingScreen() {
       setPendingPreDeparture(prev => prev - preDepartureDeducted);
       remainingToDeduct -= preDepartureDeducted;
     }
-    // Only increment new passengers (deducts seats) if not from pre-departure
     if (remainingToDeduct > 0) {
-      incrementPassengers(remainingToDeduct);
+      incrementPassengers(remainingToDeduct, true);
     }
 
     const ticketData = {
