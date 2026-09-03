@@ -1,0 +1,103 @@
+/* ═══════════════════════════════════════════════════════════════
+   NAVBAR & OFFCANVAS
+═══════════════════════════════════════════════════════════════ */
+.navbar-byahero {
+    background: rgba(255, 255, 255, .82);
+    border-bottom: 1px solid rgba(0, 0, 0, .05);
+    padding: .75rem 0;
+    transition: box-shadow .3s ease, background .3s ease;
+    z-index: 1000;
+}
+
+/* Move the blur effect to a pseudo-element so it doesn't trap the menu */
+.navbar-byahero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    backdrop-filter: blur(18px) saturate(180%);
+    -webkit-backdrop-filter: blur(18px) saturate(180%);
+    z-index: -1;
+    pointer-events: none;
+}
+
+.navbar-byahero.scrolled {
+    box-shadow: var(--shadow-md);
+    background: rgba(255, 255, 255, .95);
+}
+
+.navbar-brand-logo {
+    height: 36px;
+    width: auto;
+}
+
+.navbar-brand-text {
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: var(--brand-700);
+    margin-left: .5rem;
+}
+
+.nav-link {
+    font-weight: 600;
+    font-size: .9rem;
+    color: var(--text-secondary) !important;
+    padding: .5rem 1rem !important;
+    border-radius: var(--radius-sm);
+    transition: color .2s, background .2s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: var(--brand-700) !important;
+    background: var(--brand-50);
+}
+
+.btn-nav-cta {
+    background: var(--brand-600);
+    color: #fff !important;
+    font-weight: 700;
+    font-size: .85rem;
+    padding: .5rem 1.25rem;
+    border-radius: 999px;
+    border: none;
+    box-shadow: var(--shadow-brand);
+    transition: transform .2s, box-shadow .2s;
+}
+
+.btn-nav-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 36px rgba(37, 99, 235, .35);
+    background: var(--brand-700);
+    color: #fff !important;
+}
+
+/* Offcanvas Mobile Menu */
+.offcanvas {
+    border: none !important;
+    /* Remove the solid white box and add a frosted glass effect */
+    background-color: rgba(255, 255, 255, 0.75) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    box-shadow: none !important;
+}
+
+.offcanvas-header {
+    padding: 1.25rem 1.5rem;
+}
+
+.offcanvas-body .nav-link {
+    padding: .75rem 1rem !important;
+    font-size: 1rem;
+    border-radius: var(--radius-sm);
+}
+
+.offcanvas-body .btn-nav-cta {
+    display: block;
+    text-align: center;
+    margin-top: 1rem;
+    padding: .75rem 1.5rem;
+    font-size: 1rem;
+}

@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ByaHero</title>
+    <meta name="description"
+        content="ByaHero is a real-time bus tracking app that helps passengers find buses, check seat availability, and plan smarter commutes. Download now!" />
+    <meta name="keywords" content="bus tracking, real-time, public transport, commute, ByaHero, Philippines" />
+    <meta name="author" content="ByaHero Team" />
+    <meta name="theme-color" content="#1e3a8a" />
+    <link rel="icon" href="assets/images/byaheroLogoBlue.svg" type="image/svg+xml">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="ByaHero — Real-Time Bus Tracking" />
+    <meta property="og:description"
+        content="Track buses in real-time. Know seat availability. Plan smarter commutes." />
+    <meta property="og:type" content="website" />
+
+    <!-- Bootstrap 5 -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet" />
+
+    <!-- Modular Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css" />
+</head>
+
+<body>
+    <!-- ════════════════ NAVBAR ════════════════ -->
+<nav class="navbar navbar-expand-lg navbar-byahero fixed-top" id="mainNav">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+            <!-- ByaHero Logo SVG -->
+            <img src="assets/images/byaheroLogoBlue.svg" alt="ByaHero Logo" class="navbar-brand-logo">
+            <span class="navbar-brand-text">ByaHero</span>
+        </a>
+
+        <button class="navbar-toggler border-0 shadow-none" type="button" data-bs-toggle="offcanvas"
+            data-bs-target="#navMenu" aria-controls="navMenu" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="offcanvas offcanvas-end" tabindex="-1" id="navMenu">
+            <div class="offcanvas-header">
+                <h5 class="offcanvas-title fw-bold">Menu</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            </div>
+            <div class="offcanvas-body">
+                <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-1">
+                    <li class="nav-item"><a class="nav-link" href="#walkthroughs">Walkthroughs</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#how-it-works">Survey</a></li>
+                    <li class="nav-item"><a class="nav-link" href="#roles">For Everyone</a></li>
+                    <li class="nav-item ms-lg-2">
+                        <a class="btn btn-nav-cta"
+                            href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk" download>
+                            <i class="bi bi-download"></i> Get the App
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+    <!-- ════════════════ HERO ════════════════ -->
+<section class="hero" id="hero">
+    <div class="container">
+        <div class="row align-items-center g-5">
+            <!-- Text column -->
+            <div class="col-lg-6">
+                <div class="hero-badge">
+                    <span class="dot"></span>
+                    Live Tracking Active
+                </div>
+                <h1 class="hero-title">
+                    Your Bus,<br>
+                    <span class="text-gradient">Always on Time.</span>
+                </h1>
+                <p class="hero-desc">
+                    Track buses in real-time, check available seats, and plan your commute smarter. ByaHero makes
+                    public
+                    transport effortless.
+                </p>
+                <div class="hero-actions">
+                    <a href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk" download
+                        class="btn btn-hero-primary">
+                        <i class="bi bi-android2"></i> Download APK
+                    </a>
+                    <a href="https://byahero1.vercel.app" class="btn btn-hero-secondary" target="_blank"
+                        rel="noopener">
+                        <i class="bi bi-play-circle"></i> Explore ByaHero Website
+                    </a>
+                </div>
+            </div>
+            <!-- Visual column -->
+            <div class="col-lg-6">
+                <div class="hero-visual">
+                    <img src="assets/images/byahero_banner.png" alt="ByaHero App Banner" class="hero-banner-img">
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- ════════════════ STATS BAR ════════════════ -->
+<section class="stats-bar" id="stats">
+    <div class="container">
+        <div class="row g-4 justify-content-center">
+            <div class="col-6 col-md-3">
+                <div class="stat-item reveal">
+                    <div class="stat-number" data-target="500">0</div>
+                    <div class="stat-label">Active Commuters</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item reveal">
+                    <div class="stat-number" data-target="24">0</div>
+                    <div class="stat-label">Buses Tracked</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item reveal">
+                    <div class="stat-number" data-target="3">0</div>
+                    <div class="stat-label">Sec Live Updates</div>
+                </div>
+            </div>
+            <div class="col-6 col-md-3">
+                <div class="stat-item reveal">
+                    <div class="stat-number" data-target="99">0</div>
+                    <div class="stat-label">% Uptime</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+    <!-- ════════════════ FEATURE WALKTHROUGHS ════════════════ -->
+    <section class="walkthrough-section" id="walkthroughs">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-label">See ByaHero in Action</span>
+                <h2 class="section-heading">Interactive Feature Walkthroughs</h2>
+                <p class="section-sub">
+                    Explore high-fidelity app simulations demonstrating key features in action. See how ByaHero makes
+                    every step of your commute effortless.
+                </p>
+            </div>
+
+            <!-- Category Filter Tabs -->
+            <div class="walkthrough-filter-nav reveal">
+                <button class="walkthrough-filter-btn active" data-filter="all" type="button">
+                    <i class="bi bi-grid-fill me-1"></i> All Walkthroughs (8)
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="tracking" type="button">
+                    <i class="bi bi-geo-alt-fill me-1"></i> Live Tracking
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="safety" type="button">
+                    <i class="bi bi-shield-fill-check me-1"></i> Circles & SOS Safety
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="transit" type="button">
+                    <i class="bi bi-signpost-split-fill me-1"></i> Stops & Fares
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="items" type="button">
+                    <i class="bi bi-box-seam me-1"></i> Lost & Found
+                </button>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="row g-4 justify-content-center" id="walkthroughCardsContainer">
+
+                <!-- Video 1: BUS LOC & FILTER ROUTES -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="tracking">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/BUS LOC & FILTER ROUTES.mp4"
+                                poster="assets/videos/posters/bus_loc.jpg" muted autoplay playsinline loop
+                                preload="metadata"
+                                aria-label="Simulation video: Real-Time Bus Location and Route Filtering">
+                                <track src="assets/videos/captions/bus_loc.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag blue">Live GPS & ETA</span>
+                                <span class="walkthrough-num">01 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Real-Time Bus Location & Filter Routes</h3>
+                            <p class="walkthrough-desc">Viewing buses approaching in real time with ETA, using the route
+                                filter.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 2: ADD CIRCLE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/ADD CIRCLE.mp4"
+                                poster="assets/videos/posters/add_circle.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Circle Group Location Sharing">
+                                <track src="assets/videos/captions/add_circle.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Social Circles</span>
+                                <span class="walkthrough-num">02 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Circle Group Location Sharing</h3>
+                            <p class="walkthrough-desc">Joining a Circle with friends/family/colleagues to share
+                                real-time location.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 3: PICK UP POINTS -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/PICK UP POINTS.mp4"
+                                poster="assets/videos/posters/pickup_points.jpg" muted autoplay playsinline loop
+                                preload="metadata"
+                                aria-label="Simulation video: Designated Bus Pick-up and Drop-off Points">
+                                <track src="assets/videos/captions/pickup_points.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag sky">Stops & Landmarks</span>
+                                <span class="walkthrough-num">03 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Designated Pick-Up & Drop-Off Points</h3>
+                            <p class="walkthrough-desc">Viewing designated bus pick-up and drop-off points along active
+                                routes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 4: FARES AND SCHED -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/FARES AND SCHED.mp4"
+                                poster="assets/videos/posters/fares_sched.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Fares and Shift Schedules Calculator">
+                                <track src="assets/videos/captions/fares_sched.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag amber">Fares & Schedules</span>
+                                <span class="walkthrough-num">04 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Fares & Shift Schedules Calculator</h3>
+                            <p class="walkthrough-desc">Viewing shift start/end times and calculated fares per
+                                destination, including student/PWD/senior discounts.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 5: SOS SEND -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/SOS SEND.mp4"
+                                poster="assets/videos/posters/sos_send.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: SOS – Sender">
+                                <track src="assets/videos/captions/sos_send.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag purple">Emergency Safety</span>
+                                <span class="walkthrough-num">05 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">SOS – Sender</h3>
+                            <p class="walkthrough-desc">Shows a user sending an SOS alert in real time with GPS location
+                                broadcast.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 6: SOS RECEIVE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/SOS RECEIVE.mp4"
+                                poster="assets/videos/posters/sos_receive.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: SOS – Receiver">
+                                <track src="assets/videos/captions/sos_receive.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag purple">Circle Safety</span>
+                                <span class="walkthrough-num">06 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">SOS – Receiver</h3>
+                            <p class="walkthrough-desc">Shows a Circle member receiving the emergency alert in real time
+                                on the live map.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 7: LOST ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/LOST ITEM.mp4"
+                                poster="assets/videos/posters/lost_item.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Reporting a Lost Item">
+                                <track src="assets/videos/captions/lost_item.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag rose">Lost & Found</span>
+                                <span class="walkthrough-num">07 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Lost Items</h3>
+                            <p class="walkthrough-desc">Reporting a lost item left behind on a bus to coordinate swift
+                                retrieval.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 8: FOUND ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/FOUND ITEM.mp4"
+                                poster="assets/videos/posters/found_item.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Reporting a Found Item">
+                                <track src="assets/videos/captions/found_item.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Community Registry</span>
+                                <span class="walkthrough-num">08 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Found Items</h3>
+                            <p class="walkthrough-desc">Reporting a found item to log belongings and reunite them with
+                                rightful owners.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ SURVEY ════════════════ -->
+    <section class="survey-section" id="how-it-works">
+        <div class="container">
+            <div class="survey-card reveal">
+                <div class="row align-items-center g-4 g-lg-5">
+                    <div class="col-lg-7">
+                        <span class="section-label">Feedback & Community</span>
+                        <h2 class="section-heading text-start mb-3">ByaHero Capstone Study Survey</h2>
+                        <p class="section-sub text-start mb-4">
+                            We are conducting this survey to gather data for our capstone study. Your responses will be
+                            used solely for academic/research purposes.
+                        </p>
+                        <div class="survey-actions d-flex align-items-center gap-3">
+                            <a href="https://forms.gle/t3fS16dPxSovzbGT6" class="btn btn-hero-primary" target="_blank"
+                                rel="noopener">
+                                <i class="bi bi-pencil-square"></i> Take the Survey
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-lg-5 text-center text-lg-end">
+                        <div class="survey-qr-box">
+                            <img src="assets/images/survey_qr.png" alt="QR code to ByaHero survey"
+                                class="survey-qr-img">
+                            <span class="survey-qr-caption">
+                                <i class="bi bi-qr-code-scan"></i> Scan with your phone to open
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ ROLES ════════════════ -->
+    <section class="roles-section" id="roles">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-label">For Everyone</span>
+                <h2 class="section-heading">Built for Every Role</h2>
+                <p class="section-sub">Whether you ride, drive, or manage — ByaHero has you covered.</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-md-6 col-lg-4 reveal">
+                    <div class="role-card">
+                        <div class="role-icon passenger"><i class="bi bi-person-fill"></i></div>
+                        <h4>Passengers</h4>
+                        <p>Find your bus, check seats, and signal your stop — all from your phone.</p>
+                        <ul class="role-features">
+                            <li><i class="bi bi-check-circle-fill"></i> Live bus map</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Seat availability</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Waiting signal</li>
+                            <li><i class="bi bi-check-circle-fill"></i> SOS emergency alerts</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Ride history</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 reveal">
+                    <div class="role-card">
+                        <div class="role-icon conductor"><i class="bi bi-headset"></i></div>
+                        <h4>Conductors</h4>
+                        <p>Manage trips, update seats, and broadcast your location to passengers.</p>
+                        <ul class="role-features">
+                            <li><i class="bi bi-check-circle-fill"></i> GPS location sharing</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Seat count management</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Route selection</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Status updates</li>
+                            <li><i class="bi bi-check-circle-fill"></i> See waiting passengers</li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4 reveal">
+                    <div class="role-card">
+                        <div class="role-icon admin"><i class="bi bi-gear-fill"></i></div>
+                        <h4>Administrators</h4>
+                        <p>Oversee the fleet, manage routes, and keep the system running smoothly.</p>
+                        <ul class="role-features">
+                            <li><i class="bi bi-check-circle-fill"></i> Fleet management</li>
+                            <li><i class="bi bi-check-circle-fill"></i> User management</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Route configuration</li>
+                            <li><i class="bi bi-check-circle-fill"></i> Analytics dashboard</li>
+                            <li><i class="bi bi-check-circle-fill"></i> System monitoring</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ CTA ════════════════ -->
+    <section class="cta-section" id="download">
+        <div class="container text-center position-relative" style="z-index:1">
+            <div class="reveal">
+                <h2>Ready to Ride Smarter?</h2>
+                <p>Join hundreds of commuters already using ByaHero to make their daily commute stress-free.</p>
+                <a href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk" download
+                    class="btn btn-cta">
+                    <i class="bi bi-android2"></i> Download ByaHero APK
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- ════════════════ FOOTER ════════════════ -->
+    <footer class="footer" id="footer">
+        <div class="container">
+            <div class="row g-4">
+                <div class="col-lg-4">
+                    <div class="footer-brand">
+                        <svg height="32" viewBox="0 0 180 89" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path
+                                d="M138.755 6.60417C142.302 7.01182 150.056 8.02263 152.697 8.80534C155.999 9.78373 162.604 11.8631 165.172 13.3307C167.74 14.7983 173.244 17.6115 174.589 19.9352C175.934 22.2589 176.79 25.194 175.69 28.3737C174.589 31.5536 170.553 39.991 170.064 41.2145C169.574 42.4375 168.719 46.5079 171.654 48.5524C174.671 50.2647 180.508 54.9861 179.726 60.1716C178.943 65.357 172.469 71.4636 169.33 73.8688C165.62 76.4778 157.908 81.5979 156.734 81.2067C155.511 81.4105 152.477 81.6959 150.129 81.2067C147.781 80.7174 141.976 78.8018 139.367 77.9049C138.185 79.7394 134.597 83.6773 129.705 84.7536C123.59 86.0988 117.071 82.063 115.726 79.0055C114.951 77.701 114.051 75.1407 114.051 73.3796C114.051 71.6192 113.97 71.6674 113.929 71.9118C104.553 71.5041 85.1411 71.2274 82.4982 73.3796C82.3351 74.9287 81.691 78.5165 80.4191 80.4733C78.8292 82.9193 77.9725 86.7099 71.3683 88.6667C66.0853 90.232 60.6069 85.8955 58.5275 83.5309L56.5704 81.0846L45.6857 85.487C44.0551 85.8131 40.2805 86.1967 38.2257 85.1208C35.6574 83.7755 31.6211 80.84 30.1535 75.3366C28.6859 69.8331 29.2971 72.6455 28.1964 68.8542C27.0956 65.0624 24.0381 52.9552 23.549 49.5309C23.1577 46.7918 23.7121 45.2099 24.0382 44.7614L23.7941 44.2721C22.4488 43.8237 19.6116 42.3642 19.0245 40.1139C18.4377 37.864 18.6164 35.1007 18.7794 33.9997C19.0648 32.9805 19.9296 30.3547 21.1036 28.0065C22.2776 25.6583 20.9404 20.8314 20.1251 18.7116C25.9955 18.1816 39.3503 17.1712 45.8077 17.3669C52.2652 17.5625 64.9686 15.2464 70.5128 14.0641C76.8317 12.515 90.4466 9.41681 94.3605 9.41667C99.2523 9.41667 111.115 9.29467 114.662 10.8844C118.209 12.4743 110.382 10.6404 105.98 11.7409C102.458 12.6214 95.1359 13.6564 91.9152 14.0641C85.1072 15.654 68.7269 20.2527 57.671 25.9274C46.6152 31.6021 44.3405 32.6127 44.5851 32.4089L36.1466 37.1794C34.6384 38.1169 31.4016 40.236 30.5206 41.2145C29.4199 42.4375 28.6861 43.7833 28.4415 45.1286C28.2459 46.2048 28.36 48.3492 28.4415 49.2868L31.4992 63.7184C32.5589 67.7128 34.8489 75.7732 35.5343 76.07C36.2192 76.3635 37.8581 75.2137 38.5919 74.6022L43.7286 71.3005L49.8439 67.9987L53.2677 66.2858C53.4309 64.818 54.301 61.4669 55.8361 59.3151C57.7556 56.6245 58.5272 54.5459 64.3976 52.8337C70.2675 51.1217 75.5261 55.8899 76.505 56.8688C77.4834 57.8472 81.0306 55.5238 94.4835 53.5671C105.246 52.0017 116.578 52.9148 120.9 53.5671C122.408 51.8957 126.501 48.7484 130.806 49.5309C135.11 50.3135 137.817 51.9767 138.633 52.7106C139.326 53.1183 140.884 54.3501 141.568 56.0133C142.253 57.6757 142.424 58.6621 142.424 58.9479L150.496 62.862L156.978 66.7751L163.215 71.9118C165.212 70.6889 169.794 67.5584 172.143 64.819C175.078 61.3946 175.323 58.7034 174.711 57.8473C174.1 56.9913 174.466 55.7677 168.841 52.7106C164.34 50.2646 156.774 45.5771 153.554 43.5387L142.791 38.1579C141.324 37.6687 138.462 35.736 138.755 31.9206C139.049 28.1053 139.937 25.1942 140.345 24.2155C140.793 22.381 142.058 18.6137 143.526 18.2223C145.36 17.7333 150.13 17.9781 157.834 20.7907C163.998 23.0409 168.881 25.0714 170.553 25.8053C170.879 25.9276 171.433 25.6336 171.042 23.4811C170.65 21.3285 161.747 16.9585 157.345 15.0426C154.858 14.3088 149.077 12.7436 145.849 12.3522C141.813 11.863 135.942 11.2514 135.575 11.3737C135.283 11.4695 137.573 8.23441 138.755 6.60417Z"
+                                fill="white" />
+                        </svg>
+                        <span>ByaHero</span>
+                    </div>
+                    <p>Making public transportation trackable, reliable, and stress-free for everyone.</p>
+                </div>
+                <div class="col-6 col-lg-2 offset-lg-2">
+                    <h6 class="footer-heading">Product</h6>
+                    <ul class="footer-links">
+                        <li><a href="#walkthroughs">Walkthroughs</a></li>
+                        <li><a href="#how-it-works">Survey</a></li>
+                        <li><a href="#roles">For Everyone</a></li>
+                        <li><a href="#download">Download</a></li>
+                    </ul>
+                </div>
+                <div class="col-6 col-lg-2">
+                    <h6 class="footer-heading">Support</h6>
+                    <ul class="footer-links">
+                        <li><a href="#">Help Center</a></li>
+                        <li><a href="#">Contact Us</a></li>
+                        <li><a href="#">Privacy Policy</a></li>
+                        <li><a href="#">Terms of Service</a></li>
+                    </ul>
+                </div>
+                <div class="col-lg-2">
+                    <h6 class="footer-heading">Connect</h6>
+                    <div class="social-links">
+                        <a href="#" aria-label="Facebook"><i class="bi bi-facebook"></i></a>
+                        <a href="#" aria-label="Twitter"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" aria-label="GitHub"><i class="bi bi-github"></i></a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <small>&copy; 2026 ByaHero. All rights reserved.</small>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scroll-to-top -->
+    <button class="scroll-top" id="scrollTop" aria-label="Scroll to top">
+        <i class="bi bi-chevron-up"></i>
+    </button>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- Modular Scripts -->
+    <script src="js/animations.js"></script>
+    <script src="js/walkthroughs.js"></script>
+    <script src="js/release.js"></script>
+    <script src="js/main.js"></script>
+</body>
+
+</html>
