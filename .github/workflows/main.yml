@@ -12,15 +12,26 @@ jobs:
 
     steps:
       - name: Get latest code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Build landing page
+        run: |
+          cd landing-page
+          node build.js
 
       - name: Prepare landing page
         run: |
           mkdir -p deploy
-          cp index.html deploy/
+          cp -r landing-page/* deploy/
+          rm -rf deploy/components deploy/template.html deploy/build.js deploy/package.json deploy/README.md
 
       - name: Upload via FTP
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}

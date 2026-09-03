@@ -1,0 +1,423 @@
+/* ═══════════════════════════════════════════════════════════════
+   FEATURE WALKTHROUGHS / DEMO VIDEOS
+═══════════════════════════════════════════════════════════════ */
+.walkthrough-section {
+    padding: 6rem 0;
+    background: linear-gradient(180deg, var(--surface) 0%, #f8fafc 40%, #eff6ff 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+.walkthrough-section::before {
+    content: '';
+    position: absolute;
+    top: 15%;
+    left: -120px;
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(59, 130, 246, .07) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.walkthrough-section::after {
+    content: '';
+    position: absolute;
+    bottom: 5%;
+    right: -100px;
+    width: 420px;
+    height: 420px;
+    background: radial-gradient(circle, rgba(16, 185, 129, .06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+/* Filter Tabs */
+.walkthrough-filter-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 2.5rem;
+}
+
+.walkthrough-filter-btn {
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid #e2e8f0;
+    color: var(--text-secondary);
+    font-size: .85rem;
+    font-weight: 600;
+    padding: 8px 18px;
+    border-radius: 999px;
+    transition: all .25s ease;
+    cursor: pointer;
+    backdrop-filter: blur(8px);
+}
+
+.walkthrough-filter-btn:hover,
+.walkthrough-filter-btn.active {
+    background: var(--brand-600);
+    border-color: var(--brand-600);
+    color: #fff;
+    box-shadow: var(--shadow-brand);
+    transform: translateY(-1px);
+}
+
+/* Video Card */
+.walkthrough-card {
+    background: var(--surface);
+    border: 1px solid #e2e8f0;
+    border-radius: var(--radius-xl);
+    padding: 1.25rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: all .35s cubic-bezier(.16, 1, .3, 1);
+    position: relative;
+    box-shadow: var(--shadow-sm);
+}
+
+.walkthrough-card:hover {
+    transform: translateY(-6px);
+    box-shadow: var(--shadow-xl);
+    border-color: var(--brand-200);
+}
+
+/* Smartphone Mockup Frame inside Card */
+.walkthrough-mockup {
+    position: relative;
+    border-radius: 20px;
+    background: #0f172a;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.1), 0 8px 24px rgba(15, 23, 42, 0.15);
+    overflow: hidden;
+    width: 100%;
+    aspect-ratio: 9 / 18.5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.walkthrough-mockup-header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    z-index: 10;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.6) 0%, transparent 100%);
+    font-size: .65rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+}
+
+.walkthrough-notch {
+    width: 44px;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 999px;
+    margin: 0 auto;
+}
+
+/* Video element */
+.walkthrough-video {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+    cursor: pointer;
+    background: #090d16;
+}
+
+/* Floating Video Controls */
+.video-floating-ctrls {
+    position: absolute;
+    top: 34px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 12;
+}
+
+.video-ctrl-btn {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: #ffffff;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all .2s ease;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.video-ctrl-btn:hover {
+    background: var(--brand-600);
+    border-color: var(--brand-500);
+    transform: scale(1.1);
+    color: #fff;
+}
+
+.video-ctrl-btn.active-audio {
+    background: var(--accent);
+    border-color: #a7f3d0;
+    color: #064e3b;
+}
+
+/* Sound status tooltip/pill */
+.sound-status-pill {
+    position: absolute;
+    bottom: 12px;
+    right: 10px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: .65rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.9);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 12;
+    pointer-events: none;
+    transition: opacity .3s;
+}
+
+/* Video Play Overlay Indicator */
+.video-play-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: rgba(37, 99, 235, 0.85);
+    backdrop-filter: blur(8px);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    opacity: 0;
+    pointer-events: none;
+    transition: all .25s ease;
+    z-index: 15;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+}
+
+.walkthrough-mockup.paused .video-play-overlay {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+}
+
+/* Video Progress Bar */
+.walkthrough-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.15);
+    z-index: 14;
+}
+
+.walkthrough-progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--brand-500), var(--accent));
+    transition: width .1s linear;
+}
+
+/* Card Content / Caption Area */
+.walkthrough-card-body {
+    padding-top: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.walkthrough-badge-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: .6rem;
+}
+
+.walkthrough-tag {
+    font-size: .7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.walkthrough-tag.blue {
+    background: var(--brand-50);
+    color: var(--brand-600);
+}
+
+.walkthrough-tag.green {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.walkthrough-tag.amber {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.walkthrough-tag.purple {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.walkthrough-tag.rose {
+    background: #ffe4e6;
+    color: #e11d48;
+}
+
+.walkthrough-tag.sky {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.walkthrough-num {
+    font-size: .75rem;
+    font-weight: 800;
+    color: var(--text-muted);
+}
+
+.walkthrough-title {
+    font-size: 1.12rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin-bottom: .45rem;
+    line-height: 1.3;
+}
+
+.walkthrough-desc {
+    font-size: .88rem;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    margin-bottom: 0;
+    flex-grow: 1;
+}
+
+/* Captions / Accessibility styling */
+.walkthrough-video::cue {
+    background-color: rgba(15, 23, 42, 0.85);
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    border-radius: 4px;
+    padding: 4px 8px;
+    line-height: 1.4;
+}
+
+/* Feature Card (Generic) */
+.features-section {
+    padding: 6rem 0;
+    background: var(--surface);
+}
+
+.feature-card {
+    background: var(--surface);
+    border: 1px solid #f1f5f9;
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    height: 100%;
+    transition: all .3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--brand-400), var(--brand-600));
+    opacity: 0;
+    transition: opacity .3s ease;
+}
+
+.feature-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-lg);
+    border-color: var(--brand-100);
+}
+
+.feature-card:hover::before {
+    opacity: 1;
+}
+
+.feature-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    margin-bottom: 1.25rem;
+}
+
+.feature-icon.blue {
+    background: var(--brand-50);
+    color: var(--brand-600);
+}
+
+.feature-icon.green {
+    background: var(--accent-light);
+    color: var(--accent);
+}
+
+.feature-icon.amber {
+    background: #fef3c7;
+    color: #d97706;
+}
+
+.feature-icon.purple {
+    background: #f3e8ff;
+    color: #9333ea;
+}
+
+.feature-icon.rose {
+    background: #ffe4e6;
+    color: #e11d48;
+}
+
+.feature-icon.sky {
+    background: #e0f2fe;
+    color: #0284c7;
+}
+
+.feature-card h4 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: .5rem;
+}
+
+.feature-card p {
+    font-size: .9rem;
+    color: var(--text-secondary);
+    margin: 0;
+    line-height: 1.6;
+}

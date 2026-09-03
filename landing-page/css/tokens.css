@@ -1,0 +1,31 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════════════════════════ */
+:root {
+    --brand-50: #eff6ff;
+    --brand-100: #dbeafe;
+    --brand-200: #bfdbfe;
+    --brand-300: #93c5fd;
+    --brand-400: #60a5fa;
+    --brand-500: #3b82f6;
+    --brand-600: #2563eb;
+    --brand-700: #1d4ed8;
+    --brand-800: #1e3a8a;
+    --brand-900: #172554;
+    --accent: #10b981;
+    --accent-light: #d1fae5;
+    --surface: #ffffff;
+    --surface-alt: #f8fafc;
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --radius-sm: 8px;
+    --radius-md: 14px;
+    --radius-lg: 22px;
+    --radius-xl: 32px;
+    --shadow-sm: 0 1px 3px rgba(15, 23, 42, .06);
+    --shadow-md: 0 4px 16px rgba(15, 23, 42, .08);
+    --shadow-lg: 0 12px 40px rgba(15, 23, 42, .12);
+    --shadow-xl: 0 24px 64px rgba(15, 23, 42, .16);
+    --shadow-brand: 0 8px 30px rgba(37, 99, 235, .25);
+}

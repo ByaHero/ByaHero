@@ -1,0 +1,463 @@
+<!-- ════════════════ FEATURE WALKTHROUGHS ════════════════ -->
+    <section class="walkthrough-section" id="walkthroughs">
+        <div class="container">
+            <div class="text-center reveal">
+                <span class="section-label">See ByaHero in Action</span>
+                <h2 class="section-heading">Interactive Feature Walkthroughs</h2>
+                <p class="section-sub">
+                    Explore high-fidelity app simulations demonstrating key features in action. See how ByaHero makes
+                    every step of your commute effortless.
+                </p>
+            </div>
+
+            <!-- Category Filter Tabs -->
+            <div class="walkthrough-filter-nav reveal">
+                <button class="walkthrough-filter-btn active" data-filter="all" type="button">
+                    <i class="bi bi-grid-fill me-1"></i> All Walkthroughs (8)
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="tracking" type="button">
+                    <i class="bi bi-geo-alt-fill me-1"></i> Live Tracking
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="safety" type="button">
+                    <i class="bi bi-shield-fill-check me-1"></i> Circles & SOS Safety
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="transit" type="button">
+                    <i class="bi bi-signpost-split-fill me-1"></i> Stops & Fares
+                </button>
+                <button class="walkthrough-filter-btn" data-filter="items" type="button">
+                    <i class="bi bi-box-seam me-1"></i> Lost & Found
+                </button>
+            </div>
+
+            <!-- Video Grid -->
+            <div class="row g-4 justify-content-center" id="walkthroughCardsContainer">
+
+                <!-- Video 1: BUS LOC & FILTER ROUTES -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="tracking">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/BUS LOC & FILTER ROUTES.mp4"
+                                poster="assets/videos/posters/bus_loc.jpg" muted autoplay playsinline loop
+                                preload="metadata"
+                                aria-label="Simulation video: Real-Time Bus Location and Route Filtering">
+                                <track src="assets/videos/captions/bus_loc.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag blue">Live GPS & ETA</span>
+                                <span class="walkthrough-num">01 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Real-Time Bus Location & Filter Routes</h3>
+                            <p class="walkthrough-desc">Viewing buses approaching in real time with ETA, using the route
+                                filter.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 2: ADD CIRCLE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/ADD CIRCLE.mp4"
+                                poster="assets/videos/posters/add_circle.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Circle Group Location Sharing">
+                                <track src="assets/videos/captions/add_circle.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Social Circles</span>
+                                <span class="walkthrough-num">02 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Circle Group Location Sharing</h3>
+                            <p class="walkthrough-desc">Joining a Circle with friends/family/colleagues to share
+                                real-time location.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 3: PICK UP POINTS -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/PICK UP POINTS.mp4"
+                                poster="assets/videos/posters/pickup_points.jpg" muted autoplay playsinline loop
+                                preload="metadata"
+                                aria-label="Simulation video: Designated Bus Pick-up and Drop-off Points">
+                                <track src="assets/videos/captions/pickup_points.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag sky">Stops & Landmarks</span>
+                                <span class="walkthrough-num">03 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Designated Pick-Up & Drop-Off Points</h3>
+                            <p class="walkthrough-desc">Viewing designated bus pick-up and drop-off points along active
+                                routes.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 4: FARES AND SCHED -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="transit">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/FARES AND SCHED.mp4"
+                                poster="assets/videos/posters/fares_sched.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Fares and Shift Schedules Calculator">
+                                <track src="assets/videos/captions/fares_sched.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag amber">Fares & Schedules</span>
+                                <span class="walkthrough-num">04 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Fares & Shift Schedules Calculator</h3>
+                            <p class="walkthrough-desc">Viewing shift start/end times and calculated fares per
+                                destination, including student/PWD/senior discounts.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 5: SOS SEND -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/SOS SEND.mp4"
+                                poster="assets/videos/posters/sos_send.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: SOS – Sender">
+                                <track src="assets/videos/captions/sos_send.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag purple">Emergency Safety</span>
+                                <span class="walkthrough-num">05 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">SOS – Sender</h3>
+                            <p class="walkthrough-desc">Shows a user sending an SOS alert in real time with GPS location
+                                broadcast.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 6: SOS RECEIVE -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="safety">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/SOS RECEIVE.mp4"
+                                poster="assets/videos/posters/sos_receive.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: SOS – Receiver">
+                                <track src="assets/videos/captions/sos_receive.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag purple">Circle Safety</span>
+                                <span class="walkthrough-num">06 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">SOS – Receiver</h3>
+                            <p class="walkthrough-desc">Shows a Circle member receiving the emergency alert in real time
+                                on the live map.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 7: LOST ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/LOST ITEM.mp4"
+                                poster="assets/videos/posters/lost_item.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Reporting a Lost Item">
+                                <track src="assets/videos/captions/lost_item.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag rose">Lost & Found</span>
+                                <span class="walkthrough-num">07 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Lost Items</h3>
+                            <p class="walkthrough-desc">Reporting a lost item left behind on a bus to coordinate swift
+                                retrieval.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Video 8: FOUND ITEM -->
+                <div class="col-lg-4 col-md-6 walkthrough-card-col reveal" data-category="items">
+                    <div class="walkthrough-card">
+                        <div class="walkthrough-mockup">
+                            <div class="walkthrough-mockup-header">
+                                <span>9:41</span>
+                                <div class="walkthrough-notch"></div>
+                                <span><i class="bi bi-wifi"></i> <i class="bi bi-battery-full"></i></span>
+                            </div>
+
+                            <div class="video-floating-ctrls">
+                                <button class="video-ctrl-btn video-sound-toggle" type="button"
+                                    aria-label="Toggle sound" title="Toggle audio">
+                                    <i class="bi bi-volume-mute-fill"></i>
+                                </button>
+                                <button class="video-ctrl-btn video-fullscreen-toggle" type="button"
+                                    aria-label="Fullscreen view" title="Fullscreen">
+                                    <i class="bi bi-arrows-fullscreen"></i>
+                                </button>
+                            </div>
+
+                            <div class="sound-status-pill">
+                                <i class="bi bi-volume-mute"></i> Muted
+                            </div>
+
+                            <div class="video-play-overlay">
+                                <i class="bi bi-play-fill"></i>
+                            </div>
+
+                            <video class="walkthrough-video" src="assets/videos/FOUND ITEM.mp4"
+                                poster="assets/videos/posters/found_item.jpg" muted autoplay playsinline loop
+                                preload="metadata" aria-label="Simulation video: Reporting a Found Item">
+                                <track src="assets/videos/captions/found_item.vtt" kind="captions" srclang="en"
+                                    label="English" default>
+                            </video>
+
+                            <div class="walkthrough-progress">
+                                <div class="walkthrough-progress-bar"></div>
+                            </div>
+                        </div>
+
+                        <div class="walkthrough-card-body">
+                            <div class="walkthrough-badge-row">
+                                <span class="walkthrough-tag green">Community Registry</span>
+                                <span class="walkthrough-num">08 / 08</span>
+                            </div>
+                            <h3 class="walkthrough-title">Report Found Items</h3>
+                            <p class="walkthrough-desc">Reporting a found item to log belongings and reunite them with
+                                rightful owners.</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
