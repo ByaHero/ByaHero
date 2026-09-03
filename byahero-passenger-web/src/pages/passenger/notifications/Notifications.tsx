@@ -11,7 +11,7 @@ import AlertModal from '../../../components/AlertModal';
 export const Notifications: React.FC = () => {
   const navigate = useNavigate();
   const { user, serverUrl } = useAuth();
-  const { clearUnreadCount } = useNotifications();
+  const { clearUnreadCount, refreshNotifications } = useNotifications();
 
   const [loading, setLoading] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
@@ -130,12 +130,18 @@ export const Notifications: React.FC = () => {
         headers: authHeaders,
         credentials: 'include'
       });
-      if (res.ok) {
+      const data = await res.json().catch(() => null);
+      if (res.ok && data?.success) {
         setSosAlerts([]);
         setSmartNotifications([]);
+        clearUnreadCount();
+        refreshNotifications().catch(() => {});
+      } else {
+        setErrorText(data?.message || 'Failed to clear notifications.');
       }
     } catch (err) {
       console.error('Failed to clear notifications', err);
+      setErrorText('An unexpected network error occurred while clearing notifications.');
     } finally {
       setShowClearConfirm(false);
     }

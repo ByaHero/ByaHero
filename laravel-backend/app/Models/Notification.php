@@ -22,6 +22,7 @@ class Notification extends Model
     protected $casts = [
         'meta' => 'array',
         'read_at' => 'datetime',
+        'is_cleared' => 'boolean',
     ];
 
     public $timestamps = false;

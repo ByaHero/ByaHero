@@ -13,6 +13,11 @@ class SosAlert extends Model
         'recipient_user_id',
         'location_text',
         'status',
+        'is_cleared',
+    ];
+
+    protected $casts = [
+        'is_cleared' => 'boolean',
     ];
 
     public $timestamps = false;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,9 @@ import {
   ActivityIndicator,
   Platform,
   Alert,
+  RefreshControl,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Image } from 'expo-image';
 import { router } from 'expo-router';
 import tw from 'twrnc';
@@ -28,73 +30,77 @@ export default function NotificationsScreen() {
   const [notifySeatAvailability, setNotifySeatAvailability] = useState(false);
   const [errorText, setErrorText] = useState<string | null>(null);
 
-  useEffect(() => {
-    let active = true;
+  const [refreshing, setRefreshing] = useState(false);
 
-    const fetchNotifications = async () => {
+  const fetchNotifications = useCallback(async (isRefresh = false) => {
+    if (isRefresh) {
+      setRefreshing(true);
+    }
+    try {
+      const currentBaseUrl = await getServerUrl();
+      setBaseUrl(currentBaseUrl);
+
+      const cachedEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+      const emailParam = cachedEmail ? `?email=${encodeURIComponent(cachedEmail)}&mark_read=1` : '?mark_read=1';
+      const authHeaders: Record<string, string> = cachedEmail ? { 'X-User-Email': cachedEmail } : {};
+
+      let data: any = null;
       try {
-        const currentBaseUrl = await getServerUrl();
-        setBaseUrl(currentBaseUrl);
+        const res = await fetch(`${currentBaseUrl}/api/notifications${emailParam}`, {
+          headers: authHeaders,
+          credentials: 'include',
+          cache: 'no-store'
+        });
+        if (res.ok) {
+          data = await res.json();
+        }
+      } catch (e) {
+        console.warn(`Failed fetching notifications from ${currentBaseUrl}, trying alwaysdata fallback...`, e);
+      }
 
-        let data: any = null;
+      // Fallback to alwaysdata if configured URL fails
+      if (!data && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
         try {
-          const res = await fetch(`${currentBaseUrl}/api/notifications`, {
+          const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/notifications${emailParam}`, {
+            headers: authHeaders,
             credentials: 'include',
             cache: 'no-store'
           });
-          if (res.ok) {
-            data = await res.json();
+          if (fallbackRes.ok) {
+            data = await fallbackRes.json();
           }
         } catch (e) {
-          console.warn(`Failed fetching notifications from ${currentBaseUrl}, trying alwaysdata fallback...`, e);
-        }
-
-        // Fallback to alwaysdata if configured URL fails
-        if (!data && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
-          try {
-            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/notifications`, {
-              credentials: 'include',
-              cache: 'no-store'
-            });
-            if (fallbackRes.ok) {
-              data = await fallbackRes.json();
-            }
-          } catch (e) {
-            console.error('Fallback notifications fetch failed:', e);
-          }
-        }
-
-        if (active) {
-          setLoading(false);
-          if (data) {
-            if (data.success) {
-              setSosAlerts(data.sos_alerts || []);
-              setSmartNotifications(data.notifications || []);
-              setNotifyBusSchedule(!!data.notify_bus_schedule);
-              setNotifyBusArrival(!!data.notify_bus_arrival);
-              setNotifySeatAvailability(!!data.notify_seat_availability);
-            } else {
-              setErrorText(data.message || 'Failed to load notifications.');
-            }
-          } else {
-            setErrorText('Unable to connect to the notifications server.');
-          }
-        }
-      } catch (err) {
-        console.error('Error loading notifications:', err);
-        if (active) {
-          setLoading(false);
-          setErrorText('An unexpected network error occurred.');
+          console.error('Fallback notifications fetch failed:', e);
         }
       }
-    };
 
-    fetchNotifications();
-
-    return () => {
-      active = false;
-    };
+      setLoading(false);
+      setRefreshing(false);
+      if (data) {
+        if (data.success) {
+          setSosAlerts(data.sos_alerts || []);
+          setSmartNotifications(data.notifications || []);
+          setNotifyBusSchedule(!!data.notify_bus_schedule);
+          setNotifyBusArrival(!!data.notify_bus_arrival);
+          setNotifySeatAvailability(!!data.notify_seat_availability);
+          setErrorText(null);
+        } else {
+          setErrorText(data.message || 'Failed to load notifications.');
+        }
+      } else {
+        setErrorText('Unable to connect to the notifications server.');
+      }
+    } catch (err) {
+      console.error('Error loading notifications:', err);
+      setLoading(false);
+      setRefreshing(false);
+      setErrorText('An unexpected network error occurred.');
+    }
   }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
@@ -143,16 +149,25 @@ export default function NotificationsScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              const res = await fetch(`${baseUrl}/api/notifications/clear`, {
+              const cachedEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+              const emailParam = cachedEmail ? `?email=${encodeURIComponent(cachedEmail)}` : '';
+              const authHeaders: Record<string, string> = cachedEmail ? { 'X-User-Email': cachedEmail } : {};
+
+              const res = await fetch(`${baseUrl}/api/notifications/clear${emailParam}`, {
                 method: 'DELETE',
+                headers: authHeaders,
                 credentials: 'include'
               });
-              if (res.ok) {
+              const data = await res.json().catch(() => null);
+              if (res.ok && data?.success) {
                 setSosAlerts([]);
                 setSmartNotifications([]);
+              } else {
+                Alert.alert('Error', data?.message || 'Failed to clear notifications.');
               }
             } catch (err) {
               console.error('Failed to clear notifications', err);
+              Alert.alert('Error', 'Unable to connect to the server.');
             }
           }
         }
@@ -210,7 +225,17 @@ export default function NotificationsScreen() {
                 </TouchableOpacity>
               </View>
             )}
-            <ScrollView style={tw`flex-1 bg-white`}>
+            <ScrollView 
+              style={tw`flex-1 bg-white`}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => fetchNotifications(true)}
+                  colors={['#103d7c']}
+                  tintColor="#103d7c"
+                />
+              }
+            >
             
             {/* SOS Alerts Section */}
             {sosAlerts.length > 0 && (
