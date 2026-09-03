@@ -3,6 +3,7 @@ import { MaterialIcons } from './ui/MaterialIcons';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import AlertModal from './AlertModal';
+import { getFriendOnlineStatus } from '../utils/userUtils';
 
 export type SheetTab = 'location' | 'routes' | 'groups' | 'busstops';
 
@@ -784,14 +785,20 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                   <div className="bg-[#f8fafc] rounded-3xl p-4 border border-[#e2e8f0]/60 shadow-sm mb-6 space-y-2">
                     {circles.map((friend, index) => {
                       const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
-                      const statusText = friend.waiting_status
-                        ? `Waiting at ${friend.waiting_location || 'Stop'}`
-                        : (friend.ride_status === 'active' ? `Onboard Bus ${friend.boarded_bus_code || ''}` : 'Live location active');
+                      const { isOnline, statusText } = getFriendOnlineStatus(friend);
 
                       return (
                         <div
                           key={friend.id || index}
-                          onClick={() => focusOnFriend(friend)}
+                          onClick={() => {
+                            const lat = parseFloat(friend.latitude as string);
+                            const lng = parseFloat(friend.longitude as string);
+                            if (!isNaN(lat) && !isNaN(lng)) {
+                              focusOnFriend(friend);
+                            } else {
+                              showAlert('Location Unavailable', `${friend.name || 'Friend'} does not have a live location shared.`, 'info');
+                            }
+                          }}
                           className="flex items-center py-3 border-b border-[#e2e8f0]/50 last:border-0 cursor-pointer hover:bg-slate-50 transition-colors rounded-lg px-2 -mx-2"
                         >
                           <div className="relative mr-3.5">
@@ -799,21 +806,31 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                               <img
                                 src={friend.profile_picture.startsWith('http') ? friend.profile_picture : `${serverUrl}/${friend.profile_picture}`}
                                 alt=""
-                                className="w-12 h-12 rounded-full border border-slate-200 object-cover"
+                                className={`w-12 h-12 rounded-full border border-slate-200 object-cover ${!isOnline ? 'opacity-75' : ''}`}
                               />
                             ) : (
-                              <div className="w-12 h-12 rounded-full bg-[#dbeafe] flex items-center justify-center">
-                                <span className="text-[#1e3a8a] font-bold text-sm">{initials}</span>
+                              <div className={`w-12 h-12 rounded-full flex items-center justify-center ${isOnline ? 'bg-[#dbeafe]' : 'bg-slate-100'}`}>
+                                <span className={`font-bold text-sm ${isOnline ? 'text-[#1e3a8a]' : 'text-slate-500'}`}>{initials}</span>
                               </div>
                             )}
-                            <span className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white bg-[#10b981]" />
+                            <span
+                              className={`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${
+                                isOnline ? 'bg-[#10b981]' : 'bg-[#94a3b8]'
+                              }`}
+                            />
                           </div>
 
-                          <div className="flex-1">
-                            <div className="text-[15px] font-black text-slate-800">{friend.name || friend.email}</div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[15px] font-black text-slate-800 truncate">{friend.name || friend.email}</div>
                             <div className="flex items-center mt-1">
-                              <span className="px-2 py-0.5 rounded-md bg-[#dcfce7] text-[#15803d] text-[9px] font-black tracking-wider">
-                                ONLINE
+                              <span
+                                className={`px-2 py-0.5 rounded-md text-[9px] font-black tracking-wider ${
+                                  isOnline
+                                    ? 'bg-[#dcfce7] text-[#15803d]'
+                                    : 'bg-[#f1f5f9] text-[#64748b]'
+                                }`}
+                              >
+                                {isOnline ? 'ONLINE' : 'OFFLINE'}
                               </span>
                               <span className="text-[10px] text-[#64748b] font-bold ml-2 truncate max-w-[150px]">
                                 {statusText}
@@ -823,8 +840,12 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
                           <button
                             type="button"
-                            onClick={() => handleRemoveMemberAction(friend.id, friend.name || friend.email)}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveMemberAction(friend.id, friend.name || friend.email);
+                            }}
                             className="p-2 text-[#103d7c] hover:text-red-600"
+                            title="Remove circle member"
                           >
                             <MaterialIcons name="person_remove" size={22} color="#103d7c" />
                           </button>

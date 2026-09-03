@@ -6,6 +6,7 @@ import routeGeoJSON from '../assets/data/laurel-talisay-tanauan.json';
 import { SheetTab } from './PassengerBottomSheet';
 import busMarkerIcon from '../assets/images/icons/marker.svg';
 import busStopMarkerIcon from '../assets/images/icons/busStopMarkerFinalBlue.svg';
+import { getFriendOnlineStatus } from '../utils/userUtils';
 
 interface PassengerMapProps {
   onOpenWaitingModal: () => void;
@@ -376,15 +377,32 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         const friendKey = `friend-${friend.id || friend.email}`;
         currentFriendIds.add(friendKey);
 
+        const { isOnline, statusText } = getFriendOnlineStatus(friend);
         const friendName = friend.name || friend.email || 'Friend';
         const fInitial = friendName.charAt(0).toUpperCase();
         const firstName = friendName.split(' ')[0] || 'Friend';
+        const profilePicUrl = friend.profile_picture
+          ? (friend.profile_picture.startsWith('http') || friend.profile_picture.startsWith('data:')
+              ? friend.profile_picture
+              : `${serverUrl}/${friend.profile_picture}`)
+          : null;
+
+        const avatarBg = isOnline ? 'bg-emerald-500' : 'bg-slate-400';
+        const dotColor = isOnline ? '#10b981' : '#94a3b8';
+        const badgeColor = isOnline ? 'text-emerald-700' : 'text-slate-500';
+
         const friendHtml = `
-          <div class="relative flex flex-col items-center cursor-pointer">
-            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-black text-xs flex items-center justify-center shadow-lg border-2 border-white">
-              ${fInitial}
+          <div class="relative flex flex-col items-center cursor-pointer ${!isOnline ? 'opacity-85' : ''}">
+            <div class="relative">
+              <div class="w-8 h-8 rounded-full ${avatarBg} text-white font-black text-xs flex items-center justify-center shadow-md border-2 border-white overflow-hidden">
+                ${profilePicUrl
+                  ? `<img src="${profilePicUrl}" class="w-full h-full object-cover" onerror="this.style.display='none'" />`
+                  : fInitial
+                }
+              </div>
+              <span class="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full border-2 border-white" style="background-color: ${dotColor};"></span>
             </div>
-            <div class="bg-white/90 text-slate-800 text-[9px] font-bold px-1.5 py-0.2 rounded shadow-sm border border-slate-200 mt-0.5 truncate max-w-[80px]">
+            <div class="bg-white/95 text-slate-800 text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm border border-slate-200 mt-0.5 truncate max-w-[85px] text-center">
               ${firstName}
             </div>
           </div>
@@ -393,21 +411,34 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         const friendIcon = L.divIcon({
           className: 'custom-friend-icon',
           html: friendHtml,
-          iconSize: [40, 40],
-          iconAnchor: [20, 20],
+          iconSize: [42, 46],
+          iconAnchor: [21, 23],
         });
+
+        const popupHtml = `
+          <div class="p-1 min-w-[130px] font-sans">
+            <strong class="text-sm text-slate-800">${friendName}</strong>
+            <div class="text-xs text-slate-500">${friend.email || ''}</div>
+            <div class="mt-1 flex items-center gap-1.5">
+              <span class="inline-block w-2 h-2 rounded-full" style="background-color: ${dotColor};"></span>
+              <span class="text-[10px] uppercase font-black ${badgeColor}">${isOnline ? 'ONLINE' : 'OFFLINE'}</span>
+            </div>
+            <div class="text-[11px] text-slate-600 font-semibold mt-1">${statusText}</div>
+          </div>
+        `;
 
         if (friendMarkersRef.current.has(friendKey) && map.hasLayer(friendMarkersRef.current.get(friendKey)!)) {
           const marker = friendMarkersRef.current.get(friendKey)!;
           marker.setLatLng([lat, lng]);
           marker.setIcon(friendIcon);
+          marker.setPopupContent(popupHtml);
         } else {
           if (friendMarkersRef.current.has(friendKey)) {
             friendMarkersRef.current.get(friendKey)!.remove();
           }
           const marker = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 800 })
             .addTo(map)
-            .bindPopup(`<strong>${friendName}</strong><br/>${friend.email || ''}`);
+            .bindPopup(popupHtml);
           friendMarkersRef.current.set(friendKey, marker);
         }
       });
