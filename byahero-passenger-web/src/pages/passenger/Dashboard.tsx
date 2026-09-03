@@ -160,6 +160,7 @@ export const Dashboard: React.FC = () => {
             <PassengerBottomSheet
               currentTab={currentTab}
               onTabChange={setCurrentTab}
+              tourStep={tourStep}
             />
           </div>
         </div>

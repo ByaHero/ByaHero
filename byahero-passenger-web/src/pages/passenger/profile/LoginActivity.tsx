@@ -178,9 +178,9 @@ export const LoginActivity: React.FC = () => {
             )}
 
             {/* Security Tip Banner */}
-            <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4.5 mt-5 flex items-start text-left">
-              <MaterialIcons name="security" size={20} color="#2563eb" className="mr-3 mt-0.5 shrink-0" />
-              <div className="flex-1">
+            <div className="bg-blue-50 border border-blue-100 rounded-3xl p-4 mt-5 flex gap-3 items-start text-left">
+              <MaterialIcons name="security" size={24} color="#2563eb" className="shrink-0" />
+              <div className="flex-1 mt-0.5">
                 <span className="text-xs font-bold text-blue-800 mb-0.5 block">Security Reminder</span>
                 <p className="text-[11px] text-blue-700/80 leading-relaxed">
                   If you notice any unfamiliar devices or locations in your session history, please change your account password immediately to protect your account.
