@@ -44,7 +44,12 @@ function initWalkthroughs() {
             // Tap/Click video to toggle play/pause
             v.addEventListener('click', () => {
                 if (v.paused) {
-                    v.play();
+                    const playPromise = v.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(err => {
+                            console.log('Video play waiting for interaction:', err);
+                        });
+                    }
                     mockup.classList.remove('paused', 'manual-pause');
                 } else {
                     v.pause();
@@ -55,7 +60,12 @@ function initWalkthroughs() {
             // Replay cleanly on loop
             v.addEventListener('ended', () => {
                 v.currentTime = 0;
-                v.play();
+                const playPromise = v.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(err => {
+                        console.log('Video loop play interrupted:', err);
+                    });
+                }
             });
         });
     }
