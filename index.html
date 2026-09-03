@@ -686,33 +686,6 @@
             }
         }
 
-        /* ═══════════════════════════════════════════════════════════════
-       TRUSTED / STATS BAR
-    ═══════════════════════════════════════════════════════════════ */
-        .stats-bar {
-            background: var(--surface-alt);
-            border-top: 1px solid #f1f5f9;
-            border-bottom: 1px solid #f1f5f9;
-            padding: 2.5rem 0;
-        }
-
-        .stat-item {
-            text-align: center;
-        }
-
-        .stat-number {
-            font-size: 2rem;
-            font-weight: 900;
-            color: var(--brand-700);
-            line-height: 1;
-        }
-
-        .stat-label {
-            font-size: .8rem;
-            color: var(--text-muted);
-            font-weight: 500;
-            margin-top: .25rem;
-        }
 
         /* ═══════════════════════════════════════════════════════════════
        FEATURES
@@ -1716,38 +1689,6 @@
         </div>
     </section>
 
-    <!-- ════════════════ STATS BAR ════════════════ -->
-    <section class="stats-bar" id="stats">
-        <div class="container">
-            <div class="row g-4 justify-content-center">
-                <div class="col-6 col-md-3">
-                    <div class="stat-item reveal">
-                        <div class="stat-number" data-target="500">0</div>
-                        <div class="stat-label">Active Commuters</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="stat-item reveal">
-                        <div class="stat-number" data-target="24">0</div>
-                        <div class="stat-label">Buses Tracked</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="stat-item reveal">
-                        <div class="stat-number" data-target="3">0</div>
-                        <div class="stat-label">Sec Live Updates</div>
-                    </div>
-                </div>
-                <div class="col-6 col-md-3">
-                    <div class="stat-item reveal">
-                        <div class="stat-number" data-target="99">0</div>
-                        <div class="stat-label">% Uptime</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <!-- ════════════════ FEATURE WALKTHROUGHS ════════════════ -->
     <section class="walkthrough-section" id="walkthroughs">
         <div class="container">
@@ -2403,34 +2344,6 @@
         }, { threshold: 0.15 });
 
         revealEls.forEach(el => observer.observe(el));
-
-        // ─── Counter animation for stats ───
-        const counters = document.querySelectorAll('[data-target]');
-        const counterObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const el = entry.target;
-                    const target = +el.dataset.target;
-                    const suffix = el.closest('.stat-item')?.querySelector('.stat-label')?.textContent.includes('%') ? '%' : '+';
-                    const duration = 1500;
-                    const startTime = performance.now();
-
-                    function tick(now) {
-                        const elapsed = now - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        // Ease out cubic
-                        const eased = 1 - Math.pow(1 - progress, 3);
-                        const current = Math.round(eased * target);
-                        el.textContent = current.toLocaleString() + suffix;
-                        if (progress < 1) requestAnimationFrame(tick);
-                    }
-                    requestAnimationFrame(tick);
-                    counterObserver.unobserve(el);
-                }
-            });
-        }, { threshold: 0.5 });
-
-        counters.forEach(c => counterObserver.observe(c));
 
         // ─── Smooth scroll for nav links ───
         document.querySelectorAll('a[href^="#"]').forEach(link => {
