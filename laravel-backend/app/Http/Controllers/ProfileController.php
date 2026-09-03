@@ -269,14 +269,10 @@ class ProfileController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
         }
 
-        $busNumber = $request->input('bus_number');
+        $busNumber = $request->input('bus_number', null);
         $reportReason = $request->input('report_reason');
         $othersDetails = $request->input('others_details');
-        $contactNumber = $request->input('contact_number');
-
-        if (empty($busNumber)) {
-            return response()->json(['success' => false, 'message' => 'Bus number is required.'], 400);
-        }
+        $contactNumber = $request->input('contact_number', null);
 
         if (empty($reportReason) && !empty($othersDetails)) {
             $reportReason = 'Others';

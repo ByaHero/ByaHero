@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PassengerHeader from '../../../components/PassengerNavbar';
 import PassengerFooter from '../../../components/PassengerFooter';
 import { useAuth } from '../../../context/AuthContext';
-import { useTracking } from '../../../context/TrackingContext';
 import AlertModal from '../../../components/AlertModal';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import TourOverlay from '../../../components/TourOverlay';
@@ -12,16 +11,10 @@ import { handleTourLayout } from '../../../components/TourRegistry';
 
 export const ReportProblem: React.FC = () => {
   const { activeStep, setActiveStep } = useTourSync('/report');
-  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { user, serverUrl } = useAuth();
-  const { buses } = useTracking();
 
-  const bus_number = searchParams.get('bus') || '';
-
-  const [selectedBus, setSelectedBus] = useState(bus_number || '');
   const [reportReason, setReportReason] = useState('');
-  const [contactNumber, setContactNumber] = useState(user?.phone || '');
   const [othersDetails, setOthersDetails] = useState('');
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -71,17 +64,7 @@ export const ReportProblem: React.FC = () => {
     'Other App Concerns / Suggestions',
   ];
 
-  useEffect(() => {
-    if (bus_number) {
-      setSelectedBus(bus_number);
-    }
-  }, [bus_number]);
-
   const handleSubmit = async () => {
-    if (!selectedBus) {
-      showAlert('Validation Error', 'Please select or enter a bus number.', 'warning');
-      return;
-    }
     if (!reportReason && !othersDetails.trim()) {
       showAlert('Validation Error', 'Please select a reason or specify details in the others field.', 'warning');
       return;
@@ -89,9 +72,7 @@ export const ReportProblem: React.FC = () => {
 
     setIsSubmitting(true);
     const payload = {
-      bus_number: selectedBus,
       report_reason: reportReason || 'Others',
-      contact_number: contactNumber.trim(),
       others_details: othersDetails.trim(),
       email: user?.email || '',
     };
@@ -151,19 +132,6 @@ export const ReportProblem: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Bus Selector */}
-                  <div className="mb-4">
-                    <label className="text-xs font-bold text-slate-400 mb-2 block">Bus Number</label>
-                    <input
-                      type="text"
-                      placeholder="Enter bus number"
-                      value={selectedBus}
-                      onChange={(e) => setSelectedBus(e.target.value)}
-                      disabled={!!bus_number}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a]"
-                    />
-                  </div>
-
                   {/* Reasons Selection */}
                   <label className="text-xs font-bold text-slate-400 mb-2.5 block">Select Reason</label>
                   <div className="space-y-2.5 mb-5">
@@ -184,19 +152,6 @@ export const ReportProblem: React.FC = () => {
                         </div>
                       </button>
                     ))}
-                  </div>
-
-                  {/* Contact Number */}
-                  <div className="mb-4">
-                    <label className="text-xs font-bold text-slate-400 mb-2 block">Contact Number (Optional)</label>
-                    <input
-                      type="tel"
-                      placeholder="e.g. 09123456789"
-                      maxLength={11}
-                      value={contactNumber}
-                      onChange={(e) => setContactNumber(e.target.value.replace(/[^0-9]/g, ''))}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1e3a8a] font-mono"
-                    />
                   </div>
 
                   {/* Others Specification */}

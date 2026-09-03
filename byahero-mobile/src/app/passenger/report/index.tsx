@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,7 +8,7 @@ import {
   TextInput,
 } from 'react-native';
 import AlertModal from '../../../components/AlertModal';
-import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
@@ -20,14 +20,10 @@ import { useTourSync } from '../../../hooks/passenger/useTourSync';
 import { SuccessScreen } from '../../../components/ui/SuccessScreen';
 
 export default function ReportProblemScreen() {
-  const { bus_number } = useLocalSearchParams<{ bus_number?: string }>();
   const { activeStep, setActiveStep } = useTourSync('/passenger/report');
   const reportCardRef = useRef<any>(null);
   
-  const [buses, setBuses] = useState<any[]>([]);
-  const [selectedBus, setSelectedBus] = useState('');
   const [reportReason, setReportReason] = useState('');
-  const [contactNumber, setContactNumber] = useState('');
   const [othersDetails, setOthersDetails] = useState('');
   
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,41 +59,7 @@ export default function ReportProblemScreen() {
     'Other App Concerns / Suggestions',
   ];
 
-  useEffect(() => {
-    async function loadBuses() {
-      if (bus_number) {
-        setSelectedBus(bus_number);
-        return;
-      }
-
-      try {
-        const cachedBuses = await AsyncStorage.getItem('byahero_cached_buses') || '[]';
-        let parsedBuses = JSON.parse(cachedBuses);
-        
-        const serverUrl = await getServerUrl();
-        const res = await fetch(`${serverUrl}/api/buses`);
-        const data = await res.json();
-        if (data && data.buses) {
-          parsedBuses = data.buses;
-          await AsyncStorage.setItem('byahero_cached_buses', JSON.stringify(parsedBuses));
-        }
-        setBuses(parsedBuses);
-      } catch (err) {
-        console.warn('Failed to load buses, using default list:', err);
-        setBuses([
-          { code: 'BUS-001' }, { code: 'BUS-002' }, { code: 'BUS-003' },
-          { code: 'BUS-004' }, { code: 'BUS-005' }, { code: 'BUS-006' }
-        ]);
-      }
-    }
-    loadBuses();
-  }, [bus_number]);
-
   const handleSubmit = async () => {
-    if (!selectedBus) {
-      showAlert('Validation Error', 'Please select or enter a bus number.', 'warning');
-      return;
-    }
     if (!reportReason && !othersDetails.trim()) {
       showAlert('Validation Error', 'Please select a reason or specify details in the others field.', 'warning');
       return;
@@ -105,9 +67,7 @@ export default function ReportProblemScreen() {
 
     setIsSubmitting(true);
     const payload = {
-      bus_number: selectedBus,
       report_reason: reportReason || 'Others',
-      contact_number: contactNumber.trim(),
       others_details: othersDetails.trim(),
     };
 
@@ -187,19 +147,6 @@ export default function ReportProblemScreen() {
                   </View>
                 </View>
 
-                {/* Bus Selector */}
-                <View style={tw`mb-4`}>
-                  <Text style={tw`text-xs font-bold text-slate-400 mb-2`}>Bus Number</Text>
-                  <TextInput
-                    style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700`}
-                    placeholder="Enter bus number"
-                    placeholderTextColor="#9ca3af"
-                    value={selectedBus}
-                    onChangeText={setSelectedBus}
-                    editable={!bus_number}
-                  />
-                </View>
-
                 {/* Reasons Selection */}
                 <Text style={tw`text-xs font-bold text-slate-400 mb-2.5`}>Select Reason</Text>
                 <View style={tw`gap-2.5 mb-5`}>
@@ -219,19 +166,6 @@ export default function ReportProblemScreen() {
                       </View>
                     </TouchableOpacity>
                   ))}
-                </View>
-
-                {/* Contact Number */}
-                <View style={tw`mb-4`}>
-                  <Text style={tw`text-xs font-bold text-slate-400 mb-2`}>Contact Number (Optional)</Text>
-                  <TextInput
-                    style={tw`w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-semibold text-slate-700`}
-                    placeholder="e.g. 09123456789"
-                    keyboardType="phone-pad"
-                    maxLength={11}
-                    value={contactNumber}
-                    onChangeText={(text) => setContactNumber(text.replace(/[^0-9]/g, ''))}
-                  />
                 </View>
 
                 {/* Others Specification */}
