@@ -49,6 +49,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
   const [joinCodeInput, setJoinCodeInput] = useState('');
   const [isJoining, setIsJoining] = useState(false);
+  const [isSyncingCode, setIsSyncingCode] = useState(false);
   const [qrModalVisible, setQrModalVisible] = useState(false);
   type SheetState = 'expanded' | 'mid' | 'minimized';
   const [sheetState, setSheetState] = useState<SheetState>('mid');
@@ -708,14 +709,31 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                     </span>
                     <button
                       type="button"
+                      disabled={isSyncingCode}
                       onClick={async () => {
-                        await generateInviteCode(false);
-                        showAlert('Synced', 'Invite code synced with server!', 'info');
+                        try {
+                          setIsSyncingCode(true);
+                          const newCode = await generateInviteCode(true);
+                          if (newCode) {
+                            showAlert('New Code Generated', `Your new circle invite code is: ${newCode}`, 'success');
+                          } else {
+                            showAlert('Sync Failed', 'Could not generate a new code. Please try again.', 'error');
+                          }
+                        } catch (e) {
+                          showAlert('Error', 'An error occurred while generating a new code.', 'error');
+                        } finally {
+                          setIsSyncingCode(false);
+                        }
                       }}
-                      className="text-[11px] font-bold text-[#103d7c] hover:underline flex items-center gap-1"
+                      className="text-[11px] font-bold text-[#103d7c] hover:underline flex items-center gap-1 disabled:opacity-50"
                     >
-                      <MaterialIcons name="refresh" size={14} color="#103d7c" />
-                      <span>Sync code</span>
+                      <MaterialIcons
+                        name="refresh"
+                        size={14}
+                        color="#103d7c"
+                        className={isSyncingCode ? 'animate-spin' : ''}
+                      />
+                      <span>{isSyncingCode ? 'Generating...' : 'Sync code'}</span>
                     </button>
                   </div>
 

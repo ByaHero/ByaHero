@@ -56,7 +56,7 @@ interface TrackingContextType {
   rejectDepart: () => void;
   
   inviteCode: string;
-  generateInviteCode: (reset?: boolean) => Promise<void>;
+  generateInviteCode: (reset?: boolean) => Promise<string | null>;
   joinCircle: (code: string) => Promise<{ success: boolean; message: string }>;
   removeCircleMember: (friendId: number) => Promise<{ success: boolean; message: string }>;
   
@@ -140,7 +140,7 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
     isInitialFetchDone
   });
 
-  const generateInviteCode = async (reset: boolean = false) => {
+  const generateInviteCode = async (reset: boolean = false): Promise<string | null> => {
     try {
       const email = localStorage.getItem('byahero_cached_email') || user?.email || '';
       const emailQuery = email ? `email=${encodeURIComponent(email)}` : '';
@@ -159,11 +159,13 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
           try {
             localStorage.setItem('byahero_cached_invite_code', data.invite_code);
           } catch (e) {}
+          return data.invite_code;
         }
       }
     } catch (e) {
       console.error('Failed to fetch invite code:', e);
     }
+    return null;
   };
 
   // Automatically fetch invite code when user or server is ready
