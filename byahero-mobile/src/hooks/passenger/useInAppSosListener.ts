@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { getServerUrl } from '../../services/authService';
 import { playSosAlarm, stopSosAlarm } from '../../services/soundEffects';
@@ -12,7 +13,12 @@ export function useInAppSosListener() {
   const checkIncomingSos = useCallback(async () => {
     try {
       const baseUrl = await getServerUrl();
-      const res = await fetch(`${baseUrl}/api/notifications`, {
+      const cachedEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+      const emailParam = cachedEmail ? `?email=${encodeURIComponent(cachedEmail)}` : '';
+      const authHeaders: Record<string, string> = cachedEmail ? { 'X-User-Email': cachedEmail } : {};
+
+      const res = await fetch(`${baseUrl}/api/notifications${emailParam}`, {
+        headers: authHeaders,
         credentials: 'include',
         cache: 'no-store',
       }).catch(() => null);

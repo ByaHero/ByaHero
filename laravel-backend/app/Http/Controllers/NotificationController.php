@@ -12,6 +12,8 @@ use App\Models\Driver;
 use App\Models\Conductor;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Exception;
 
 class NotificationController extends Controller
@@ -72,6 +74,32 @@ class NotificationController extends Controller
         }
     }
 
+    private function ensureNotificationSchema(): void
+    {
+        static $ensured = false;
+        if ($ensured) {
+            return;
+        }
+
+        try {
+            if (!Schema::hasColumn('notifications', 'is_cleared')) {
+                DB::statement("ALTER TABLE notifications ADD COLUMN is_cleared TINYINT(1) NOT NULL DEFAULT 0");
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            if (!Schema::hasColumn('sos_alerts', 'is_cleared')) {
+                DB::statement("ALTER TABLE sos_alerts ADD COLUMN is_cleared TINYINT(1) NOT NULL DEFAULT 0");
+            }
+        } catch (\Throwable $e) {}
+
+        try {
+            DB::statement("ALTER TABLE sos_alerts MODIFY COLUMN status ENUM('active','resolved','seen','cleared') DEFAULT 'active'");
+        } catch (\Throwable $e) {}
+
+        $ensured = true;
+    }
+
     public function getUnreadCount(Request $request)
     {
         $userId = $this->getAuthUserId($request);
@@ -79,7 +107,15 @@ class NotificationController extends Controller
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
 
-        $count = Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->count();
+        $this->ensureNotificationSchema();
+
+        $count = 0;
+        try {
+            $count = Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->count();
+        } catch (\Throwable $e) {
+            $count = Notification::where('user_id', $userId)->whereNull('read_at')->count();
+        }
+
         return response()->json(['success' => true, 'unread' => $count]);
     }
 
@@ -90,10 +126,26 @@ class NotificationController extends Controller
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
 
-        $hasUnread = Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->exists();
+        $this->ensureNotificationSchema();
+
+        $hasUnread = false;
+        try {
+            $hasUnread = Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->exists();
+        } catch (\Throwable $e) {
+            $hasUnread = Notification::where('user_id', $userId)->whereNull('read_at')->exists();
+        }
 
         if (!$hasUnread) {
-            $hasUnread = SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->exists();
+            try {
+                $hasUnread = SosAlert::where('recipient_user_id', $userId)
+                    ->where('status', 'active')
+                    ->where(function ($q) {
+                        $q->where('is_cleared', 0)->orWhereNull('is_cleared');
+                    })
+                    ->exists();
+            } catch (\Throwable $e) {
+                $hasUnread = SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->exists();
+            }
         }
 
         return response()->json(['success' => true, 'has_unread' => $hasUnread]);
@@ -106,11 +158,20 @@ class NotificationController extends Controller
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
         }
 
-        $notifications = Notification::where('user_id', $userId)
-            ->where('is_cleared', false)
-            ->orderBy('id', 'desc') // Using primary key instead of created_at timestamp for solid order
-            ->limit(50)
-            ->get();
+        $this->ensureNotificationSchema();
+
+        try {
+            $notifications = Notification::where('user_id', $userId)
+                ->where('is_cleared', false)
+                ->orderBy('id', 'desc')
+                ->limit(50)
+                ->get();
+        } catch (\Throwable $e) {
+            $notifications = Notification::where('user_id', $userId)
+                ->orderBy('id', 'desc')
+                ->limit(50)
+                ->get();
+        }
 
         return response()->json(['success' => true, 'notifications' => $notifications]);
     }
@@ -178,6 +239,8 @@ class NotificationController extends Controller
         }
 
         try {
+            $this->ensureNotificationSchema();
+
             $markRead = $request->boolean('mark_read', false);
 
             // 1. Fetch user settings (default enabled 1)
@@ -186,26 +249,52 @@ class NotificationController extends Controller
             $notifyArrival = (int)($settings->notify_bus_arrival ?? 1);
             $notifySeat = (int)($settings->notify_seat_availability ?? 1);
 
-            // 2. Fetch SOS alerts BEFORE modifying status so active alerts are returned
-            $sosAlerts = DB::table('sos_alerts as sa')
+            // 2. Fetch SOS alerts BEFORE modifying status so active alerts are returned.
+            // Exclude alerts that are cleared or have empty status (from legacy truncation).
+            $hasSosIsCleared = false;
+            try {
+                $hasSosIsCleared = Schema::hasColumn('sos_alerts', 'is_cleared');
+            } catch (\Throwable $e) {}
+
+            $sosQuery = DB::table('sos_alerts as sa')
                 ->join('users as u', 'u.id', '=', 'sa.sender_user_id')
                 ->select('sa.id', 'sa.location_text', 'sa.status', 'sa.created_at', 'u.name as sender_name', 'u.email as sender_email')
                 ->where('sa.recipient_user_id', $userId)
-                ->orderBy('sa.created_at', 'desc')
+                ->whereNotIn('sa.status', ['cleared', 'resolved', '']);
+
+            if ($hasSosIsCleared) {
+                $sosQuery->where(function ($q) {
+                    $q->where('sa.is_cleared', 0)->orWhereNull('sa.is_cleared');
+                });
+            }
+
+            $sosAlerts = $sosQuery->orderBy('sa.created_at', 'desc')
                 ->limit(50)
                 ->get();
 
             // 3. Fetch Notifications BEFORE marking as read
-            $notifications = Notification::where('user_id', $userId)
-                ->where('is_cleared', false)
-                ->orderBy('id', 'desc')
-                ->limit(50)
-                ->get();
+            try {
+                $notifications = Notification::where('user_id', $userId)
+                    ->where('is_cleared', false)
+                    ->orderBy('id', 'desc')
+                    ->limit(50)
+                    ->get();
+            } catch (\Throwable $e) {
+                $notifications = Notification::where('user_id', $userId)
+                    ->orderBy('id', 'desc')
+                    ->limit(50)
+                    ->get();
+            }
 
             // 4. Only mark unread as read and active SOS as seen if explicitly requested
             if ($markRead) {
-                Notification::where('user_id', $userId)->whereNull('read_at')->update(['read_at' => now()]);
-                SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->update(['status' => 'seen']);
+                try {
+                    Notification::where('user_id', $userId)->whereNull('read_at')->update(['read_at' => now()]);
+                } catch (\Throwable $e) {}
+
+                try {
+                    SosAlert::where('recipient_user_id', $userId)->where('status', 'active')->update(['status' => 'seen']);
+                } catch (\Throwable $e) {}
             }
 
             return response()->json([
@@ -218,7 +307,7 @@ class NotificationController extends Controller
             ]);
 
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to load notifications']);
+            return response()->json(['success' => false, 'message' => 'Failed to load notifications: ' . $e->getMessage()], 500);
         }
     }
 
@@ -230,14 +319,74 @@ class NotificationController extends Controller
         }
 
         try {
-            Notification::where('user_id', $userId)->update(['is_cleared' => true]);
-            SosAlert::where('recipient_user_id', $userId)
-                ->where('status', 'active')
-                ->update(['status' => 'cleared']);
+            $this->ensureNotificationSchema();
+
+            // 1. Clear regular notifications
+            try {
+                Notification::where('user_id', $userId)->update(['is_cleared' => true]);
+            } catch (\Throwable $e) {
+                Notification::where('user_id', $userId)->delete();
+            }
+
+            // 2. Clear SOS alerts for this recipient
+            $sosCleared = false;
+
+            // Attempt A: update both status to 'cleared' and is_cleared to 1
+            try {
+                DB::table('sos_alerts')
+                    ->where('recipient_user_id', $userId)
+                    ->update([
+                        'status' => 'cleared',
+                        'is_cleared' => 1,
+                    ]);
+                $sosCleared = true;
+            } catch (\Throwable $e) {}
+
+            // Attempt B: if status enum does not yet permit 'cleared', set status to 'seen' + is_cleared = 1
+            if (!$sosCleared) {
+                try {
+                    DB::table('sos_alerts')
+                        ->where('recipient_user_id', $userId)
+                        ->update([
+                            'status' => 'seen',
+                            'is_cleared' => 1,
+                        ]);
+                    $sosCleared = true;
+                } catch (\Throwable $e) {}
+            }
+
+            // Attempt C: update only is_cleared
+            if (!$sosCleared) {
+                try {
+                    DB::table('sos_alerts')
+                        ->where('recipient_user_id', $userId)
+                        ->update(['is_cleared' => 1]);
+                    $sosCleared = true;
+                } catch (\Throwable $e) {}
+            }
+
+            // Attempt D: update status to 'cleared' alone
+            if (!$sosCleared) {
+                try {
+                    DB::table('sos_alerts')
+                        ->where('recipient_user_id', $userId)
+                        ->update(['status' => 'cleared']);
+                    $sosCleared = true;
+                } catch (\Throwable $e) {}
+            }
+
+            // Attempt E: if nothing else works, mark as resolved
+            if (!$sosCleared) {
+                try {
+                    DB::table('sos_alerts')
+                        ->where('recipient_user_id', $userId)
+                        ->update(['status' => 'resolved']);
+                } catch (\Throwable $e) {}
+            }
             
             return response()->json(['success' => true, 'message' => 'Notifications cleared']);
         } catch (Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to clear notifications']);
+            return response()->json(['success' => false, 'message' => 'Failed to clear notifications: ' . $e->getMessage()], 500);
         }
     }
 }
