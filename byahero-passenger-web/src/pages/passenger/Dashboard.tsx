@@ -53,6 +53,13 @@ export const Dashboard: React.FC = () => {
     }
   }, []);
 
+  useEffect(() => {
+    if (tourStep === 1) setCurrentTab('location');
+    else if (tourStep === 2) setCurrentTab('routes');
+    else if (tourStep === 3) setCurrentTab('groups');
+    else if (tourStep === 4) setCurrentTab('busstops');
+  }, [tourStep]);
+
   // Helper to resolve nearest stop name
   const resolveNearestStop = () => {
     if (!userLocation) return 'Roadside Pickup Point';
@@ -130,7 +137,7 @@ export const Dashboard: React.FC = () => {
   return (
     <div className="relative w-screen h-[100dvh] flex flex-col bg-slate-100 overflow-hidden select-none">
       {/* Top Navbar */}
-      <PassengerNavbar onStartTour={() => setTourStep(0)} />
+      <PassengerNavbar onStartTour={() => setTourStep(0)} tourStep={tourStep} />
 
       {/* Offline banner */}
       <OfflineBanner topOffset={64} />

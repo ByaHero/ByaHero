@@ -4,6 +4,7 @@ import { MaterialIcons } from './ui/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { triggerSOS } from '../utils/sosUtils';
+import { handleTourLayout } from './TourRegistry';
 
 interface PassengerNavbarProps {
   pageTitle?: string;
@@ -11,6 +12,7 @@ interface PassengerNavbarProps {
   showCloseButton?: boolean;
   onStartTour?: () => void;
   onTriggerSOS?: () => void;
+  tourStep?: number | null;
 }
 
 export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
@@ -18,19 +20,48 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
   showBackButton = false,
   showCloseButton = false,
   onStartTour,
-  onTriggerSOS
+  onTriggerSOS,
+  tourStep
 }) => {
   const navigate = useNavigate();
   const { user, logout, serverUrl } = useAuth();
   const { unreadCount, hasUnread } = useNotifications();
 
-  const [menuVisible, setMenuVisible] = useState(false);
+  const [menuVisibleState, setMenuVisibleState] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [logoutSuccessVisible, setLogoutSuccessVisible] = useState(false);
+
+  const isTourMenuStep = tourStep === 10 || tourStep === 12 || tourStep === 14;
+  const menuVisible = menuVisibleState || isTourMenuStep;
+
+  const setMenuVisible = (visible: boolean) => {
+    setMenuVisibleState(visible);
+  };
 
   const userName = user?.name ? (user.name.includes('@') ? user.name.split('@')[0] : user.name) : 'Guest';
   const userInitial = userName.charAt(0).toUpperCase() || '?';
   const userProfilePic = user?.profile_picture || '';
+
+  useEffect(() => {
+    if (tourStep === 10 || tourStep === 12 || tourStep === 14) {
+      setMenuVisible(true);
+      setTimeout(() => {
+        let layoutKey = '';
+        if (tourStep === 10) layoutKey = 'menu-history';
+        if (tourStep === 12) layoutKey = 'menu-feedback';
+        if (tourStep === 14) layoutKey = 'menu-report';
+        
+        if (layoutKey) {
+          const el = document.getElementById(`menu-btn-${layoutKey}`);
+          if (el) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }
+      }, 350);
+    } else if (tourStep === 9 || tourStep === 8 || tourStep === 15) {
+      setMenuVisible(false);
+    }
+  }, [tourStep]);
 
   const confirmLogout = async () => {
     setLogoutModalVisible(false);
@@ -133,6 +164,7 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
             <div className="flex items-center gap-3">
               <Link
                 to="/notifications"
+                ref={(el) => handleTourLayout('notifications', { current: el })}
                 className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none"
               >
                 <img
@@ -149,6 +181,7 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 
               <button
                 type="button"
+                ref={(el) => handleTourLayout('hamburger', { current: el })}
                 onClick={() => setMenuVisible(true)}
                 className="p-1 rounded-xl flex items-center justify-center focus:outline-none"
               >
@@ -196,30 +229,39 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 
             {/* Menu Items List */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3.5">
-              {menuItems.map((item, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => {
-                    setMenuVisible(false);
-                    if (item.isGuide) {
-                      localStorage.setItem('byahero_active_tour_step', '0');
-                      if (onStartTour) {
-                        onStartTour();
+              {menuItems.map((item, idx) => {
+                let layoutKey: string | null = null;
+                if (item.title === 'Ride History') layoutKey = 'menu-history';
+                if (item.title === 'Feedback') layoutKey = 'menu-feedback';
+                if (item.title === 'Report a Problem') layoutKey = 'menu-report';
+
+                return (
+                  <button
+                    key={idx}
+                    id={layoutKey ? `menu-btn-${layoutKey}` : undefined}
+                    type="button"
+                    ref={(el) => { if (layoutKey) handleTourLayout(layoutKey, { current: el }); }}
+                    onClick={() => {
+                      setMenuVisible(false);
+                      if (item.isGuide) {
+                        localStorage.setItem('byahero_active_tour_step', '0');
+                        if (onStartTour) {
+                          onStartTour();
+                        } else {
+                          navigate('/');
+                        }
                       } else {
-                        navigate('/');
+                        localStorage.removeItem('byahero_active_tour_step');
+                        navigate(item.route);
                       }
-                    } else {
-                      localStorage.removeItem('byahero_active_tour_step');
-                      navigate(item.route);
-                    }
-                  }}
-                  className="w-full bg-[#ececec] shadow-md rounded-2xl py-4 px-4 flex items-center gap-4 hover:bg-[#e2e2e2] transition-colors text-left"
-                >
-                  <img src={item.icon} alt="" className="w-7 h-7 object-contain" />
-                  <span className="text-slate-800 font-bold text-sm">{item.title}</span>
-                </button>
-              ))}
+                    }}
+                    className="w-full bg-[#ececec] shadow-md rounded-2xl py-4 px-4 flex items-center gap-4 hover:bg-[#e2e2e2] transition-colors text-left"
+                  >
+                    <img src={item.icon} alt="" className="w-7 h-7 object-contain" />
+                    <span className="text-slate-800 font-bold text-sm">{item.title}</span>
+                  </button>
+                );
+              })}
 
               {/* Logout Button */}
               <button

@@ -8,6 +8,7 @@ import AlertModal from '../../../components/AlertModal';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import TourOverlay from '../../../components/TourOverlay';
 import { useTourSync } from '../../../hooks/passenger/useTourSync';
+import { handleTourLayout } from '../../../components/TourRegistry';
 
 export const ReportProblem: React.FC = () => {
   const { activeStep, setActiveStep } = useTourSync('/report');
@@ -135,7 +136,7 @@ export const ReportProblem: React.FC = () => {
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
         <div className="max-w-md mx-auto w-full pb-8">
           <div className="p-5 bg-slate-100/70 min-h-[560px] mt-4 rounded-t-[32px]">
-            <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+            <div ref={(el) => handleTourLayout('report-card', { current: el })} className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
               {!submitted ? (
                 <div>
                   <div className="flex items-center mb-5">

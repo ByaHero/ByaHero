@@ -4,6 +4,7 @@ import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
 import AlertModal from './AlertModal';
 import { getFriendOnlineStatus } from '../utils/userUtils';
+import { handleTourLayout } from './TourRegistry';
 
 export type SheetTab = 'location' | 'routes' | 'groups' | 'busstops';
 
@@ -100,9 +101,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   }, [sheetState, isDragging]);
 
   useEffect(() => {
-    if (tourStep === 6) {
-      setSheetState('minimized');
-    } else if (tourStep === 7 || tourStep === 5) {
+    if (tourStep === 6 || tourStep === 7 || tourStep === 5) {
       setSheetState('mid');
     }
   }, [tourStep]);
@@ -265,6 +264,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       {/* Recenter Button (attached to top right of bottom sheet) */}
       <button
         type="button"
+        ref={(el) => handleTourLayout('recenter', { current: el })}
         onClick={() => centerOnUser()}
         disabled={isLocating}
         className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010] disabled:opacity-80"
@@ -298,6 +298,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         {/* Tab 1: Buses / Location */}
         <button
           type="button"
+          ref={(el) => handleTourLayout('tab-location', { current: el })}
           onClick={() => onTabChange('location')}
           className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'location'
@@ -315,6 +316,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         {/* Tab 2: Routes */}
         <button
           type="button"
+          ref={(el) => handleTourLayout('tab-routes', { current: el })}
           onClick={() => onTabChange('routes')}
           className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'routes'
@@ -332,6 +334,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         {/* Tab 3: Circles / Friends */}
         <button
           type="button"
+          ref={(el) => handleTourLayout('tab-groups', { current: el })}
           onClick={() => onTabChange('groups')}
           className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'groups'
@@ -349,6 +352,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         {/* Tab 4: Bus Stops */}
         <button
           type="button"
+          ref={(el) => handleTourLayout('tab-busstops', { current: el })}
           onClick={() => onTabChange('busstops')}
           className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'busstops'
@@ -559,117 +563,44 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
               FILTER ROUTES
             </h3>
 
-            <div className="space-y-2.5">
+            <div className="space-y-2.5 mt-4">
+              {/* Route 1: Tanauan - Laurel */}
+              <button
+                type="button"
+                onClick={() => setSelectedRoute('TANAUAN - LAUREL')}
+                className={`w-full flex items-center px-6 py-3.5 rounded-full transition-all cursor-pointer ${
+                  selectedRoute === 'TANAUAN - LAUREL'
+                    ? 'bg-[#103d7c] text-white shadow-md'
+                    : 'bg-[#f1f5f9] text-slate-800 hover:bg-[#e2e8f0]'
+                }`}
+              >
+                <span className="font-semibold text-[15px]">Tanauan - Laurel</span>
+              </button>
+
+              {/* Route 2: Laurel - Tanauan */}
+              <button
+                type="button"
+                onClick={() => setSelectedRoute('LAUREL - TANAUAN')}
+                className={`w-full flex items-center px-6 py-3.5 rounded-full transition-all cursor-pointer ${
+                  selectedRoute === 'LAUREL - TANAUAN'
+                    ? 'bg-[#103d7c] text-white shadow-md'
+                    : 'bg-[#f1f5f9] text-slate-800 hover:bg-[#e2e8f0]'
+                }`}
+              >
+                <span className="font-semibold text-[15px]">Laurel - Tanauan</span>
+              </button>
+
               {/* All Routes */}
               <button
                 type="button"
                 onClick={() => setSelectedRoute('')}
-                className={`w-full flex justify-between items-center p-4 rounded-2xl border transition-all cursor-pointer ${
+                className={`w-full flex items-center px-6 py-3.5 rounded-full transition-all cursor-pointer ${
                   !selectedRoute
-                    ? 'bg-[#103d7c] border-[#103d7c] text-white shadow-md'
-                    : 'bg-white border-[#e2e8f0] text-slate-800 hover:bg-slate-50'
+                    ? 'bg-[#103d7c] text-white shadow-md'
+                    : 'bg-[#f1f5f9] text-slate-800 hover:bg-[#e2e8f0]'
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      !selectedRoute ? 'bg-white/20' : 'bg-[#103d7c]/10'
-                    }`}
-                  >
-                    <MaterialIcons
-                      name="alt_route"
-                      size={20}
-                      color={!selectedRoute ? '#ffffff' : '#103d7c'}
-                    />
-                  </div>
-                  <div>
-                    <div className="font-black text-sm">All Routes</div>
-                    <div
-                      className={`text-xs ${
-                        !selectedRoute ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      Show all active buses
-                    </div>
-                  </div>
-                </div>
-                {!selectedRoute && <MaterialIcons name="check_circle" size={20} color="#ffffff" />}
-              </button>
-
-              {/* Route 1: Laurel - Tanauan */}
-              <button
-                type="button"
-                onClick={() => setSelectedRoute('LAUREL - TANAUAN')}
-                className={`w-full flex justify-between items-center p-4 rounded-2xl border transition-all cursor-pointer ${
-                  selectedRoute === 'LAUREL - TANAUAN'
-                    ? 'bg-[#103d7c] border-[#103d7c] text-white shadow-md'
-                    : 'bg-white border-[#e2e8f0] text-slate-800 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      selectedRoute === 'LAUREL - TANAUAN' ? 'bg-white/20' : 'bg-[#103d7c]/10'
-                    }`}
-                  >
-                    <MaterialIcons
-                      name="directions_bus"
-                      size={20}
-                      color={selectedRoute === 'LAUREL - TANAUAN' ? '#ffffff' : '#103d7c'}
-                    />
-                  </div>
-                  <div>
-                    <div className="font-black text-sm">Laurel - Tanauan</div>
-                    <div
-                      className={`text-xs ${
-                        selectedRoute === 'LAUREL - TANAUAN' ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      Via Talisay • Batangas Transit
-                    </div>
-                  </div>
-                </div>
-                {selectedRoute === 'LAUREL - TANAUAN' && (
-                  <MaterialIcons name="check_circle" size={20} color="#ffffff" />
-                )}
-              </button>
-
-              {/* Route 2: Tanauan - Laurel */}
-              <button
-                type="button"
-                onClick={() => setSelectedRoute('TANAUAN - LAUREL')}
-                className={`w-full flex justify-between items-center p-4 rounded-2xl border transition-all cursor-pointer ${
-                  selectedRoute === 'TANAUAN - LAUREL'
-                    ? 'bg-[#103d7c] border-[#103d7c] text-white shadow-md'
-                    : 'bg-white border-[#e2e8f0] text-slate-800 hover:bg-slate-50'
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-9 h-9 rounded-full flex items-center justify-center ${
-                      selectedRoute === 'TANAUAN - LAUREL' ? 'bg-white/20' : 'bg-[#103d7c]/10'
-                    }`}
-                  >
-                    <MaterialIcons
-                      name="directions_bus"
-                      size={20}
-                      color={selectedRoute === 'TANAUAN - LAUREL' ? '#ffffff' : '#103d7c'}
-                    />
-                  </div>
-                  <div>
-                    <div className="font-black text-sm">Tanauan - Laurel</div>
-                    <div
-                      className={`text-xs ${
-                        selectedRoute === 'TANAUAN - LAUREL' ? 'text-blue-100' : 'text-slate-400'
-                      }`}
-                    >
-                      Via Talisay • Batangas Transit
-                    </div>
-                  </div>
-                </div>
-                {selectedRoute === 'TANAUAN - LAUREL' && (
-                  <MaterialIcons name="check_circle" size={20} color="#ffffff" />
-                )}
+                <span className="font-semibold text-[15px]">All Routes</span>
               </button>
             </div>
           </div>

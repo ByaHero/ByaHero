@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { handleTourLayout } from './TourRegistry';
 
 interface PassengerFooterProps {
   activeTab?: 'location' | 'sos' | 'info';
@@ -76,6 +77,7 @@ export const PassengerFooter: React.FC<PassengerFooterProps> = ({
       <div className="w-[100px] flex items-center justify-center h-full relative">
         <button
           type="button"
+          ref={(el) => handleTourLayout('sos-btn', { current: el })}
           onClick={() => handleTabPress('sos')}
           className="w-[110px] rounded-t-[55px] bg-[#2563eb] absolute -top-5 h-[95px] flex flex-col justify-start items-center pt-4 shadow-lg shadow-blue-600/30 focus:outline-none hover:bg-blue-700 transition-transform active:scale-95 cursor-pointer"
         >
