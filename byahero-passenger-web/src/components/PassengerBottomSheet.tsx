@@ -11,6 +11,7 @@ interface PassengerBottomSheetProps {
   onTabChange: (tab: SheetTab) => void;
   onSelectBus?: (bus: any) => void;
   onSelectStop?: (stop: any) => void;
+  tourStep?: number | null;
 }
 
 export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
@@ -18,6 +19,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   onTabChange,
   onSelectBus,
   onSelectStop,
+  tourStep,
 }) => {
   const { serverUrl, isAuthenticated, user } = useAuth();
   const {
@@ -94,6 +96,14 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, [sheetState, isDragging]);
+
+  useEffect(() => {
+    if (tourStep === 6) {
+      setSheetState('minimized');
+    } else if (tourStep === 7 || tourStep === 5) {
+      setSheetState('mid');
+    }
+  }, [tourStep]);
 
   useEffect(() => {
     if (currentTab === 'groups' && (!inviteCode || inviteCode === '------')) {
