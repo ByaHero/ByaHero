@@ -58,6 +58,13 @@ jobs:
           cd byahero-conductor
           npx expo export --platform android --output-dir /tmp/expo-export-check
 
+      - name: Verify no hardcoded Java Home in gradle.properties
+        run: |
+          if grep -q "org.gradle.java.home" byahero-conductor/android/gradle.properties; then
+            echo "Error: Hardcoded org.gradle.java.home found in gradle.properties. This will break CI builds."
+            exit 1
+          fi
+
       - name: Build Android APK
         run: |
           cd byahero-conductor/android
