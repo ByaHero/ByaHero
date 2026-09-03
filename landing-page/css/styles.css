@@ -1,0 +1,26 @@
+/* ═══════════════════════════════════════════════════════════════
+   BYAHERO MAIN STYLESHEET
+   Aggregates all modular CSS files
+═══════════════════════════════════════════════════════════════ */
+
+/* 1. Design Tokens & Variables */
+@import url('tokens.css');
+
+/* 2. Base & Typography */
+@import url('base.css');
+
+/* 3. Component Styles */
+@import url('navbar.css');
+@import url('hero.css');
+@import url('stats.css');
+@import url('walkthroughs.css');
+@import url('survey.css');
+@import url('roles.css');
+@import url('cta.css');
+@import url('footer.css');
+
+/* 4. Animations & Effects */
+@import url('animations.css');
+
+/* 5. Responsive Styles */
+@import url('responsive.css');

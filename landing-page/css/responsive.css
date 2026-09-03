@@ -1,0 +1,80 @@
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE BREAKPOINTS
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 991.98px) {
+    .hero {
+        text-align: center;
+        padding-top: 100px;
+        min-height: auto;
+        padding-bottom: 4rem;
+    }
+
+    .hero-desc {
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .hero-actions {
+        justify-content: center;
+    }
+
+    .hero-visual {
+        margin-top: 3rem;
+    }
+
+    .phone-frame {
+        width: 240px;
+        height: 480px;
+    }
+
+    .float-card-1 {
+        right: 5%;
+        top: 10%;
+    }
+
+    .float-card-2 {
+        left: 5%;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .phone-frame {
+        width: 220px;
+        height: 440px;
+    }
+
+    .float-card {
+        font-size: .7rem;
+        padding: 10px 12px;
+    }
+
+    .float-card .float-icon {
+        width: 30px;
+        height: 30px;
+        font-size: .85rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .btn-hero-primary,
+    .btn-hero-secondary {
+        width: 100%;
+        justify-content: center;
+        max-width: 280px;
+    }
+
+    .stat-item {
+        margin-bottom: 1rem;
+    }
+
+    .stat-number {
+        font-size: 1.5rem;
+    }
+
+    .step-card {
+        padding: 1.5rem 1rem;
+    }
+}
