@@ -124,6 +124,8 @@ class BusController extends Controller
             // If the bus is physically not moving, display 0 km/h instead of the model's predicted average route speed
             $r['ai_predicted_speed_kmh'] = $currentSpeed <= 0 ? 0 : $predictions['predicted_speed_kmh'];
             $r['ai_eta_minutes'] = $predictions['eta_minutes'];
+            $r['is_in_traffic'] = (bool)($bus->is_in_traffic ?? false);
+            $r['traffic_extra_delay_minutes'] = (int)($bus->traffic_extra_delay_minutes ?? 0);
 
             $out[] = $r;
         }

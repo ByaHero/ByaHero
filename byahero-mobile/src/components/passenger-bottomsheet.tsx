@@ -569,12 +569,28 @@ export default function PassengerBottomSheet({
                             {bus.current_location_name || 'Unknown Location'}
                           </Text>
 
-                          {/* Row 3: Route */}
-                          {bus.route ? (
-                            <Text style={tw`text-[11px] text-slate-400 font-medium mb-2.5`} numberOfLines={1}>
-                              {bus.route}
-                            </Text>
-                          ) : <View style={tw`mb-2.5`} />}
+                          {/* Row 3: Route + Traffic Pill */}
+                          <View style={tw`flex-row items-center flex-wrap mb-2.5`}>
+                            {bus.route ? (
+                              <Text style={tw`text-[11px] text-slate-400 font-medium mr-2`} numberOfLines={1}>
+                                {bus.route}
+                              </Text>
+                            ) : null}
+                            {bus.is_in_traffic && bus.traffic_extra_delay_minutes > 0 && (
+                              <View style={{
+                                backgroundColor: '#F97316',
+                                borderRadius: 999,
+                                paddingHorizontal: 8,
+                                paddingVertical: 3,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                              }}>
+                                <Text style={{ color: 'white', fontWeight: '800', fontSize: 9, letterSpacing: 0.5 }}>
+                                  TRAFFIC +{bus.traffic_extra_delay_minutes}MINS
+                                </Text>
+                              </View>
+                            )}
+                          </View>
 
                           {/* Row 4: ETA + distance */}
                           <View style={tw`flex-row items-center mb-3`}>

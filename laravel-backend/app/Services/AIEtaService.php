@@ -74,4 +74,46 @@ class AIEtaService
             'eta_minutes' => $etaMinutes
         ];
     }
+
+    /**
+     * Detect if a bus is in traffic and calculate the extra delay.
+     */
+    public function detectTraffic($route, $currentSpeed, $distanceMeters = null, $sustainedSlowSeconds = 0)
+    {
+        try {
+            $apiUrl = config('services.python_ml_api.url');
+            $response = \Illuminate\Support\Facades\Http::timeout(5)->post("{$apiUrl}/predict-traffic", [
+                'route' => $route ?? '',
+                'current_speed' => (float)($currentSpeed ?? 0),
+                'distance_meters' => (float)($distanceMeters ?? 0),
+                'sustained_slow_seconds' => (int)$sustainedSlowSeconds
+            ]);
+            
+            if ($response->successful()) {
+                $data = $response->json();
+                return [
+                    'is_in_traffic' => $data['is_in_traffic'] ?? false,
+                    'extra_delay_minutes' => $data['extra_delay_minutes'] ?? 0,
+                    'confidence' => $data['confidence'] ?? 0.0
+                ];
+            }
+            
+            \Illuminate\Support\Facades\Log::error('Python ML API Predict Traffic Failed', ['response' => $response->body()]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+        }
+
+        // Fallback calculation if Python API fails
+        $isInTraffic = $sustainedSlowSeconds >= 90 && ($currentSpeed * 3.6) <= 5.0;
+        $extraDelayMinutes = 0;
+        if ($isInTraffic) {
+            $extraDelayMinutes = 3; // Hardcoded fallback
+        }
+
+        return [
+            'is_in_traffic' => $isInTraffic,
+            'extra_delay_minutes' => $extraDelayMinutes,
+            'confidence' => 0.0
+        ];
+    }
 }

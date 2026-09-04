@@ -301,7 +301,8 @@ export default function DashboardScreen() {
           initial_available_seats: Math.max(0, seatsTotal - boardingCount),
           pre_departure_count: boardingCount,
           operation_id: res.operation_id,
-          ticketing_mode: ticketingMode
+          ticketing_mode: ticketingMode,
+          is_new_session: true
         };
 
         await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
