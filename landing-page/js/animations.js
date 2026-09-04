@@ -39,36 +39,6 @@ function initAnimations() {
         revealEls.forEach(el => observer.observe(el));
     }
 
-    // ─── Counter animation for stats ───
-    const counters = document.querySelectorAll('[data-target]');
-    if (counters.length > 0) {
-        const counterObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const el = entry.target;
-                    const target = +el.dataset.target;
-                    const suffix = el.closest('.stat-item')?.querySelector('.stat-label')?.textContent.includes('%') ? '%' : '+';
-                    const duration = 1500;
-                    const startTime = performance.now();
-
-                    function tick(now) {
-                        const elapsed = now - startTime;
-                        const progress = Math.min(elapsed / duration, 1);
-                        // Ease out cubic
-                        const eased = 1 - Math.pow(1 - progress, 3);
-                        const current = Math.round(eased * target);
-                        el.textContent = current.toLocaleString() + suffix;
-                        if (progress < 1) requestAnimationFrame(tick);
-                    }
-                    requestAnimationFrame(tick);
-                    counterObserver.unobserve(el);
-                }
-            });
-        }, { threshold: 0.5 });
-
-        counters.forEach(c => counterObserver.observe(c));
-    }
-
     // ─── Smooth scroll for nav links ───
     document.querySelectorAll('a[href^="#"]').forEach(link => {
         link.addEventListener('click', (e) => {

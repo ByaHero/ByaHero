@@ -56,22 +56,21 @@
 
     .hero-actions {
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        width: 100%;
+        max-width: 360px;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .btn-hero-primary,
     .btn-hero-secondary {
         width: 100%;
         justify-content: center;
-        max-width: 280px;
-    }
-
-    .stat-item {
-        margin-bottom: 1rem;
-    }
-
-    .stat-number {
-        font-size: 1.5rem;
+        max-width: 100%;
+        padding: .95rem 1.25rem;
+        font-size: 1rem;
+        white-space: nowrap;
     }
 
     .step-card {
