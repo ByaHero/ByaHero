@@ -29,9 +29,10 @@ jobs:
           distribution: 'zulu'
           java-version: 17
 
-      - name: Validate package.json
+      - name: Validate release JSON files
         run: |
           cd byahero-conductor
+          node -e "JSON.parse(require('fs').readFileSync('app.json', 'utf8')); console.log('app.json is valid')"
           node -e "JSON.parse(require('fs').readFileSync('package.json', 'utf8')); console.log('package.json is valid')"
 
       - name: Install Conductor Dependencies
