@@ -12,7 +12,6 @@ landing-page/
 ├── components/              # Modular HTML sections
 │   ├── navbar.html          # Top navigation bar & mobile offcanvas
 │   ├── hero.html            # Hero section with banner & action buttons
-│   ├── stats.html           # Live statistics counter bar
 │   ├── walkthroughs.html    # 9 smartphone video mockups & category filters
 │   ├── survey.html          # Capstone study survey card & QR code
 │   ├── roles.html           # "For Everyone" role cards
@@ -23,7 +22,6 @@ landing-page/
 │   ├── base.css             # Base reset, typography, common section headings
 │   ├── navbar.css           # Navbar styling, glassmorphism blur, offcanvas
 │   ├── hero.css             # Hero layout, badges, buttons, visual mockups
-│   ├── stats.css            # Stats bar grid & typography
 │   ├── walkthroughs.css     # Phone mockups, video player, audio controls, captions
 │   ├── survey.css           # Survey card, QR code box styling
 │   ├── roles.css            # Role cards and features list
@@ -33,7 +31,7 @@ landing-page/
 │   ├── responsive.css       # Media queries for tablet & mobile breakpoints
 │   └── styles.css           # Central stylesheet importing all modules
 ├── js/                      # Modular JavaScript files
-│   ├── animations.js        # Navbar blur, smooth scroll, reveal observer, counters
+│   ├── animations.js        # Navbar blur, smooth scroll, reveal observer
 │   ├── walkthroughs.js      # Video autoplay on scroll, audio toggle, fullscreen, filters
 │   ├── release.js           # Dynamic GitHub Release latest APK link resolver
 │   └── main.js              # Application entry point & initialization
