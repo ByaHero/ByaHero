@@ -493,9 +493,18 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                       <div className="p-4">
                         <div className="flex justify-between items-start mb-2">
                           <div className="flex-1 pr-2">
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                              ROUTE
-                            </span>
+                            <div className="flex items-center flex-wrap gap-2 mb-0.5">
+                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                                ROUTE
+                              </span>
+                              {bus.is_in_traffic && bus.traffic_extra_delay_minutes > 0 && (
+                                <div className="bg-[#F97316] rounded-full px-2 py-0.5 flex items-center">
+                                  <span className="text-white font-extrabold text-[9px] tracking-wider">
+                                    TRAFFIC +{bus.traffic_extra_delay_minutes}MINS
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                             <span className="text-sm font-black text-slate-800 leading-snug block">
                               {bus.route || 'Tanauan - Laurel'}
                             </span>

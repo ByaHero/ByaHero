@@ -79,3 +79,28 @@ def predict_eta_speed(route: str, current_speed: float, distance_meters: float, 
         "predicted_speed_kmh": round(predicted_speed * 3.6, 1),
         "eta_minutes": eta_minutes
     }
+
+def predict_traffic_delay(route: str, current_speed_ms: float, distance_meters: float, current_hour: int, current_day: int):
+    if not os.path.exists(MODEL_FILE) or not os.path.exists(ENCODER_FILE):
+        normal_speed_ms = 10.0
+    else:
+        model = joblib.load(MODEL_FILE)
+        le = joblib.load(ENCODER_FILE)
+        try:
+            route_encoded = le.transform([route])[0]
+            normal_speed_ms = model.predict([[route_encoded, current_hour, current_day]])[0]
+        except Exception:
+            normal_speed_ms = 10.0
+            
+    crawl_speed = max(0.5, current_speed_ms)
+    normal_speed_ms = max(0.5, normal_speed_ms)
+    
+    time_at_crawl = distance_meters / crawl_speed
+    time_at_normal = distance_meters / normal_speed_ms
+    
+    extra_delay_minutes = max(0, round((time_at_crawl - time_at_normal) / 60))
+    
+    return {
+        "extra_delay_minutes": int(extra_delay_minutes),
+        "normal_expected_speed_kmh": round(normal_speed_ms * 3.6, 1)
+    }

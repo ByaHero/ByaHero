@@ -375,6 +375,25 @@ class ConductorController extends Controller
                 $updateData['status'] = $status;
             }
         }
+        $trafficInfo = [];
+        if ($request->has('sustained_slow_seconds')) {
+            $sustainedSlowSeconds = (int)$request->input('sustained_slow_seconds', 0);
+            $currentSpeed = (float)$request->input('speed', 0);
+            $route = $updateData['route'] ?? $bus->route ?? '';
+            
+            $distanceMeters = 5000; // fallback distance
+            
+            $aiEtaService = new \App\Services\AIEtaService();
+            $trafficData = $aiEtaService->detectTraffic($route, $currentSpeed, $distanceMeters, $sustainedSlowSeconds);
+            
+            $updateData['is_in_traffic'] = $trafficData['is_in_traffic'];
+            $updateData['traffic_extra_delay_minutes'] = $trafficData['extra_delay_minutes'];
+            
+            $trafficInfo = [
+                'is_in_traffic' => $trafficData['is_in_traffic'],
+                'traffic_extra_delay_minutes' => $trafficData['extra_delay_minutes']
+            ];
+        }
         
         Bus::where('Bus_ID', $busId)->update($updateData);
 
@@ -390,11 +409,11 @@ class ConductorController extends Controller
             ]);
         }
 
-        return response()->json([
+        return response()->json(array_merge([
             'success' => true,
             'message' => 'Location updated successfully',
             'current_location_name' => $locationName
-        ]);
+        ], $trafficInfo));
     }
 
     public function stop(Request $request)

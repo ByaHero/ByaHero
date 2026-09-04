@@ -90,6 +90,10 @@ export default function LiveTrackingScreen() {
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
   const [ticketCounter, setTicketCounter] = useState(1);
+  const [sessionInitialized, setSessionInitialized] = useState(false);
+  const [activePassengers, setActivePassengers] = useState<any[]>([]);
+  const [isInTraffic, setIsInTraffic] = useState(false);
+  const [trafficDelayMins, setTrafficDelayMins] = useState(0);
 
   // Printer States
   const printer = usePrinter();
@@ -129,6 +133,10 @@ export default function LiveTrackingScreen() {
   const locationSubscription = useRef<Location.LocationSubscription | null>(null);
   const routeFeatures = useRef<any[]>([]);
   const sessionRef = useRef<any>(null);
+  
+  // Traffic detection
+  const speedBuffer = useRef<{speed_kmh: number, ts: number}[]>([]);
+  const sustainedSlowSeconds = useRef(0);
 
   // Passenger event accumulation
   const pendingBoards = useRef(0);
@@ -146,7 +154,7 @@ export default function LiveTrackingScreen() {
   useEffect(() => {
     seatsRef.current = seats;
     boardedCountRef.current = boardedCount;
-    if (!session) return; // Wait until session is initialized to avoid writing default/stale 0 values on mount
+    if (!session || !sessionInitialized) return; // Wait until session is initialized to avoid writing default/stale 0 values on mount
     AsyncStorage.getItem('byahero_conductor_payload').then(str => {
       if (!str) return;
       try {
@@ -154,11 +162,13 @@ export default function LiveTrackingScreen() {
         p.current_seats = seats;
         p.current_boarded = boardedCount;
         p.pending_pre_departure = pendingPreDeparture;
-        p.ticket_counter = ticketCounter;
+        p.active_passengers = activePassengers;
+        delete p.is_new_session;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
+        AsyncStorage.setItem('byahero_conductor_ticket_counter', JSON.stringify(ticketCounter));
       } catch (e) {}
     });
-  }, [session, seats, boardedCount, pendingPreDeparture, ticketCounter]);
+  }, [session, sessionInitialized, seats, boardedCount, pendingPreDeparture, ticketCounter, activePassengers]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -284,7 +294,7 @@ export default function LiveTrackingScreen() {
     sessionRef.current = payload;
 
     const seatsTotal = payload.seats_total || 0;
-    const isResumed = payload.current_seats !== undefined;
+    const isResumed = !payload.is_new_session;
 
     // Compute available seats
     // For a brand new session, seats available = seats_total - pre_departure_count
@@ -317,6 +327,7 @@ export default function LiveTrackingScreen() {
     setBoardedCount(restoredBoarded);
 
     if (payload.isSimulation) {
+      setSessionInitialized(true);
       return; // SIMULATION MODE: Do not connect to background location services or real backend tracking
     }
 
@@ -341,8 +352,19 @@ export default function LiveTrackingScreen() {
       : (payload.pre_departure_count || 0);
     setPendingPreDeparture(restoredPending);
 
-    let restoredCounter = payload.ticket_counter !== undefined ? payload.ticket_counter : 1;
-    setTicketCounter(restoredCounter);
+    try {
+      const ticketStr = await AsyncStorage.getItem('byahero_conductor_ticket_counter');
+      if (ticketStr) {
+        setTicketCounter(JSON.parse(ticketStr));
+      } else {
+        setTicketCounter(1);
+      }
+    } catch (e) {
+      setTicketCounter(1);
+    }
+    
+    setActivePassengers(payload.active_passengers || []);
+    setSessionInitialized(true);
 
     // Load route features for geofenced location parsing
     try {
@@ -465,9 +487,68 @@ export default function LiveTrackingScreen() {
     const speed = location.coords.speed || 0;
     lastCoords.current = { lat, lng, speed };
 
+    // Update speed buffer
+    const nowTs = Date.now();
+    speedBuffer.current.push({ speed_kmh: speed * 3.6, ts: nowTs });
+    speedBuffer.current = speedBuffer.current.filter(entry => nowTs - entry.ts <= 120000); // last 2 minutes
+
+    // Calculate sustained slow seconds
+    let slowTime = 0;
+    for (let i = speedBuffer.current.length - 1; i >= 0; i--) {
+      if (speedBuffer.current[i].speed_kmh <= 5) {
+        if (i === 0) slowTime = (nowTs - speedBuffer.current[0].ts) / 1000;
+      } else {
+        if (i < speedBuffer.current.length - 1) {
+          slowTime = (nowTs - speedBuffer.current[i + 1].ts) / 1000;
+        }
+        break;
+      }
+    }
+    
+    // Calculate clear condition
+    let fastTime = 0;
+    for (let i = speedBuffer.current.length - 1; i >= 0; i--) {
+      if (speedBuffer.current[i].speed_kmh > 10) {
+        if (i === 0) fastTime = (nowTs - speedBuffer.current[0].ts) / 1000;
+      } else {
+        if (i < speedBuffer.current.length - 1) {
+          fastTime = (nowTs - speedBuffer.current[i + 1].ts) / 1000;
+        }
+        break;
+      }
+    }
+    
+    sustainedSlowSeconds.current = slowTime;
+    
+    if (slowTime >= 90) {
+      setIsInTraffic(true);
+    } else if (fastTime >= 30) {
+      setIsInTraffic(false);
+      setTrafficDelayMins(0);
+    }
+
     // Resolve Location Name
     let resolved = resolvedLocationNameCached(lat, lng);
     setLocationName(resolved);
+
+    // Auto-Depart Logic
+    if (sessionRef.current?.ticketing_mode === 'Automatic' && resolved && !resolved.includes(',')) {
+      setActivePassengers(prev => {
+        const matchingGroup = prev.find(p => p.alightingStop === resolved);
+        if (matchingGroup && matchingGroup.count > 0) {
+          const count = matchingGroup.count;
+          
+          setSeats(s => s + count);
+          setBoardedCount(b => b - count);
+          pendingDeparts.current += count;
+          flushPendingEvents();
+          showAlert('Auto-Depart', `${count} passenger(s) arrived at ${resolved}`, 'success');
+          
+          return prev.filter(p => p.alightingStop !== resolved);
+        }
+        return prev;
+      });
+    }
 
     // Update map marker
     const nowTimeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -533,7 +614,8 @@ export default function LiveTrackingScreen() {
       seats_available: currentSeats,
       status: status,
       speed: speed,
-      current_location_name: locName
+      current_location_name: locName,
+      sustained_slow_seconds: sustainedSlowSeconds.current
     };
 
     try {
@@ -541,6 +623,12 @@ export default function LiveTrackingScreen() {
       if (res && res.success === false && res.error && res.error.includes('403')) {
         handleAdminStop();
         return;
+      }
+      if (res && res.success) {
+        if (res.is_in_traffic !== undefined) {
+          setIsInTraffic(res.is_in_traffic);
+          setTrafficDelayMins(res.traffic_extra_delay_minutes || 0);
+        }
       }
       setNetStatus('Live');
     } catch (e) {
@@ -662,7 +750,7 @@ export default function LiveTrackingScreen() {
     if (Platform.OS === 'android' && LocationServiceModule) {
       try {
         LocationServiceModule.updateSessionData({
-          seats_available: 0,
+          seats_available: session?.seats_total || 0,
           force_seats: true
         });
       } catch (_) {}
@@ -679,7 +767,7 @@ export default function LiveTrackingScreen() {
     if (Platform.OS === 'android' && LocationServiceModule) {
       try {
         LocationServiceModule.updateSessionData({
-          seats_available: 0,
+          seats_available: session?.seats_total || 0,
           force_seats: true
         });
       } catch (_) {}
@@ -829,6 +917,18 @@ export default function LiveTrackingScreen() {
     setIssuedTicket(ticketData);
     setTicketCounter(prev => prev + 1);
     
+    // Track active passengers for auto-departure if in Automatic mode
+    if (session?.ticketing_mode === 'Automatic') {
+      setActivePassengers(prev => {
+        const alighting = ticketData.alighting;
+        const existing = prev.find(p => p.alightingStop === alighting);
+        if (existing) {
+          return prev.map(p => p.alightingStop === alighting ? { ...p, count: p.count + ticketData.quantity } : p);
+        }
+        return [...prev, { alightingStop: alighting, count: ticketData.quantity }];
+      });
+    }
+
     // Close modal and reset
     setIsTicketingModalVisible(false);
     setBoardingStop(null);
@@ -940,9 +1040,16 @@ export default function LiveTrackingScreen() {
             <Text style={tw`text-xs font-bold text-slate-500`}>Route</Text>
             <Text style={tw`text-xs font-bold text-slate-800`}>{session ? session.route : '-'}</Text>
           </View>
-          <View style={tw`flex-row justify-between border-b border-slate-200 pb-2`}>
+          <View style={tw`flex-row justify-between border-b border-slate-200 pb-2 items-center`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Current Location</Text>
-            <Text style={tw`text-xs font-bold text-slate-800 max-w-[60%] text-right`}>{locationName}</Text>
+            <View style={tw`flex-row items-center gap-2 max-w-[60%] justify-end flex-wrap`}>
+              {isInTraffic && trafficDelayMins > 0 && (
+                <View style={[tw`px-2 py-1 rounded-full`, { backgroundColor: '#F97316' }]}>
+                  <Text style={tw`text-white font-bold text-[9px] tracking-wider`}>TRAFFIC +{trafficDelayMins}MINS</Text>
+                </View>
+              )}
+              <Text style={tw`text-xs font-bold text-slate-800 text-right`}>{locationName}</Text>
+            </View>
           </View>
           <View style={tw`flex-row justify-between`}>
             <Text style={tw`text-xs font-bold text-slate-500`}>Last Update</Text>
