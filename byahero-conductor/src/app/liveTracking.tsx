@@ -235,18 +235,23 @@ export default function LiveTrackingScreen() {
       if (state === 'active') {
         LocationServiceModule.notifyAppForeground();
         try {
-          const persisted = await LocationServiceModule.getPersistedSeats();
-          if (persisted !== -1) {
-            setSeats(persisted);
-            // Recompute boarded count from the persisted available seats
-            const seatsTotal = sessionRef.current?.seats_total || 0;
-            setBoardedCount(Math.max(0, seatsTotal - persisted));
+          const isRunning = await LocationServiceModule.isRunning();
+          if (isRunning && sessionInitialized && !sessionRef.current?.is_new_session) {
+            const persisted = await LocationServiceModule.getPersistedSeats();
+            if (persisted !== -1) {
+              const seatsTotal = sessionRef.current?.seats_total || 0;
+              if (seatsTotal > 0) {
+                setSeats(persisted);
+                // Recompute boarded count from the persisted available seats
+                setBoardedCount(Math.max(0, seatsTotal - persisted));
+              }
+            }
           }
         } catch (_) {}
       }
     });
     return () => sub.remove();
-  }, []);
+  }, [sessionInitialized]);
 
   // Stable refs so media button listeners never hold stale closures
   const incrementRef = useRef<(count?: number, isManualUi?: boolean) => void>(() => {});
@@ -295,30 +300,37 @@ export default function LiveTrackingScreen() {
 
     const seatsTotal = payload.seats_total || 0;
     const isResumed = !payload.is_new_session;
+    const preDep = payload.pre_departure_count || 0;
+    const initialAvailable = payload.initial_available_seats !== undefined
+      ? payload.initial_available_seats
+      : Math.max(0, seatsTotal - preDep);
 
     // Compute available seats
     // For a brand new session, seats available = seats_total - pre_departure_count
     // For a resumed session, restore from persisted state
-    let restoredSeats = isResumed
+    let restoredSeats = isResumed && payload.current_seats !== undefined
       ? payload.current_seats
-      : seatsTotal - (payload.pre_departure_count || 0);
+      : initialAvailable;
 
     // Compute boarded count
     // For a brand new session: pre_departure_count passengers are already on board
     // For a resumed session: restore persisted boarded count
-    let restoredBoarded = isResumed
-      ? (payload.current_boarded !== undefined ? payload.current_boarded : seatsTotal - payload.current_seats)
-      : (payload.pre_departure_count || 0);
+    let restoredBoarded = isResumed && payload.current_boarded !== undefined
+      ? payload.current_boarded
+      : preDep;
 
-    // Only restore from native module if this is a resumed active session.
+    // Only restore from native module if this is a resumed active session AND service is running.
     // For new sessions, always use the freshly computed values to prevent ghost
     // passengers from a previous unclean session bleeding in.
     if (!payload.isSimulation && Platform.OS === 'android' && LocationServiceModule && isResumed) {
       try {
-        const persisted = await LocationServiceModule.getPersistedSeats();
-        if (persisted !== -1) {
-          restoredSeats = persisted;
-          restoredBoarded = Math.max(0, seatsTotal - persisted);
+        const isRunning = await LocationServiceModule.isRunning();
+        if (isRunning) {
+          const persisted = await LocationServiceModule.getPersistedSeats();
+          if (persisted !== -1) {
+            restoredSeats = persisted;
+            restoredBoarded = Math.max(0, seatsTotal - persisted);
+          }
         }
       } catch (_) {}
     }
@@ -332,15 +344,18 @@ export default function LiveTrackingScreen() {
     }
 
     if (Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        bus_id: String(payload.bus_id),
+        code: payload.code || '',
+        route: payload.route || '',
+        seats_total: seatsTotal,
+        seats_available: restoredSeats,
+        force_seats: true
+      });
+
       getServerUrl().then(async baseUrl => {
         const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
         LocationServiceModule.updateSessionData({
-          bus_id: String(payload.bus_id),
-          code: payload.code || '',
-          route: payload.route || '',
-          seats_total: seatsTotal,
-          seats_available: restoredSeats,
-          force_seats: true,
           server_url: baseUrl,
           email: cachedEmail
         });
@@ -349,7 +364,7 @@ export default function LiveTrackingScreen() {
     
     let restoredPending = payload.pending_pre_departure !== undefined
       ? payload.pending_pre_departure
-      : (payload.pre_departure_count || 0);
+      : preDep;
     setPendingPreDeparture(restoredPending);
 
     try {
@@ -720,7 +735,7 @@ export default function LiveTrackingScreen() {
     if (boardedCountRef.current <= 0) return;
     const newBoarded = boardedCountRef.current - 1;
     const seatsTotal = sessionRef.current.seats_total || 0;
-    const newSeats = Math.min(seatsTotal, seatsRef.current + 1);
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
     setBoardedCount(newBoarded);
     setSeats(newSeats);
     pendingDeparts.current++;
@@ -749,8 +764,9 @@ export default function LiveTrackingScreen() {
     // Reset native module persisted seats so the next session starts clean
     if (Platform.OS === 'android' && LocationServiceModule) {
       try {
+        LocationServiceModule.clearPersistedSeats?.();
         LocationServiceModule.updateSessionData({
-          seats_available: session?.seats_total || 0,
+          seats_available: -1,
           force_seats: true
         });
       } catch (_) {}
@@ -766,8 +782,9 @@ export default function LiveTrackingScreen() {
     // Reset native module persisted seats so the next session starts clean
     if (Platform.OS === 'android' && LocationServiceModule) {
       try {
+        LocationServiceModule.clearPersistedSeats?.();
         LocationServiceModule.updateSessionData({
-          seats_available: session?.seats_total || 0,
+          seats_available: -1,
           force_seats: true
         });
       } catch (_) {}

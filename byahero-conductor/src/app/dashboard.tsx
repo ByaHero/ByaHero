@@ -10,8 +10,11 @@ import {
   ActivityIndicator,
   StyleSheet,
   Platform,
-  Linking
+  Linking,
+  NativeModules
 } from 'react-native';
+
+const { LocationServiceModule } = NativeModules;
 import AlertModal from '../components/AlertModal';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -293,17 +296,34 @@ export default function DashboardScreen() {
       });
 
       if (res.success && res.operation_id) {
+        const initialAvailable = Math.max(0, seatsTotal - boardingCount);
         const payload = {
           bus_id: String(selectedBus.id || selectedBus.Bus_ID),
           code: selectedBus.code || `BUS-${selectedBus.id}`,
           seats_total: seatsTotal,
           route: selectedRoute,
-          initial_available_seats: Math.max(0, seatsTotal - boardingCount),
+          initial_available_seats: initialAvailable,
+          current_seats: initialAvailable,
+          current_boarded: boardingCount,
+          pending_pre_departure: boardingCount,
           pre_departure_count: boardingCount,
           operation_id: res.operation_id,
           ticketing_mode: ticketingMode,
           is_new_session: true
         };
+
+        if (Platform.OS === 'android' && LocationServiceModule) {
+          try {
+            LocationServiceModule.updateSessionData({
+              bus_id: String(selectedBus.id || selectedBus.Bus_ID),
+              code: selectedBus.code || `BUS-${selectedBus.id}`,
+              route: selectedRoute,
+              seats_total: seatsTotal,
+              seats_available: initialAvailable,
+              force_seats: true
+            });
+          } catch (_) {}
+        }
 
         await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
         setPaxCount('');
