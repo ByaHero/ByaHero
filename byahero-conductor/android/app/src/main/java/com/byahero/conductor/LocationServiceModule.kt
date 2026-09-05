@@ -31,6 +31,18 @@ class LocationServiceModule(private val reactContext: ReactApplicationContext) :
     fun stopService() {
         unregisterReceivers()
         reactContext.stopService(Intent(reactContext, LocationForegroundService::class.java))
+        try {
+            val prefs = reactContext.getSharedPreferences("byahero_conductor_prefs", Context.MODE_PRIVATE)
+            prefs.edit().remove("seats_available").apply()
+        } catch (e: Exception) {}
+    }
+
+    @ReactMethod
+    fun clearPersistedSeats() {
+        try {
+            val prefs = reactContext.getSharedPreferences("byahero_conductor_prefs", Context.MODE_PRIVATE)
+            prefs.edit().remove("seats_available").apply()
+        } catch (e: Exception) {}
     }
 
     @ReactMethod
@@ -70,9 +82,14 @@ class LocationServiceModule(private val reactContext: ReactApplicationContext) :
         
         val forceSeats = map.hasKey("force_seats") && map.getBoolean("force_seats")
         if (map.hasKey("seats_available") && forceSeats) {
-            LocationForegroundService.seatsAvailable = map.getInt("seats_available")
+            val s = map.getInt("seats_available")
             val prefs = reactContext.getSharedPreferences("byahero_conductor_prefs", Context.MODE_PRIVATE)
-            prefs.edit().putInt("seats_available", LocationForegroundService.seatsAvailable).apply()
+            if (s >= 0) {
+                LocationForegroundService.seatsAvailable = s
+                prefs.edit().putInt("seats_available", s).apply()
+            } else {
+                prefs.edit().remove("seats_available").apply()
+            }
         }
 
         if (map.hasKey("server_url")) LocationForegroundService.serverUrl = map.getString("server_url") ?: ""
