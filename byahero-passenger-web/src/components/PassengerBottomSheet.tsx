@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { MaterialIcons } from './ui/MaterialIcons';
 import { useTracking } from '../context/TrackingContext';
 import { useAuth } from '../context/AuthContext';
@@ -936,32 +937,48 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
       </div>
 
       {/* QR Code Modal for Circle Invite */}
-      {qrModalVisible && (
-        <div className="fixed inset-0 z-[5000] bg-black/60 flex items-center justify-center p-6 animate-fade-in">
-          <div className="bg-white rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl">
-            <h4 className="text-lg font-black text-slate-800 mb-2">Circle Invite QR</h4>
-            <p className="text-xs text-slate-400 mb-5">
-              Ask your friends to scan or input code below
-            </p>
-
-            <div className="w-48 h-48 bg-slate-100 rounded-2xl border-2 border-slate-200 flex flex-col items-center justify-center mx-auto mb-4 p-4">
-              <MaterialIcons name="qr_code_2" size={140} color="#103d7c" />
-            </div>
-
-            <span className="text-2xl font-black font-mono tracking-widest text-[#103d7c] block mb-5">
-              {inviteCode || '------'}
-            </span>
-
-            <button
-              type="button"
-              onClick={() => setQrModalVisible(false)}
-              className="w-full bg-[#103d7c] text-white font-bold text-sm py-3 rounded-full"
+      {qrModalVisible &&
+        createPortal(
+          <div
+            onClick={() => setQrModalVisible(false)}
+            className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-center justify-center p-6 animate-fade-in"
+          >
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="bg-white rounded-3xl p-6 max-w-xs w-full text-center shadow-2xl relative"
             >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+              <h4 className="text-lg font-black text-slate-800 mb-1">Circle Invite QR</h4>
+              <p className="text-xs text-slate-400 mb-4">
+                Ask your friends to scan or input code below
+              </p>
+
+              <div className="w-52 h-52 bg-slate-50 rounded-2xl border-2 border-slate-200 flex flex-col items-center justify-center mx-auto mb-4 p-3 shadow-inner">
+                {inviteCode && inviteCode !== '------' ? (
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(inviteCode)}`}
+                    alt="Circle Invite QR Code"
+                    className="w-44 h-44 object-contain rounded-lg"
+                  />
+                ) : (
+                  <MaterialIcons name="qr_code_2" size={140} color="#103d7c" />
+                )}
+              </div>
+
+              <span className="text-2xl font-black font-mono tracking-widest text-[#103d7c] block mb-5">
+                {inviteCode || '------'}
+              </span>
+
+              <button
+                type="button"
+                onClick={() => setQrModalVisible(false)}
+                className="w-full bg-[#103d7c] hover:bg-blue-900 text-white font-extrabold text-sm py-3 rounded-full shadow-md transition-all active:scale-[0.98]"
+              >
+                Close
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
 
       <AlertModal
         visible={alertConfig.visible}
