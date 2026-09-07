@@ -31,6 +31,10 @@
 .navbar-brand-logo {
     height: 36px;
     width: auto;
+    max-height: 36px;
+    max-width: 48px;
+    object-fit: contain;
+    flex-shrink: 0;
 }
 
 .navbar-brand-text {
