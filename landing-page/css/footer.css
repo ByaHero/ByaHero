@@ -8,22 +8,29 @@
 }
 
 .footer-brand {
-    display: flex;
+    display: inline-flex;
     align-items: center;
-    gap: .5rem;
+    gap: .6rem;
     margin-bottom: 1rem;
 }
 
+.footer-brand-logo,
 .footer-brand svg,
 .footer-brand img {
     height: 32px;
     width: auto;
+    max-width: 44px;
+    max-height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+    display: inline-block;
 }
 
 .footer-brand span {
     color: #fff;
     font-weight: 800;
-    font-size: 1.1rem;
+    font-size: 1.15rem;
+    letter-spacing: -0.01em;
 }
 
 .footer p {
