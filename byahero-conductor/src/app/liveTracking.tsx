@@ -362,9 +362,9 @@ export default function LiveTrackingScreen() {
       });
     }
     
-    let restoredPending = payload.pending_pre_departure !== undefined
+    let restoredPending = (payload.ticketing_mode === 'Automatic' && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
-      : preDep;
+      : (payload.ticketing_mode === 'Automatic' ? preDep : 0);
     setPendingPreDeparture(restoredPending);
 
     try {
@@ -1075,7 +1075,7 @@ export default function LiveTrackingScreen() {
         </View>
 
         {/* PENDING TERMINAL TICKETS BANNER */}
-        {pendingPreDeparture > 0 && (
+        {session?.ticketing_mode === 'Automatic' && pendingPreDeparture > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
             <Ionicons name="warning" size={24} color="#d97706" />
             <View style={tw`ml-3 flex-1`}>

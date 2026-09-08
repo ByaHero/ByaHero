@@ -118,8 +118,10 @@ export default function SignUpScreen() {
       const response = await signupVerifyOtp(email, otp);
       setIsLoading(false);
       if (response.success) {
-        showAlert('Success', 'Verification complete! You can now log in.', 'success', () => {
-          router.replace('/passenger/completeProfile' as any);
+        showAlert('Success', 'Verification complete! Welcome to ByaHero.', 'success', () => {
+          setTimeout(() => {
+            router.replace('/passenger/completeProfile' as any);
+          }, 300);
         });
       }
     } catch (error) {
