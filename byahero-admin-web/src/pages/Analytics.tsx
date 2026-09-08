@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import {
   BadgeInfo,
   BusFront,
+  Calendar,
   ChevronDown,
   ChevronUp,
   Clock3,
@@ -17,7 +18,7 @@ import { adminService } from '../services/admin';
 import AlertModal from '../components/AlertModal';
 import { useAlertModal } from '../hooks/useAlertModal';
 
-type PeriodKey = 'today' | 'week' | 'month';
+type PeriodKey = 'today' | 'week' | 'month' | 'custom';
 
 type RouteRow = {
   name: string;
@@ -134,6 +135,7 @@ const periodLabels: Record<PeriodKey, string> = {
   today: 'Today',
   week: 'This Week',
   month: 'This Month',
+  custom: 'Custom Range',
 };
 
 const emptyAnalytics: AnalyticsView = {
@@ -156,12 +158,15 @@ const fallbackAnalytics: Record<PeriodKey, AnalyticsView> = {
   today: emptyAnalytics,
   week: emptyAnalytics,
   month: emptyAnalytics,
+  custom: emptyAnalytics,
 };
 
 export default function Analytics() {
   const [apiData, setApiData] = useState<ApiAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey>('today');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [expandedBus, setExpandedBus] = useState<string | null>(null);
   const [recentLimit, setRecentLimit] = useState(10);
   const [logLimit, setLogLimit] = useState(10);
@@ -171,7 +176,12 @@ export default function Analytics() {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const res = await adminService.getAnalytics({ period });
+      const params: { period: string; start?: string; end?: string } = { period };
+      if (period === 'custom') {
+        if (customStart) params.start = customStart;
+        if (customEnd) params.end = customEnd;
+      }
+      const res = await adminService.getAnalytics(params);
       if (res && res.success) {
         setApiData(res as ApiAnalytics);
       } else {
@@ -187,7 +197,7 @@ export default function Analytics() {
 
   useEffect(() => {
     fetchAnalytics();
-  }, [period]);
+  }, [period, customStart, customEnd]);
 
   const data = useMemo<AnalyticsView>(() => {
     const base = fallbackAnalytics[period];
@@ -350,10 +360,14 @@ export default function Analytics() {
       container.style.fontFamily = "'Helvetica', 'Arial', sans-serif";
       container.style.color = '#333';
 
+      const periodFormatted = period === 'custom'
+        ? `${customStart || 'Start'} to ${customEnd || 'Present'}`
+        : periodLabels[period];
+
       container.innerHTML = `
         <div style="border-bottom: 2px solid #0f3878; padding-bottom: 10px; margin-bottom: 20px; page-break-inside: avoid;">
           <h1 style="color: #0f3878; margin: 0 0 5px 0; font-size: 22px;">ByaHero Analytics Report</h1>
-          <div style="color: #666; font-size: 13px;">Period: ${periodLabels[period]} | Generated: ${new Date().toLocaleDateString()}</div>
+          <div style="color: #666; font-size: 13px;">Period: ${periodFormatted} | Generated: ${new Date().toLocaleDateString()}</div>
         </div>
         
         <div style="display: flex; flex-wrap: wrap; margin-bottom: 25px; justify-content: space-between; page-break-inside: avoid;">
@@ -444,6 +458,40 @@ export default function Analytics() {
                   {downloading ? 'Exporting...' : 'Export PDF'}
                 </button>
               </div>
+
+              {period === 'custom' && (
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  <div className="flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl backdrop-blur-xs">
+                    <Calendar size={13} className="text-blue-200" />
+                    <span className="text-xs text-blue-100 font-semibold">From:</span>
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="bg-white/20 text-white rounded-lg px-2 py-1 text-xs outline-none focus:bg-white focus:text-slate-900 transition"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 bg-white/10 border border-white/20 px-3 py-1.5 rounded-xl backdrop-blur-xs">
+                    <Calendar size={13} className="text-blue-200" />
+                    <span className="text-xs text-blue-100 font-semibold">To:</span>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="bg-white/20 text-white rounded-lg px-2 py-1 text-xs outline-none focus:bg-white focus:text-slate-900 transition"
+                    />
+                  </div>
+                  {(customStart || customEnd) && (
+                    <button
+                      type="button"
+                      onClick={() => { setCustomStart(''); setCustomEnd(''); }}
+                      className="text-xs text-blue-200 hover:text-white underline cursor-pointer px-1"
+                    >
+                      Clear Range
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Quick Hero Panel */}

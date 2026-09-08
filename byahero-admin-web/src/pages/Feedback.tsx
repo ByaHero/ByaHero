@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Loader2, MessageSquare, Trash2, Star } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Loader2, MessageSquare, Trash2, Star, StarHalf } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { Feedback } from '../types';
 import AlertModal from '../components/AlertModal';
@@ -19,7 +19,7 @@ export default function FeedbackPage() {
         setFeedbacks(data.feedbacks || []);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Error fetching feedbacks:', e);
     } finally {
       setLoading(false);
     }
@@ -29,25 +29,93 @@ export default function FeedbackPage() {
     fetchFeedbacks();
   }, []);
 
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this passenger feedback?')) return;
-    setDeletingId(id);
-    try {
-      const data = await adminService.deleteFeedback(id);
-      if (data && data.success) {
-        setFeedbacks(feedbacks.filter((f) => f.id !== id));
-      } else {
-        alert(data.error || 'Failed to delete feedback.');
+  const stats = useMemo(() => {
+    const total = feedbacks.length;
+    if (total === 0) {
+      return { totalFeedbacks: 0, averageRating: 0, totalComments: 0 };
+    }
+    const avg = feedbacks.reduce((acc, f) => acc + (f.rating || 0), 0) / total;
+    const comments = feedbacks.filter((f) => (f.feedback_text || '').trim().length > 0).length;
+    return {
+      totalFeedbacks: total,
+      averageRating: avg,
+      totalComments: comments,
+    };
+  }, [feedbacks]);
+
+  const handleDelete = (id: number) => {
+    showConfirm(
+      'Delete Feedback',
+      'Are you sure you want to permanently delete this passenger feedback? This action cannot be undone.',
+      async () => {
+        setDeletingId(id);
+        try {
+          const data = await adminService.deleteFeedback(id);
+          if (data && data.success) {
+            setFeedbacks((prev) => prev.filter((f) => f.id !== id));
+            showAlert('Success', 'Feedback deleted successfully.', 'success');
+          } else {
+            showAlert('Error', data?.error || 'Failed to delete feedback.', 'error');
+          }
+        } catch (e: any) {
+          showAlert('Error', e?.message || 'Network error while deleting feedback.', 'error');
+        } finally {
+          setDeletingId(null);
+        }
       }
     );
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
-      <div className="flex justify-between items-center mb-6">
+    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-xl font-black text-slate-800 tracking-tight">Passenger Feedbacks</h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">Read suggestions, reviews, and commuter satisfaction ratings.</p>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Review suggestions, commuter satisfaction ratings, and passenger feedback.
+          </p>
+        </div>
+      </div>
+
+      {/* Aggregate KPI Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-br from-blue-50/70 to-indigo-50/40 border border-blue-100/80 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
+          <div className="text-3xl font-black text-[#0f3878]">
+            {stats.averageRating.toFixed(1)}
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Average Rating</div>
+            <div className="flex items-center gap-1 text-amber-400 mt-1">
+              {[...Array(5)].map((_, i) => (
+                <Star
+                  key={i}
+                  size={14}
+                  className={i < Math.round(stats.averageRating) ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-slate-200'}
+                />
+              ))}
+              <span className="text-[11px] text-slate-400 ml-1 font-semibold">({stats.totalFeedbacks})</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-blue-100 text-[#0f3878] flex items-center justify-center shrink-0">
+            <MessageSquare size={18} />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Total Feedbacks</div>
+            <div className="text-2xl font-black text-slate-800">{stats.totalFeedbacks}</div>
+          </div>
+        </div>
+
+        <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-4 shadow-xs">
+          <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+            <MessageSquare size={18} />
+          </div>
+          <div>
+            <div className="text-[10px] uppercase font-bold tracking-wider text-slate-500">Written Comments</div>
+            <div className="text-2xl font-black text-slate-800">{stats.totalComments}</div>
+          </div>
         </div>
       </div>
 
@@ -84,25 +152,25 @@ export default function FeedbackPage() {
                   <td className="py-3.5 px-4">
                     <div className="flex items-center gap-1 text-amber-400">
                       {[...Array(5)].map((_, i) => (
-                        <Star 
-                          key={i} 
-                          size={14} 
-                          className={i < f.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-slate-200'} 
+                        <Star
+                          key={i}
+                          size={14}
+                          className={i < f.rating ? 'fill-amber-400 text-amber-400' : 'text-slate-200 fill-slate-200'}
                         />
                       ))}
                     </div>
                   </td>
                   <td className="py-3.5 px-4 max-w-md">
                     <p className="text-xs text-slate-600 leading-relaxed break-words">
-                      {f.feedback_text}
+                      {f.feedback_text || <span className="text-slate-400 italic">No comment provided</span>}
                     </p>
                   </td>
                   <td className="py-3.5 px-4 text-slate-500 font-medium text-xs">
                     {f.created_at ? new Date(f.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button 
-                      className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition cursor-pointer disabled:opacity-60" 
+                    <button
+                      className="p-2 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition cursor-pointer disabled:opacity-60"
                       onClick={() => handleDelete(f.id)}
                       disabled={deletingId === f.id}
                       title="Delete Feedback"
@@ -116,6 +184,7 @@ export default function FeedbackPage() {
           </table>
         </div>
       )}
+
       <AlertModal
         isOpen={alertConfig.isOpen}
         title={alertConfig.title}

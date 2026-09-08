@@ -13,6 +13,7 @@ import {
   AlertTriangle, 
   DollarSign, 
   BarChart3, 
+  Printer,
   User, 
   LogOut 
 } from 'lucide-react';
@@ -78,6 +79,12 @@ export default function Sidebar({ onLogout }: SidebarProps) {
       links: [
         { to: '/fares', label: 'Bus Fares', icon: DollarSign },
         { to: '/analytics', label: 'Analytics', icon: BarChart3 }
+      ]
+    },
+    {
+      title: 'System Configuration',
+      links: [
+        { to: '/receipts', label: 'Receipt Format', icon: Printer }
       ]
     },
     {

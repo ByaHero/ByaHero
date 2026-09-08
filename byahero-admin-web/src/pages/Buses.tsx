@@ -9,6 +9,7 @@ import {
   ShieldAlert, 
   AlertTriangle, 
   CheckCircle2,
+  ArrowLeftRight,
   Bus as BusIcon
 } from 'lucide-react';
 import { adminService } from '../services/admin';
@@ -34,6 +35,7 @@ export default function Buses() {
   const [isStopModalOpen, setIsStopModalOpen] = useState(false);
   const [selectedBusToStop, setSelectedBusToStop] = useState<Bus | null>(null);
   const [stoppingBusId, setStoppingBusId] = useState<number | null>(null);
+  const [updatingStatusId, setUpdatingStatusId] = useState<number | null>(null);
 
   // Success / Error Modals
   const [successModalVisible, setSuccessModalVisible] = useState(false);
@@ -45,7 +47,7 @@ export default function Buses() {
   const [busNo, setBusNo] = useState('');
   const [plateNo, setPlateNo] = useState('');
   const [capacity, setCapacity] = useState(50);
-  const [status, setStatus] = useState<'active' | 'inactive' | 'maintenance'>('active');
+  const [status, setStatus] = useState<string>('active');
   const [description, setDescription] = useState('');
 
   const fetchBusesAndActive = async () => {
@@ -142,6 +144,36 @@ export default function Buses() {
     } finally {
       setStoppingBusId(null);
       setSelectedBusToStop(null);
+    }
+  };
+
+  const handleToggleStatus = async (bus: Bus) => {
+    const busId = bus.id || bus.Bus_ID;
+    if (!busId || updatingStatusId === busId) return;
+
+    const currentStatus = bus.status || 'inactive';
+    const newStatus = (currentStatus === 'active' || currentStatus === 'available') ? 'unavailable' : 'available';
+
+    // Optimistic UI update
+    setBuses(prev => prev.map(b => (b.id === busId || b.Bus_ID === busId ? { ...b, status: newStatus as any } : b)));
+    setUpdatingStatusId(busId);
+
+    try {
+      const res = await adminService.updateBus({
+        id: busId,
+        status: newStatus
+      });
+
+      if (!res || !res.success) {
+        // Revert on failure
+        setBuses(prev => prev.map(b => (b.id === busId || b.Bus_ID === busId ? { ...b, status: currentStatus as any } : b)));
+        showAlert('Error', res?.error || 'Failed to update bus status.', 'error');
+      }
+    } catch (e: any) {
+      setBuses(prev => prev.map(b => (b.id === busId || b.Bus_ID === busId ? { ...b, status: currentStatus as any } : b)));
+      showAlert('Error', e.message || 'Network error while updating status.', 'error');
+    } finally {
+      setUpdatingStatusId(null);
     }
   };
 
@@ -282,15 +314,24 @@ export default function Buses() {
                           <span>Tracking Active</span>
                         </div>
                       ) : (
-                        <span className={`inline-flex items-center py-1 px-2.5 text-[10px] font-extrabold rounded-full uppercase tracking-wider ${
-                          bus.status === 'active' 
-                            ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
-                            : bus.status === 'inactive' 
-                            ? 'bg-red-50 text-red-700 border border-red-200' 
-                            : 'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {bus.status}
-                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleToggleStatus(bus)}
+                          disabled={updatingStatusId === busId}
+                          title="Click to toggle Available / Unavailable"
+                          className={`inline-flex items-center gap-1.5 py-1 px-3 rounded-full text-[10px] font-extrabold uppercase tracking-wider transition cursor-pointer border ${
+                            bus.status === 'active' || bus.status === 'available'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100' 
+                              : 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100'
+                          } ${updatingStatusId === busId ? 'opacity-50 cursor-wait' : ''}`}
+                        >
+                          {updatingStatusId === busId ? (
+                            <Loader2 size={10} className="animate-spin" />
+                          ) : (
+                            <ArrowLeftRight size={10} />
+                          )}
+                          <span>{bus.status || 'AVAILABLE'}</span>
+                        </button>
                       )}
                     </td>
                     <td className="py-3.5 px-4 text-right">

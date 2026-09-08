@@ -13,7 +13,7 @@ export interface Bus {
   Bus_ID?: number;
   plate_no: string;
   bus_no: string;
-  status: 'active' | 'inactive' | 'maintenance';
+  status: 'active' | 'inactive' | 'maintenance' | 'available' | 'unavailable' | string;
   capacity: number;
   description?: string;
   created_at?: string;
@@ -75,6 +75,7 @@ export interface WaitingPassenger {
   user_name: string;
   location_name: string;
   created_at: string;
+  expires_at?: string | null;
   status: string;
   registered_name: string;
   registered_email: string;
@@ -105,7 +106,8 @@ export interface LostItem {
   description: string;
   reported_by: string;
   contact_number: string;
-  status: 'lost' | 'found' | 'claimed';
+  bus_number?: string;
+  status: 'lost' | 'found' | 'claimed' | 'open' | 'resolved' | 'closed' | string;
   created_at?: string;
   image1_path?: string;
   image2_path?: string;
