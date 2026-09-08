@@ -60,37 +60,55 @@ export async function setServerUrl(url) {
 /**
  * Helper to make POST form-data requests to Laravel API /api/auth
  */
-async function apiRequest(action, dataObj) {
+async function apiRequest(action, dataObj, retries = 2) {
   const baseUrl = await getServerUrl();
   const endpoint = `${baseUrl}/api/auth`;
 
   const formData = new FormData();
   formData.append('action', action);
   for (const key in dataObj) {
-    formData.append(key, dataObj[key]);
-  }
-
-  try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      body: formData,
-      headers: {
-        'Accept': 'application/json',
-      },
-      credentials: 'include'
-    });
-
-    if (!response.ok) {
-      throw new Error(`Server returned HTTP status ${response.status}`);
+    if (dataObj[key] !== undefined && dataObj[key] !== null) {
+      formData.append(key, dataObj[key]);
     }
-
-    const json = await response.json();
-    return json;
-  } catch (error) {
-    console.error(`API Error for action ${action}:`, error);
-    throw error;
   }
+
+  let lastError = null;
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    const controller = new AbortController();
+    // 20s timeout — generous enough for cold AlwaysData starts on mobile data
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+    try {
+      const response = await fetch(endpoint, {
+        method: 'POST',
+        body: formData,
+        headers: { 'Accept': 'application/json' },
+        credentials: 'include',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`Server returned HTTP status ${response.status}`);
+      }
+
+      const json = await response.json();
+      return json;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      console.warn(`API attempt ${attempt}/${retries} failed for action "${action}":`, error.message);
+      if (attempt < retries) {
+        // Short back-off before retry: 1.5s
+        await new Promise(resolve => setTimeout(resolve, 1500));
+      }
+    }
+  }
+
+  console.error(`API Error for action ${action} after ${retries} attempts:`, lastError);
+  throw lastError;
 }
+
 
 /**
  * Cache session data to local storage for offline operation.
