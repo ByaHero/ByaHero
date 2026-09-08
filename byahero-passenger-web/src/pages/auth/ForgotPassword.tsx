@@ -304,7 +304,7 @@ export const ForgotPassword: React.FC = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   className="text-[#94a3b8] hover:text-slate-600 focus:outline-none ml-2"
                 >
-                  {showPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                  {showPassword ? <Eye className="w-[18px] h-[18px]" /> : <EyeOff className="w-[18px] h-[18px]" />}
                 </button>
               </div>
 
@@ -325,7 +325,7 @@ export const ForgotPassword: React.FC = () => {
                   onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                   className="text-[#94a3b8] hover:text-slate-600 focus:outline-none ml-2"
                 >
-                  {showConfirmPassword ? <EyeOff className="w-[18px] h-[18px]" /> : <Eye className="w-[18px] h-[18px]" />}
+                  {showConfirmPassword ? <Eye className="w-[18px] h-[18px]" /> : <EyeOff className="w-[18px] h-[18px]" />}
                 </button>
               </div>
 
