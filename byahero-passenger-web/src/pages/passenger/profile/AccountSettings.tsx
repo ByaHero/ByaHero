@@ -261,6 +261,28 @@ export const AccountSettings: React.FC = () => {
                 <MaterialIcons name="chevron_right" size={24} color="#cbd5e1" />
               </div>
             </div>
+
+            {/* Danger Zone */}
+            <h2 className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-2.5 mt-2 px-1">
+              Danger Zone
+            </h2>
+            <div className="bg-white rounded-3xl border border-rose-100 shadow-sm overflow-hidden mb-5">
+              <div
+                onClick={() => navigate('/profile/delete-account')}
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-rose-50/50 transition-colors"
+              >
+                <div className="flex items-center">
+                  <div className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center mr-3.5">
+                    <MaterialIcons name="delete_forever" size={22} color="#e11d48" />
+                  </div>
+                  <div>
+                    <div className="text-sm font-bold text-rose-600">Delete Account</div>
+                    <div className="text-xs text-slate-400 mt-0.5">Permanently remove your account and data</div>
+                  </div>
+                </div>
+                <MaterialIcons name="chevron_right" size={24} color="#f43f5e" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

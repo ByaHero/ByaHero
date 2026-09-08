@@ -40,6 +40,7 @@ export const Login: React.FC = () => {
     title: string;
     message: string;
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    diagnosticInfo?: any;
     onConfirm: () => void;
   }>({
     visible: false,
@@ -53,6 +54,7 @@ export const Login: React.FC = () => {
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    diagnosticInfo?: any,
     onConfirm?: () => void
   ) => {
     setAlertConfig({
@@ -60,6 +62,7 @@ export const Login: React.FC = () => {
       title,
       message,
       type,
+      diagnosticInfo,
       onConfirm: () => {
         setAlertConfig((prev) => ({ ...prev, visible: false }));
         if (onConfirm) onConfirm();
@@ -117,7 +120,12 @@ export const Login: React.FC = () => {
       clearTimeout(timer);
       setIsLoading(false);
       setShowWarmingUpMsg(false);
-      showAlert('Google Sign-In Failed', error.message || 'Unable to sign in with Google.', 'error');
+      showAlert(
+        'Google Sign-In Failed',
+        error.message || 'Unable to sign in with Google.',
+        'error',
+        error.diagnosticInfo
+      );
     }
   };
 
@@ -229,7 +237,12 @@ export const Login: React.FC = () => {
       clearTimeout(timer);
       setIsLoading(false);
       setShowWarmingUpMsg(false);
-      showAlert('Authentication Failed', error.message || 'Check network connection or configuration.', 'error');
+      showAlert(
+        'Authentication Failed',
+        error.message || 'Check network connection or configuration.',
+        'error',
+        error.diagnosticInfo
+      );
     }
   };
 
@@ -390,6 +403,7 @@ export const Login: React.FC = () => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+        diagnosticInfo={alertConfig.diagnosticInfo}
         onConfirm={alertConfig.onConfirm}
       />
     </div>

@@ -132,6 +132,26 @@ export const PrivacySecurity: React.FC = () => {
                 <MaterialIcons name="chevron_right" size={24} color="#cbd5e1" />
               </div>
             </div>
+
+            {/* Account Control */}
+            <h2 className="text-xs font-bold text-rose-500 uppercase tracking-wider mb-2.5 mt-4 px-1">
+              Account Control
+            </h2>
+            <div className="bg-white rounded-3xl border border-rose-100 shadow-sm overflow-hidden mb-5">
+              <div
+                onClick={() => navigate('/profile/delete-account')}
+                className="flex items-center justify-between p-4 cursor-pointer hover:bg-rose-50/50 transition-colors"
+              >
+                <div className="flex items-center">
+                  <MaterialIcons name="delete_forever" size={20} color="#e11d48" className="mr-3.5" />
+                  <div>
+                    <span className="text-sm font-bold text-rose-600 block">Delete Account</span>
+                    <span className="text-xs text-slate-400 font-semibold block">Permanently erase your account and data</span>
+                  </div>
+                </div>
+                <MaterialIcons name="chevron_right" size={24} color="#f43f5e" />
+              </div>
+            </div>
           </div>
         </div>
       </div>

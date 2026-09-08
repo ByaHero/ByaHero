@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Schema;
 use App\Models\User;
 
 class ProfileController extends Controller
@@ -237,13 +238,36 @@ class ProfileController extends Controller
             DB::beginTransaction();
 
             // Delete associated user data first to respect foreign keys if any
-            DB::table('user_locations')->where('user_id', $userId)->delete();
-            DB::table('user_settings')->where('user_id', $userId)->delete();
-            DB::table('waiting_passengers')->where('user_id', $userId)->delete();
-            DB::table('circle_members')->where('user_id', $userId)->delete();
-            DB::table('circles')->where('owner_user_id', $userId)->delete();
+            $tables = [
+                'user_fcm_tokens',
+                'user_locations',
+                'user_settings',
+                'waiting_passengers',
+                'circle_members',
+                'notifications',
+                'feedbacks',
+                'reports',
+                'passenger_rides',
+                'analytics_events',
+                'password_resets',
+            ];
+            foreach ($tables as $t) {
+                if (Schema::hasTable($t)) {
+                    if ($t === 'password_resets' && !empty($email)) {
+                        DB::table($t)->where('email', $email)->delete();
+                    } elseif ($t !== 'password_resets') {
+                        DB::table($t)->where('user_id', $userId)->delete();
+                    }
+                }
+            }
+            if (Schema::hasTable('circles')) {
+                DB::table('circles')->where('owner_user_id', $userId)->delete();
+            }
+            if (Schema::hasTable('sos_alerts')) {
+                DB::table('sos_alerts')->where('sender_user_id', $userId)->orWhere('recipient_user_id', $userId)->delete();
+            }
             
-            // Delete user
+            // Delete user record
             User::where('id', $userId)->delete();
 
             DB::commit();
@@ -253,7 +277,7 @@ class ProfileController extends Controller
             return response()->json(['success' => true, 'message' => 'Account permanently deleted.']);
         } catch (\Exception $e) {
             DB::rollBack();
-            return response()->json(['success' => false, 'message' => 'Failed to delete account: ' . $e->getMessage()]);
+            return response()->json(['success' => false, 'message' => 'Failed to delete account: ' . $e->getMessage()], 500);
         }
     }
 
