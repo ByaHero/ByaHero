@@ -23,15 +23,14 @@ export function isMessengerOrInAppBrowser(): boolean {
 export async function getServerUrl(): Promise<string> {
   try {
     const storedUrl = localStorage.getItem('byahero_server_url');
-    if (storedUrl) {
+    if (storedUrl && !storedUrl.includes('vercel.app')) {
       return storedUrl;
+    }
+    if (storedUrl && storedUrl.includes('vercel.app')) {
+      localStorage.removeItem('byahero_server_url');
     }
   } catch (error) {
     console.error('Error getting server URL:', error);
-  }
-  // When running on Vercel, proxying through Vercel's edge network avoids carrier DNS drops and CORS issues
-  if (typeof window !== 'undefined' && window.location.origin.includes('vercel.app')) {
-    return window.location.origin;
   }
   return DEFAULT_SERVER_URL;
 }
@@ -68,13 +67,6 @@ export async function preWarmServer(): Promise<void> {
       .catch(err => {
         debugLogger.log('warn', 'PreWarm', `Server ping status: ${err.message}`);
         clearTimeout(timeoutId);
-        // If Vercel proxy ping timed out, try pinging AlwaysData directly
-        if (typeof window !== 'undefined' && baseUrl.includes('vercel.app')) {
-          fetch('https://byahero.alwaysdata.net/api/ping')
-            .then(res => res.json())
-            .then(d => debugLogger.log('info', 'PreWarm', 'AlwaysData direct ping succeeded', d))
-            .catch(() => {});
-        }
       });
   } catch (e) {
     // Ignore error
@@ -111,38 +103,11 @@ async function apiRequest(action: string, dataObj: Record<string, any>) {
       credentials: 'include'
     });
   } catch (networkError: any) {
-    // Attempt automatic failover between Vercel proxy and AlwaysData direct
-    const isProxy = typeof window !== 'undefined' && endpoint.startsWith(window.location.origin);
-    const fallbackBase = isProxy
-      ? 'https://byahero.alwaysdata.net'
-      : (typeof window !== 'undefined' && window.location.origin.includes('vercel.app') ? window.location.origin : null);
-
-    if (fallbackBase && `${fallbackBase}/api/auth` !== endpoint) {
-      const fallbackEndpoint = `${fallbackBase}/api/auth`;
-      debugLogger.log('warn', `API:${action}`, `Initial request to ${endpoint} failed. Attempting failover to ${fallbackEndpoint}...`);
-      try {
-        response = await fetch(fallbackEndpoint, {
-          method: 'POST',
-          body: formData,
-          headers: {
-            'Accept': 'application/json',
-          },
-          credentials: 'include'
-        });
-      } catch (fallbackError: any) {
-        const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
-        throw new ApiError(
-          `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
-          report
-        );
-      }
-    } else {
-      const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
-      throw new ApiError(
-        `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
-        report
-      );
-    }
+    const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
+    throw new ApiError(
+      `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
+      report
+    );
   }
 
   if (!response.ok) {
@@ -172,6 +137,7 @@ async function apiRequest(action: string, dataObj: Record<string, any>) {
     throw new ApiError('Failed to parse server response as JSON.', report, response.status);
   }
 }
+
 
 export async function cacheSession(email: string, role: string, userDetails: any = {}) {
   try {
