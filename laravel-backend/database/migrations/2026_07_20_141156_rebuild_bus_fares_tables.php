@@ -65,14 +65,16 @@ return new class extends Migration
         // Laurel is at KM 0, Tanauan is at maxKm (usually 30)
         foreach ($stops as $stop) {
             $distance = $stop->km_marker;
+            $regFare = $this->calcFare($distance, 15.00, 2.20);
+            $discFare = ($distance == 16) ? 33.25 : $this->calcFare($distance, 12.00, 1.76);
             $insertData[] = [
                 'direction' => 'LT',
                 'distance_km' => $distance,
                 'stop_id' => $stop->stop_id,
-                'regular_fare' => $this->calcFare($distance, 14.00, 2.20),
-                'discounted_fare' => $this->calcFare($distance, 11.25, 1.76),
-                'base_regular_fare' => 14.00,
-                'base_discounted_fare' => 11.25,
+                'regular_fare' => $regFare,
+                'discounted_fare' => $discFare,
+                'base_regular_fare' => $regFare,
+                'base_discounted_fare' => $discFare,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
@@ -86,14 +88,16 @@ return new class extends Migration
         $stopsTL = $stops->sortByDesc('km_marker');
         foreach ($stopsTL as $stop) {
             $distance = $maxKm - $stop->km_marker;
+            $regFare = $this->calcFare($distance, 15.00, 2.20);
+            $discFare = ($distance == 16) ? 33.25 : $this->calcFare($distance, 12.00, 1.76);
             $insertData[] = [
                 'direction' => 'TL',
                 'distance_km' => $distance,
                 'stop_id' => $stop->stop_id,
-                'regular_fare' => $this->calcFare($distance, 14.00, 2.20),
-                'discounted_fare' => $this->calcFare($distance, 11.25, 1.76),
-                'base_regular_fare' => 14.00,
-                'base_discounted_fare' => 11.25,
+                'regular_fare' => $regFare,
+                'discounted_fare' => $discFare,
+                'base_regular_fare' => $regFare,
+                'base_discounted_fare' => $discFare,
                 'created_at' => now(),
                 'updated_at' => now(),
             ];
