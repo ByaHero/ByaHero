@@ -35,6 +35,7 @@ import {
   MessageSquare, 
   DollarSign, 
   BarChart3, 
+  Printer,
   RefreshCw, 
   BrainCircuit,
   Maximize,
@@ -139,6 +140,12 @@ export default function Dashboard() {
       items: [
         { label: 'Bus Fares', count: stats.bus_fares, route: '/fares', action: 'Manage', icon: DollarSign },
         { label: 'Analytics (Boarded)', count: stats.analytics_boarded ?? 0, route: '/analytics', action: 'View', icon: BarChart3 },
+      ],
+    },
+    {
+      title: 'System Configuration',
+      items: [
+        { label: 'Receipt Format', count: 'PT-210', route: '/receipts', action: 'Configure', icon: Printer },
       ],
     }
   ];

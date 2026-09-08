@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Edit2, Loader2, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Edit2, Loader2, AlertTriangle, RefreshCw, Trash2, Phone } from 'lucide-react';
 import { adminService } from '../services/admin';
 import { IncidentReport } from '../types';
 import Modal from '../components/Modal';
@@ -10,7 +10,7 @@ export default function Reports() {
   const [reports, setReports] = useState<IncidentReport[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const { alertConfig, showAlert } = useAlertModal();
+  const { alertConfig, showAlert, showConfirm } = useAlertModal();
 
   // Modals
   const [isResolveOpen, setIsResolveOpen] = useState(false);
@@ -24,8 +24,9 @@ export default function Reports() {
       if (data && data.success) {
         setReports(data.reports || []);
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
+      showAlert('Error', 'Failed to fetch incident reports.', 'error');
     } finally {
       setLoading(false);
     }
@@ -37,7 +38,7 @@ export default function Reports() {
 
   const openResolveModal = (report: IncidentReport) => {
     setCurrentReport(report);
-    setStatus(report.status);
+    setStatus((report.status as any) || 'pending');
     setIsResolveOpen(true);
   };
 
@@ -56,13 +57,39 @@ export default function Reports() {
         setIsResolveOpen(false);
         fetchReports();
       } else {
-        alert(data?.error || 'Failed to update report status.');
+        showAlert('Error', data?.error || 'Failed to update report status.', 'error');
       }
-    } catch (e) {
-      showAlert('Network Error', 'Network error while updating report.', 'error');
+    } catch (e: any) {
+      showAlert('Network Error', e.message || 'Network error while updating report.', 'error');
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleDelete = (report: IncidentReport) => {
+    showConfirm(
+      'Delete Incident Report',
+      `Are you sure you want to permanently delete this report for ${report.bus_number ? `Bus ${report.bus_number}` : 'unspecified vehicle'}? This cannot be undone.`,
+      async () => {
+        setLoading(true);
+        try {
+          const res = await adminService.manageReports({
+            action: 'delete_report',
+            id: report.id
+          });
+          if (res && res.success) {
+            showAlert('Success', res.message || 'Report deleted successfully.', 'success');
+            fetchReports();
+          } else {
+            showAlert('Error', res?.error || 'Failed to delete report.', 'error');
+          }
+        } catch (e: any) {
+          showAlert('Error', e.message || 'Network error while deleting report.', 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+    );
   };
 
   return (
@@ -70,7 +97,9 @@ export default function Reports() {
       <div className="flex flex-wrap justify-between items-center gap-4 mb-6">
         <div>
           <h2 className="text-xl font-black text-slate-800 tracking-tight">Incident & Delays Log</h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">Access safety hazards, maintenance delays, or passenger incident records.</p>
+          <p className="text-xs text-slate-500 font-medium mt-1">
+            Access safety hazards, maintenance delays, or passenger incident records.
+          </p>
         </div>
         <button 
           className="inline-flex items-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition cursor-pointer disabled:opacity-60" 
@@ -109,11 +138,11 @@ export default function Reports() {
               {reports.map((report) => (
                 <tr key={report.id} className="hover:bg-slate-50/70 transition">
                   <td className="py-3.5 px-4 font-extrabold text-slate-900">
-                    {report.bus_number ? `Incident Report: Bus ${report.bus_number}` : 'Incident Report: Bus Unknown'}
+                    {report.bus_number ? `Incident: Bus ${report.bus_number}` : 'Incident: Bus Unknown'}
                   </td>
                   <td className="py-3.5 px-4">
                     <span className="inline-flex items-center py-1 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-200">
-                      {report.report_reason || 'Unknown'}
+                      {report.report_reason || 'General'}
                     </span>
                   </td>
                   <td className="py-3.5 px-4 max-w-xs">
@@ -121,7 +150,20 @@ export default function Reports() {
                       {report.others_details || 'No additional details provided.'}
                     </p>
                   </td>
-                  <td className="py-3.5 px-4 font-semibold text-slate-700">{report.reporter_name || 'Anonymous'}</td>
+                  <td className="py-3.5 px-4">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="font-semibold text-slate-800">{report.reporter_name || 'Anonymous'}</span>
+                      {report.contact_number ? (
+                        <a 
+                          href={`tel:${report.contact_number}`} 
+                          className="inline-flex items-center gap-1 text-[11px] text-blue-600 hover:underline font-mono"
+                        >
+                          <Phone size={10} />
+                          <span>{report.contact_number}</span>
+                        </a>
+                      ) : null}
+                    </div>
+                  </td>
                   <td className="py-3.5 px-4">
                     <span className={`inline-flex items-center py-1 px-2.5 text-[10px] font-extrabold rounded-full uppercase tracking-wider ${
                       report.status === 'resolved' 
@@ -135,12 +177,22 @@ export default function Reports() {
                     {report.created_at ? new Date(report.created_at).toLocaleDateString() : 'N/A'}
                   </td>
                   <td className="py-3.5 px-4 text-right">
-                    <button 
-                      className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer" 
-                      onClick={() => openResolveModal(report)}
-                    >
-                      <Edit2 size={12} /> Resolve
-                    </button>
+                    <div className="flex justify-end gap-1.5 items-center">
+                      <button 
+                        className="inline-flex items-center gap-1 py-1.5 px-3 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer" 
+                        onClick={() => openResolveModal(report)}
+                        title="Update Status"
+                      >
+                        <Edit2 size={12} /> Resolve
+                      </button>
+                      <button 
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 transition cursor-pointer" 
+                        onClick={() => handleDelete(report)}
+                        title="Delete Report"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -192,6 +244,7 @@ export default function Reports() {
           </div>
         </form>
       </Modal>
+
       <AlertModal
         isOpen={alertConfig.isOpen}
         title={alertConfig.title}

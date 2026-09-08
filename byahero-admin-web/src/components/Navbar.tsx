@@ -71,6 +71,11 @@ export default function Navbar({ adminEmail }: NavbarProps) {
           title: 'Bus Analytics',
           subtitle: 'Inspect aggregate charts, boarded counts, and revenue trends.'
         };
+      case '/receipts':
+        return {
+          title: 'Receipt Configuration',
+          subtitle: 'Configure PT-210 thermal printer formatting and manage hardware Bluetooth connection.'
+        };
       case '/profile':
         return {
           title: 'Profile Settings',

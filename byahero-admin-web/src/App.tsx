@@ -15,6 +15,7 @@ import LostFound from './pages/LostFound';
 import Reports from './pages/Reports';
 import Analytics from './pages/Analytics';
 import Profile from './pages/Profile';
+import Receipts from './pages/Receipts';
 import WebAlertContainer from './components/WebAlert';
 
 export default function App() {
@@ -78,6 +79,7 @@ export default function App() {
           <Route path="feedbacks" element={<FeedbackPage />} />
           <Route path="fares" element={<Fares />} />
           <Route path="analytics" element={<Analytics />} />
+          <Route path="receipts" element={<Receipts />} />
           <Route path="profile" element={<Profile adminEmail={adminEmail || ''} />} />
         </Route>
 
