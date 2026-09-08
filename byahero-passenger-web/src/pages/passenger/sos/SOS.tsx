@@ -160,8 +160,8 @@ export const SOS: React.FC = () => {
     <div className="h-[100dvh] max-h-[100dvh] w-full flex flex-col bg-white overflow-hidden">
       <PassengerHeader pageTitle="Emergency Center" showBackButton={true} onTriggerSOS={startSOSCountdown} />
 
-      <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full p-5 space-y-6 pb-8">
+      <div className="flex-1 overflow-y-auto w-full overscroll-contain bg-white">
+        <div className="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto w-full p-5 md:p-8 space-y-6 md:space-y-8 pb-8">
           {/* Location status bar */}
           <div className="bg-[#f8fafc] rounded-2xl p-4 border border-[#e2e8f0] flex items-center gap-4 shadow-sm">
             <div className="bg-[#103d7c]/10 w-10 h-10 rounded-full flex items-center justify-center shrink-0">
@@ -245,7 +245,7 @@ export const SOS: React.FC = () => {
               MUNICIPAL EMERGENCY HOTLINES
             </h3>
 
-            <div className="space-y-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {EMERGENCY_CONTACTS.map((contact, idx) => (
                 <a
                   key={idx}

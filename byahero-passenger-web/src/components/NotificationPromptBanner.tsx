@@ -24,7 +24,7 @@ export const NotificationPromptBanner: React.FC = () => {
   };
 
   return (
-    <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:max-w-md z-[1045] animate-in fade-in slide-in-from-top duration-300">
+    <div className="w-full z-[1045] animate-in fade-in slide-in-from-top duration-300">
       <div className="bg-[#103d7c]/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-blue-400/30 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-amber-400/20 flex items-center justify-center flex-shrink-0 text-amber-300">

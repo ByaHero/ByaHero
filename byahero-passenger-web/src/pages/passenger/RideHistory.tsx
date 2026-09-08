@@ -111,8 +111,8 @@ export const RideHistory: React.FC = () => {
       <PassengerHeader pageTitle="Ride History" showBackButton={true} />
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full pb-8">
-          <div className="p-4 bg-slate-100/70 min-h-[560px] mt-4 rounded-t-[32px]">
+        <div className="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto w-full pb-8">
+          <div className="p-4 md:p-8 bg-slate-100/70 min-h-[560px] mt-4 md:my-6 rounded-t-[32px] md:rounded-3xl md:shadow-sm md:border md:border-slate-200">
             {/* Journey Stats Header */}
             {history.length > 0 && (
               <div className="bg-[#1e3a8a] rounded-3xl p-5 shadow-md mb-5 text-white">

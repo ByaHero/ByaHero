@@ -79,7 +79,14 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   };
 
   useLayoutEffect(() => {
-    if (sheetRef.current && !isDragging) {
+    if (!sheetRef.current) return;
+    if (window.innerWidth >= 768) {
+      sheetRef.current.style.transform = 'none';
+      sheetRef.current.style.height = '100%';
+      sheetRef.current.style.transition = 'none';
+      return;
+    }
+    if (!isDragging) {
       const targetY = getTargetY(sheetState);
       currentTranslateY.current = targetY;
       sheetRef.current.style.transition = 'transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1)';
@@ -89,7 +96,14 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
 
   useEffect(() => {
     const handleResize = () => {
-      if (sheetRef.current && !isDragging) {
+      if (!sheetRef.current) return;
+      if (window.innerWidth >= 768) {
+        sheetRef.current.style.transform = 'none';
+        sheetRef.current.style.height = '100%';
+        sheetRef.current.style.transition = 'none';
+        return;
+      }
+      if (!isDragging) {
         const { maxH } = getBounds();
         sheetRef.current.style.height = `${maxH}px`;
         const targetY = getTargetY(sheetState);
@@ -114,6 +128,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   }, [currentTab, inviteCode]);
 
   const handleDragStart = (e: React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement>) => {
+    if (window.innerWidth >= 768) return;
     isDragAction.current = false;
     if (sheetRef.current) {
       sheetRef.current.style.transition = 'none';
@@ -173,6 +188,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
   };
 
   const toggleExpand = (e?: React.MouseEvent) => {
+    if (window.innerWidth >= 768) return;
     if (isDragAction.current) {
       if (e) e.preventDefault();
       return;
@@ -260,15 +276,15 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
     <div
       ref={sheetRef}
       style={{ height: `${Math.max(360, window.innerHeight * 0.75)}px` }}
-      className="absolute bottom-0 left-0 right-0 w-full bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-slate-100 z-[1000] flex flex-col will-change-transform"
+      className="absolute bottom-0 left-0 right-0 w-full bg-white rounded-t-[32px] shadow-[0_-8px_30px_rgba(0,0,0,0.12)] border-t border-slate-100 z-[1000] flex flex-col will-change-transform md:static md:w-full md:h-full md:rounded-none md:shadow-none md:border-t-0 md:border-l md:border-slate-200 md:transform-none"
     >
-      {/* Recenter Button (attached to top right of bottom sheet) */}
+      {/* Recenter Button: On mobile, attached to top right of bottom sheet. On desktop, floats cleanly over the map at bottom-right of map */}
       <button
         type="button"
         ref={(el) => handleTourLayout('recenter', { current: el })}
         onClick={() => centerOnUser()}
         disabled={isLocating}
-        className="absolute -top-[60px] right-4 w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_12px_rgba(0,0,0,0.15)] border border-slate-100 transition-all transform active:scale-95 z-[1010] disabled:opacity-80"
+        className="absolute -top-[60px] right-4 md:top-auto md:bottom-6 md:-left-16 md:right-auto w-12 h-12 rounded-full bg-white hover:bg-slate-50 flex items-center justify-center shadow-[0_4px_14px_rgba(0,0,0,0.16)] border border-slate-200 transition-all transform active:scale-95 z-[1010] disabled:opacity-80 cursor-pointer"
         title="Center on My Location"
       >
         <MaterialIcons
@@ -279,7 +295,7 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         />
       </button>
 
-      {/* Handle / Drag Bar */}
+      {/* Handle / Drag Bar (mobile only) */}
       <div
         onTouchStart={handleDragStart}
         onTouchMove={handleDragMove}
@@ -289,29 +305,47 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
         onMouseUp={handleDragEnd}
         onMouseLeave={handleDragEnd}
         onClick={toggleExpand}
-        className="w-full flex items-center justify-center pt-4 pb-4 cursor-pointer touch-none select-none"
+        className="w-full flex md:hidden items-center justify-center pt-4 pb-4 cursor-pointer touch-none select-none"
       >
         <div className="w-20 h-1.5 bg-[#e2e8f0] rounded-full" />
       </div>
 
+      {/* Desktop Panel Header */}
+      <div className="hidden md:flex items-center justify-between px-6 pt-5 pb-3 border-b border-slate-100 shrink-0">
+        <div>
+          <h2 className="text-sm font-black text-[#103d7c] uppercase tracking-wider">
+            Transit Navigator
+          </h2>
+          <p className="text-[11px] text-slate-400 font-medium">
+            Live bus positions, routes & stops
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+          <span className="text-[10px] font-black tracking-wider">ACTIVE</span>
+        </div>
+      </div>
+
       {/* Tab Navigation Icons - 4 Pills */}
-      <div className="px-5 py-2 flex items-center justify-between gap-2.5">
+      <div className="px-5 md:px-6 py-2 md:py-3.5 flex items-center justify-between gap-2 md:gap-2.5 shrink-0 bg-white">
         {/* Tab 1: Buses / Location */}
         <button
           type="button"
           ref={(el) => handleTourLayout('tab-location', { current: el })}
           onClick={() => onTabChange('location')}
-          className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'location'
-              ? 'bg-[#1e3a8a] shadow-sm'
-              : 'bg-[#dbeafe] hover:bg-blue-100'
+              ? 'bg-[#1e3a8a] text-white shadow-sm'
+              : 'bg-[#dbeafe] text-[#1e3a8a] hover:bg-blue-100'
           }`}
+          title="Bus Locations"
         >
           <img
             src={currentTab === 'location' ? "/images/icons/busStopWhiteIcon.png" : "/images/icons/busStopBlueIcon.png"}
             alt="Buses"
             className="w-5 h-5 object-contain"
           />
+          <span className="hidden lg:inline text-xs font-bold">Buses</span>
         </button>
 
         {/* Tab 2: Routes */}
@@ -319,17 +353,19 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           type="button"
           ref={(el) => handleTourLayout('tab-routes', { current: el })}
           onClick={() => onTabChange('routes')}
-          className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'routes'
-              ? 'bg-[#1e3a8a] shadow-sm'
-              : 'bg-[#dbeafe] hover:bg-blue-100'
+              ? 'bg-[#1e3a8a] text-white shadow-sm'
+              : 'bg-[#dbeafe] text-[#1e3a8a] hover:bg-blue-100'
           }`}
+          title="Routes"
         >
           <img
             src={currentTab === 'routes' ? "/images/icons/routes active.svg" : "/images/icons/routes idle.svg"}
             alt="Routes"
             className="w-5 h-5 object-contain"
           />
+          <span className="hidden lg:inline text-xs font-bold">Routes</span>
         </button>
 
         {/* Tab 3: Circles / Friends */}
@@ -337,17 +373,19 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           type="button"
           ref={(el) => handleTourLayout('tab-groups', { current: el })}
           onClick={() => onTabChange('groups')}
-          className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'groups'
-              ? 'bg-[#1e3a8a] shadow-sm'
-              : 'bg-[#dbeafe] hover:bg-blue-100'
+              ? 'bg-[#1e3a8a] text-white shadow-sm'
+              : 'bg-[#dbeafe] text-[#1e3a8a] hover:bg-blue-100'
           }`}
+          title="Circle Friends"
         >
           <img
             src={currentTab === 'groups' ? "/images/icons/groupsActive.svg" : "/images/icons/groupsIdle.svg"}
             alt="Circles"
             className="w-5 h-5 object-contain"
           />
+          <span className="hidden lg:inline text-xs font-bold">Circles</span>
         </button>
 
         {/* Tab 4: Bus Stops */}
@@ -355,25 +393,27 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
           type="button"
           ref={(el) => handleTourLayout('tab-busstops', { current: el })}
           onClick={() => onTabChange('busstops')}
-          className={`flex-1 flex items-center justify-center py-2.5 rounded-2xl transition-all cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-2xl transition-all cursor-pointer ${
             currentTab === 'busstops'
-              ? 'bg-[#1e3a8a] shadow-sm'
-              : 'bg-[#dbeafe] hover:bg-blue-100'
+              ? 'bg-[#1e3a8a] text-white shadow-sm'
+              : 'bg-[#dbeafe] text-[#1e3a8a] hover:bg-blue-100'
           }`}
+          title="Bus Stops"
         >
           <img
             src={currentTab === 'busstops' ? "/images/icons/busStopMarkerFinalWhite.svg" : "/images/icons/busStopMarkerFinalBlue.svg"}
             alt="Stops"
             className="w-5 h-5 object-contain"
           />
+          <span className="hidden lg:inline text-xs font-bold">Stops</span>
         </button>
       </div>
 
       {/* Tab Content Panels */}
-      <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 pb-28 pt-1 text-left">
+      <div className="flex-1 overflow-y-auto overscroll-contain touch-pan-y px-5 md:px-6 pb-28 md:pb-8 pt-1 text-left">
         {/* Tab 1: BUS LOCATION */}
         {currentTab === 'location' && (
-          <div className="pb-48">
+          <div className="pb-48 md:pb-6">
             <h3 className="text-[13px] font-bold text-black uppercase tracking-widest my-3 px-1">
               BUS LOCATION
             </h3>

@@ -41,7 +41,7 @@ export const PassengerFooter: React.FC<PassengerFooterProps> = ({
   };
 
   return (
-    <footer className="border-t border-[#e2e8f0] flex items-center bg-white sticky bottom-0 h-[75px] z-[1060] w-full shrink-0">
+    <footer className="border-t border-[#e2e8f0] flex md:hidden items-center bg-white sticky bottom-0 h-[75px] z-[1060] w-full shrink-0">
       {/* Location Tab */}
       <button
         type="button"
