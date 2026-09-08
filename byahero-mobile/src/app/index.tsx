@@ -237,12 +237,19 @@ export default function LoginScreen() {
       if (result.type === 'success' && result.url) {
         const url = result.url;
         let idToken = '';
-        if (url.includes('id_token=')) {
-          idToken = url.split('id_token=')[1].split('&')[0];
-        } else if (url.includes('access_token=')) {
-          idToken = url.split('access_token=')[1].split('&')[0];
-        } else if (url.includes('credential=')) {
-          idToken = url.split('credential=')[1].split('&')[0];
+        const match = url.match(/(?:id_token|credential|access_token)=([^&#]+)/);
+        if (match && match[1]) {
+          idToken = decodeURIComponent(match[1]);
+        }
+
+        const errorMatch = url.match(/error=([^&#]+)/);
+        if (errorMatch && errorMatch[1]) {
+          const authErr = decodeURIComponent(errorMatch[1]);
+          clearTimeout(timer);
+          setIsLoading(false);
+          setShowWarmingUpMsg(false);
+          showAlert('Authentication Error', `Google login error: ${authErr}`, 'error');
+          return;
         }
 
         if (idToken) {
@@ -251,7 +258,7 @@ export default function LoginScreen() {
           setIsLoading(false);
           setShowWarmingUpMsg(false);
 
-          const hasContacts = authResult.user?.contacts || '';
+          const hasContacts = authResult.user?.contacts || authResult.user?.phone || '';
           
           const cachedName = await AsyncStorage.getItem('byahero_cached_name') || authResult.user?.name || 'User';
           let displayName = cachedName;
@@ -279,7 +286,9 @@ export default function LoginScreen() {
         clearTimeout(timer);
         setIsLoading(false);
         setShowWarmingUpMsg(false);
-        showAlert('Authentication Failed', 'Google authentication was cancelled, blocked, or failed to complete.', 'warning');
+        if (result.type !== 'cancel' && result.type !== 'dismiss') {
+          showAlert('Authentication Failed', 'Google authentication was cancelled, blocked, or failed to complete.', 'warning');
+        }
       }
     } catch (error) {
       clearTimeout(timer);

@@ -15,10 +15,15 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
-import { signupRequestOtp, signupVerifyOtp } from '../services/authService';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { signupRequestOtp, signupVerifyOtp, googleAuth } from '../services/authService';
 import { FormInput } from '../components/ui/FormInput';
 import { PrimaryButton } from '../components/ui/PrimaryButton';
 import { OtpInput } from '../components/ui/OtpInput';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function SignUpScreen() {
   const [step, setStep] = useState(1);
@@ -123,6 +128,58 @@ export default function SignUpScreen() {
     }
   };
 
+  const handleGoogleSignUp = async () => {
+    setIsLoading(true);
+    try {
+      const redirectUri = 'https://byahero.alwaysdata.net/public/login.php';
+      const appRedirectUrl = Linking.createURL('/');
+
+      const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=id_token&nonce=byaheromobile123&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&state=${encodeURIComponent(appRedirectUrl)}`;
+
+      const result = await WebBrowser.openAuthSessionAsync(googleAuthUrl, appRedirectUrl);
+
+      if (result.type === 'success' && result.url) {
+        const url = result.url;
+        let idToken = '';
+        const match = url.match(/(?:id_token|credential|access_token)=([^&#]+)/);
+        if (match && match[1]) {
+          idToken = decodeURIComponent(match[1]);
+        }
+
+        const errorMatch = url.match(/error=([^&#]+)/);
+        if (errorMatch && errorMatch[1]) {
+          const authErr = decodeURIComponent(errorMatch[1]);
+          setIsLoading(false);
+          showAlert('Authentication Error', `Google sign-up error: ${authErr}`, 'error');
+          return;
+        }
+
+        if (idToken) {
+          const authResult = await googleAuth(idToken);
+          setIsLoading(false);
+
+          const hasContacts = authResult.user?.contacts || authResult.user?.phone || '';
+          if (!hasContacts) {
+            router.replace('/passenger/completeProfile' as any);
+          } else {
+            router.replace('/passenger');
+          }
+        } else {
+          setIsLoading(false);
+          showAlert('Authentication Error', 'No token returned from Google.', 'error');
+        }
+      } else {
+        setIsLoading(false);
+        if (result.type !== 'cancel' && result.type !== 'dismiss') {
+          showAlert('Authentication Failed', 'Google sign-up was cancelled or blocked.', 'warning');
+        }
+      }
+    } catch (error) {
+      setIsLoading(false);
+      showAlert('Authentication Error', (error as any).message || 'Failed to sign up via Google.', 'error');
+    }
+  };
+
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-100`}>
       <KeyboardAvoidingView
@@ -211,6 +268,30 @@ export default function SignUpScreen() {
                     onPress={handleSignUpSubmit}
                     isLoading={isLoading}
                   />
+
+                  {/* Divider */}
+                  <View style={tw`flex-row items-center my-4`}>
+                    <View style={tw`flex-1 h-[1px] bg-slate-200`} />
+                    <Text style={tw`px-3 text-[11px] font-bold text-slate-400 uppercase tracking-wider`}>OR</Text>
+                    <View style={tw`flex-1 h-[1px] bg-slate-200`} />
+                  </View>
+
+                  {/* Google sign-in button */}
+                  <TouchableOpacity
+                    onPress={handleGoogleSignUp}
+                    disabled={isLoading}
+                    activeOpacity={0.8}
+                    style={tw`w-full bg-white border border-slate-200 rounded-full py-3.5 flex-row justify-center items-center gap-3 shadow-sm`}
+                  >
+                    <Image
+                      source={{ uri: 'https://developers.google.com/static/identity/images/g-logo.png' }}
+                      style={tw`w-5 h-5`}
+                      contentFit="contain"
+                    />
+                    <Text style={tw`text-slate-700 font-bold text-sm`}>
+                      Continue with Google
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               ) : (
                 // STEP 2: OTP Verification

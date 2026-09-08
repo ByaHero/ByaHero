@@ -377,7 +377,12 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid credential format']);
         }
 
-        $payloadJson = base64_decode(str_replace(['-', '_'], ['+', '/'], $parts[1]));
+        $b64Payload = str_replace(['-', '_'], ['+', '/'], $parts[1]);
+        $remainder = strlen($b64Payload) % 4;
+        if ($remainder) {
+            $b64Payload .= str_repeat('=', 4 - $remainder);
+        }
+        $payloadJson = base64_decode($b64Payload);
         if (!$payloadJson) {
             return response()->json(['success' => false, 'message' => 'Failed to decode credential payload']);
         }
@@ -472,9 +477,19 @@ class AuthController extends Controller
     public function completeProfile(Request $request)
     {
         $userId = Session::get('user_id');
-        $role = Session::get('user_role');
+        $role = Session::get('user_role', 'passenger');
 
-        if (empty($userId) || empty($role)) {
+        // Fallback lookup by email for mobile / API calls where PHP session cookie might be omitted
+        $email = strtolower(trim($request->input('email', '')));
+        if (empty($userId) && !empty($email)) {
+            $userByEmail = User::where('email', $email)->first();
+            if ($userByEmail) {
+                $userId = $userByEmail->id;
+                $role = 'passenger';
+            }
+        }
+
+        if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not authenticated']);
         }
 
