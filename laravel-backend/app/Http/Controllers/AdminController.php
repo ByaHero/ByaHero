@@ -936,8 +936,8 @@ class AdminController extends Controller
             
             elseif ($action === 'generate_matrix') {
                 $baseKm = (float)$request->input('base_km', 4.0);
-                $regBase = (float)$request->input('reg_base', 14.00);
-                $discBase = (float)$request->input('disc_base', 11.25);
+                $regBase = (float)$request->input('reg_base', 15.00);
+                $discBase = (float)$request->input('disc_base', 12.00);
                 $regRate = (float)$request->input('reg_rate', 2.20);
                 $discRate = (float)$request->input('disc_rate', 1.76);
 
