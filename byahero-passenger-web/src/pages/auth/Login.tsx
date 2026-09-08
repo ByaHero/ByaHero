@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { preWarmServer, login as authServiceLogin, googleAuth } from '../../services/authService';
+import { preWarmServer, login as authServiceLogin, googleAuth, isMessengerOrInAppBrowser } from '../../services/authService';
 import DevSettingsModal from '../../components/DevSettingsModal';
 import AlertModal from '../../components/AlertModal';
 import { MaterialIcons } from '../../components/ui/MaterialIcons';
@@ -266,6 +266,19 @@ export const Login: React.FC = () => {
             className="w-[180px] h-[40px] mt-2 object-contain"
           />
         </div>
+
+        {/* Messenger In-App Browser Advisory */}
+        {isMessengerOrInAppBrowser() && (
+          <div className="w-full mb-4 p-3.5 bg-blue-50 border border-blue-200 rounded-2xl text-left text-xs text-blue-950 flex items-start gap-2.5 shadow-sm">
+            <MaterialIcons name="info" size={20} color="#1d72f8" className="shrink-0 mt-0.5" />
+            <div>
+              <span className="font-bold block text-blue-900">Opened in Messenger</span>
+              <span className="text-slate-600 block mt-0.5 leading-relaxed text-[11.5px]">
+                Google Sign-In may fail inside Facebook Messenger. Tap the <strong>3 dots (⋮)</strong> at the top right and select <strong>"Open in Chrome"</strong>.
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* Card Form */}
         <div className="bg-white rounded-[28px] px-7 py-8 w-full shadow-md">

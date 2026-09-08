@@ -14,6 +14,12 @@ export class ApiError extends Error {
 
 const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 
+export function isMessengerOrInAppBrowser(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const ua = navigator.userAgent || navigator.vendor || (window as any).opera || '';
+  return /FBAN|FBAV|Instagram|TikTok|Line/i.test(ua);
+}
+
 export async function getServerUrl(): Promise<string> {
   try {
     const storedUrl = localStorage.getItem('byahero_server_url');
@@ -22,6 +28,10 @@ export async function getServerUrl(): Promise<string> {
     }
   } catch (error) {
     console.error('Error getting server URL:', error);
+  }
+  // When running on Vercel, proxying through Vercel's edge network avoids carrier DNS drops and CORS issues
+  if (typeof window !== 'undefined' && window.location.origin.includes('vercel.app')) {
+    return window.location.origin;
   }
   return DEFAULT_SERVER_URL;
 }
@@ -45,7 +55,7 @@ export async function preWarmServer(): Promise<void> {
   try {
     const baseUrl = await getServerUrl();
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
 
     debugLogger.log('info', 'PreWarm', `Pinging server at ${baseUrl}/api/ping`);
 
@@ -58,6 +68,13 @@ export async function preWarmServer(): Promise<void> {
       .catch(err => {
         debugLogger.log('warn', 'PreWarm', `Server ping status: ${err.message}`);
         clearTimeout(timeoutId);
+        // If Vercel proxy ping timed out, try pinging AlwaysData directly
+        if (typeof window !== 'undefined' && baseUrl.includes('vercel.app')) {
+          fetch('https://byahero.alwaysdata.net/api/ping')
+            .then(res => res.json())
+            .then(d => debugLogger.log('info', 'PreWarm', 'AlwaysData direct ping succeeded', d))
+            .catch(() => {});
+        }
       });
   } catch (e) {
     // Ignore error
@@ -94,11 +111,38 @@ async function apiRequest(action: string, dataObj: Record<string, any>) {
       credentials: 'include'
     });
   } catch (networkError: any) {
-    const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
-    throw new ApiError(
-      `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
-      report
-    );
+    // Attempt automatic failover between Vercel proxy and AlwaysData direct
+    const isProxy = typeof window !== 'undefined' && endpoint.startsWith(window.location.origin);
+    const fallbackBase = isProxy
+      ? 'https://byahero.alwaysdata.net'
+      : (typeof window !== 'undefined' && window.location.origin.includes('vercel.app') ? window.location.origin : null);
+
+    if (fallbackBase && `${fallbackBase}/api/auth` !== endpoint) {
+      const fallbackEndpoint = `${fallbackBase}/api/auth`;
+      debugLogger.log('warn', `API:${action}`, `Initial request to ${endpoint} failed. Attempting failover to ${fallbackEndpoint}...`);
+      try {
+        response = await fetch(fallbackEndpoint, {
+          method: 'POST',
+          body: formData,
+          headers: {
+            'Accept': 'application/json',
+          },
+          credentials: 'include'
+        });
+      } catch (fallbackError: any) {
+        const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
+        throw new ApiError(
+          `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
+          report
+        );
+      }
+    } else {
+      const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
+      throw new ApiError(
+        `Network request failed: ${networkError.message || 'Unable to connect to server'}.`,
+        report
+      );
+    }
   }
 
   if (!response.ok) {
