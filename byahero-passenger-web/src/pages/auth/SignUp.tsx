@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Loader2 } from 'lucide-react';
-import { signupRequestOtp, signupVerifyOtp, googleAuth } from '../../services/authService';
+import { signupRequestOtp, signupVerifyOtp, googleAuth, login as authServiceLogin } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
 import AlertModal from '../../components/AlertModal';
 
@@ -86,7 +86,7 @@ export const SignUp: React.FC = () => {
         if (!hasContacts) {
           navigate('/complete-profile');
         } else {
-          navigate('/');
+          navigate('/show-guide');
         }
       } else {
         throw new Error(result.message || 'Google sign-up failed.');
@@ -190,12 +190,27 @@ export const SignUp: React.FC = () => {
 
     setIsLoading(true);
     try {
-      const response = await signupVerifyOtp(email, otp);
+      const response = await signupVerifyOtp(email, otp, name, contacts, password);
       setIsLoading(false);
       if (response.success) {
-        showAlert('Success', 'Verification complete! You can now log in.', 'success', () => {
-          navigate('/complete-profile');
-        });
+        // Auto-login the user
+        try {
+          const loginRes = await authServiceLogin(email, password);
+          authContextLogin({
+            email: email.trim(),
+            name: loginRes.user?.name || name || email.trim().split('@')[0],
+            phone: contacts,
+            role: loginRes.role || 'passenger',
+            profile_picture: loginRes.user?.profile_picture,
+          });
+          showAlert('Success', 'Verification complete! Welcome to ByaHero.', 'success', () => {
+            navigate('/show-guide');
+          });
+        } catch (loginErr) {
+          showAlert('Success', 'Verification complete! Please log in.', 'success', () => {
+            navigate('/login');
+          });
+        }
       }
     } catch (error: any) {
       setIsLoading(false);

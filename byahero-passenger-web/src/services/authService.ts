@@ -178,10 +178,13 @@ export async function signupRequestOtp(name: string, email: string, contacts: st
   }
 }
 
-export async function signupVerifyOtp(email: string, otp: string) {
+export async function signupVerifyOtp(email: string, otp: string, name?: string, contacts?: string, password?: string) {
   const data = await apiRequest('signup_verify_otp', {
     email: email.trim(),
     otp: otp.trim(),
+    name: name?.trim(),
+    contacts: contacts?.trim(),
+    password: password,
   });
 
   if (data.success) {

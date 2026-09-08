@@ -147,7 +147,7 @@ export const AccountSettings: React.FC = () => {
             <div className="bg-white rounded-3xl p-5 border border-slate-100 shadow-sm mb-4">
               {/* Avatar Area */}
               <div className="flex items-center gap-4 mb-5">
-                <div className="w-18 h-18 rounded-full border border-slate-200 bg-[#dbeafe] flex justify-center items-center overflow-hidden shadow-sm">
+                <div className="w-24 h-24 flex-shrink-0 rounded-full border border-slate-200 bg-[#dbeafe] flex justify-center items-center overflow-hidden shadow-sm">
                   {profilePic ? (
                     <img
                       src={

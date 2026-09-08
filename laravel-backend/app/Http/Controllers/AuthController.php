@@ -212,8 +212,21 @@ class AuthController extends Controller
         }
 
         $pending = Session::get('pending_signup');
+        
+        $contact = trim($request->input('contacts', ''));
+        $password = $request->input('password', '');
+        $name = trim($request->input('name', ''));
+
         if (!$pending || $pending['email'] !== $email) {
-            return response()->json(['success' => false, 'message' => 'Session expired. Please start the signup process again.']);
+            if (empty($contact) || empty($password)) {
+                return response()->json(['success' => false, 'message' => 'Session expired. Please start the signup process again.']);
+            }
+            $pending = [
+                'name' => $name,
+                'email' => $email,
+                'contact' => preg_replace('/[^0-9]/', '', $contact),
+                'password' => Hash::make($password),
+            ];
         }
 
         $user = User::create([
