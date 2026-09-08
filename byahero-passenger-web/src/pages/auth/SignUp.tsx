@@ -43,25 +43,34 @@ export const SignUp: React.FC = () => {
     title: '',
     message: '',
     type: 'error',
-    onConfirm: () => { },
+    onConfirm: () => {},
   });
 
   const showAlert = (
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
-    diagnosticInfo?: any,
+    diagnosticInfoOrConfirm?: any,
     onConfirm?: () => void
   ) => {
+    let diag: any = undefined;
+    let confirmCb: (() => void) | undefined = onConfirm;
+
+    if (typeof diagnosticInfoOrConfirm === 'function') {
+      confirmCb = diagnosticInfoOrConfirm;
+    } else {
+      diag = diagnosticInfoOrConfirm;
+    }
+
     setAlertConfig({
       visible: true,
       title,
       message,
       type,
-      diagnosticInfo,
+      diagnosticInfo: diag,
       onConfirm: () => {
         setAlertConfig(p => ({ ...p, visible: false }));
-        if (onConfirm) onConfirm();
+        if (confirmCb) confirmCb();
       },
     });
   };
@@ -88,9 +97,9 @@ export const SignUp: React.FC = () => {
         });
 
         if (!hasContacts) {
-          navigate('/complete-profile');
+          navigate('/complete-profile', { replace: true });
         } else {
-          navigate('/show-guide');
+          navigate('/show-guide', { replace: true });
         }
       } else {
         throw new Error(result.message || 'Google sign-up failed.');
@@ -207,13 +216,43 @@ export const SignUp: React.FC = () => {
             role: loginRes.role || 'passenger',
             profile_picture: loginRes.user?.profile_picture,
           });
-          showAlert('Success', 'Verification complete! Welcome to ByaHero.', 'success', () => {
-            navigate('/show-guide');
-          });
+
+          let hasRedirected = false;
+          const proceedToGuide = () => {
+            if (hasRedirected) return;
+            hasRedirected = true;
+            navigate('/show-guide', { replace: true });
+          };
+
+          showAlert(
+            'Account Created!',
+            'Verification complete! Welcome to ByaHero. Redirecting to guide...',
+            'success',
+            proceedToGuide
+          );
+
+          // Auto-redirect after 1.8 seconds in case user doesn't tap the modal button
+          setTimeout(() => {
+            proceedToGuide();
+          }, 1800);
         } catch (loginErr) {
-          showAlert('Success', 'Verification complete! Please log in.', 'success', () => {
-            navigate('/login');
-          });
+          let hasRedirected = false;
+          const proceedToLogin = () => {
+            if (hasRedirected) return;
+            hasRedirected = true;
+            navigate('/login', { replace: true });
+          };
+
+          showAlert(
+            'Account Created!',
+            'Verification complete! Please log in with your credentials.',
+            'success',
+            proceedToLogin
+          );
+
+          setTimeout(() => {
+            proceedToLogin();
+          }, 2000);
         }
       }
     } catch (error: any) {

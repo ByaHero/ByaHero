@@ -38,18 +38,27 @@ export const DeleteAccount: React.FC = () => {
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
-    diagnosticInfo?: any,
+    diagnosticInfoOrConfirm?: any,
     onConfirm?: () => void
   ) => {
+    let diag: any = undefined;
+    let confirmCb: (() => void) | undefined = onConfirm;
+
+    if (typeof diagnosticInfoOrConfirm === 'function') {
+      confirmCb = diagnosticInfoOrConfirm;
+    } else {
+      diag = diagnosticInfoOrConfirm;
+    }
+
     setAlertConfig({
       visible: true,
       title,
       message,
       type,
-      diagnosticInfo,
+      diagnosticInfo: diag,
       onConfirm: () => {
         setAlertConfig((prev) => ({ ...prev, visible: false }));
-        if (onConfirm) onConfirm();
+        if (confirmCb) confirmCb();
       },
     });
   };
@@ -95,10 +104,25 @@ export const DeleteAccount: React.FC = () => {
       debugLogger.log('success', 'DeleteAccount', 'Account successfully deleted from backend');
       await clearCachedSession();
 
-      showAlert('Account Deleted', 'Your account and data have been permanently removed.', 'success', () => {
+      let hasRedirected = false;
+      const redirectToLogin = () => {
+        if (hasRedirected) return;
+        hasRedirected = true;
         logout();
-        navigate('/login');
-      });
+        navigate('/login', { replace: true });
+      };
+
+      showAlert(
+        'Account Deleted',
+        'Your account and all associated data have been permanently removed. Redirecting to login...',
+        'success',
+        redirectToLogin
+      );
+
+      // Auto-redirect after 2 seconds in case user doesn't tap the modal button
+      setTimeout(() => {
+        redirectToLogin();
+      }, 2000);
     } catch (err: any) {
       setIsLoading(false);
       const diag = debugLogger.createDiagnosticReport('delete_account', `${serverUrl}/api/passenger/profile/delete-account`, serverUrl, err);

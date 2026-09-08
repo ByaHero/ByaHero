@@ -54,18 +54,27 @@ export const Login: React.FC = () => {
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
-    diagnosticInfo?: any,
+    diagnosticInfoOrConfirm?: any,
     onConfirm?: () => void
   ) => {
+    let diag: any = undefined;
+    let confirmCb: (() => void) | undefined = onConfirm;
+
+    if (typeof diagnosticInfoOrConfirm === 'function') {
+      confirmCb = diagnosticInfoOrConfirm;
+    } else {
+      diag = diagnosticInfoOrConfirm;
+    }
+
     setAlertConfig({
       visible: true,
       title,
       message,
       type,
-      diagnosticInfo,
+      diagnosticInfo: diag,
       onConfirm: () => {
         setAlertConfig((prev) => ({ ...prev, visible: false }));
-        if (onConfirm) onConfirm();
+        if (confirmCb) confirmCb();
       },
     });
   };

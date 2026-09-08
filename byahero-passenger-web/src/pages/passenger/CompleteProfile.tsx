@@ -85,14 +85,23 @@ export const CompleteProfile: React.FC = () => {
       updateUserProfile({ phone: fullPhone });
       setIsLoading(false);
 
-      showAlert('Profile Completed', 'Profile completed successfully! Redirecting...', 'success', () => {
-        navigate('/show-guide');
-      });
+      let hasRedirected = false;
+      const proceedToGuide = () => {
+        if (hasRedirected) return;
+        hasRedirected = true;
+        navigate('/show-guide', { replace: true });
+      };
+
+      showAlert('Profile Completed', 'Profile completed successfully! Redirecting...', 'success', proceedToGuide);
+
+      setTimeout(() => {
+        proceedToGuide();
+      }, 1500);
     } catch (e: any) {
       // Even if network update fails, save in local profile and proceed to showGuide
       updateUserProfile({ phone: fullPhone });
       setIsLoading(false);
-      navigate('/show-guide');
+      navigate('/show-guide', { replace: true });
     }
   };
 
