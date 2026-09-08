@@ -117,6 +117,7 @@ Route::middleware([
     Route::get('/passenger/profile/login-activity', [ProfileController::class, 'getLoginActivity']);
     Route::match(['get', 'post'], '/passenger/profile/change-password', [ProfileController::class, 'changePassword']);
     Route::post('/passenger/profile/update-phone', [ProfileController::class, 'updatePhone']);
+    Route::post('/profile/update-phone', [ProfileController::class, 'updatePhone']);
     Route::post('/passenger/profile/delete-account', [ProfileController::class, 'deleteAccount']);
     Route::post('/passenger/report/submit', [ProfileController::class, 'submitReport']);
 });

@@ -70,7 +70,7 @@ export const CompleteProfile: React.FC = () => {
 
     try {
       // Save phone on backend
-      await fetch(`${serverUrl}/api/profile/update-phone`, {
+      await fetch(`${serverUrl}/api/passenger/profile/update-phone`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
