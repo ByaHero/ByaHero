@@ -12,7 +12,10 @@
     },
     "scheme": "byaheromobile",
     "userInterfaceStyle": "automatic",
-    "ios": {},
+    "ios": {
+      "bundleIdentifier": "com.byahero.app",
+      "supportsTablet": true
+    },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",

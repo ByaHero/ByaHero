@@ -198,22 +198,29 @@ class ProfileController extends Controller
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
         }
 
-        $phone = $request->input('phone');
+        $phone = trim((string)$request->input('phone', $request->input('contacts', '')));
         if (empty($phone)) {
             return response()->json(['success' => false, 'message' => 'Phone number is required.'], 400);
         }
 
+        $cleanContact = preg_replace('/[^0-9]/', '', $phone);
+        if (!preg_match('/^(09|639)\d{9}$/', $cleanContact)) {
+            return response()->json(['success' => false, 'message' => 'Please enter a valid Philippine mobile number (e.g., 09123456789)'], 400);
+        }
+        $phone = $cleanContact;
+
         try {
-            User::where('id', $userId)->update([
-                'contacts' => $phone,
-                'updated_at' => now()
-            ]);
+            $user = User::find($userId);
+            if ($user) {
+                $user->contacts = $phone;
+                $user->save();
+            }
 
             Session::put('user_contacts', $phone);
 
             return response()->json(['success' => true, 'message' => 'Phone number updated successfully.']);
         } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to update phone number.']);
+            return response()->json(['success' => false, 'message' => 'Failed to update phone number: ' . $e->getMessage()], 500);
         }
     }
 
