@@ -109,7 +109,7 @@ export const Profile: React.FC = () => {
       <PassengerHeader pageTitle="My Profile" showBackButton={true} />
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full pb-8">
+        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto w-full pb-8 md:my-6 md:bg-white md:rounded-3xl md:shadow-sm md:border md:border-slate-200 md:p-6">
           {/* Profile Card Header */}
           <div className="flex flex-col items-center py-8 bg-white text-center">
             <div className="w-24 h-24 rounded-full border border-slate-300 flex justify-center items-center mb-3 bg-slate-50 overflow-hidden shadow-sm">
@@ -131,7 +131,7 @@ export const Profile: React.FC = () => {
           </div>
 
           {/* Profile Details Sheet */}
-          <div className="px-4 pt-6 bg-slate-100/70 min-h-[480px] rounded-t-[32px] space-y-4">
+          <div className="px-4 md:px-6 pt-6 bg-slate-100/70 min-h-[480px] rounded-t-[32px] md:rounded-2xl space-y-4">
             <h2 className="text-xs font-black text-slate-400 uppercase mb-3 tracking-widest px-1">
               Account Details
             </h2>

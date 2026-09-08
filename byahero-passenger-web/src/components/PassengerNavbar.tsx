@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { MaterialIcons } from './ui/MaterialIcons';
 import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
@@ -24,6 +24,7 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
   tourStep
 }) => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, logout, serverUrl } = useAuth();
   const { unreadCount, hasUnread } = useNotifications();
 
@@ -124,48 +125,82 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
   return (
     <>
       {/* Top Navbar Header */}
-      <header className="bg-[#103d7c] rounded-b-2xl shadow-sm h-14 z-[2002] w-full sticky top-0 shrink-0 flex items-center justify-between px-4">
+      <header className="bg-[#103d7c] rounded-b-2xl md:rounded-b-none shadow-sm md:shadow-md h-14 md:h-16 z-[2002] w-full sticky top-0 shrink-0 flex items-center justify-between px-4 md:px-8 transition-all">
         {pageTitle || showBackButton || showCloseButton ? (
-          <div className="flex items-center flex-1">
-            <button
-              type="button"
-              onClick={() => navigate(-1)}
-              className="p-1 mr-2 text-white focus:outline-none flex items-center justify-center"
-            >
-              <MaterialIcons name={showCloseButton ? "close" : "arrow_back"} size={24} color="white" />
-            </button>
-            {pageTitle && (
-              <span className="text-white font-bold text-[15px]">{pageTitle}</span>
-            )}
-          </div>
-        ) : (
-          <>
-            {/* Left TopBar Logo */}
-            <div className="w-15 flex items-center justify-center">
-              <img
-                src="/images/topBarLogo.svg"
-                alt="ByaHero Logo"
-                className="w-15 h-15 object-contain"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
+          <div className="flex items-center justify-between w-full">
+            <div className="flex items-center">
+              <button
+                type="button"
+                onClick={() => navigate(-1)}
+                className="p-1 mr-2 text-white focus:outline-none flex items-center justify-center cursor-pointer hover:bg-white/10 rounded-lg transition-colors"
+              >
+                <MaterialIcons name={showCloseButton ? "close" : "arrow_back"} size={24} color="white" />
+              </button>
+              {pageTitle && (
+                <span className="text-white font-bold text-[15px] md:text-lg">{pageTitle}</span>
+              )}
             </div>
 
-            {/* Center ByaHero Brand */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-0">
-              <img
-                src="/images/ByaHero.svg"
-                alt="ByaHero"
-                className="w-[100px] h-[30px] object-contain"
-                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
-              />
-            </div>
+            {/* Desktop Navigation Links (shown on subpages too for direct switching) */}
+            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
+              <Link
+                to="/"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname === '/'
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="map" size={18} color="currentColor" />
+                <span>Live Map</span>
+              </Link>
+              <Link
+                to="/bus-info"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/bus-info')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="directions_bus" size={18} color="currentColor" />
+                <span>Bus Info</span>
+              </Link>
+              <Link
+                to="/ride-history"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/ride-history')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="history" size={18} color="currentColor" />
+                <span>History</span>
+              </Link>
+              <Link
+                to="/lost-and-found"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/lost-and-found')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="inventory_2" size={18} color="currentColor" />
+                <span>Lost & Found</span>
+              </Link>
+              <Link
+                to="/sos"
+                className="ml-2 px-3.5 py-1.5 rounded-xl text-xs font-black bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <MaterialIcons name="warning" size={16} color="white" />
+                <span>SOS</span>
+              </Link>
+            </nav>
 
-            {/* Right Icons: Bell & Hamburger */}
+            {/* Right Icons: Notifications, Profile, Hamburger */}
             <div className="flex items-center gap-3">
               <Link
                 to="/notifications"
-                ref={(el) => handleTourLayout('notifications', { current: el })}
-                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none"
+                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
               >
                 <img
                   src="/images/notification bell.svg"
@@ -179,11 +214,175 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
                 )}
               </Link>
 
+              {/* Desktop Profile Pill */}
+              <Link
+                to="/profile"
+                className="hidden md:flex items-center gap-2 py-1 px-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white cursor-pointer"
+              >
+                {userProfilePic && userProfilePic !== 'null' && userProfilePic !== 'undefined' ? (
+                  <img
+                    src={userProfilePic.startsWith('http') ? userProfilePic : `${serverUrl.replace(/\/$/, '')}/${userProfilePic.replace(/^\//, '')}`}
+                    alt={userName}
+                    className="w-6 h-6 rounded-full object-cover ring-1 ring-white/30"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-white text-[#103d7c] font-bold text-xs flex items-center justify-center">
+                    {userInitial}
+                  </div>
+                )}
+                <span className="text-xs font-semibold max-w-[100px] truncate">{userName}</span>
+              </Link>
+
+              <button
+                type="button"
+                onClick={() => setMenuVisible(true)}
+                className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
+              >
+                <img
+                  src="/images/HAMBURGER.svg"
+                  alt="Menu"
+                  className="w-[18px] h-[18px] object-contain"
+                />
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* Mobile Left TopBar Logo */}
+            <div className="w-15 flex items-center justify-center md:hidden">
+              <img
+                src="/images/topBarLogo.svg"
+                alt="ByaHero Logo"
+                className="w-15 h-15 object-contain"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+            </div>
+
+            {/* Mobile Center ByaHero Brand */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none -z-0 md:hidden">
+              <img
+                src="/images/ByaHero.svg"
+                alt="ByaHero"
+                className="w-[100px] h-[30px] object-contain"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+            </div>
+
+            {/* Desktop Left Brand & Logo */}
+            <Link to="/" className="hidden md:flex items-center gap-3 group focus:outline-none shrink-0">
+              <img
+                src="/images/topBarLogo.svg"
+                alt="ByaHero Logo"
+                className="w-10 h-10 object-contain transition-transform group-hover:scale-105"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+              <img
+                src="/images/ByaHero.svg"
+                alt="ByaHero"
+                className="w-24 h-7 object-contain"
+                onError={(e) => { (e.target as HTMLElement).style.display = 'none'; }}
+              />
+            </Link>
+
+            {/* Desktop Center Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1.5 lg:gap-2">
+              <Link
+                to="/"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname === '/'
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="map" size={18} color="currentColor" />
+                <span>Live Map</span>
+              </Link>
+              <Link
+                to="/bus-info"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/bus-info')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="directions_bus" size={18} color="currentColor" />
+                <span>Bus Info</span>
+              </Link>
+              <Link
+                to="/ride-history"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/ride-history')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="history" size={18} color="currentColor" />
+                <span>History</span>
+              </Link>
+              <Link
+                to="/lost-and-found"
+                className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 ${
+                  location.pathname.startsWith('/lost-and-found')
+                    ? 'bg-blue-600/40 text-white shadow-inner ring-1 ring-white/20'
+                    : 'text-blue-100/80 hover:text-white hover:bg-white/10'
+                }`}
+              >
+                <MaterialIcons name="inventory_2" size={18} color="currentColor" />
+                <span>Lost & Found</span>
+              </Link>
+              <Link
+                to="/sos"
+                ref={(el) => handleTourLayout('sos-btn', { current: el })}
+                className="ml-2 px-3.5 py-1.5 rounded-xl text-xs font-black bg-red-600 hover:bg-red-500 text-white shadow-md shadow-red-900/30 transition-all flex items-center gap-1.5 active:scale-95"
+              >
+                <MaterialIcons name="warning" size={16} color="white" />
+                <span>SOS</span>
+              </Link>
+            </nav>
+
+            {/* Right Icons: Bell & Hamburger (and Desktop Profile) */}
+            <div className="flex items-center gap-3">
+              <Link
+                to="/notifications"
+                ref={(el) => handleTourLayout('notifications', { current: el })}
+                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
+              >
+                <img
+                  src="/images/notification bell.svg"
+                  alt="Notifications"
+                  className="w-[22px] h-[22px] object-contain"
+                />
+                {hasUnread && (
+                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
+                    {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
+                  </span>
+                )}
+              </Link>
+
+              {/* Desktop Profile Pill */}
+              <Link
+                to="/profile"
+                className="hidden md:flex items-center gap-2 py-1 px-2.5 rounded-full bg-white/10 hover:bg-white/20 transition-all text-white cursor-pointer"
+              >
+                {userProfilePic && userProfilePic !== 'null' && userProfilePic !== 'undefined' ? (
+                  <img
+                    src={userProfilePic.startsWith('http') ? userProfilePic : `${serverUrl.replace(/\/$/, '')}/${userProfilePic.replace(/^\//, '')}`}
+                    alt={userName}
+                    className="w-6 h-6 rounded-full object-cover ring-1 ring-white/30"
+                  />
+                ) : (
+                  <div className="w-6 h-6 rounded-full bg-white text-[#103d7c] font-bold text-xs flex items-center justify-center">
+                    {userInitial}
+                  </div>
+                )}
+                <span className="text-xs font-semibold max-w-[100px] truncate">{userName}</span>
+              </Link>
+
               <button
                 type="button"
                 ref={(el) => handleTourLayout('hamburger', { current: el })}
                 onClick={() => setMenuVisible(true)}
-                className="p-1 rounded-xl flex items-center justify-center focus:outline-none"
+                className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
               >
                 <img
                   src="/images/HAMBURGER.svg"

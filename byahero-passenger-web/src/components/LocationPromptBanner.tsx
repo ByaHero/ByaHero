@@ -18,7 +18,7 @@ export const LocationPromptBanner: React.FC = () => {
 
   if (locationPermission === 'denied') {
     return (
-      <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:max-w-md z-[1040] animate-in fade-in slide-in-from-top duration-300">
+      <div className="w-full z-[1040] animate-in fade-in slide-in-from-top duration-300">
         <div className="bg-amber-500/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-amber-400 flex items-start gap-3">
           <AlertTriangle className="w-5 h-5 text-amber-100 flex-shrink-0 mt-0.5" />
           <div className="flex-1 text-xs">
@@ -47,7 +47,7 @@ export const LocationPromptBanner: React.FC = () => {
   }
 
   return (
-    <div className="absolute top-20 left-4 right-4 md:left-6 md:right-auto md:max-w-md z-[1040] animate-in fade-in slide-in-from-top duration-300">
+    <div className="w-full z-[1040] animate-in fade-in slide-in-from-top duration-300">
       <div className="bg-[#103d7c]/95 backdrop-blur-md text-white px-4 py-3 rounded-2xl shadow-xl border border-blue-400/30 flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 flex-1 min-w-0">
           <div className="w-9 h-9 rounded-xl bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-blue-300">

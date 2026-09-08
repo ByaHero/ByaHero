@@ -192,11 +192,11 @@ export const BusInfo: React.FC = () => {
         </div>
       )}
 
-      <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full p-5 space-y-6 pb-8">
+      <div className="flex-1 overflow-y-auto w-full overscroll-contain bg-slate-50">
+        <div className="max-w-md md:max-w-4xl lg:max-w-5xl mx-auto w-full p-5 md:p-8 space-y-6 md:space-y-0 md:grid md:grid-cols-2 md:gap-8 pb-8">
           {/* Schedules Section */}
-          <div>
-            <h2 className="text-[15px] font-bold text-[#103d7c] mt-4 mb-4 text-center">
+          <div className="md:bg-white md:p-6 md:rounded-2xl md:border md:border-slate-200 md:shadow-sm">
+            <h2 className="text-[15px] md:text-base font-bold text-[#103d7c] mt-4 md:mt-0 mb-4 text-center">
               Bus Operation Schedule
             </h2>
 
@@ -240,8 +240,8 @@ export const BusInfo: React.FC = () => {
           </div>
 
           {/* Fare Check Section */}
-          <div className="relative pt-2">
-            <h2 className="text-[15px] font-bold text-[#103d7c] mb-3 text-center">
+          <div className="relative pt-2 md:pt-0 md:bg-white md:p-6 md:rounded-2xl md:border md:border-slate-200 md:shadow-sm">
+            <h2 className="text-[15px] md:text-base font-bold text-[#103d7c] mb-3 text-center">
               Bus Fare Check
             </h2>
 

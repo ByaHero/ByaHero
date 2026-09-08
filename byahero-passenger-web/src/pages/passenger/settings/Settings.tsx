@@ -86,8 +86,8 @@ export const Settings: React.FC = () => {
       <PassengerHeader pageTitle="Settings" showBackButton={true} />
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full pb-8">
-          <div className="p-4 bg-slate-100/70 min-h-[560px] mt-4 rounded-t-[32px]">
+        <div className="max-w-md md:max-w-2xl lg:max-w-3xl mx-auto w-full pb-8">
+          <div className="p-4 md:p-8 bg-slate-100/70 min-h-[560px] mt-4 md:my-6 rounded-t-[32px] md:rounded-3xl md:shadow-sm md:border md:border-slate-200">
             <h1 className="text-lg font-black text-slate-800 mb-1 px-1">Settings Portal</h1>
             <p className="text-xs text-slate-400 font-medium mb-5 px-1">
               Manage preferences, app visibility, and notification profiles

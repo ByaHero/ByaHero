@@ -156,7 +156,7 @@ export const Notifications: React.FC = () => {
       <PassengerHeader pageTitle="Notifications" showBackButton={true} />
 
       <div className="flex-1 overflow-y-auto w-full overscroll-contain">
-        <div className="max-w-md mx-auto w-full pb-8">
+        <div className="max-w-md md:max-w-3xl lg:max-w-4xl mx-auto w-full pb-8 md:py-6">
           {/* Quick Refresh Bar */}
           <div className="px-4 py-2 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-xs text-slate-500 font-semibold">
             <span>Updates synced in real-time</span>

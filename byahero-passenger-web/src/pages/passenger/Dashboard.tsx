@@ -152,9 +152,11 @@ export const Dashboard: React.FC = () => {
 
       {/* Main Map & Panel Grid */}
       <main className="relative flex-1 w-full h-full flex flex-col md:flex-row overflow-hidden">
-        {/* Location & Push Permission / Guidance Banners */}
-        <LocationPromptBanner />
-        <NotificationPromptBanner />
+        {/* Location & Push Permission / Guidance Banners (stacked cleanly) */}
+        <div className="absolute top-16 md:top-20 left-4 right-4 md:left-6 md:right-auto md:max-w-md z-[1040] flex flex-col gap-2.5 pointer-events-none [&>*]:pointer-events-auto">
+          <LocationPromptBanner />
+          <NotificationPromptBanner />
+        </div>
 
         {/* Map Container */}
         <div className="flex-1 w-full h-full relative">
@@ -162,8 +164,8 @@ export const Dashboard: React.FC = () => {
         </div>
 
         {/* Bottom Sheet on Mobile / Side Panel on Desktop */}
-        <div className="absolute md:relative bottom-0 left-0 right-0 md:w-96 lg:w-[420px] md:h-full z-[1050] pointer-events-none md:pointer-events-auto">
-          <div className="relative w-full h-full pointer-events-auto">
+        <div className="absolute md:relative bottom-0 left-0 right-0 md:w-96 lg:w-[420px] xl:w-[460px] md:h-full z-[1050] md:z-[1000] pointer-events-none md:pointer-events-auto flex flex-col bg-white">
+          <div className="relative w-full h-full pointer-events-auto flex flex-col">
             <PassengerBottomSheet
               currentTab={currentTab}
               onTabChange={setCurrentTab}
