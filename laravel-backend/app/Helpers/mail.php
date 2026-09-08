@@ -90,8 +90,20 @@ function sendOTPEmail(string $to, string $otp, string $type = 'recovery'): array
     if ($httpCode >= 200 && $httpCode < 300) {
         return ['success' => true, 'message' => 'Email sent successfully'];
     } else {
-        $errorMsg = 'Failed to send email. API Error: ' . ($response ?: 'Unknown error');
-        error_log($errorMsg);
-        return ['success' => false, 'message' => $errorMsg];
+        $brevoErr = 'Brevo HTTP ' . $httpCode . ': ' . ($response ?: 'Unknown error');
+        error_log('Brevo API Error: ' . $brevoErr);
+
+        // Fallback to PHP native mail() if Brevo API fails
+        $headers  = "From: " . SENDER_NAME . " <" . SENDER_EMAIL . ">\r\n";
+        $headers .= "Reply-To: " . SENDER_EMAIL . "\r\n";
+        $headers .= "MIME-Version: 1.0\r\n";
+        $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+
+        $mailSent = @mail($to, $subject, $data['htmlContent'], $headers);
+        if ($mailSent) {
+            return ['success' => true, 'message' => 'Email sent via PHP mailer'];
+        }
+
+        return ['success' => false, 'message' => 'Failed to send email. ' . $brevoErr];
     }
 }

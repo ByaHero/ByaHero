@@ -179,17 +179,16 @@ class AuthController extends Controller
 
         require_once app_path('Helpers/mail.php');
         $mailResult = sendOTPEmail($email, $otp, 'signup');
-        if ($mailResult['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Verification code sent to your email.'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => $mailResult['message']
-            ]);
+        $isDev = env('APP_DEBUG', false) || env('APP_ENV') === 'local';
+        
+        $resData = [
+            'success' => $mailResult['success'] || $isDev,
+            'message' => $mailResult['success'] ? 'Verification code sent to your email.' : ($isDev ? 'OTP generated (Dev Mode).' : $mailResult['message'])
+        ];
+        if ($isDev) {
+            $resData['dev_otp'] = $otp;
         }
+        return response()->json($resData);
     }
 
     public function signupVerifyOtp(Request $request)
@@ -287,17 +286,16 @@ class AuthController extends Controller
 
         require_once app_path('Helpers/mail.php');
         $mailResult = sendOTPEmail($email, $otp, 'recovery');
-        if ($mailResult['success']) {
-            return response()->json([
-                'success' => true,
-                'message' => 'OTP sent to your email.'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => $mailResult['message']
-            ]);
+        $isDev = env('APP_DEBUG', false) || env('APP_ENV') === 'local';
+
+        $resData = [
+            'success' => $mailResult['success'] || $isDev,
+            'message' => $mailResult['success'] ? 'OTP sent to your email.' : ($isDev ? 'OTP generated (Dev Mode).' : $mailResult['message'])
+        ];
+        if ($isDev) {
+            $resData['dev_otp'] = $otp;
         }
+        return response()->json($resData);
     }
 
     public function verifyOtp(Request $request)
@@ -392,12 +390,24 @@ class AuthController extends Controller
             return response()->json(['success' => false, 'message' => 'Invalid credential payload']);
         }
 
-        $email = $payload['email'];
-        $name = $payload['name'] ?? explode('@', $email)[0];
+        $email = strtolower(trim($payload['email']));
+        $name = trim($payload['name'] ?? explode('@', $email)[0]);
         $googleId = $payload['sub'] ?? null;
-
-        $user = User::where('email', $email)->first();
         $googlePicture = $payload['picture'] ?? null;
+
+        $user = null;
+        $userRole = 'passenger';
+
+        // Check if account exists in any role table (Admin, Conductor, Driver, Passenger)
+        foreach ($this->roleTables as $role => $modelClass) {
+            $existing = $modelClass::where('email', $email)->first();
+            if ($existing) {
+                $user = $existing;
+                $userRole = $role;
+                break;
+            }
+        }
+
         if (!$user) {
             $user = User::create([
                 'email' => $email,
@@ -407,6 +417,7 @@ class AuthController extends Controller
                 'auth_provider' => 'google',
                 'profile_picture' => $googlePicture,
             ]);
+            $userRole = 'passenger';
         } else {
             // Update Google ID, provider, and profile picture if not set or updated
             $updated = false;
@@ -414,11 +425,11 @@ class AuthController extends Controller
                 $user->google_id = $googleId;
                 $updated = true;
             }
-            if ($user->auth_provider !== 'google') {
+            if (($user->auth_provider ?? null) !== 'google') {
                 $user->auth_provider = 'google';
                 $updated = true;
             }
-            if (!empty($googlePicture) && $user->profile_picture !== $googlePicture) {
+            if (!empty($googlePicture) && (empty($user->profile_picture) || $user->profile_picture !== $googlePicture)) {
                 $user->profile_picture = $googlePicture;
                 $updated = true;
             }
@@ -429,9 +440,10 @@ class AuthController extends Controller
 
         Session::put('user_id', (int)$user->id);
         Session::put('user_email', $user->email);
-        Session::put('user_role', 'passenger');
-        Session::put('user_name', $user->name);
-        Session::put('user_profile_picture', $user->profile_picture);
+        Session::put('user_role', $userRole);
+        Session::put('user_name', $user->name ?? $user->email);
+        Session::put('user_profile_picture', $user->profile_picture ?? null);
+        Session::put('user_contacts', $user->contacts ?? '');
 
         // Log login event
         $this->logLoginActivity((int)$user->id, $request);
@@ -439,13 +451,14 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Google Login Successful',
-            'redirect' => 'passenger/index.php',
+            'redirect' => $this->roleRedirects[$userRole] ?? 'passenger/index.php',
             'user' => [
                 'id' => (int)$user->id,
                 'email' => $user->email,
-                'name' => $user->name,
-                'contacts' => $user->contacts,
-                'profile_picture' => $user->profile_picture,
+                'name' => $user->name ?? $user->email,
+                'contacts' => $user->contacts ?? '',
+                'role' => $userRole,
+                'profile_picture' => $user->profile_picture ?? null,
             ]
         ]);
     }
