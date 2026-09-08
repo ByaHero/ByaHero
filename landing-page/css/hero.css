@@ -176,17 +176,18 @@
 
 .hero-banner-img {
     width: 100%;
-    max-width: 100%;
+    max-width: 120%;
     height: auto;
     display: block;
     border: none;
     box-shadow: none;
     border-radius: 0;
     transition: transform .3s ease;
+    transform: scale(1.2);
 }
 
 .hero-banner-img:hover {
-    transform: scale(1.02);
+    transform: scale(1.22);
 }
 
 .phone-frame {
