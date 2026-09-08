@@ -305,7 +305,7 @@ export default function DashboardScreen() {
           initial_available_seats: initialAvailable,
           current_seats: initialAvailable,
           current_boarded: boardingCount,
-          pending_pre_departure: boardingCount,
+          pending_pre_departure: ticketingMode === 'Automatic' ? boardingCount : 0,
           pre_departure_count: boardingCount,
           operation_id: res.operation_id,
           ticketing_mode: ticketingMode,
