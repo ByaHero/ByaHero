@@ -33,8 +33,8 @@ export default function AdminFares() {
 
   // Matrix Generator form
   const [baseKm, setBaseKm] = useState('4');
-  const [regBase, setRegBase] = useState('14.00');
-  const [discBase, setDiscBase] = useState('11.25');
+  const [regBase, setRegBase] = useState('15.00');
+  const [discBase, setDiscBase] = useState('12.00');
   const [regRate, setRegRate] = useState('2.20');
   const [discRate, setDiscRate] = useState('1.76');
 
