@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import PassengerHeader from '../../../components/PassengerNavbar';
 import PassengerFooter from '../../../components/PassengerFooter';
 import { useAuth } from '../../../context/AuthContext';
+import { clearCachedSession } from '../../../services/authService';
+import { debugLogger } from '../../../utils/debugLogger';
 import { MaterialIcons } from '../../../components/ui/MaterialIcons';
 import AlertModal from '../../../components/AlertModal';
 import { Loader2 } from 'lucide-react';
@@ -22,6 +24,7 @@ export const DeleteAccount: React.FC = () => {
     title: string;
     message: string;
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    diagnosticInfo?: any;
     onConfirm: () => void;
   }>({
     visible: false,
@@ -35,6 +38,7 @@ export const DeleteAccount: React.FC = () => {
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    diagnosticInfo?: any,
     onConfirm?: () => void
   ) => {
     setAlertConfig({
@@ -42,6 +46,7 @@ export const DeleteAccount: React.FC = () => {
       title,
       message,
       type,
+      diagnosticInfo,
       onConfirm: () => {
         setAlertConfig((prev) => ({ ...prev, visible: false }));
         if (onConfirm) onConfirm();
@@ -60,26 +65,44 @@ export const DeleteAccount: React.FC = () => {
     }
 
     setIsLoading(true);
+    debugLogger.log('warn', 'DeleteAccount', 'Requesting permanent account deletion', { email: user?.email });
+
     try {
-      await fetch(`${serverUrl}/api/passenger/profile/delete-account`, {
+      const endpoint = `${serverUrl}/api/passenger/profile/delete-account`;
+      const response = await fetch(endpoint, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
         body: JSON.stringify({
           confirmText: inputText.trim(),
           email: user?.email || '',
         }),
         credentials: 'include',
       });
+
+      const data = await response.json().catch(() => ({}));
       setIsLoading(false);
+
+      if (!response.ok || !data.success) {
+        const errorMsg = data.message || `Server responded with error (HTTP ${response.status})`;
+        const diag = debugLogger.createDiagnosticReport('delete_account', endpoint, serverUrl, new Error(errorMsg), response.status);
+        showAlert('Deletion Failed', errorMsg, 'error', diag);
+        return;
+      }
+
+      debugLogger.log('success', 'DeleteAccount', 'Account successfully deleted from backend');
+      await clearCachedSession();
 
       showAlert('Account Deleted', 'Your account and data have been permanently removed.', 'success', () => {
         logout();
         navigate('/login');
       });
-    } catch (err) {
+    } catch (err: any) {
       setIsLoading(false);
-      logout();
-      navigate('/login');
+      const diag = debugLogger.createDiagnosticReport('delete_account', `${serverUrl}/api/passenger/profile/delete-account`, serverUrl, err);
+      showAlert('Deletion Failed', err.message || 'Unable to connect to server to delete account.', 'error', diag);
     }
   };
 
@@ -149,7 +172,7 @@ export const DeleteAccount: React.FC = () => {
                 type="button"
                 onClick={handleDeleteAccount}
                 disabled={isLoading}
-                className="w-full bg-[#dc2626] hover:bg-red-700 py-3.5 rounded-2xl font-bold text-sm text-white mb-3 shadow-md transition-colors cursor-pointer flex justify-center items-center"
+                className="w-full bg-[#dc2626] hover:bg-red-700 py-3.5 rounded-2xl font-bold text-sm text-white mb-3 shadow-md transition-colors cursor-pointer flex justify-center items-center disabled:opacity-50"
               >
                 {isLoading ? (
                   <div className="flex items-center gap-2">
@@ -180,9 +203,11 @@ export const DeleteAccount: React.FC = () => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+        diagnosticInfo={alertConfig.diagnosticInfo}
         onConfirm={alertConfig.onConfirm}
       />
     </div>
   );
 };
+
 export default DeleteAccount;

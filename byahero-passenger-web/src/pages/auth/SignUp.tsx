@@ -35,6 +35,7 @@ export const SignUp: React.FC = () => {
     title: string;
     message: string;
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm';
+    diagnosticInfo?: any;
     onConfirm: () => void;
   }>({
     visible: false,
@@ -48,6 +49,7 @@ export const SignUp: React.FC = () => {
     title: string,
     message: string,
     type: 'success' | 'error' | 'info' | 'warning' | 'confirm' = 'error',
+    diagnosticInfo?: any,
     onConfirm?: () => void
   ) => {
     setAlertConfig({
@@ -55,6 +57,7 @@ export const SignUp: React.FC = () => {
       title,
       message,
       type,
+      diagnosticInfo,
       onConfirm: () => {
         setAlertConfig(p => ({ ...p, visible: false }));
         if (onConfirm) onConfirm();
@@ -93,7 +96,7 @@ export const SignUp: React.FC = () => {
       }
     } catch (error: any) {
       setIsLoading(false);
-      showAlert('Google Sign-Up Failed', error.message || 'Unable to sign up with Google.', 'error');
+      showAlert('Google Sign-Up Failed', error.message || 'Unable to sign up with Google.', 'error', error.diagnosticInfo);
     }
   };
 
@@ -176,7 +179,7 @@ export const SignUp: React.FC = () => {
       }
     } catch (error: any) {
       setIsLoading(false);
-      showAlert('Registration Request Failed', error.message || 'Server error. Please try again.', 'error');
+      showAlert('Registration Request Failed', error.message || 'Server error. Please try again.', 'error', error.diagnosticInfo);
     }
   };
 
@@ -214,7 +217,7 @@ export const SignUp: React.FC = () => {
       }
     } catch (error: any) {
       setIsLoading(false);
-      showAlert('Verification Failed', error.message || 'Invalid code.', 'error');
+      showAlert('Verification Failed', error.message || 'Invalid code.', 'error', error.diagnosticInfo);
     }
   };
 
@@ -434,6 +437,7 @@ export const SignUp: React.FC = () => {
         title={alertConfig.title}
         message={alertConfig.message}
         type={alertConfig.type}
+        diagnosticInfo={alertConfig.diagnosticInfo}
         onConfirm={alertConfig.onConfirm}
       />
     </div>
