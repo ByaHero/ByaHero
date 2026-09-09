@@ -34,6 +34,7 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 
   const isTourMenuStep = tourStep === 10 || tourStep === 12 || tourStep === 14;
   const menuVisible = menuVisibleState || isTourMenuStep;
+  const isDashboard = location.pathname === '/';
 
   const setMenuVisible = (visible: boolean) => {
     setMenuVisibleState(visible);
@@ -198,21 +199,23 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 
             {/* Right Icons: Notifications, Profile, Hamburger */}
             <div className="flex items-center gap-3">
-              <Link
-                to="/notifications"
-                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
-              >
-                <img
-                  src="/images/notification bell.svg"
-                  alt="Notifications"
-                  className="w-[22px] h-[22px] object-contain"
-                />
-                {hasUnread && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
-                    {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
-                  </span>
-                )}
-              </Link>
+              {isDashboard && (
+                <Link
+                  to="/notifications"
+                  className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
+                >
+                  <img
+                    src="/images/notification bell.svg"
+                    alt="Notifications"
+                    className="w-[22px] h-[22px] object-contain"
+                  />
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
+                      {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {/* Desktop Profile Pill */}
               <Link
@@ -233,17 +236,19 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
                 <span className="text-xs font-semibold max-w-[100px] truncate">{userName}</span>
               </Link>
 
-              <button
-                type="button"
-                onClick={() => setMenuVisible(true)}
-                className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <img
-                  src="/images/HAMBURGER.svg"
-                  alt="Menu"
-                  className="w-[18px] h-[18px] object-contain"
-                />
-              </button>
+              {isDashboard && (
+                <button
+                  type="button"
+                  onClick={() => setMenuVisible(true)}
+                  className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <img
+                    src="/images/HAMBURGER.svg"
+                    alt="Menu"
+                    className="w-[18px] h-[18px] object-contain"
+                  />
+                </button>
+              )}
             </div>
           </div>
         ) : (
@@ -342,22 +347,24 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
 
             {/* Right Icons: Bell & Hamburger (and Desktop Profile) */}
             <div className="flex items-center gap-3">
-              <Link
-                to="/notifications"
-                ref={(el) => handleTourLayout('notifications', { current: el })}
-                className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
-              >
-                <img
-                  src="/images/notification bell.svg"
-                  alt="Notifications"
-                  className="w-[22px] h-[22px] object-contain"
-                />
-                {hasUnread && (
-                  <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
-                    {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
-                  </span>
-                )}
-              </Link>
+              {isDashboard && (
+                <Link
+                  to="/notifications"
+                  ref={(el) => handleTourLayout('notifications', { current: el })}
+                  className="relative p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors"
+                >
+                  <img
+                    src="/images/notification bell.svg"
+                    alt="Notifications"
+                    className="w-[22px] h-[22px] object-contain"
+                  />
+                  {hasUnread && (
+                    <span className="absolute -top-1 -right-1 flex h-4 min-w-[16px] px-1 items-center justify-center rounded-full bg-red-500 text-[9px] font-black text-white ring-2 ring-[#103d7c] animate-pulse">
+                      {unreadCount > 0 ? (unreadCount > 99 ? '99+' : unreadCount) : ''}
+                    </span>
+                  )}
+                </Link>
+              )}
 
               {/* Desktop Profile Pill */}
               <Link
@@ -378,18 +385,20 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
                 <span className="text-xs font-semibold max-w-[100px] truncate">{userName}</span>
               </Link>
 
-              <button
-                type="button"
-                ref={(el) => handleTourLayout('hamburger', { current: el })}
-                onClick={() => setMenuVisible(true)}
-                className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
-              >
-                <img
-                  src="/images/HAMBURGER.svg"
-                  alt="Menu"
-                  className="w-[18px] h-[18px] object-contain"
-                />
-              </button>
+              {isDashboard && (
+                <button
+                  type="button"
+                  ref={(el) => handleTourLayout('hamburger', { current: el })}
+                  onClick={() => setMenuVisible(true)}
+                  className="p-1 rounded-xl flex items-center justify-center focus:outline-none hover:bg-white/10 transition-colors cursor-pointer"
+                >
+                  <img
+                    src="/images/HAMBURGER.svg"
+                    alt="Menu"
+                    className="w-[18px] h-[18px] object-contain"
+                  />
+                </button>
+              )}
             </div>
           </>
         )}

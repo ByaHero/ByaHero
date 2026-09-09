@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Phone, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react';
+import { Phone, CheckCircle2, Loader2, ShieldCheck, Lock, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import AlertModal from '../../components/AlertModal';
 
@@ -9,6 +9,9 @@ export const CompleteProfile: React.FC = () => {
   const { user, updateUserProfile, serverUrl } = useAuth();
 
   const [phone, setPhone] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // AlertModal
@@ -54,6 +57,16 @@ export const CompleteProfile: React.FC = () => {
       return;
     }
 
+    if (password.length < 6) {
+      showAlert('Validation Error', 'Password must be at least 6 characters long.', 'warning');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      showAlert('Validation Error', 'Passwords do not match.', 'warning');
+      return;
+    }
+
     // Validate Philippine mobile number (starting with 09 and having 11 digits) matching mobile app
     if (!/^(09)\d{9}$/.test(trimmedContact)) {
       showAlert(
@@ -77,6 +90,7 @@ export const CompleteProfile: React.FC = () => {
           email: user?.email || '',
           phone: fullPhone,
           contacts: trimmedContact,
+          password: password,
         }),
         credentials: 'include',
       });
@@ -117,7 +131,7 @@ export const CompleteProfile: React.FC = () => {
             Complete Your Profile
           </h2>
           <p className="text-xs text-slate-500 font-medium leading-relaxed mb-6">
-            Please provide a contact number to complete your registration.
+            Please provide a contact number and set a secure password to complete your registration.
           </p>
 
           <form onSubmit={handleComplete} className="space-y-4">
@@ -133,6 +147,41 @@ export const CompleteProfile: React.FC = () => {
                 required
                 maxLength={11}
                 className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-mono text-sm font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
+              />
+            </div>
+
+            <div className="relative flex items-center">
+              <div className="absolute left-4 text-slate-400">
+                <Lock className="w-5 h-5" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Set a password"
+                required
+                className="w-full pl-12 pr-12 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-4 text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+              </button>
+            </div>
+
+            <div className="relative flex items-center">
+              <div className="absolute left-4 text-slate-400">
+                <Lock className="w-5 h-5" />
+              </div>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm password"
+                required
+                className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 font-bold placeholder:font-sans placeholder:font-normal focus:outline-none focus:ring-2 focus:ring-[#1d72f8]"
               />
             </div>
 

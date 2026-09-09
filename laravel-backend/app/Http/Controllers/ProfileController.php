@@ -209,10 +209,15 @@ class ProfileController extends Controller
         }
         $phone = $cleanContact;
 
+        $newPassword = $request->input('password');
+
         try {
             $user = User::find($userId);
             if ($user) {
                 $user->contacts = $phone;
+                if (!empty($newPassword)) {
+                    $user->password = Hash::make($newPassword);
+                }
                 $user->save();
             }
 

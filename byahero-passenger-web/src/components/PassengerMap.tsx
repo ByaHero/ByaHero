@@ -205,7 +205,7 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         ` : ''}
         <div class="w-8 h-8 rounded-full bg-[#1d72f8] border-2 border-white shadow-lg flex items-center justify-center text-white font-black text-xs user-gps-pulse relative overflow-hidden">
           ${user?.profile_picture ? `
-            <img src="${user.profile_picture.startsWith('http') ? user.profile_picture : `${serverUrl}/${user.profile_picture}`}" class="w-full h-full rounded-full object-cover" />
+            <img src="${user.profile_picture.startsWith('http') || user.profile_picture.startsWith('data:') ? user.profile_picture : `${serverUrl}/${user.profile_picture}`}" class="w-full h-full rounded-full object-cover" onerror="this.style.display='none'" />
           ` : userInitial}
         </div>
       </div>
