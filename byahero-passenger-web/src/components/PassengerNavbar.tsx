@@ -65,30 +65,30 @@ export const PassengerNavbar: React.FC<PassengerNavbarProps> = ({
     }
   }, [tourStep]);
 
-  const confirmLogout = async () => {
+  const confirmLogout = () => {
     setLogoutModalVisible(false);
     setMenuVisible(false);
-    try {
-      const email = user?.email || '';
-      if (email) {
-        await fetch(`${serverUrl}/api/waiting/cancel`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email }),
-          credentials: 'include'
-        }).catch(() => {});
 
-        await fetch(`${serverUrl}/api/logout`, {
-          method: 'POST',
-          credentials: 'include'
-        }).catch(() => {});
-      }
-    } catch (e) {}
+    // Fire and forget backend calls to avoid blocking UI
+    const email = user?.email || '';
+    if (email) {
+      fetch(`${serverUrl}/api/waiting/cancel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email }),
+        credentials: 'include'
+      }).catch(() => {});
 
-    logout();
+      fetch(`${serverUrl}/api/logout`, {
+        method: 'POST',
+        credentials: 'include'
+      }).catch(() => {});
+    }
+
     setLogoutSuccessVisible(true);
     setTimeout(() => {
       setLogoutSuccessVisible(false);
+      logout();
       navigate('/login');
     }, 1200);
   };
