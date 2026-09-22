@@ -161,7 +161,7 @@ export default function LiveTrackingScreen() {
         const p = JSON.parse(str);
         p.current_seats = seats;
         p.current_boarded = boardedCount;
-        p.pending_pre_departure = pendingPreDeparture;
+        p.pending_pre_departure = p.ticketing_mode === 'Automatic' ? pendingPreDeparture : 0;
         p.active_passengers = activePassengers;
         delete p.is_new_session;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
@@ -362,10 +362,11 @@ export default function LiveTrackingScreen() {
       });
     }
     
-    let restoredPending = (payload.ticketing_mode === 'Automatic' && payload.pending_pre_departure !== undefined)
+    const isAutoMode = payload.ticketing_mode === 'Automatic';
+    let restoredPending = (isAutoMode && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
-      : (payload.ticketing_mode === 'Automatic' ? preDep : 0);
-    setPendingPreDeparture(restoredPending);
+      : (isAutoMode ? preDep : 0);
+    setPendingPreDeparture(isAutoMode ? restoredPending : 0);
 
     try {
       const ticketStr = await AsyncStorage.getItem('byahero_conductor_ticket_counter');
