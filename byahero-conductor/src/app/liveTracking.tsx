@@ -26,7 +26,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -896,7 +896,7 @@ export default function LiveTrackingScreen() {
     });
   };
 
-  const handleIssueTicket = () => {
+  const handleIssueTicket = async () => {
     if (!boardingStop || !alightingStop) {
       showAlert('Incomplete', 'Please select boarding and alighting locations.', 'warning');
       return;
@@ -906,35 +906,56 @@ export default function LiveTrackingScreen() {
       return;
     }
     
-    let remainingToDeduct = ticketQuantity;
-    let preDepartureDeducted = 0;
-    // Use up pending pre-departure queue first
-    if (pendingPreDeparture > 0) {
-      preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
-      setPendingPreDeparture(prev => prev - preDepartureDeducted);
-      remainingToDeduct -= preDepartureDeducted;
-    }
-    if (remainingToDeduct > 0) {
-      incrementPassengers(remainingToDeduct, true);
-    }
+    setIsLoading(true);
 
-    const ticketData = {
-      busNumber: session ? session.code : '-',
-      date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      boarding: boardingStop.location_name,
-      alighting: alightingStop.location_name,
-      fare: ticketFare,
-      discount: ticketQuantity > 1 ? 'Mixed' : discountType,
-      quantity: ticketQuantity,
-      ticketNumber: String(ticketCounter).padStart(5, '0'),
-      breakdown: discountCounts,
-      baseRegularFare: baseRegularFare,
-      baseDiscountedFare: baseDiscountedFare
-    };
-    setIssuedTicket(ticketData);
-    setTicketCounter(prev => prev + 1);
-    
-    // Track active passengers for auto-departure if in Automatic mode
+    try {
+      const payload = {
+        operation_id: session?.operation_id,
+        fare: ticketFare,
+        discount_type: ticketQuantity > 1 ? 'Mixed' : discountType,
+        quantity: ticketQuantity,
+        boarding_location: boardingStop.location_name,
+        alighting_location: alightingStop.location_name
+      };
+      
+      const res = await printTicket(payload);
+      let realTicketNumber = String(ticketCounter).padStart(5, '0');
+      
+      if (res && res.success && res.ticket_number) {
+        realTicketNumber = res.ticket_number;
+        setTicketCounter(parseInt(realTicketNumber, 10) + 1);
+      } else {
+        throw new Error(res?.error || 'Failed to sync ticket with database.');
+      }
+
+      let remainingToDeduct = ticketQuantity;
+      let preDepartureDeducted = 0;
+      // Use up pending pre-departure queue first
+      if (pendingPreDeparture > 0) {
+        preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
+        setPendingPreDeparture(prev => prev - preDepartureDeducted);
+        remainingToDeduct -= preDepartureDeducted;
+      }
+      if (remainingToDeduct > 0) {
+        incrementPassengers(remainingToDeduct, true);
+      }
+
+      const ticketData = {
+        busNumber: session ? session.code : '-',
+        date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        boarding: boardingStop.location_name,
+        alighting: alightingStop.location_name,
+        fare: ticketFare,
+        discount: ticketQuantity > 1 ? 'Mixed' : discountType,
+        quantity: ticketQuantity,
+        ticketNumber: realTicketNumber,
+        breakdown: discountCounts,
+        baseRegularFare: baseRegularFare,
+        baseDiscountedFare: baseDiscountedFare
+      };
+      setIssuedTicket(ticketData);
+      
+      // Track active passengers for auto-departure if in Automatic mode
     if (session?.ticketing_mode === 'Automatic') {
       setActivePassengers(prev => {
         const alighting = ticketData.alighting;
@@ -960,6 +981,12 @@ export default function LiveTrackingScreen() {
       friction: 6,
       tension: 50
     }).start();
+    } catch (e: any) {
+      console.error('Failed to issue ticket', e);
+      showAlert('Error', e.message || 'Failed to issue ticket.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const closeReceipt = () => {

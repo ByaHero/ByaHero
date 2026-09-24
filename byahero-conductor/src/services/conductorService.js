@@ -94,6 +94,13 @@ export async function logPassengerEvent(payload) {
 }
 
 /**
+ * Saves a printed ticket to the backend and fetches the real ticket number.
+ */
+export async function printTicket(payload) {
+  return safeRequest('api/conductor/print-ticket', payload, 'POST');
+}
+
+/**
  * Stops live tracking and closes the active operation session.
  */
 export async function stopTracking(payload) {

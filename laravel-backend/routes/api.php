@@ -111,6 +111,7 @@ Route::middleware([
     Route::get('/conductor/waiting-passengers', [ConductorController::class, 'getWaitingPassengers']);
     Route::get('/conductor/history', [ConductorController::class, 'getHistory']);
     Route::get('/conductor/receipt-config', [ConductorController::class, 'getReceiptConfig']);
+    Route::post('/conductor/print-ticket', [ConductorController::class, 'printTicket']);
 
     // Passenger profile routes
     Route::match(['get', 'post'], '/passenger/profile/account-settings', [ProfileController::class, 'updateAccountSettings']);
