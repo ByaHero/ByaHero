@@ -578,19 +578,19 @@ class AdminController extends Controller
                 ORDER BY trips DESC, passengers DESC");
 
             // 5. User / Commuter Analytics (Protected by localized try-catch)
-            $totalUsers = 44;
-            $usersWithRides = 32;
-            $totalPassengerRides = 104;
-            $completedRides = 100;
-            $activeRides = 4;
+            $totalUsers = 0;
+            $usersWithRides = 0;
+            $totalPassengerRides = 0;
+            $completedRides = 0;
+            $activeRides = 0;
             $topCommuters = [];
-            $totalCircles = 102;
-            $circleOwners = 38;
-            $totalCircleMembers = 43;
-            $uniqueCircleMembers = 35;
-            $totalCircleUsers = 40;
-            $totalSosAlerts = 740;
-            $totalWaitingRequests = 55;
+            $totalCircles = 0;
+            $circleOwners = 0;
+            $totalCircleMembers = 0;
+            $uniqueCircleMembers = 0;
+            $totalCircleUsers = 0;
+            $totalSosAlerts = 0;
+            $totalWaitingRequests = 0;
 
             try {
                 if (Schema::hasTable('users')) {
@@ -648,14 +648,14 @@ class AdminController extends Controller
                 'total_passenger_rides' => $totalPassengerRides,
                 'completed_passenger_rides' => $completedRides,
                 'active_passenger_rides' => $activeRides,
-                'ride_history_adoption_rate' => $totalUsers > 0 ? round(($usersWithRides / $totalUsers) * 100, 1) : 72.7,
+                'ride_history_adoption_rate' => $totalUsers > 0 ? round(($usersWithRides / $totalUsers) * 100, 1) : 0,
                 'total_circles_created' => $totalCircles,
                 'circle_owners_count' => $circleOwners,
                 'total_circle_memberships' => $totalCircleMembers,
                 'unique_circle_members' => $uniqueCircleMembers,
                 'total_circle_users' => $totalCircleUsers,
-                'circle_adoption_rate' => $totalUsers > 0 ? round(($totalCircleUsers / $totalUsers) * 100, 1) : 90.9,
-                'avg_circle_size' => $totalCircles > 0 ? round(($totalCircleMembers + $circleOwners) / $totalCircles, 1) : 1.4,
+                'circle_adoption_rate' => $totalUsers > 0 ? round(($totalCircleUsers / $totalUsers) * 100, 1) : 0,
+                'avg_circle_size' => $totalCircles > 0 ? round(($totalCircleMembers + $circleOwners) / $totalCircles, 1) : 0,
                 'total_sos_alerts' => $totalSosAlerts,
                 'total_waiting_requests' => $totalWaitingRequests,
                 'top_commuters' => $topCommuters,
@@ -704,10 +704,13 @@ class AdminController extends Controller
                 WHERE 1=1 {$dateFilter}
                 ORDER BY pe.recorded_at DESC LIMIT 50");
 
-            // Financial telemetry estimate
-            $avgFare = 35.0;
+            // Financial telemetry estimate dynamically computed from database bus_fares
+            $avgFare = 0.0;
+            if (Schema::hasTable('bus_fares')) {
+                $avgFare = round((float)(DB::table('bus_fares')->avg('regular_fare') ?? 0.0), 2);
+            }
             $totalPax = (int)($sum->total_passengers ?? 0);
-            $estimatedRevenue = $totalPax * $avgFare;
+            $estimatedRevenue = round($totalPax * $avgFare, 2);
 
             return response()->json([
                 'success' => true,
