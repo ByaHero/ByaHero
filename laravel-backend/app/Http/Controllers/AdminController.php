@@ -618,6 +618,81 @@ class AdminController extends Controller
                         ->get();
                 }
 
+        // 4. Conductors activity
+        $conductors = DB::select("SELECT c.email, c.name, c.contacts, o.conductor_id, 
+            COUNT(*) AS trips, 
+            COALESCE(SUM(o.total_boarded), 0) AS passengers,
+            COALESCE(SUM(o.total_departed), 0) AS departed,
+            SUM(TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW()))) AS duty_duration_min,
+            GROUP_CONCAT(DISTINCT b.code SEPARATOR ', ') AS buses_operated
+            FROM bus_operations o 
+            JOIN conductors c ON c.id = o.conductor_id
+            LEFT JOIN busses b ON b.Bus_ID = o.bus_id
+            WHERE o.status = 'completed' {$dateFilter} 
+            GROUP BY o.conductor_id, c.email, c.name, c.contacts 
+            ORDER BY trips DESC");
+
+        $conductorSessions = DB::select("SELECT o.conductor_id, o.id as session_id, o.started_at, o.ended_at, 
+            TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW())) AS duration_min,
+            o.total_boarded, o.total_departed, b.code as bus_code, o.route
+            FROM bus_operations o
+            LEFT JOIN busses b ON b.Bus_ID = o.bus_id
+            WHERE o.status = 'completed' {$dateFilter}
+            ORDER BY o.started_at ASC");
+            
+        foreach ($conductors as &$c) {
+            $c->sessions = array_values(array_filter($conductorSessions, function($s) use ($c) {
+                return (int)$s->conductor_id === (int)$c->conductor_id;
+            }));
+            
+            $hours = floor($c->duty_duration_min / 60);
+            $mins = $c->duty_duration_min % 60;
+            $c->duty_duration_formatted = $hours . "h " . $mins . "m";
+            $c->avg_pax = $c->trips > 0 ? round($c->passengers / $c->trips, 1) : 0;
+        }
+
+        // 5. Hourly flow
+        $hourly = DB::select("SELECT HOUR(pe.recorded_at) AS hr, SUM(pe.count) AS total
+            FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+            WHERE pe.event_type='board' {$dateFilter}
+            GROUP BY HOUR(pe.recorded_at) ORDER BY hr");
+
+        // 6. Departures & boardings
+        $departures = DB::select("SELECT pe.location_name, SUM(pe.count) AS total
+            FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+            WHERE pe.event_type='depart' AND pe.location_name IS NOT NULL {$dateFilter}
+            GROUP BY pe.location_name ORDER BY total DESC LIMIT 20");
+
+        $boardings = DB::select("SELECT pe.location_name, SUM(pe.count) AS total
+            FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
+            WHERE pe.event_type='board' AND pe.location_name IS NOT NULL {$dateFilter}
+            GROUP BY pe.location_name ORDER BY total DESC LIMIT 20");
+
+        // 7. Recent Operations
+        $recent = DB::select("SELECT o.*, b.code AS bus_code, c.email AS conductor_email,
+            TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW())) AS duration_min
+            FROM bus_operations o
+            JOIN busses b ON b.Bus_ID = o.bus_id
+            JOIN conductors c ON c.id = o.conductor_id
+            WHERE 1=1 {$dateFilter}
+            ORDER BY o.started_at DESC LIMIT 20");
+
+        // 8. Location logs
+        $locationLogs = DB::select("SELECT 
+            pe.location_name, 
+            pe.recorded_at, 
+            b.code AS bus_code, 
+            c.email AS conductor_email, 
+            o.route,
+            SUM(CASE WHEN pe.event_type = 'board' THEN pe.count ELSE 0 END) AS boarded,
+            SUM(CASE WHEN pe.event_type = 'depart' THEN pe.count ELSE 0 END) AS departed
+            FROM passenger_events pe
+            JOIN bus_operations o ON o.id = pe.operation_id
+            JOIN busses b ON b.Bus_ID = o.bus_id
+            JOIN conductors c ON c.id = o.conductor_id
+            WHERE 1=1 {$dateFilter}
+            GROUP BY pe.operation_id, pe.location_name, pe.recorded_at, b.code, c.email, o.route
+            ORDER BY pe.recorded_at DESC LIMIT 50");
                 if (Schema::hasTable('circles')) {
                     $totalCircles = DB::table('circles')->count();
                     $circleOwners = DB::table('circles')->distinct('owner_user_id')->count('owner_user_id');

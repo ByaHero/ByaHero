@@ -72,6 +72,15 @@ export type ConductorRow = {
   conductor_id?: number;
   name: string;
   email: string;
+  name: string;
+  contacts: string;
+  trips: number;
+  passengers: number;
+  departed: number;
+  duty_duration_formatted: string;
+  avg_pax: number;
+  buses_operated: string;
+  sessions: any[];
   contacts?: string | null;
   trips: number;
   passengers: number;
@@ -182,6 +191,51 @@ export type AnalyticsView = {
   recentOperations: OperationRow[];
 };
 
+type ApiAnalytics = {
+  success?: boolean;
+  period?: string;
+  summary?: {
+    total_trips?: number;
+    total_passengers?: number;
+    total_pre_departure?: number;
+    total_departed?: number;
+    avg_trip_minutes?: number;
+  };
+  routes?: Array<{ route?: string; trips?: number; passengers?: number }>;
+  buses?: Array<{
+    code?: string;
+    bus_id?: number;
+    trips?: number;
+    passengers?: number;
+    routes?: string;
+    conductors?: string;
+    hotspots?: Array<{ location_name?: string; total?: number }>;
+  }>;
+  conductors?: Array<{ email?: string; name?: string; contacts?: string; trips?: number; passengers?: number; departed?: number; duty_duration_formatted?: string; avg_pax?: number; buses_operated?: string; sessions?: any[] }>;
+  hourly_flow?: Array<{ hr?: number; total?: number }>;
+  departure_locations?: Array<{ location_name?: string; total?: number }>;
+  boarding_locations?: Array<{ location_name?: string; total?: number }>;
+  recent_operations?: Array<{
+    bus_code?: string;
+    route?: string;
+    conductor_email?: string;
+    total_boarded?: number;
+    duration_min?: number;
+    status?: 'active' | 'completed' | 'pending' | string;
+  }>;
+  location_logs?: Array<{
+    recorded_at?: string;
+    location_name?: string;
+    bus_code?: string;
+    conductor_email?: string;
+    route?: string;
+    boarded?: number;
+    departed?: number;
+  }>;
+  average_fare?: number;
+  estimated_revenue?: number;
+};
+
 const periodLabels: Record<PeriodKey, string> = {
   deployment: 'Deployment (Sept 9 – 22, 2026)',
   today: 'Today',
@@ -202,6 +256,9 @@ export default function Analytics() {
   const [busSearch, setBusSearch] = useState('');
   const [busSortBy, setBusSortBy] = useState<'trips' | 'passengers' | 'load_factor' | 'code'>('trips');
   const [expandedBus, setExpandedBus] = useState<string | null>(null);
+  const [expandedConductor, setExpandedConductor] = useState<string | null>(null);
+  const [recentLimit, setRecentLimit] = useState(10);
+  const [logLimit, setLogLimit] = useState(10);
 
   const [conductorSearch, setConductorSearch] = useState('');
   const [conductorSortBy, setConductorSortBy] = useState<'trips' | 'passengers' | 'duty_time' | 'name'>('trips');
@@ -372,6 +429,79 @@ export default function Analytics() {
       };
     });
 
+    const routeList = apiData.routes?.length
+      ? apiData.routes.map((route, index) => ({
+          name: route.route ?? `Route ${index + 1}`,
+          count: Number(route.passengers ?? 0),
+          percentage: Math.max(12, Math.round((Number(route.passengers ?? 0) / maxRouteVolume) * 100)),
+        }))
+      : base.routes;
+
+    const busList = apiData.buses?.length
+      ? apiData.buses.map((bus) => ({
+          code: bus.code ?? `Bus ${bus.bus_id ?? ''}`,
+          trips: Number(bus.trips ?? 0),
+          passengers: Number(bus.passengers ?? 0),
+          routes: bus.routes ?? 'N/A',
+          conductors: bus.conductors ?? 'N/A',
+          hotspots: (bus.hotspots ?? []).map((hotspot) => ({
+            location_name: hotspot.location_name ?? 'Unknown',
+            total: Number(hotspot.total ?? 0),
+          })),
+        }))
+      : base.buses;
+
+    const hourlyFlow = apiData.hourly_flow?.length
+      ? apiData.hourly_flow.map((entry) => ({
+          hr: Number(entry.hr ?? 0),
+          total: Number(entry.total ?? 0),
+        }))
+      : base.hourlyFlow;
+
+    const boardingLocations = apiData.boarding_locations?.length
+      ? apiData.boarding_locations.map((location) => ({
+          location_name: location.location_name ?? 'Unknown',
+          total: Number(location.total ?? 0),
+        }))
+      : base.boardingLocations;
+
+    const locationLogs = apiData.location_logs?.length
+      ? apiData.location_logs.map((log) => ({
+          recorded_at: log.recorded_at ?? new Date().toISOString(),
+          location_name: log.location_name ?? 'Terminal',
+          bus_code: log.bus_code ?? '',
+          conductor_email: log.conductor_email ?? '',
+          route: log.route ?? '',
+          boarded: Number(log.boarded ?? 0),
+          departed: Number(log.departed ?? 0),
+        }))
+      : base.locationLogs;
+
+    const recentOperations = apiData.recent_operations?.length
+      ? apiData.recent_operations.map((operation) => ({
+          bus_code: operation.bus_code ?? '',
+          route: operation.route ?? '',
+          conductor_email: operation.conductor_email ?? '',
+          total_boarded: Number(operation.total_boarded ?? 0),
+          duration_min: operation.duration_min,
+          status: (operation.status as OperationRow['status']) ?? 'completed',
+        }))
+      : base.recentOperations;
+
+    const conductors = apiData.conductors?.length
+      ? apiData.conductors.map((conductor) => ({
+          email: conductor.email ?? '',
+          name: conductor.name ?? '',
+          contacts: conductor.contacts ?? 'None',
+          trips: Number(conductor.trips ?? 0),
+          passengers: Number(conductor.passengers ?? 0),
+          departed: Number(conductor.departed ?? 0),
+          duty_duration_formatted: conductor.duty_duration_formatted ?? '0h 0m',
+          avg_pax: Number(conductor.avg_pax ?? 0),
+          buses_operated: conductor.buses_operated ?? '',
+          sessions: conductor.sessions ?? [],
+        }))
+      : base.conductors;
     // Fleet & Conductor Overviews
     const totalFleet = apiData.fleet_overview?.total_fleet ?? buses.length;
     const deployedBuses = apiData.fleet_overview?.deployed_buses ?? buses.length;
@@ -2101,3 +2231,7 @@ export default function Analytics() {
     </div>
   );
 }
+
+
+
+
