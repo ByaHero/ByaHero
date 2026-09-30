@@ -506,9 +506,37 @@ class AdminController extends Controller
         }
 
         // 4. Conductors activity
-        $conductors = DB::select("SELECT c.email, o.conductor_id, COUNT(*) AS trips, COALESCE(SUM(o.total_boarded), 0) AS passengers
-            FROM bus_operations o JOIN conductors c ON c.id = o.conductor_id
-            WHERE 1=1 {$dateFilter} GROUP BY o.conductor_id, c.email ORDER BY trips DESC");
+        $conductors = DB::select("SELECT c.email, c.name, c.contacts, o.conductor_id, 
+            COUNT(*) AS trips, 
+            COALESCE(SUM(o.total_boarded), 0) AS passengers,
+            COALESCE(SUM(o.total_departed), 0) AS departed,
+            SUM(TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW()))) AS duty_duration_min,
+            GROUP_CONCAT(DISTINCT b.code SEPARATOR ', ') AS buses_operated
+            FROM bus_operations o 
+            JOIN conductors c ON c.id = o.conductor_id
+            LEFT JOIN busses b ON b.Bus_ID = o.bus_id
+            WHERE o.status = 'completed' {$dateFilter} 
+            GROUP BY o.conductor_id, c.email, c.name, c.contacts 
+            ORDER BY trips DESC");
+
+        $conductorSessions = DB::select("SELECT o.conductor_id, o.id as session_id, o.started_at, o.ended_at, 
+            TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW())) AS duration_min,
+            o.total_boarded, o.total_departed, b.code as bus_code, o.route
+            FROM bus_operations o
+            LEFT JOIN busses b ON b.Bus_ID = o.bus_id
+            WHERE o.status = 'completed' {$dateFilter}
+            ORDER BY o.started_at ASC");
+            
+        foreach ($conductors as &$c) {
+            $c->sessions = array_values(array_filter($conductorSessions, function($s) use ($c) {
+                return (int)$s->conductor_id === (int)$c->conductor_id;
+            }));
+            
+            $hours = floor($c->duty_duration_min / 60);
+            $mins = $c->duty_duration_min % 60;
+            $c->duty_duration_formatted = $hours . "h " . $mins . "m";
+            $c->avg_pax = $c->trips > 0 ? round($c->passengers / $c->trips, 1) : 0;
+        }
 
         // 5. Hourly flow
         $hourly = DB::select("SELECT HOUR(pe.recorded_at) AS hr, SUM(pe.count) AS total

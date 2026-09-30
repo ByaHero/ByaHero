@@ -47,8 +47,15 @@ type BusRow = {
 
 type ConductorRow = {
   email: string;
+  name: string;
+  contacts: string;
   trips: number;
   passengers: number;
+  departed: number;
+  duty_duration_formatted: string;
+  avg_pax: number;
+  buses_operated: string;
+  sessions: any[];
 };
 
 type LocationLogRow = {
@@ -106,7 +113,7 @@ type ApiAnalytics = {
     conductors?: string;
     hotspots?: Array<{ location_name?: string; total?: number }>;
   }>;
-  conductors?: Array<{ email?: string; trips?: number; passengers?: number }>;
+  conductors?: Array<{ email?: string; name?: string; contacts?: string; trips?: number; passengers?: number; departed?: number; duty_duration_formatted?: string; avg_pax?: number; buses_operated?: string; sessions?: any[] }>;
   hourly_flow?: Array<{ hr?: number; total?: number }>;
   departure_locations?: Array<{ location_name?: string; total?: number }>;
   boarding_locations?: Array<{ location_name?: string; total?: number }>;
@@ -168,6 +175,7 @@ export default function Analytics() {
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [expandedBus, setExpandedBus] = useState<string | null>(null);
+  const [expandedConductor, setExpandedConductor] = useState<string | null>(null);
   const [recentLimit, setRecentLimit] = useState(10);
   const [logLimit, setLogLimit] = useState(10);
   const [downloading, setDownloading] = useState(false);
@@ -271,8 +279,15 @@ export default function Analytics() {
     const conductors = apiData.conductors?.length
       ? apiData.conductors.map((conductor) => ({
           email: conductor.email ?? '',
+          name: conductor.name ?? '',
+          contacts: conductor.contacts ?? 'None',
           trips: Number(conductor.trips ?? 0),
           passengers: Number(conductor.passengers ?? 0),
+          departed: Number(conductor.departed ?? 0),
+          duty_duration_formatted: conductor.duty_duration_formatted ?? '0h 0m',
+          avg_pax: Number(conductor.avg_pax ?? 0),
+          buses_operated: conductor.buses_operated ?? '',
+          sessions: conductor.sessions ?? [],
         }))
       : base.conductors;
 
@@ -894,3 +909,7 @@ export default function Analytics() {
     </div>
   );
 }
+
+
+
+
