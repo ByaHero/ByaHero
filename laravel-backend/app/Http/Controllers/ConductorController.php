@@ -575,4 +575,50 @@ class ConductorController extends Controller
             ]
         ]);
     }
+
+    public function printTicket(Request $request)
+    {
+        $userId = $this->checkAuth();
+        $opId = (int)$request->input('operation_id');
+        $fare = (float)$request->input('fare', 0);
+        $discountType = $request->input('discount_type', 'Regular');
+        $quantity = (int)$request->input('quantity', 1);
+        $boardingLoc = $request->input('boarding_location');
+        $alightingLoc = $request->input('alighting_location');
+
+        if (!$opId) {
+            return response()->json(['success' => false, 'error' => 'Missing operation ID']);
+        }
+
+        $op = BusOperation::find($opId);
+        if (!$op || (int)$op->conductor_id !== $userId) {
+            return response()->json(['success' => false, 'error' => 'Unauthorized operation'], 403);
+        }
+
+        // Get the latest ticket number to sequentially generate the next one
+        $lastTicket = DB::table('printed_tickets')->orderBy('id', 'desc')->first();
+        $nextTicketNumber = 1;
+        
+        if ($lastTicket && !empty($lastTicket->ticket_number)) {
+            $nextTicketNumber = (int)$lastTicket->ticket_number + 1;
+        }
+        
+        $formattedTicketNumber = str_pad($nextTicketNumber, 5, '0', STR_PAD_LEFT);
+
+        DB::table('printed_tickets')->insert([
+            'operation_id' => $opId,
+            'ticket_number' => $formattedTicketNumber,
+            'fare' => $fare,
+            'discount_type' => $discountType,
+            'quantity' => $quantity,
+            'boarding_location' => $boardingLoc,
+            'alighting_location' => $alightingLoc,
+            'printed_at' => now(),
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'ticket_number' => $formattedTicketNumber
+        ]);
+    }
 }

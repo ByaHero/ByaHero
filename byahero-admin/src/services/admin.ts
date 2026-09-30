@@ -101,7 +101,18 @@ export const adminService = {
   }),
 
   // Analytics
-  getAnalytics: () => apiRequest('/api/admin/analytics'),
+  getAnalytics: (params?: { period?: string; start?: string; end?: string }) => {
+    let url = '/api/admin/analytics';
+    if (params) {
+      const qp = new URLSearchParams();
+      if (params.period) qp.append('period', params.period);
+      if (params.start) qp.append('start', params.start);
+      if (params.end) qp.append('end', params.end);
+      const qStr = qp.toString();
+      if (qStr) url += `?${qStr}`;
+    }
+    return apiRequest(url);
+  },
 
   // Lost & Found
   listLostAndFound: () => apiRequest('/api/admin/lost-and-found'),
