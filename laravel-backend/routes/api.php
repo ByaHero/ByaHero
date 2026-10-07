@@ -91,6 +91,11 @@ Route::middleware([
     Route::get('/admin/receipt-config', [AdminController::class, 'getReceiptConfig']);
     Route::post('/admin/receipt-config', [AdminController::class, 'saveReceiptConfig']);
     
+    // Summary Config & Operations
+    Route::get('/admin/summary-config', [AdminController::class, 'getSummaryConfig']);
+    Route::post('/admin/summary-config', [AdminController::class, 'saveSummaryConfig']);
+    Route::get('/admin/operations/{id}/summary', [AdminController::class, 'getOperationSummary']);
+    
     // Missing Admin Modules
     Route::get('/admin/fares', [AdminController::class, 'listFares']);
     Route::post('/admin/fares', [AdminController::class, 'manageFares']);

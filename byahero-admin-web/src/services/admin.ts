@@ -148,11 +148,18 @@ export const adminService = {
     body: JSON.stringify(data)
   }),
 
-  // Receipt Config
+  // Receipt & Summary Config
   getReceiptConfig: () => apiRequest('/api/admin/receipt-config'),
   saveReceiptConfig: (data: any) => apiRequest('/api/admin/receipt-config', {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+  getSummaryConfig: () => apiRequest('/api/admin/summary-config'),
+  saveSummaryConfig: (data: any) => apiRequest('/api/admin/summary-config', {
+    method: 'POST',
+    body: JSON.stringify(data)
+  }),
+  getOperationSummary: (id: number) => apiRequest(`/api/admin/operations/${id}/summary`),
+
 };
 

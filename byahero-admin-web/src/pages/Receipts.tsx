@@ -22,6 +22,15 @@ export default function Receipts() {
   const [headerMessage, setHeaderMessage] = useState('Welcome aboard!');
   const [footerMessage, setFooterMessage] = useState('Thank you for riding with us!');
 
+  // Summary config states
+  const [summaryTitle, setSummaryTitle] = useState('TRIP SUMMARY');
+  const [showConductor, setShowConductor] = useState(true);
+  const [showRoute, setShowRoute] = useState(true);
+  const [showBreakdown, setShowBreakdown] = useState(true);
+  const [showFirstLast, setShowFirstLast] = useState(true);
+  const [showSignatures, setShowSignatures] = useState(true);
+  const [savingSummary, setSavingSummary] = useState(false);
+
   // Web Bluetooth state
   const [isPrinterConnected, setIsPrinterConnected] = useState(false);
   const [printerDeviceName, setPrinterDeviceName] = useState<string>('');
@@ -45,6 +54,20 @@ export default function Receipts() {
         setTinNumber(res.config.tin_number || '');
         setHeaderMessage(res.config.header_message || '');
         setFooterMessage(res.config.footer_message || '');
+      }
+
+      try {
+        const sumRes = await adminService.getSummaryConfig();
+        if (sumRes && sumRes.success && sumRes.config) {
+          setSummaryTitle(sumRes.config.summary_title);
+          setShowConductor(sumRes.config.show_conductor);
+          setShowRoute(sumRes.config.show_route);
+          setShowBreakdown(sumRes.config.show_breakdown);
+          setShowFirstLast(sumRes.config.show_first_last);
+          setShowSignatures(sumRes.config.show_signatures);
+        }
+      } catch (e) {
+        console.warn('Failed to load summary config', e);
       }
 
       // Fetch fare for live preview
@@ -96,6 +119,33 @@ export default function Receipts() {
       showAlert('Error', e.message || 'An error occurred while saving configuration.', 'error');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveSummary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSavingSummary(true);
+    try {
+      const data = {
+        summary_title: summaryTitle,
+        show_conductor: showConductor,
+        show_route: showRoute,
+        show_breakdown: showBreakdown,
+        show_first_last: showFirstLast,
+        show_signatures: showSignatures,
+      };
+
+      const res = await adminService.saveSummaryConfig(data);
+      if (res && res.success) {
+        showAlert('Success', 'Summary configuration saved successfully.', 'success');
+      } else {
+        showAlert('Error', res?.error || 'Failed to save configuration.', 'error');
+      }
+    } catch (e: any) {
+      console.error(e);
+      showAlert('Error', e.message || 'An error occurred while saving summary configuration.', 'error');
+    } finally {
+      setSavingSummary(false);
     }
   };
 
@@ -490,6 +540,97 @@ export default function Receipts() {
                 Note: Web Bluetooth requires Google Chrome, Microsoft Edge, or a Web Bluetooth supported browser.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Summary Format Settings Section */}
+      {!loading && (
+        <div className="grid grid-cols-1 gap-6 mt-6">
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
+            <div className="flex items-center gap-2 pb-4 mb-5 border-b border-slate-100">
+              <FileText size={18} className="text-[#0f3878]" />
+              <h3 className="text-sm font-extrabold text-slate-800 uppercase tracking-wider">
+                Trip Summary / Z-Report Configuration
+              </h3>
+            </div>
+
+            <form onSubmit={handleSaveSummary} className="space-y-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] font-bold uppercase text-slate-600 tracking-wider">
+                  Report Title
+                </label>
+                <input
+                  type="text"
+                  className="w-full py-2.5 px-3.5 rounded-xl border border-slate-200 text-xs bg-slate-50 focus:outline-none focus:border-[#4C85C5] focus:bg-white focus:ring-2 focus:ring-[#4C85C5]/20 font-medium"
+                  value={summaryTitle}
+                  onChange={(e) => setSummaryTitle(e.target.value)}
+                  placeholder="e.g. TRIP SUMMARY"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={showConductor}
+                    onChange={(e) => setShowConductor(e.target.checked)}
+                    className="w-4 h-4 text-[#0f3878] rounded border-slate-300 focus:ring-[#0f3878]"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Show Conductor Name</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={showRoute}
+                    onChange={(e) => setShowRoute(e.target.checked)}
+                    className="w-4 h-4 text-[#0f3878] rounded border-slate-300 focus:ring-[#0f3878]"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Show Route Information</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={showBreakdown}
+                    onChange={(e) => setShowBreakdown(e.target.checked)}
+                    className="w-4 h-4 text-[#0f3878] rounded border-slate-300 focus:ring-[#0f3878]"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Show Fare Breakdown</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={showFirstLast}
+                    onChange={(e) => setShowFirstLast(e.target.checked)}
+                    className="w-4 h-4 text-[#0f3878] rounded border-slate-300 focus:ring-[#0f3878]"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Show First & Last Ticket</span>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-slate-50 border border-slate-200 rounded-xl cursor-pointer hover:bg-slate-100 transition">
+                  <input
+                    type="checkbox"
+                    checked={showSignatures}
+                    onChange={(e) => setShowSignatures(e.target.checked)}
+                    className="w-4 h-4 text-[#0f3878] rounded border-slate-300 focus:ring-[#0f3878]"
+                  />
+                  <span className="text-xs font-bold text-slate-700">Show Signature Lines</span>
+                </label>
+              </div>
+
+              <button
+                type="submit"
+                disabled={savingSummary}
+                className="w-full inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 transition shadow-sm cursor-pointer disabled:opacity-60 mt-4"
+              >
+                {savingSummary ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                Save Summary Configuration
+              </button>
+            </form>
           </div>
         </div>
       )}
