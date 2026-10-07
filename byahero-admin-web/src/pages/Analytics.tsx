@@ -249,6 +249,31 @@ export default function Analytics() {
   const [expandedBus, setExpandedBus] = useState<string | null>(null);
   const [expandedConductor, setExpandedConductor] = useState<string | null>(null);
 
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+  const [summaryData, setSummaryData] = useState<any>(null);
+  const [summaryLoading, setSummaryLoading] = useState(false);
+
+  const fetchSummary = async (id: number) => {
+    setSummaryModalOpen(true);
+    setSummaryLoading(true);
+    setSummaryData(null);
+    try {
+      const res = await adminService.getOperationSummary(id);
+      if (res && res.success) {
+        setSummaryData(res.summary);
+      } else {
+        showAlert('Error', res?.error || 'Failed to load summary.', 'error');
+        setSummaryModalOpen(false);
+      }
+    } catch (e) {
+      console.error(e);
+      showAlert('Error', 'Failed to load summary.', 'error');
+      setSummaryModalOpen(false);
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
   const [conductorSearch, setConductorSearch] = useState('');
   const [conductorSortBy, setConductorSortBy] = useState<'trips' | 'passengers' | 'duty_time' | 'name'>('trips');
 
@@ -2089,6 +2114,7 @@ export default function Analytics() {
                             <th className="py-3.5 px-4 text-center">Boarded</th>
                             <th className="py-3.5 px-4 text-center">Duration</th>
                             <th className="py-3.5 px-4 text-center">Status</th>
+                            <th className="py-3.5 px-4 text-center">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
@@ -2112,6 +2138,17 @@ export default function Analytics() {
                                   {op.status}
                                 </span>
                               </td>
+                              <td className="py-3 px-4 text-center">
+                                {op.id && (
+                                  <button
+                                    onClick={() => fetchSummary(op.id!)}
+                                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-[10px] font-bold transition flex items-center gap-1 mx-auto cursor-pointer"
+                                  >
+                                    <FileSpreadsheet size={12} />
+                                    Summary
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2134,6 +2171,95 @@ export default function Analytics() {
             </div>
           )}
         </>
+      )}
+
+      {/* Trip Summary Modal */}
+      {summaryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="p-5 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+              <h3 className="font-extrabold text-slate-800 text-lg flex items-center gap-2">
+                <FileSpreadsheet size={20} className="text-[#0f3878]" />
+                Trip Summary Z-Report
+              </h3>
+              <button
+                onClick={() => setSummaryModalOpen(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+              {summaryLoading ? (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <Loader2 size={32} className="animate-spin text-[#0f3878] mb-4" />
+                  <p className="text-sm font-bold text-slate-500 animate-pulse">Fetching latest report data...</p>
+                </div>
+              ) : summaryData ? (
+                <div className="space-y-6">
+                  {/* Grid stats */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Total Revenue</span>
+                      <span className="text-xl font-black text-emerald-600">PHP {Number(summaryData.total_revenue).toFixed(2)}</span>
+                    </div>
+                    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Pax Boarded</span>
+                      <span className="text-xl font-black text-blue-700">{summaryData.total_passengers}</span>
+                    </div>
+                  </div>
+
+                  {/* Details */}
+                  <div className="bg-slate-50 rounded-2xl border border-slate-100 p-4 text-sm font-medium text-slate-700 space-y-2">
+                    <div className="flex justify-between border-b border-slate-200 pb-2"><span className="text-slate-500">Date</span><span className="font-bold text-slate-900">{summaryData.date}</span></div>
+                    <div className="flex justify-between border-b border-slate-200 py-2"><span className="text-slate-500">Time</span><span className="font-bold text-slate-900">{summaryData.start_time} - {summaryData.end_time}</span></div>
+                    <div className="flex justify-between border-b border-slate-200 py-2"><span className="text-slate-500">Bus Code</span><span className="font-bold text-slate-900">{summaryData.bus_number}</span></div>
+                    <div className="flex justify-between border-b border-slate-200 py-2"><span className="text-slate-500">Conductor</span><span className="font-bold text-slate-900">{summaryData.conductor_name}</span></div>
+                    <div className="flex justify-between pt-2"><span className="text-slate-500">Route</span><span className="font-bold text-slate-900 text-right">{summaryData.route}</span></div>
+                  </div>
+
+                  {/* Breakdown */}
+                  {summaryData.breakdown && Object.keys(summaryData.breakdown).length > 0 && (
+                    <div>
+                      <h4 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider mb-3 flex items-center gap-2">
+                        Fare Type Breakdown
+                      </h4>
+                      <div className="border border-slate-200 rounded-2xl overflow-hidden text-xs">
+                        {Object.keys(summaryData.breakdown).map((type, idx) => (
+                          <div key={type} className={`flex justify-between p-3 ${idx > 0 ? 'border-t border-slate-100' : ''} bg-white`}>
+                            <span className="font-bold text-slate-700">{type}</span>
+                            <div className="flex gap-4">
+                              <span className="text-slate-500 font-medium">{summaryData.breakdown[type].passengers} pax</span>
+                              <span className="font-black text-slate-800 w-20 text-right">PHP {Number(summaryData.breakdown[type].revenue).toFixed(2)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {/* Tickets */}
+                  <div className="flex justify-between bg-slate-100 rounded-xl p-3 text-[11px] font-mono text-slate-600">
+                    <span>First: {summaryData.first_ticket}</span>
+                    <span>Last: {summaryData.last_ticket}</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-slate-500 text-sm py-10">No summary data available.</div>
+              )}
+            </div>
+            
+            <div className="p-5 border-t border-slate-100 bg-slate-50">
+              <button
+                onClick={() => setSummaryModalOpen(false)}
+                className="w-full py-3 bg-[#0f3878] hover:bg-[#0a2958] text-white rounded-xl font-bold text-sm transition shadow-sm cursor-pointer"
+              >
+                Close Report
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <AlertModal

@@ -1654,4 +1654,113 @@ class AdminController extends Controller
             'message' => 'Receipt configuration saved successfully.'
         ]);
     }
+    public function getSummaryConfig(Request $request)
+    {
+        $this->checkAuth();
+
+        $keys = ['summary_title', 'show_conductor', 'show_route', 'show_breakdown', 'show_first_last', 'show_signatures'];
+        
+        $settings = [];
+        try {
+            $settings = SystemSetting::whereIn('setting_key', $keys)->pluck('setting_value', 'setting_key')->toArray();
+        } catch (\Exception $e) {
+            // Defaults
+        }
+
+        return response()->json([
+            'success' => true,
+            'config' => [
+                'summary_title' => $settings['summary_title'] ?? 'TRIP SUMMARY',
+                'show_conductor' => ($settings['show_conductor'] ?? '1') === '1',
+                'show_route' => ($settings['show_route'] ?? '1') === '1',
+                'show_breakdown' => ($settings['show_breakdown'] ?? '1') === '1',
+                'show_first_last' => ($settings['show_first_last'] ?? '1') === '1',
+                'show_signatures' => ($settings['show_signatures'] ?? '1') === '1',
+            ]
+        ]);
+    }
+
+    public function saveSummaryConfig(Request $request)
+    {
+        $this->checkAuth();
+        
+        $data = [
+            'summary_title' => $request->input('summary_title', 'TRIP SUMMARY'),
+            'show_conductor' => $request->input('show_conductor', true) ? '1' : '0',
+            'show_route' => $request->input('show_route', true) ? '1' : '0',
+            'show_breakdown' => $request->input('show_breakdown', true) ? '1' : '0',
+            'show_first_last' => $request->input('show_first_last', true) ? '1' : '0',
+            'show_signatures' => $request->input('show_signatures', true) ? '1' : '0',
+        ];
+
+        try {
+            foreach ($data as $key => $value) {
+                SystemSetting::updateOrCreate(
+                    ['setting_key' => $key],
+                    ['setting_value' => $value]
+                );
+            }
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => 'Database error: ' . $e->getMessage()
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Summary configuration saved successfully.'
+        ]);
+    }
+
+    public function getOperationSummary(Request $request, $id)
+    {
+        $this->checkAuth();
+        $opId = (int)$id;
+
+        $op = \App\Models\BusOperation::with('bus')->find($opId);
+        if (!$op) {
+            return response()->json(['success' => false, 'error' => 'Operation not found'], 404);
+        }
+
+        // Get tickets for this operation
+        $tickets = DB::table('printed_tickets')->where('operation_id', $opId)->get();
+
+        $totalTickets = $tickets->count();
+        $totalPassengers = $tickets->sum('quantity');
+        $totalRevenue = $tickets->sum('fare');
+
+        // Breakdown by fare type
+        $breakdown = $tickets->groupBy('discount_type')->map(function ($group) {
+            return [
+                'tickets' => $group->count(),
+                'passengers' => $group->sum('quantity'),
+                'revenue' => $group->sum('fare'),
+            ];
+        });
+
+        $firstTicket = $tickets->sortBy('id')->first();
+        $lastTicket = $tickets->sortByDesc('id')->first();
+
+        $conductor = Conductor::find($op->conductor_id);
+        $conductorName = $conductor ? $conductor->name : 'Conductor';
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'date' => \Carbon\Carbon::parse($op->started_at)->format('m/d/Y'),
+                'bus_number' => $op->bus ? $op->bus->code : 'Unknown',
+                'conductor_name' => $conductorName,
+                'route' => $op->route,
+                'start_time' => \Carbon\Carbon::parse($op->started_at)->format('g:i A'),
+                'end_time' => $op->ended_at ? \Carbon\Carbon::parse($op->ended_at)->format('g:i A') : 'Ongoing',
+                'total_tickets' => $totalTickets,
+                'total_passengers' => $totalPassengers,
+                'total_revenue' => $totalRevenue,
+                'breakdown' => $breakdown,
+                'first_ticket' => $firstTicket ? 'TKT-' . $firstTicket->ticket_number : 'N/A',
+                'last_ticket' => $lastTicket ? 'TKT-' . $lastTicket->ticket_number : 'N/A',
+            ]
+        ]);
+    }
 }
