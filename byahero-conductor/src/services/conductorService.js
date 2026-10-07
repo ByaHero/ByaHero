@@ -166,3 +166,10 @@ export async function getOperationHistory() {
 export async function getReceiptConfig() {
   return safeRequest('api/conductor/receipt-config');
 }
+
+/**
+ * Fetches operation summary for printing end of trip reports.
+ */
+export async function getTripSummary(tripId) {
+  return safeRequest(`api/conductor/operations/${tripId}/summary`);
+}

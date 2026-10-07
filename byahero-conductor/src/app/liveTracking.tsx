@@ -26,7 +26,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -71,7 +71,11 @@ export default function LiveTrackingScreen() {
   const [isLoading, setIsLoading] = useState(false);
   const [isStopTrackingModalVisible, setIsStopTrackingModalVisible] = useState(false);
   const [isAdminStopModalVisible, setIsAdminStopModalVisible] = useState(false);
-
+  
+  // Trip Summary States
+  const [tripSummary, setTripSummary] = useState<any>(null);
+  const [summaryConfig, setSummaryConfig] = useState<any>({ summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_first_last: true, show_signatures: true });
+  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   // Ticketing Mode States
   const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);
   const [busStops, setBusStops] = useState<any[]>([]);
@@ -800,9 +804,59 @@ export default function LiveTrackingScreen() {
     router.replace('/dashboard');
   };
 
-  const handleStopTracking = () => {
+  const handleStopTracking = async () => {
     setIsStopTrackingModalVisible(true);
+    setIsSummaryLoading(true);
+    try {
+      const opId = session?.operation_id || session?.id;
+      if (opId) {
+        const res = await getTripSummary(opId);
+        if (res && res.success) {
+          setTripSummary(res.summary);
+        }
+      }
+    } catch(e) {
+      console.warn('Failed to load trip summary', e);
+    } finally {
+      setIsSummaryLoading(false);
+    }
   };
+
+  const handlePrintSummary = async (isInterim = false) => {
+    if (!tripSummary) return;
+    setIsPrinting(true);
+    try {
+      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+      showAlert('Print Successful', 'Summary has been printed.', 'success');
+    } catch (e: any) {
+      console.error(e);
+      showAlert('Print Error', e.message || 'Failed to print summary.', 'error');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrintInterimSummary = async () => {
+    setIsPrinting(true);
+    try {
+      const opId = session?.operation_id || session?.id;
+      if (opId) {
+        const res = await getTripSummary(opId);
+        if (res && res.success) {
+          await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+          showAlert('Print Successful', 'Interim Summary has been printed.', 'success');
+        } else {
+          showAlert('Error', 'Failed to load summary data.', 'error');
+        }
+      }
+    } catch(e: any) {
+      console.error(e);
+      showAlert('Print Error', e.message || 'Failed to print interim summary.', 'error');
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
 
   const confirmStopTracking = () => {
     setIsStopTrackingModalVisible(false);
@@ -1125,20 +1179,34 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
         )}
 
-        {/* STOP BUTTON */}
-        <TouchableOpacity
-          ref={stopTrackingRef}
-          onLayout={() => handleTourLayout('stop-tracking', stopTrackingRef)}
-          onPress={handleStopTracking}
-          disabled={isLoading}
-          style={tw`bg-red-500 rounded-full py-4 items-center justify-center shadow-md`}
-        >
-          {isLoading ? (
-            <ActivityIndicator color="white" />
-          ) : (
-            <Text style={tw`text-white font-bold text-sm tracking-wider uppercase`}>Stop tracking</Text>
-          )}
-        </TouchableOpacity>
+        {/* ACTION BUTTONS */}
+        <View style={tw`flex-row gap-3`}>
+          <TouchableOpacity
+            onPress={handlePrintInterimSummary}
+            disabled={isPrinting}
+            style={tw`flex-1 bg-slate-800 rounded-full py-4 items-center justify-center shadow-md`}
+          >
+            {isPrinting ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={tw`text-white font-bold text-[11px] tracking-wider uppercase text-center`}>Interim Summary</Text>
+            )}
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            ref={stopTrackingRef}
+            onLayout={() => handleTourLayout('stop-tracking', stopTrackingRef)}
+            onPress={handleStopTracking}
+            disabled={isLoading}
+            style={tw`flex-1 bg-red-500 rounded-full py-4 items-center justify-center shadow-md`}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="white" />
+            ) : (
+              <Text style={tw`text-white font-bold text-[11px] tracking-wider uppercase text-center`}>Stop tracking</Text>
+            )}
+          </TouchableOpacity>
+        </View>
       </View>
       {/* TICKETING MODAL */}
       <Modal
@@ -1461,7 +1529,7 @@ export default function LiveTrackingScreen() {
         </View>
       )}
 
-      {/* Custom Stop Tracking Modal */}
+      {/* Trip Summary & Stop Tracking Modal */}
       <Modal
         visible={isStopTrackingModalVisible}
         transparent
@@ -1469,7 +1537,7 @@ export default function LiveTrackingScreen() {
         onRequestClose={() => setIsStopTrackingModalVisible(false)}
       >
         <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
-          <View style={tw`w-full max-w-[340px] bg-white rounded-3xl p-6 items-center shadow-2xl relative`}>
+          <View style={tw`w-full max-w-[360px] bg-white rounded-3xl p-6 shadow-2xl relative max-h-[85%]`}>
             <TouchableOpacity
               onPress={() => setIsStopTrackingModalVisible(false)}
               style={tw`absolute top-4 right-4 p-1 z-10`}
@@ -1477,32 +1545,73 @@ export default function LiveTrackingScreen() {
               <Ionicons name="close" size={20} color="#94a3b8" />
             </TouchableOpacity>
 
-            <View style={tw`w-16 h-16 rounded-full bg-red-100 items-center justify-center mb-4`}>
-              <MaterialIcons name="bus-alert" size={32} color="#ef4444" />
+            <View style={tw`w-14 h-14 rounded-full bg-red-100 items-center justify-center mb-4 self-center`}>
+              <MaterialIcons name="receipt-long" size={28} color="#ef4444" />
             </View>
 
             <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
-              End Transit Session?
+              Trip Summary
             </Text>
-            <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-6`}>
-              Are you sure you want to end live transit tracking for this bus? Passengers will no longer see live GPS updates.
+            <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-4`}>
+              Review your current trip details before ending the session.
             </Text>
 
-            <View style={tw`w-full flex-row gap-3`}>
-              <TouchableOpacity
-                onPress={() => setIsStopTrackingModalVisible(false)}
-                style={tw`flex-1 bg-slate-100 py-3.5 rounded-2xl items-center justify-center`}
-              >
-                <Text style={tw`text-slate-600 font-bold text-sm`}>Cancel</Text>
-              </TouchableOpacity>
+            {isSummaryLoading ? (
+              <View style={tw`items-center justify-center py-6`}>
+                <ActivityIndicator size="small" color="#0f3878" />
+                <Text style={tw`text-xs text-slate-400 mt-2`}>Loading summary data...</Text>
+              </View>
+            ) : tripSummary ? (
+              <ScrollView style={tw`bg-slate-50 rounded-xl p-4 mb-4 border border-slate-100`} nestedScrollEnabled>
+                <View style={tw`flex-row justify-between mb-2`}>
+                  <Text style={tw`text-xs text-slate-500 font-medium`}>Total Tickets</Text>
+                  <Text style={tw`text-xs font-black text-slate-800`}>{tripSummary.total_tickets}</Text>
+                </View>
+                <View style={tw`flex-row justify-between mb-2`}>
+                  <Text style={tw`text-xs text-slate-500 font-medium`}>Total Passengers</Text>
+                  <Text style={tw`text-xs font-black text-slate-800`}>{tripSummary.total_passengers}</Text>
+                </View>
+                <View style={tw`flex-row justify-between mb-3 border-b border-slate-200 pb-3`}>
+                  <Text style={tw`text-xs text-slate-500 font-bold`}>TOTAL REVENUE</Text>
+                  <Text style={tw`text-sm font-black text-emerald-600`}>PHP {Number(tripSummary.total_revenue).toFixed(2)}</Text>
+                </View>
+                
+                {tripSummary.breakdown && Object.keys(tripSummary.breakdown).length > 0 && (
+                  <View>
+                    <Text style={tw`text-[10px] font-bold text-slate-400 mb-2 uppercase tracking-wider`}>Breakdown</Text>
+                    {Object.keys(tripSummary.breakdown).map(type => (
+                      <View key={type} style={tw`flex-row justify-between mb-1.5`}>
+                        <Text style={tw`text-[11px] text-slate-600`}>{type}</Text>
+                        <View style={tw`flex-row gap-3`}>
+                          <Text style={tw`text-[11px] font-bold text-slate-500`}>{tripSummary.breakdown[type].passengers} pax</Text>
+                          <Text style={tw`text-[11px] font-bold text-slate-800 w-16 text-right`}>PHP {Number(tripSummary.breakdown[type].revenue).toFixed(2)}</Text>
+                        </View>
+                      </View>
+                    ))}
+                  </View>
+                )}
+              </ScrollView>
+            ) : (
+              <View style={tw`items-center justify-center py-6 bg-slate-50 rounded-xl mb-4 border border-slate-100`}>
+                <Text style={tw`text-xs text-slate-400`}>No summary available.</Text>
+              </View>
+            )}
 
-              <TouchableOpacity
-                onPress={confirmStopTracking}
-                style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
-              >
-                <Text style={tw`text-white font-bold text-sm`}>End Session</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              onPress={() => handlePrintSummary(false)}
+              disabled={!tripSummary || isPrinting}
+              style={tw`w-full bg-slate-800 py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 \${(!tripSummary || isPrinting) ? 'opacity-60' : ''}`}
+            >
+              {isPrinting ? <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} /> : <Ionicons name="print" size={16} color="white" style={tw`mr-2`} />}
+              <Text style={tw`text-white font-bold text-sm`}>Print Summary</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={confirmStopTracking}
+              style={tw`w-full border-2 border-red-500 bg-red-50 py-3.5 rounded-2xl items-center justify-center shadow-sm`}
+            >
+              <Text style={tw`text-red-600 font-bold text-sm`}>Confirm & End Trip</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>

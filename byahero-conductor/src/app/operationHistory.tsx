@@ -5,12 +5,14 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  Alert,
   ActivityIndicator
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
-import { getOperationHistory } from '../services/conductorService';
+import { getOperationHistory, getTripSummary, getReceiptConfig } from '../services/conductorService';
+import { usePrinter } from '../hooks/usePrinter';
 import { useTourSync } from '../hooks/useTourSync';
 import { handleTourLayout } from '../components/TourRegistry';
 import TourOverlay from '../components/TourOverlay';
@@ -21,6 +23,11 @@ export default function OperationHistoryScreen() {
   const historyHeaderRef = useRef<any>(null);
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState<number | null>(null); // Track which operation is printing
+  
+  const printer = usePrinter();
+  const summaryConfig = { summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_first_last: true, show_signatures: true };
+
 
   useEffect(() => {
     fetchHistory();
@@ -37,6 +44,27 @@ export default function OperationHistoryScreen() {
       console.error('Error fetching operation history:', e);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handlePrintSummary = async (operationId: number) => {
+    setIsPrinting(operationId);
+    try {
+      const summaryRes = await getTripSummary(operationId);
+      if (!summaryRes || !summaryRes.success) {
+        throw new Error(summaryRes?.error || 'Failed to fetch summary data');
+      }
+      
+      const configRes = await getReceiptConfig();
+      const receiptConfig = configRes && configRes.success ? configRes.config : null;
+      
+      await printer.printSummary(summaryRes.summary, summaryConfig, receiptConfig, true, false); // isReprint = true
+      Alert.alert('Print Successful', 'Summary has been reprinted.', [{ text: 'OK' }]);
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Print Error', e.message || 'Failed to reprint summary.', [{ text: 'OK' }]);
+    } finally {
+      setIsPrinting(null);
     }
   };
 
@@ -177,6 +205,22 @@ export default function OperationHistoryScreen() {
                     </View>
                   </View>
                 </View>
+
+                {/* Print Summary Button */}
+                <TouchableOpacity
+                  onPress={() => handlePrintSummary(item.id)}
+                  disabled={isPrinting === item.id}
+                  style={tw`mt-3 bg-slate-800 rounded-xl py-3 flex-row justify-center items-center \${isPrinting === item.id ? 'opacity-70' : ''}`}
+                >
+                  {isPrinting === item.id ? (
+                    <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} />
+                  ) : (
+                    <Ionicons name="print" size={16} color="#fff" style={tw`mr-2`} />
+                  )}
+                  <Text style={tw`text-white font-bold text-xs uppercase tracking-widest`}>
+                    Reprint Summary
+                  </Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>

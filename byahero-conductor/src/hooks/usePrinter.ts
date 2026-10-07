@@ -54,7 +54,7 @@ export function usePrinter() {
       await BLEPrinter.init();
       const scanned = await BLEPrinter.getDeviceList();
       
-      const parseDevices = scanned.map(d => ({
+      const parseDevices = scanned.map((d: any) => ({
         name: d.device_name,
         macAddress: d.inner_mac_address
       }));
@@ -137,6 +137,90 @@ export function usePrinter() {
     }
   };
 
+  const printSummary = async (summary: any, summaryConfig: any, receiptConfig: any, isReprint = false, isInterim = false) => {
+    try {
+      let text = "";
+      text += `<CB>${receiptConfig?.company_name || 'ByaHero Transit'}</CB>\n`;
+      if (receiptConfig?.client_name) text += `<C>${receiptConfig.client_name}</C>\n`;
+      
+      const title = summaryConfig?.summary_title || 'TRIP SUMMARY';
+      text += `<C>${title}</C>\n`;
+      
+      if (isReprint) {
+        text += "<CB>*** REPRINT ***</CB>\n";
+      } else if (isInterim) {
+        text += "<CB>*** INTERIM ***</CB>\n";
+      }
+
+      text += "--------------------------------\n";
+      text += `DATE: ${summary.date || 'N/A'}\n`;
+      text += `BUS: ${summary.bus_number || 'N/A'}\n`;
+      if (summaryConfig?.show_conductor !== false) {
+        text += `CONDUCTOR: ${summary.conductor_name || 'N/A'}\n`;
+      }
+      if (summaryConfig?.show_route !== false) {
+        text += `ROUTE: ${summary.route || 'N/A'}\n`;
+        text += `START: ${summary.start_time || 'N/A'}\n`;
+        text += `END: ${summary.end_time || 'N/A'}\n`;
+      }
+      text += "--------------------------------\n";
+
+      const printRow = (col1: string, col2: string, col3: string, col4: string) => {
+        const c1 = (col1 + " ".repeat(10)).substring(0, 10);
+        const c2 = (" ".repeat(5) + col2).slice(-5);
+        const c3 = (" ".repeat(5) + col3).slice(-5);
+        const c4 = (" ".repeat(10) + col4).slice(-10);
+        return `${c1} ${c2} ${c3} ${c4}\n`;
+      };
+      
+      const printRowTwoCols = (left: string, right: string) => {
+        const spaces = 32 - left.length - String(right).length;
+        return spaces > 0 ? left + " ".repeat(spaces) + right + "\n" : left + " " + right + "\n";
+      };
+
+      if (summaryConfig?.show_breakdown !== false) {
+        text += printRow("TYPE", "TKTS", "PAX", "AMOUNT");
+        if (summary.breakdown) {
+          Object.keys(summary.breakdown).forEach(type => {
+            const data = summary.breakdown[type];
+            text += printRow(
+              type.substring(0, 10), 
+              String(data.tickets), 
+              String(data.passengers), 
+              Number(data.revenue).toFixed(2)
+            );
+          });
+        }
+        text += "--------------------------------\n";
+      }
+
+      text += printRowTwoCols("TOTAL TICKETS:", String(summary.total_tickets || 0));
+      text += printRowTwoCols("TOTAL PASSENGERS:", String(summary.total_passengers || 0));
+      text += printRowTwoCols("TOTAL REVENUE:", `PHP ${Number(summary.total_revenue || 0).toFixed(2)}`);
+      text += "--------------------------------\n";
+
+      if (summaryConfig?.show_first_last !== false) {
+        text += `FIRST TKT: ${summary.first_ticket || 'N/A'}\n`;
+        text += `LAST TKT:  ${summary.last_ticket || 'N/A'}\n`;
+        text += "--------------------------------\n";
+      }
+
+      if (summaryConfig?.show_signatures !== false) {
+        text += "\nConductor: ____________________\n";
+        text += "\nReceived:  ____________________\n";
+      }
+
+      if (summaryConfig?.footer_message) {
+        text += `\n<C>${summaryConfig.footer_message}</C>`;
+      }
+
+      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+    } catch (e: any) {
+      console.error(e);
+      Alert.alert('Print Error', e.message || 'Failed to print summary.');
+    }
+  };
+
   const testPrint = async () => {
     try {
       const now = new Date().toLocaleString();
@@ -166,6 +250,7 @@ export function usePrinter() {
     scanDevices,
     connectPrinter,
     printReceipt,
+    printSummary,
     testPrint,
   };
 }
