@@ -621,4 +621,57 @@ class ConductorController extends Controller
             'ticket_number' => $formattedTicketNumber
         ]);
     }
+
+    public function getOperationSummary(Request $request, $id)
+    {
+        $userId = $this->checkAuth();
+        $opId = (int)$id;
+
+        $op = BusOperation::with('bus')->find($opId);
+        if (!$op || (int)$op->conductor_id !== $userId) {
+            return response()->json(['success' => false, 'error' => 'Unauthorized operation'], 403);
+        }
+
+        // Get tickets for this operation
+        $tickets = DB::table('printed_tickets')->where('operation_id', $opId)->get();
+
+        $totalTickets = $tickets->count();
+        $totalPassengers = $tickets->sum('quantity');
+        $totalRevenue = $tickets->sum('fare');
+
+        // Breakdown by fare type
+        $breakdown = $tickets->groupBy('discount_type')->map(function ($group) {
+            return [
+                'tickets' => $group->count(),
+                'passengers' => $group->sum('quantity'),
+                'revenue' => $group->sum('fare'),
+            ];
+        });
+
+        // First and last ticket numbers
+        $firstTicket = $tickets->sortBy('id')->first();
+        $lastTicket = $tickets->sortByDesc('id')->first();
+
+        // Conductor info
+        $conductor = DB::table('users')->where('User_ID', $userId)->first();
+        $conductorName = $conductor ? ($conductor->First_Name . ' ' . $conductor->Last_Name) : 'Conductor';
+
+        return response()->json([
+            'success' => true,
+            'summary' => [
+                'date' => \Carbon\Carbon::parse($op->started_at)->format('m/d/Y'),
+                'bus_number' => $op->bus ? $op->bus->code : 'Unknown',
+                'conductor_name' => $conductorName,
+                'route' => $op->route,
+                'start_time' => \Carbon\Carbon::parse($op->started_at)->format('g:i A'),
+                'end_time' => $op->ended_at ? \Carbon\Carbon::parse($op->ended_at)->format('g:i A') : 'Ongoing',
+                'total_tickets' => $totalTickets,
+                'total_passengers' => $totalPassengers,
+                'total_revenue' => $totalRevenue,
+                'breakdown' => $breakdown,
+                'first_ticket' => $firstTicket ? 'TKT-' . $firstTicket->ticket_number : 'N/A',
+                'last_ticket' => $lastTicket ? 'TKT-' . $lastTicket->ticket_number : 'N/A',
+            ]
+        ]);
+    }
 }
