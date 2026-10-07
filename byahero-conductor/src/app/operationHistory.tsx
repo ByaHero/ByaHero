@@ -210,7 +210,7 @@ export default function OperationHistoryScreen() {
                 <TouchableOpacity
                   onPress={() => handlePrintSummary(item.id)}
                   disabled={isPrinting === item.id}
-                  style={tw`mt-3 bg-slate-800 rounded-xl py-3 flex-row justify-center items-center \${isPrinting === item.id ? 'opacity-70' : ''}`}
+                  style={tw`mt-3 bg-slate-800 rounded-xl py-3 flex-row justify-center items-center ${isPrinting === item.id ? 'opacity-70' : ''}`}
                 >
                   {isPrinting === item.id ? (
                     <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} />
