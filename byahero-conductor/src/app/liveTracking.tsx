@@ -1600,7 +1600,7 @@ export default function LiveTrackingScreen() {
             <TouchableOpacity
               onPress={() => handlePrintSummary(false)}
               disabled={!tripSummary || isPrinting}
-              style={tw`w-full bg-slate-800 py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 \${(!tripSummary || isPrinting) ? 'opacity-60' : ''}`}
+              style={tw`w-full bg-slate-800 py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 ${(!tripSummary || isPrinting) ? 'opacity-60' : ''}`}
             >
               {isPrinting ? <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} /> : <Ionicons name="print" size={16} color="white" style={tw`mr-2`} />}
               <Text style={tw`text-white font-bold text-sm`}>Print Summary</Text>
