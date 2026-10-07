@@ -653,8 +653,8 @@ class ConductorController extends Controller
         $lastTicket = $tickets->sortByDesc('id')->first();
 
         // Conductor info
-        $conductor = DB::table('users')->where('User_ID', $userId)->first();
-        $conductorName = $conductor ? ($conductor->First_Name . ' ' . $conductor->Last_Name) : 'Conductor';
+        $conductor = Conductor::find($userId);
+        $conductorName = $conductor ? $conductor->name : 'Conductor';
 
         return response()->json([
             'success' => true,
