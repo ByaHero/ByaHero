@@ -167,9 +167,9 @@ export function usePrinter() {
 
       const printRow = (col1: string, col2: string, col3: string, col4: string) => {
         const c1 = (col1 + " ".repeat(10)).substring(0, 10);
-        const c2 = (" ".repeat(5) + col2).slice(-5);
-        const c3 = (" ".repeat(5) + col3).slice(-5);
-        const c4 = (" ".repeat(10) + col4).slice(-10);
+        const c2 = (" ".repeat(4) + col2).slice(-4);
+        const c3 = (" ".repeat(4) + col3).slice(-4);
+        const c4 = (" ".repeat(11) + col4).slice(-11);
         return `${c1} ${c2} ${c3} ${c4}\n`;
       };
       
@@ -199,9 +199,11 @@ export function usePrinter() {
       text += printRowTwoCols("TOTAL REVENUE:", `PHP ${Number(summary.total_revenue || 0).toFixed(2)}`);
       text += "--------------------------------\n";
 
-      if (summaryConfig?.show_first_last !== false) {
-        text += `FIRST TKT: ${summary.first_ticket || 'N/A'}\n`;
-        text += `LAST TKT:  ${summary.last_ticket || 'N/A'}\n`;
+      if (summaryConfig?.show_trip_id !== false) {
+        text += `TRIP ID: ${summary.trip_id || summary.id || 'N/A'}\n`;
+        if (summary.shift_id) {
+          text += `SHIFT ID: ${summary.shift_id}\n`;
+        }
         text += "--------------------------------\n";
       }
 
