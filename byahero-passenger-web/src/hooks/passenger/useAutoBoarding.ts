@@ -51,7 +51,9 @@ export function useAutoBoarding({
         body: JSON.stringify({
           email: email,
           bus_id: pendingBoardBus.Bus_ID,
-          operation_id: pendingBoardBus.current_operation_id
+          operation_id: pendingBoardBus.current_operation_id,
+          latitude: userLocation?.lat,
+          longitude: userLocation?.lng
         })
       });
 
@@ -70,7 +72,7 @@ export function useAutoBoarding({
       setPendingBoardBus(null);
       isExecuting.current = false;
     }
-  }, [pendingBoardBus, setIsWaiting, setWaitingLocation, setIsBoarded, setBoardedBus, setBoardedRoute]);
+  }, [pendingBoardBus, userLocation, setIsWaiting, setWaitingLocation, setIsBoarded, setBoardedBus, setBoardedRoute]);
 
   const rejectBoard = useCallback(() => {
     setPendingBoardBus(null);
@@ -98,7 +100,9 @@ export function useAutoBoarding({
         body: JSON.stringify({
           email: email,
           bus_id: targetBus.Bus_ID,
-          operation_id: targetBus.current_operation_id
+          operation_id: targetBus.current_operation_id,
+          latitude: userLocation?.lat,
+          longitude: userLocation?.lng
         })
       });
 
