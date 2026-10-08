@@ -28,4 +28,9 @@ class BusOperation extends Model
     ];
 
     public $timestamps = false;
+
+    public function bus()
+    {
+        return $this->belongsTo(Bus::class, 'bus_id');
+    }
 }

@@ -103,6 +103,7 @@ export default function LiveTrackingScreen() {
   const printer = usePrinter();
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
 
   // Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -717,40 +718,49 @@ export default function LiveTrackingScreen() {
 
   const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
     if (!sessionRef.current) return;
-    // No upper cap — count all boarding passengers for analytics
-    const newBoarded = boardedCountRef.current + count;
-    const seatsTotal = sessionRef.current.seats_total || 0;
-    const newSeats = seatsTotal - newBoarded;
-    setBoardedCount(newBoarded);
-    setSeats(newSeats);
-    pendingBoards.current += count;
+    
+    setBoardedCount(prevBoarded => {
+      const newBoarded = prevBoarded + count;
+      const seatsTotal = sessionRef.current.seats_total || 0;
+      const newSeats = Math.max(0, seatsTotal - newBoarded);
+      
+      setSeats(newSeats);
+      
+      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+        LocationServiceModule.updateSessionData({
+          seats_available: newSeats,
+          force_seats: true
+        });
+      }
+      return newBoarded;
+    });
 
+    pendingBoards.current += count;
     scheduleSync();
-    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-      LocationServiceModule.updateSessionData({
-        seats_available: newSeats,
-        force_seats: true
-      });
-    }
   };
 
   const decrementPassengers = (isManualUi = false) => {
     if (!sessionRef.current) return;
-    // Don't go below 0 boarded passengers
-    if (boardedCountRef.current <= 0) return;
-    const newBoarded = boardedCountRef.current - 1;
-    const seatsTotal = sessionRef.current.seats_total || 0;
-    const newSeats = Math.max(0, seatsTotal - newBoarded);
-    setBoardedCount(newBoarded);
-    setSeats(newSeats);
+    
+    setBoardedCount(prevBoarded => {
+      if (prevBoarded <= 0) return prevBoarded;
+      const newBoarded = prevBoarded - 1;
+      const seatsTotal = sessionRef.current.seats_total || 0;
+      const newSeats = Math.max(0, seatsTotal - newBoarded);
+      
+      setSeats(newSeats);
+      
+      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+        LocationServiceModule.updateSessionData({
+          seats_available: newSeats,
+          force_seats: true
+        });
+      }
+      return newBoarded;
+    });
+
     pendingDeparts.current++;
     scheduleSync();
-    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-      LocationServiceModule.updateSessionData({
-        seats_available: newSeats,
-        force_seats: true
-      });
-    }
   };
 
   const performStopTracking = async () => {
@@ -1082,7 +1092,11 @@ export default function LiveTrackingScreen() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      <ConductorNavbar title="Bus Live" />
+      <ConductorNavbar 
+        title="Bus Live" 
+        rightIcon={require('../../assets/images/icons/printer.svg')} 
+        onRightIconPress={() => setIsInterimModalVisible(true)} 
+      />
 
       {/* Map Segment */}
       <View style={tw`flex-1 p-4`}>
@@ -1181,18 +1195,6 @@ export default function LiveTrackingScreen() {
 
         {/* ACTION BUTTONS */}
         <View style={tw`flex-row gap-3`}>
-          <TouchableOpacity
-            onPress={handlePrintInterimSummary}
-            disabled={isPrinting}
-            style={tw`flex-1 bg-slate-800 rounded-full py-4 items-center justify-center shadow-md`}
-          >
-            {isPrinting ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <Text style={tw`text-white font-bold text-[11px] tracking-wider uppercase text-center`}>Interim Summary</Text>
-            )}
-          </TouchableOpacity>
-
           <TouchableOpacity
             ref={stopTrackingRef}
             onLayout={() => handleTourLayout('stop-tracking', stopTrackingRef)}
@@ -1642,6 +1644,41 @@ export default function LiveTrackingScreen() {
                 style={tw`flex-1 bg-red-600 py-3.5 rounded-2xl items-center justify-center shadow-md`}
               >
                 <Text style={tw`text-white font-bold text-sm`}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Interim Summary Modal */}
+      <Modal
+        visible={isInterimModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setIsInterimModalVisible(false)}
+      >
+        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+          <View style={tw`w-full max-w-[320px] bg-white rounded-3xl p-6 shadow-2xl relative`}>
+            <Text style={tw`text-base font-black text-slate-800 text-center uppercase tracking-widest mb-6 mt-2`}>
+              Print Interim Summary
+            </Text>
+            <View style={tw`gap-3`}>
+              <TouchableOpacity
+                onPress={() => {
+                  setIsInterimModalVisible(false);
+                  handlePrintInterimSummary();
+                }}
+                disabled={isPrinting}
+                style={tw`bg-slate-800 py-4 rounded-full items-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold uppercase tracking-wider`}>Print Now</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setIsInterimModalVisible(false)}
+                disabled={isPrinting}
+                style={tw`bg-red-500 py-4 rounded-full items-center shadow-md`}
+              >
+                <Text style={tw`text-white font-bold uppercase tracking-wider`}>Cancel</Text>
               </TouchableOpacity>
             </View>
           </View>
