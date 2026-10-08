@@ -27,7 +27,7 @@ export default function OperationHistoryScreen() {
   const [isPrinting, setIsPrinting] = useState<number | null>(null); // Track which operation is printing
   
   const printer = usePrinter();
-  const summaryConfig = { summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_first_last: true, show_signatures: true };
+  const summaryConfig = { summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_trip_id: true, show_signatures: true };
 
 
   useEffect(() => {
