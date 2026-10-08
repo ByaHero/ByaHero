@@ -223,16 +223,15 @@ export default function RideHistoryScreen() {
 
                           {/* Boarded Dot & Info */}
                           <View style={tw`relative mb-4`}>
-                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white`]} />
-                            <View style={tw`flex-row justify-between items-start`}>
-                              <View>
-                                <View style={tw`flex-row items-center gap-1.5`}>
-                                  <Text style={tw`text-xs font-black text-slate-800`}>Boarded</Text>
-                                  <Text style={tw`text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded`}>Sumakay</Text>
-                                </View>
-                                <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`}>
-                                  {ride.board_location || ride.pickup_location || 'Boarding Stop'}
-                                </Text>
+                            <View style={[tw`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white`]} />
+                            <View style={tw`flex-row justify-between items-center`}>
+                              <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
+                                <Text style={tw`text-sm font-semibold text-slate-700`}>Boarded</Text>
+                                {Boolean(ride.board_location || ride.pickup_location) && (
+                                  <Text style={tw`text-base font-black text-slate-900`} numberOfLines={1}>
+                                    {ride.board_location || ride.pickup_location}
+                                  </Text>
+                                )}
                               </View>
                               <Text style={tw`text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md`}>{getDisplayTime(ride.boarded_at)}</Text>
                             </View>
@@ -246,22 +245,21 @@ export default function RideHistoryScreen() {
                             </Text>
                           </View>
 
-                          {/* Departed / Alighted Dot & Info */}
+                          {/* Departed Dot & Info */}
                           <View style={tw`relative`}>
-                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full border border-white`, isActive ? tw`bg-green-500` : tw`bg-slate-500`]} />
-                            <View style={tw`flex-row justify-between items-start`}>
-                              <View>
-                                <View style={tw`flex-row items-center gap-1.5`}>
-                                  <Text style={tw`text-xs font-black text-slate-800`}>
-                                    {isActive ? 'Current Status' : 'Alighted'}
-                                  </Text>
-                                  <Text style={[tw`text-[10px] font-bold px-1.5 py-0.5 rounded`, isActive ? tw`text-green-700 bg-green-50` : tw`text-slate-600 bg-slate-100`]}>
-                                    {isActive ? 'Biyahe pa' : 'Bumaba'}
-                                  </Text>
-                                </View>
-                                <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`}>
-                                  {isActive ? 'In Transit' : (ride.depart_location || ride.dropoff_location || 'Alighting Stop')}
+                            <View style={[tw`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full border border-white`, isActive ? tw`bg-green-500` : tw`bg-slate-500`]} />
+                            <View style={tw`flex-row justify-between items-center`}>
+                              <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
+                                <Text style={tw`text-sm font-semibold text-slate-700`}>
+                                  {isActive ? 'Current Status' : 'Departed'}
                                 </Text>
+                                {isActive ? (
+                                  <Text style={tw`text-base font-black text-green-700`}>In Transit</Text>
+                                ) : Boolean(ride.depart_location || ride.dropoff_location) ? (
+                                  <Text style={tw`text-base font-black text-slate-900`} numberOfLines={1}>
+                                    {ride.depart_location || ride.dropoff_location}
+                                  </Text>
+                                ) : null}
                               </View>
                               <Text style={tw`text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md`}>{getDisplayTime(ride.departed_at)}</Text>
                             </View>

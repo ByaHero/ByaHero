@@ -221,18 +221,17 @@ export const RideHistory: React.FC = () => {
 
                             {/* Boarded Dot & Info */}
                             <div className="relative mb-4">
-                              <div className="absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white ring-2 ring-blue-100" />
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-black text-slate-800">Boarded</span>
-                                    <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">Sumakay</span>
-                                  </div>
-                                  <span className="text-xs text-slate-600 font-semibold block mt-0.5">
-                                    {ride.board_location || ride.pickup_location || 'Boarding Stop'}
-                                  </span>
+                              <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white ring-2 ring-blue-100" />
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
+                                  <span className="text-sm font-semibold text-slate-700">Boarded</span>
+                                  {(ride.board_location || ride.pickup_location) && (
+                                    <span className="text-base font-black text-slate-900 truncate">
+                                      {ride.board_location || ride.pickup_location}
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                <span className="text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
                                   {getDisplayTime(ride.boarded_at)}
                                 </span>
                               </div>
@@ -246,24 +245,23 @@ export const RideHistory: React.FC = () => {
                               </span>
                             </div>
 
-                            {/* Departed / Alighted Dot & Info */}
+                            {/* Departed Dot & Info */}
                             <div className="relative">
-                              <div className={`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full border border-white ${isActive ? 'bg-green-500 ring-2 ring-green-100 animate-pulse' : 'bg-slate-500 ring-2 ring-slate-100'}`} />
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <div className="flex items-center gap-1.5">
-                                    <span className="text-xs font-black text-slate-800">
-                                      {isActive ? 'Current Status' : 'Alighted'}
-                                    </span>
-                                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isActive ? 'text-green-700 bg-green-50' : 'text-slate-600 bg-slate-100'}`}>
-                                      {isActive ? 'Biyahe pa' : 'Bumaba'}
-                                    </span>
-                                  </div>
-                                  <span className="text-xs text-slate-600 font-semibold block mt-0.5">
-                                    {isActive ? 'In Transit' : (ride.depart_location || ride.dropoff_location || 'Alighting Stop')}
+                              <div className={`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full border border-white ${isActive ? 'bg-green-500 ring-2 ring-green-100 animate-pulse' : 'bg-slate-500 ring-2 ring-slate-100'}`} />
+                              <div className="flex justify-between items-center">
+                                <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
+                                  <span className="text-sm font-semibold text-slate-700">
+                                    {isActive ? 'Current Status' : 'Departed'}
                                   </span>
+                                  {isActive ? (
+                                    <span className="text-base font-black text-green-700">In Transit</span>
+                                  ) : (ride.depart_location || ride.dropoff_location) ? (
+                                    <span className="text-base font-black text-slate-900 truncate">
+                                      {ride.depart_location || ride.dropoff_location}
+                                    </span>
+                                  ) : null}
                                 </div>
-                                <span className="text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                <span className="text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100 whitespace-nowrap">
                                   {getDisplayTime(ride.departed_at)}
                                 </span>
                               </div>

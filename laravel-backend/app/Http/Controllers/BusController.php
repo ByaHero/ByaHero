@@ -178,53 +178,57 @@ class BusController extends Controller
         if ($hasBoardCol) $selectCols[] = 'pr.board_location';
         if ($hasDepartCol) $selectCols[] = 'pr.depart_location';
 
-        if ($hasOperationId) {
-            $historyQuery = DB::table('passenger_rides as pr')
-                ->join('bus_operations as bo', 'pr.operation_id', '=', 'bo.id')
-                ->join('busses as b', 'bo.bus_id', '=', 'b.Bus_ID')
-                ->select($selectCols)
-                ->where('pr.user_id', $userId)
-                ->orderBy('pr.boarded_at', 'desc');
-        } else {
-            $historyQuery = DB::table('passenger_rides as pr')
-                ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
-                ->select($selectCols)
-                ->where('pr.user_id', $userId)
-                ->orderBy('pr.boarded_at', 'desc');
+        $history = collect();
+
+        if (!empty($userId)) {
+            if ($hasOperationId) {
+                $historyQuery = DB::table('passenger_rides as pr')
+                    ->join('bus_operations as bo', 'pr.operation_id', '=', 'bo.id')
+                    ->join('busses as b', 'bo.bus_id', '=', 'b.Bus_ID')
+                    ->select($selectCols)
+                    ->where('pr.user_id', $userId)
+                    ->orderBy('pr.boarded_at', 'desc');
+            } else {
+                $historyQuery = DB::table('passenger_rides as pr')
+                    ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
+                    ->select($selectCols)
+                    ->where('pr.user_id', $userId)
+                    ->orderBy('pr.boarded_at', 'desc');
+            }
+
+            $history = $historyQuery->get()->map(function ($item) {
+                $route = strtoupper($item->route ?? '');
+
+                // Determine board_location if empty
+                if (empty($item->board_location)) {
+                    if (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
+                        $parts = explode('-', $route);
+                        $origin = trim($parts[0] ?? '');
+                        $item->board_location = $origin ? ucwords(strtolower($origin)) : '';
+                    } else {
+                        $item->board_location = '';
+                    }
+                }
+
+                // Determine depart_location if empty
+                if (empty($item->depart_location)) {
+                    if ($item->status === 'active') {
+                        $item->depart_location = 'In Transit';
+                    } elseif (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
+                        $parts = explode('-', $route);
+                        $dest = trim($parts[1] ?? '');
+                        $item->depart_location = $dest ? ucwords(strtolower($dest)) : '';
+                    } else {
+                        $item->depart_location = '';
+                    }
+                }
+
+                $item->pickup_location = $item->board_location;
+                $item->dropoff_location = $item->depart_location;
+
+                return $item;
+            });
         }
-
-        $history = $historyQuery->get()->map(function ($item) {
-            $route = strtoupper($item->route ?? '');
-
-            // Determine board_location if empty
-            if (empty($item->board_location)) {
-                if (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
-                    $parts = explode('-', $route);
-                    $origin = trim($parts[0] ?? '');
-                    $item->board_location = $origin ? (ucwords(strtolower($origin)) . ' Terminal/Stop') : 'Boarding Stop';
-                } else {
-                    $item->board_location = 'Boarding Stop';
-                }
-            }
-
-            // Determine depart_location if empty
-            if (empty($item->depart_location)) {
-                if ($item->status === 'active') {
-                    $item->depart_location = 'In Transit';
-                } elseif (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
-                    $parts = explode('-', $route);
-                    $dest = trim($parts[1] ?? '');
-                    $item->depart_location = $dest ? (ucwords(strtolower($dest)) . ' Terminal/Stop') : 'Alighting Stop';
-                } else {
-                    $item->depart_location = 'Alighting Stop';
-                }
-            }
-
-            $item->pickup_location = $item->board_location;
-            $item->dropoff_location = $item->depart_location;
-
-            return $item;
-        });
 
         return response()->json(['success' => true, 'history' => $history]);
     }
@@ -553,7 +557,7 @@ class BusController extends Controller
                 $opRoute = DB::table('bus_operations')->where('id', $operationId)->value('route');
                 if ($opRoute) {
                     $parts = explode('-', strtoupper($opRoute));
-                    $boardLoc = ucwords(strtolower(trim($parts[0] ?? 'Boarding Stop')));
+                    $boardLoc = ucwords(strtolower(trim($parts[0] ?? '')));
                 }
             }
             if (Schema::hasColumn('passenger_rides', 'board_location') && !empty($boardLoc)) {
@@ -624,7 +628,7 @@ class BusController extends Controller
             $opRoute = isset($activeRide->operation_id) ? DB::table('bus_operations')->where('id', $activeRide->operation_id)->value('route') : null;
             if ($opRoute) {
                 $parts = explode('-', strtoupper($opRoute));
-                $departLoc = ucwords(strtolower(trim($parts[1] ?? 'Alighting Stop')));
+                $departLoc = ucwords(strtolower(trim($parts[1] ?? '')));
             }
         }
 
