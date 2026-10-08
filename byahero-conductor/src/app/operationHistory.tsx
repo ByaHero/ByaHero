@@ -9,6 +9,7 @@ import {
   ActivityIndicator
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
 import { getOperationHistory, getTripSummary, getReceiptConfig } from '../services/conductorService';
@@ -180,26 +181,26 @@ export default function OperationHistoryScreen() {
                 </View>
 
                 {/* Stats: Travel Time & Passengers */}
-                <View style={tw`bg-slate-50 rounded-xl p-3 flex-row justify-between border border-slate-100`}>
-                  <View style={tw`flex-row items-center gap-2`}>
+                <View style={tw`flex-row gap-3`}>
+                  <View style={tw`flex-1 bg-slate-50 rounded-xl p-3 flex-row items-center gap-3 border border-slate-100`}>
                     <View style={tw`w-8 h-8 rounded-full bg-blue-100 items-center justify-center`}>
                       <Ionicons name="time" size={16} color="#0f3878" />
                     </View>
                     <View>
-                      <Text style={tw`text-[10px] font-bold text-slate-400 uppercase`}>Travel Time</Text>
-                      <Text style={tw`text-slate-800 font-bold text-xs`}>
+                      <Text style={tw`text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5`}>Travel Time</Text>
+                      <Text style={tw`text-slate-800 font-black text-xs`}>
                         {formatDuration(item.started_at, item.ended_at)}
                       </Text>
                     </View>
                   </View>
                   
-                  <View style={tw`flex-row items-center gap-2`}>
+                  <View style={tw`flex-1 bg-slate-50 rounded-xl p-3 flex-row items-center gap-3 border border-slate-100`}>
                     <View style={tw`w-8 h-8 rounded-full bg-blue-100 items-center justify-center`}>
                       <Ionicons name="people" size={16} color="#0f3878" />
                     </View>
                     <View>
-                      <Text style={tw`text-[10px] font-bold text-slate-400 uppercase`}>Pax Served</Text>
-                      <Text style={tw`text-slate-800 font-bold text-xs`}>
+                      <Text style={tw`text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5`}>Pax Served</Text>
+                      <Text style={tw`text-slate-800 font-black text-xs`}>
                         {item.total_boarded || 0}
                       </Text>
                     </View>
@@ -210,15 +211,15 @@ export default function OperationHistoryScreen() {
                 <TouchableOpacity
                   onPress={() => handlePrintSummary(item.id)}
                   disabled={isPrinting === item.id}
-                  style={tw`mt-3 bg-slate-800 rounded-xl py-3 flex-row justify-center items-center ${isPrinting === item.id ? 'opacity-70' : ''}`}
+                  style={tw`mt-4 bg-[#0f3878] rounded-xl py-3.5 flex-row justify-center items-center shadow-sm ${isPrinting === item.id ? 'opacity-70' : ''}`}
                 >
                   {isPrinting === item.id ? (
                     <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} />
                   ) : (
-                    <Ionicons name="print" size={16} color="#fff" style={tw`mr-2`} />
+                    <Image source={require('../../assets/images/icons/printer.svg')} style={tw`w-5 h-5 mr-2`} tintColor="white" contentFit="contain" />
                   )}
-                  <Text style={tw`text-white font-bold text-xs uppercase tracking-widest`}>
-                    Reprint Summary
+                  <Text style={tw`text-white font-bold text-sm uppercase tracking-widest`}>
+                    Print Summary
                   </Text>
                 </TouchableOpacity>
               </View>

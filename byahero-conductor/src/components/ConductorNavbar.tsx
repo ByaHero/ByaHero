@@ -18,7 +18,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function ConductorNavbar({ title = 'Conductor' }: { title?: string }) {
+export default function ConductorNavbar({ title = 'Conductor', rightIcon, onRightIconPress }: { title?: string, rightIcon?: string, onRightIconPress?: () => void }) {
   const { width } = useWindowDimensions();
   const [menuVisible, setMenuVisible] = useState(false);
   const [userName, setUserName] = useState('Conductor');
@@ -149,8 +149,23 @@ export default function ConductorNavbar({ title = 'Conductor' }: { title?: strin
             </View>
           </>
         ) : isLiveTracking ? (
-          <View style={tw`flex-row items-center flex-1 justify-center`}>
-            <Text style={tw`text-white font-black text-lg tracking-widest uppercase`}>Bus Live</Text>
+          <View style={tw`flex-row items-center flex-1`}>
+            <View style={tw`flex-1 items-start`}>
+               {/* Left spacer to keep center text balanced if needed */}
+               <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/dashboard')} style={tw`w-11 h-11 rounded-full items-center justify-center bg-white/10`}>
+                 <MaterialIcons name="arrow-back" size={26} color="white" />
+               </TouchableOpacity>
+            </View>
+            <View style={tw`flex-1 items-center justify-center`}>
+              <Text style={tw`text-white font-black text-lg tracking-widest uppercase`}>Bus Live</Text>
+            </View>
+            <View style={tw`flex-1 items-end`}>
+              {rightIcon && onRightIconPress && (
+                <TouchableOpacity onPress={onRightIconPress} style={tw`w-11 h-11 items-center justify-center`}>
+                  <Image source={rightIcon} style={tw`w-7 h-7`} contentFit="contain" />
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
         ) : (
           <View style={tw`flex-row items-center flex-1 gap-3`}>

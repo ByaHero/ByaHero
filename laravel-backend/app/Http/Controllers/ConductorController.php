@@ -654,7 +654,7 @@ class ConductorController extends Controller
 
         // Conductor info
         $conductor = Conductor::find($userId);
-        $conductorName = $conductor ? $conductor->name : 'Conductor';
+        $conductorName = ($conductor && !empty($conductor->name)) ? $conductor->name : 'Conductor';
 
         return response()->json([
             'success' => true,
