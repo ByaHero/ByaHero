@@ -219,31 +219,51 @@ export default function RideHistoryScreen() {
                         {/* Custom Route Timeline styling */}
                         <View style={tw`pl-6 relative`}>
                           {/* Dotted path line */}
-                          <View style={[tw`absolute left-[7px] top-2 bottom-2 w-[1px] border-l border-dashed border-slate-300`]} />
+                          <View style={[tw`absolute left-[7px] top-2.5 bottom-2.5 w-[1px] border-l border-dashed border-slate-300`]} />
 
                           {/* Boarded Dot & Info */}
                           <View style={tw`relative mb-4`}>
-                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-500 border border-white`]} />
-                            <View style={tw`flex-row justify-between items-center`}>
-                              <Text style={tw`text-xs font-bold text-slate-800`}>Boarded</Text>
-                              <Text style={tw`text-xs text-slate-400 font-semibold`}>{getDisplayTime(ride.boarded_at)}</Text>
+                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white`]} />
+                            <View style={tw`flex-row justify-between items-start`}>
+                              <View>
+                                <View style={tw`flex-row items-center gap-1.5`}>
+                                  <Text style={tw`text-xs font-black text-slate-800`}>Boarded</Text>
+                                  <Text style={tw`text-[10px] font-bold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded`}>Sumakay</Text>
+                                </View>
+                                <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`}>
+                                  {ride.board_location || ride.pickup_location || 'Boarding Stop'}
+                                </Text>
+                              </View>
+                              <Text style={tw`text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md`}>{getDisplayTime(ride.boarded_at)}</Text>
                             </View>
                           </View>
 
                           {/* Duration Badge */}
-                          <View style={tw`flex-row items-center bg-slate-50 border border-slate-200/50 rounded-xl px-2.5 py-1.5 self-start mb-4`}>
+                          <View style={tw`flex-row items-center bg-slate-50 border border-slate-200/70 rounded-xl px-2.5 py-1.5 self-start mb-4`}>
                             <MaterialIcons name="schedule" size={14} color="#64748b" style={tw`mr-1`} />
-                            <Text style={tw`text-[10px] font-bold text-slate-500`}>
+                            <Text style={tw`text-[10px] font-extrabold text-slate-600`}>
                               {formatDuration(ride.boarded_at, ride.departed_at)}
                             </Text>
                           </View>
 
-                          {/* Departed Dot & Info */}
+                          {/* Departed / Alighted Dot & Info */}
                           <View style={tw`relative`}>
-                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-slate-400 border border-white`]} />
-                            <View style={tw`flex-row justify-between items-center`}>
-                              <Text style={tw`text-xs font-bold text-slate-800`}>Departed</Text>
-                              <Text style={tw`text-xs text-slate-400 font-semibold`}>{getDisplayTime(ride.departed_at)}</Text>
+                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full border border-white`, isActive ? tw`bg-green-500` : tw`bg-slate-500`]} />
+                            <View style={tw`flex-row justify-between items-start`}>
+                              <View>
+                                <View style={tw`flex-row items-center gap-1.5`}>
+                                  <Text style={tw`text-xs font-black text-slate-800`}>
+                                    {isActive ? 'Current Status' : 'Alighted'}
+                                  </Text>
+                                  <Text style={[tw`text-[10px] font-bold px-1.5 py-0.5 rounded`, isActive ? tw`text-green-700 bg-green-50` : tw`text-slate-600 bg-slate-100`]}>
+                                    {isActive ? 'Biyahe pa' : 'Bumaba'}
+                                  </Text>
+                                </View>
+                                <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`}>
+                                  {isActive ? 'In Transit' : (ride.depart_location || ride.dropoff_location || 'Alighting Stop')}
+                                </Text>
+                              </View>
+                              <Text style={tw`text-xs text-slate-400 font-bold bg-slate-50 px-2 py-0.5 rounded-md`}>{getDisplayTime(ride.departed_at)}</Text>
                             </View>
                           </View>
                         </View>
