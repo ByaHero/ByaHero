@@ -10,6 +10,9 @@ interface ActiveBus {
   code: string;
   status: string;
   conductor_email: string;
+  total_seats?: number;
+  seat_availability?: number;
+  passenger_count?: number;
 }
 
 export default function AdminActiveBuses() {
@@ -124,6 +127,14 @@ export default function AdminActiveBuses() {
               const isUnavailable = bus.status?.toLowerCase() === 'unavailable';
               const isStopping = stoppingId === bus.Bus_ID;
               
+              const totalSeats = bus.total_seats ?? 25;
+              const availableSeats = bus.seat_availability !== null && bus.seat_availability !== undefined 
+                ? Math.max(0, Number(bus.seat_availability)) 
+                : totalSeats;
+              const passengerCount = bus.passenger_count !== undefined 
+                ? bus.passenger_count 
+                : Math.max(0, totalSeats - availableSeats);
+
               return (
                 <View key={bus.Bus_ID} style={tw`bg-white rounded-3xl p-4 mb-4 shadow-sm border border-slate-100 flex-row items-center`}>
                   <View style={tw`w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center mr-4 border border-blue-100`}>
@@ -150,6 +161,23 @@ export default function AdminActiveBuses() {
                       <Text style={tw`text-slate-600 text-[12px] font-medium max-w-[60%]`} numberOfLines={1}>
                         {bus.conductor_email || 'N/A'}
                       </Text>
+                    </View>
+
+                    <View style={tw`flex-row justify-between items-center mb-2`}>
+                      <Text style={tw`text-slate-500 text-[11px] font-bold uppercase tracking-wider`}>Passengers</Text>
+                      <View style={tw`flex-row items-center`}>
+                        <Ionicons name="people" size={13} color="#4f46e5" style={tw`mr-1`} />
+                        <Text style={tw`text-slate-800 text-[12px] font-extrabold`}>{passengerCount} Onboard</Text>
+                      </View>
+                    </View>
+
+                    <View style={tw`flex-row justify-between items-center mb-2`}>
+                      <Text style={tw`text-slate-500 text-[11px] font-bold uppercase tracking-wider`}>Available Seats</Text>
+                      <View style={tw`px-2.5 py-0.5 rounded-full ${availableSeats > 5 ? 'bg-emerald-100 border border-emerald-200' : availableSeats > 0 ? 'bg-amber-100 border border-amber-200' : 'bg-red-100 border border-red-200'}`}>
+                        <Text style={tw`${availableSeats > 5 ? 'text-emerald-800' : availableSeats > 0 ? 'text-amber-800' : 'text-red-800'} text-[10px] font-extrabold`}>
+                          {availableSeats} / {totalSeats} Seats Available
+                        </Text>
+                      </View>
                     </View>
                     
                     <View style={tw`mt-2 pt-2 border-t border-slate-100 flex-row justify-end`}>

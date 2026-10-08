@@ -321,6 +321,7 @@ export default function ActiveBuses() {
                   <th className="py-3.5 px-4">Plate Number</th>
                   <th className="py-3.5 px-4">Assigned Conductor</th>
                   <th className="py-3.5 px-4">Route / Heading</th>
+                  <th className="py-3.5 px-4">Passengers & Seats</th>
                   <th className="py-3.5 px-4">Current Coordinates</th>
                   <th className="py-3.5 px-4">Velocity</th>
                   <th className="py-3.5 px-4">Live Status</th>
@@ -333,6 +334,12 @@ export default function ActiveBuses() {
                   const busCode = bus.bus_no || (bus as any).code || `Bus #${busId}`;
                   const isStopping = stoppingBusId === busId;
                   const hasCoords = bus.latitude && bus.longitude;
+
+                  const totalSeats = (bus as any).total_seats ?? 25;
+                  const availableSeats = (bus as any).seat_availability !== null && (bus as any).seat_availability !== undefined 
+                    ? Math.max(0, Number((bus as any).seat_availability)) 
+                    : totalSeats;
+                  const passengerCount = Math.max(0, totalSeats - availableSeats);
 
                   return (
                     <tr key={busId} className="hover:bg-slate-50/70 transition">
@@ -371,6 +378,27 @@ export default function ActiveBuses() {
                         <span className="text-xs font-bold text-[#0f3878] bg-blue-50/60 px-2 py-1 rounded-md">
                           {bus.route_name || (bus as any).route || 'Active Route'}
                         </span>
+                      </td>
+
+                      <td className="py-3.5 px-4">
+                        <div className="flex flex-col gap-1">
+                          <div className="inline-flex items-center gap-1.5 font-bold text-slate-800 text-[11px]">
+                            <Users size={13} className="text-indigo-600" />
+                            <span>{passengerCount} Passengers</span>
+                          </div>
+                          <div className="inline-flex items-center gap-1">
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                              availableSeats > 5 
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                : availableSeats > 0 
+                                  ? 'bg-amber-50 text-amber-700 border-amber-200' 
+                                  : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}>
+                              {availableSeats} Available Seats
+                            </span>
+                            <span className="text-[10px] text-slate-400">({totalSeats} Total)</span>
+                          </div>
+                        </div>
                       </td>
 
                       <td className="py-3.5 px-4">
@@ -457,6 +485,8 @@ export default function ActiveBuses() {
 
                           <div className="text-xs space-y-1 mb-3 text-slate-600">
                             <div><strong>Conductor:</strong> {bus.conductor_name || bus.conductor_email || 'N/A'}</div>
+                            <div><strong>Passengers:</strong> {Math.max(0, ((bus as any).total_seats ?? 25) - ((bus as any).seat_availability !== null && (bus as any).seat_availability !== undefined ? Number((bus as any).seat_availability) : ((bus as any).total_seats ?? 25)))} Onboard</div>
+                            <div><strong>Available Seats:</strong> <span className="font-bold text-emerald-600">{(bus as any).seat_availability !== null && (bus as any).seat_availability !== undefined ? Math.max(0, Number((bus as any).seat_availability)) : ((bus as any).total_seats ?? 25)} / {(bus as any).total_seats ?? 25}</span></div>
                             <div><strong>Speed:</strong> {bus.speed ? `${Number(bus.speed).toFixed(1)} km/h` : '0.0 km/h'}</div>
                             <div><strong>Route:</strong> {bus.route_name || (bus as any).route || 'Active Route'}</div>
                             <div><strong>Coords:</strong> {Number(bus.latitude).toFixed(4)}, {Number(bus.longitude).toFixed(4)}</div>
