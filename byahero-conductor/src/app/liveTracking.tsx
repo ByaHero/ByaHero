@@ -74,7 +74,7 @@ export default function LiveTrackingScreen() {
   
   // Trip Summary States
   const [tripSummary, setTripSummary] = useState<any>(null);
-  const [summaryConfig, setSummaryConfig] = useState<any>({ summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_first_last: true, show_signatures: true });
+  const [summaryConfig, setSummaryConfig] = useState<any>({ summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_trip_id: true, show_signatures: true });
   const [isSummaryLoading, setIsSummaryLoading] = useState(false);
   // Ticketing Mode States
   const [isTicketingModalVisible, setIsTicketingModalVisible] = useState(false);

@@ -166,22 +166,68 @@ class BusController extends Controller
         }
 
         $hasOperationId = Schema::hasColumn('passenger_rides', 'operation_id');
+        $hasBoardCol = Schema::hasColumn('passenger_rides', 'board_location');
+        $hasDepartCol = Schema::hasColumn('passenger_rides', 'depart_location');
 
+        $selectCols = ['pr.id', 'pr.boarded_at', 'pr.departed_at', 'pr.status', 'b.code as bus_code'];
         if ($hasOperationId) {
-            $history = DB::table('passenger_rides as pr')
-                ->join('bus_operations as bo', 'pr.operation_id', '=', 'bo.id')
-                ->join('busses as b', 'bo.bus_id', '=', 'b.Bus_ID')
-                ->select('pr.id', 'pr.boarded_at', 'pr.departed_at', 'pr.status', 'bo.route', 'b.code as bus_code')
-                ->where('pr.user_id', $userId)
-                ->orderBy('pr.boarded_at', 'desc')
-                ->get();
+            $selectCols[] = 'bo.route';
         } else {
-            $history = DB::table('passenger_rides as pr')
-                ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
-                ->select('pr.id', 'pr.boarded_at', 'pr.departed_at', 'pr.status', 'pr.route', 'b.code as bus_code')
-                ->where('pr.user_id', $userId)
-                ->orderBy('pr.boarded_at', 'desc')
-                ->get();
+            $selectCols[] = 'pr.route';
+        }
+        if ($hasBoardCol) $selectCols[] = 'pr.board_location';
+        if ($hasDepartCol) $selectCols[] = 'pr.depart_location';
+
+        $history = collect();
+
+        if (!empty($userId)) {
+            if ($hasOperationId) {
+                $historyQuery = DB::table('passenger_rides as pr')
+                    ->join('bus_operations as bo', 'pr.operation_id', '=', 'bo.id')
+                    ->join('busses as b', 'bo.bus_id', '=', 'b.Bus_ID')
+                    ->select($selectCols)
+                    ->where('pr.user_id', $userId)
+                    ->orderBy('pr.boarded_at', 'desc');
+            } else {
+                $historyQuery = DB::table('passenger_rides as pr')
+                    ->join('busses as b', 'pr.bus_id', '=', 'b.Bus_ID')
+                    ->select($selectCols)
+                    ->where('pr.user_id', $userId)
+                    ->orderBy('pr.boarded_at', 'desc');
+            }
+
+            $history = $historyQuery->get()->map(function ($item) {
+                $route = strtoupper($item->route ?? '');
+
+                // Determine board_location if empty
+                if (empty($item->board_location)) {
+                    if (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
+                        $parts = explode('-', $route);
+                        $origin = trim($parts[0] ?? '');
+                        $item->board_location = $origin ? ucwords(strtolower($origin)) : '';
+                    } else {
+                        $item->board_location = '';
+                    }
+                }
+
+                // Determine depart_location if empty
+                if (empty($item->depart_location)) {
+                    if ($item->status === 'active') {
+                        $item->depart_location = 'In Transit';
+                    } elseif (str_contains($route, 'LAUREL') && str_contains($route, 'TANAUAN')) {
+                        $parts = explode('-', $route);
+                        $dest = trim($parts[1] ?? '');
+                        $item->depart_location = $dest ? ucwords(strtolower($dest)) : '';
+                    } else {
+                        $item->depart_location = '';
+                    }
+                }
+
+                $item->pickup_location = $item->board_location;
+                $item->dropoff_location = $item->depart_location;
+
+                return $item;
+            });
         }
 
         return response()->json(['success' => true, 'history' => $history]);
@@ -492,6 +538,32 @@ class BusController extends Controller
                 }
             }
 
+            $boardLoc = $request->input('board_location') ?? $request->input('pickup_location');
+            if (empty($boardLoc)) {
+                $lat = $request->input('latitude') ?? $request->input('lat');
+                $lng = $request->input('longitude') ?? $request->input('lng');
+                if ($lat !== null && $lng !== null) {
+                    $nearestStop = DB::table('bus_stops')
+                        ->select('location_name')
+                        ->selectRaw('(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance', [(float)$lat, (float)$lng, (float)$lat])
+                        ->orderBy('distance')
+                        ->first();
+                    if ($nearestStop && !empty($nearestStop->location_name)) {
+                        $boardLoc = $nearestStop->location_name;
+                    }
+                }
+            }
+            if (empty($boardLoc) && !empty($operationId)) {
+                $opRoute = DB::table('bus_operations')->where('id', $operationId)->value('route');
+                if ($opRoute) {
+                    $parts = explode('-', strtoupper($opRoute));
+                    $boardLoc = ucwords(strtolower(trim($parts[0] ?? '')));
+                }
+            }
+            if (Schema::hasColumn('passenger_rides', 'board_location') && !empty($boardLoc)) {
+                $rideData['board_location'] = $boardLoc;
+            }
+
             // Create passenger ride
             $rideId = DB::table('passenger_rides')->insertGetId($rideData);
 
@@ -537,13 +609,41 @@ class BusController extends Controller
             return response()->json(['success' => false, 'message' => 'No active ride found'], 404);
         }
 
+        $departLoc = $request->input('depart_location') ?? $request->input('dropoff_location');
+        if (empty($departLoc)) {
+            $lat = $request->input('latitude') ?? $request->input('lat');
+            $lng = $request->input('longitude') ?? $request->input('lng');
+            if ($lat !== null && $lng !== null) {
+                $nearestStop = DB::table('bus_stops')
+                    ->select('location_name')
+                    ->selectRaw('(6371 * acos(cos(radians(?)) * cos(radians(latitude)) * cos(radians(longitude) - radians(?)) + sin(radians(?)) * sin(radians(latitude)))) AS distance', [(float)$lat, (float)$lng, (float)$lat])
+                    ->orderBy('distance')
+                    ->first();
+                if ($nearestStop && !empty($nearestStop->location_name)) {
+                    $departLoc = $nearestStop->location_name;
+                }
+            }
+        }
+        if (empty($departLoc) && $activeRide) {
+            $opRoute = isset($activeRide->operation_id) ? DB::table('bus_operations')->where('id', $activeRide->operation_id)->value('route') : null;
+            if ($opRoute) {
+                $parts = explode('-', strtoupper($opRoute));
+                $departLoc = ucwords(strtolower(trim($parts[1] ?? '')));
+            }
+        }
+
+        $updateData = [
+            'status' => 'completed',
+            'departed_at' => now()
+        ];
+        if (Schema::hasColumn('passenger_rides', 'depart_location') && !empty($departLoc)) {
+            $updateData['depart_location'] = $departLoc;
+        }
+
         // Update ride status to completed
         DB::table('passenger_rides')
             ->where('id', $activeRide->id)
-            ->update([
-                'status' => 'completed',
-                'departed_at' => now()
-            ]);
+            ->update($updateData);
 
         return response()->json([
             'success' => true,
