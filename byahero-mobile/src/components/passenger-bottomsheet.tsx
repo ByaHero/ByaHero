@@ -516,8 +516,29 @@ export default function PassengerBottomSheet({
                       }
                     }
 
-                    const progress = bus.progress || 90;
+                    // Dynamic timeline progress calculation (0% to 95%)
+                    let dynamicProgress = 10;
+                    if (isUserBoarding) {
+                      dynamicProgress = 95;
+                    } else if (distKm !== null && !isNaN(distKm)) {
+                      const MAX_TRACK_DIST_KM = 5.0; // 5 km visible distance horizon
+                      if (distKm <= 0.03) {
+                        dynamicProgress = 95;
+                      } else if (distKm >= MAX_TRACK_DIST_KM) {
+                        dynamicProgress = 5;
+                      } else {
+                        const fraction = 1 - (distKm / MAX_TRACK_DIST_KM);
+                        dynamicProgress = Math.max(5, Math.min(95, Math.round(5 + fraction * 90)));
+                      }
+                    } else if (bus.progress !== undefined && bus.progress !== null) {
+                      dynamicProgress = Math.max(5, Math.min(95, Number(bus.progress)));
+                    } else if (bus.ai_eta_minutes) {
+                      const etaVal = Math.min(30, Math.max(0, Number(bus.ai_eta_minutes)));
+                      dynamicProgress = Math.max(5, Math.min(95, Math.round(5 + (1 - etaVal / 30) * 90)));
+                    }
+
                     const isNearest = idx === 0 && distKm !== null;
+                    const availableCount = seatAvail !== null ? seatAvail : (bus.seats_available ?? bus.total_seats ?? 25);
 
                     return (
                       <TouchableOpacity
@@ -542,7 +563,7 @@ export default function PassengerBottomSheet({
 
                         <View style={tw`p-4`}>
                           {/* Row 1: Code + NEAREST badge + Status pill */}
-                          <View style={tw`flex-row items-center justify-between mb-2.5`}>
+                          <View style={tw`flex-row items-center justify-between mb-3`}>
                             <View style={tw`flex-row items-center`}>
                               <View style={[tw`px-2.5 py-1 rounded-lg mr-2`, { backgroundColor: '#103d7c' }]}>
                                 <Text style={tw`text-white text-[11px] font-black tracking-widest uppercase`}>
@@ -564,72 +585,82 @@ export default function PassengerBottomSheet({
                             </View>
                           </View>
 
-                          {/* Row 2: Location */}
-                          <Text style={tw`text-[13px] font-bold text-slate-800 mb-1`} numberOfLines={1}>
-                            {bus.current_location_name || 'Unknown Location'}
-                          </Text>
-
-                          {/* Row 3: Route + Traffic Pill */}
-                          <View style={tw`flex-row items-center flex-wrap mb-2.5`}>
-                            {bus.route ? (
-                              <Text style={tw`text-[11px] text-slate-400 font-medium mr-2`} numberOfLines={1}>
-                                {bus.route}
+                          {/* Info Body: Left Info + Right SEATS AVAILABLE Badge */}
+                          <View style={tw`flex-row justify-between items-center mb-3`}>
+                            {/* Left Column */}
+                            <View style={tw`flex-1 pr-3`}>
+                              {/* Location */}
+                              <Text style={tw`text-[15px] font-extrabold text-slate-800 mb-0.5`} numberOfLines={1}>
+                                {bus.current_location_name || 'Unknown Location'}
                               </Text>
-                            ) : null}
-                            {bus.is_in_traffic && bus.traffic_extra_delay_minutes > 0 && (
-                              <View style={{
-                                backgroundColor: '#F97316',
-                                borderRadius: 999,
-                                paddingHorizontal: 8,
-                                paddingVertical: 3,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                              }}>
-                                <Text style={{ color: 'white', fontWeight: '800', fontSize: 9, letterSpacing: 0.5 }}>
-                                  TRAFFIC +{bus.traffic_extra_delay_minutes}MINS
-                                </Text>
-                              </View>
-                            )}
-                          </View>
 
-                          {/* Row 4: ETA + distance */}
-                          <View style={tw`flex-row items-center mb-3`}>
-                            <MaterialIcons name="access-time" size={13} color="#64748b" style={{ marginRight: 4 }} />
-                            <Text style={tw`text-[12px] text-slate-600 font-semibold mr-2`}>{etaText}</Text>
-                            {distText && (
-                              <View style={[tw`px-2 py-0.5 rounded-full`, { backgroundColor: '#f1f5f9' }]}>
-                                <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '700' }}>{distText}</Text>
+                              {/* Route + Traffic Pill */}
+                              <View style={tw`flex-row items-center flex-wrap mb-1.5`}>
+                                {bus.route ? (
+                                  <Text style={tw`text-[11px] text-slate-400 font-bold uppercase tracking-wider mr-2`} numberOfLines={1}>
+                                    {bus.route}
+                                  </Text>
+                                ) : null}
+                                {bus.is_in_traffic && bus.traffic_extra_delay_minutes > 0 && (
+                                  <View style={{
+                                    backgroundColor: '#F97316',
+                                    borderRadius: 999,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                  }}>
+                                    <Text style={{ color: 'white', fontWeight: '800', fontSize: 9, letterSpacing: 0.5 }}>
+                                      TRAFFIC +{bus.traffic_extra_delay_minutes}MINS
+                                    </Text>
+                                  </View>
+                                )}
                               </View>
-                            )}
-                          </View>
 
-                          {/* Row 5: Seat bar */}
-                          {seatAvail !== null && (
-                            <View style={tw`mb-3`}>
-                              <View style={tw`flex-row justify-between mb-1`}>
-                                <Text style={tw`text-[10px] text-slate-400 font-bold uppercase tracking-wider`}>Seats</Text>
-                                <Text style={{ color: seatBarColor, fontSize: 10, fontWeight: '800' }}>{seatAvail}/{totalSeats}</Text>
-                              </View>
-                              <View style={[tw`h-1.5 rounded-full`, { backgroundColor: '#f1f5f9' }]}>
-                                <View style={[tw`h-1.5 rounded-full`, { width: `${Math.round(seatFraction! * 100)}%`, backgroundColor: seatBarColor }]} />
+                              {/* ETA + Distance / Speed */}
+                              <View style={tw`flex-row items-center`}>
+                                <MaterialIcons name="access-time" size={13} color="#64748b" style={{ marginRight: 4 }} />
+                                <Text style={tw`text-[12px] text-slate-700 font-bold mr-2`}>{etaText}</Text>
+                                {distText && (
+                                  <View style={[tw`px-2 py-0.5 rounded-full`, { backgroundColor: '#f1f5f9' }]}>
+                                    <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '700' }}>{distText}</Text>
+                                  </View>
+                                )}
                               </View>
                             </View>
-                          )}
 
-                          {/* Row 6: Timeline progress track */}
-                          <View style={{ height: 24, justifyContent: 'center', position: 'relative', marginTop: 2 }}>
+                            {/* Right Column: SEATS AVAILABLE Badge */}
+                            <View style={[
+                              tw`px-3.5 py-2.5 rounded-2xl items-center justify-center min-w-[105px]`,
+                              { backgroundColor: '#f1f5f9' }
+                            ]}>
+                              <Text style={tw`text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 text-center`}>
+                                SEATS AVAILABLE
+                              </Text>
+                              <Text style={tw`text-[22px] font-black text-[#103d7c] text-center`}>
+                                {availableCount}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Dotted Track with Dynamic Moving Bus Icon and Pick Up Point Marker */}
+                          <View style={{ height: 28, justifyContent: 'center', position: 'relative', marginTop: 4 }}>
                             <View style={{ height: 1, borderStyle: 'dashed', borderWidth: 1, borderColor: '#cbd5e1', borderRadius: 1, marginRight: 8 }} />
+                            
+                            {/* Moving Bus Badge */}
                             <View style={[
-                              tw`absolute w-6 h-6 rounded-full bg-white border border-[#103d7c] items-center justify-center`,
-                              { left: `${progress}%`, marginLeft: -12, top: 0, shadowColor: '#000', shadowOpacity: 0.08, shadowRadius: 3, elevation: 2 }
+                              tw`absolute w-6 h-6 rounded-full bg-white border-2 border-[#103d7c] items-center justify-center`,
+                              { left: `${dynamicProgress}%`, marginLeft: -12, top: 2, shadowColor: '#103d7c', shadowOpacity: 0.15, shadowRadius: 3, elevation: 3 }
                             ]}>
-                              <Image source={require('../../assets/images/icons/marker.svg')} style={tw`w-[80%] h-[80%]`} contentFit="contain" />
+                              <MaterialIcons name="directions-bus" size={13} color="#103d7c" />
                             </View>
+
+                            {/* Pick Up Point Badge (Far Right) */}
                             <View style={[
-                              tw`absolute w-5 h-5 rounded-full bg-white border border-red-400 items-center justify-center`,
-                              { right: 0, marginRight: -4, top: 2, shadowColor: '#ef4444', shadowOpacity: 0.15, shadowRadius: 3, elevation: 2 }
+                              tw`absolute w-6 h-6 rounded-full bg-white border-2 border-red-500 items-center justify-center`,
+                              { right: 0, top: 2, shadowColor: '#ef4444', shadowOpacity: 0.15, shadowRadius: 3, elevation: 3 }
                             ]}>
-                              <MaterialIcons name="place" size={11} color="#ef4444" />
+                              <MaterialIcons name="place" size={13} color="#ef4444" />
                             </View>
                           </View>
                         </View>
