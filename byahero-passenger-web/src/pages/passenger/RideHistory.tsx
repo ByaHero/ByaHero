@@ -221,12 +221,12 @@ export const RideHistory: React.FC = () => {
 
                             {/* Boarded Dot & Info */}
                             <div className="relative mb-4">
-                              <div className="absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white ring-2 ring-blue-100" />
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
-                                  <span className="text-sm font-semibold text-slate-700">Boarded</span>
+                              <div className="absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white ring-2 ring-blue-100" />
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 mr-2 min-w-0">
+                                  <span className="text-xs font-black text-slate-800 block">Boarded</span>
                                   {(ride.board_location || ride.pickup_location) && (
-                                    <span className="text-base font-black text-slate-900 truncate">
+                                    <span className="text-xs text-slate-600 font-semibold block mt-0.5 truncate">
                                       {ride.board_location || ride.pickup_location}
                                     </span>
                                   )}
@@ -247,16 +247,16 @@ export const RideHistory: React.FC = () => {
 
                             {/* Departed Dot & Info */}
                             <div className="relative">
-                              <div className={`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full border border-white ${isActive ? 'bg-green-500 ring-2 ring-green-100 animate-pulse' : 'bg-slate-500 ring-2 ring-slate-100'}`} />
-                              <div className="flex justify-between items-center">
-                                <div className="flex items-center gap-2 flex-1 mr-2 min-w-0">
-                                  <span className="text-sm font-semibold text-slate-700">
+                              <div className={`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full border border-white ${isActive ? 'bg-green-500 ring-2 ring-green-100 animate-pulse' : 'bg-slate-500 ring-2 ring-slate-100'}`} />
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 mr-2 min-w-0">
+                                  <span className="text-xs font-black text-slate-800 block">
                                     {isActive ? 'Current Status' : 'Departed'}
                                   </span>
                                   {isActive ? (
-                                    <span className="text-base font-black text-green-700">In Transit</span>
+                                    <span className="text-xs text-green-700 font-semibold block mt-0.5">In Transit</span>
                                   ) : (ride.depart_location || ride.dropoff_location) ? (
-                                    <span className="text-base font-black text-slate-900 truncate">
+                                    <span className="text-xs text-slate-600 font-semibold block mt-0.5 truncate">
                                       {ride.depart_location || ride.dropoff_location}
                                     </span>
                                   ) : null}

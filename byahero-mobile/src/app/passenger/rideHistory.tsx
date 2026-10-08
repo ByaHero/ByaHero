@@ -223,12 +223,12 @@ export default function RideHistoryScreen() {
 
                           {/* Boarded Dot & Info */}
                           <View style={tw`relative mb-4`}>
-                            <View style={[tw`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white`]} />
-                            <View style={tw`flex-row justify-between items-center`}>
-                              <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
-                                <Text style={tw`text-sm font-semibold text-slate-700`}>Boarded</Text>
+                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full bg-blue-600 border border-white`]} />
+                            <View style={tw`flex-row justify-between items-start`}>
+                              <View style={tw`flex-1 mr-2`}>
+                                <Text style={tw`text-xs font-black text-slate-800`}>Boarded</Text>
                                 {Boolean(ride.board_location || ride.pickup_location) && (
-                                  <Text style={tw`text-base font-black text-slate-900`} numberOfLines={1}>
+                                  <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`} numberOfLines={1}>
                                     {ride.board_location || ride.pickup_location}
                                   </Text>
                                 )}
@@ -247,16 +247,16 @@ export default function RideHistoryScreen() {
 
                           {/* Departed Dot & Info */}
                           <View style={tw`relative`}>
-                            <View style={[tw`absolute -left-[24px] top-1.5 w-2.5 h-2.5 rounded-full border border-white`, isActive ? tw`bg-green-500` : tw`bg-slate-500`]} />
-                            <View style={tw`flex-row justify-between items-center`}>
-                              <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
-                                <Text style={tw`text-sm font-semibold text-slate-700`}>
+                            <View style={[tw`absolute -left-[24px] top-1 w-2.5 h-2.5 rounded-full border border-white`, isActive ? tw`bg-green-500` : tw`bg-slate-500`]} />
+                            <View style={tw`flex-row justify-between items-start`}>
+                              <View style={tw`flex-1 mr-2`}>
+                                <Text style={tw`text-xs font-black text-slate-800`}>
                                   {isActive ? 'Current Status' : 'Departed'}
                                 </Text>
                                 {isActive ? (
-                                  <Text style={tw`text-base font-black text-green-700`}>In Transit</Text>
+                                  <Text style={tw`text-xs text-green-700 font-semibold mt-0.5`}>In Transit</Text>
                                 ) : Boolean(ride.depart_location || ride.dropoff_location) ? (
-                                  <Text style={tw`text-base font-black text-slate-900`} numberOfLines={1}>
+                                  <Text style={tw`text-xs text-slate-600 font-semibold mt-0.5`} numberOfLines={1}>
                                     {ride.depart_location || ride.dropoff_location}
                                   </Text>
                                 ) : null}
