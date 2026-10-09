@@ -495,8 +495,26 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                     }
                   }
 
-                  const progress = bus.progress || 85;
+                  // Dynamic timeline progress calculation (0% to 95%)
+                  let dynamicProgress = 10;
+                  if (isUserBoarding) {
+                    dynamicProgress = 95;
+                  } else if (distKm !== null && !isNaN(distKm)) {
+                    const MAX_TRACK_DIST_KM = 5.0; // 5 km track horizon
+                    if (distKm <= 0.03) {
+                      dynamicProgress = 95;
+                    } else if (distKm >= MAX_TRACK_DIST_KM) {
+                      dynamicProgress = 5;
+                    } else {
+                      const fraction = 1 - (distKm / MAX_TRACK_DIST_KM);
+                      dynamicProgress = Math.max(5, Math.min(95, Math.round(5 + fraction * 90)));
+                    }
+                  } else if (bus.progress !== undefined && bus.progress !== null) {
+                    dynamicProgress = Math.max(5, Math.min(95, Number(bus.progress)));
+                  }
+
                   const isNearest = idx === 0 && distKm !== null;
+                  const availableCount = seatAvail !== null ? seatAvail : (bus.seats_available ?? bus.total_seats ?? 25);
 
                   return (
                     <div
@@ -530,13 +548,14 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                         </div>
                       </div>
 
-                      {/* Main Info */}
+                      {/* Main Info Body */}
                       <div className="p-4">
-                        <div className="flex justify-between items-start mb-2">
-                          <div className="flex-1 pr-2">
+                        <div className="flex justify-between items-center mb-3">
+                          {/* Left Column */}
+                          <div className="flex-1 pr-3">
                             <div className="flex items-center flex-wrap gap-2 mb-0.5">
                               <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                                ROUTE
+                                {bus.route || 'Tanauan - Laurel'}
                               </span>
                               {bus.is_in_traffic && bus.traffic_extra_delay_minutes > 0 && (
                                 <div className="bg-[#F97316] rounded-full px-2 py-0.5 flex items-center">
@@ -546,56 +565,49 @@ export const PassengerBottomSheet: React.FC<PassengerBottomSheetProps> = ({
                                 </div>
                               )}
                             </div>
-                            <span className="text-sm font-black text-slate-800 leading-snug block">
-                              {bus.route || 'Tanauan - Laurel'}
+                            <span className="text-base font-black text-slate-800 leading-snug block mb-1">
+                              {bus.current_location_name || 'Active on Route'}
                             </span>
+
+                            <div className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                              <MaterialIcons name="access-time" size={14} color="#64748b" />
+                              <span>{etaText}</span>
+                              {distText && (
+                                <span className="bg-slate-100 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                                  {distText}
+                                </span>
+                              )}
+                            </div>
                           </div>
 
-                          <div className="text-right">
-                            <span className="text-sm font-black text-[#103d7c] block">{etaText}</span>
-                            {distText && (
-                              <span className="text-[11px] font-semibold text-slate-400 block">{distText}</span>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Location */}
-                        <div className="flex items-center gap-1 text-[11px] text-slate-500 font-semibold mb-3">
-                          <MaterialIcons name="place" size={14} color="#103d7c" />
-                          <span className="truncate">{bus.current_location_name || 'Active on Route'}</span>
-                        </div>
-
-                        {/* Seat Availability Bar */}
-                        <div className="mt-2 pt-2.5 border-t border-[#e2e8f0]/60">
-                          <div className="flex justify-between items-center mb-1 text-[11px] font-bold">
-                            <span className="text-slate-500">Seats Available</span>
-                            <span style={{ color: seatBarColor }}>
-                              {seatAvail !== null ? `${seatAvail} / ${totalSeats}` : 'N/A'}
+                          {/* Right Column: SEATS AVAILABLE Box */}
+                          <div className="bg-[#f1f5f9] px-4 py-2.5 rounded-2xl text-center min-w-[105px] flex flex-col items-center justify-center">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block mb-0.5">
+                              SEATS AVAILABLE
                             </span>
-                          </div>
-                          <div className="w-full h-1.5 bg-[#e2e8f0] rounded-full overflow-hidden">
-                            <div
-                              className="h-full rounded-full transition-all duration-500"
-                              style={{
-                                width: seatFraction !== null ? `${seatFraction * 100}%` : '50%',
-                                backgroundColor: seatBarColor,
-                              }}
-                            />
+                            <span className="text-2xl font-black text-[#103d7c] leading-none">
+                              {availableCount}
+                            </span>
                           </div>
                         </div>
 
                         {/* Route Timeline Track */}
-                        <div className="mt-3 pt-2.5 border-t border-[#e2e8f0]/60 flex items-center justify-between text-[10px] font-bold text-slate-400">
-                          <span>Origin</span>
-                          <div className="flex-1 mx-3 h-1 bg-[#e2e8f0] rounded-full relative flex items-center">
-                            <div
-                              className="absolute w-3.5 h-3.5 rounded-full bg-[#103d7c] border-2 border-white shadow-sm flex items-center justify-center -top-1"
-                              style={{ left: `${Math.min(95, Math.max(5, progress))}%` }}
-                            >
-                              <img src="/images/marker.svg" alt="" className="w-2 h-2 object-contain" />
-                            </div>
+                        <div className="mt-3 pt-3 border-t border-[#e2e8f0]/60 relative h-7 flex items-center">
+                          {/* Dashed line */}
+                          <div className="w-full border-b border-dashed border-slate-300" />
+
+                          {/* Bus Icon */}
+                          <div
+                            className="absolute w-6 h-6 rounded-full bg-white border-2 border-[#103d7c] shadow-md flex items-center justify-center -top-0.5 transition-all duration-500"
+                            style={{ left: `${dynamicProgress}%`, transform: 'translateX(-50%)' }}
+                          >
+                            <MaterialIcons name="directions-bus" size={13} color="#103d7c" />
                           </div>
-                          <span>Destination</span>
+
+                          {/* Pick Up Point Icon (Right end) */}
+                          <div className="absolute right-0 w-6 h-6 rounded-full bg-white border-2 border-red-500 shadow-md flex items-center justify-center -top-0.5">
+                            <MaterialIcons name="place" size={13} color="#ef4444" />
+                          </div>
                         </div>
                       </div>
                     </div>
