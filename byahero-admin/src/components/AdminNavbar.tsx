@@ -17,6 +17,7 @@ import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { adminService } from '@/services/admin';
 
 export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
   const { width } = useWindowDimensions();
@@ -94,6 +95,9 @@ export default function AdminNavbar({ title = 'Admin' }: { title?: string }) {
       Animated.timing(slideAnim, { toValue: width, duration: 200, useNativeDriver: true }),
     ]).start(async () => {
       setMenuVisible(false);
+      try {
+        await adminService.logout();
+      } catch (e) {}
       await AsyncStorage.removeItem('byahero_cached_email');
       await AsyncStorage.removeItem('byahero_cached_role');
       await AsyncStorage.removeItem('byahero_cached_name');

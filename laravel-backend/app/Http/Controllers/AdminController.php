@@ -27,9 +27,13 @@ class AdminController extends Controller
     {
         $role = Session::get('user_role');
         if (empty($role) || $role !== 'admin') {
-            $email = request()->header('X-Admin-Email') ?: request()->header('X-User-Email');
+            $email = request()->header('X-Admin-Email') 
+                ?: request()->header('X-User-Email') 
+                ?: request()->input('email') 
+                ?: request()->input('admin_email');
             if (!empty($email)) {
-                $admin = Admin::where('email', $email)->first();
+                $cleanEmail = strtolower(trim((string)$email));
+                $admin = Admin::where('email', $cleanEmail)->first();
                 if ($admin) {
                     Session::put('user_id', (int)$admin->id);
                     Session::put('user_email', $admin->email);
