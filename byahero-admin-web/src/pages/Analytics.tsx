@@ -1,9 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Activity,
   Award,
   BarChart3,
   BusFront,
   Calendar,
+  CalendarDays,
+  CalendarRange,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
@@ -18,7 +21,6 @@ import {
   RefreshCw,
   Route,
   Search,
-  Sparkles,
   TrendingUp,
   UserCheck,
   Users,
@@ -28,7 +30,7 @@ import { adminService } from '../services/admin';
 import AlertModal from '../components/AlertModal';
 import { useAlertModal } from '../hooks/useAlertModal';
 
-export type PeriodKey = 'deployment' | 'today' | 'week' | 'month' | 'custom';
+export type PeriodKey = 'today' | 'week' | 'month' | 'custom';
 
 export type ActiveTab = 'overview' | 'buses' | 'conductors' | 'users' | 'routes' | 'operations';
 
@@ -228,20 +230,53 @@ type ApiAnalytics = {
 };
 
 const periodLabels: Record<PeriodKey, string> = {
-  deployment: 'Deployment (Sept 9 – 22, 2026)',
   today: 'Today',
-  week: 'Past 7 Days',
-  month: 'Past 30 Days',
-  custom: 'Custom Date Range',
+  week: 'This Week',
+  month: 'This Month',
+  custom: 'Custom Date',
 };
 
 export default function Analytics() {
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<PeriodKey>('deployment');
+  const [period, setPeriod] = useState<PeriodKey>('today');
   const [activeTab, setActiveTab] = useState<ActiveTab>('overview');
   const [customStart, setCustomStart] = useState('');
   const [customEnd, setCustomEnd] = useState('');
   const [apiData, setApiData] = useState<any>(null);
+
+  const formatCustomDateRange = (start?: string, end?: string) => {
+    if (!start && !end) return 'Custom Date';
+    const formatD = (str: string) => {
+      try {
+        const [y, m, d] = str.split('-').map(Number);
+        return new Date(y, m - 1, d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      } catch {
+        return str;
+      }
+    };
+    if (start && end) return `${formatD(start)} – ${formatD(end)}`;
+    if (start) return `From ${formatD(start)}`;
+    return `Until ${formatD(end!)}`;
+  };
+
+  const getDaysCount = (start?: string, end?: string) => {
+    if (!start || !end) return null;
+    try {
+      const d1 = new Date(start);
+      const d2 = new Date(end);
+      const diff = Math.round((d2.getTime() - d1.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      return diff > 0 ? diff : null;
+    } catch {
+      return null;
+    }
+  };
+
+  const getPeriodDisplayText = () => {
+    if (period === 'custom') {
+      return formatCustomDateRange(customStart, customEnd);
+    }
+    return periodLabels[period];
+  };
 
   // Filters & Sorting for tables
   const [busSearch, setBusSearch] = useState('');
@@ -288,15 +323,12 @@ export default function Analytics() {
     try {
       setLoading(true);
       const params: { period: string; start?: string; end?: string } = { period };
-      if (period === 'deployment') {
-        params.start = '2026-09-09';
-        params.end = '2026-09-22';
-      } else if (period === 'custom') {
+      if (period === 'custom') {
         if (customStart) params.start = customStart;
         if (customEnd) params.end = customEnd;
       }
 
-      // Fetch primary analytics and backup stats in parallel for complete defense data
+      // Fetch primary analytics and backup stats in parallel for complete operational data
       const [res, statsRes] = await Promise.all([
         adminService.getAnalytics(params).catch((err) => {
           console.warn('[Analytics] API getAnalytics failed:', err);
@@ -674,9 +706,9 @@ export default function Analytics() {
       let csvContent = 'data:text/csv;charset=utf-8,';
 
       // Section 1: Executive Overview
-      csvContent += 'BYAHERO TRANSIT DEPLOYMENT ANALYTICS REPORT\r\n';
+      csvContent += 'BYAHERO TRANSIT OPERATIONAL ANALYTICS REPORT\r\n';
       csvContent += `Generated At,${new Date().toLocaleString()}\r\n`;
-      csvContent += `Selected Period,${period === 'deployment' ? 'Official Deployment Window: September 9 - 22, 2026 (14 Days)' : periodLabels[period]}\r\n\r\n`;
+      csvContent += `Selected Period,${getPeriodDisplayText()}\r\n\r\n`;
 
       csvContent += '--- EXECUTIVE SUMMARY METRICS ---\r\n';
       csvContent += `Total Passenger Boardings,${data.totalPassengers}\r\n`;
@@ -714,11 +746,11 @@ export default function Analytics() {
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
-      link.setAttribute('download', `ByaHero_Deployment_Analytics_${period}_${new Date().toISOString().split('T')[0]}.csv`);
+      link.setAttribute('download', `ByaHero_Analytics_${period}_${new Date().toISOString().split('T')[0]}.csv`);
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      showAlert('Dataset Exported', 'Deployment analytics CSV has been downloaded successfully.', 'info');
+      showAlert('Dataset Exported', 'Operational analytics CSV has been downloaded successfully.', 'info');
     } catch (e) {
       console.error(e);
       showAlert('Export Failed', 'Failed to generate CSV file.', 'error');
@@ -727,7 +759,7 @@ export default function Analytics() {
     }
   };
 
-  // Generate Multi-Page Defense Panel PDF Report
+  // Generate Multi-Page Analytics PDF Report
   const generatePDF = async () => {
     if (!data || downloading) return;
     setDownloading(true);
@@ -738,31 +770,26 @@ export default function Analytics() {
       container.style.color = '#1e293b';
       container.style.lineHeight = '1.4';
 
-      const periodText =
-        period === 'deployment'
-          ? 'Official Deployment Window: September 9 – 22, 2026 (14-Day Pilot Trial)'
-          : period === 'custom'
-          ? `${customStart || 'Start'} to ${customEnd || 'Present'}`
-          : periodLabels[period];
+      const periodText = getPeriodDisplayText();
 
       container.innerHTML = `
         <div style="border-bottom: 3px solid #0f3878; padding-bottom: 12px; margin-bottom: 20px;">
           <div style="display: flex; justify-content: space-between; align-items: flex-end;">
             <div>
               <div style="font-size: 11px; font-weight: 800; color: #2563eb; text-transform: uppercase; letter-spacing: 1px;">ByaHero Transit Management System</div>
-              <h1 style="color: #0f3878; margin: 3px 0 0 0; font-size: 24px; font-weight: 900;">Deployment Analytics & System Evaluation Report</h1>
+              <h1 style="color: #0f3878; margin: 3px 0 0 0; font-size: 24px; font-weight: 900;">Operational Analytics & Performance Report</h1>
             </div>
             <div style="text-align: right; font-size: 11px; color: #64748b;">
-              <div><strong>Evaluation Period:</strong> ${periodText}</div>
+              <div><strong>Reporting Period:</strong> ${periodText}</div>
               <div><strong>Generated Date:</strong> ${new Date().toLocaleDateString()}</div>
             </div>
           </div>
         </div>
 
-        <!-- 1. Executive Defense Summary -->
+        <!-- 1. Executive Summary -->
         <div style="margin-bottom: 24px;">
           <h2 style="font-size: 14px; font-weight: 800; color: #0f3878; text-transform: uppercase; margin-bottom: 10px; border-left: 4px solid #2563eb; padding-left: 8px;">
-            1. Executive Deployment Summary
+            1. Executive Summary
           </h2>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 12px;">
             <tr>
@@ -910,14 +937,14 @@ export default function Analytics() {
         </div>
 
         <div style="border-top: 1px solid #cbd5e1; padding-top: 12px; margin-top: 20px; font-size: 10px; color: #94a3b8; display: flex; justify-content: space-between;">
-          <span>ByaHero Automated Analytics System &bull; Confidential Capstone Research Evaluation</span>
+          <span>ByaHero Transit Management System &bull; Operational Analytics Report</span>
           <span>Page 1 of 1</span>
         </div>
       `;
 
       const opt = {
         margin: [10, 12, 10, 12],
-        filename: `ByaHero_Defense_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`,
+        filename: `ByaHero_Analytics_Report_${period}_${new Date().toISOString().split('T')[0]}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm' as const, format: 'a4' as const, orientation: 'portrait' as const },
@@ -928,7 +955,7 @@ export default function Analytics() {
       const html2pdfModule = await import('html2pdf.js');
       const html2pdf = (html2pdfModule.default || html2pdfModule) as any;
       await html2pdf().set(opt).from(container).save();
-      showAlert('Report Ready', 'Defense Panel PDF report generated and downloaded.', 'info');
+      showAlert('Report Ready', 'Operational analytics PDF report generated and downloaded.', 'info');
     } catch (err) {
       console.warn('PDF Download Error:', err);
       showAlert('Download Failed', 'Failed to generate PDF report.', 'error');
@@ -943,7 +970,7 @@ export default function Analytics() {
         {icon}
       </div>
       <p className="font-bold text-sm text-slate-600">{message}</p>
-      <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Try selecting "Deployment Period" to see trial data collected from Tanauan-Laurel.</p>
+      <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">No operational logs recorded for this period. Try selecting a different date range.</p>
     </div>
   );
 
@@ -957,29 +984,18 @@ export default function Analytics() {
 
         <div className="relative z-10 grid grid-cols-1 lg:grid-cols-[1.5fr_1fr] gap-6 items-center">
           <div className="space-y-3">
-            <div className="inline-flex items-center gap-2 text-[11px] font-extrabold uppercase tracking-widest text-blue-200 bg-white/10 border border-white/20 py-1 px-3.5 rounded-full backdrop-blur-md">
-              <Sparkles size={13} className="text-yellow-300" />
-              <span>Transit Telemetry &amp; Panel Evaluation</span>
+            <div className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-blue-200 bg-white/10 border border-white/15 py-1 px-3.5 rounded-full backdrop-blur-md">
+              <Activity size={13} className="text-blue-300" />
+              <span>Transit Operations &amp; Performance</span>
             </div>
 
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               Analytics Dashboard
-              <span className="text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Deployment Mode
-              </span>
             </h1>
 
             <p className="text-xs sm:text-sm text-blue-100/90 max-w-2xl font-medium leading-relaxed">
-              Complete operational statistics for Tanauan - Laurel transit corridor: deployed bus throughput, conductor duty sessions, commuter registration numbers, and circle feature adoption.
+              Real-time operational metrics across bus throughput, passenger volume, conductor duty sessions, and commuter activity.
             </p>
-
-            {period === 'deployment' && (
-              <div className="inline-flex items-center gap-2 bg-emerald-500/20 border border-emerald-400/40 px-3.5 py-1.5 rounded-xl text-xs font-bold text-emerald-200 backdrop-blur-md shadow-xs">
-                <CheckCircle2 size={15} className="text-emerald-300 shrink-0" />
-                <span>Field Deployment Period: September 9 – 22, 2026 (14 Days on Tanauan – Laurel Transit Corridor)</span>
-              </div>
-            )}
 
             {/* Quick Period Selector Buttons */}
             <div className="pt-2 flex flex-wrap items-center gap-2">
@@ -997,8 +1013,10 @@ export default function Analytics() {
                           : 'text-white/80 hover:text-white hover:bg-white/10'
                       }`}
                     >
-                      {key === 'deployment' && <Flame size={13} className={isActive ? 'text-amber-500' : 'text-amber-300'} />}
                       {key === 'today' && <Calendar size={13} />}
+                      {key === 'week' && <CalendarDays size={13} />}
+                      {key === 'month' && <BarChart3 size={13} />}
+                      {key === 'custom' && <CalendarRange size={13} />}
                       {periodLabels[key]}
                     </button>
                   );
@@ -1012,10 +1030,10 @@ export default function Analytics() {
                   onClick={exportToCSV}
                   disabled={exportingCsv || loading}
                   className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition cursor-pointer disabled:opacity-50"
-                  title="Download Raw Deployment Dataset (CSV)"
+                  title="Export Operational Dataset as CSV"
                 >
                   <FileSpreadsheet size={14} />
-                  <span>CSV Dataset</span>
+                  <span>Export CSV</span>
                 </button>
 
                 <button
@@ -1023,10 +1041,10 @@ export default function Analytics() {
                   onClick={generatePDF}
                   disabled={downloading || loading}
                   className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl text-xs font-bold bg-white text-[#0f3878] hover:bg-blue-50 transition shadow-sm cursor-pointer disabled:opacity-50"
-                  title="Download Formatted Thesis Evaluation Report"
+                  title="Export Formatted Analytics Report as PDF"
                 >
                   {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                  <span>{downloading ? 'Exporting...' : 'Defense PDF'}</span>
+                  <span>{downloading ? 'Exporting...' : 'Export PDF'}</span>
                 </button>
 
                 <button
@@ -1043,38 +1061,44 @@ export default function Analytics() {
 
             {/* Custom Date Range Picker */}
             {period === 'custom' && (
-              <div className="flex flex-wrap items-center gap-3 pt-2 bg-white/10 p-3 rounded-2xl border border-white/15">
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-blue-200" />
-                  <span className="text-xs text-blue-100 font-semibold">Start:</span>
-                  <input
-                    type="date"
-                    value={customStart}
-                    onChange={(e) => setCustomStart(e.target.value)}
-                    className="bg-white/20 text-white rounded-lg px-2.5 py-1 text-xs outline-none focus:bg-white focus:text-slate-900 transition border border-white/20"
-                  />
+              <div className="bg-white/10 backdrop-blur-md p-3.5 rounded-2xl border border-white/20 space-y-2 mt-2">
+                <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-100 font-bold uppercase tracking-wide">From:</span>
+                    <input
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      className="bg-white text-slate-800 font-semibold rounded-xl px-3 py-1.5 text-xs shadow-xs border border-white/30 focus:ring-2 focus:ring-blue-300 focus:outline-none transition cursor-pointer"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-blue-100 font-bold uppercase tracking-wide">To:</span>
+                    <input
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      className="bg-white text-slate-800 font-semibold rounded-xl px-3 py-1.5 text-xs shadow-xs border border-white/30 focus:ring-2 focus:ring-blue-300 focus:outline-none transition cursor-pointer"
+                    />
+                  </div>
+                  {(customStart || customEnd) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomStart('');
+                        setCustomEnd('');
+                      }}
+                      className="text-xs text-blue-200 hover:text-white underline cursor-pointer font-bold px-1"
+                    >
+                      Reset Range
+                    </button>
+                  )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Calendar size={14} className="text-blue-200" />
-                  <span className="text-xs text-blue-100 font-semibold">End:</span>
-                  <input
-                    type="date"
-                    value={customEnd}
-                    onChange={(e) => setCustomEnd(e.target.value)}
-                    className="bg-white/20 text-white rounded-lg px-2.5 py-1 text-xs outline-none focus:bg-white focus:text-slate-900 transition border border-white/20"
-                  />
-                </div>
-                {(customStart || customEnd) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomStart('');
-                      setCustomEnd('');
-                    }}
-                    className="text-xs text-blue-200 hover:text-white underline cursor-pointer font-bold px-1"
-                  >
-                    Reset Range
-                  </button>
+                {customStart && customEnd && (
+                  <div className="text-[11px] text-blue-100/90 font-medium flex items-center gap-1.5 pt-1 border-t border-white/10">
+                    <CheckCircle2 size={13} className="text-emerald-300" />
+                    <span>Selected Range: <strong className="text-white font-bold">{formatCustomDateRange(customStart, customEnd)}</strong> {getDaysCount(customStart, customEnd) ? `(${getDaysCount(customStart, customEnd)} days)` : ''}</span>
+                  </div>
                 )}
               </div>
             )}
@@ -1084,8 +1108,8 @@ export default function Analytics() {
           <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 space-y-3">
             <div className="flex justify-between items-center pb-2.5 border-b border-white/15">
               <div>
-                <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Evaluation Scope</span>
-                <span className="text-sm font-black text-white">{periodLabels[period]}</span>
+                <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Selected Period</span>
+                <span className="text-sm font-black text-white">{getPeriodDisplayText()}</span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Estimated Revenue</span>
@@ -1095,7 +1119,7 @@ export default function Analytics() {
 
             <div className="grid grid-cols-3 gap-2 pt-1 text-center">
               <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] font-bold text-blue-200 block uppercase">Buses Deployed</span>
+                <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Buses</span>
                 <span className="text-sm font-black text-white mt-0.5 block">
                   {data.fleetOverview.deployed_buses} <span className="text-[10px] text-blue-200 font-normal">/ {data.fleetOverview.total_fleet}</span>
                 </span>
@@ -1103,7 +1127,7 @@ export default function Analytics() {
               </div>
 
               <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] font-bold text-blue-200 block uppercase">Conductors</span>
+                <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Conductors</span>
                 <span className="text-sm font-black text-white mt-0.5 block">
                   {data.conductorOverview.active_conductors} <span className="text-[10px] text-blue-200 font-normal">/ {data.conductorOverview.total_conductors}</span>
                 </span>
@@ -1120,7 +1144,7 @@ export default function Analytics() {
         </div>
       </section>
 
-      {/* 2. Navigation Tabs (Categorized Panels for Easy Defense Presentation) */}
+      {/* 2. Navigation Tabs */}
       <div className="flex border-b border-slate-200 overflow-x-auto gap-2 py-1">
         <button
           type="button"
@@ -1213,7 +1237,7 @@ export default function Analytics() {
       {loading ? (
         <div className="bg-white border border-slate-200 rounded-3xl p-20 flex flex-col items-center justify-center gap-4 shadow-sm">
           <Loader2 className="animate-spin text-[#0f3878]" size={42} />
-          <p className="text-sm font-bold text-slate-600">Aggregating ByaHero deployment telemetry...</p>
+          <p className="text-sm font-bold text-slate-600">Aggregating transit operational data...</p>
         </div>
       ) : (
         <>
@@ -1423,15 +1447,15 @@ export default function Analytics() {
             </div>
           )}
 
-          {/* TAB 2: BUS FLEET DATA (Buses that traveled in the deployment period) */}
+          {/* TAB 2: BUS FLEET DATA */}
           {activeTab === 'buses' && (
             <div className="space-y-6">
               {/* Fleet Metric Strip */}
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
                 <div className="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100">
                   <div>
-                    <span className="text-[11px] font-extrabold uppercase text-blue-600 tracking-wider block">Trial Deployment Fleet Performance</span>
-                    <h2 className="text-xl font-black text-slate-900 mt-0.5">Buses Active During Deployment Period</h2>
+                    <span className="text-[11px] font-extrabold uppercase text-blue-600 tracking-wider block">Fleet Telemetry &amp; Performance</span>
+                    <h2 className="text-xl font-black text-slate-900 mt-0.5">Active Bus Fleet Performance</h2>
                     <p className="text-xs text-slate-500 font-medium mt-1">
                       Individual telemetry per bus including trips completed, passengers boarded, passenger load factor, assigned conductors, and departure hotspots.
                     </p>
@@ -1623,15 +1647,15 @@ export default function Analytics() {
             </div>
           )}
 
-          {/* TAB 3: CONDUCTOR DATA (Conductors who conducted sessions in deployment period) */}
+          {/* TAB 3: CONDUCTOR DATA */}
           {activeTab === 'conductors' && (
             <div className="space-y-6">
               {/* Personnel Summary Strip */}
               <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
                 <div className="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100">
                   <div>
-                    <span className="text-[11px] font-extrabold uppercase text-blue-600 tracking-wider block">Conductor Duty Performance</span>
-                    <h2 className="text-xl font-black text-slate-900 mt-0.5">Conductors with Sessions in Deployment Period</h2>
+                    <span className="text-[11px] font-extrabold uppercase text-blue-600 tracking-wider block">Personnel &amp; Duty Performance</span>
+                    <h2 className="text-xl font-black text-slate-900 mt-0.5">Active Conductor Duty Sessions</h2>
                     <p className="text-xs text-slate-500 font-medium mt-1">
                       Accountability leaderboard: sessions conducted, passenger fare/headcount collected, duty hours, and assigned bus units.
                     </p>

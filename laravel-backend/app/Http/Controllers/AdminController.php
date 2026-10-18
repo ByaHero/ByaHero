@@ -467,7 +467,7 @@ class AdminController extends Controller
     {
         $this->checkAuth();
         try {
-            $period = $request->input('period', 'deployment');
+            $period = $request->input('period', 'today');
             $dateFilter = '';
 
             switch ($period) {
@@ -488,6 +488,10 @@ class AdminController extends Controller
                     $end = $request->input('end');
                     if ($start && $end) {
                         $dateFilter = "AND o.started_at >= '{$start} 00:00:00' AND o.started_at <= '{$end} 23:59:59'";
+                    } elseif ($start) {
+                        $dateFilter = "AND o.started_at >= '{$start} 00:00:00'";
+                    } elseif ($end) {
+                        $dateFilter = "AND o.started_at <= '{$end} 23:59:59'";
                     } else {
                         $dateFilter = "";
                     }
