@@ -13,7 +13,7 @@ import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
-import { getServerUrl } from '../../../services/authService';
+import { getServerUrl, logout } from '../../../services/authService';
 import { PassengerHeader, PassengerFooter } from '../../../components/passenger-navbar';
 
 export default function DeleteAccountScreen() {
@@ -105,13 +105,7 @@ export default function DeleteAccountScreen() {
           setIsLoading(false);
 
           if (data && data.success) {
-            await AsyncStorage.removeItem('byahero_cached_email');
-            await AsyncStorage.removeItem('byahero_cached_role');
-            await AsyncStorage.removeItem('byahero_cached_name');
-            await AsyncStorage.removeItem('byahero_cached_profile_picture');
-            await AsyncStorage.removeItem('byahero_cached_contacts');
-            await AsyncStorage.removeItem('byahero_cached_phone');
-            await AsyncStorage.removeItem('sos_fcm_active_token');
+            await logout();
 
             showAlert('Account Deleted', 'Your account and data have been permanently removed.', 'success', () => {
               router.replace('/');
