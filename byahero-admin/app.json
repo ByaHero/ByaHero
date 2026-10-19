@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByaHero Admin",
     "slug": "byahero-admin",
-    "version": "3.0.3",
+    "version": "3.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "byaheroadmin",
