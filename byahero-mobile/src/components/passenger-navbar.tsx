@@ -10,6 +10,7 @@ import {
   Platform,
   Animated,
   TouchableWithoutFeedback,
+  ActivityIndicator,
 } from 'react-native';
 import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -18,7 +19,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import tw from 'twrnc';
 import { handleTourLayout } from './TourRegistry';
 import { MaterialIcons } from '@expo/vector-icons';
-import { getServerUrl } from '../services/authService';
+import { getServerUrl, logout } from '../services/authService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -50,7 +51,7 @@ export function PassengerHeader({
   const [userProfilePic, setUserProfilePic] = useState('');
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
-  const [logoutSuccessVisible, setLogoutSuccessVisible] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const slideAnim = useRef(new Animated.Value(width)).current;
   const backdropOpacity = useRef(new Animated.Value(0)).current;
@@ -145,55 +146,37 @@ export function PassengerHeader({
   }, [menuVisible]);
 
   const confirmLogout = async () => {
+    if (isLoggingOut) return;
+    setIsLoggingOut(true);
     setLogoutModalVisible(false);
+
     // First close the drawer animatedly to avoid unmounting race conditions
     Animated.parallel([
       Animated.timing(backdropOpacity, {
         toValue: 0,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
         toValue: width,
-        duration: 200,
+        duration: 150,
         useNativeDriver: true,
       }),
     ]).start(async () => {
       setMenuVisible(false);
       try {
-        const currentBaseUrl = await getServerUrl();
-        const email = await AsyncStorage.getItem('byahero_cached_email') || '';
-        if (email) {
-          await fetch(`${currentBaseUrl}/api/waiting/cancel`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email }),
-            credentials: 'include'
-          }).catch(() => { });
-        }
-
-        const token = await AsyncStorage.getItem('sos_fcm_active_token') || '';
-        await fetch(`${currentBaseUrl}/api/logout`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: 'fcm_token=' + encodeURIComponent(token),
-          credentials: 'include'
-        }).catch(() => { });
-      } catch (e) { }
-
-      await AsyncStorage.removeItem('byahero_cached_email');
-      await AsyncStorage.removeItem('byahero_cached_role');
-      await AsyncStorage.removeItem('byahero_cached_name');
-      await AsyncStorage.removeItem('byahero_cached_profile_picture');
-      await AsyncStorage.removeItem('byahero_cached_contacts');
-      await AsyncStorage.removeItem('byahero_cached_phone');
-      await AsyncStorage.removeItem('sos_fcm_active_token');
-      
-      setLogoutSuccessVisible(true);
-      setTimeout(() => {
-        setLogoutSuccessVisible(false);
+        await logout();
+      } catch (err) {
+        console.error('Logout error:', err);
+      } finally {
+        setIsLoggingOut(false);
+        try {
+          if (router.canDismiss()) {
+            router.dismissAll();
+          }
+        } catch (e) {}
         router.replace('/');
-      }, 1500);
+      }
     });
   };
 
@@ -464,7 +447,9 @@ export function PassengerHeader({
         visible={logoutModalVisible}
         transparent={true}
         animationType="fade"
-        onRequestClose={() => setLogoutModalVisible(false)}
+        onRequestClose={() => {
+          if (!isLoggingOut) setLogoutModalVisible(false);
+        }}
       >
         <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
           <View style={tw`w-full bg-white rounded-3xl p-6 shadow-xl`}>
@@ -475,38 +460,25 @@ export function PassengerHeader({
 
             <View style={tw`flex-row justify-end gap-3`}>
               <TouchableOpacity 
+                disabled={isLoggingOut}
                 onPress={() => setLogoutModalVisible(false)}
-                style={tw`px-5 py-2.5 rounded-full bg-slate-100`}
+                style={tw`px-5 py-2.5 rounded-full bg-slate-100 ${isLoggingOut ? 'opacity-50' : ''}`}
               >
                 <Text style={tw`text-sm font-semibold text-slate-500`}>Cancel</Text>
               </TouchableOpacity>
               
               <TouchableOpacity 
+                disabled={isLoggingOut}
                 onPress={confirmLogout}
-                style={tw`px-5 py-2.5 rounded-full bg-red-600`}
+                style={tw`px-5 py-2.5 rounded-full bg-red-600 flex-row items-center justify-center min-w-[90px] ${isLoggingOut ? 'opacity-70' : ''}`}
               >
-                <Text style={tw`text-sm font-semibold text-white`}>Log out</Text>
+                {isLoggingOut ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={tw`text-sm font-semibold text-white`}>Log out</Text>
+                )}
               </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
-
-      {/* Logout Success Modal */}
-      <Modal
-        visible={logoutSuccessVisible}
-        transparent={true}
-        animationType="fade"
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/50 px-5`}>
-          <View style={tw`bg-white rounded-3xl p-6 shadow-xl items-center w-[80%]`}>
-            <View style={tw`w-16 h-16 rounded-full bg-emerald-100 items-center justify-center mb-4`}>
-              <MaterialIcons name="check-circle" size={40} color="#10b981" />
-            </View>
-            <Text style={tw`text-lg font-bold text-slate-800 mb-2 text-center`}>Logged Out</Text>
-            <Text style={tw`text-sm text-slate-500 font-semibold text-center mb-2`}>
-              You have been successfully logged out.
-            </Text>
           </View>
         </View>
       </Modal>

@@ -1,4 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeModules, Platform } from 'react-native';
+
+const { LocationServiceModule } = NativeModules;
 
 const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 
@@ -323,3 +326,110 @@ export async function forgotResetPassword(email, otp, newPassword) {
     throw new Error(data.message || 'Failed to reset password');
   }
 }
+
+/**
+ * Safely and atomically logs the user out.
+ * - Stops Android native location service if active.
+ * - Clears session cookies.
+ * - Immediately and atomically wipes user session & offline cache from AsyncStorage.
+ * - Non-blockingly cancels waiting status and notifies backend /api/logout.
+ */
+export async function logout() {
+  try {
+    // 1. Stop background location service if running on Android
+    if (Platform.OS === 'android' && LocationServiceModule?.stopService) {
+      try {
+        LocationServiceModule.stopService();
+      } catch (err) {
+        console.warn('Failed to stop LocationServiceModule on logout:', err);
+      }
+    }
+
+    // 2. Clear native cookies if available
+    try {
+      let CookieManager = require('@react-native-cookies/cookies');
+      if (CookieManager && CookieManager.default) {
+        CookieManager = CookieManager.default;
+      }
+      if (CookieManager?.clearAll) {
+        await CookieManager.clearAll();
+      }
+    } catch (cookieErr) {
+      // CookieManager may not be available on some platforms
+    }
+
+    // 3. Read identifiers needed for backend cleanup before wiping storage
+    let email = '';
+    let token = '';
+    try {
+      email = (await AsyncStorage.getItem('byahero_cached_email')) || '';
+      token = (await AsyncStorage.getItem('sos_fcm_active_token')) || '';
+    } catch (e) {}
+
+    // 4. Atomically remove all user session and cache keys
+    const keysToRemove = [
+      'byahero_cached_email',
+      'byahero_cached_role',
+      'byahero_cached_name',
+      'byahero_cached_profile_picture',
+      'byahero_cached_contacts',
+      'byahero_cached_phone',
+      'sos_fcm_active_token',
+      'byahero_active_tour_step',
+      'byahero_cached_ride_history',
+      'byahero_cached_my_reports',
+      'byahero_cached_user_feedback',
+      'byahero_pending_profile_edits',
+      'byahero_offline_friends',
+    ];
+    await AsyncStorage.multiRemove(keysToRemove);
+
+    // 5. Fire backend cleanup in the background with strict timeout so it never blocks UI
+    const baseUrl = await getServerUrl();
+    const networkCleanups = [];
+
+    if (email) {
+      const controller1 = new AbortController();
+      const timeout1 = setTimeout(() => controller1.abort(), 2500);
+      networkCleanups.push(
+        fetch(`${baseUrl}/api/waiting/cancel`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+          body: JSON.stringify({ email }),
+          credentials: 'include',
+          signal: controller1.signal,
+        })
+          .catch(() => {})
+          .finally(() => clearTimeout(timeout1))
+      );
+    }
+
+    const controller2 = new AbortController();
+    const timeout2 = setTimeout(() => controller2.abort(), 2500);
+    const logoutBody = 'fcm_token=' + encodeURIComponent(token) + (email ? '&email=' + encodeURIComponent(email) : '');
+    networkCleanups.push(
+      fetch(`${baseUrl}/api/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
+        body: logoutBody,
+        credentials: 'include',
+        signal: controller2.signal,
+      })
+        .catch(() => {})
+        .finally(() => clearTimeout(timeout2))
+    );
+
+    // Give network calls up to 500ms to resolve cleanly if network is fast; otherwise proceed immediately
+    await Promise.race([
+      Promise.all(networkCleanups),
+      new Promise(resolve => setTimeout(resolve, 500)),
+    ]);
+  } catch (error) {
+    console.error('Logout error:', error);
+    // Ensure critical session keys are purged regardless of error
+    try {
+      await AsyncStorage.multiRemove(['byahero_cached_email', 'byahero_cached_role']);
+    } catch (_) {}
+  }
+}
+

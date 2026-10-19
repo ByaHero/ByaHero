@@ -471,6 +471,14 @@ class AuthController extends Controller
         }
 
         $userId = Session::get('user_id');
+        $email = strtolower(trim($request->input('email', '')));
+        if (empty($userId) && !empty($email)) {
+            $userByEmail = User::where('email', $email)->first();
+            if ($userByEmail) {
+                $userId = $userByEmail->id;
+            }
+        }
+
         if ($userId) {
             $this->logLogoutActivity((int)$userId, $request);
             
@@ -482,7 +490,16 @@ class AuthController extends Controller
                     'status' => 'cancelled',
                     'updated_at' => now()
                 ]);
+        } elseif (!empty($email)) {
+            DB::table('waiting_passengers')
+                ->where('email', $email)
+                ->where('status', 'waiting')
+                ->update([
+                    'status' => 'cancelled',
+                    'updated_at' => now()
+                ]);
         }
+
         Session::flush();
         return response()->json(['success' => true, 'message' => 'Logged out successfully']);
     }

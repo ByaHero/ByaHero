@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import AlertModal from '../components/AlertModal';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
@@ -86,50 +86,71 @@ export default function LoginScreen() {
       // Trigger backend pre-warm immediately on mount
       preWarmServer();
     });
+  }, []);
 
-    // Check for existing user session to auto-login
-    const checkAutoLogin = async () => {
-      try {
-        const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
-        const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
-        const cachedContacts = await AsyncStorage.getItem('byahero_cached_contacts') || '';
+  // Check for existing user session to auto-login on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      let isMounted = true;
 
-        if (cachedEmail && cachedRole) {
-          if (cachedRole === 'conductor' || cachedRole === 'admin') {
-            await AsyncStorage.multiRemove([
-              'byahero_cached_email',
-              'byahero_cached_role',
-              'byahero_cached_contacts',
-              'byahero_cached_phone',
-              'byahero_cached_name',
-              'byahero_cached_profile_picture'
-            ]);
-            const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
-            showAlert('Access Restricted', `You must use the ${targetApp}.`, 'warning');
-            setIsCheckingSession(false);
-          } else {
-            // Restore backend session to re-hydrate cookies for /api/group/view and notifications
-            // Restore backend session to re-hydrate cookies for /api/group/view and notifications in background
-            restoreSession(cachedEmail).catch(restoreErr => {
-              console.warn('Silent session restore failed:', restoreErr);
-            });
+      const checkAutoLogin = async () => {
+        try {
+          const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
+          const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
+          const cachedContacts = await AsyncStorage.getItem('byahero_cached_contacts') || '';
 
-            if (!cachedContacts) {
-              router.replace('/passenger/completeProfile' as any);
+          if (!isMounted) return;
+
+          if (cachedEmail && cachedRole) {
+            if (cachedRole === 'conductor' || cachedRole === 'admin') {
+              await AsyncStorage.multiRemove([
+                'byahero_cached_email',
+                'byahero_cached_role',
+                'byahero_cached_contacts',
+                'byahero_cached_phone',
+                'byahero_cached_name',
+                'byahero_cached_profile_picture'
+              ]);
+              if (isMounted) {
+                const targetApp = cachedRole === 'conductor' ? 'ByaHero Conductor app' : 'ByaHero Admin portal';
+                showAlert('Access Restricted', `You must use the ${targetApp}.`, 'warning');
+                setIsCheckingSession(false);
+              }
             } else {
-              router.replace('/passenger');
+              // Restore backend session to re-hydrate cookies for /api/group/view and notifications in background
+              restoreSession(cachedEmail).catch(restoreErr => {
+                console.warn('Silent session restore failed:', restoreErr);
+              });
+
+              if (!cachedContacts) {
+                router.replace('/passenger/completeProfile' as any);
+              } else {
+                router.replace('/passenger');
+              }
+            }
+          } else {
+            if (isMounted) {
+              setEmail('');
+              setPassword('');
+              setIsLoading(false);
+              setIsCheckingSession(false);
             }
           }
-        } else {
-          setIsCheckingSession(false);
+        } catch (err) {
+          console.error('Auto-login session restoration failed:', err);
+          if (isMounted) {
+            setIsCheckingSession(false);
+          }
         }
-      } catch (err) {
-        console.error('Auto-login session restoration failed:', err);
-        setIsCheckingSession(false);
-      }
-    };
-    checkAutoLogin();
-  }, []);
+      };
+
+      checkAutoLogin();
+
+      return () => {
+        isMounted = false;
+      };
+    }, [])
+  );
 
   const handleLogoTap = () => {
     const now = Date.now();
