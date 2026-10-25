@@ -12,8 +12,10 @@ export default function AdminReceiptConfig() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   
-  const [companyName, setCompanyName] = useState('ByaHero Transit');
-  const [clientName, setClientName] = useState('');
+  const [companyName, setCompanyName] = useState('ByaHero');
+  const [clientName, setClientName] = useState('Magnificat Transport Cooperative');
+  const [headerMessage, setHeaderMessage] = useState('Welcome aboard!');
+  const [footerMessage, setFooterMessage] = useState('Thank you for your cooperation');
   
   // Web Bluetooth state
   const [isPrinterConnected, setIsPrinterConnected] = useState(false);
@@ -28,9 +30,6 @@ export default function AdminReceiptConfig() {
   const isPrinterReady = Platform.OS === 'web' ? isPrinterConnected : isNativePrinterConnected;
 
   const [sampleFare, setSampleFare] = useState<{origin: string, destination: string, regular_fare: number} | null>(null);
-  const [tinNumber, setTinNumber] = useState('000-000-000-000');
-  const [headerMessage, setHeaderMessage] = useState('Welcome aboard!');
-  const [footerMessage, setFooterMessage] = useState('Thank you for riding with us!');
 
   const [alertConfig, setAlertConfig] = useState<{
     visible: boolean;
@@ -62,11 +61,12 @@ export default function AdminReceiptConfig() {
     try {
       const res = await adminService.getReceiptConfig();
       if (res.success && res.config) {
-        setCompanyName(res.config.company_name || '');
+        setCompanyName(res.config.company_name || 'ByaHero');
         setClientName(res.config.client_name || '');
-        setTinNumber(res.config.tin_number || '');
-        setHeaderMessage(res.config.header_message || '');
-        setFooterMessage(res.config.footer_message || '');
+        setHeaderMessage(res.config.header_message || 'Welcome aboard!');
+        const rawFooter = res.config.footer_message || 'Thank you for your cooperation';
+        const cleanedFooter = rawFooter.replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim() || 'Thank you for your cooperation';
+        setFooterMessage(cleanedFooter);
       }
       
       // Fetch fare guide for sample
@@ -75,9 +75,9 @@ export default function AdminReceiptConfig() {
         if (fareRes.success && fareRes.fares && fareRes.fares.length > 0) {
           const fare = fareRes.fares[0];
           setSampleFare({
-            origin: fare.origin_name || 'TANAUAN',
-            destination: fare.stop_name || fare.destination_name || 'LAUREL',
-            regular_fare: fare.regular_fare || 25
+            origin: fare.origin_name || 'Caloocan',
+            destination: fare.stop_name || fare.destination_name || 'Buco',
+            regular_fare: fare.regular_fare || 12
           });
         }
       } catch (e) {
@@ -98,17 +98,22 @@ export default function AdminReceiptConfig() {
   const handleSave = async () => {
     setSaving(true);
     try {
+      const cleanedFooter = (footerMessage || 'Thank you for your cooperation')
+        .replace(/[\s\r\n]*-{3,}[\s\S]*$/, '')
+        .trim() || 'Thank you for your cooperation';
+
       const data = {
         company_name: companyName,
         client_name: clientName,
-        tin_number: tinNumber,
+        tin_number: '', // Removed from config
         header_message: headerMessage,
-        footer_message: footerMessage,
+        footer_message: cleanedFooter,
       };
       
       const res = await adminService.saveReceiptConfig(data);
       if (res.success) {
-        showAlert('Success', 'Receipt configuration saved.', 'success');
+        setFooterMessage(cleanedFooter);
+        showAlert('Success', 'Receipt configuration saved successfully.', 'success');
       } else {
         showAlert('Error', res.error || 'Failed to save configuration.', 'error');
       }
@@ -182,15 +187,22 @@ export default function AdminReceiptConfig() {
     try {
       if (Platform.OS !== 'web') {
         const ticketMock = {
-          busNumber: 'BUS-001',
-          ticketNumber: 'TEST',
-          date: '08/20/2026',
-          discount: 'REGULAR',
-          boarding: sampleFare ? sampleFare.origin : 'TANAUAN',
-          alighting: sampleFare ? sampleFare.destination : 'LAUREL',
-          fare: sampleFare ? sampleFare.regular_fare : 25.00
+          busNumber: 'L-00001',
+          ticketNumber: '00119',
+          date: '10/7/2026',
+          time: '10:06 PM',
+          discount: 'Senior',
+          boarding: sampleFare ? sampleFare.origin : 'Caloocan',
+          alighting: sampleFare ? sampleFare.destination : 'Buco',
+          fare: sampleFare ? sampleFare.regular_fare : 12.00,
+          quantity: 1,
         };
-        const configMock = { company_name: companyName, client_name: clientName, tin_number: tinNumber, header_message: headerMessage, footer_message: footerMessage };
+        const configMock = { 
+          company_name: companyName, 
+          client_name: clientName, 
+          header_message: headerMessage, 
+          footer_message: footerMessage 
+        };
         await printer.printReceipt(ticketMock, configMock);
         showAlert('Test Print', 'Test receipt sent to native printer.', 'success');
         return;
@@ -206,15 +218,16 @@ export default function AdminReceiptConfig() {
       const BOLD_ON = "\x1B\x45\x01"; 
       const BOLD_OFF = "\x1B\x45\x00";
       
-      text += `${C}${BOLD_ON}${companyName || 'COMPANY NAME'}${BOLD_OFF}\n`;
+      text += `${C}${BOLD_ON}${companyName || 'ByaHero'}${BOLD_OFF}\n`;
       if (clientName) text += `${C}${clientName}\n`;
-      text += `${C}TICKET NO: TEST\n`;
-      text += "--------------------------------\n";
+      text += `${C}TICKET NO: 00119\n`;
       
       if (headerMessage) {
-        text += `${C}${headerMessage}\n`;
-        text += "--------------------------------\n";
+        text += `\n${C}${headerMessage}\n`;
+      } else {
+        text += "\n";
       }
+      text += "--------------------------------\n";
 
       const printRow = (left: string, right: string) => {
         const spaces = 32 - left.length - String(right).length;
@@ -222,19 +235,21 @@ export default function AdminReceiptConfig() {
       };
 
       text += `${L}`;
-      text += printRow("DATE: 08/20/2026", "TIME: 1:00 PM");
-      text += printRow("BUS: BUS-001", "PAX: 1");
+      text += printRow("DATE: 10/7/2026", "TIME: 10:06 PM");
+      text += printRow("BUS: L-00001", "PAX: 1");
       text += "--------------------------------\n";
-      text += printRow("TYPE:", "REGULAR");
-      text += printRow("BOARDED:", sampleFare ? sampleFare.origin : 'TANAUAN');
-      text += printRow("ALIGHT:", sampleFare ? sampleFare.destination : 'LAUREL');
-      text += printRow("TOTAL:", `PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}`);
+      text += printRow("TYPE:", "Senior");
+      text += printRow("BOARDED:", sampleFare ? sampleFare.origin : 'Caloocan');
+      text += printRow("ALIGHT:", sampleFare ? sampleFare.destination : 'Buco');
+      text += printRow("TOTAL:", `PHP ${sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '12.00'}`);
       text += "--------------------------------\n";
       
       if (footerMessage) {
-        text += `\n${C}${footerMessage}\n`;
+        const cleanFooter = String(footerMessage).replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim();
+        text += `\n${C}${cleanFooter}\n`;
+        text += "--------------------------------\n";
       }
-      text += "\n";
+      text += "\n\n\n";
 
       const initCmd = new Uint8Array([0x1B, 0x40]);
       const textData = encoder.encode(text);
@@ -259,51 +274,97 @@ export default function AdminReceiptConfig() {
     }
   };
 
+  // Clean footer text so manual dashes or wraps do not break preview formatting
+  const formatFooterText = (text: string) => {
+    if (!text) return 'Thank you for your cooperation';
+    return text.replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim() || 'Thank you for your cooperation';
+  };
+
   const ReceiptPreview = () => (
-    <View style={tw`bg-gray-100 p-4 rounded-xl items-center`}>
-      <View style={tw`w-[300px] bg-white border border-gray-300 p-4 rounded-lg shadow-sm`}>
-        <Text style={tw`text-center font-bold text-lg mb-1`}>{companyName || 'COMPANY NAME'}</Text>
-        {!!clientName && (
-          <Text style={tw`text-center font-semibold text-sm mb-1`}>{clientName}</Text>
-        )}
-        <Text style={tw`text-center text-xs text-gray-600 mb-4`}>TICKET NO: TEST</Text>
-        
-        <Text style={tw`text-center text-sm mb-4 border-b border-dashed border-gray-300 pb-2`}>
-          {headerMessage || 'Header text here'}
-        </Text>
-        
-        <View style={tw`flex-row justify-between mb-1`}>
-          <Text style={tw`text-xs`}>DATE: 08/20/2026</Text>
-          <Text style={tw`text-xs`}>TIME: 1:00 PM</Text>
-        </View>
-        <View style={tw`flex-row justify-between mb-1`}>
-          <Text style={tw`text-xs`}>BUS: BUS-001</Text>
-          <Text style={tw`text-xs`}>PAX: 1</Text>
+    <View style={tw`bg-slate-100 p-4 rounded-2xl items-center`}>
+      <View style={tw`w-[280px] bg-white rounded-md shadow-md p-4 relative overflow-hidden`}>
+        {/* Top serrated tear edge simulation */}
+        <View style={tw`flex-row justify-between overflow-hidden -mt-4 -mx-4 mb-2.5`}>
+          {Array.from({length: 22}).map((_, i) => (
+            <View key={i} style={tw`w-2.5 h-2.5 bg-slate-100 rotate-45 -mt-1.5`} />
+          ))}
         </View>
 
-        <View style={tw`mt-2 mb-2 w-full border-t border-dashed border-gray-300 pt-2`}>
-          <View style={tw`flex-row justify-between mb-1`}>
-            <Text style={tw`text-xs`}>TYPE:</Text>
-            <Text style={tw`text-xs text-right`}>REGULAR</Text>
-          </View>
-          <View style={tw`flex-row justify-between mb-1`}>
-            <Text style={tw`text-xs`}>BOARDED:</Text>
-            <Text style={tw`text-xs text-right max-w-[70%]`} numberOfLines={1}>{sampleFare ? sampleFare.origin : 'TANAUAN'}</Text>
-          </View>
-          <View style={tw`flex-row justify-between`}>
-            <Text style={tw`text-xs`}>ALIGHT:</Text>
-            <Text style={tw`text-xs text-right max-w-[70%]`} numberOfLines={1}>{sampleFare ? sampleFare.destination : 'LAUREL'}</Text>
-          </View>
+        {/* Pure white receipt content */}
+        <Text style={tw`text-center font-bold text-base text-slate-900 font-mono tracking-tight`}>
+          {companyName || 'ByaHero'}
+        </Text>
+        {!!clientName ? (
+          <Text style={tw`text-center text-xs text-slate-800 font-mono mt-0.5`}>
+            {clientName}
+          </Text>
+        ) : null}
+        <Text style={tw`text-center text-xs text-slate-800 font-mono mt-0.5`}>
+          TICKET NO: 00119
+        </Text>
+
+        <View style={tw`h-2`} />
+
+        <Text style={tw`text-center text-xs text-slate-800 font-mono`}>
+          {headerMessage || 'Welcome aboard!'}
+        </Text>
+
+        {/* Full-width dashed divider */}
+        <View style={tw`border-b border-dashed border-slate-300 my-2 w-full`} />
+
+        <View style={tw`flex-row justify-between mb-1`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>DATE: 10/7/2026</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>TIME: 10:06 PM</Text>
+        </View>
+        <View style={tw`flex-row justify-between`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>BUS: L-00001</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>PAX: 1</Text>
         </View>
 
-        <View style={tw`flex-row justify-between mb-4 border-b border-dashed border-gray-300 pb-2`}>
-          <Text style={tw`text-xs font-bold`}>TOTAL:</Text>
-          <Text style={tw`text-xs font-bold`}>PHP {sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}</Text>
+        {/* Full-width dashed divider */}
+        <View style={tw`border-b border-dashed border-slate-300 my-2 w-full`} />
+
+        <View style={tw`flex-row justify-between mb-1`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>TYPE:</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono text-right`}>Senior</Text>
         </View>
-        
-        <Text style={tw`text-center text-xs italic text-gray-500 mt-2`}>
-          {footerMessage || 'Footer text here'}
+        <View style={tw`flex-row justify-between mb-1`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>BOARDED:</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono text-right max-w-[65%]`} numberOfLines={1}>
+            {sampleFare ? sampleFare.origin : 'Caloocan'}
+          </Text>
+        </View>
+        <View style={tw`flex-row justify-between mb-1`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>ALIGHT:</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono text-right max-w-[65%]`} numberOfLines={1}>
+            {sampleFare ? sampleFare.destination : 'Buco'}
+          </Text>
+        </View>
+        <View style={tw`flex-row justify-between`}>
+          <Text style={tw`text-xs text-slate-800 font-mono`}>TOTAL:</Text>
+          <Text style={tw`text-xs text-slate-800 font-mono text-right`}>
+            PHP {sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '12.00'}
+          </Text>
+        </View>
+
+        {/* Full-width dashed divider */}
+        <View style={tw`border-b border-dashed border-slate-300 my-2 w-full`} />
+
+        <View style={tw`h-2`} />
+
+        <Text style={tw`text-center text-xs text-slate-800 font-mono px-1`}>
+          {formatFooterText(footerMessage)}
         </Text>
+
+        {/* Closing full-width dashed divider */}
+        <View style={tw`border-b border-dashed border-slate-300 my-2 w-full`} />
+
+        {/* Bottom serrated tear edge simulation */}
+        <View style={tw`flex-row justify-between overflow-hidden -mb-4 -mx-4 mt-2.5`}>
+          {Array.from({length: 22}).map((_, i) => (
+            <View key={i} style={tw`w-2.5 h-2.5 bg-slate-100 rotate-45 -mb-1.5`} />
+          ))}
+        </View>
       </View>
     </View>
   );
@@ -326,7 +387,7 @@ export default function AdminReceiptConfig() {
             <View style={tw`mb-6`}>
               <Text style={tw`text-2xl font-black text-slate-900 tracking-tight`}>Receipt Format</Text>
               <Text style={tw`text-slate-500 text-sm mt-1`}>
-                Configure the text printed on physical tickets by the conductor's PT-210 portable printer.
+                Configure the text printed on physical tickets by the conductor's PT-210 portable thermal printer.
               </Text>
             </View>
 
@@ -337,33 +398,29 @@ export default function AdminReceiptConfig() {
                 <View style={tw`bg-white p-5 rounded-2xl shadow-sm border border-gray-200`}>
                   
                   <View style={tw`mb-4`}>
-                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>COMPANY NAME</Text>
+                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>COMPANY / BRAND NAME</Text>
                     <TextInput
                       style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50`}
                       value={companyName}
                       onChangeText={setCompanyName}
-                      placeholder="e.g. ByaHero Transit"
+                      placeholder="e.g. ByaHero"
                     />
+                    <Text style={tw`text-[11px] text-gray-400 mt-1`}>
+                      Printed in bold at the top of every ticket.
+                    </Text>
                   </View>
 
                   <View style={tw`mb-4`}>
-                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>CLIENT COMPANY NAME</Text>
+                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>COOPERATIVE / CLIENT NAME</Text>
                     <TextInput
                       style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50`}
                       value={clientName}
                       onChangeText={setClientName}
-                      placeholder="e.g. ABC Corporation"
+                      placeholder="e.g. Magnificat Transport Cooperative"
                     />
-                  </View>
-
-                  <View style={tw`mb-4`}>
-                    <Text style={tw`text-xs font-bold text-gray-500 mb-1`}>TIN NUMBER / TAX ID</Text>
-                    <TextInput
-                      style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50`}
-                      value={tinNumber}
-                      onChangeText={setTinNumber}
-                      placeholder="e.g. 123-456-789-000"
-                    />
+                    <Text style={tw`text-[11px] text-gray-400 mt-1`}>
+                      Transport cooperative or franchise operator name.
+                    </Text>
                   </View>
 
                   <View style={tw`mb-4`}>
@@ -372,10 +429,13 @@ export default function AdminReceiptConfig() {
                       style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-left`}
                       value={headerMessage}
                       onChangeText={setHeaderMessage}
-                      placeholder="Text below the title"
+                      placeholder="e.g. Welcome aboard!"
                       multiline
                       textAlignVertical="top"
                     />
+                    <Text style={tw`text-[11px] text-gray-400 mt-1`}>
+                      Greeting printed directly below the ticket number.
+                    </Text>
                   </View>
 
                   <View style={tw`mb-6`}>
@@ -384,16 +444,19 @@ export default function AdminReceiptConfig() {
                       style={tw`border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-left`}
                       value={footerMessage}
                       onChangeText={setFooterMessage}
-                      placeholder="Terms or thank you message"
+                      placeholder="e.g. Thank you for your cooperation"
                       multiline
                       textAlignVertical="top"
                     />
+                    <Text style={tw`text-[11px] text-gray-400 mt-1`}>
+                      Closing appreciation note (dashed lines above and below are added automatically).
+                    </Text>
                   </View>
 
                   <TouchableOpacity
                     onPress={handleSave}
                     disabled={saving}
-                    style={tw`bg-[#1d72f8] rounded-full py-4 items-center shadow-md flex-row justify-center`}
+                    style={tw`bg-[#1d72f8] rounded-xl py-4 items-center shadow-md flex-row justify-center`}
                   >
                     {saving ? (
                       <ActivityIndicator color="#fff" size="small" />
@@ -414,7 +477,7 @@ export default function AdminReceiptConfig() {
                   <View style={tw`flex-row items-center justify-between mb-4`}>
                     <View style={tw`flex-row items-center`}>
                       <Ionicons name="print-outline" size={20} color="#64748b" style={tw`mr-2`} />
-                      <Text style={tw`text-sm font-bold text-slate-700`}>PT-210 RECEIPT PREVIEW</Text>
+                      <Text style={tw`text-sm font-bold text-slate-700`}>PHYSICAL TICKET PREVIEW</Text>
                     </View>
                     <TouchableOpacity 
                       onPress={() => {
@@ -441,14 +504,14 @@ export default function AdminReceiptConfig() {
                   
                   <TouchableOpacity
                     onPress={handleTestPrint}
-                    style={tw`${isPrinterReady ? 'bg-slate-800' : 'bg-slate-300'} rounded-full py-3 mt-6 items-center shadow-md flex-row justify-center`}
+                    style={tw`${isPrinterReady ? 'bg-slate-800' : 'bg-slate-300'} rounded-xl py-3.5 mt-5 items-center shadow-md flex-row justify-center`}
                   >
                     <Ionicons name="print" size={18} color="white" style={tw`mr-2`} />
-                    <Text style={tw`text-white font-bold text-[14px]`}>TEST PRINT</Text>
+                    <Text style={tw`text-white font-bold text-[14px]`}>TEST PRINT ON PT-210</Text>
                   </TouchableOpacity>
                   
                   <Text style={tw`text-xs text-gray-400 mt-4 text-center px-4`}>
-                    Note: Connection works natively on Chrome/Edge via Web Bluetooth. Print layout depends on 58mm printer width.
+                    This preview replicates the exact layout printed by the conductor mobile app on 58mm thermal paper.
                   </Text>
                 </View>
               </View>
