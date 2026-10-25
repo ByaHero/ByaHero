@@ -256,29 +256,29 @@ export function usePrinter() {
     const BOLD_ON = '\x1B\x45\x01';
     const BOLD_OFF = '\x1B\x45\x00';
 
-    text += `${C}${BOLD_ON}${config?.company_name || 'BYAHERO TRANSIT'}${BOLD_OFF}\n`;
+    text += `${C}${BOLD_ON}${config?.company_name || 'ByaHero'}${BOLD_OFF}\n`;
     if (config?.client_name) text += `${C}${config.client_name}\n`;
-    if (config?.tin_number) text += `${C}TIN: ${config.tin_number}\n`;
-    text += `${C}TICKET NO: ${ticket?.ticketNumber || 'TEST'}\n`;
-    text += '--------------------------------\n';
+    text += `${C}TICKET NO: ${ticket?.ticketNumber || '00119'}\n`;
 
     if (config?.header_message) {
-      text += `${C}${config.header_message}\n`;
-      text += '--------------------------------\n';
+      text += `\n${C}${config.header_message}\n`;
+    } else {
+      text += '\n';
     }
+    text += '--------------------------------\n';
 
     const printRow = (left: string, right: string) => {
       const spaces = 32 - left.length - String(right).length;
       return spaces > 0 ? left + ' '.repeat(spaces) + right + '\n' : left + ' ' + right + '\n';
     };
 
-    const dateStr = (ticket?.date || new Date().toLocaleDateString())
+    const dateStr = (ticket?.date || new Date().toLocaleDateString('en-US'))
       .replace(/[^\x20-\x7E]/g, ' ')
       .replace(/\s+/g, ' ')
       .trim();
 
     let justDate = dateStr;
-    let justTime = ticket?.time || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    let justTime = ticket?.time || new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 
     if (dateStr.includes(' ')) {
       const parts = dateStr.split(' ');
@@ -288,16 +288,18 @@ export function usePrinter() {
 
     text += `${L}`;
     text += printRow(`DATE: ${justDate}`, justTime ? `TIME: ${justTime}` : '');
-    text += printRow(`BUS: ${ticket?.busNumber || 'BUS-001'}`, `PAX: ${ticket?.quantity || '1'}`);
+    text += printRow(`BUS: ${ticket?.busNumber || 'L-00001'}`, `PAX: ${ticket?.quantity || '1'}`);
     text += '--------------------------------\n';
-    text += printRow('TYPE:', String(ticket?.discount || 'REGULAR'));
-    text += printRow('BOARDED:', String(ticket?.boarding || 'TANAUAN'));
-    text += printRow('ALIGHT:', String(ticket?.alighting || 'LAUREL'));
-    text += printRow('TOTAL:', `PHP ${Number(ticket?.fare || 25).toFixed(2)}`);
+    text += printRow('TYPE:', String(ticket?.discount || 'Senior'));
+    text += printRow('BOARDED:', String(ticket?.boarding || 'Caloocan'));
+    text += printRow('ALIGHT:', String(ticket?.alighting || 'Buco'));
+    text += printRow('TOTAL:', `PHP ${Number(ticket?.fare || 12).toFixed(2)}`);
     text += '--------------------------------\n';
 
     if (config?.footer_message) {
-      text += `\n${C}${config.footer_message}\n`;
+      const cleanFooter = String(config.footer_message).replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim();
+      text += `\n${C}${cleanFooter}\n`;
+      text += '--------------------------------\n';
     }
     text += '\n\n\n';
 

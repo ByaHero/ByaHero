@@ -3,8 +3,9 @@ import {
   Printer, 
   Bluetooth, 
   Save, 
-  Loader2, 
-  FileText 
+  Loader2,
+  Sparkles,
+  CheckCircle2
 } from 'lucide-react';
 import { adminService } from '../services/admin';
 import AlertModal from '../components/AlertModal';
@@ -12,30 +13,31 @@ import PrinterModal from '../components/PrinterModal';
 import { useAlertModal } from '../hooks/useAlertModal';
 import { usePrinter } from '../hooks/usePrinter';
 
+// Jagged tear-off edge SVG component representing realistic thermal receipt paper
+const JaggedTearEdge = ({ flip = false }: { flip?: boolean }) => (
+  <svg
+    viewBox="0 0 280 8"
+    className={`w-full h-2 text-white fill-current block ${flip ? 'rotate-180' : ''}`}
+    preserveAspectRatio="none"
+  >
+    <path d="M0,8 L7,0 L14,8 L21,0 L28,8 L35,0 L42,8 L49,0 L56,8 L63,0 L70,8 L77,0 L84,8 L91,0 L98,8 L105,0 L112,8 L119,0 L126,8 L133,0 L140,8 L147,0 L154,8 L161,0 L168,8 L175,0 L182,8 L189,0 L196,8 L203,0 L210,8 L217,0 L224,8 L231,0 L238,8 L245,0 L252,8 L259,0 L266,8 L273,0 L280,8 Z" />
+  </svg>
+);
+
 export default function Receipts() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Form states
-  const [companyName, setCompanyName] = useState('ByaHero Transit');
-  const [clientName, setClientName] = useState('');
-  const [tinNumber, setTinNumber] = useState('000-000-000-000');
+  // Form states aligned with the real conductor printed ticket
+  const [companyName, setCompanyName] = useState('ByaHero');
+  const [clientName, setClientName] = useState('Magnificat Transport Cooperative');
   const [headerMessage, setHeaderMessage] = useState('Welcome aboard!');
-  const [footerMessage, setFooterMessage] = useState('Thank you for riding with us!');
+  const [footerMessage, setFooterMessage] = useState('Thank you for your cooperation');
 
-  // Printer hook & modal state matching byahero-admin
+  // Printer hook & modal state
   const printer = usePrinter();
   const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
   const isPrinterReady = !!printer.connectedPrinter;
-
-  // Summary config states
-  const [summaryTitle, setSummaryTitle] = useState('TRIP SUMMARY');
-  const [showConductor, setShowConductor] = useState(true);
-  const [showRoute, setShowRoute] = useState(true);
-  const [showBreakdown, setShowBreakdown] = useState(true);
-  const [showFirstLast, setShowFirstLast] = useState(true);
-  const [showSignatures, setShowSignatures] = useState(true);
-  const [savingSummary, setSavingSummary] = useState(false);
 
   // Sample fare for preview
   const [sampleFare, setSampleFare] = useState<{ origin: string; destination: string; regular_fare: number } | null>(null);
@@ -47,26 +49,12 @@ export default function Receipts() {
     try {
       const res = await adminService.getReceiptConfig();
       if (res && res.success && res.config) {
-        setCompanyName(res.config.company_name || 'ByaHero Transit');
+        setCompanyName(res.config.company_name || 'ByaHero');
         setClientName(res.config.client_name || '');
-        setTinNumber(res.config.tin_number || '');
-        setHeaderMessage(res.config.header_message || '');
-        setFooterMessage(res.config.footer_message || '');
-      }
-
-      // Fetch summary report configuration
-      try {
-        const sumRes = await adminService.getSummaryConfig();
-        if (sumRes && sumRes.success && sumRes.config) {
-          setSummaryTitle(sumRes.config.summary_title);
-          setShowConductor(sumRes.config.show_conductor);
-          setShowRoute(sumRes.config.show_route);
-          setShowBreakdown(sumRes.config.show_breakdown);
-          setShowFirstLast(sumRes.config.show_first_last);
-          setShowSignatures(sumRes.config.show_signatures);
-        }
-      } catch (e) {
-        console.warn('Failed to load summary config', e);
+        setHeaderMessage(res.config.header_message || 'Welcome aboard!');
+        const rawFooter = res.config.footer_message || 'Thank you for your cooperation';
+        const cleanedFooter = rawFooter.replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim() || 'Thank you for your cooperation';
+        setFooterMessage(cleanedFooter);
       }
 
       // Fetch fare for live preview
@@ -75,9 +63,9 @@ export default function Receipts() {
         if (fareRes && fareRes.success && fareRes.fares && fareRes.fares.length > 0) {
           const fare = fareRes.fares[0];
           setSampleFare({
-            origin: fare.origin_name || 'TANAUAN',
-            destination: fare.stop_name || fare.destination_name || 'LAUREL',
-            regular_fare: Number(fare.regular_fare) || 25,
+            origin: fare.origin_name || 'Caloocan',
+            destination: fare.stop_name || fare.destination_name || 'Buco',
+            regular_fare: Number(fare.regular_fare) || 12,
           });
         }
       } catch (e) {
@@ -99,17 +87,22 @@ export default function Receipts() {
     if (e) e.preventDefault();
     setSaving(true);
     try {
+      const cleanedFooter = (footerMessage || 'Thank you for your cooperation')
+        .replace(/[\s\r\n]*-{3,}[\s\S]*$/, '')
+        .trim() || 'Thank you for your cooperation';
+
       const data = {
         company_name: companyName,
         client_name: clientName,
-        tin_number: tinNumber,
+        tin_number: '', // Removed from config
         header_message: headerMessage,
-        footer_message: footerMessage,
+        footer_message: cleanedFooter,
       };
 
       const res = await adminService.saveReceiptConfig(data);
       if (res && res.success) {
-        showAlert('Success', 'Receipt configuration saved.', 'success');
+        setFooterMessage(cleanedFooter);
+        showAlert('Success', 'Receipt configuration saved successfully.', 'success');
       } else {
         showAlert('Error', res?.error || 'Failed to save configuration.', 'error');
       }
@@ -118,33 +111,6 @@ export default function Receipts() {
       showAlert('Error', e.message || 'An error occurred while saving configuration.', 'error');
     } finally {
       setSaving(false);
-    }
-  };
-
-  const handleSaveSummary = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSavingSummary(true);
-    try {
-      const data = {
-        summary_title: summaryTitle,
-        show_conductor: showConductor,
-        show_route: showRoute,
-        show_breakdown: showBreakdown,
-        show_first_last: showFirstLast,
-        show_signatures: showSignatures,
-      };
-
-      const res = await adminService.saveSummaryConfig(data);
-      if (res && res.success) {
-        showAlert('Success', 'Summary configuration saved successfully.', 'success');
-      } else {
-        showAlert('Error', res?.error || 'Failed to save configuration.', 'error');
-      }
-    } catch (e: any) {
-      console.error(e);
-      showAlert('Error', e.message || 'An error occurred while saving summary configuration.', 'error');
-    } finally {
-      setSavingSummary(false);
     }
   };
 
@@ -177,20 +143,19 @@ export default function Receipts() {
 
     try {
       const ticketMock = {
-        busNumber: 'BUS-001',
-        ticketNumber: 'TEST',
-        date: '08/20/2026',
-        time: '1:00 PM',
-        discount: 'REGULAR',
-        boarding: sampleFare ? sampleFare.origin : 'TANAUAN',
-        alighting: sampleFare ? sampleFare.destination : 'LAUREL',
-        fare: sampleFare ? sampleFare.regular_fare : 25.0,
+        busNumber: 'L-00001',
+        ticketNumber: '00119',
+        date: '10/7/2026',
+        time: '10:06 PM',
+        discount: 'Senior',
+        boarding: sampleFare ? sampleFare.origin : 'Caloocan',
+        alighting: sampleFare ? sampleFare.destination : 'Buco',
+        fare: sampleFare ? sampleFare.regular_fare : 12.0,
         quantity: 1,
       };
       const configMock = {
         company_name: companyName,
         client_name: clientName,
-        tin_number: tinNumber,
         header_message: headerMessage,
         footer_message: footerMessage,
       };
@@ -213,70 +178,129 @@ export default function Receipts() {
     }
   };
 
+  // Clean footer text so manual dashes or wraps do not break preview formatting
+  const formatFooterText = (text: string) => {
+    if (!text) return 'Thank you for your cooperation';
+    return text.replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim() || 'Thank you for your cooperation';
+  };
+
+  // Receipt preview exactly replicating the conductor's printed thermal receipt
   const ReceiptPreview = () => (
-    <div className="bg-gray-100 p-4 rounded-xl items-center flex justify-center">
-      <div className="w-[300px] bg-white border border-gray-300 p-4 rounded-lg shadow-sm font-sans text-slate-800">
-        <h4 className="text-center font-bold text-lg mb-1">{companyName || 'COMPANY NAME'}</h4>
-        {!!clientName && (
-          <p className="text-center font-semibold text-sm mb-1">{clientName}</p>
-        )}
-        {!!tinNumber && (
-          <p className="text-center text-xs text-gray-500 mb-1">TIN: {tinNumber}</p>
-        )}
-        <p className="text-center text-xs text-gray-600 mb-4">TICKET NO: TEST</p>
+    <div className="bg-slate-100/80 p-5 sm:p-8 rounded-2xl items-center flex justify-center border border-slate-200/80">
+      <div className="w-[280px] sm:w-[290px] filter drop-shadow-md select-none">
+        {/* Top jagged cut edge */}
+        <JaggedTearEdge flip={false} />
 
-        <p className="text-center text-sm mb-4 border-b border-dashed border-gray-300 pb-2">
-          {headerMessage || 'Header text here'}
-        </p>
-
-        <div className="flex justify-between mb-1 text-xs">
-          <span>DATE: 08/20/2026</span>
-          <span>TIME: 1:00 PM</span>
-        </div>
-        <div className="flex justify-between mb-1 text-xs">
-          <span>BUS: BUS-001</span>
-          <span>PAX: 1</span>
-        </div>
-
-        <div className="mt-2 mb-2 w-full border-t border-dashed border-gray-300 pt-2 space-y-1">
-          <div className="flex justify-between text-xs">
-            <span>TYPE:</span>
-            <span className="text-right font-medium">REGULAR</span>
+        {/* Pure white thermal paper body */}
+        <div className="bg-white px-5 py-3 relative font-mono text-slate-800 text-[12px] sm:text-[13px] leading-tight">
+          {/* Header block */}
+          <div className="text-center pt-1 pb-1">
+            <h4 className="font-bold text-base sm:text-lg tracking-tight text-slate-900 leading-snug">
+              {companyName || 'ByaHero'}
+            </h4>
+            {!!clientName && (
+              <p className="font-normal text-[12px] sm:text-[13px] text-slate-800 mt-0.5 leading-tight">
+                {clientName}
+              </p>
+            )}
+            <p className="font-normal text-[12px] sm:text-[13px] text-slate-800 mt-0.5 leading-tight">
+              TICKET NO: 00119
+            </p>
           </div>
-          <div className="flex justify-between text-xs">
-            <span>BOARDED:</span>
-            <span className="text-right max-w-[70%] truncate font-medium">
-              {sampleFare ? sampleFare.origin : 'TANAUAN'}
-            </span>
+
+          {/* Spacer before greeting */}
+          <div className="h-2.5" />
+
+          {/* Header Message */}
+          <div className="text-center text-[12px] sm:text-[13px] text-slate-800 leading-normal whitespace-pre-line">
+            {headerMessage || 'Welcome aboard!'}
           </div>
-          <div className="flex justify-between text-xs">
-            <span>ALIGHT:</span>
-            <span className="text-right max-w-[70%] truncate font-medium">
-              {sampleFare ? sampleFare.destination : 'LAUREL'}
-            </span>
+
+          {/* Full-width dashed divider */}
+          <div className="border-b border-dashed border-slate-300 my-2.5 w-full" />
+
+          {/* Meta Information (Date / Time / Bus / Pax) */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>DATE: 10/7/2026</span>
+              <span>TIME: 10:06 PM</span>
+            </div>
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>BUS: L-00001</span>
+              <span>PAX: 1</span>
+            </div>
           </div>
+
+          {/* Full-width dashed divider */}
+          <div className="border-b border-dashed border-slate-300 my-2.5 w-full" />
+
+          {/* Trip / Fare details */}
+          <div className="space-y-1">
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>TYPE:</span>
+              <span className="font-normal">Senior</span>
+            </div>
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>BOARDED:</span>
+              <span className="font-normal text-right truncate max-w-[150px]">
+                {sampleFare ? sampleFare.origin : 'Caloocan'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>ALIGHT:</span>
+              <span className="font-normal text-right truncate max-w-[150px]">
+                {sampleFare ? sampleFare.destination : 'Buco'}
+              </span>
+            </div>
+            <div className="flex justify-between items-center text-[12px] sm:text-[13px]">
+              <span>TOTAL:</span>
+              <span className="font-normal text-right">
+                PHP {sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '12.00'}
+              </span>
+            </div>
+          </div>
+
+          {/* Full-width dashed divider */}
+          <div className="border-b border-dashed border-slate-300 my-2.5 w-full" />
+
+          {/* Spacer before footer message */}
+          <div className="h-2.5" />
+
+          {/* Footer Message */}
+          <div className="text-center font-mono text-[12px] sm:text-[13px] text-slate-800 leading-normal whitespace-pre-line px-1">
+            {formatFooterText(footerMessage)}
+          </div>
+
+          {/* Closing full-width dashed divider */}
+          <div className="border-b border-dashed border-slate-300 my-2.5 w-full" />
+
+          {/* Bottom paper spacing */}
+          <div className="h-2" />
         </div>
 
-        <div className="flex justify-between mb-4 border-b border-dashed border-gray-300 pb-2 text-xs font-bold pt-1">
-          <span>TOTAL:</span>
-          <span>PHP {sampleFare ? Number(sampleFare.regular_fare).toFixed(2) : '25.00'}</span>
-        </div>
-
-        <p className="text-center text-xs italic text-gray-500 mt-2">
-          {footerMessage || 'Footer text here'}
-        </p>
+        {/* Bottom jagged cut edge */}
+        <JaggedTearEdge flip={true} />
       </div>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      {/* Title & Description Header matching byahero-admin */}
-      <div className="mb-6">
-        <h2 className="text-2xl font-black text-slate-900 tracking-tight">Receipt Format</h2>
-        <p className="text-slate-500 text-sm mt-1">
-          Configure the text printed on physical tickets by the conductor&apos;s PT-210 portable printer.
-        </p>
+      {/* Title & Description Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-black text-slate-900 tracking-tight">Receipt Configuration</h2>
+          <p className="text-slate-500 text-sm mt-1">
+            Configure the header, cooperative, and messages printed on physical tickets by the conductor&apos;s PT-210 portable thermal printer.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+            <CheckCircle2 size={13} className="text-blue-600" />
+            PT-210 58mm Standard
+          </span>
+        </div>
       </div>
 
       {loading ? (
@@ -284,73 +308,89 @@ export default function Receipts() {
           <Loader2 className="animate-spin text-[#1d72f8]" size={36} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
           {/* Form Section */}
           <div className="w-full">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200">
+              <div className="flex items-center gap-2 pb-4 mb-5 border-b border-gray-100">
+                <Sparkles size={18} className="text-[#1d72f8]" />
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                  Ticket Content Settings
+                </h3>
+              </div>
+
               <form onSubmit={handleSave} className="space-y-4">
                 <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">COMPANY NAME</label>
+                  <label className="text-xs font-bold text-gray-500 mb-1.5 block tracking-wide">
+                    COMPANY / BRAND NAME
+                  </label>
                   <input
                     type="text"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm transition"
                     value={companyName}
                     onChange={(e) => setCompanyName(e.target.value)}
-                    placeholder="e.g. ByaHero Transit"
+                    placeholder="e.g. ByaHero"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Printed in large bold text at the top of the ticket.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">CLIENT COMPANY NAME</label>
+                  <label className="text-xs font-bold text-gray-500 mb-1.5 block tracking-wide">
+                    COOPERATIVE / CLIENT NAME
+                  </label>
                   <input
                     type="text"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm transition"
                     value={clientName}
                     onChange={(e) => setClientName(e.target.value)}
-                    placeholder="e.g. ABC Corporation"
+                    placeholder="e.g. Magnificat Transport Cooperative"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Transport cooperative or franchise operator name.
+                  </p>
                 </div>
 
                 <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">TIN NUMBER / TAX ID</label>
-                  <input
-                    type="text"
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm font-mono"
-                    value={tinNumber}
-                    onChange={(e) => setTinNumber(e.target.value)}
-                    placeholder="e.g. 123-456-789-000"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">HEADER MESSAGE</label>
+                  <label className="text-xs font-bold text-gray-500 mb-1.5 block tracking-wide">
+                    HEADER MESSAGE
+                  </label>
                   <textarea
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none text-left"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none text-left transition"
                     value={headerMessage}
                     onChange={(e) => setHeaderMessage(e.target.value)}
-                    placeholder="Text below the title"
+                    placeholder="e.g. Welcome aboard!"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Greeting printed directly below the ticket number.
+                  </p>
                 </div>
 
                 <div className="mb-6">
-                  <label className="text-xs font-bold text-gray-500 mb-1 block">FOOTER MESSAGE</label>
+                  <label className="text-xs font-bold text-gray-500 mb-1.5 block tracking-wide">
+                    FOOTER MESSAGE
+                  </label>
                   <textarea
-                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none text-left"
+                    className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 h-20 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none text-left transition"
                     value={footerMessage}
                     onChange={(e) => setFooterMessage(e.target.value)}
-                    placeholder="Terms or thank you message"
+                    placeholder="e.g. Thank you for your cooperation"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">
+                    Closing appreciation note printed at the bottom of the ticket (dashed lines above and below are added automatically).
+                  </p>
                 </div>
 
                 <button
                   type="submit"
                   disabled={saving}
-                  className="bg-[#1d72f8] hover:bg-blue-600 rounded-full py-4 items-center shadow-md flex justify-center text-white font-bold text-[15px] w-full transition cursor-pointer disabled:opacity-75"
+                  className="bg-[#1d72f8] hover:bg-blue-600 rounded-xl py-3.5 items-center shadow-sm hover:shadow flex justify-center text-white font-bold text-[14px] w-full transition cursor-pointer disabled:opacity-75"
                 >
                   {saving ? (
-                    <Loader2 size={20} className="animate-spin mr-2" />
+                    <Loader2 size={18} className="animate-spin mr-2" />
                   ) : (
-                    <Save size={20} className="mr-2" />
+                    <Save size={18} className="mr-2" />
                   )}
                   <span>SAVE CONFIGURATION</span>
                 </button>
@@ -360,26 +400,29 @@ export default function Receipts() {
 
           {/* Preview Section */}
           <div className="w-full">
-            <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center">
-                    <Printer size={20} className="text-[#64748b] mr-2" />
-                    <h3 className="text-sm font-bold text-slate-700">PT-210 RECEIPT PREVIEW</h3>
+                    <Printer size={18} className="text-[#64748b] mr-2" />
+                    <h3 className="text-sm font-bold text-slate-800 tracking-wide uppercase">
+                      Physical Ticket Preview
+                    </h3>
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setIsPrinterModalVisible(true)}
-                    className="flex items-center bg-gray-50 hover:bg-gray-100 px-2.5 py-1 rounded-full border border-gray-200 transition cursor-pointer"
+                    className="flex items-center bg-gray-50 hover:bg-gray-100 px-3 py-1.5 rounded-full border border-gray-200 transition cursor-pointer shadow-2xs"
                   >
-                    <Bluetooth size={12} className={isPrinterReady ? 'text-[#3b82f6] mr-1' : 'text-[#94a3b8] mr-1'} />
-                    <span className={`text-[10px] font-bold ${isPrinterReady ? 'text-blue-500' : 'text-slate-500'}`}>
-                      {isPrinterReady ? 'CONNECTED' : 'CONNECT'}
+                    <Bluetooth size={12} className={isPrinterReady ? 'text-[#3b82f6] mr-1.5' : 'text-[#94a3b8] mr-1.5'} />
+                    <span className={`text-[10px] font-bold tracking-wider ${isPrinterReady ? 'text-blue-600' : 'text-slate-500'}`}>
+                      {isPrinterReady ? 'CONNECTED' : 'CONNECT PRINTER'}
                     </span>
                   </button>
                 </div>
 
+                {/* The thermal receipt simulation */}
                 <ReceiptPreview />
 
                 <button
@@ -387,110 +430,19 @@ export default function Receipts() {
                   onClick={handleTestPrint}
                   className={`${
                     isPrinterReady
-                      ? 'bg-slate-800 hover:bg-slate-900 cursor-pointer'
+                      ? 'bg-slate-800 hover:bg-slate-900 cursor-pointer shadow-sm'
                       : 'bg-slate-300 hover:bg-slate-400 cursor-pointer'
-                  } rounded-full py-3 mt-6 items-center shadow-md flex justify-center text-white font-bold text-[14px] w-full transition`}
+                  } rounded-xl py-3.5 mt-5 items-center flex justify-center text-white font-bold text-[14px] w-full transition`}
                 >
                   <Printer size={18} className="mr-2" />
-                  <span>TEST PRINT</span>
+                  <span>TEST PRINT ON PT-210</span>
                 </button>
 
-                <p className="text-xs text-gray-400 mt-4 text-center px-4">
-                  Note: Connection works natively on Chrome/Edge via Web Bluetooth. Print layout depends on 58mm printer width.
+                <p className="text-xs text-gray-400 mt-3 text-center px-4">
+                  This preview replicates the exact layout printed by the conductor mobile app on 58mm thermal paper.
                 </p>
               </div>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Trip Summary / Z-Report Configuration Section */}
-      {!loading && (
-        <div className="grid grid-cols-1 gap-6 mt-6">
-          <div className="bg-white border border-gray-200 rounded-2xl p-5 shadow-sm">
-            <div className="flex items-center gap-2 pb-4 mb-5 border-b border-gray-100">
-              <FileText size={18} className="text-[#0f3878]" />
-              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                Trip Summary / Z-Report Configuration
-              </h3>
-            </div>
-
-            <form onSubmit={handleSaveSummary} className="space-y-4">
-              <div>
-                <label className="text-xs font-bold uppercase text-gray-500 mb-1 block">
-                  Report Title
-                </label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-3 text-slate-800 bg-gray-50 focus:outline-none focus:border-blue-500 focus:bg-white text-sm"
-                  value={summaryTitle}
-                  onChange={(e) => setSummaryTitle(e.target.value)}
-                  placeholder="e.g. TRIP SUMMARY"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={showConductor}
-                    onChange={(e) => setShowConductor(e.target.checked)}
-                    className="w-4 h-4 text-[#1d72f8] rounded border-gray-300 focus:ring-[#1d72f8]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">Show Conductor Name</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={showRoute}
-                    onChange={(e) => setShowRoute(e.target.checked)}
-                    className="w-4 h-4 text-[#1d72f8] rounded border-gray-300 focus:ring-[#1d72f8]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">Show Route Information</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={showBreakdown}
-                    onChange={(e) => setShowBreakdown(e.target.checked)}
-                    className="w-4 h-4 text-[#1d72f8] rounded border-gray-300 focus:ring-[#1d72f8]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">Show Fare Breakdown</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={showFirstLast}
-                    onChange={(e) => setShowFirstLast(e.target.checked)}
-                    className="w-4 h-4 text-[#1d72f8] rounded border-gray-300 focus:ring-[#1d72f8]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">Show First &amp; Last Ticket</span>
-                </label>
-
-                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition">
-                  <input
-                    type="checkbox"
-                    checked={showSignatures}
-                    onChange={(e) => setShowSignatures(e.target.checked)}
-                    className="w-4 h-4 text-[#1d72f8] rounded border-gray-300 focus:ring-[#1d72f8]"
-                  />
-                  <span className="text-xs font-bold text-slate-700">Show Signature Lines</span>
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingSummary}
-                className="w-full inline-flex items-center justify-center gap-2 py-3.5 px-5 rounded-full text-xs font-bold text-white bg-slate-800 hover:bg-slate-900 transition shadow-sm cursor-pointer disabled:opacity-60 mt-4"
-              >
-                {savingSummary ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
-                <span>Save Summary Configuration</span>
-              </button>
-            </form>
           </div>
         </div>
       )}
@@ -505,7 +457,7 @@ export default function Receipts() {
         onCancel={alertConfig.onCancel}
       />
 
-      {/* Dedicated Printer Modal matching byahero-admin */}
+      {/* Dedicated Printer Modal */}
       <PrinterModal
         visible={isPrinterModalVisible}
         onClose={() => setIsPrinterModalVisible(false)}

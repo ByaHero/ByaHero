@@ -567,11 +567,11 @@ class ConductorController extends Controller
         return response()->json([
             'success' => true,
             'config' => [
-                'company_name' => $settings['receipt_company_name'] ?? 'ByaHero Transit',
-                'client_name' => $settings['receipt_client_name'] ?? '',
-                'tin_number' => $settings['receipt_tin_number'] ?? '000-000-000-000',
+                'company_name' => $settings['receipt_company_name'] ?? 'ByaHero',
+                'client_name' => $settings['receipt_client_name'] ?? 'Magnificat Transport Cooperative',
+                'tin_number' => $settings['receipt_tin_number'] ?? '',
                 'header_message' => $settings['receipt_header_message'] ?? 'Welcome aboard!',
-                'footer_message' => $settings['receipt_footer_message'] ?? 'Thank you for riding with us!',
+                'footer_message' => $settings['receipt_footer_message'] ?? 'Thank you for your cooperation',
             ]
         ]);
     }
