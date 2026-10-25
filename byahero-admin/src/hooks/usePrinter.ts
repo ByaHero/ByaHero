@@ -93,7 +93,7 @@ export function usePrinter() {
   const printReceipt = async (ticket: any, config: any) => {
     try {
       let text = "";
-      text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
+      text += `<CB>${config?.company_name || 'ByaHero'}</CB>\n`;
       if (config?.client_name) text += `<C>${config.client_name}</C>\n`;
       text += `<C>TICKET NO: ${ticket.ticketNumber || 'N/A'}</C>\n`;
       
@@ -130,7 +130,9 @@ export function usePrinter() {
       text += "--------------------------------\n";
       
       if (config?.footer_message) {
-        text += `\n<C>${config.footer_message}</C>`;
+        const cleanFooter = String(config.footer_message).replace(/[\s\r\n]*-{3,}[\s\S]*$/, '').trim();
+        text += `\n<C>${cleanFooter}</C>\n`;
+        text += "--------------------------------\n";
       }
 
       // Aggressively strip any accidental trailing newlines from earlier lines

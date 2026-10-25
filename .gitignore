@@ -14,3 +14,6 @@ dist/
 .kotlin/
 byahero-conductor/android/.kotlin/
 *.salive
+
+#database
+byahero-9-28-2026.sql
