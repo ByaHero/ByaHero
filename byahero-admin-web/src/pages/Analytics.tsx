@@ -30,7 +30,7 @@ import { adminService } from '../services/admin';
 import AlertModal from '../components/AlertModal';
 import { useAlertModal } from '../hooks/useAlertModal';
 
-export type PeriodKey = 'today' | 'week' | 'month' | 'custom';
+export type PeriodKey = 'today' | 'week' | 'month' | 'deployment' | 'custom';
 
 export type ActiveTab = 'overview' | 'buses' | 'conductors' | 'users' | 'routes' | 'operations';
 
@@ -233,6 +233,7 @@ const periodLabels: Record<PeriodKey, string> = {
   today: 'Today',
   week: 'This Week',
   month: 'This Month',
+  deployment: 'Deployment Period',
   custom: 'Custom Date',
 };
 
@@ -272,6 +273,9 @@ export default function Analytics() {
   };
 
   const getPeriodDisplayText = () => {
+    if (period === 'deployment') {
+      return 'Sep 9, 2026 – Sep 22, 2026';
+    }
     if (period === 'custom') {
       return formatCustomDateRange(customStart, customEnd);
     }
@@ -323,7 +327,10 @@ export default function Analytics() {
     try {
       setLoading(true);
       const params: { period: string; start?: string; end?: string } = { period };
-      if (period === 'custom') {
+      if (period === 'deployment') {
+        params.start = '2026-09-09';
+        params.end = '2026-09-22';
+      } else if (period === 'custom') {
         if (customStart) params.start = customStart;
         if (customEnd) params.end = customEnd;
       }
@@ -1016,6 +1023,7 @@ export default function Analytics() {
                       {key === 'today' && <Calendar size={13} />}
                       {key === 'week' && <CalendarDays size={13} />}
                       {key === 'month' && <BarChart3 size={13} />}
+                      {key === 'deployment' && <Flame size={13} className="text-amber-300" />}
                       {key === 'custom' && <CalendarRange size={13} />}
                       {periodLabels[key]}
                     </button>
@@ -1104,40 +1112,100 @@ export default function Analytics() {
             )}
           </div>
 
-          {/* Quick Hero Telemetry Card */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 space-y-3">
-            <div className="flex justify-between items-center pb-2.5 border-b border-white/15">
-              <div>
-                <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Selected Period</span>
-                <span className="text-sm font-black text-white">{getPeriodDisplayText()}</span>
+          {/* Quick Hero Telemetry Card & Deployment Period Card */}
+          <div className="space-y-3">
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-5 border border-white/20 space-y-3">
+              <div className="flex justify-between items-center pb-2.5 border-b border-white/15">
+                <div>
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Selected Period</span>
+                  <span className="text-sm font-black text-white">{getPeriodDisplayText()}</span>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Estimated Revenue</span>
+                  <span className="text-base font-black text-emerald-300">₱{data.estimatedRevenue.toLocaleString()}</span>
+                </div>
               </div>
-              <div className="text-right">
-                <span className="text-[10px] uppercase font-bold text-blue-200 block tracking-wider">Estimated Revenue</span>
-                <span className="text-base font-black text-emerald-300">₱{data.estimatedRevenue.toLocaleString()}</span>
+
+              <div className="grid grid-cols-3 gap-2 pt-1 text-center">
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Buses</span>
+                  <span className="text-sm font-black text-white mt-0.5 block">
+                    {data.fleetOverview.deployed_buses} <span className="text-[10px] text-blue-200 font-normal">/ {data.fleetOverview.total_fleet}</span>
+                  </span>
+                  <span className="text-[9px] text-emerald-300 font-bold block mt-0.5">{data.fleetOverview.fleet_deployment_rate}% Active</span>
+                </div>
+
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Conductors</span>
+                  <span className="text-sm font-black text-white mt-0.5 block">
+                    {data.conductorOverview.active_conductors} <span className="text-[10px] text-blue-200 font-normal">/ {data.conductorOverview.total_conductors}</span>
+                  </span>
+                  <span className="text-[9px] text-emerald-300 font-bold block mt-0.5">{data.conductorOverview.participation_rate}% Active</span>
+                </div>
+
+                <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
+                  <span className="text-[10px] font-bold text-blue-200 block uppercase">Circle Users</span>
+                  <span className="text-sm font-black text-white mt-0.5 block">{data.userAnalytics.total_circle_users}</span>
+                  <span className="text-[9px] text-blue-200 font-bold block mt-0.5">{data.userAnalytics.total_circles_created} Circles</span>
+                </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-3 gap-2 pt-1 text-center">
-              <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Buses</span>
-                <span className="text-sm font-black text-white mt-0.5 block">
-                  {data.fleetOverview.deployed_buses} <span className="text-[10px] text-blue-200 font-normal">/ {data.fleetOverview.total_fleet}</span>
-                </span>
-                <span className="text-[9px] text-emerald-300 font-bold block mt-0.5">{data.fleetOverview.fleet_deployment_rate}% Active</span>
+            {/* Deployment Period Part */}
+            <div
+              onClick={() => {
+                setPeriod('deployment');
+                setCustomStart('2026-09-09');
+                setCustomEnd('2026-09-22');
+              }}
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer backdrop-blur-md flex items-center justify-between group ${
+                period === 'deployment'
+                  ? 'bg-emerald-500/25 border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/50'
+                  : 'bg-white/10 hover:bg-white/15 border-white/20'
+              }`}
+              title="Click to view full operational data for the 14-day deployment (September 9, 2026 – September 22, 2026)"
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${
+                    period === 'deployment'
+                      ? 'bg-emerald-400 text-slate-900 shadow-sm'
+                      : 'bg-white/15 text-blue-200 group-hover:bg-white/25 group-hover:text-white'
+                  }`}
+                >
+                  <Flame size={18} className={period === 'deployment' ? 'text-slate-900' : 'text-amber-300'} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-blue-100">
+                      Deployment Period
+                    </span>
+                    <span
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
+                        period === 'deployment'
+                          ? 'bg-emerald-400 text-slate-900 font-black'
+                          : 'bg-blue-400/30 text-blue-100 border border-white/10'
+                      }`}
+                    >
+                      {period === 'deployment' ? 'ACTIVE' : '14 Days'}
+                    </span>
+                  </div>
+                  <div className="text-xs font-bold text-white/95 mt-0.5">
+                    September 9, 2026 – September 22, 2026
+                  </div>
+                </div>
               </div>
 
-              <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] font-bold text-blue-200 block uppercase">Active Conductors</span>
-                <span className="text-sm font-black text-white mt-0.5 block">
-                  {data.conductorOverview.active_conductors} <span className="text-[10px] text-blue-200 font-normal">/ {data.conductorOverview.total_conductors}</span>
+              <div className="flex items-center gap-1 text-xs font-black">
+                <span
+                  className={`px-3 py-1.5 rounded-xl transition cursor-pointer shadow-xs ${
+                    period === 'deployment'
+                      ? 'bg-emerald-400 text-slate-900'
+                      : 'bg-white text-[#0f3878] group-hover:bg-blue-50'
+                  }`}
+                >
+                  {period === 'deployment' ? 'Viewing' : 'Show Data'}
                 </span>
-                <span className="text-[9px] text-emerald-300 font-bold block mt-0.5">{data.conductorOverview.participation_rate}% Active</span>
-              </div>
-
-              <div className="bg-white/10 p-2.5 rounded-xl border border-white/10">
-                <span className="text-[10px] font-bold text-blue-200 block uppercase">Circle Users</span>
-                <span className="text-sm font-black text-white mt-0.5 block">{data.userAnalytics.total_circle_users}</span>
-                <span className="text-[9px] text-blue-200 font-bold block mt-0.5">{data.userAnalytics.total_circles_created} Circles</span>
               </div>
             </div>
           </div>
