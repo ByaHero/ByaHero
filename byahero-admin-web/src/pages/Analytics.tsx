@@ -162,6 +162,14 @@ export type OperationRow = {
   status: 'active' | 'completed' | 'pending' | string;
 };
 
+export type OverallStop = {
+  location_name: string;
+  boarded: number;
+  alighted: number;
+  total_activity: number;
+  net_flow: number;
+};
+
 export type AnalyticsView = {
   totalTrips: number;
   totalPassengers: number;
@@ -182,6 +190,7 @@ export type AnalyticsView = {
   conductors: ConductorRow[];
   locationLogs: LocationLogRow[];
   recentOperations: OperationRow[];
+  overallStops: OverallStop[];
 };
 
 type ApiAnalytics = {
@@ -320,6 +329,9 @@ export default function Analytics() {
   const [logLimit, setLogLimit] = useState(15);
   const [downloading, setDownloading] = useState(false);
   const [exportingCsv, setExportingCsv] = useState(false);
+  const [stopDemandTab, setStopDemandTab] = useState<'overall' | 'boarding' | 'alighting'>('overall');
+  const [stopDemandViewAll, setStopDemandViewAll] = useState(false);
+  const [hotspotsView, setHotspotsView] = useState<'split' | 'overall'>('split');
 
   const { alertConfig, showAlert } = useAlertModal();
 
@@ -404,6 +416,7 @@ export default function Analytics() {
         conductors: [],
         locationLogs: [],
         recentOperations: [],
+        overallStops: [],
       };
     }
 
@@ -556,6 +569,27 @@ export default function Analytics() {
       total: Number(b.total ?? 0),
     }));
 
+    // Overall combined stops activity (Boarding + Alighting)
+    const stopMap = new Map<string, { boarded: number; alighted: number }>();
+    boardingLocations.forEach((b) => {
+      const entry = stopMap.get(b.location_name) || { boarded: 0, alighted: 0 };
+      entry.boarded += b.total;
+      stopMap.set(b.location_name, entry);
+    });
+    departureLocations.forEach((d) => {
+      const entry = stopMap.get(d.location_name) || { boarded: 0, alighted: 0 };
+      entry.alighted += d.total;
+      stopMap.set(d.location_name, entry);
+    });
+
+    const overallStops: OverallStop[] = Array.from(stopMap.entries()).map(([name, counts]) => ({
+      location_name: name,
+      boarded: counts.boarded,
+      alighted: counts.alighted,
+      total_activity: counts.boarded + counts.alighted,
+      net_flow: counts.boarded - counts.alighted,
+    })).sort((a, b) => b.total_activity - a.total_activity);
+
     // Logs & Operations
     const locationLogs: LocationLogRow[] = (apiData.location_logs || []).map((l: any) => ({
       recorded_at: l.recorded_at || new Date().toISOString(),
@@ -610,6 +644,7 @@ export default function Analytics() {
       departureLocations,
       locationLogs,
       recentOperations,
+      overallStops,
     };
   }, [apiData]);
 
@@ -713,46 +748,46 @@ export default function Analytics() {
       let csvContent = 'data:text/csv;charset=utf-8,';
 
       // Section 1: Executive Overview
-      csvContent += 'BYAHERO TRANSIT OPERATIONAL ANALYTICS REPORT\r\n';
-      csvContent += `Generated At,${new Date().toLocaleString()}\r\n`;
-      csvContent += `Selected Period,${getPeriodDisplayText()}\r\n\r\n`;
+      csvContent += 'BYAHERO TRANSIT OPERATIONAL ANALYTICS REPORTrn';
+      csvContent += `Generated At,${new Date().toLocaleString()}rn`;
+      csvContent += `Selected Period,${getPeriodDisplayText()}rnrn`;
 
-      csvContent += '--- EXECUTIVE SUMMARY METRICS ---\r\n';
-      csvContent += `Total Passenger Boardings,${data.totalPassengers}\r\n`;
-      csvContent += `Total Passenger Departures,${data.totalDeparted}\r\n`;
-      csvContent += `Total Bus Trips / Sessions,${data.totalTrips}\r\n`;
-      csvContent += `Fleet Deployment Rate,${data.fleetOverview.deployed_buses}/${data.fleetOverview.total_fleet} (${data.fleetOverview.fleet_deployment_rate}%)\r\n`;
-      csvContent += `Conductor Participation Rate,${data.conductorOverview.active_conductors}/${data.conductorOverview.total_conductors} (${data.conductorOverview.participation_rate}%)\r\n`;
-      csvContent += `Average Trip Duration (min),${Math.round(data.averageTripMinutes)}\r\n\r\n`;
+      csvContent += '--- EXECUTIVE SUMMARY METRICS ---rn';
+      csvContent += `Total Passenger Boardings,${data.totalPassengers}rn`;
+      csvContent += `Total Passenger Departures,${data.totalDeparted}rn`;
+      csvContent += `Total Bus Trips / Sessions,${data.totalTrips}rn`;
+      csvContent += `Fleet Deployment Rate,${data.fleetOverview.deployed_buses}/${data.fleetOverview.total_fleet} (${data.fleetOverview.fleet_deployment_rate}%)rn`;
+      csvContent += `Conductor Participation Rate,${data.conductorOverview.active_conductors}/${data.conductorOverview.total_conductors} (${data.conductorOverview.participation_rate}%)rn`;
+      csvContent += `Average Trip Duration (min),${Math.round(data.averageTripMinutes)}rnrn`;
 
       // Section 2: Commuter & Circle Adoption
-      csvContent += '--- COMMUTER & CIRCLE FEATURE ADOPTION ---\r\n';
-      csvContent += `Total Registered Commuters,${data.userAnalytics.total_registered_users}\r\n`;
-      csvContent += `Commuters With Ride History,${data.userAnalytics.users_with_rides} (${data.userAnalytics.ride_history_adoption_rate}%)\r\n`;
-      csvContent += `Total Logged Passenger Rides,${data.userAnalytics.total_passenger_rides}\r\n`;
-      csvContent += `Commuters Utilizing Circle Features,${data.userAnalytics.total_circle_users} (${data.userAnalytics.circle_adoption_rate}%)\r\n`;
-      csvContent += `Total Circles Formed,${data.userAnalytics.total_circles_created}\r\n`;
-      csvContent += `Total Circle Memberships,${data.userAnalytics.total_circle_memberships}\r\n`;
-      csvContent += `Average Circle Size,${data.userAnalytics.avg_circle_size}\r\n\r\n`;
+      csvContent += '--- COMMUTER & CIRCLE FEATURE ADOPTION ---rn';
+      csvContent += `Total Registered Commuters,${data.userAnalytics.total_registered_users}rn`;
+      csvContent += `Commuters With Ride History,${data.userAnalytics.users_with_rides} (${data.userAnalytics.ride_history_adoption_rate}%)rn`;
+      csvContent += `Total Logged Passenger Rides,${data.userAnalytics.total_passenger_rides}rn`;
+      csvContent += `Commuters Utilizing Circle Features,${data.userAnalytics.total_circle_users} (${data.userAnalytics.circle_adoption_rate}%)rn`;
+      csvContent += `Total Circles Formed,${data.userAnalytics.total_circles_created}rn`;
+      csvContent += `Total Circle Memberships,${data.userAnalytics.total_circle_memberships}rn`;
+      csvContent += `Average Circle Size,${data.userAnalytics.avg_circle_size}rnrn`;
 
       // Section 3: Bus Fleet Performance
-      csvContent += '--- DEPLOYED BUS FLEET TELEMETRY ---\r\n';
-      csvContent += 'Bus Code,Completed Trips,Passengers Boarded,Passengers Departed,Avg Pax/Trip,Load Factor %,Routes,Conductors\r\n';
+      csvContent += '--- DEPLOYED BUS FLEET TELEMETRY ---rn';
+      csvContent += 'Bus Code,Completed Trips,Passengers Boarded,Passengers Departed,Avg Pax/Trip,Load Factor %,Routes,Conductorsrn';
       data.buses.forEach((b) => {
-        csvContent += `"${b.code}",${b.trips},${b.passengers},${b.departed},${b.avg_passengers_per_trip.toFixed(1)},${b.load_factor}%,` + `"${b.routes.replace(/"/g, '""')}","${b.conductors.replace(/"/g, '""')}"\r\n`;
+        csvContent += `"${b.code}",${b.trips},${b.passengers},${b.departed},${b.avg_passengers_per_trip.toFixed(1)},${b.load_factor}%,` + `"${b.routes.replace(/"/g, '""')}","${b.conductors.replace(/"/g, '""')}"rn`;
       });
-      csvContent += '\r\n';
+      csvContent += 'rn';
 
       // Section 4: Conductor Sessions
-      csvContent += '--- CONDUCTOR DUTY SESSIONS ---\r\n';
-      csvContent += 'Conductor Name,Email,Contacts,Sessions Conducted,Passengers Served,Avg Pax/Session,Duty Hours,Buses Operated\r\n';
+      csvContent += '--- CONDUCTOR DUTY SESSIONS ---rn';
+      csvContent += 'Conductor Name,Email,Contacts,Sessions Conducted,Passengers Served,Avg Pax/Session,Duty Hours,Buses Operatedrn';
       data.conductors.forEach((c) => {
-        csvContent += `"${c.name}","${c.email}","${c.contacts || 'N/A'}",${c.trips},${c.passengers},${c.avg_passengers_per_session.toFixed(1)},` + `"${formatHours(c.total_duty_minutes)}","${c.buses_operated.replace(/"/g, '""')}"\r\n`;
+        csvContent += `"${c.name}","${c.email}","${c.contacts || 'N/A'}",${c.trips},${c.passengers},${c.avg_passengers_per_session.toFixed(1)},` + `"${formatHours(c.total_duty_minutes)}","${c.buses_operated.replace(/"/g, '""')}"rn`;
       });
 
       // Section 5: Corridor Stops Demand (All Stops)
-      csvContent += '--- CORRIDOR STOPS DEMAND (ALL 31 STOPS) ---\r\n';
-      csvContent += 'Rank,Boarding Stop,Boardings,Drop-off Stop,Drop-offs\r\n';
+      csvContent += '--- CORRIDOR STOPS DEMAND (ALL 31 STOPS) ---rn';
+      csvContent += 'Rank,Boarding Stop,Boardings,Drop-off Stop,Drop-offsrn';
       const maxStops = Math.max(data.boardingLocations.length, data.departureLocations.length);
       for (let i = 0; i < maxStops; i++) {
         const b = data.boardingLocations[i];
@@ -761,7 +796,7 @@ export default function Analytics() {
         const bCount = b ? b.total : 0;
         const dName = d ? `"${d.location_name.replace(/"/g, '""')}"` : '""';
         const dCount = d ? d.total : 0;
-        csvContent += `${i + 1},${bName},${bCount},${dName},${dCount}\r\n`;
+        csvContent += `${i + 1},${bName},${bCount},${dName},${dCount}rn`;
       }
 
       const encodedUri = encodeURI(csvContent);
@@ -901,9 +936,9 @@ export default function Analytics() {
             </thead>
             <tbody>
               ${data.buses
-                .slice(0, 15)
-                .map(
-                  (b) => `
+          .slice(0, 15)
+          .map(
+            (b) => `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                   <td style="padding: 6px 8px; font-weight: 700;">${b.code}</td>
                   <td style="padding: 6px 8px; text-align: right; font-weight: 600;">${b.trips}</td>
@@ -913,8 +948,8 @@ export default function Analytics() {
                   <td style="padding: 6px 8px; color: #475569;">${b.routes}</td>
                 </tr>
               `
-                )
-                .join('')}
+          )
+          .join('')}
             </tbody>
           </table>
           ${data.buses.length > 15 ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px; font-style: italic;">Showing top 15 of ${data.buses.length} deployed buses.</div>` : ''}
@@ -938,9 +973,9 @@ export default function Analytics() {
             </thead>
             <tbody>
               ${data.conductors
-                .slice(0, 15)
-                .map(
-                  (c) => `
+          .slice(0, 15)
+          .map(
+            (c) => `
                 <tr style="border-bottom: 1px solid #e2e8f0;">
                   <td style="padding: 6px 8px; font-weight: 700;">${c.name}</td>
                   <td style="padding: 6px 8px; color: #475569;">${c.email}</td>
@@ -950,8 +985,8 @@ export default function Analytics() {
                   <td style="padding: 6px 8px; color: #475569;">${c.buses_operated}</td>
                 </tr>
               `
-                )
-                .join('')}
+          )
+          .join('')}
             </tbody>
           </table>
           ${data.conductors.length > 15 ? `<div style="font-size: 9px; color: #64748b; margin-top: 4px; font-style: italic;">Showing top 15 of ${data.conductors.length} active conductors.</div>` : ''}
@@ -1028,11 +1063,10 @@ export default function Analytics() {
                       key={key}
                       type="button"
                       onClick={() => setPeriod(key)}
-                      className={`py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${
-                        isActive
+                      className={`py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${isActive
                           ? 'bg-white text-[#0f3878] shadow-sm font-black'
                           : 'text-white/80 hover:text-white hover:bg-white/10'
-                      }`}
+                        }`}
                     >
                       {key === 'today' && <Calendar size={13} />}
                       {key === 'week' && <CalendarDays size={13} />}
@@ -1172,20 +1206,18 @@ export default function Analytics() {
                 setCustomStart('2026-09-09');
                 setCustomEnd('2026-09-22');
               }}
-              className={`p-3.5 rounded-2xl border transition-all cursor-pointer backdrop-blur-md flex items-center justify-between group ${
-                period === 'deployment'
+              className={`p-3.5 rounded-2xl border transition-all cursor-pointer backdrop-blur-md flex items-center justify-between group ${period === 'deployment'
                   ? 'bg-emerald-500/25 border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/50'
                   : 'bg-white/10 hover:bg-white/15 border-white/20'
-              }`}
+                }`}
               title="Click to view full operational data for the 14-day deployment (September 9, 2026 – September 22, 2026)"
             >
               <div className="flex items-center gap-3">
                 <div
-                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${
-                    period === 'deployment'
+                  className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${period === 'deployment'
                       ? 'bg-emerald-400 text-slate-900 shadow-sm'
                       : 'bg-white/15 text-blue-200 group-hover:bg-white/25 group-hover:text-white'
-                  }`}
+                    }`}
                 >
                   <Flame size={18} className={period === 'deployment' ? 'text-slate-900' : 'text-amber-300'} />
                 </div>
@@ -1195,11 +1227,10 @@ export default function Analytics() {
                       Deployment Period
                     </span>
                     <span
-                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${
-                        period === 'deployment'
+                      className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${period === 'deployment'
                           ? 'bg-emerald-400 text-slate-900 font-black'
                           : 'bg-blue-400/30 text-blue-100 border border-white/10'
-                      }`}
+                        }`}
                     >
                       {period === 'deployment' ? 'ACTIVE' : '14 Days'}
                     </span>
@@ -1212,11 +1243,10 @@ export default function Analytics() {
 
               <div className="flex items-center gap-1 text-xs font-black">
                 <span
-                  className={`px-3 py-1.5 rounded-xl transition cursor-pointer shadow-xs ${
-                    period === 'deployment'
+                  className={`px-3 py-1.5 rounded-xl transition cursor-pointer shadow-xs ${period === 'deployment'
                       ? 'bg-emerald-400 text-slate-900'
                       : 'bg-white text-[#0f3878] group-hover:bg-blue-50'
-                  }`}
+                    }`}
                 >
                   {period === 'deployment' ? 'Viewing' : 'Show Data'}
                 </span>
@@ -1231,11 +1261,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('overview')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'overview'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'overview'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <BarChart3 size={15} />
           <span>Executive Overview</span>
@@ -1244,11 +1273,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('buses')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'buses'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'buses'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <BusFront size={15} />
           <span>Deployed Bus Data</span>
@@ -1260,11 +1288,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('conductors')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'conductors'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'conductors'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <UserCheck size={15} />
           <span>Conductor Sessions</span>
@@ -1276,11 +1303,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('users')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'users'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'users'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <Users2 size={15} />
           <span>Commuters &amp; Circle Features</span>
@@ -1292,11 +1318,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('routes')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'routes'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'routes'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <Route size={15} />
           <span>Routes &amp; Hotspots</span>
@@ -1305,11 +1330,10 @@ export default function Analytics() {
         <button
           type="button"
           onClick={() => setActiveTab('operations')}
-          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${
-            activeTab === 'operations'
+          className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'operations'
               ? 'bg-[#0f3878] text-white shadow-sm'
               : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
-          }`}
+            }`}
         >
           <History size={15} />
           <span>Session Logs</span>
@@ -1462,11 +1486,10 @@ export default function Analytics() {
                   {data.hourlyFlow.map((entry) => (
                     <div
                       key={entry.hr}
-                      className={`px-3 py-1 rounded-lg text-xs font-semibold border ${
-                        peakHour?.hr === entry.hr
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold border ${peakHour?.hr === entry.hr
                           ? 'bg-amber-50 border-amber-300 text-amber-900 font-extrabold'
                           : 'bg-slate-50 border-slate-200 text-slate-700'
-                      }`}
+                        }`}
                     >
                       {entry.hr % 12 || 12}
                       {entry.hr >= 12 ? 'PM' : 'AM'}: <strong className="text-blue-700 ml-1">{entry.total.toLocaleString()}</strong>
@@ -1504,25 +1527,127 @@ export default function Analytics() {
                   </div>
                 </div>
 
-                {/* Top Stop Distribution Preview */}
+                {/* Top Stop Distribution Preview (Overall, Boarding & Alighting) */}
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <div>
-                    <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Pickup &amp; Drop-off Demand</span>
-                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2 mt-0.5">
-                      <MapPin size={18} className="text-blue-600" /> Top Boarding Locations
-                    </h3>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                      <span className="text-[11px] font-bold uppercase text-slate-500 tracking-wider block">Pickup &amp; Drop-off Demand</span>
+                      <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2 mt-0.5">
+                        <MapPin size={18} className="text-blue-600" /> Corridor Stops Demand
+                      </h3>
+                    </div>
+
+                    {/* Mode Tabs */}
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold border border-slate-200 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setStopDemandTab('overall')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${'rn'}                          stopDemandTab === 'overall'
+                            ? 'bg-white text-blue-700 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Overall Activity
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStopDemandTab('boarding')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${'rn'}                          stopDemandTab === 'boarding'
+                            ? 'bg-white text-emerald-700 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Boarding
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setStopDemandTab('alighting')}
+                        className={`px-2.5 py-1 rounded-lg transition cursor-pointer ${'rn'}                          stopDemandTab === 'alighting'
+                            ? 'bg-white text-red-600 shadow-xs'
+                            : 'text-slate-600 hover:text-slate-900'
+                        }`}
+                      >
+                        Alighting
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="flex flex-wrap gap-2 pt-2">
-                    {data.boardingLocations.slice(0, 8).map((loc, idx) => (
-                      <div key={loc.location_name} className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 flex items-center gap-2">
-                        <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black flex items-center justify-center">
-                          {idx + 1}
-                        </span>
-                        <span>{loc.location_name}</span>
-                        <strong className="text-emerald-700 font-extrabold ml-auto">+{loc.total.toLocaleString()}</strong>
-                      </div>
-                    ))}
+                  {/* Subtitle & View All toggle */}
+                  <div className="flex items-center justify-between text-xs text-slate-500 pt-1">
+                    <span>
+                      {stopDemandTab === 'overall' && `Combined passenger volume (${data.overallStops.length} Corridor Stops)`}
+                      {stopDemandTab === 'boarding' && `Total Boarded: ${data.totalPassengers.toLocaleString()} pax across ${data.boardingLocations.length} stops`}
+                      {stopDemandTab === 'alighting' && `Total Dropped: ${data.totalDeparted.toLocaleString()} pax across ${data.departureLocations.length} stops`}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStopDemandViewAll(!stopDemandViewAll)}
+                      className="text-blue-600 hover:text-blue-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      {stopDemandViewAll ? 'Show Top 8' : `View All ${data.overallStops.length || 31} Stops →`}
+                    </button>
+                  </div>
+
+                  {/* Badges / Pills */}
+                  <div
+                    className={`flex flex-wrap gap-2 pt-1 transition-all ${stopDemandViewAll ? 'max-h-[360px] overflow-y-auto pr-1' : ''
+                      }`}
+                  >
+                    {/* OVERALL ACTIVITY VIEW */}
+                    {stopDemandTab === 'overall' &&
+                      (stopDemandViewAll ? data.overallStops : data.overallStops.slice(0, 8)).map((s, idx) => (
+                        <div
+                          key={s.location_name}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 flex items-center gap-2 hover:bg-slate-100/80 transition"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[10px] font-black flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-800">{s.location_name}</span>
+                          <div className="flex items-center gap-1.5 ml-auto text-[11px]">
+                            <span className="text-emerald-700 font-bold" title="Boarded">
+                              +{s.boarded.toLocaleString()}
+                            </span>
+                            <span className="text-slate-300">/</span>
+                            <span className="text-red-600 font-bold" title="Alighted">
+                              -{s.alighted.toLocaleString()}
+                            </span>
+                            <span className="bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded-md font-black ml-1 text-[10px]" title="Total Combined Activity">
+                              {s.total_activity.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+
+                    {/* BOARDING VIEW */}
+                    {stopDemandTab === 'boarding' &&
+                      (stopDemandViewAll ? data.boardingLocations : data.boardingLocations.slice(0, 8)).map((loc, idx) => (
+                        <div
+                          key={loc.location_name}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 flex items-center gap-2 hover:bg-slate-100/80 transition"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-800">{loc.location_name}</span>
+                          <strong className="text-emerald-700 font-black ml-auto">+{loc.total.toLocaleString()}</strong>
+                        </div>
+                      ))}
+
+                    {/* ALIGHTING VIEW */}
+                    {stopDemandTab === 'alighting' &&
+                      (stopDemandViewAll ? data.departureLocations : data.departureLocations.slice(0, 8)).map((loc, idx) => (
+                        <div
+                          key={loc.location_name}
+                          className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 flex items-center gap-2 hover:bg-slate-100/80 transition"
+                        >
+                          <span className="w-5 h-5 rounded-full bg-red-100 text-red-800 text-[10px] font-black flex items-center justify-center shrink-0">
+                            {idx + 1}
+                          </span>
+                          <span className="font-bold text-slate-800">{loc.location_name}</span>
+                          <strong className="text-red-600 font-black ml-auto">-{loc.total.toLocaleString()}</strong>
+                        </div>
+                      ))}
                   </div>
                 </div>
               </div>
@@ -1808,15 +1933,14 @@ export default function Analytics() {
                           <tr key={c.email} className="hover:bg-slate-50/80 transition">
                             <td className="py-3.5 px-5 font-bold text-slate-900 flex items-center gap-3">
                               <span
-                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${
-                                  index === 0
+                                className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${index === 0
                                     ? 'bg-amber-400 text-amber-950 shadow-xs'
                                     : index === 1
-                                    ? 'bg-slate-300 text-slate-800'
-                                    : index === 2
-                                    ? 'bg-amber-700 text-white'
-                                    : 'bg-slate-100 text-slate-600'
-                                }`}
+                                      ? 'bg-slate-300 text-slate-800'
+                                      : index === 2
+                                        ? 'bg-amber-700 text-white'
+                                        : 'bg-slate-100 text-slate-600'
+                                  }`}
                               >
                                 {index + 1}
                               </span>
@@ -1971,7 +2095,7 @@ export default function Analytics() {
 
                   <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200 text-xs space-y-2 text-slate-600 leading-relaxed">
                     <p>
-                      <strong>How Circle Feature Works:</strong> Commuters scan QR codes or enter invite tokens to form safety circles. Circle members can monitor each other's live bus trips, boarding locations, and receive automated notifications upon arrival or departure.
+                      <strong>How Circle Feature Works:</strong> Commuters scan QR codes or enter invite tokens to form safety circles. Circle members can monitor each other&apos;s live bus trips, boarding locations, and receive automated notifications upon arrival or departure.
                     </p>
                     <p className="font-semibold text-purple-900">
                       &bull; {data.userAnalytics.circle_owners_count} Commuters initiated their own circles as group owners.
@@ -2098,56 +2222,122 @@ export default function Analytics() {
               </div>
 
               {/* Boarding vs Departure Hotspots */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Boarding stops */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                      <MapPin size={18} className="text-emerald-600" /> Corridor Boarding Stops
-                    </h3>
-                    <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
-                      {data.boardingLocations.length} Stops
-                    </span>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <span className="text-[11px] font-extrabold uppercase text-blue-600 tracking-wider block">Corridor Passenger Dynamics</span>
+                    <h3 className="text-lg font-black text-slate-900 mt-0.5">Corridor Stops Demand Analysis</h3>
                   </div>
-                  <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
-                    {data.boardingLocations.map((loc, idx) => (
-                      <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                        <span className="font-bold text-slate-800 flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          {loc.location_name}
-                        </span>
-                        <span className="font-black text-emerald-700">+{loc.total.toLocaleString()} boarded</span>
-                      </div>
-                    ))}
+                  <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl text-xs font-bold border border-slate-200">
+                    <button
+                      type="button"
+                      onClick={() => setHotspotsView('split')}
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${'rn'}                        hotspotsView === 'split'
+                          ? 'bg-white text-blue-700 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Split (Boarding &amp; Drop-off)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setHotspotsView('overall')}
+                      className={`px-3 py-1.5 rounded-lg transition cursor-pointer ${'rn'}                        hotspotsView === 'overall'
+                          ? 'bg-white text-blue-700 shadow-xs'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      Combined Overall Activity
+                    </button>
                   </div>
                 </div>
 
-                {/* Departure stops */}
-                <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                      <MapPin size={18} className="text-red-500" /> Corridor Drop-off Stops
-                    </h3>
-                    <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
-                      {data.departureLocations.length} Stops
-                    </span>
+                {hotspotsView === 'overall' ? (
+                  <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h4 className="text-sm font-extrabold text-slate-800">Overall Passenger Activity Table (All 31 Stops)</h4>
+                      <span className="text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-full">{data.overallStops.length} Stops</span>
+                    </div>
+                    <div className="overflow-x-auto rounded-2xl border border-slate-200">
+                      <table className="w-full text-xs text-left">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+                            <th className="py-3 px-4">#</th>
+                            <th className="py-3 px-4">Corridor Stop</th>
+                            <th className="py-3 px-4 text-right">Boarded (+)</th>
+                            <th className="py-3 px-4 text-right">Alighted (-)</th>
+                            <th className="py-3 px-4 text-right">Total Activity</th>
+                            <th className="py-3 px-4 text-right">Net Flow</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {data.overallStops.map((s, idx) => (
+                            <tr key={s.location_name} className="hover:bg-slate-50/70 transition">
+                              <td className="py-2.5 px-4 font-bold text-slate-400">{idx + 1}</td>
+                              <td className="py-2.5 px-4 font-extrabold text-slate-800">{s.location_name}</td>
+                              <td className="py-2.5 px-4 text-right font-black text-emerald-700">+{s.boarded.toLocaleString()}</td>
+                              <td className="py-2.5 px-4 text-right font-black text-red-600">-{s.alighted.toLocaleString()}</td>
+                              <td className="py-2.5 px-4 text-right font-black text-blue-800">{s.total_activity.toLocaleString()} pax</td>
+                              <td className={`py-2.5 px-4 text-right font-extrabold ${s.net_flow >= 0 ? 'text-emerald-600' : 'text-slate-500'}`}>{s.net_flow >= 0 ? `+${s.net_flow.toLocaleString()}` : s.net_flow.toLocaleString()}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
-                  <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
-                    {data.departureLocations.map((loc, idx) => (
-                      <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
-                        <span className="font-bold text-slate-800 flex items-center gap-2">
-                          <span className="w-5 h-5 rounded-full bg-red-100 text-red-800 text-[10px] font-black flex items-center justify-center">
-                            {idx + 1}
-                          </span>
-                          {loc.location_name}
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Boarding stops */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                          <MapPin size={18} className="text-emerald-600" /> Corridor Boarding Stops
+                        </h3>
+                        <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+                          {data.boardingLocations.length} Stops
                         </span>
-                        <span className="font-black text-red-600">-{loc.total.toLocaleString()} dropped</span>
                       </div>
-                    ))}
+                      <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
+                        {data.boardingLocations.map((loc, idx) => (
+                          <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                            <span className="font-bold text-slate-800 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-black flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              {loc.location_name}
+                            </span>
+                            <span className="font-black text-emerald-700">+{loc.total.toLocaleString()} boarded</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Departure stops */}
+                    <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                          <MapPin size={18} className="text-red-500" /> Corridor Drop-off Stops
+                        </h3>
+                        <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+                          {data.departureLocations.length} Stops
+                        </span>
+                      </div>
+                      <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
+                        {data.departureLocations.map((loc, idx) => (
+                          <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
+                            <span className="font-bold text-slate-800 flex items-center gap-2">
+                              <span className="w-5 h-5 rounded-full bg-red-100 text-red-800 text-[10px] font-black flex items-center justify-center">
+                                {idx + 1}
+                              </span>
+                              {loc.location_name}
+                            </span>
+                            <span className="font-black text-red-600">-{loc.total.toLocaleString()} dropped</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
@@ -2245,11 +2435,10 @@ export default function Analytics() {
                               </td>
                               <td className="py-3 px-4 text-center">
                                 <span
-                                  className={`inline-flex items-center py-0.5 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
-                                    op.status === 'completed'
+                                  className={`inline-flex items-center py-0.5 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${op.status === 'completed'
                                       ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
                                       : 'bg-blue-50 text-blue-700 border border-blue-200'
-                                  }`}
+                                    }`}
                                 >
                                   {op.status}
                                 </span>
@@ -2305,7 +2494,7 @@ export default function Analytics() {
                 ✕
               </button>
             </div>
-            
+
             <div className="p-6 overflow-y-auto">
               {summaryLoading ? (
                 <div className="flex flex-col items-center justify-center py-10">
@@ -2354,7 +2543,7 @@ export default function Analytics() {
                       </div>
                     </div>
                   )}
-                  
+
                   {/* Tickets */}
                   <div className="flex justify-between bg-slate-100 rounded-xl p-3 text-[11px] font-mono text-slate-600">
                     <span>First: {summaryData.first_ticket}</span>
@@ -2365,7 +2554,7 @@ export default function Analytics() {
                 <div className="text-center text-slate-500 text-sm py-10">No summary data available.</div>
               )}
             </div>
-            
+
             <div className="p-5 border-t border-slate-100 bg-slate-50">
               <button
                 onClick={() => setSummaryModalOpen(false)}
