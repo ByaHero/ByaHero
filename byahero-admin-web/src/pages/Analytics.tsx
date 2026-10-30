@@ -1064,8 +1064,8 @@ export default function Analytics() {
                       type="button"
                       onClick={() => setPeriod(key)}
                       className={`py-1.5 px-3.5 rounded-xl text-xs font-bold transition-all duration-200 cursor-pointer flex items-center gap-1.5 ${isActive
-                          ? 'bg-white text-[#0f3878] shadow-sm font-black'
-                          : 'text-white/80 hover:text-white hover:bg-white/10'
+                        ? 'bg-white text-[#0f3878] shadow-sm font-black'
+                        : 'text-white/80 hover:text-white hover:bg-white/10'
                         }`}
                     >
                       {key === 'today' && <Calendar size={13} />}
@@ -1207,16 +1207,16 @@ export default function Analytics() {
                 setCustomEnd('2026-09-22');
               }}
               className={`p-3.5 rounded-2xl border transition-all cursor-pointer backdrop-blur-md flex items-center justify-between group ${period === 'deployment'
-                  ? 'bg-emerald-500/25 border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/50'
-                  : 'bg-white/10 hover:bg-white/15 border-white/20'
+                ? 'bg-emerald-500/25 border-emerald-400/70 shadow-lg ring-1 ring-emerald-400/50'
+                : 'bg-white/10 hover:bg-white/15 border-white/20'
                 }`}
               title="Click to view full operational data for the 14-day deployment (September 9, 2026 – September 22, 2026)"
             >
               <div className="flex items-center gap-3">
                 <div
                   className={`w-9 h-9 rounded-xl flex items-center justify-center transition ${period === 'deployment'
-                      ? 'bg-emerald-400 text-slate-900 shadow-sm'
-                      : 'bg-white/15 text-blue-200 group-hover:bg-white/25 group-hover:text-white'
+                    ? 'bg-emerald-400 text-slate-900 shadow-sm'
+                    : 'bg-white/15 text-blue-200 group-hover:bg-white/25 group-hover:text-white'
                     }`}
                 >
                   <Flame size={18} className={period === 'deployment' ? 'text-slate-900' : 'text-amber-300'} />
@@ -1228,8 +1228,8 @@ export default function Analytics() {
                     </span>
                     <span
                       className={`text-[9px] font-extrabold px-2 py-0.5 rounded-full ${period === 'deployment'
-                          ? 'bg-emerald-400 text-slate-900 font-black'
-                          : 'bg-blue-400/30 text-blue-100 border border-white/10'
+                        ? 'bg-emerald-400 text-slate-900 font-black'
+                        : 'bg-blue-400/30 text-blue-100 border border-white/10'
                         }`}
                     >
                       {period === 'deployment' ? 'ACTIVE' : '14 Days'}
@@ -1244,8 +1244,8 @@ export default function Analytics() {
               <div className="flex items-center gap-1 text-xs font-black">
                 <span
                   className={`px-3 py-1.5 rounded-xl transition cursor-pointer shadow-xs ${period === 'deployment'
-                      ? 'bg-emerald-400 text-slate-900'
-                      : 'bg-white text-[#0f3878] group-hover:bg-blue-50'
+                    ? 'bg-emerald-400 text-slate-900'
+                    : 'bg-white text-[#0f3878] group-hover:bg-blue-50'
                     }`}
                 >
                   {period === 'deployment' ? 'Viewing' : 'Show Data'}
@@ -1262,8 +1262,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('overview')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'overview'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <BarChart3 size={15} />
@@ -1274,8 +1274,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('buses')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'buses'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <BusFront size={15} />
@@ -1289,8 +1289,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('conductors')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'conductors'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <UserCheck size={15} />
@@ -1304,8 +1304,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('users')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'users'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <Users2 size={15} />
@@ -1319,8 +1319,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('routes')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'routes'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <Route size={15} />
@@ -1331,8 +1331,8 @@ export default function Analytics() {
           type="button"
           onClick={() => setActiveTab('operations')}
           className={`py-3 px-4 rounded-xl text-xs font-extrabold transition-all cursor-pointer whitespace-nowrap flex items-center gap-2 ${activeTab === 'operations'
-              ? 'bg-[#0f3878] text-white shadow-sm'
-              : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+            ? 'bg-[#0f3878] text-white shadow-sm'
+            : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
             }`}
         >
           <History size={15} />
@@ -1487,8 +1487,8 @@ export default function Analytics() {
                     <div
                       key={entry.hr}
                       className={`px-3 py-1 rounded-lg text-xs font-semibold border ${peakHour?.hr === entry.hr
-                          ? 'bg-amber-50 border-amber-300 text-amber-900 font-extrabold'
-                          : 'bg-slate-50 border-slate-200 text-slate-700'
+                        ? 'bg-amber-50 border-amber-300 text-amber-900 font-extrabold'
+                        : 'bg-slate-50 border-slate-200 text-slate-700'
                         }`}
                     >
                       {entry.hr % 12 || 12}
@@ -1934,12 +1934,12 @@ export default function Analytics() {
                             <td className="py-3.5 px-5 font-bold text-slate-900 flex items-center gap-3">
                               <span
                                 className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black ${index === 0
-                                    ? 'bg-amber-400 text-amber-950 shadow-xs'
-                                    : index === 1
-                                      ? 'bg-slate-300 text-slate-800'
-                                      : index === 2
-                                        ? 'bg-amber-700 text-white'
-                                        : 'bg-slate-100 text-slate-600'
+                                  ? 'bg-amber-400 text-amber-950 shadow-xs'
+                                  : index === 1
+                                    ? 'bg-slate-300 text-slate-800'
+                                    : index === 2
+                                      ? 'bg-amber-700 text-white'
+                                      : 'bg-slate-100 text-slate-600'
                                   }`}
                               >
                                 {index + 1}
@@ -2436,8 +2436,8 @@ export default function Analytics() {
                               <td className="py-3 px-4 text-center">
                                 <span
                                   className={`inline-flex items-center py-0.5 px-2.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${op.status === 'completed'
-                                      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                                      : 'bg-blue-50 text-blue-700 border border-blue-200'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                                    : 'bg-blue-50 text-blue-700 border border-blue-200'
                                     }`}
                                 >
                                   {op.status}
@@ -2578,7 +2578,3 @@ export default function Analytics() {
     </div>
   );
 }
-
-
-
-
