@@ -750,6 +750,20 @@ export default function Analytics() {
         csvContent += `"${c.name}","${c.email}","${c.contacts || 'N/A'}",${c.trips},${c.passengers},${c.avg_passengers_per_session.toFixed(1)},` + `"${formatHours(c.total_duty_minutes)}","${c.buses_operated.replace(/"/g, '""')}"\r\n`;
       });
 
+      // Section 5: Corridor Stops Demand (All Stops)
+      csvContent += '--- CORRIDOR STOPS DEMAND (ALL 31 STOPS) ---\r\n';
+      csvContent += 'Rank,Boarding Stop,Boardings,Drop-off Stop,Drop-offs\r\n';
+      const maxStops = Math.max(data.boardingLocations.length, data.departureLocations.length);
+      for (let i = 0; i < maxStops; i++) {
+        const b = data.boardingLocations[i];
+        const d = data.departureLocations[i];
+        const bName = b ? `"${b.location_name.replace(/"/g, '""')}"` : '""';
+        const bCount = b ? b.total : 0;
+        const dName = d ? `"${d.location_name.replace(/"/g, '""')}"` : '""';
+        const dCount = d ? d.total : 0;
+        csvContent += `${i + 1},${bName},${bCount},${dName},${dCount}\r\n`;
+      }
+
       const encodedUri = encodeURI(csvContent);
       const link = document.createElement('a');
       link.setAttribute('href', encodedUri);
@@ -2087,10 +2101,15 @@ export default function Analytics() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Boarding stops */}
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                    <MapPin size={18} className="text-emerald-600" /> Top Boarding Stops
-                  </h3>
-                  <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                      <MapPin size={18} className="text-emerald-600" /> Corridor Boarding Stops
+                    </h3>
+                    <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+                      {data.boardingLocations.length} Stops
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
                     {data.boardingLocations.map((loc, idx) => (
                       <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                         <span className="font-bold text-slate-800 flex items-center gap-2">
@@ -2107,10 +2126,15 @@ export default function Analytics() {
 
                 {/* Departure stops */}
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-4">
-                  <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
-                    <MapPin size={18} className="text-red-500" /> Top Drop-off Stops
-                  </h3>
-                  <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+                      <MapPin size={18} className="text-red-500" /> Corridor Drop-off Stops
+                    </h3>
+                    <span className="text-xs font-bold text-slate-600 bg-slate-100 border border-slate-200 px-3 py-1 rounded-full">
+                      {data.departureLocations.length} Stops
+                    </span>
+                  </div>
+                  <div className="space-y-2 max-h-[720px] overflow-y-auto pr-1">
                     {data.departureLocations.map((loc, idx) => (
                       <div key={loc.location_name} className="flex justify-between items-center p-3 rounded-xl bg-slate-50 border border-slate-100 text-xs">
                         <span className="font-bold text-slate-800 flex items-center gap-2">
