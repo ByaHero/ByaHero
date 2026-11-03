@@ -712,13 +712,26 @@ class AdminController extends Controller
                 WHERE 1=1 {$dateFilter}
                 ORDER BY pe.recorded_at DESC LIMIT 50");
 
-            // Financial telemetry estimate dynamically computed from database bus_fares
-            $avgFare = 0.0;
-            if (Schema::hasTable('bus_fares')) {
-                $avgFare = round((float)(DB::table('bus_fares')->avg('regular_fare') ?? 0.0), 2);
+            // Revenue dynamically computed strictly from official printed receipts (printed_tickets based on fare guide)
+            $printedRevenue = 0.0;
+            $printedTicketsCount = 0;
+            if (Schema::hasTable('printed_tickets')) {
+                $ticketStats = DB::selectOne("SELECT 
+                    COALESCE(SUM(pt.fare), 0) AS total_revenue,
+                    COALESCE(SUM(pt.quantity), 0) AS total_passengers,
+                    COUNT(pt.id) AS total_tickets
+                    FROM printed_tickets pt 
+                    JOIN bus_operations o ON o.id = pt.operation_id 
+                    WHERE 1=1 {$dateFilter}");
+
+                $printedRevenue = (float)($ticketStats->total_revenue ?? 0.0);
+                $printedTicketsCount = (int)($ticketStats->total_tickets ?? 0);
             }
-            $totalPax = (int)($sum->total_passengers ?? 0);
-            $estimatedRevenue = round($totalPax * $avgFare, 2);
+
+            $estimatedRevenue = round($printedRevenue, 2);
+            $avgFare = $printedTicketsCount > 0 
+                ? round($printedRevenue / $printedTicketsCount, 2) 
+                : 0.0;
 
             return response()->json([
                 'success' => true,
@@ -745,7 +758,8 @@ class AdminController extends Controller
                 'recent_operations' => $recent,
                 'location_logs' => $locationLogs,
                 'average_fare' => $avgFare,
-                'estimated_revenue' => $estimatedRevenue
+                'estimated_revenue' => $estimatedRevenue,
+                'printed_tickets_count' => $printedTicketsCount
             ]);
         } catch (\Throwable $e) {
             Log::error('Analytics fatal error: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
