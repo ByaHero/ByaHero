@@ -153,4 +153,5 @@ export const adminService = {
     method: 'POST',
     body: JSON.stringify(data)
   }),
+  getOperationSummary: (id: number) => apiRequest(`/api/admin/operations/${id}/summary`),
 };
