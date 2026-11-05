@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BLEPrinter: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,6 +20,8 @@ export interface IPrinterDevice {
   macAddress: string;
 }
 
+export const CONNECTED_PRINTER_STORAGE_KEY = 'byahero_connected_printer';
+
 export function usePrinter() {
   const [devices, setDevices] = useState<IPrinterDevice[]>([]);
   const [pairedDevices, setPairedDevices] = useState<IPrinterDevice[]>([]);
@@ -25,7 +29,26 @@ export function usePrinter() {
   const [connectedPrinter, setConnectedPrinter] = useState<IPrinterDevice | null>(null);
 
   useEffect(() => {
-    BLEPrinter.init().catch(console.warn);
+    if (BLEPrinter && BLEPrinter.init) {
+      BLEPrinter.init().catch(console.warn);
+    }
+
+    // Restore saved connected printer across screens
+    AsyncStorage.getItem(CONNECTED_PRINTER_STORAGE_KEY).then(raw => {
+      if (raw) {
+        try {
+          const device = JSON.parse(raw);
+          if (device && device.macAddress) {
+            setConnectedPrinter(device);
+            if (Platform.OS === 'android' && BLEPrinter && BLEPrinter.connectPrinter) {
+              BLEPrinter.connectPrinter(device.macAddress).catch((e: any) => {
+                console.warn('Silent auto-reconnect printer note:', e?.message || e);
+              });
+            }
+          }
+        } catch (_) {}
+      }
+    }).catch(console.warn);
   }, []);
 
   const requestPermissions = async () => {
@@ -51,6 +74,9 @@ export function usePrinter() {
 
     setIsScanning(true);
     try {
+      if (!BLEPrinter || !BLEPrinter.init) {
+        throw new Error('Bluetooth printer service is not available on this platform.');
+      }
       await BLEPrinter.init();
       const scanned = await BLEPrinter.getDeviceList();
       
@@ -61,9 +87,9 @@ export function usePrinter() {
 
       setDevices(parseDevices);
       setPairedDevices([]); // This library returns all devices together
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Bluetooth Error', 'Failed to scan devices. Ensure Bluetooth is enabled.');
+      Alert.alert('Bluetooth Error', error.message || 'Failed to scan devices. Ensure Bluetooth is enabled.');
     } finally {
       setIsScanning(false);
     }
@@ -75,8 +101,12 @@ export function usePrinter() {
       if (!device.macAddress) {
         throw new Error('Device missing address.');
       }
+      if (!BLEPrinter || !BLEPrinter.connectPrinter) {
+        throw new Error('Bluetooth printer service is not initialized.');
+      }
       await BLEPrinter.connectPrinter(device.macAddress);
       setConnectedPrinter(device);
+      await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Success', `Connected to ${device.name || 'Printer'}`);
     } catch (e: any) {
       console.error(e);
@@ -86,7 +116,24 @@ export function usePrinter() {
     }
   };
 
+  const disconnectPrinter = async () => {
+    try {
+      if (BLEPrinter && BLEPrinter.closeConn) {
+        await BLEPrinter.closeConn();
+      }
+    } catch (_) {}
+    setConnectedPrinter(null);
+    try {
+      await AsyncStorage.removeItem(CONNECTED_PRINTER_STORAGE_KEY);
+      Alert.alert('Disconnected', 'Printer disconnected.');
+    } catch (_) {}
+  };
+
   const printReceipt = async (ticket: any, config: any) => {
+    if (!connectedPrinter) {
+      throw new Error('No printer connected. Please connect a Bluetooth printer first.');
+    }
+
     try {
       let text = "";
       text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
@@ -105,7 +152,7 @@ export function usePrinter() {
         return spaces > 0 ? left + " ".repeat(spaces) + right + "\n" : left + " " + right + "\n";
       };
 
-      // Sanitize non-ASCII characters (like \u202F Narrow No-Break Space) that break printer column counting
+      // Sanitize non-ASCII characters that break printer column counting
       const dateStr = (ticket.date || "").replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim();
       let justDate = dateStr;
       let justTime = "";
@@ -129,15 +176,23 @@ export function usePrinter() {
         text += `\n<C>${config.footer_message}</C>`;
       }
 
-      // Aggressively strip any accidental trailing newlines from earlier lines
+      if (!BLEPrinter || !BLEPrinter.printBill) {
+        throw new Error('Printer module unavailable');
+      }
+
       BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      return true;
     } catch (e: any) {
       console.error(e);
-      Alert.alert('Print Error', e.message || 'Failed to print receipt.');
+      throw e;
     }
   };
 
   const printSummary = async (summary: any, summaryConfig: any, receiptConfig: any, isReprint = false, isInterim = false) => {
+    if (!connectedPrinter) {
+      throw new Error('No printer connected. Please connect a Bluetooth printer first.');
+    }
+
     try {
       let text = "";
       text += `<CB>${receiptConfig?.company_name || 'ByaHero Transit'}</CB>\n`;
@@ -216,14 +271,24 @@ export function usePrinter() {
         text += `\n<C>${summaryConfig.footer_message}</C>`;
       }
 
+      if (!BLEPrinter || !BLEPrinter.printBill) {
+        throw new Error('Printer module unavailable');
+      }
+
       BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      return true;
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Print Error', e.message || 'Failed to print summary.');
+      console.error('printSummary error:', e);
+      throw e;
     }
   };
 
   const testPrint = async () => {
+    if (!connectedPrinter) {
+      Alert.alert('Printer Required', 'Please connect a Bluetooth printer before printing a test page.');
+      return;
+    }
+
     try {
       const now = new Date().toLocaleString();
       let text = "";
@@ -235,6 +300,10 @@ export function usePrinter() {
       text += "--------------------------------\n";
       text += "<C>Printer is working correctly.</C>\n";
       text += "<C>Ready to print receipts.</C>";
+
+      if (!BLEPrinter || !BLEPrinter.printBill) {
+        throw new Error('Printer module unavailable');
+      }
 
       BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
       Alert.alert('Test Print', 'Test page sent to printer.');
@@ -251,6 +320,7 @@ export function usePrinter() {
     connectedPrinter,
     scanDevices,
     connectPrinter,
+    disconnectPrinter,
     printReceipt,
     printSummary,
     testPrint,

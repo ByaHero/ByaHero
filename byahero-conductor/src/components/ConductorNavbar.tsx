@@ -18,7 +18,17 @@ import { MaterialIcons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-export default function ConductorNavbar({ title = 'Conductor', rightIcon, onRightIconPress }: { title?: string, rightIcon?: string, onRightIconPress?: () => void }) {
+export default function ConductorNavbar({ 
+  title = 'Conductor', 
+  rightIcon, 
+  onRightIconPress,
+  rightElement 
+}: { 
+  title?: string; 
+  rightIcon?: string; 
+  onRightIconPress?: () => void;
+  rightElement?: React.ReactNode;
+}) {
   const { width } = useWindowDimensions();
   const [menuVisible, setMenuVisible] = useState(false);
   const [userName, setUserName] = useState('Conductor');
@@ -168,11 +178,22 @@ export default function ConductorNavbar({ title = 'Conductor', rightIcon, onRigh
             </View>
           </View>
         ) : (
-          <View style={tw`flex-row items-center flex-1 gap-3`}>
-            <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/dashboard')} style={tw`w-11 h-11 rounded-full items-center justify-center bg-white/10`}>
-              <MaterialIcons name="arrow-back" size={26} color="white" />
-            </TouchableOpacity>
-            <Text style={tw`text-white font-extrabold text-[1.05rem] tracking-wide`}>{title}</Text>
+          <View style={tw`flex-row items-center justify-between flex-1`}>
+            <View style={tw`flex-row items-center gap-2.5 flex-1 mr-2`}>
+              <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/dashboard')} style={tw`w-10 h-10 rounded-full items-center justify-center bg-white/10`}>
+                <MaterialIcons name="arrow-back" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={tw`text-white font-extrabold text-[1.05rem] tracking-wide flex-shrink`} numberOfLines={1}>{title}</Text>
+            </View>
+            {rightElement ? (
+              <View style={tw`items-end justify-center`}>
+                {rightElement}
+              </View>
+            ) : rightIcon && onRightIconPress ? (
+              <TouchableOpacity onPress={onRightIconPress} style={tw`w-10 h-10 items-center justify-center`}>
+                <Image source={rightIcon} style={tw`w-6 h-6`} contentFit="contain" />
+              </TouchableOpacity>
+            ) : null}
           </View>
         )}
       </View>

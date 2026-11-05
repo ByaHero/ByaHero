@@ -14,10 +14,11 @@ interface Props {
   onConnect: (device: IPrinterDevice) => void;
   connectedPrinter: IPrinterDevice | null;
   onTestPrint?: () => void;
+  onDisconnect?: () => void;
 }
 
 export default function PrinterModal({
-  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter, onTestPrint
+  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter, onTestPrint, onDisconnect
 }: Props) {
   
   const renderDevice = (device: IPrinterDevice, idx: number) => {
@@ -66,14 +67,24 @@ export default function PrinterModal({
                   <Text style={tw`text-blue-600 text-xs`} numberOfLines={1}>{connectedPrinter.name || connectedPrinter.macAddress}</Text>
                 </View>
               </View>
-              {onTestPrint && (
-                <TouchableOpacity
-                  onPress={onTestPrint}
-                  style={tw`bg-blue-600 rounded-lg px-3 py-2 ml-3`}
-                >
-                  <Text style={tw`text-white font-bold text-xs`}>Test Print</Text>
-                </TouchableOpacity>
-              )}
+              <View style={tw`flex-row items-center gap-2 ml-3`}>
+                {onTestPrint && (
+                  <TouchableOpacity
+                    onPress={onTestPrint}
+                    style={tw`bg-blue-600 rounded-lg px-2.5 py-1.5`}
+                  >
+                    <Text style={tw`text-white font-bold text-xs`}>Test</Text>
+                  </TouchableOpacity>
+                )}
+                {onDisconnect && (
+                  <TouchableOpacity
+                    onPress={onDisconnect}
+                    style={tw`bg-rose-50 border border-rose-200 rounded-lg px-2.5 py-1.5`}
+                  >
+                    <Text style={tw`text-rose-600 font-bold text-xs`}>Disconnect</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </View>
           )}
 
