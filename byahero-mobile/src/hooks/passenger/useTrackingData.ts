@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServerUrl } from '../../services/authService';
 import { resolveBusLocationName } from '../../utils/locationUtils';
@@ -10,7 +10,13 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
   const [circles, setCircles] = useState<any[]>([]);
   const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
 
-  const [isWaiting, setIsWaiting] = useState(false);
+  const [isWaiting, setIsWaitingState] = useState(false);
+  const waitingStatusRevision = useRef(0);
+  const setIsWaiting = useCallback((value: boolean) => {
+    // A poll started before a local registration/cancellation must not undo it.
+    waitingStatusRevision.current += 1;
+    setIsWaitingState(value);
+  }, []);
   const [waitingLocation, setWaitingLocation] = useState('');
   const [waitingExpiresAt, setWaitingExpiresAt] = useState<string | null>(null);
   const [isBoarded, setIsBoarded] = useState(false);
@@ -134,11 +140,16 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
         try {
           const loggedInEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
           if (loggedInEmail && active) {
-            const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
+            const revision = waitingStatusRevision.current;
+            const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`, {
+              credentials: 'include',
+              headers: { Accept: 'application/json' },
+              cache: 'no-store',
+            });
             if (waitStatusRes.ok) {
               const waitData = await waitStatusRes.json();
-              if (waitData.success) {
-                setIsWaiting(!!waitData.is_waiting);
+              if (active && revision === waitingStatusRevision.current && waitData.success) {
+                setIsWaitingState(!!waitData.is_waiting);
                 setWaitingLocation(waitData.location_name || '');
                 setIsBoarded(!!waitData.is_boarded);
                 setBoardedBus(waitData.bus_code || '');
