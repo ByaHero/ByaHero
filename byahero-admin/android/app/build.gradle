@@ -92,8 +92,8 @@ android {
         applicationId 'com.byahero.admin'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 214
-        versionName "3.0.4"
+        versionCode 215
+        versionName "3.0.5"
 
         buildConfigField "String", "REACT_NATIVE_RELEASE_LEVEL", "\"${findProperty('reactNativeReleaseLevel') ?: 'stable'}\""
     }
