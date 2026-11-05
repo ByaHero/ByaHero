@@ -995,6 +995,11 @@ export default function DashboardScreen() {
         onTestPrint={printer.testPrint}
         onDisconnect={printer.disconnectPrinter}
         onReconnect={() => printer.reconnectPrinter()}
+        isPrinterOffline={printer.isPrinterOffline}
+        paperCount={printer.paperCount}
+        maxPaperCapacity={printer.maxPaperCapacity}
+        paperWarning={printer.paperWarning}
+        onResetPaperRoll={printer.resetPaperRoll}
       />
 
       {/* Tour Overlay */}

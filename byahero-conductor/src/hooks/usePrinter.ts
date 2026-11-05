@@ -21,12 +21,23 @@ export interface IPrinterDevice {
 }
 
 export const CONNECTED_PRINTER_STORAGE_KEY = 'byahero_connected_printer';
+export const PAPER_ROLL_COUNT_STORAGE_KEY = 'byahero_printer_roll_count';
+export const DEFAULT_ROLL_CAPACITY = 65; // Average tickets per standard 58mm thermal roll
+export const LOW_PAPER_THRESHOLD = 50;  // Threshold for low paper warning (approx 75-80%)
 
 export function usePrinter() {
   const [devices, setDevices] = useState<IPrinterDevice[]>([]);
   const [pairedDevices, setPairedDevices] = useState<IPrinterDevice[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [connectedPrinter, setConnectedPrinter] = useState<IPrinterDevice | null>(null);
+
+  // Live Connection & Offline Health State
+  const [isPrinterOffline, setIsPrinterOffline] = useState(false);
+  const [offlineDismissed, setOfflineDismissed] = useState(false);
+
+  // Paper Roll Status State
+  const [paperCount, setPaperCount] = useState(0);
+  const [paperWarning, setPaperWarning] = useState<'low' | 'critical_low' | 'out_or_jammed' | null>(null);
 
   useEffect(() => {
     if (BLEPrinter && BLEPrinter.init) {
@@ -43,6 +54,7 @@ export function usePrinter() {
             if (Platform.OS === 'android' && BLEPrinter && BLEPrinter.connectPrinter) {
               BLEPrinter.connectPrinter(device.macAddress).catch((e: any) => {
                 console.warn('Silent auto-reconnect printer note:', e?.message || e);
+                setIsPrinterOffline(true);
               });
             }
           }
@@ -50,7 +62,22 @@ export function usePrinter() {
       }
     }).catch(console.warn);
 
-    // Watch for app coming back from background (ghost connection prevention)
+    // Restore tracked paper roll count
+    AsyncStorage.getItem(PAPER_ROLL_COUNT_STORAGE_KEY).then(raw => {
+      if (raw) {
+        const count = parseInt(raw, 10);
+        if (!isNaN(count)) {
+          setPaperCount(count);
+          if (count >= DEFAULT_ROLL_CAPACITY) {
+            setPaperWarning('critical_low');
+          } else if (count >= LOW_PAPER_THRESHOLD) {
+            setPaperWarning('low');
+          }
+        }
+      }
+    }).catch(console.warn);
+
+    // Watch for app coming back from background (ghost connection prevention & health probe)
     const sub = AppState.addEventListener('change', nextState => {
       if (nextState === 'active') {
         AsyncStorage.getItem(CONNECTED_PRINTER_STORAGE_KEY).then(raw => {
@@ -59,6 +86,12 @@ export function usePrinter() {
               const device = JSON.parse(raw);
               if (device && device.macAddress) {
                 setConnectedPrinter(device);
+                // Health probe when waking from background
+                if (BLEPrinter && BLEPrinter.init) {
+                  BLEPrinter.init().catch(() => {
+                    setIsPrinterOffline(true);
+                  });
+                }
               }
             } catch (_) {}
           }
@@ -68,6 +101,50 @@ export function usePrinter() {
 
     return () => sub.remove();
   }, []);
+
+  // Periodic health check every 15s when a printer is configured
+  useEffect(() => {
+    if (!connectedPrinter) return;
+
+    const interval = setInterval(() => {
+      if (BLEPrinter && BLEPrinter.init) {
+        BLEPrinter.init().catch(() => {
+          setIsPrinterOffline(true);
+          setOfflineDismissed(false);
+        });
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [connectedPrinter]);
+
+  const recordPrintedTickets = async (addedTickets = 1) => {
+    setPaperCount(prev => {
+      const updated = prev + addedTickets;
+      AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, String(updated)).catch(console.warn);
+      if (updated >= DEFAULT_ROLL_CAPACITY) {
+        setPaperWarning('critical_low');
+      } else if (updated >= LOW_PAPER_THRESHOLD) {
+        setPaperWarning('low');
+      }
+      return updated;
+    });
+  };
+
+  const resetPaperRoll = async () => {
+    try {
+      await AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, '0');
+      setPaperCount(0);
+      setPaperWarning(null);
+      Alert.alert('Paper Roll Reset', 'Thermal paper roll counter reset to 0. A fresh roll is now being tracked.');
+    } catch (e) {
+      console.warn('Failed to reset paper roll count:', e);
+    }
+  };
+
+  const dismissOfflineWarning = () => {
+    setOfflineDismissed(true);
+  };
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -133,10 +210,16 @@ export function usePrinter() {
 
       await BLEPrinter.connectPrinter(device.macAddress);
       setConnectedPrinter(device);
+      setIsPrinterOffline(false);
+      setOfflineDismissed(false);
+      if (paperWarning === 'out_or_jammed') {
+        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      }
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Success', `Connected to ${device.name || 'Printer'}`);
     } catch (e: any) {
       console.error(e);
+      setIsPrinterOffline(true);
       Alert.alert('Connection Failed', e.message || 'Could not connect to printer.');
     } finally {
       setIsScanning(false);
@@ -167,11 +250,17 @@ export function usePrinter() {
       }
       await BLEPrinter.connectPrinter(device.macAddress);
       setConnectedPrinter(device);
+      setIsPrinterOffline(false);
+      setOfflineDismissed(false);
+      if (paperWarning === 'out_or_jammed') {
+        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      }
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Reconnected', `Bluetooth link refreshed for ${device.name || 'Printer'}.`);
       return true;
     } catch (e: any) {
       console.warn('Reconnect error:', e);
+      setIsPrinterOffline(true);
       Alert.alert('Reconnect Notice', e.message || 'Could not refresh connection. Please check that printer is turned on.');
       return false;
     } finally {
@@ -186,6 +275,8 @@ export function usePrinter() {
       }
     } catch (_) {}
     setConnectedPrinter(null);
+    setIsPrinterOffline(false);
+    setOfflineDismissed(false);
     try {
       await AsyncStorage.removeItem(CONNECTED_PRINTER_STORAGE_KEY);
       Alert.alert('Disconnected', 'Printer disconnected.');
@@ -274,9 +365,14 @@ export function usePrinter() {
       }
 
       await safePrintBill(text);
+      await recordPrintedTickets(Math.max(1, Number(ticket.quantity || 1)));
+      setIsPrinterOffline(false);
       return true;
     } catch (e: any) {
-      console.error(e);
+      console.error('printReceipt error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
       throw e;
     }
   };
@@ -365,9 +461,14 @@ export function usePrinter() {
       }
 
       await safePrintBill(text);
+      await recordPrintedTickets(2);
+      setIsPrinterOffline(false);
       return true;
     } catch (e: any) {
       console.error('printSummary error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
       throw e;
     }
   };
@@ -391,9 +492,14 @@ export function usePrinter() {
       text += "<C>Ready to print receipts.</C>";
 
       await safePrintBill(text);
+      await recordPrintedTickets(1);
+      setIsPrinterOffline(false);
       Alert.alert('Test Print', 'Test page sent to printer.');
     } catch (e: any) {
-      console.error(e);
+      console.error('testPrint error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
       Alert.alert('Print Error', e.message || 'Failed to send test print.');
     }
   };
@@ -403,6 +509,13 @@ export function usePrinter() {
     pairedDevices,
     isScanning,
     connectedPrinter,
+    isPrinterOffline,
+    offlineDismissed,
+    paperCount,
+    maxPaperCapacity: DEFAULT_ROLL_CAPACITY,
+    paperWarning,
+    resetPaperRoll,
+    dismissOfflineWarning,
     scanDevices,
     connectPrinter,
     reconnectPrinter,

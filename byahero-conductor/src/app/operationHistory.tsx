@@ -128,28 +128,68 @@ export default function OperationHistoryScreen() {
           <TouchableOpacity
             onPress={() => setIsPrinterModalVisible(true)}
             style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full ${
-              printer.connectedPrinter 
+              printer.isPrinterOffline
+                ? 'bg-rose-500/30 border border-rose-400'
+                : printer.paperWarning
+                ? 'bg-amber-500/30 border border-amber-400'
+                : printer.connectedPrinter 
                 ? 'bg-emerald-500/20 border border-emerald-400/50' 
                 : 'bg-white/10 border border-white/20'
             }`}
           >
             <Ionicons 
-              name={printer.connectedPrinter ? "print" : "print-outline"} 
+              name={
+                printer.isPrinterOffline
+                  ? "alert-circle"
+                  : printer.paperWarning
+                  ? "newspaper-outline"
+                  : printer.connectedPrinter
+                  ? "print"
+                  : "print-outline"
+              } 
               size={15} 
-              color={printer.connectedPrinter ? "#34d399" : "#cbd5e1"} 
+              color={
+                printer.isPrinterOffline
+                  ? "#fb7185"
+                  : printer.paperWarning
+                  ? "#fbbf24"
+                  : printer.connectedPrinter
+                  ? "#34d399"
+                  : "#cbd5e1"
+              } 
             />
             <View 
               style={tw`w-2 h-2 rounded-full ${
-                printer.connectedPrinter ? 'bg-emerald-400' : 'bg-amber-400'
+                printer.isPrinterOffline
+                  ? 'bg-rose-400'
+                  : printer.paperWarning
+                  ? 'bg-amber-400'
+                  : printer.connectedPrinter
+                  ? 'bg-emerald-400'
+                  : 'bg-amber-400'
               }`} 
             />
             <Text 
               style={tw`text-xs font-bold ${
-                printer.connectedPrinter ? 'text-emerald-300' : 'text-slate-200'
+                printer.isPrinterOffline
+                  ? 'text-rose-200'
+                  : printer.paperWarning
+                  ? 'text-amber-200'
+                  : printer.connectedPrinter
+                  ? 'text-emerald-300'
+                  : 'text-slate-200'
               } max-w-[85px]`}
               numberOfLines={1}
             >
-              {printer.connectedPrinter ? (printer.connectedPrinter.name || 'Printer') : 'Connect'}
+              {printer.isPrinterOffline
+                ? 'Offline'
+                : printer.paperWarning === 'out_or_jammed'
+                ? 'Paper Check'
+                : printer.paperWarning
+                ? 'Paper Low'
+                : printer.connectedPrinter
+                ? (printer.connectedPrinter.name || 'Printer')
+                : 'Connect'}
             </Text>
           </TouchableOpacity>
         }
@@ -303,6 +343,11 @@ export default function OperationHistoryScreen() {
         onTestPrint={printer.testPrint}
         onDisconnect={printer.disconnectPrinter}
         onReconnect={() => printer.reconnectPrinter()}
+        isPrinterOffline={printer.isPrinterOffline}
+        paperCount={printer.paperCount}
+        maxPaperCapacity={printer.maxPaperCapacity}
+        paperWarning={printer.paperWarning}
+        onResetPaperRoll={printer.resetPaperRoll}
       />
 
       {/* Tour Overlay */}

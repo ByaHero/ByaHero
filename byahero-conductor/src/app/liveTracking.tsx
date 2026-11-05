@@ -1222,34 +1222,144 @@ export default function LiveTrackingScreen() {
           <TouchableOpacity
             onPress={() => setIsPrinterModalVisible(true)}
             style={tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
-              printer.connectedPrinter 
+              printer.isPrinterOffline
+                ? 'bg-rose-500/30 border border-rose-400'
+                : printer.paperWarning
+                ? 'bg-amber-500/30 border border-amber-400'
+                : printer.connectedPrinter 
                 ? 'bg-emerald-500/20 border border-emerald-400/50' 
                 : 'bg-rose-500/20 border border-rose-400/50'
             }`}
           >
             <Ionicons 
-              name={printer.connectedPrinter ? "print" : "print-outline"} 
+              name={
+                printer.isPrinterOffline 
+                  ? "alert-circle" 
+                  : printer.paperWarning 
+                  ? "newspaper-outline" 
+                  : printer.connectedPrinter 
+                  ? "print" 
+                  : "print-outline"
+              } 
               size={13} 
-              color={printer.connectedPrinter ? "#34d399" : "#fb7185"} 
+              color={
+                printer.isPrinterOffline
+                  ? "#fb7185"
+                  : printer.paperWarning
+                  ? "#fbbf24"
+                  : printer.connectedPrinter
+                  ? "#34d399"
+                  : "#fb7185"
+              } 
             />
             <View 
               style={tw`w-1.5 h-1.5 rounded-full ${
-                printer.connectedPrinter ? 'bg-emerald-400' : 'bg-rose-400'
+                printer.isPrinterOffline
+                  ? 'bg-rose-400'
+                  : printer.paperWarning
+                  ? 'bg-amber-400'
+                  : printer.connectedPrinter
+                  ? 'bg-emerald-400'
+                  : 'bg-rose-400'
               }`} 
             />
             <Text 
               style={tw`text-[11px] font-bold ${
-                printer.connectedPrinter ? 'text-emerald-300' : 'text-rose-200'
-              } max-w-[65px]`}
+                printer.isPrinterOffline
+                  ? 'text-rose-200'
+                  : printer.paperWarning
+                  ? 'text-amber-200'
+                  : printer.connectedPrinter
+                  ? 'text-emerald-300'
+                  : 'text-rose-200'
+              } max-w-[70px]`}
               numberOfLines={1}
             >
-              {printer.connectedPrinter ? (printer.connectedPrinter.name || 'Printer') : 'Offline'}
+              {printer.isPrinterOffline
+                ? 'Offline'
+                : printer.paperWarning === 'out_or_jammed'
+                ? 'Paper Check'
+                : printer.paperWarning
+                ? 'Paper Low'
+                : printer.connectedPrinter
+                ? (printer.connectedPrinter.name || 'Printer')
+                : 'Offline'}
             </Text>
           </TouchableOpacity>
         }
         rightIcon={require('../../assets/images/icons/printer.svg')} 
         onRightIconPress={() => setIsInterimModalVisible(true)} 
       />
+
+      {/* Printer Offline Sudden Drop Warning Banner */}
+      {printer.connectedPrinter && printer.isPrinterOffline && !printer.offlineDismissed && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 bg-rose-50 border border-rose-300 rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+          <View style={tw`flex-row items-center flex-1 mr-2`}>
+            <View style={tw`w-8 h-8 rounded-xl bg-rose-500/10 items-center justify-center mr-2.5`}>
+              <Ionicons name="alert-circle" size={20} color="#e11d48" />
+            </View>
+            <View style={tw`flex-1`}>
+              <Text style={tw`text-xs font-black text-rose-900`}>Printer Went Offline</Text>
+              <Text style={tw`text-[11px] text-rose-700`}>Bluetooth link lost or printer turned off.</Text>
+            </View>
+          </View>
+          <View style={tw`flex-row items-center gap-1.5`}>
+            <TouchableOpacity
+              onPress={() => printer.reconnectPrinter()}
+              style={tw`px-3 py-1.5 bg-rose-600 rounded-xl`}
+            >
+              <Text style={tw`text-xs font-bold text-white`}>Reconnect</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => printer.dismissOfflineWarning()}
+              style={tw`p-1.5`}
+            >
+              <Ionicons name="close" size={16} color="#9f1239" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Low Paper / Paper Out Warning Banner */}
+      {printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 ${
+          printer.paperWarning === 'out_or_jammed' ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'
+        } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+          <View style={tw`flex-row items-center flex-1 mr-2`}>
+            <View style={tw`w-8 h-8 rounded-xl ${
+              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-500/10' : 'bg-amber-500/10'
+            } items-center justify-center mr-2.5`}>
+              <Ionicons
+                name="newspaper-outline"
+                size={18}
+                color={printer.paperWarning === 'out_or_jammed' ? '#e11d48' : '#d97706'}
+              />
+            </View>
+            <View style={tw`flex-1`}>
+              <Text style={tw`text-xs font-black ${
+                printer.paperWarning === 'out_or_jammed' ? 'text-rose-900' : 'text-amber-900'
+              }`}>
+                {printer.paperWarning === 'out_or_jammed' ? 'Check Paper / Cover Open' : 'Thermal Paper Low'}
+              </Text>
+              <Text style={tw`text-[11px] ${
+                printer.paperWarning === 'out_or_jammed' ? 'text-rose-700' : 'text-amber-800'
+              }`}>
+                {printer.paperWarning === 'out_or_jammed'
+                  ? 'Printer stopped feeding paper or cover is open.'
+                  : `~${printer.paperCount}/${printer.maxPaperCapacity} tickets printed. Have a spare 58mm roll ready.`}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => printer.resetPaperRoll()}
+            style={tw`px-2.5 py-1.5 ${
+              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-600' : 'bg-amber-600'
+            } rounded-xl`}
+          >
+            <Text style={tw`text-[11px] font-bold text-white`}>New Roll</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Map Segment */}
       <View style={tw`flex-1 p-4`}>
@@ -1276,25 +1386,65 @@ export default function LiveTrackingScreen() {
               onPress={() => setIsPrinterModalVisible(true)}
               activeOpacity={0.85}
               style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 shadow-md border ${
-                printer.connectedPrinter ? 'border-emerald-200' : 'border-rose-200'
+                printer.isPrinterOffline
+                  ? 'border-rose-400 bg-rose-50/95'
+                  : printer.paperWarning
+                  ? 'border-amber-400 bg-amber-50/95'
+                  : printer.connectedPrinter
+                  ? 'border-emerald-200'
+                  : 'border-rose-200'
               }`}
             >
               <Ionicons 
-                name="print" 
+                name={
+                  printer.isPrinterOffline
+                    ? 'alert-circle'
+                    : printer.paperWarning
+                    ? 'newspaper-outline'
+                    : 'print'
+                } 
                 size={14} 
-                color={printer.connectedPrinter ? '#059669' : '#e11d48'} 
+                color={
+                  printer.isPrinterOffline
+                    ? '#e11d48'
+                    : printer.paperWarning
+                    ? '#d97706'
+                    : printer.connectedPrinter
+                    ? '#059669'
+                    : '#e11d48'
+                } 
               />
               <View 
                 style={tw`w-2 h-2 rounded-full ${
-                  printer.connectedPrinter ? 'bg-emerald-500' : 'bg-rose-500'
+                  printer.isPrinterOffline
+                    ? 'bg-rose-500'
+                    : printer.paperWarning
+                    ? 'bg-amber-500'
+                    : printer.connectedPrinter
+                    ? 'bg-emerald-500'
+                    : 'bg-rose-500'
                 }`} 
               />
               <Text 
                 style={tw`text-[11px] font-bold ${
-                  printer.connectedPrinter ? 'text-emerald-700' : 'text-rose-600'
+                  printer.isPrinterOffline
+                    ? 'text-rose-700'
+                    : printer.paperWarning
+                    ? 'text-amber-800'
+                    : printer.connectedPrinter
+                    ? 'text-emerald-700'
+                    : 'text-rose-600'
                 }`}
               >
-                {printer.connectedPrinter ? (printer.connectedPrinter.name || 'Printer Ready') : 'Printer Offline • Tap to Connect'}
+                {printer.isPrinterOffline
+                  ? '⚠️ Printer Offline • Tap to Reconnect'
+                  : printer.paperWarning === 'out_or_jammed'
+                  ? '⚠️ Check Paper / Cover Open'
+                  : printer.paperWarning
+                  ? `📄 Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)`
+                  : printer.connectedPrinter
+                  ? (printer.connectedPrinter.name || 'Printer Ready')
+                  : 'Printer Offline • Tap to Connect'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -1685,35 +1835,86 @@ export default function LiveTrackingScreen() {
               </View>
 
               {/* Printer Status in Ticket Preview */}
-              <View style={tw`flex-row items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 mt-4`}>
-                <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
-                  <Ionicons 
-                    name={printer.connectedPrinter ? "print" : "print-outline"} 
-                    size={16} 
-                    color={printer.connectedPrinter ? "#059669" : "#e11d48"} 
-                  />
-                  <Text style={tw`text-xs font-bold ${printer.connectedPrinter ? 'text-emerald-700' : 'text-rose-600'}`} numberOfLines={1}>
-                    {printer.connectedPrinter ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` : 'Printer Disconnected'}
-                  </Text>
-                </View>
-                <View style={tw`flex-row items-center gap-1.5`}>
-                  {printer.connectedPrinter && (
-                    <TouchableOpacity
-                      onPress={() => printer.reconnectPrinter()}
-                      style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
+              <View style={tw`bg-slate-50 border border-slate-200 rounded-xl p-3 mt-4`}>
+                <View style={tw`flex-row items-center justify-between`}>
+                  <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
+                    <Ionicons 
+                      name={
+                        printer.isPrinterOffline 
+                          ? "alert-circle" 
+                          : printer.paperWarning 
+                          ? "newspaper-outline" 
+                          : printer.connectedPrinter 
+                          ? "print" 
+                          : "print-outline"
+                      } 
+                      size={16} 
+                      color={
+                        printer.isPrinterOffline 
+                          ? "#e11d48" 
+                          : printer.paperWarning 
+                          ? "#d97706" 
+                          : printer.connectedPrinter 
+                          ? "#059669" 
+                          : "#e11d48"
+                      } 
+                    />
+                    <Text 
+                      style={tw`text-xs font-bold ${
+                        printer.isPrinterOffline 
+                          ? 'text-rose-700' 
+                          : printer.paperWarning 
+                          ? 'text-amber-800' 
+                          : printer.connectedPrinter 
+                          ? 'text-emerald-700' 
+                          : 'text-rose-600'
+                      }`} 
+                      numberOfLines={1}
                     >
-                      <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
-                    </TouchableOpacity>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => setIsPrinterModalVisible(true)}
-                    style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
-                  >
-                    <Text style={tw`text-[11px] font-bold text-blue-700`}>
-                      {printer.connectedPrinter ? 'Change' : 'Connect'}
+                      {printer.isPrinterOffline 
+                        ? 'Printer Offline / Dropped' 
+                        : printer.paperWarning === 'out_or_jammed' 
+                        ? 'Check Paper / Cover Open' 
+                        : printer.paperWarning 
+                        ? `Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)` 
+                        : printer.connectedPrinter 
+                        ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` 
+                        : 'Printer Disconnected'}
                     </Text>
-                  </TouchableOpacity>
+                  </View>
+                  <View style={tw`flex-row items-center gap-1.5`}>
+                    {printer.connectedPrinter && (
+                      <TouchableOpacity
+                        onPress={() => printer.reconnectPrinter()}
+                        style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
+                      >
+                        <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => setIsPrinterModalVisible(true)}
+                      style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
+                    >
+                      <Text style={tw`text-[11px] font-bold text-blue-700`}>
+                        {printer.connectedPrinter ? 'Change' : 'Connect'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
+
+                {/* Warning note inside ticket preview */}
+                {printer.isPrinterOffline && (
+                  <Text style={tw`text-[10px] text-rose-600 font-bold mt-1.5`}>
+                    ⚠️ Printer connection is lost. Tap "Refresh Link" or turn on printer before pressing Print.
+                  </Text>
+                )}
+                {!printer.isPrinterOffline && printer.paperWarning && (
+                  <Text style={tw`text-[10px] text-amber-700 font-medium mt-1.5`}>
+                    {printer.paperWarning === 'out_or_jammed' 
+                      ? '⚠️ Printer stopped feeding paper. Inspect roll before continuing.' 
+                      : '📄 Roll running low: keep a replacement thermal roll ready.'}
+                  </Text>
+                )}
               </View>
 
               {/* Close / Print Button */}
@@ -1917,6 +2118,11 @@ export default function LiveTrackingScreen() {
         onTestPrint={printer.testPrint}
         onDisconnect={printer.disconnectPrinter}
         onReconnect={() => printer.reconnectPrinter()}
+        isPrinterOffline={printer.isPrinterOffline}
+        paperCount={printer.paperCount}
+        maxPaperCapacity={printer.maxPaperCapacity}
+        paperWarning={printer.paperWarning}
+        onResetPaperRoll={printer.resetPaperRoll}
       />
 
       {/* Tour Overlay */}
