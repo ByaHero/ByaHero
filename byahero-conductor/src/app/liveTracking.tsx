@@ -990,7 +990,18 @@ export default function LiveTrackingScreen() {
         realTicketNumber = res.ticket_number;
         setTicketCounter(parseInt(realTicketNumber, 10) + 1);
       } else {
-        throw new Error(res?.error || 'Failed to sync ticket with database.');
+        console.warn('Network unavailable for live ticket sync, using offline ticket:', res?.error);
+        realTicketNumber = String(ticketCounter).padStart(5, '0');
+        setTicketCounter(prev => prev + 1);
+        try {
+          const offlineTickets = JSON.parse(await AsyncStorage.getItem('byahero_offline_pending_tickets') || '[]');
+          offlineTickets.push({
+            ...payload,
+            offline_ticket_number: realTicketNumber,
+            created_at: new Date().toISOString()
+          });
+          await AsyncStorage.setItem('byahero_offline_pending_tickets', JSON.stringify(offlineTickets));
+        } catch (_) {}
       }
 
       let remainingToDeduct = ticketQuantity;

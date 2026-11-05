@@ -100,7 +100,7 @@ export default function LoginScreen() {
   // Custom Auth Response Modal state
   const [authModalConfig, setAuthModalConfig] = useState<{
     visible: boolean;
-    type: 'success' | 'error';
+    type: 'success' | 'error' | 'info';
     title: string;
     message: string;
     targetRoute?: string;

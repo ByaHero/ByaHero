@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,7 +11,8 @@ import {
   StyleSheet,
   Platform,
   Linking,
-  NativeModules
+  NativeModules,
+  RefreshControl
 } from 'react-native';
 
 const { LocationServiceModule } = NativeModules;
@@ -26,7 +27,15 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl, logout } from '../services/authService';
 import ConductorNavbar from '../components/ConductorNavbar';
-import { getBusesConductor, getActiveBuses, startOperation } from '../services/conductorService';
+import { 
+  getBusesConductor, 
+  getActiveBuses, 
+  startOperation,
+  getLocalCachedBuses,
+  saveBusesToCache,
+  saveLastSelectedBus,
+  getLastSelectedBus
+} from '../services/conductorService';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
@@ -40,6 +49,13 @@ export default function DashboardScreen() {
   const [paxCount, setPaxCount] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
   const [ticketingMode, setTicketingMode] = useState<'Manual' | 'Automatic'>('Manual');
+
+  // Fleet Caching & Network Status
+  const [fleetSource, setFleetSource] = useState<'live' | 'cache' | 'fleet_bundle'>('fleet_bundle');
+  const [isOfflineFleet, setIsOfflineFleet] = useState(false);
+  const [isRefreshingFleet, setIsRefreshingFleet] = useState(false);
+  const [busSearchQuery, setBusSearchQuery] = useState('');
+  const [busFilterTab, setBusFilterTab] = useState<'ALL' | 'TANAUAN' | 'LAUREL'>('ALL');
 
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
@@ -97,19 +113,71 @@ export default function DashboardScreen() {
     }
   };
 
-  const loadSetupData = async () => {
-    setIsLoading(true);
+  const loadSetupData = async (forceUserFeedback = false) => {
+    // 1. Instantly load local cache or bundled fleet so conductor NEVER sees an empty screen
+    try {
+      const local = await getLocalCachedBuses();
+      if (local && Array.isArray(local.buses) && local.buses.length > 0) {
+        setBuses(local.buses);
+        setFleetSource(local.source as 'cache' | 'fleet_bundle' | 'live');
+        setIsOfflineFleet(local.source !== 'cache');
+      }
+
+      // Restore last selected bus if available
+      const lastBus = await getLastSelectedBus();
+      if (lastBus && !selectedBus) {
+        const found = local.buses.find((b: any) => (b.id || b.Bus_ID) === (lastBus.id || lastBus.Bus_ID));
+        if (found) {
+          setSelectedBus(found);
+        } else {
+          setSelectedBus(lastBus);
+        }
+      }
+    } catch (e) {
+      console.warn('Error hydrating local fleet:', e);
+    }
+
+    // 2. Fetch fresh live buses in the background
+    setIsRefreshingFleet(true);
     try {
       const res = await getBusesConductor();
-      if (res.success && res.buses) {
+      if (res && res.success && Array.isArray(res.buses) && res.buses.length > 0) {
         setBuses(res.buses);
+        await saveBusesToCache(res.buses);
+        setFleetSource('live');
+        setIsOfflineFleet(false);
+
+        // Keep or sync selected bus with live properties
+        if (selectedBus) {
+          const match = res.buses.find((b: any) => (b.id || b.Bus_ID) === (selectedBus.id || selectedBus.Bus_ID));
+          if (match) setSelectedBus(match);
+        }
+
+        if (forceUserFeedback) {
+          showAlert('Fleet Synchronized', 'Updated active bus units from live database.', 'success');
+        }
+      } else {
+        // Backend unreachable or returned empty; keep local cached fleet
+        setIsOfflineFleet(true);
+        if (forceUserFeedback) {
+          showAlert('Offline Fleet', res?.error || 'Database currently unreachable. Displaying cached bus fleet.', 'warning');
+        }
       }
       await fetchLiveBusesForMap();
-    } catch (e) {
-      console.error(e);
+    } catch (e: any) {
+      console.warn('Live bus fetch error; preserving cached fleet:', e);
+      setIsOfflineFleet(true);
+      if (forceUserFeedback) {
+        showAlert('Offline Fleet', 'Network connection unavailable. Using cached bus units.', 'warning');
+      }
     } finally {
+      setIsRefreshingFleet(false);
       setIsLoading(false);
     }
+  };
+
+  const handleManualFleetRefresh = () => {
+    loadSetupData(true);
   };
 
   const fetchLiveBusesForMap = async () => {
@@ -282,12 +350,11 @@ export default function DashboardScreen() {
     const boardingCount = parseInt(paxCount) || 0;
     const seatsTotal = selectedBus.total_seats || 25;
 
-    // Note: boarding count is allowed to exceed seats_total for analytics tracking purposes
     setIsLoading(true);
     setIsPreDepartureVisible(false);
 
     try {
-      const startLocName = 'Terminal'; // Default starter loc name
+      const startLocName = 'Terminal';
       const res = await startOperation({
         bus_id: selectedBus.id || selectedBus.Bus_ID,
         route: selectedRoute,
@@ -295,54 +362,125 @@ export default function DashboardScreen() {
         start_location: startLocName
       });
 
-      if (res.success && res.operation_id) {
-        const initialAvailable = Math.max(0, seatsTotal - boardingCount);
-        const payload = {
-          bus_id: String(selectedBus.id || selectedBus.Bus_ID),
-          code: selectedBus.code || `BUS-${selectedBus.id}`,
-          seats_total: seatsTotal,
-          route: selectedRoute,
-          initial_available_seats: initialAvailable,
-          current_seats: initialAvailable,
-          current_boarded: boardingCount,
-          pending_pre_departure: ticketingMode === 'Automatic' ? boardingCount : 0,
-          pre_departure_count: boardingCount,
-          operation_id: res.operation_id,
-          ticketing_mode: ticketingMode,
-          is_new_session: true
-        };
+      let operationId = res?.operation_id;
+      let isOfflineSession = false;
 
-        if (Platform.OS === 'android' && LocationServiceModule) {
+      // Handle offline or unreachable network gracefully
+      if (!res?.success || !operationId) {
+        const isNetworkIssue = res?.isTimeout || !res?.success;
+        if (isNetworkIssue) {
+          operationId = `offline_op_${Date.now()}`;
+          isOfflineSession = true;
           try {
-            LocationServiceModule.updateSessionData({
-              bus_id: String(selectedBus.id || selectedBus.Bus_ID),
-              code: selectedBus.code || `BUS-${selectedBus.id}`,
+            const pendingStarts = JSON.parse(await AsyncStorage.getItem('byahero_offline_pending_starts') || '[]');
+            pendingStarts.push({
+              bus_id: selectedBus.id || selectedBus.Bus_ID,
               route: selectedRoute,
-              seats_total: seatsTotal,
-              seats_available: initialAvailable,
-              force_seats: true
+              pre_departure_count: boardingCount,
+              start_location: startLocName,
+              offline_id: operationId,
+              started_at: new Date().toISOString()
             });
+            await AsyncStorage.setItem('byahero_offline_pending_starts', JSON.stringify(pendingStarts));
           } catch (_) {}
+        } else {
+          showAlert('Dispatch Notice', res?.error || 'Could not verify bus assignment with server.', 'warning');
+          setIsLoading(false);
+          return;
         }
-
-        await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
-        setPaxCount('');
-        router.replace('/liveTracking');
-      } else {
-        showAlert('Dispatch Failed', res.error || 'Failed to start transit tracking.', 'error');
       }
+
+      const initialAvailable = Math.max(0, seatsTotal - boardingCount);
+      const payload = {
+        bus_id: String(selectedBus.id || selectedBus.Bus_ID),
+        code: selectedBus.code || `BUS-${selectedBus.id}`,
+        seats_total: seatsTotal,
+        route: selectedRoute,
+        initial_available_seats: initialAvailable,
+        current_seats: initialAvailable,
+        current_boarded: boardingCount,
+        pending_pre_departure: ticketingMode === 'Automatic' ? boardingCount : 0,
+        pre_departure_count: boardingCount,
+        operation_id: operationId,
+        is_offline_session: isOfflineSession,
+        ticketing_mode: ticketingMode,
+        is_new_session: true
+      };
+
+      if (Platform.OS === 'android' && LocationServiceModule) {
+        try {
+          LocationServiceModule.updateSessionData({
+            bus_id: String(selectedBus.id || selectedBus.Bus_ID),
+            code: selectedBus.code || `BUS-${selectedBus.id}`,
+            route: selectedRoute,
+            seats_total: seatsTotal,
+            seats_available: initialAvailable,
+            force_seats: true
+          });
+        } catch (_) {}
+      }
+
+      await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
+      setPaxCount('');
+      router.replace('/liveTracking');
     } catch (e: any) {
-      showAlert('Network Error', e.message || 'Could not connect to the server.', 'error');
+      // Offline fallback even on unexpected client exception
+      const offlineOpId = `offline_op_${Date.now()}`;
+      const payload = {
+        bus_id: String(selectedBus.id || selectedBus.Bus_ID),
+        code: selectedBus.code || `BUS-${selectedBus.id}`,
+        seats_total: seatsTotal,
+        route: selectedRoute,
+        initial_available_seats: Math.max(0, seatsTotal - boardingCount),
+        current_seats: Math.max(0, seatsTotal - boardingCount),
+        current_boarded: boardingCount,
+        pending_pre_departure: ticketingMode === 'Automatic' ? boardingCount : 0,
+        pre_departure_count: boardingCount,
+        operation_id: offlineOpId,
+        is_offline_session: true,
+        ticketing_mode: ticketingMode,
+        is_new_session: true
+      };
+      await AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(payload));
+      setPaxCount('');
+      router.replace('/liveTracking');
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Filtered bus list for the modal with tab and search support
+  const filteredBuses = useMemo(() => {
+    return buses.filter(bus => {
+      const code = (bus.code || `BUS-${bus.id || bus.Bus_ID || ''}`).toUpperCase();
+      // Tab filter
+      if (busFilterTab === 'TANAUAN' && !code.startsWith('T-')) return false;
+      if (busFilterTab === 'LAUREL' && !code.startsWith('L-')) return false;
+      // Search filter
+      if (busSearchQuery.trim()) {
+        const query = busSearchQuery.trim().toUpperCase();
+        const seats = String(bus.total_seats || 25);
+        return code.includes(query) || seats.includes(query);
+      }
+      return true;
+    });
+  }, [buses, busFilterTab, busSearchQuery]);
+
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar title="Dashboard" />
 
-      <ScrollView contentContainerStyle={tw`p-5`} style={tw`flex-1`}>
+      <ScrollView 
+        contentContainerStyle={tw`p-5`} 
+        style={tw`flex-1`}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isRefreshingFleet} 
+            onRefresh={() => loadSetupData(true)} 
+            colors={['#1D5CAE']} 
+          />
+        }
+      >
         {/* Top Actions: Filter Button */}
         <View style={tw`flex-row justify-center mb-3`}>
           <TouchableOpacity
@@ -415,18 +553,45 @@ export default function DashboardScreen() {
 
           {/* Active Bus Select */}
           <View ref={selectBusRef} onLayout={() => handleTourLayout('select-bus', selectBusRef)} style={tw`mb-5`}>
-            <Text style={tw`text-[10px] font-bold text-slate-500 uppercase mb-2 tracking-wider`}>ACTIVE BUS UNIT</Text>
+            <View style={tw`flex-row justify-between items-center mb-2`}>
+              <Text style={tw`text-[10px] font-bold text-slate-500 uppercase tracking-wider`}>ACTIVE BUS UNIT</Text>
+              {isOfflineFleet ? (
+                <View style={tw`flex-row items-center gap-1`}>
+                  <View style={tw`w-2 h-2 rounded-full bg-amber-500`} />
+                  <Text style={tw`text-[10px] font-semibold text-amber-600`}>Cached Fleet</Text>
+                </View>
+              ) : (
+                <View style={tw`flex-row items-center gap-1`}>
+                  <View style={tw`w-2 h-2 rounded-full bg-emerald-500`} />
+                  <Text style={tw`text-[10px] font-semibold text-emerald-600`}>Live Fleet</Text>
+                </View>
+              )}
+            </View>
             <View>
               <TouchableOpacity
                 onPress={() => setIsBusDropdownOpen(true)}
                 style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
               >
-                <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-900'}`}>
-                  {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus'}
-                </Text>
-                <Ionicons name="caret-down" size={16} color="#1e293b" />
+                <View style={tw`flex-row items-center gap-2.5 flex-1`}>
+                  <Ionicons name="bus-outline" size={18} color={selectedBus ? '#1D5CAE' : '#64748b'} />
+                  <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
+                    {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
+                  </Text>
+                </View>
+                <Ionicons name="chevron-down" size={16} color="#64748b" />
               </TouchableOpacity>
             </View>
+            {isOfflineFleet && (
+              <View style={tw`flex-row items-center justify-between mt-1.5 px-1`}>
+                <Text style={tw`text-[11px] text-amber-700 font-medium`}>
+                  Database unreachable • Cached fleet ({buses.length} units ready)
+                </Text>
+                <TouchableOpacity onPress={handleManualFleetRefresh} disabled={isRefreshingFleet} style={tw`flex-row items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50`}>
+                  <Ionicons name="refresh" size={11} color="#b45309" />
+                  <Text style={tw`text-[10px] font-bold text-amber-700`}>{isRefreshingFleet ? 'Retrying...' : 'Retry'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
 
           {/* Scheduled Route Select */}
@@ -437,7 +602,7 @@ export default function DashboardScreen() {
                 onPress={() => setIsRouteDropdownOpen(true)}
                 style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
               >
-                <Text style={tw`text-sm font-bold ${selectedRoute ? 'text-slate-900' : 'text-slate-900'}`}>
+                <Text style={tw`text-sm font-bold ${selectedRoute ? 'text-slate-900' : 'text-slate-500'}`}>
                   {selectedRoute || 'Select Route'}
                 </Text>
                 <Ionicons name="caret-down" size={16} color="#1e293b" />
@@ -487,35 +652,162 @@ export default function DashboardScreen() {
         </View>
       </ScrollView>
 
-      {/* Select Bus Modal */}
+      {/* Select Bus Modal with Search, Tabs, and Offline Resilience */}
       <Modal visible={isBusDropdownOpen} transparent animationType="fade">
-        <View style={tw`flex-1 justify-center bg-black/50 px-6`}>
-          <View style={tw`bg-white rounded-3xl p-5 border border-slate-200 max-h-[350px]`}>
-            <Text style={tw`text-slate-800 font-bold mb-4`}>Select Active Bus</Text>
-            <ScrollView>
-              {buses.map((bus: any) => {
+        <View style={tw`flex-1 justify-center bg-black/50 px-5`}>
+          <View style={tw`bg-white rounded-3xl p-5 border border-slate-200 max-h-[82%]`}>
+            {/* Modal Header */}
+            <View style={tw`flex-row items-center justify-between pb-3 border-b border-slate-100`}>
+              <View>
+                <Text style={tw`text-base font-black text-slate-800 tracking-tight`}>Select Active Bus</Text>
+                <Text style={tw`text-[11px] text-slate-500 font-medium`}>
+                  {isOfflineFleet ? 'Offline Mode • Displaying cached fleet' : 'Choose unassigned bus unit'}
+                </Text>
+              </View>
+              <View style={tw`flex-row items-center gap-2`}>
+                <TouchableOpacity 
+                  onPress={handleManualFleetRefresh} 
+                  disabled={isRefreshingFleet}
+                  style={tw`p-2 rounded-xl bg-slate-100 active:bg-slate-200`}
+                >
+                  <Ionicons name="refresh" size={16} color={isRefreshingFleet ? '#94a3b8' : '#1e293b'} />
+                </TouchableOpacity>
+                <TouchableOpacity 
+                  onPress={() => setIsBusDropdownOpen(false)}
+                  style={tw`p-2 rounded-xl bg-slate-100 active:bg-slate-200`}
+                >
+                  <Ionicons name="close" size={16} color="#1e293b" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Offline Notification Banner */}
+            {isOfflineFleet && (
+              <View style={tw`flex-row items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3`}>
+                <Ionicons name="cloud-offline-outline" size={16} color="#d97706" />
+                <Text style={tw`text-[11px] text-amber-800 font-medium flex-1`}>
+                  Showing cached fleet. You can select any unit to proceed with your shift.
+                </Text>
+              </View>
+            )}
+
+            {/* Corridor Tabs */}
+            <View style={tw`flex-row gap-1.5 mt-3 mb-2 bg-slate-100 p-1 rounded-xl`}>
+              {(['ALL', 'TANAUAN', 'LAUREL'] as const).map(tab => {
+                const isActive = busFilterTab === tab;
+                const label = tab === 'ALL' ? `All (${buses.length})` : tab === 'TANAUAN' ? 'Tanauan (T-)' : 'Laurel (L-)';
+                return (
+                  <TouchableOpacity
+                    key={tab}
+                    onPress={() => setBusFilterTab(tab)}
+                    style={tw`flex-1 py-1.5 rounded-lg items-center ${isActive ? 'bg-white shadow-sm' : ''}`}
+                  >
+                    <Text style={tw`text-[11px] font-bold ${isActive ? 'text-[#1D5CAE]' : 'text-slate-500'}`}>
+                      {label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Search Input */}
+            <View style={tw`flex-row items-center bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 mb-3`}>
+              <Ionicons name="search" size={15} color="#94a3b8" style={tw`mr-2`} />
+              <TextInput
+                value={busSearchQuery}
+                onChangeText={setBusSearchQuery}
+                placeholder="Search bus (e.g. 05, T-00001)..."
+                placeholderTextColor="#94a3b8"
+                style={tw`flex-1 text-xs text-slate-800 font-semibold p-0`}
+              />
+              {busSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setBusSearchQuery('')}>
+                  <Ionicons name="close-circle" size={15} color="#94a3b8" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Bus Items List */}
+            <ScrollView style={tw`flex-1`} showsVerticalScrollIndicator={false}>
+              {filteredBuses.map((bus: any) => {
                 const id = bus.id || bus.Bus_ID;
                 const code = bus.code || `BUS-${id}`;
+                const isSelected = selectedBus && (selectedBus.id || selectedBus.Bus_ID) === id;
+                const isAvailable = bus.status === 'available' || !bus.status;
+
                 return (
                   <TouchableOpacity
                     key={id}
                     onPress={() => {
                       setSelectedBus(bus);
+                      saveLastSelectedBus(bus);
                       setIsBusDropdownOpen(false);
                     }}
-                    style={tw`py-3 border-b border-slate-100 flex-row justify-between`}
+                    style={tw`py-3 px-3 border-b border-slate-100 flex-row justify-between items-center rounded-xl ${
+                      isSelected ? 'bg-blue-50/70 border-blue-200' : 'active:bg-slate-50'
+                    }`}
                   >
-                    <Text style={tw`font-semibold text-slate-700`}>{code}</Text>
-                    <Text style={tw`text-xs text-slate-400`}>{bus.total_seats} seats</Text>
+                    <View style={tw`flex-row items-center gap-2.5`}>
+                      <View style={tw`w-8 h-8 rounded-lg items-center justify-center ${isSelected ? 'bg-[#1D5CAE]' : 'bg-slate-100'}`}>
+                        <Ionicons name="bus" size={16} color={isSelected ? '#ffffff' : '#64748b'} />
+                      </View>
+                      <View>
+                        <Text style={tw`font-bold text-xs ${isSelected ? 'text-[#1D5CAE]' : 'text-slate-800'}`}>
+                          {code}
+                        </Text>
+                        <Text style={tw`text-[10px] text-slate-400 font-medium`}>
+                          Modern Jeep • {bus.total_seats || 25} seats
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={tw`flex-row items-center gap-2`}>
+                      {isOfflineFleet ? (
+                        <View style={tw`px-2 py-0.5 rounded-full bg-slate-100`}>
+                          <Text style={tw`text-[9px] font-bold text-slate-500`}>Fleet Unit</Text>
+                        </View>
+                      ) : isAvailable ? (
+                        <View style={tw`px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200`}>
+                          <Text style={tw`text-[9px] font-bold text-emerald-700`}>Available</Text>
+                        </View>
+                      ) : (
+                        <View style={tw`px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200`}>
+                          <Text style={tw`text-[9px] font-bold text-amber-700`}>In Service</Text>
+                        </View>
+                      )}
+
+                      {isSelected && (
+                        <Ionicons name="checkmark-circle" size={18} color="#1D5CAE" />
+                      )}
+                    </View>
                   </TouchableOpacity>
                 );
               })}
-              {buses.length === 0 && (
-                <Text style={tw`text-slate-400 text-xs py-4 text-center`}>No unassigned buses available</Text>
+
+              {filteredBuses.length === 0 && (
+                <View style={tw`py-8 items-center justify-center`}>
+                  <Ionicons name="alert-circle-outline" size={32} color="#cbd5e1" />
+                  <Text style={tw`text-slate-500 text-xs font-semibold mt-2`}>
+                    {busSearchQuery ? `No buses matching "${busSearchQuery}"` : 'No buses found in this tab'}
+                  </Text>
+                  {busSearchQuery ? (
+                    <TouchableOpacity onPress={() => setBusSearchQuery('')} style={tw`mt-2`}>
+                      <Text style={tw`text-xs text-blue-600 font-bold`}>Clear search</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity onPress={handleManualFleetRefresh} style={tw`mt-2 px-3 py-1.5 rounded-xl bg-blue-50`}>
+                      <Text style={tw`text-xs text-[#1D5CAE] font-bold`}>Refresh Fleet</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               )}
             </ScrollView>
-            <TouchableOpacity onPress={() => setIsBusDropdownOpen(false)} style={tw`mt-4 bg-slate-100 rounded-xl py-2.5 items-center`}>
-              <Text style={tw`text-slate-700 font-bold`}>Close</Text>
+
+            <TouchableOpacity 
+              onPress={() => setIsBusDropdownOpen(false)} 
+              style={tw`mt-3 bg-slate-100 active:bg-slate-200 rounded-xl py-3 items-center`}
+            >
+              <Text style={tw`text-slate-700 font-bold text-xs`}>Close</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -712,6 +1004,17 @@ export default function DashboardScreen() {
         />
       )}
 
+      {/* Standard Alert Modal */}
+      <AlertModal
+        visible={alertConfig.visible}
+        title={alertConfig.title}
+        message={alertConfig.message}
+        type={alertConfig.type}
+        confirmText={alertConfig.confirmText}
+        cancelText={alertConfig.cancelText}
+        onConfirm={alertConfig.onConfirm}
+        onCancel={alertConfig.onCancel}
+      />
     </SafeAreaView>
   );
 }

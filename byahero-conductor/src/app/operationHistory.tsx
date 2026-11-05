@@ -6,7 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -106,7 +107,17 @@ export default function OperationHistoryScreen() {
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar title="Operation History" />
 
-      <ScrollView contentContainerStyle={tw`p-5 pb-10`} style={tw`flex-1`}>
+      <ScrollView 
+        contentContainerStyle={tw`p-5 pb-10`} 
+        style={tw`flex-1`}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isLoading} 
+            onRefresh={fetchHistory} 
+            colors={['#0f3878']} 
+          />
+        }
+      >
         <View 
           ref={historyHeaderRef} 
           onLayout={() => handleTourLayout('history-header', historyHeaderRef)} 
