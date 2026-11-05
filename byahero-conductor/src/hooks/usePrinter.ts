@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Alert, PermissionsAndroid, Platform } from 'react-native';
+import { Alert, PermissionsAndroid, Platform, AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BLEPrinter: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -18,15 +20,131 @@ export interface IPrinterDevice {
   macAddress: string;
 }
 
+export const CONNECTED_PRINTER_STORAGE_KEY = 'byahero_connected_printer';
+export const PAPER_ROLL_COUNT_STORAGE_KEY = 'byahero_printer_roll_count';
+export const DEFAULT_ROLL_CAPACITY = 65; // Average tickets per standard 58mm thermal roll
+export const LOW_PAPER_THRESHOLD = 50;  // Threshold for low paper warning (approx 75-80%)
+
 export function usePrinter() {
   const [devices, setDevices] = useState<IPrinterDevice[]>([]);
   const [pairedDevices, setPairedDevices] = useState<IPrinterDevice[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [connectedPrinter, setConnectedPrinter] = useState<IPrinterDevice | null>(null);
 
+  // Live Connection & Offline Health State
+  const [isPrinterOffline, setIsPrinterOffline] = useState(false);
+  const [offlineDismissed, setOfflineDismissed] = useState(false);
+
+  // Paper Roll Status State
+  const [paperCount, setPaperCount] = useState(0);
+  const [paperWarning, setPaperWarning] = useState<'low' | 'critical_low' | 'out_or_jammed' | null>(null);
+
   useEffect(() => {
-    BLEPrinter.init().catch(console.warn);
+    if (BLEPrinter && BLEPrinter.init) {
+      BLEPrinter.init().catch(console.warn);
+    }
+
+    // Restore saved connected printer across screens
+    AsyncStorage.getItem(CONNECTED_PRINTER_STORAGE_KEY).then(raw => {
+      if (raw) {
+        try {
+          const device = JSON.parse(raw);
+          if (device && device.macAddress) {
+            setConnectedPrinter(device);
+            if (Platform.OS === 'android' && BLEPrinter && BLEPrinter.connectPrinter) {
+              BLEPrinter.connectPrinter(device.macAddress).catch((e: any) => {
+                console.warn('Silent auto-reconnect printer note:', e?.message || e);
+                setIsPrinterOffline(true);
+              });
+            }
+          }
+        } catch (_) {}
+      }
+    }).catch(console.warn);
+
+    // Restore tracked paper roll count
+    AsyncStorage.getItem(PAPER_ROLL_COUNT_STORAGE_KEY).then(raw => {
+      if (raw) {
+        const count = parseInt(raw, 10);
+        if (!isNaN(count)) {
+          setPaperCount(count);
+          if (count >= DEFAULT_ROLL_CAPACITY) {
+            setPaperWarning('critical_low');
+          } else if (count >= LOW_PAPER_THRESHOLD) {
+            setPaperWarning('low');
+          }
+        }
+      }
+    }).catch(console.warn);
+
+    // Watch for app coming back from background (ghost connection prevention & health probe)
+    const sub = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        AsyncStorage.getItem(CONNECTED_PRINTER_STORAGE_KEY).then(raw => {
+          if (raw) {
+            try {
+              const device = JSON.parse(raw);
+              if (device && device.macAddress) {
+                setConnectedPrinter(device);
+                // Health probe when waking from background
+                if (BLEPrinter && BLEPrinter.init) {
+                  BLEPrinter.init().catch(() => {
+                    setIsPrinterOffline(true);
+                  });
+                }
+              }
+            } catch (_) {}
+          }
+        }).catch(console.warn);
+      }
+    });
+
+    return () => sub.remove();
   }, []);
+
+  // Periodic health check every 15s when a printer is configured
+  useEffect(() => {
+    if (!connectedPrinter) return;
+
+    const interval = setInterval(() => {
+      if (BLEPrinter && BLEPrinter.init) {
+        BLEPrinter.init().catch(() => {
+          setIsPrinterOffline(true);
+          setOfflineDismissed(false);
+        });
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [connectedPrinter]);
+
+  const recordPrintedTickets = async (addedTickets = 1) => {
+    setPaperCount(prev => {
+      const updated = prev + addedTickets;
+      AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, String(updated)).catch(console.warn);
+      if (updated >= DEFAULT_ROLL_CAPACITY) {
+        setPaperWarning('critical_low');
+      } else if (updated >= LOW_PAPER_THRESHOLD) {
+        setPaperWarning('low');
+      }
+      return updated;
+    });
+  };
+
+  const resetPaperRoll = async () => {
+    try {
+      await AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, '0');
+      setPaperCount(0);
+      setPaperWarning(null);
+      Alert.alert('Paper Roll Reset', 'Thermal paper roll counter reset to 0. A fresh roll is now being tracked.');
+    } catch (e) {
+      console.warn('Failed to reset paper roll count:', e);
+    }
+  };
+
+  const dismissOfflineWarning = () => {
+    setOfflineDismissed(true);
+  };
 
   const requestPermissions = async () => {
     if (Platform.OS === 'android') {
@@ -51,6 +169,9 @@ export function usePrinter() {
 
     setIsScanning(true);
     try {
+      if (!BLEPrinter || !BLEPrinter.init) {
+        throw new Error('Bluetooth printer service is not available on this platform.');
+      }
       await BLEPrinter.init();
       const scanned = await BLEPrinter.getDeviceList();
       
@@ -60,10 +181,10 @@ export function usePrinter() {
       }));
 
       setDevices(parseDevices);
-      setPairedDevices([]); // This library returns all devices together
-    } catch (error) {
+      setPairedDevices([]);
+    } catch (error: any) {
       console.error(error);
-      Alert.alert('Bluetooth Error', 'Failed to scan devices. Ensure Bluetooth is enabled.');
+      Alert.alert('Bluetooth Error', error.message || 'Failed to scan devices. Ensure Bluetooth is enabled.');
     } finally {
       setIsScanning(false);
     }
@@ -75,18 +196,132 @@ export function usePrinter() {
       if (!device.macAddress) {
         throw new Error('Device missing address.');
       }
+      if (!BLEPrinter || !BLEPrinter.connectPrinter) {
+        throw new Error('Bluetooth printer service is not initialized.');
+      }
+
+      // Cleanly teardown any existing/ghost socket to avoid Android RFCOMM deadlocks
+      if (BLEPrinter && BLEPrinter.closeConn) {
+        try {
+          await BLEPrinter.closeConn();
+        } catch (_) {}
+      }
+      await new Promise(r => setTimeout(r, 350));
+
       await BLEPrinter.connectPrinter(device.macAddress);
       setConnectedPrinter(device);
+      setIsPrinterOffline(false);
+      setOfflineDismissed(false);
+      if (paperWarning === 'out_or_jammed') {
+        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      }
+      await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Success', `Connected to ${device.name || 'Printer'}`);
     } catch (e: any) {
       console.error(e);
+      setIsPrinterOffline(true);
       Alert.alert('Connection Failed', e.message || 'Could not connect to printer.');
     } finally {
       setIsScanning(false);
     }
   };
 
+  /**
+   * Forcibly closes any stale/ghost Bluetooth socket, re-inits, and reconnects to printer
+   */
+  const reconnectPrinter = async (targetDevice?: IPrinterDevice | null) => {
+    const device = targetDevice || connectedPrinter;
+    if (!device || !device.macAddress) {
+      Alert.alert('No Printer', 'No printer found to reconnect. Please scan and select a device.');
+      return false;
+    }
+
+    setIsScanning(true);
+    try {
+      if (BLEPrinter && BLEPrinter.closeConn) {
+        try {
+          await BLEPrinter.closeConn();
+        } catch (_) {}
+      }
+      await new Promise(r => setTimeout(r, 450));
+
+      if (BLEPrinter && BLEPrinter.init) {
+        await BLEPrinter.init();
+      }
+      await BLEPrinter.connectPrinter(device.macAddress);
+      setConnectedPrinter(device);
+      setIsPrinterOffline(false);
+      setOfflineDismissed(false);
+      if (paperWarning === 'out_or_jammed') {
+        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      }
+      await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
+      Alert.alert('Reconnected', `Bluetooth link refreshed for ${device.name || 'Printer'}.`);
+      return true;
+    } catch (e: any) {
+      console.warn('Reconnect error:', e);
+      setIsPrinterOffline(true);
+      Alert.alert('Reconnect Notice', e.message || 'Could not refresh connection. Please check that printer is turned on.');
+      return false;
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const disconnectPrinter = async () => {
+    try {
+      if (BLEPrinter && BLEPrinter.closeConn) {
+        await BLEPrinter.closeConn();
+      }
+    } catch (_) {}
+    setConnectedPrinter(null);
+    setIsPrinterOffline(false);
+    setOfflineDismissed(false);
+    try {
+      await AsyncStorage.removeItem(CONNECTED_PRINTER_STORAGE_KEY);
+      Alert.alert('Disconnected', 'Printer disconnected.');
+    } catch (_) {}
+  };
+
+  /**
+   * Safe printing wrapper that prevents infinite UI freeze on dead Bluetooth sockets
+   */
+  const safePrintBill = (text: string, timeoutMs = 4500): Promise<any> => {
+    if (!BLEPrinter || !BLEPrinter.printBill) {
+      throw new Error('Printer module unavailable');
+    }
+
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('Printer did not respond. The Bluetooth socket may have closed while in background. Tap "Reconnect" to revive the link.'));
+      }, timeoutMs);
+
+      try {
+        const res = BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+        if (res && typeof res.then === 'function') {
+          res.then((val: any) => {
+            clearTimeout(timer);
+            resolve(val);
+          }).catch((err: any) => {
+            clearTimeout(timer);
+            reject(err);
+          });
+        } else {
+          clearTimeout(timer);
+          resolve(res);
+        }
+      } catch (err) {
+        clearTimeout(timer);
+        reject(err);
+      }
+    });
+  };
+
   const printReceipt = async (ticket: any, config: any) => {
+    if (!connectedPrinter) {
+      throw new Error('No printer connected. Please connect a Bluetooth printer first.');
+    }
+
     try {
       let text = "";
       text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
@@ -105,7 +340,7 @@ export function usePrinter() {
         return spaces > 0 ? left + " ".repeat(spaces) + right + "\n" : left + " " + right + "\n";
       };
 
-      // Sanitize non-ASCII characters (like \u202F Narrow No-Break Space) that break printer column counting
+      // Sanitize non-ASCII characters that break printer column counting
       const dateStr = (ticket.date || "").replace(/[^\x20-\x7E]/g, ' ').replace(/\s+/g, ' ').trim();
       let justDate = dateStr;
       let justTime = "";
@@ -129,15 +364,24 @@ export function usePrinter() {
         text += `\n<C>${config.footer_message}</C>`;
       }
 
-      // Aggressively strip any accidental trailing newlines from earlier lines
-      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      await safePrintBill(text);
+      await recordPrintedTickets(Math.max(1, Number(ticket.quantity || 1)));
+      setIsPrinterOffline(false);
+      return true;
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Print Error', e.message || 'Failed to print receipt.');
+      console.error('printReceipt error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
+      throw e;
     }
   };
 
   const printSummary = async (summary: any, summaryConfig: any, receiptConfig: any, isReprint = false, isInterim = false) => {
+    if (!connectedPrinter) {
+      throw new Error('No printer connected. Please connect a Bluetooth printer first.');
+    }
+
     try {
       let text = "";
       text += `<CB>${receiptConfig?.company_name || 'ByaHero Transit'}</CB>\n`;
@@ -216,14 +460,25 @@ export function usePrinter() {
         text += `\n<C>${summaryConfig.footer_message}</C>`;
       }
 
-      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      await safePrintBill(text);
+      await recordPrintedTickets(2);
+      setIsPrinterOffline(false);
+      return true;
     } catch (e: any) {
-      console.error(e);
-      Alert.alert('Print Error', e.message || 'Failed to print summary.');
+      console.error('printSummary error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
+      throw e;
     }
   };
 
   const testPrint = async () => {
+    if (!connectedPrinter) {
+      Alert.alert('Printer Required', 'Please connect a Bluetooth printer before printing a test page.');
+      return;
+    }
+
     try {
       const now = new Date().toLocaleString();
       let text = "";
@@ -236,10 +491,15 @@ export function usePrinter() {
       text += "<C>Printer is working correctly.</C>\n";
       text += "<C>Ready to print receipts.</C>";
 
-      BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
+      await safePrintBill(text);
+      await recordPrintedTickets(1);
+      setIsPrinterOffline(false);
       Alert.alert('Test Print', 'Test page sent to printer.');
     } catch (e: any) {
-      console.error(e);
+      console.error('testPrint error:', e);
+      setIsPrinterOffline(true);
+      setOfflineDismissed(false);
+      setPaperWarning('out_or_jammed');
       Alert.alert('Print Error', e.message || 'Failed to send test print.');
     }
   };
@@ -249,8 +509,17 @@ export function usePrinter() {
     pairedDevices,
     isScanning,
     connectedPrinter,
+    isPrinterOffline,
+    offlineDismissed,
+    paperCount,
+    maxPaperCapacity: DEFAULT_ROLL_CAPACITY,
+    paperWarning,
+    resetPaperRoll,
+    dismissOfflineWarning,
     scanDevices,
     connectPrinter,
+    reconnectPrinter,
+    disconnectPrinter,
     printReceipt,
     printSummary,
     testPrint,

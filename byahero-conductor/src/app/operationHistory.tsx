@@ -6,7 +6,8 @@ import {
   SafeAreaView,
   ScrollView,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  RefreshControl
 } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
@@ -14,6 +15,7 @@ import tw from 'twrnc';
 import ConductorNavbar from '../components/ConductorNavbar';
 import { getOperationHistory, getTripSummary, getReceiptConfig } from '../services/conductorService';
 import { usePrinter } from '../hooks/usePrinter';
+import PrinterModal from '../components/PrinterModal';
 import { useTourSync } from '../hooks/useTourSync';
 import { handleTourLayout } from '../components/TourRegistry';
 import TourOverlay from '../components/TourOverlay';
@@ -25,6 +27,7 @@ export default function OperationHistoryScreen() {
   const [history, setHistory] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isPrinting, setIsPrinting] = useState<number | null>(null); // Track which operation is printing
+  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
   
   const printer = usePrinter();
   const summaryConfig = { summary_title: 'TRIP SUMMARY', show_conductor: true, show_route: true, show_breakdown: true, show_trip_id: true, show_signatures: true };
@@ -49,6 +52,21 @@ export default function OperationHistoryScreen() {
   };
 
   const handlePrintSummary = async (operationId: number) => {
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No printer connected. Please connect your Bluetooth receipt printer before reprinting the trip summary.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Connect Printer',
+            onPress: () => setIsPrinterModalVisible(true)
+          }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(operationId);
     try {
       const summaryRes = await getTripSummary(operationId);
@@ -60,7 +78,7 @@ export default function OperationHistoryScreen() {
       const receiptConfig = configRes && configRes.success ? configRes.config : null;
       
       await printer.printSummary(summaryRes.summary, summaryConfig, receiptConfig, true, false); // isReprint = true
-      Alert.alert('Print Successful', 'Summary has been reprinted.', [{ text: 'OK' }]);
+      Alert.alert('Print Successful', 'Summary has been reprinted to the connected printer.', [{ text: 'OK' }]);
     } catch (e: any) {
       console.error(e);
       Alert.alert('Print Error', e.message || 'Failed to reprint summary.', [{ text: 'OK' }]);
@@ -104,9 +122,90 @@ export default function OperationHistoryScreen() {
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
-      <ConductorNavbar title="Operation History" />
+      <ConductorNavbar 
+        title="Operation History" 
+        rightElement={
+          <TouchableOpacity
+            onPress={() => setIsPrinterModalVisible(true)}
+            style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full ${
+              printer.isPrinterOffline
+                ? 'bg-rose-500/30 border border-rose-400'
+                : printer.paperWarning
+                ? 'bg-amber-500/30 border border-amber-400'
+                : printer.connectedPrinter 
+                ? 'bg-emerald-500/20 border border-emerald-400/50' 
+                : 'bg-white/10 border border-white/20'
+            }`}
+          >
+            <Ionicons 
+              name={
+                printer.isPrinterOffline
+                  ? "alert-circle"
+                  : printer.paperWarning
+                  ? "newspaper-outline"
+                  : printer.connectedPrinter
+                  ? "print"
+                  : "print-outline"
+              } 
+              size={15} 
+              color={
+                printer.isPrinterOffline
+                  ? "#fb7185"
+                  : printer.paperWarning
+                  ? "#fbbf24"
+                  : printer.connectedPrinter
+                  ? "#34d399"
+                  : "#cbd5e1"
+              } 
+            />
+            <View 
+              style={tw`w-2 h-2 rounded-full ${
+                printer.isPrinterOffline
+                  ? 'bg-rose-400'
+                  : printer.paperWarning
+                  ? 'bg-amber-400'
+                  : printer.connectedPrinter
+                  ? 'bg-emerald-400'
+                  : 'bg-amber-400'
+              }`} 
+            />
+            <Text 
+              style={tw`text-xs font-bold ${
+                printer.isPrinterOffline
+                  ? 'text-rose-200'
+                  : printer.paperWarning
+                  ? 'text-amber-200'
+                  : printer.connectedPrinter
+                  ? 'text-emerald-300'
+                  : 'text-slate-200'
+              } max-w-[85px]`}
+              numberOfLines={1}
+            >
+              {printer.isPrinterOffline
+                ? 'Offline'
+                : printer.paperWarning === 'out_or_jammed'
+                ? 'Paper Check'
+                : printer.paperWarning
+                ? 'Paper Low'
+                : printer.connectedPrinter
+                ? (printer.connectedPrinter.name || 'Printer')
+                : 'Connect'}
+            </Text>
+          </TouchableOpacity>
+        }
+      />
 
-      <ScrollView contentContainerStyle={tw`p-5 pb-10`} style={tw`flex-1`}>
+      <ScrollView 
+        contentContainerStyle={tw`p-5 pb-10`} 
+        style={tw`flex-1`}
+        refreshControl={
+          <RefreshControl 
+            refreshing={isLoading} 
+            onRefresh={fetchHistory} 
+            colors={['#0f3878']} 
+          />
+        }
+      >
         <View 
           ref={historyHeaderRef} 
           onLayout={() => handleTourLayout('history-header', historyHeaderRef)} 
@@ -227,6 +326,29 @@ export default function OperationHistoryScreen() {
           </View>
         )}
       </ScrollView>
+
+      {/* Bluetooth Printer Modal */}
+      <PrinterModal 
+        visible={isPrinterModalVisible}
+        onClose={() => setIsPrinterModalVisible(false)}
+        devices={printer.devices}
+        pairedDevices={printer.pairedDevices}
+        isScanning={printer.isScanning}
+        onScan={printer.scanDevices}
+        onConnect={(device) => {
+          printer.connectPrinter(device);
+          setIsPrinterModalVisible(false);
+        }}
+        connectedPrinter={printer.connectedPrinter}
+        onTestPrint={printer.testPrint}
+        onDisconnect={printer.disconnectPrinter}
+        onReconnect={() => printer.reconnectPrinter()}
+        isPrinterOffline={printer.isPrinterOffline}
+        paperCount={printer.paperCount}
+        maxPaperCapacity={printer.maxPaperCapacity}
+        paperWarning={printer.paperWarning}
+        onResetPaperRoll={printer.resetPaperRoll}
+      />
 
       {/* Tour Overlay */}
       {activeStep !== null && (

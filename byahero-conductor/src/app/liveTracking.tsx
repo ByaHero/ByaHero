@@ -13,7 +13,8 @@ import {
   ScrollView,
   TextInput,
   Animated,
-  Linking
+  Linking,
+  Alert
 } from 'react-native';
 import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
@@ -32,6 +33,7 @@ import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
 import { usePrinter } from '../hooks/usePrinter';
+import PrinterModal from '../components/PrinterModal';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -104,6 +106,7 @@ export default function LiveTrackingScreen() {
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
+  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
 
   // Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -834,19 +837,65 @@ export default function LiveTrackingScreen() {
 
   const handlePrintSummary = async (isInterim = false) => {
     if (!tripSummary) return;
+
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is connected. Please connect your printer first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
       showAlert('Print Successful', 'Summary has been printed.', 'success');
     } catch (e: any) {
       console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print summary.', 'error');
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+                  showAlert('Print Successful', 'Summary printed after reconnecting.', 'success');
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print summary.', 'error');
+                }
+              }
+            }
+          },
+          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
   };
 
   const handlePrintInterimSummary = async () => {
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is connected. Please connect your printer first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       const opId = session?.operation_id || session?.id;
@@ -861,7 +910,34 @@ export default function LiveTrackingScreen() {
       }
     } catch(e: any) {
       console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print interim summary.', 'error');
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  const opId = session?.operation_id || session?.id;
+                  if (opId) {
+                    const res = await getTripSummary(opId);
+                    if (res && res.success) {
+                      await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+                      showAlert('Print Successful', 'Interim Summary printed after reconnecting.', 'success');
+                    }
+                  }
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print interim summary.', 'error');
+                }
+              }
+            }
+          },
+          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
@@ -990,7 +1066,18 @@ export default function LiveTrackingScreen() {
         realTicketNumber = res.ticket_number;
         setTicketCounter(parseInt(realTicketNumber, 10) + 1);
       } else {
-        throw new Error(res?.error || 'Failed to sync ticket with database.');
+        console.warn('Network unavailable for live ticket sync, using offline ticket:', res?.error);
+        realTicketNumber = String(ticketCounter).padStart(5, '0');
+        setTicketCounter(prev => prev + 1);
+        try {
+          const offlineTickets = JSON.parse(await AsyncStorage.getItem('byahero_offline_pending_tickets') || '[]');
+          offlineTickets.push({
+            ...payload,
+            offline_ticket_number: realTicketNumber,
+            created_at: new Date().toISOString()
+          });
+          await AsyncStorage.setItem('byahero_offline_pending_tickets', JSON.stringify(offlineTickets));
+        } catch (_) {}
       }
 
       let remainingToDeduct = ticketQuantity;
@@ -1077,14 +1164,51 @@ export default function LiveTrackingScreen() {
   };
 
   const executePrint = async () => {
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is currently connected.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       await printer.printReceipt(issuedTicket, receiptConfig);
       showAlert('Print Successful', 'Ticket has been printed via PT-210.', 'success');
       closeReceipt();
     } catch (e: any) {
-      console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print receipt.', 'error');
+      console.error('executePrint error:', e);
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry" to refresh the Bluetooth link.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  await printer.printReceipt(issuedTicket, receiptConfig);
+                  showAlert('Print Successful', 'Ticket printed successfully after reconnecting.', 'success');
+                  closeReceipt();
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
+                }
+              }
+            }
+          },
+          {
+            text: 'Printer Settings',
+            onPress: () => setIsPrinterModalVisible(true)
+          }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
@@ -1094,9 +1218,148 @@ export default function LiveTrackingScreen() {
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar 
         title="Bus Live" 
+        leftElement={
+          <TouchableOpacity
+            onPress={() => setIsPrinterModalVisible(true)}
+            style={tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
+              printer.isPrinterOffline
+                ? 'bg-rose-500/30 border border-rose-400'
+                : printer.paperWarning
+                ? 'bg-amber-500/30 border border-amber-400'
+                : printer.connectedPrinter 
+                ? 'bg-emerald-500/20 border border-emerald-400/50' 
+                : 'bg-rose-500/20 border border-rose-400/50'
+            }`}
+          >
+            <Ionicons 
+              name={
+                printer.isPrinterOffline 
+                  ? "alert-circle" 
+                  : printer.paperWarning 
+                  ? "newspaper-outline" 
+                  : printer.connectedPrinter 
+                  ? "print" 
+                  : "print-outline"
+              } 
+              size={13} 
+              color={
+                printer.isPrinterOffline
+                  ? "#fb7185"
+                  : printer.paperWarning
+                  ? "#fbbf24"
+                  : printer.connectedPrinter
+                  ? "#34d399"
+                  : "#fb7185"
+              } 
+            />
+            <View 
+              style={tw`w-1.5 h-1.5 rounded-full ${
+                printer.isPrinterOffline
+                  ? 'bg-rose-400'
+                  : printer.paperWarning
+                  ? 'bg-amber-400'
+                  : printer.connectedPrinter
+                  ? 'bg-emerald-400'
+                  : 'bg-rose-400'
+              }`} 
+            />
+            <Text 
+              style={tw`text-[11px] font-bold ${
+                printer.isPrinterOffline
+                  ? 'text-rose-200'
+                  : printer.paperWarning
+                  ? 'text-amber-200'
+                  : printer.connectedPrinter
+                  ? 'text-emerald-300'
+                  : 'text-rose-200'
+              } max-w-[70px]`}
+              numberOfLines={1}
+            >
+              {printer.isPrinterOffline
+                ? 'Offline'
+                : printer.paperWarning === 'out_or_jammed'
+                ? 'Paper Check'
+                : printer.paperWarning
+                ? 'Paper Low'
+                : printer.connectedPrinter
+                ? (printer.connectedPrinter.name || 'Printer')
+                : 'Offline'}
+            </Text>
+          </TouchableOpacity>
+        }
         rightIcon={require('../../assets/images/icons/printer.svg')} 
         onRightIconPress={() => setIsInterimModalVisible(true)} 
       />
+
+      {/* Printer Offline Sudden Drop Warning Banner */}
+      {printer.connectedPrinter && printer.isPrinterOffline && !printer.offlineDismissed && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 bg-rose-50 border border-rose-300 rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+          <View style={tw`flex-row items-center flex-1 mr-2`}>
+            <View style={tw`w-8 h-8 rounded-xl bg-rose-500/10 items-center justify-center mr-2.5`}>
+              <Ionicons name="alert-circle" size={20} color="#e11d48" />
+            </View>
+            <View style={tw`flex-1`}>
+              <Text style={tw`text-xs font-black text-rose-900`}>Printer Went Offline</Text>
+              <Text style={tw`text-[11px] text-rose-700`}>Bluetooth link lost or printer turned off.</Text>
+            </View>
+          </View>
+          <View style={tw`flex-row items-center gap-1.5`}>
+            <TouchableOpacity
+              onPress={() => printer.reconnectPrinter()}
+              style={tw`px-3 py-1.5 bg-rose-600 rounded-xl`}
+            >
+              <Text style={tw`text-xs font-bold text-white`}>Reconnect</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              onPress={() => printer.dismissOfflineWarning()}
+              style={tw`p-1.5`}
+            >
+              <Ionicons name="close" size={16} color="#9f1239" />
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* Low Paper / Paper Out Warning Banner */}
+      {printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 ${
+          printer.paperWarning === 'out_or_jammed' ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'
+        } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+          <View style={tw`flex-row items-center flex-1 mr-2`}>
+            <View style={tw`w-8 h-8 rounded-xl ${
+              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-500/10' : 'bg-amber-500/10'
+            } items-center justify-center mr-2.5`}>
+              <Ionicons
+                name="newspaper-outline"
+                size={18}
+                color={printer.paperWarning === 'out_or_jammed' ? '#e11d48' : '#d97706'}
+              />
+            </View>
+            <View style={tw`flex-1`}>
+              <Text style={tw`text-xs font-black ${
+                printer.paperWarning === 'out_or_jammed' ? 'text-rose-900' : 'text-amber-900'
+              }`}>
+                {printer.paperWarning === 'out_or_jammed' ? 'Check Paper / Cover Open' : 'Thermal Paper Low'}
+              </Text>
+              <Text style={tw`text-[11px] ${
+                printer.paperWarning === 'out_or_jammed' ? 'text-rose-700' : 'text-amber-800'
+              }`}>
+                {printer.paperWarning === 'out_or_jammed'
+                  ? 'Printer stopped feeding paper or cover is open.'
+                  : `~${printer.paperCount}/${printer.maxPaperCapacity} tickets printed. Have a spare 58mm roll ready.`}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity
+            onPress={() => printer.resetPaperRoll()}
+            style={tw`px-2.5 py-1.5 ${
+              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-600' : 'bg-amber-600'
+            } rounded-xl`}
+          >
+            <Text style={tw`text-[11px] font-bold text-white`}>New Roll</Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       {/* Map Segment */}
       <View style={tw`flex-1 p-4`}>
@@ -1116,6 +1379,75 @@ export default function LiveTrackingScreen() {
               onMessage={() => { }}
             />
           )}
+
+          {/* Upper Left Printer Status Pill over Map */}
+          <View style={tw`absolute top-3 left-3 z-30`}>
+            <TouchableOpacity
+              onPress={() => setIsPrinterModalVisible(true)}
+              activeOpacity={0.85}
+              style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 shadow-md border ${
+                printer.isPrinterOffline
+                  ? 'border-rose-400 bg-rose-50/95'
+                  : printer.paperWarning
+                  ? 'border-amber-400 bg-amber-50/95'
+                  : printer.connectedPrinter
+                  ? 'border-emerald-200'
+                  : 'border-rose-200'
+              }`}
+            >
+              <Ionicons 
+                name={
+                  printer.isPrinterOffline
+                    ? 'alert-circle'
+                    : printer.paperWarning
+                    ? 'newspaper-outline'
+                    : 'print'
+                } 
+                size={14} 
+                color={
+                  printer.isPrinterOffline
+                    ? '#e11d48'
+                    : printer.paperWarning
+                    ? '#d97706'
+                    : printer.connectedPrinter
+                    ? '#059669'
+                    : '#e11d48'
+                } 
+              />
+              <View 
+                style={tw`w-2 h-2 rounded-full ${
+                  printer.isPrinterOffline
+                    ? 'bg-rose-500'
+                    : printer.paperWarning
+                    ? 'bg-amber-500'
+                    : printer.connectedPrinter
+                    ? 'bg-emerald-500'
+                    : 'bg-rose-500'
+                }`} 
+              />
+              <Text 
+                style={tw`text-[11px] font-bold ${
+                  printer.isPrinterOffline
+                    ? 'text-rose-700'
+                    : printer.paperWarning
+                    ? 'text-amber-800'
+                    : printer.connectedPrinter
+                    ? 'text-emerald-700'
+                    : 'text-rose-600'
+                }`}
+              >
+                {printer.isPrinterOffline
+                  ? '⚠️ Printer Offline • Tap to Reconnect'
+                  : printer.paperWarning === 'out_or_jammed'
+                  ? '⚠️ Check Paper / Cover Open'
+                  : printer.paperWarning
+                  ? `📄 Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)`
+                  : printer.connectedPrinter
+                  ? (printer.connectedPrinter.name || 'Printer Ready')
+                  : 'Printer Offline • Tap to Connect'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -1502,6 +1834,89 @@ export default function LiveTrackingScreen() {
                 </Text>
               </View>
 
+              {/* Printer Status in Ticket Preview */}
+              <View style={tw`bg-slate-50 border border-slate-200 rounded-xl p-3 mt-4`}>
+                <View style={tw`flex-row items-center justify-between`}>
+                  <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
+                    <Ionicons 
+                      name={
+                        printer.isPrinterOffline 
+                          ? "alert-circle" 
+                          : printer.paperWarning 
+                          ? "newspaper-outline" 
+                          : printer.connectedPrinter 
+                          ? "print" 
+                          : "print-outline"
+                      } 
+                      size={16} 
+                      color={
+                        printer.isPrinterOffline 
+                          ? "#e11d48" 
+                          : printer.paperWarning 
+                          ? "#d97706" 
+                          : printer.connectedPrinter 
+                          ? "#059669" 
+                          : "#e11d48"
+                      } 
+                    />
+                    <Text 
+                      style={tw`text-xs font-bold ${
+                        printer.isPrinterOffline 
+                          ? 'text-rose-700' 
+                          : printer.paperWarning 
+                          ? 'text-amber-800' 
+                          : printer.connectedPrinter 
+                          ? 'text-emerald-700' 
+                          : 'text-rose-600'
+                      }`} 
+                      numberOfLines={1}
+                    >
+                      {printer.isPrinterOffline 
+                        ? 'Printer Offline / Dropped' 
+                        : printer.paperWarning === 'out_or_jammed' 
+                        ? 'Check Paper / Cover Open' 
+                        : printer.paperWarning 
+                        ? `Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)` 
+                        : printer.connectedPrinter 
+                        ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` 
+                        : 'Printer Disconnected'}
+                    </Text>
+                  </View>
+                  <View style={tw`flex-row items-center gap-1.5`}>
+                    {printer.connectedPrinter && (
+                      <TouchableOpacity
+                        onPress={() => printer.reconnectPrinter()}
+                        style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
+                      >
+                        <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => setIsPrinterModalVisible(true)}
+                      style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
+                    >
+                      <Text style={tw`text-[11px] font-bold text-blue-700`}>
+                        {printer.connectedPrinter ? 'Change' : 'Connect'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                {/* Warning note inside ticket preview */}
+                {printer.isPrinterOffline && (
+                  <Text style={tw`text-[10px] text-rose-600 font-bold mt-1.5`}>
+                    ⚠️ Printer connection is lost. Tap "Refresh Link" or turn on printer before pressing Print.
+                  </Text>
+                )}
+                {!printer.isPrinterOffline && printer.paperWarning && (
+                  <Text style={tw`text-[10px] text-amber-700 font-medium mt-1.5`}>
+                    {printer.paperWarning === 'out_or_jammed' 
+                      ? '⚠️ Printer stopped feeding paper. Inspect roll before continuing.' 
+                      : '📄 Roll running low: keep a replacement thermal roll ready.'}
+                  </Text>
+                )}
+              </View>
+
               {/* Close / Print Button */}
               <View style={tw`flex-row gap-3 mt-6`}>
                 <TouchableOpacity
@@ -1686,6 +2101,29 @@ export default function LiveTrackingScreen() {
       </Modal>
 
 
+
+      {/* Bluetooth Printer Modal */}
+      <PrinterModal 
+        visible={isPrinterModalVisible}
+        onClose={() => setIsPrinterModalVisible(false)}
+        devices={printer.devices}
+        pairedDevices={printer.pairedDevices}
+        isScanning={printer.isScanning}
+        onScan={printer.scanDevices}
+        onConnect={(device) => {
+          printer.connectPrinter(device);
+          setIsPrinterModalVisible(false);
+        }}
+        connectedPrinter={printer.connectedPrinter}
+        onTestPrint={printer.testPrint}
+        onDisconnect={printer.disconnectPrinter}
+        onReconnect={() => printer.reconnectPrinter()}
+        isPrinterOffline={printer.isPrinterOffline}
+        paperCount={printer.paperCount}
+        maxPaperCapacity={printer.maxPaperCapacity}
+        paperWarning={printer.paperWarning}
+        onResetPaperRoll={printer.resetPaperRoll}
+      />
 
       {/* Tour Overlay */}
       {activeStep !== null && (
