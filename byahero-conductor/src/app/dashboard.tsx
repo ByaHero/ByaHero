@@ -655,7 +655,7 @@ export default function DashboardScreen() {
       {/* Select Bus Modal with Search, Tabs, and Offline Resilience */}
       <Modal visible={isBusDropdownOpen} transparent animationType="fade">
         <View style={tw`flex-1 justify-center bg-black/50 px-5`}>
-          <View style={tw`bg-white rounded-3xl p-5 border border-slate-200 max-h-[82%]`}>
+          <View style={tw`bg-white rounded-3xl p-5 border border-slate-200 h-[75%] max-h-[580px]`}>
             {/* Modal Header */}
             <View style={tw`flex-row items-center justify-between pb-3 border-b border-slate-100`}>
               <View>
@@ -728,7 +728,7 @@ export default function DashboardScreen() {
             </View>
 
             {/* Bus Items List */}
-            <ScrollView style={tw`flex-1`} showsVerticalScrollIndicator={false}>
+            <ScrollView style={tw`flex-1 my-1`} contentContainerStyle={tw`pb-2`} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
               {filteredBuses.map((bus: any) => {
                 const id = bus.id || bus.Bus_ID;
                 const code = bus.code || `BUS-${id}`;
