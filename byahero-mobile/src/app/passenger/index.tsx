@@ -31,6 +31,7 @@ import { handleTourLayout } from '../../components/TourRegistry';
 import { getLeafletHTML } from '../../components/passengerMapHtml';
 import routeGeoJSON from '../../../assets/data/laurel-talisay-tanauan.json';
 import { resolveBusLocationName } from '../../utils/locationUtils';
+import { shouldCancelWaiting, type WaitingOrigin } from '../../utils/waitingStatus';
 
 // Custom Hooks
 import { usePassengerProfile } from '../../hooks/passenger/usePassengerProfile';
@@ -109,6 +110,7 @@ export default function PassengerDashboard() {
   const [isUpdatingWaiting, setIsUpdatingWaiting] = useState(false);
   const [waitingFeedback, setWaitingFeedback] = useState<'waiting' | 'cancelled' | null>(null);
   const [waitingSecondsLeft, setWaitingSecondsLeft] = useState<number | null>(null);
+  const waitingOriginRef = useRef<WaitingOrigin | null>(null);
 
   const webViewRef = useRef<any>(null);
   const recenterRef = useRef<any>(null);
@@ -447,10 +449,11 @@ export default function PassengerDashboard() {
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        waitingOriginRef.current = userLocation ? { ...userLocation, locationName: stopName } : null;
         setIsWaiting(true);
         setWaitingLocation(stopName);
-        if (data.expires_at) setWaitingExpiresAt(data.expires_at);
+        setWaitingExpiresAt(data.expires_at || null);
         if (!silent) {
           setWaitingFeedback('waiting');
           setTimeout(() => {
@@ -493,9 +496,11 @@ export default function PassengerDashboard() {
       });
 
       const data = await res.json();
-      if (data.success) {
+      if (res.ok && data.success) {
+        waitingOriginRef.current = null;
         setIsWaiting(false);
         setWaitingLocation('');
+        setWaitingExpiresAt(null);
         if (!silent) {
           setWaitingFeedback('cancelled');
           setTimeout(() => {
@@ -672,59 +677,16 @@ export default function PassengerDashboard() {
 
   // Geolocation-based waiting status automatic cancel when moving away
   useEffect(() => {
+    if (!isWaiting) {
+      waitingOriginRef.current = null;
+      return;
+    }
     if (!userLocation || isUpdatingWaiting || isBoarded) return;
 
-    if (isWaiting && waitingLocation) {
-      let stopLat = NaN;
-      let stopLng = NaN;
-
-      // Try to find matching stop coordinates in the database list
-      const currentWaitingStop = busStops.find(s => s.name === waitingLocation || s.location_name === waitingLocation);
-      if (currentWaitingStop) {
-        stopLat = parseFloat(currentWaitingStop.lat || currentWaitingStop.latitude);
-        stopLng = parseFloat(currentWaitingStop.lng || currentWaitingStop.longitude);
-      } else if (routeGeoJSON && routeGeoJSON.features) {
-        // Fallback: find centroid of matching polygon location from GeoJSON
-        const feature = routeGeoJSON.features.find(f => {
-          const props = f.properties as any;
-          return props && (props['Current Location'] === waitingLocation || props['name'] === waitingLocation);
-        });
-        if (feature && feature.geometry && feature.geometry.type === 'Polygon' && feature.geometry.coordinates[0]) {
-          const ring = feature.geometry.coordinates[0];
-          let sumLat = 0;
-          let sumLng = 0;
-          ring.forEach((coord: number[]) => {
-            sumLng += coord[0];
-            sumLat += coord[1];
-          });
-          stopLat = sumLat / ring.length;
-          stopLng = sumLng / ring.length;
-        }
-      }
-
-      let shouldCancel = true;
-      if (!isNaN(stopLat) && !isNaN(stopLng)) {
-        const R = 6371; // km
-        const dLat = (userLocation.lat - stopLat) * Math.PI / 180;
-        const dLon = (userLocation.lng - stopLng) * Math.PI / 180;
-        const a =
-          Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-          Math.cos(stopLat * Math.PI / 180) *
-          Math.cos(userLocation.lat * Math.PI / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        const distance = R * c;
-
-        // Only auto-cancel if they walk more than 300 meters away
-        if (distance < 0.3) {
-          shouldCancel = false;
-        }
-      }
-
-      if (shouldCancel) {
-        handleCancelWaiting(true); // true for silent
-      }
+    if (waitingLocation && shouldCancelWaiting(
+      userLocation, waitingLocation, waitingOriginRef.current, busStops, routeGeoJSON.features,
+    )) {
+      handleCancelWaiting(true);
     }
   }, [userLocation, isBoarded, isWaiting, waitingLocation, busStops]);
 
