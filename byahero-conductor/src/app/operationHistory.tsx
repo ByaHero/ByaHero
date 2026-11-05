@@ -302,6 +302,7 @@ export default function OperationHistoryScreen() {
         connectedPrinter={printer.connectedPrinter}
         onTestPrint={printer.testPrint}
         onDisconnect={printer.disconnectPrinter}
+        onReconnect={() => printer.reconnectPrinter()}
       />
 
       {/* Tour Overlay */}

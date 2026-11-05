@@ -13,7 +13,8 @@ import {
   ScrollView,
   TextInput,
   Animated,
-  Linking
+  Linking,
+  Alert
 } from 'react-native';
 import AlertModal from '../components/AlertModal';
 import { router } from 'expo-router';
@@ -32,6 +33,7 @@ import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
 import { usePrinter } from '../hooks/usePrinter';
+import PrinterModal from '../components/PrinterModal';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -104,6 +106,7 @@ export default function LiveTrackingScreen() {
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
+  const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
 
   // Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -834,19 +837,65 @@ export default function LiveTrackingScreen() {
 
   const handlePrintSummary = async (isInterim = false) => {
     if (!tripSummary) return;
+
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is connected. Please connect your printer first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
       showAlert('Print Successful', 'Summary has been printed.', 'success');
     } catch (e: any) {
       console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print summary.', 'error');
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+                  showAlert('Print Successful', 'Summary printed after reconnecting.', 'success');
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print summary.', 'error');
+                }
+              }
+            }
+          },
+          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
   };
 
   const handlePrintInterimSummary = async () => {
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is connected. Please connect your printer first.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       const opId = session?.operation_id || session?.id;
@@ -861,7 +910,34 @@ export default function LiveTrackingScreen() {
       }
     } catch(e: any) {
       console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print interim summary.', 'error');
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  const opId = session?.operation_id || session?.id;
+                  if (opId) {
+                    const res = await getTripSummary(opId);
+                    if (res && res.success) {
+                      await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+                      showAlert('Print Successful', 'Interim Summary printed after reconnecting.', 'success');
+                    }
+                  }
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print interim summary.', 'error');
+                }
+              }
+            }
+          },
+          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
@@ -1088,14 +1164,51 @@ export default function LiveTrackingScreen() {
   };
 
   const executePrint = async () => {
+    if (!printer.connectedPrinter) {
+      Alert.alert(
+        'Printer Required',
+        'No Bluetooth printer is currently connected.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+        ]
+      );
+      return;
+    }
+
     setIsPrinting(true);
     try {
       await printer.printReceipt(issuedTicket, receiptConfig);
       showAlert('Print Successful', 'Ticket has been printed via PT-210.', 'success');
       closeReceipt();
     } catch (e: any) {
-      console.error(e);
-      showAlert('Print Error', e.message || 'Failed to print receipt.', 'error');
+      console.error('executePrint error:', e);
+      Alert.alert(
+        'Printer Not Responding',
+        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry" to refresh the Bluetooth link.',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Reconnect & Retry',
+            onPress: async () => {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                try {
+                  await printer.printReceipt(issuedTicket, receiptConfig);
+                  showAlert('Print Successful', 'Ticket printed successfully after reconnecting.', 'success');
+                  closeReceipt();
+                } catch (retryErr: any) {
+                  showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
+                }
+              }
+            }
+          },
+          {
+            text: 'Printer Settings',
+            onPress: () => setIsPrinterModalVisible(true)
+          }
+        ]
+      );
     } finally {
       setIsPrinting(false);
     }
@@ -1105,6 +1218,35 @@ export default function LiveTrackingScreen() {
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar 
         title="Bus Live" 
+        leftElement={
+          <TouchableOpacity
+            onPress={() => setIsPrinterModalVisible(true)}
+            style={tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
+              printer.connectedPrinter 
+                ? 'bg-emerald-500/20 border border-emerald-400/50' 
+                : 'bg-rose-500/20 border border-rose-400/50'
+            }`}
+          >
+            <Ionicons 
+              name={printer.connectedPrinter ? "print" : "print-outline"} 
+              size={13} 
+              color={printer.connectedPrinter ? "#34d399" : "#fb7185"} 
+            />
+            <View 
+              style={tw`w-1.5 h-1.5 rounded-full ${
+                printer.connectedPrinter ? 'bg-emerald-400' : 'bg-rose-400'
+              }`} 
+            />
+            <Text 
+              style={tw`text-[11px] font-bold ${
+                printer.connectedPrinter ? 'text-emerald-300' : 'text-rose-200'
+              } max-w-[65px]`}
+              numberOfLines={1}
+            >
+              {printer.connectedPrinter ? (printer.connectedPrinter.name || 'Printer') : 'Offline'}
+            </Text>
+          </TouchableOpacity>
+        }
         rightIcon={require('../../assets/images/icons/printer.svg')} 
         onRightIconPress={() => setIsInterimModalVisible(true)} 
       />
@@ -1127,6 +1269,35 @@ export default function LiveTrackingScreen() {
               onMessage={() => { }}
             />
           )}
+
+          {/* Upper Left Printer Status Pill over Map */}
+          <View style={tw`absolute top-3 left-3 z-30`}>
+            <TouchableOpacity
+              onPress={() => setIsPrinterModalVisible(true)}
+              activeOpacity={0.85}
+              style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 shadow-md border ${
+                printer.connectedPrinter ? 'border-emerald-200' : 'border-rose-200'
+              }`}
+            >
+              <Ionicons 
+                name="print" 
+                size={14} 
+                color={printer.connectedPrinter ? '#059669' : '#e11d48'} 
+              />
+              <View 
+                style={tw`w-2 h-2 rounded-full ${
+                  printer.connectedPrinter ? 'bg-emerald-500' : 'bg-rose-500'
+                }`} 
+              />
+              <Text 
+                style={tw`text-[11px] font-bold ${
+                  printer.connectedPrinter ? 'text-emerald-700' : 'text-rose-600'
+                }`}
+              >
+                {printer.connectedPrinter ? (printer.connectedPrinter.name || 'Printer Ready') : 'Printer Offline • Tap to Connect'}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
 
@@ -1513,6 +1684,38 @@ export default function LiveTrackingScreen() {
                 </Text>
               </View>
 
+              {/* Printer Status in Ticket Preview */}
+              <View style={tw`flex-row items-center justify-between bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 mt-4`}>
+                <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
+                  <Ionicons 
+                    name={printer.connectedPrinter ? "print" : "print-outline"} 
+                    size={16} 
+                    color={printer.connectedPrinter ? "#059669" : "#e11d48"} 
+                  />
+                  <Text style={tw`text-xs font-bold ${printer.connectedPrinter ? 'text-emerald-700' : 'text-rose-600'}`} numberOfLines={1}>
+                    {printer.connectedPrinter ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` : 'Printer Disconnected'}
+                  </Text>
+                </View>
+                <View style={tw`flex-row items-center gap-1.5`}>
+                  {printer.connectedPrinter && (
+                    <TouchableOpacity
+                      onPress={() => printer.reconnectPrinter()}
+                      style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
+                    >
+                      <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
+                    </TouchableOpacity>
+                  )}
+                  <TouchableOpacity
+                    onPress={() => setIsPrinterModalVisible(true)}
+                    style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
+                  >
+                    <Text style={tw`text-[11px] font-bold text-blue-700`}>
+                      {printer.connectedPrinter ? 'Change' : 'Connect'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* Close / Print Button */}
               <View style={tw`flex-row gap-3 mt-6`}>
                 <TouchableOpacity
@@ -1697,6 +1900,24 @@ export default function LiveTrackingScreen() {
       </Modal>
 
 
+
+      {/* Bluetooth Printer Modal */}
+      <PrinterModal 
+        visible={isPrinterModalVisible}
+        onClose={() => setIsPrinterModalVisible(false)}
+        devices={printer.devices}
+        pairedDevices={printer.pairedDevices}
+        isScanning={printer.isScanning}
+        onScan={printer.scanDevices}
+        onConnect={(device) => {
+          printer.connectPrinter(device);
+          setIsPrinterModalVisible(false);
+        }}
+        connectedPrinter={printer.connectedPrinter}
+        onTestPrint={printer.testPrint}
+        onDisconnect={printer.disconnectPrinter}
+        onReconnect={() => printer.reconnectPrinter()}
+      />
 
       {/* Tour Overlay */}
       {activeStep !== null && (

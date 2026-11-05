@@ -994,6 +994,7 @@ export default function DashboardScreen() {
         connectedPrinter={printer.connectedPrinter}
         onTestPrint={printer.testPrint}
         onDisconnect={printer.disconnectPrinter}
+        onReconnect={() => printer.reconnectPrinter()}
       />
 
       {/* Tour Overlay */}

@@ -15,10 +15,11 @@ interface Props {
   connectedPrinter: IPrinterDevice | null;
   onTestPrint?: () => void;
   onDisconnect?: () => void;
+  onReconnect?: () => void;
 }
 
 export default function PrinterModal({
-  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter, onTestPrint, onDisconnect
+  visible, onClose, devices, pairedDevices, isScanning, onScan, onConnect, connectedPrinter, onTestPrint, onDisconnect, onReconnect
 }: Props) {
   
   const renderDevice = (device: IPrinterDevice, idx: number) => {
@@ -68,6 +69,14 @@ export default function PrinterModal({
                 </View>
               </View>
               <View style={tw`flex-row items-center gap-2 ml-3`}>
+                {onReconnect && (
+                  <TouchableOpacity
+                    onPress={onReconnect}
+                    style={tw`bg-amber-50 border border-amber-300 rounded-lg px-2.5 py-1.5`}
+                  >
+                    <Text style={tw`text-amber-800 font-bold text-xs`}>Reconnect</Text>
+                  </TouchableOpacity>
+                )}
                 {onTestPrint && (
                   <TouchableOpacity
                     onPress={onTestPrint}
