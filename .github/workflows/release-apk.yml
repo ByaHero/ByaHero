@@ -45,9 +45,36 @@ jobs:
           mv byahero-mobile/android/app/build/outputs/apk/release/app-release.apk byahero-mobile/android/app/build/outputs/apk/release/byahero.apk
 
       - name: Upload APK to GitHub Release
-        uses: softprops/action-gh-release@v1
+        id: upload-release
+        uses: softprops/action-gh-release@v2
+        continue-on-error: true
         with:
           files: byahero-mobile/android/app/build/outputs/apk/release/byahero.apk
           fail_on_unmatched_files: true
+          tag_name: ${{ github.event.release.tag_name || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Retry Upload via GitHub CLI (Fallback)
+        if: steps.upload-release.outcome != 'success'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG_NAME: ${{ github.event.release.tag_name || github.ref_name }}
+        run: |
+          APK_PATH="byahero-mobile/android/app/build/outputs/apk/release/byahero.apk"
+          echo "action-gh-release encountered an issue. Falling back to native gh CLI with retries..."
+          echo "Target tag: $TAG_NAME"
+          echo "Target file: $APK_PATH"
+          
+          for attempt in 1 2 3; do
+            echo "--> Upload attempt $attempt of 3..."
+            if gh release upload "$TAG_NAME" "$APK_PATH" --clobber; then
+              echo "APK uploaded successfully via gh CLI!"
+              exit 0
+            fi
+            echo "Attempt $attempt failed. Retrying in 5 seconds..."
+            sleep 5
+          done
+          
+          echo "Failed to upload APK to release $TAG_NAME after 3 attempts."
+          exit 1
