@@ -452,15 +452,28 @@ export default function DashboardScreen() {
   // Filtered bus list for the modal with tab and search support
   const filteredBuses = useMemo(() => {
     return buses.filter(bus => {
-      const code = (bus.code || `BUS-${bus.id || bus.Bus_ID || ''}`).toUpperCase();
+      const rawCode = (bus.code || `BUS-${bus.id || bus.Bus_ID || ''}`).toUpperCase();
+      const displayLabel = rawCode.startsWith('BUS ')
+        ? rawCode
+        : rawCode.startsWith('BUS-')
+        ? rawCode.replace('BUS-', 'BUS ')
+        : `BUS ${rawCode}`;
+      
       // Tab filter
-      if (busFilterTab === 'TANAUAN' && !code.startsWith('T-')) return false;
-      if (busFilterTab === 'LAUREL' && !code.startsWith('L-')) return false;
+      if (busFilterTab === 'TANAUAN' && !rawCode.includes('T-')) return false;
+      if (busFilterTab === 'LAUREL' && !rawCode.includes('L-')) return false;
+
       // Search filter
       if (busSearchQuery.trim()) {
         const query = busSearchQuery.trim().toUpperCase();
+        const cleanQuery = query.replace(/^BUS\s*/, '').trim();
         const seats = String(bus.total_seats || 25);
-        return code.includes(query) || seats.includes(query);
+        return (
+          rawCode.includes(query) ||
+          displayLabel.includes(query) ||
+          (cleanQuery ? rawCode.includes(cleanQuery) : false) ||
+          seats.includes(query)
+        );
       }
       return true;
     });
@@ -728,7 +741,12 @@ export default function DashboardScreen() {
             <ScrollView style={tw`flex-1 my-1`} contentContainerStyle={tw`pb-2`} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
               {filteredBuses.map((bus: any) => {
                 const id = bus.id || bus.Bus_ID;
-                const code = bus.code || `BUS-${id}`;
+                const rawCode = bus.code || `BUS-${id}`;
+                const displayLabel = rawCode.toUpperCase().startsWith('BUS ')
+                  ? rawCode.toUpperCase()
+                  : rawCode.toUpperCase().startsWith('BUS-')
+                  ? rawCode.toUpperCase().replace('BUS-', 'BUS ')
+                  : `BUS ${rawCode.toUpperCase()}`;
                 const isSelected = selectedBus && (selectedBus.id || selectedBus.Bus_ID) === id;
 
                 return (
@@ -739,22 +757,15 @@ export default function DashboardScreen() {
                       saveLastSelectedBus(bus);
                       setIsBusDropdownOpen(false);
                     }}
-                    style={tw`py-3 px-3 border-b border-slate-100 flex-row justify-between items-center rounded-xl ${
-                      isSelected ? 'bg-blue-50/70 border-blue-200' : 'active:bg-slate-50'
+                    style={tw`py-3.5 px-4 mb-2.5 rounded-2xl border items-center justify-center ${
+                      isSelected 
+                        ? 'bg-[#1D5CAE] border-[#1D5CAE] shadow-sm' 
+                        : 'bg-white border-slate-200 active:bg-slate-50 shadow-xs'
                     }`}
                   >
-                    <View>
-                      <Text style={tw`font-bold text-xs ${isSelected ? 'text-[#1D5CAE]' : 'text-slate-800'}`}>
-                        {code}
-                      </Text>
-                      <Text style={tw`text-[10px] text-slate-400 font-medium`}>
-                        Modern Jeep • {bus.total_seats || 25} seats
-                      </Text>
-                    </View>
-
-                    {isSelected && (
-                      <Ionicons name="checkmark-circle" size={20} color="#1D5CAE" />
-                    )}
+                    <Text style={tw`text-sm font-black tracking-wider ${isSelected ? 'text-white' : 'text-[#1D5CAE]'}`}>
+                      {displayLabel}
+                    </Text>
                   </TouchableOpacity>
                 );
               })}
