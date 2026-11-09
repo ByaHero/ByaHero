@@ -572,12 +572,9 @@ export default function DashboardScreen() {
                 onPress={() => setIsBusDropdownOpen(true)}
                 style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
               >
-                <View style={tw`flex-row items-center gap-2.5 flex-1`}>
-                  <Ionicons name="bus-outline" size={18} color={selectedBus ? '#1D5CAE' : '#64748b'} />
-                  <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
-                  </Text>
-                </View>
+                <Text style={tw`text-sm font-bold flex-1 ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
+                  {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
+                </Text>
                 <Ionicons name="chevron-down" size={16} color="#64748b" />
               </TouchableOpacity>
             </View>
@@ -747,18 +744,13 @@ export default function DashboardScreen() {
                       isSelected ? 'bg-blue-50/70 border-blue-200' : 'active:bg-slate-50'
                     }`}
                   >
-                    <View style={tw`flex-row items-center gap-2.5`}>
-                      <View style={tw`w-8 h-8 rounded-lg items-center justify-center ${isSelected ? 'bg-[#1D5CAE]' : 'bg-slate-100'}`}>
-                        <Ionicons name="bus" size={16} color={isSelected ? '#ffffff' : '#64748b'} />
-                      </View>
-                      <View>
-                        <Text style={tw`font-bold text-xs ${isSelected ? 'text-[#1D5CAE]' : 'text-slate-800'}`}>
-                          {code}
-                        </Text>
-                        <Text style={tw`text-[10px] text-slate-400 font-medium`}>
-                          Modern Jeep • {bus.total_seats || 25} seats
-                        </Text>
-                      </View>
+                    <View>
+                      <Text style={tw`font-bold text-xs ${isSelected ? 'text-[#1D5CAE]' : 'text-slate-800'}`}>
+                        {code}
+                      </Text>
+                      <Text style={tw`text-[10px] text-slate-400 font-medium`}>
+                        Modern Jeep • {bus.total_seats || 25} seats
+                      </Text>
                     </View>
 
                     <View style={tw`flex-row items-center gap-2`}>
