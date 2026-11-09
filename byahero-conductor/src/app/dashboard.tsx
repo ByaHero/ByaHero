@@ -730,7 +730,6 @@ export default function DashboardScreen() {
                 const id = bus.id || bus.Bus_ID;
                 const code = bus.code || `BUS-${id}`;
                 const isSelected = selectedBus && (selectedBus.id || selectedBus.Bus_ID) === id;
-                const isAvailable = bus.status === 'available' || !bus.status;
 
                 return (
                   <TouchableOpacity
@@ -753,25 +752,9 @@ export default function DashboardScreen() {
                       </Text>
                     </View>
 
-                    <View style={tw`flex-row items-center gap-2`}>
-                      {isOfflineFleet ? (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-slate-100`}>
-                          <Text style={tw`text-[9px] font-bold text-slate-500`}>Fleet Unit</Text>
-                        </View>
-                      ) : isAvailable ? (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200`}>
-                          <Text style={tw`text-[9px] font-bold text-emerald-700`}>Available</Text>
-                        </View>
-                      ) : (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200`}>
-                          <Text style={tw`text-[9px] font-bold text-amber-700`}>In Service</Text>
-                        </View>
-                      )}
-
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={18} color="#1D5CAE" />
-                      )}
-                    </View>
+                    {isSelected && (
+                      <Ionicons name="checkmark-circle" size={20} color="#1D5CAE" />
+                    )}
                   </TouchableOpacity>
                 );
               })}
