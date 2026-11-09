@@ -598,7 +598,7 @@ export default function DashboardScreen() {
                 <Text style={tw`text-sm font-bold flex-1 ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
                   {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
                 </Text>
-                <Ionicons name="chevron-down" size={16} color="#64748b" />
+                <Ionicons name="caret-down" size={16} color="#1e293b" />
               </TouchableOpacity>
             </View>
           </View>
