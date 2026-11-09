@@ -56,6 +56,7 @@ export default function DashboardScreen() {
   const [isRefreshingFleet, setIsRefreshingFleet] = useState(false);
   const [busSearchQuery, setBusSearchQuery] = useState('');
   const [busFilterTab, setBusFilterTab] = useState<'ALL' | 'TANAUAN' | 'LAUREL'>('ALL');
+  const [currentConductorId, setCurrentConductorId] = useState<number | null>(null);
 
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
@@ -77,6 +78,9 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
+    AsyncStorage.getItem('byahero_cached_user_id').then(val => {
+      if (val) setCurrentConductorId(Number(val));
+    }).catch(() => {});
     checkAutoResume();
     loadSetupData();
 
@@ -127,9 +131,9 @@ export default function DashboardScreen() {
       const lastBus = await getLastSelectedBus();
       if (lastBus && !selectedBus) {
         const found = local.buses.find((b: any) => (b.id || b.Bus_ID) === (lastBus.id || lastBus.Bus_ID));
-        if (found) {
+        if (found && !found.is_in_use) {
           setSelectedBus(found);
-        } else {
+        } else if (!lastBus.is_in_use) {
           setSelectedBus(lastBus);
         }
       }
@@ -150,7 +154,14 @@ export default function DashboardScreen() {
         // Keep or sync selected bus with live properties
         if (selectedBus) {
           const match = res.buses.find((b: any) => (b.id || b.Bus_ID) === (selectedBus.id || selectedBus.Bus_ID));
-          if (match) setSelectedBus(match);
+          if (match) {
+            if (match.is_in_use) {
+              setSelectedBus(null);
+              AsyncStorage.removeItem('byahero_conductor_last_selected_bus').catch(() => {});
+            } else {
+              setSelectedBus(match);
+            }
+          }
         }
 
         if (forceUserFeedback) {
@@ -318,6 +329,10 @@ export default function DashboardScreen() {
       showAlert('Selection Required', 'Please select an active bus unit.', 'warning');
       return;
     }
+    if (selectedBus.is_in_use) {
+      showAlert('Bus In Use', 'The selected bus unit is currently being operated by another conductor. Please select an available bus.', 'warning');
+      return;
+    }
     if (!selectedRoute) {
       showAlert('Selection Required', 'Please select a transit route.', 'warning');
       return;
@@ -367,6 +382,12 @@ export default function DashboardScreen() {
 
       // Handle offline or unreachable network gracefully
       if (!res?.success || !operationId) {
+        if (res?.error === 'bus_taken') {
+          showAlert('Bus In Use', 'This bus is currently being operated by another conductor. Please select an available bus.', 'error');
+          loadSetupData(true);
+          setIsLoading(false);
+          return;
+        }
         const isNetworkIssue = res?.isTimeout || !res?.success;
         if (isNetworkIssue) {
           operationId = `offline_op_${Date.now()}`;
@@ -748,24 +769,48 @@ export default function DashboardScreen() {
                   ? rawCode.toUpperCase().replace('BUS-', 'BUS ')
                   : `BUS ${rawCode.toUpperCase()}`;
                 const isSelected = selectedBus && (selectedBus.id || selectedBus.Bus_ID) === id;
+                const isInUse = Boolean(
+                  bus.is_in_use ||
+                  (bus.current_conductor_id && currentConductorId && Number(bus.current_conductor_id) !== Number(currentConductorId))
+                );
 
                 return (
                   <TouchableOpacity
                     key={id}
+                    disabled={isInUse}
+                    activeOpacity={isInUse ? 1 : 0.7}
                     onPress={() => {
+                      if (isInUse) return;
                       setSelectedBus(bus);
                       saveLastSelectedBus(bus);
                       setIsBusDropdownOpen(false);
                     }}
-                    style={tw`py-3.5 px-4 mb-2.5 rounded-2xl border items-center justify-center ${
-                      isSelected 
+                    style={tw`py-3 px-4 mb-2.5 rounded-2xl border items-center justify-center ${
+                      isInUse
+                        ? 'bg-white border-slate-200 shadow-xs'
+                        : isSelected 
                         ? 'bg-[#1D5CAE] border-[#1D5CAE] shadow-sm' 
                         : 'bg-white border-slate-200 active:bg-slate-50 shadow-xs'
                     }`}
                   >
-                    <Text style={tw`text-sm font-black tracking-wider ${isSelected ? 'text-white' : 'text-[#1D5CAE]'}`}>
+                    <Text
+                      style={tw`text-sm font-black tracking-wider ${
+                        isInUse
+                          ? 'text-[#5C82B8]'
+                          : isSelected
+                          ? 'text-white'
+                          : 'text-[#1D5CAE]'
+                      }`}
+                    >
                       {displayLabel}
                     </Text>
+                    {isInUse && (
+                      <View style={tw`bg-slate-100 px-3 py-0.5 rounded-full mt-1 items-center justify-center`}>
+                        <Text style={tw`text-[9px] font-black tracking-wider text-rose-600`}>
+                          IN USE
+                        </Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}

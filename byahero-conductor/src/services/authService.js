@@ -90,6 +90,10 @@ export async function cacheSession(email, role, userDetails = {}) {
     await AsyncStorage.setItem('byahero_cached_contacts', contacts);
     await AsyncStorage.setItem('byahero_cached_phone', contacts);
 
+    if (userDetails.id) {
+      await AsyncStorage.setItem('byahero_cached_user_id', String(userDetails.id));
+    }
+
     if (userDetails.profile_picture) {
       await AsyncStorage.setItem('byahero_cached_profile_picture', userDetails.profile_picture);
     } else {
@@ -136,6 +140,7 @@ export async function logout() {
     await AsyncStorage.multiRemove([
       'byahero_cached_email',
       'byahero_cached_role',
+      'byahero_cached_user_id',
       'byahero_cached_name',
       'byahero_cached_contacts',
       'byahero_cached_phone',
