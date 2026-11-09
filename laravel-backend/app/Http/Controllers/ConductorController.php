@@ -227,10 +227,12 @@ class ConductorController extends Controller
     {
         $userId = $this->checkAuth();
 
-        $rows = Bus::whereNull('current_conductor_id')
-            ->orWhere('current_conductor_id', $userId)
-            ->orderBy('code')
-            ->get();
+        $rows = Bus::orderBy('code')->get();
+
+        // Get all active bus operations to accurately identify buses currently running
+        $activeBusOps = BusOperation::where('status', 'active')
+            ->pluck('conductor_id', 'bus_id')
+            ->toArray();
 
         $out = [];
         $dir = base_path('../data/current_locations');
@@ -250,6 +252,14 @@ class ConductorController extends Controller
                 $r->current_location = null;
                 $r->current_location_name = $r->current_location;
             }
+
+            // Flag if bus is in use by another conductor
+            $activeConductorId = $r->current_conductor_id ?? ($activeBusOps[$busId] ?? null);
+            $r->is_in_use = ($activeConductorId !== null && (int)$activeConductorId !== (int)$userId);
+            if ($activeConductorId !== null) {
+                $r->current_conductor_id = $activeConductorId;
+            }
+
             $out[] = $r;
         }
 

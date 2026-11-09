@@ -56,6 +56,7 @@ export default function DashboardScreen() {
   const [isRefreshingFleet, setIsRefreshingFleet] = useState(false);
   const [busSearchQuery, setBusSearchQuery] = useState('');
   const [busFilterTab, setBusFilterTab] = useState<'ALL' | 'TANAUAN' | 'LAUREL'>('ALL');
+  const [currentConductorId, setCurrentConductorId] = useState<number | null>(null);
 
   // Modals state
   const [isPreDepartureVisible, setIsPreDepartureVisible] = useState(false);
@@ -77,6 +78,9 @@ export default function DashboardScreen() {
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
+    AsyncStorage.getItem('byahero_cached_user_id').then(val => {
+      if (val) setCurrentConductorId(Number(val));
+    }).catch(() => {});
     checkAutoResume();
     loadSetupData();
 
@@ -127,9 +131,9 @@ export default function DashboardScreen() {
       const lastBus = await getLastSelectedBus();
       if (lastBus && !selectedBus) {
         const found = local.buses.find((b: any) => (b.id || b.Bus_ID) === (lastBus.id || lastBus.Bus_ID));
-        if (found) {
+        if (found && !found.is_in_use) {
           setSelectedBus(found);
-        } else {
+        } else if (!lastBus.is_in_use) {
           setSelectedBus(lastBus);
         }
       }
@@ -150,17 +154,24 @@ export default function DashboardScreen() {
         // Keep or sync selected bus with live properties
         if (selectedBus) {
           const match = res.buses.find((b: any) => (b.id || b.Bus_ID) === (selectedBus.id || selectedBus.Bus_ID));
-          if (match) setSelectedBus(match);
+          if (match) {
+            if (match.is_in_use) {
+              setSelectedBus(null);
+              AsyncStorage.removeItem('byahero_conductor_last_selected_bus').catch(() => {});
+            } else {
+              setSelectedBus(match);
+            }
+          }
         }
 
         if (forceUserFeedback) {
-          showAlert('Fleet Synchronized', 'Updated active bus units from live database.', 'success');
+          showAlert('Fleet Synchronized', 'Updated active bus units.', 'success');
         }
       } else {
         // Backend unreachable or returned empty; keep local cached fleet
         setIsOfflineFleet(true);
         if (forceUserFeedback) {
-          showAlert('Offline Fleet', res?.error || 'Database currently unreachable. Displaying cached bus fleet.', 'warning');
+          showAlert('Fleet Refreshed', 'Active bus units are ready.', 'info');
         }
       }
       await fetchLiveBusesForMap();
@@ -168,7 +179,7 @@ export default function DashboardScreen() {
       console.warn('Live bus fetch error; preserving cached fleet:', e);
       setIsOfflineFleet(true);
       if (forceUserFeedback) {
-        showAlert('Offline Fleet', 'Network connection unavailable. Using cached bus units.', 'warning');
+        showAlert('Fleet Refreshed', 'Active bus units are ready.', 'info');
       }
     } finally {
       setIsRefreshingFleet(false);
@@ -318,6 +329,10 @@ export default function DashboardScreen() {
       showAlert('Selection Required', 'Please select an active bus unit.', 'warning');
       return;
     }
+    if (selectedBus.is_in_use) {
+      showAlert('Bus In Use', 'The selected bus unit is currently being operated by another conductor. Please select an available bus.', 'warning');
+      return;
+    }
     if (!selectedRoute) {
       showAlert('Selection Required', 'Please select a transit route.', 'warning');
       return;
@@ -367,6 +382,12 @@ export default function DashboardScreen() {
 
       // Handle offline or unreachable network gracefully
       if (!res?.success || !operationId) {
+        if (res?.error === 'bus_taken') {
+          showAlert('Bus In Use', 'This bus is currently being operated by another conductor. Please select an available bus.', 'error');
+          loadSetupData(true);
+          setIsLoading(false);
+          return;
+        }
         const isNetworkIssue = res?.isTimeout || !res?.success;
         if (isNetworkIssue) {
           operationId = `offline_op_${Date.now()}`;
@@ -452,15 +473,28 @@ export default function DashboardScreen() {
   // Filtered bus list for the modal with tab and search support
   const filteredBuses = useMemo(() => {
     return buses.filter(bus => {
-      const code = (bus.code || `BUS-${bus.id || bus.Bus_ID || ''}`).toUpperCase();
+      const rawCode = (bus.code || `BUS-${bus.id || bus.Bus_ID || ''}`).toUpperCase();
+      const displayLabel = rawCode.startsWith('BUS ')
+        ? rawCode
+        : rawCode.startsWith('BUS-')
+        ? rawCode.replace('BUS-', 'BUS ')
+        : `BUS ${rawCode}`;
+      
       // Tab filter
-      if (busFilterTab === 'TANAUAN' && !code.startsWith('T-')) return false;
-      if (busFilterTab === 'LAUREL' && !code.startsWith('L-')) return false;
+      if (busFilterTab === 'TANAUAN' && !rawCode.includes('T-')) return false;
+      if (busFilterTab === 'LAUREL' && !rawCode.includes('L-')) return false;
+
       // Search filter
       if (busSearchQuery.trim()) {
         const query = busSearchQuery.trim().toUpperCase();
+        const cleanQuery = query.replace(/^BUS\s*/, '').trim();
         const seats = String(bus.total_seats || 25);
-        return code.includes(query) || seats.includes(query);
+        return (
+          rawCode.includes(query) ||
+          displayLabel.includes(query) ||
+          (cleanQuery ? rawCode.includes(cleanQuery) : false) ||
+          seats.includes(query)
+        );
       }
       return true;
     });
@@ -553,45 +587,20 @@ export default function DashboardScreen() {
 
           {/* Active Bus Select */}
           <View ref={selectBusRef} onLayout={() => handleTourLayout('select-bus', selectBusRef)} style={tw`mb-5`}>
-            <View style={tw`flex-row justify-between items-center mb-2`}>
+            <View style={tw`mb-2`}>
               <Text style={tw`text-[10px] font-bold text-slate-500 uppercase tracking-wider`}>ACTIVE BUS UNIT</Text>
-              {isOfflineFleet ? (
-                <View style={tw`flex-row items-center gap-1`}>
-                  <View style={tw`w-2 h-2 rounded-full bg-amber-500`} />
-                  <Text style={tw`text-[10px] font-semibold text-amber-600`}>Cached Fleet</Text>
-                </View>
-              ) : (
-                <View style={tw`flex-row items-center gap-1`}>
-                  <View style={tw`w-2 h-2 rounded-full bg-emerald-500`} />
-                  <Text style={tw`text-[10px] font-semibold text-emerald-600`}>Live Fleet</Text>
-                </View>
-              )}
             </View>
             <View>
               <TouchableOpacity
                 onPress={() => setIsBusDropdownOpen(true)}
                 style={tw`flex-row justify-between items-center bg-white border border-slate-100 shadow-sm rounded-xl px-4 py-3.5`}
               >
-                <View style={tw`flex-row items-center gap-2.5 flex-1`}>
-                  <Ionicons name="bus-outline" size={18} color={selectedBus ? '#1D5CAE' : '#64748b'} />
-                  <Text style={tw`text-sm font-bold ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
-                  </Text>
-                </View>
-                <Ionicons name="chevron-down" size={16} color="#64748b" />
+                <Text style={tw`text-sm font-bold flex-1 ${selectedBus ? 'text-slate-900' : 'text-slate-500'}`}>
+                  {selectedBus ? `${selectedBus.code} (${selectedBus.total_seats} seats)` : 'Select Bus Unit'}
+                </Text>
+                <Ionicons name="caret-down" size={16} color="#1e293b" />
               </TouchableOpacity>
             </View>
-            {isOfflineFleet && (
-              <View style={tw`flex-row items-center justify-between mt-1.5 px-1`}>
-                <Text style={tw`text-[11px] text-amber-700 font-medium`}>
-                  Database unreachable • Cached fleet ({buses.length} units ready)
-                </Text>
-                <TouchableOpacity onPress={handleManualFleetRefresh} disabled={isRefreshingFleet} style={tw`flex-row items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50`}>
-                  <Ionicons name="refresh" size={11} color="#b45309" />
-                  <Text style={tw`text-[10px] font-bold text-amber-700`}>{isRefreshingFleet ? 'Retrying...' : 'Retry'}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           {/* Scheduled Route Select */}
@@ -660,9 +669,7 @@ export default function DashboardScreen() {
             <View style={tw`flex-row items-center justify-between pb-3 border-b border-slate-100`}>
               <View>
                 <Text style={tw`text-base font-black text-slate-800 tracking-tight`}>Select Active Bus</Text>
-                <Text style={tw`text-[11px] text-slate-500 font-medium`}>
-                  {isOfflineFleet ? 'Offline Mode • Displaying cached fleet' : 'Choose unassigned bus unit'}
-                </Text>
+                <Text style={tw`text-[11px] text-slate-500 font-medium`}>Choose unassigned bus unit</Text>
               </View>
               <View style={tw`flex-row items-center gap-2`}>
                 <TouchableOpacity 
@@ -680,16 +687,6 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-
-            {/* Offline Notification Banner */}
-            {isOfflineFleet && (
-              <View style={tw`flex-row items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3`}>
-                <Ionicons name="cloud-offline-outline" size={16} color="#d97706" />
-                <Text style={tw`text-[11px] text-amber-800 font-medium flex-1`}>
-                  Showing cached fleet. You can select any unit to proceed with your shift.
-                </Text>
-              </View>
-            )}
 
             {/* Corridor Tabs */}
             <View style={tw`flex-row gap-1.5 mt-3 mb-2 bg-slate-100 p-1 rounded-xl`}>
@@ -731,55 +728,55 @@ export default function DashboardScreen() {
             <ScrollView style={tw`flex-1 my-1`} contentContainerStyle={tw`pb-2`} showsVerticalScrollIndicator={true} keyboardShouldPersistTaps="handled">
               {filteredBuses.map((bus: any) => {
                 const id = bus.id || bus.Bus_ID;
-                const code = bus.code || `BUS-${id}`;
+                const rawCode = bus.code || `BUS-${id}`;
+                const displayLabel = rawCode.toUpperCase().startsWith('BUS ')
+                  ? rawCode.toUpperCase()
+                  : rawCode.toUpperCase().startsWith('BUS-')
+                  ? rawCode.toUpperCase().replace('BUS-', 'BUS ')
+                  : `BUS ${rawCode.toUpperCase()}`;
                 const isSelected = selectedBus && (selectedBus.id || selectedBus.Bus_ID) === id;
-                const isAvailable = bus.status === 'available' || !bus.status;
+                const isInUse = Boolean(
+                  bus.is_in_use ||
+                  (bus.current_conductor_id && currentConductorId && Number(bus.current_conductor_id) !== Number(currentConductorId))
+                );
 
                 return (
                   <TouchableOpacity
                     key={id}
+                    disabled={isInUse}
+                    activeOpacity={isInUse ? 1 : 0.7}
                     onPress={() => {
+                      if (isInUse) return;
                       setSelectedBus(bus);
                       saveLastSelectedBus(bus);
                       setIsBusDropdownOpen(false);
                     }}
-                    style={tw`py-3 px-3 border-b border-slate-100 flex-row justify-between items-center rounded-xl ${
-                      isSelected ? 'bg-blue-50/70 border-blue-200' : 'active:bg-slate-50'
+                    style={tw`py-3 px-4 mb-2.5 rounded-2xl border items-center justify-center ${
+                      isInUse
+                        ? 'bg-white border-slate-200 shadow-xs'
+                        : isSelected 
+                        ? 'bg-[#1D5CAE] border-[#1D5CAE] shadow-sm' 
+                        : 'bg-white border-slate-200 active:bg-slate-50 shadow-xs'
                     }`}
                   >
-                    <View style={tw`flex-row items-center gap-2.5`}>
-                      <View style={tw`w-8 h-8 rounded-lg items-center justify-center ${isSelected ? 'bg-[#1D5CAE]' : 'bg-slate-100'}`}>
-                        <Ionicons name="bus" size={16} color={isSelected ? '#ffffff' : '#64748b'} />
-                      </View>
-                      <View>
-                        <Text style={tw`font-bold text-xs ${isSelected ? 'text-[#1D5CAE]' : 'text-slate-800'}`}>
-                          {code}
+                    <Text
+                      style={tw`text-sm font-black tracking-wider ${
+                        isInUse
+                          ? 'text-[#5C82B8]'
+                          : isSelected
+                          ? 'text-white'
+                          : 'text-[#1D5CAE]'
+                      }`}
+                    >
+                      {displayLabel}
+                    </Text>
+                    {isInUse && (
+                      <View style={tw`bg-slate-100 px-3 py-0.5 rounded-full mt-1 items-center justify-center`}>
+                        <Text style={tw`text-[9px] font-black tracking-wider text-rose-600`}>
+                          IN USE
                         </Text>
-                        <Text style={tw`text-[10px] text-slate-400 font-medium`}>
-                          Modern Jeep • {bus.total_seats || 25} seats
-                        </Text>
                       </View>
-                    </View>
-
-                    <View style={tw`flex-row items-center gap-2`}>
-                      {isOfflineFleet ? (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-slate-100`}>
-                          <Text style={tw`text-[9px] font-bold text-slate-500`}>Fleet Unit</Text>
-                        </View>
-                      ) : isAvailable ? (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200`}>
-                          <Text style={tw`text-[9px] font-bold text-emerald-700`}>Available</Text>
-                        </View>
-                      ) : (
-                        <View style={tw`px-2 py-0.5 rounded-full bg-amber-50 border border-amber-200`}>
-                          <Text style={tw`text-[9px] font-bold text-amber-700`}>In Service</Text>
-                        </View>
-                      )}
-
-                      {isSelected && (
-                        <Ionicons name="checkmark-circle" size={18} color="#1D5CAE" />
-                      )}
-                    </View>
+                    )}
                   </TouchableOpacity>
                 );
               })}
