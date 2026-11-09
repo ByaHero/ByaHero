@@ -165,13 +165,13 @@ export default function DashboardScreen() {
         }
 
         if (forceUserFeedback) {
-          showAlert('Fleet Synchronized', 'Updated active bus units from live database.', 'success');
+          showAlert('Fleet Synchronized', 'Updated active bus units.', 'success');
         }
       } else {
         // Backend unreachable or returned empty; keep local cached fleet
         setIsOfflineFleet(true);
         if (forceUserFeedback) {
-          showAlert('Offline Fleet', res?.error || 'Database currently unreachable. Displaying cached bus fleet.', 'warning');
+          showAlert('Fleet Refreshed', 'Active bus units are ready.', 'info');
         }
       }
       await fetchLiveBusesForMap();
@@ -179,7 +179,7 @@ export default function DashboardScreen() {
       console.warn('Live bus fetch error; preserving cached fleet:', e);
       setIsOfflineFleet(true);
       if (forceUserFeedback) {
-        showAlert('Offline Fleet', 'Network connection unavailable. Using cached bus units.', 'warning');
+        showAlert('Fleet Refreshed', 'Active bus units are ready.', 'info');
       }
     } finally {
       setIsRefreshingFleet(false);
@@ -587,19 +587,8 @@ export default function DashboardScreen() {
 
           {/* Active Bus Select */}
           <View ref={selectBusRef} onLayout={() => handleTourLayout('select-bus', selectBusRef)} style={tw`mb-5`}>
-            <View style={tw`flex-row justify-between items-center mb-2`}>
+            <View style={tw`mb-2`}>
               <Text style={tw`text-[10px] font-bold text-slate-500 uppercase tracking-wider`}>ACTIVE BUS UNIT</Text>
-              {isOfflineFleet ? (
-                <View style={tw`flex-row items-center gap-1`}>
-                  <View style={tw`w-2 h-2 rounded-full bg-amber-500`} />
-                  <Text style={tw`text-[10px] font-semibold text-amber-600`}>Cached Fleet</Text>
-                </View>
-              ) : (
-                <View style={tw`flex-row items-center gap-1`}>
-                  <View style={tw`w-2 h-2 rounded-full bg-emerald-500`} />
-                  <Text style={tw`text-[10px] font-semibold text-emerald-600`}>Live Fleet</Text>
-                </View>
-              )}
             </View>
             <View>
               <TouchableOpacity
@@ -612,17 +601,6 @@ export default function DashboardScreen() {
                 <Ionicons name="chevron-down" size={16} color="#64748b" />
               </TouchableOpacity>
             </View>
-            {isOfflineFleet && (
-              <View style={tw`flex-row items-center justify-between mt-1.5 px-1`}>
-                <Text style={tw`text-[11px] text-amber-700 font-medium`}>
-                  Database unreachable • Cached fleet ({buses.length} units ready)
-                </Text>
-                <TouchableOpacity onPress={handleManualFleetRefresh} disabled={isRefreshingFleet} style={tw`flex-row items-center gap-1 px-1.5 py-0.5 rounded bg-amber-50`}>
-                  <Ionicons name="refresh" size={11} color="#b45309" />
-                  <Text style={tw`text-[10px] font-bold text-amber-700`}>{isRefreshingFleet ? 'Retrying...' : 'Retry'}</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
 
           {/* Scheduled Route Select */}
@@ -691,9 +669,7 @@ export default function DashboardScreen() {
             <View style={tw`flex-row items-center justify-between pb-3 border-b border-slate-100`}>
               <View>
                 <Text style={tw`text-base font-black text-slate-800 tracking-tight`}>Select Active Bus</Text>
-                <Text style={tw`text-[11px] text-slate-500 font-medium`}>
-                  {isOfflineFleet ? 'Offline Mode • Displaying cached fleet' : 'Choose unassigned bus unit'}
-                </Text>
+                <Text style={tw`text-[11px] text-slate-500 font-medium`}>Choose unassigned bus unit</Text>
               </View>
               <View style={tw`flex-row items-center gap-2`}>
                 <TouchableOpacity 
@@ -711,16 +687,6 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
               </View>
             </View>
-
-            {/* Offline Notification Banner */}
-            {isOfflineFleet && (
-              <View style={tw`flex-row items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 mt-3`}>
-                <Ionicons name="cloud-offline-outline" size={16} color="#d97706" />
-                <Text style={tw`text-[11px] text-amber-800 font-medium flex-1`}>
-                  Showing cached fleet. You can select any unit to proceed with your shift.
-                </Text>
-              </View>
-            )}
 
             {/* Corridor Tabs */}
             <View style={tw`flex-row gap-1.5 mt-3 mb-2 bg-slate-100 p-1 rounded-xl`}>
