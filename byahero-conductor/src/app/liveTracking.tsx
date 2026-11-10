@@ -67,6 +67,7 @@ export default function LiveTrackingScreen() {
   const [session, setSession] = useState<any>(null);
   const [seats, setSeats] = useState(0); // available seats (for server status)
   const [boardedCount, setBoardedCount] = useState(0); // total passengers on board (displayed, no cap)
+  const [totalServed, setTotalServed] = useState(0); // cumulative passengers served for the trip
   const [netStatus, setNetStatus] = useState('Active');
   const [locationName, setLocationName] = useState('Waiting for GPS...');
   const [lastUpdate, setLastUpdate] = useState('00:00');
@@ -170,6 +171,7 @@ export default function LiveTrackingScreen() {
         const p = JSON.parse(str);
         p.current_seats = seats;
         p.current_boarded = boardedCount;
+        p.total_served = totalServed;
         p.pending_pre_departure = p.ticketing_mode === 'Automatic' ? pendingPreDeparture : 0;
         p.active_passengers = activePassengers;
         delete p.is_new_session;
@@ -177,7 +179,7 @@ export default function LiveTrackingScreen() {
         AsyncStorage.setItem('byahero_conductor_ticket_counter', JSON.stringify(ticketCounter));
       } catch (e) {}
     });
-  }, [session, sessionInitialized, seats, boardedCount, pendingPreDeparture, ticketCounter, activePassengers]);
+  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -251,7 +253,13 @@ export default function LiveTrackingScreen() {
               if (seatsTotal > 0) {
                 setSeats(persisted);
                 // Recompute boarded count from the persisted available seats
-                setBoardedCount(Math.max(0, seatsTotal - persisted));
+                const newBoarded = Math.max(0, seatsTotal - persisted);
+                setBoardedCount(prev => {
+                  if (newBoarded > prev) {
+                    setTotalServed(ts => ts + (newBoarded - prev));
+                  }
+                  return newBoarded;
+                });
               }
             }
           }
@@ -345,6 +353,10 @@ export default function LiveTrackingScreen() {
 
     setSeats(restoredSeats);
     setBoardedCount(restoredBoarded);
+    const restoredServed = isResumed && payload.total_served !== undefined
+      ? Math.max(payload.total_served, restoredBoarded)
+      : restoredBoarded;
+    setTotalServed(restoredServed);
 
     if (payload.isSimulation) {
       setSessionInitialized(true);
@@ -679,15 +691,16 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const flushPendingEvents = () => {
-    if (sessionRef.current?.isSimulation) return;
+  const flushPendingEvents = async () => {
+    const activeSession = sessionRef.current || session;
+    if (activeSession?.isSimulation) return;
     const netBoards = pendingBoards.current;
     const netDeparts = pendingDeparts.current;
     pendingBoards.current = 0;
     pendingDeparts.current = 0;
 
     const net = netBoards - netDeparts;
-    if (net === 0 || !session) return;
+    if (net === 0 || !activeSession?.operation_id) return;
 
     const eventType = net > 0 ? 'board' : 'depart';
     const count = Math.abs(net);
@@ -695,20 +708,23 @@ export default function LiveTrackingScreen() {
     const lat = lastCoords.current?.lat || null;
     const lng = lastCoords.current?.lng || null;
 
-    logPassengerEvent({
-      operation_id: session.operation_id,
-      event_type: eventType,
-      count,
-      location_name: locName,
-      lat,
-      lng
-    }).then(res => {
+    try {
+      const res = await logPassengerEvent({
+        operation_id: activeSession.operation_id,
+        event_type: eventType,
+        count,
+        location_name: locName,
+        lat,
+        lng
+      });
       if (res && res.success) {
         console.log(`Passenger ${eventType} event logged successfully.`);
       } else if (res && res.success === false && res.error && res.error.includes('403')) {
         handleAdminStop();
       }
-    });
+    } catch (err) {
+      console.warn('Failed to flush passenger event:', err);
+    }
   };
 
   const scheduleSync = () => {
@@ -740,6 +756,7 @@ export default function LiveTrackingScreen() {
       }
       return newBoarded;
     });
+    setTotalServed(prev => prev + count);
 
     pendingBoards.current += count;
     scheduleSync();
@@ -772,7 +789,7 @@ export default function LiveTrackingScreen() {
   const performStopTracking = async () => {
     setIsLoading(true);
     cleanup();
-    flushPendingEvents();
+    await flushPendingEvents();
 
     if (session && !session.isSimulation) {
       const endLocName = lastResolvedLocation.current?.name || null;
@@ -822,9 +839,36 @@ export default function LiveTrackingScreen() {
 
   const handleStopTracking = async () => {
     setIsStopTrackingModalVisible(true);
+    if (syncTimer.current) {
+      clearTimeout(syncTimer.current);
+      syncTimer.current = null;
+    }
+    await flushPendingEvents();
+
+    const activeSession = sessionRef.current || session;
+    const isAuto = activeSession?.ticketing_mode === 'Automatic';
+
+    if (!isAuto) {
+      const opId = activeSession?.operation_id || activeSession?.id;
+      if (opId && !String(opId).startsWith('offline_op_')) {
+        try {
+          const res = await getTripSummary(opId);
+          if (res && res.success && res.summary) {
+            setTripSummary(res.summary);
+            if (typeof res.summary.total_boarded === 'number') {
+              setTotalServed(prev => Math.max(prev, res.summary.total_boarded));
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load manual trip summary', e);
+        }
+      }
+      return;
+    }
+
     setIsSummaryLoading(true);
     try {
-      const opId = session?.operation_id || session?.id;
+      const opId = activeSession?.operation_id || activeSession?.id;
       if (opId) {
         const res = await getTripSummary(opId);
         if (res && res.success) {
@@ -1827,18 +1871,38 @@ export default function LiveTrackingScreen() {
               <Ionicons name="close" size={20} color="#94a3b8" />
             </TouchableOpacity>
 
-            <View style={tw`w-14 h-14 rounded-full bg-red-100 items-center justify-center mb-4 self-center`}>
-              <MaterialIcons name="receipt-long" size={28} color="#ef4444" />
+            <View style={tw`w-14 h-14 rounded-full ${isAutoTicketing ? 'bg-red-100' : 'bg-blue-100'} items-center justify-center mb-4 self-center`}>
+              {isAutoTicketing ? (
+                <MaterialIcons name="receipt-long" size={28} color="#ef4444" />
+              ) : (
+                <Ionicons name="people" size={28} color="#0f3878" />
+              )}
             </View>
 
             <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
               Trip Summary
             </Text>
             <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-4`}>
-              Review your current trip details before ending the session.
+              {isAutoTicketing
+                ? 'Review your current trip details before ending the session.'
+                : 'Review how many passengers were served before ending the session.'}
             </Text>
 
-            {isSummaryLoading ? (
+            {!isAutoTicketing ? (
+              <View style={tw`bg-slate-50 rounded-2xl p-5 mb-5 border border-slate-100 items-center`}>
+                <Text style={tw`text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1`}>
+                  Passengers Served
+                </Text>
+                <Text style={tw`text-4xl font-black text-[#0f3878]`}>
+                  {Math.max(totalServed, tripSummary?.total_boarded || 0, boardedCount)}
+                </Text>
+                {session && (
+                  <Text style={tw`text-xs font-semibold text-slate-500 mt-2 text-center`}>
+                    {[session.code, session.route].filter(Boolean).join(' • ')}
+                  </Text>
+                )}
+              </View>
+            ) : isSummaryLoading ? (
               <View style={tw`items-center justify-center py-6`}>
                 <ActivityIndicator size="small" color="#0f3878" />
                 <Text style={tw`text-xs text-slate-400 mt-2`}>Loading summary data...</Text>
