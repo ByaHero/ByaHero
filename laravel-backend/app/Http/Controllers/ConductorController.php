@@ -677,6 +677,8 @@ class ConductorController extends Controller
                 'end_time' => $op->ended_at ? \Carbon\Carbon::parse($op->ended_at)->format('g:i A') : 'Ongoing',
                 'total_tickets' => $totalTickets,
                 'total_passengers' => $totalPassengers,
+                'total_boarded' => (int)($op->total_boarded ?? 0),
+                'total_departed' => (int)($op->total_departed ?? 0),
                 'total_revenue' => $totalRevenue,
                 'breakdown' => $breakdown,
                 'first_ticket' => $firstTicket ? 'TKT-' . $firstTicket->ticket_number : 'N/A',

@@ -67,6 +67,7 @@ export default function LiveTrackingScreen() {
   const [session, setSession] = useState<any>(null);
   const [seats, setSeats] = useState(0); // available seats (for server status)
   const [boardedCount, setBoardedCount] = useState(0); // total passengers on board (displayed, no cap)
+  const [totalServed, setTotalServed] = useState(0); // cumulative passengers served for the trip
   const [netStatus, setNetStatus] = useState('Active');
   const [locationName, setLocationName] = useState('Waiting for GPS...');
   const [lastUpdate, setLastUpdate] = useState('00:00');
@@ -101,8 +102,9 @@ export default function LiveTrackingScreen() {
   const [isInTraffic, setIsInTraffic] = useState(false);
   const [trafficDelayMins, setTrafficDelayMins] = useState(0);
 
-  // Printer States
-  const printer = usePrinter();
+  // Printer States (active only in Automatic Ticketing mode)
+  const isAutoTicketing = session?.ticketing_mode === 'Automatic';
+  const printer = usePrinter(isAutoTicketing);
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
@@ -169,6 +171,7 @@ export default function LiveTrackingScreen() {
         const p = JSON.parse(str);
         p.current_seats = seats;
         p.current_boarded = boardedCount;
+        p.total_served = totalServed;
         p.pending_pre_departure = p.ticketing_mode === 'Automatic' ? pendingPreDeparture : 0;
         p.active_passengers = activePassengers;
         delete p.is_new_session;
@@ -176,11 +179,10 @@ export default function LiveTrackingScreen() {
         AsyncStorage.setItem('byahero_conductor_ticket_counter', JSON.stringify(ticketCounter));
       } catch (e) {}
     });
-  }, [session, sessionInitialized, seats, boardedCount, pendingPreDeparture, ticketCounter, activePassengers]);
+  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
-    openPrinterSetup();
     
     initSession().then(() => {
       if (Platform.OS === 'web') {
@@ -251,7 +253,13 @@ export default function LiveTrackingScreen() {
               if (seatsTotal > 0) {
                 setSeats(persisted);
                 // Recompute boarded count from the persisted available seats
-                setBoardedCount(Math.max(0, seatsTotal - persisted));
+                const newBoarded = Math.max(0, seatsTotal - persisted);
+                setBoardedCount(prev => {
+                  if (newBoarded > prev) {
+                    setTotalServed(ts => ts + (newBoarded - prev));
+                  }
+                  return newBoarded;
+                });
               }
             }
           }
@@ -345,6 +353,10 @@ export default function LiveTrackingScreen() {
 
     setSeats(restoredSeats);
     setBoardedCount(restoredBoarded);
+    const restoredServed = isResumed && payload.total_served !== undefined
+      ? Math.max(payload.total_served, restoredBoarded)
+      : restoredBoarded;
+    setTotalServed(restoredServed);
 
     if (payload.isSimulation) {
       setSessionInitialized(true);
@@ -371,6 +383,9 @@ export default function LiveTrackingScreen() {
     }
     
     const isAutoMode = payload.ticketing_mode === 'Automatic';
+    if (isAutoMode) {
+      openPrinterSetup();
+    }
     let restoredPending = (isAutoMode && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
       : (isAutoMode ? preDep : 0);
@@ -676,15 +691,16 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const flushPendingEvents = () => {
-    if (sessionRef.current?.isSimulation) return;
+  const flushPendingEvents = async () => {
+    const activeSession = sessionRef.current || session;
+    if (activeSession?.isSimulation) return;
     const netBoards = pendingBoards.current;
     const netDeparts = pendingDeparts.current;
     pendingBoards.current = 0;
     pendingDeparts.current = 0;
 
     const net = netBoards - netDeparts;
-    if (net === 0 || !session) return;
+    if (net === 0 || !activeSession?.operation_id) return;
 
     const eventType = net > 0 ? 'board' : 'depart';
     const count = Math.abs(net);
@@ -692,20 +708,23 @@ export default function LiveTrackingScreen() {
     const lat = lastCoords.current?.lat || null;
     const lng = lastCoords.current?.lng || null;
 
-    logPassengerEvent({
-      operation_id: session.operation_id,
-      event_type: eventType,
-      count,
-      location_name: locName,
-      lat,
-      lng
-    }).then(res => {
+    try {
+      const res = await logPassengerEvent({
+        operation_id: activeSession.operation_id,
+        event_type: eventType,
+        count,
+        location_name: locName,
+        lat,
+        lng
+      });
       if (res && res.success) {
         console.log(`Passenger ${eventType} event logged successfully.`);
       } else if (res && res.success === false && res.error && res.error.includes('403')) {
         handleAdminStop();
       }
-    });
+    } catch (err) {
+      console.warn('Failed to flush passenger event:', err);
+    }
   };
 
   const scheduleSync = () => {
@@ -737,6 +756,7 @@ export default function LiveTrackingScreen() {
       }
       return newBoarded;
     });
+    setTotalServed(prev => prev + count);
 
     pendingBoards.current += count;
     scheduleSync();
@@ -769,7 +789,7 @@ export default function LiveTrackingScreen() {
   const performStopTracking = async () => {
     setIsLoading(true);
     cleanup();
-    flushPendingEvents();
+    await flushPendingEvents();
 
     if (session && !session.isSimulation) {
       const endLocName = lastResolvedLocation.current?.name || null;
@@ -819,9 +839,36 @@ export default function LiveTrackingScreen() {
 
   const handleStopTracking = async () => {
     setIsStopTrackingModalVisible(true);
+    if (syncTimer.current) {
+      clearTimeout(syncTimer.current);
+      syncTimer.current = null;
+    }
+    await flushPendingEvents();
+
+    const activeSession = sessionRef.current || session;
+    const isAuto = activeSession?.ticketing_mode === 'Automatic';
+
+    if (!isAuto) {
+      const opId = activeSession?.operation_id || activeSession?.id;
+      if (opId && !String(opId).startsWith('offline_op_')) {
+        try {
+          const res = await getTripSummary(opId);
+          if (res && res.success && res.summary) {
+            setTripSummary(res.summary);
+            if (typeof res.summary.total_boarded === 'number') {
+              setTotalServed(prev => Math.max(prev, res.summary.total_boarded));
+            }
+          }
+        } catch (e) {
+          console.warn('Failed to load manual trip summary', e);
+        }
+      }
+      return;
+    }
+
     setIsSummaryLoading(true);
     try {
-      const opId = session?.operation_id || session?.id;
+      const opId = activeSession?.operation_id || activeSession?.id;
       if (opId) {
         const res = await getTripSummary(opId);
         if (res && res.success) {
@@ -1218,81 +1265,12 @@ export default function LiveTrackingScreen() {
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar 
         title="Bus Live" 
-        leftElement={
-          <TouchableOpacity
-            onPress={() => setIsPrinterModalVisible(true)}
-            style={tw`flex-row items-center gap-1.5 px-2.5 py-1 rounded-full ${
-              printer.isPrinterOffline
-                ? 'bg-rose-500/30 border border-rose-400'
-                : printer.paperWarning
-                ? 'bg-amber-500/30 border border-amber-400'
-                : printer.connectedPrinter 
-                ? 'bg-emerald-500/20 border border-emerald-400/50' 
-                : 'bg-rose-500/20 border border-rose-400/50'
-            }`}
-          >
-            <Ionicons 
-              name={
-                printer.isPrinterOffline 
-                  ? "alert-circle" 
-                  : printer.paperWarning 
-                  ? "newspaper-outline" 
-                  : printer.connectedPrinter 
-                  ? "print" 
-                  : "print-outline"
-              } 
-              size={13} 
-              color={
-                printer.isPrinterOffline
-                  ? "#fb7185"
-                  : printer.paperWarning
-                  ? "#fbbf24"
-                  : printer.connectedPrinter
-                  ? "#34d399"
-                  : "#fb7185"
-              } 
-            />
-            <View 
-              style={tw`w-1.5 h-1.5 rounded-full ${
-                printer.isPrinterOffline
-                  ? 'bg-rose-400'
-                  : printer.paperWarning
-                  ? 'bg-amber-400'
-                  : printer.connectedPrinter
-                  ? 'bg-emerald-400'
-                  : 'bg-rose-400'
-              }`} 
-            />
-            <Text 
-              style={tw`text-[11px] font-bold ${
-                printer.isPrinterOffline
-                  ? 'text-rose-200'
-                  : printer.paperWarning
-                  ? 'text-amber-200'
-                  : printer.connectedPrinter
-                  ? 'text-emerald-300'
-                  : 'text-rose-200'
-              } max-w-[70px]`}
-              numberOfLines={1}
-            >
-              {printer.isPrinterOffline
-                ? 'Offline'
-                : printer.paperWarning === 'out_or_jammed'
-                ? 'Paper Check'
-                : printer.paperWarning
-                ? 'Paper Low'
-                : printer.connectedPrinter
-                ? (printer.connectedPrinter.name || 'Printer')
-                : 'Offline'}
-            </Text>
-          </TouchableOpacity>
-        }
-        rightIcon={require('../../assets/images/icons/printer.svg')} 
-        onRightIconPress={() => setIsInterimModalVisible(true)} 
+        rightIcon={isAutoTicketing ? require('../../assets/images/icons/printer.svg') : undefined} 
+        onRightIconPress={isAutoTicketing ? () => setIsInterimModalVisible(true) : undefined} 
       />
 
       {/* Printer Offline Sudden Drop Warning Banner */}
-      {printer.connectedPrinter && printer.isPrinterOffline && !printer.offlineDismissed && (
+      {isAutoTicketing && printer.connectedPrinter && printer.isPrinterOffline && !printer.offlineDismissed && (
         <View style={tw`mx-4 mt-2 mb-1 p-3 bg-rose-50 border border-rose-300 rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
           <View style={tw`flex-row items-center flex-1 mr-2`}>
             <View style={tw`w-8 h-8 rounded-xl bg-rose-500/10 items-center justify-center mr-2.5`}>
@@ -1321,7 +1299,7 @@ export default function LiveTrackingScreen() {
       )}
 
       {/* Low Paper / Paper Out Warning Banner */}
-      {printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
+      {isAutoTicketing && printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
         <View style={tw`mx-4 mt-2 mb-1 p-3 ${
           printer.paperWarning === 'out_or_jammed' ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'
         } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
@@ -1379,75 +1357,6 @@ export default function LiveTrackingScreen() {
               onMessage={() => { }}
             />
           )}
-
-          {/* Upper Left Printer Status Pill over Map */}
-          <View style={tw`absolute top-3 left-3 z-30`}>
-            <TouchableOpacity
-              onPress={() => setIsPrinterModalVisible(true)}
-              activeOpacity={0.85}
-              style={tw`flex-row items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/95 shadow-md border ${
-                printer.isPrinterOffline
-                  ? 'border-rose-400 bg-rose-50/95'
-                  : printer.paperWarning
-                  ? 'border-amber-400 bg-amber-50/95'
-                  : printer.connectedPrinter
-                  ? 'border-emerald-200'
-                  : 'border-rose-200'
-              }`}
-            >
-              <Ionicons 
-                name={
-                  printer.isPrinterOffline
-                    ? 'alert-circle'
-                    : printer.paperWarning
-                    ? 'newspaper-outline'
-                    : 'print'
-                } 
-                size={14} 
-                color={
-                  printer.isPrinterOffline
-                    ? '#e11d48'
-                    : printer.paperWarning
-                    ? '#d97706'
-                    : printer.connectedPrinter
-                    ? '#059669'
-                    : '#e11d48'
-                } 
-              />
-              <View 
-                style={tw`w-2 h-2 rounded-full ${
-                  printer.isPrinterOffline
-                    ? 'bg-rose-500'
-                    : printer.paperWarning
-                    ? 'bg-amber-500'
-                    : printer.connectedPrinter
-                    ? 'bg-emerald-500'
-                    : 'bg-rose-500'
-                }`} 
-              />
-              <Text 
-                style={tw`text-[11px] font-bold ${
-                  printer.isPrinterOffline
-                    ? 'text-rose-700'
-                    : printer.paperWarning
-                    ? 'text-amber-800'
-                    : printer.connectedPrinter
-                    ? 'text-emerald-700'
-                    : 'text-rose-600'
-                }`}
-              >
-                {printer.isPrinterOffline
-                  ? '⚠️ Printer Offline • Tap to Reconnect'
-                  : printer.paperWarning === 'out_or_jammed'
-                  ? '⚠️ Check Paper / Cover Open'
-                  : printer.paperWarning
-                  ? `📄 Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)`
-                  : printer.connectedPrinter
-                  ? (printer.connectedPrinter.name || 'Printer Ready')
-                  : 'Printer Offline • Tap to Connect'}
-              </Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </View>
 
@@ -1962,18 +1871,38 @@ export default function LiveTrackingScreen() {
               <Ionicons name="close" size={20} color="#94a3b8" />
             </TouchableOpacity>
 
-            <View style={tw`w-14 h-14 rounded-full bg-red-100 items-center justify-center mb-4 self-center`}>
-              <MaterialIcons name="receipt-long" size={28} color="#ef4444" />
+            <View style={tw`w-14 h-14 rounded-full ${isAutoTicketing ? 'bg-red-100' : 'bg-blue-100'} items-center justify-center mb-4 self-center`}>
+              {isAutoTicketing ? (
+                <MaterialIcons name="receipt-long" size={28} color="#ef4444" />
+              ) : (
+                <Ionicons name="people" size={28} color="#0f3878" />
+              )}
             </View>
 
             <Text style={tw`text-lg font-black text-slate-800 text-center mb-1.5`}>
               Trip Summary
             </Text>
             <Text style={tw`text-xs text-slate-500 text-center leading-relaxed mb-4`}>
-              Review your current trip details before ending the session.
+              {isAutoTicketing
+                ? 'Review your current trip details before ending the session.'
+                : 'Review how many passengers were served before ending the session.'}
             </Text>
 
-            {isSummaryLoading ? (
+            {!isAutoTicketing ? (
+              <View style={tw`bg-slate-50 rounded-2xl p-5 mb-5 border border-slate-100 items-center`}>
+                <Text style={tw`text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1`}>
+                  Passengers Served
+                </Text>
+                <Text style={tw`text-4xl font-black text-[#0f3878]`}>
+                  {Math.max(totalServed, tripSummary?.total_boarded || 0, boardedCount)}
+                </Text>
+                {session && (
+                  <Text style={tw`text-xs font-semibold text-slate-500 mt-2 text-center`}>
+                    {[session.code, session.route].filter(Boolean).join(' • ')}
+                  </Text>
+                )}
+              </View>
+            ) : isSummaryLoading ? (
               <View style={tw`items-center justify-center py-6`}>
                 <ActivityIndicator size="small" color="#0f3878" />
                 <Text style={tw`text-xs text-slate-400 mt-2`}>Loading summary data...</Text>
@@ -2014,14 +1943,16 @@ export default function LiveTrackingScreen() {
               </View>
             )}
 
-            <TouchableOpacity
-              onPress={() => handlePrintSummary(false)}
-              disabled={!tripSummary || isPrinting}
-              style={tw`w-full bg-slate-800 py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 ${(!tripSummary || isPrinting) ? 'opacity-60' : ''}`}
-            >
-              {isPrinting ? <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} /> : <Ionicons name="print" size={16} color="white" style={tw`mr-2`} />}
-              <Text style={tw`text-white font-bold text-sm`}>Print Summary</Text>
-            </TouchableOpacity>
+            {isAutoTicketing && (
+              <TouchableOpacity
+                onPress={() => handlePrintSummary(false)}
+                disabled={!tripSummary || isPrinting}
+                style={tw`w-full bg-slate-800 py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 ${(!tripSummary || isPrinting) ? 'opacity-60' : ''}`}
+              >
+                {isPrinting ? <ActivityIndicator size="small" color="#fff" style={tw`mr-2`} /> : <Ionicons name="print" size={16} color="white" style={tw`mr-2`} />}
+                <Text style={tw`text-white font-bold text-sm`}>Print Summary</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               onPress={confirmStopTracking}
@@ -2066,64 +1997,66 @@ export default function LiveTrackingScreen() {
       </Modal>
 
       {/* Interim Summary Modal */}
-      <Modal
-        visible={isInterimModalVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setIsInterimModalVisible(false)}
-      >
-        <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
-          <View style={tw`w-full max-w-[320px] bg-white rounded-3xl p-6 shadow-2xl relative`}>
-            <Text style={tw`text-base font-black text-slate-800 text-center uppercase tracking-widest mb-6 mt-2`}>
-              Print Interim Summary
-            </Text>
-            <View style={tw`gap-3`}>
-              <TouchableOpacity
-                onPress={() => {
-                  setIsInterimModalVisible(false);
-                  handlePrintInterimSummary();
-                }}
-                disabled={isPrinting}
-                style={tw`bg-slate-800 py-4 rounded-full items-center shadow-md`}
-              >
-                <Text style={tw`text-white font-bold uppercase tracking-wider`}>Print Now</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setIsInterimModalVisible(false)}
-                disabled={isPrinting}
-                style={tw`bg-red-500 py-4 rounded-full items-center shadow-md`}
-              >
-                <Text style={tw`text-white font-bold uppercase tracking-wider`}>Cancel</Text>
-              </TouchableOpacity>
+      {isAutoTicketing && (
+        <Modal
+          visible={isInterimModalVisible}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setIsInterimModalVisible(false)}
+        >
+          <View style={tw`flex-1 justify-center items-center bg-black/60 px-6`}>
+            <View style={tw`w-full max-w-[320px] bg-white rounded-3xl p-6 shadow-2xl relative`}>
+              <Text style={tw`text-base font-black text-slate-800 text-center uppercase tracking-widest mb-6 mt-2`}>
+                Print Interim Summary
+              </Text>
+              <View style={tw`gap-3`}>
+                <TouchableOpacity
+                  onPress={() => {
+                    setIsInterimModalVisible(false);
+                    handlePrintInterimSummary();
+                  }}
+                  disabled={isPrinting}
+                  style={tw`bg-slate-800 py-4 rounded-full items-center shadow-md`}
+                >
+                  <Text style={tw`text-white font-bold uppercase tracking-wider`}>Print Now</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => setIsInterimModalVisible(false)}
+                  disabled={isPrinting}
+                  style={tw`bg-red-500 py-4 rounded-full items-center shadow-md`}
+                >
+                  <Text style={tw`text-white font-bold uppercase tracking-wider`}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
-        </View>
-      </Modal>
-
-
+        </Modal>
+      )}
 
       {/* Bluetooth Printer Modal */}
-      <PrinterModal 
-        visible={isPrinterModalVisible}
-        onClose={() => setIsPrinterModalVisible(false)}
-        devices={printer.devices}
-        pairedDevices={printer.pairedDevices}
-        isScanning={printer.isScanning}
-        onScan={printer.scanDevices}
-        onConnect={(device) => {
-          printer.connectPrinter(device);
-          setIsPrinterModalVisible(false);
-        }}
-        connectedPrinter={printer.connectedPrinter}
-        onTestPrint={printer.testPrint}
-        onDisconnect={printer.disconnectPrinter}
-        onReconnect={() => printer.reconnectPrinter()}
-        isPrinterOffline={printer.isPrinterOffline}
-        paperCount={printer.paperCount}
-        maxPaperCapacity={printer.maxPaperCapacity}
-        paperWarning={printer.paperWarning}
-        onResetPaperRoll={printer.resetPaperRoll}
-      />
+      {isAutoTicketing && (
+        <PrinterModal 
+          visible={isPrinterModalVisible}
+          onClose={() => setIsPrinterModalVisible(false)}
+          devices={printer.devices}
+          pairedDevices={printer.pairedDevices}
+          isScanning={printer.isScanning}
+          onScan={printer.scanDevices}
+          onConnect={(device) => {
+            printer.connectPrinter(device);
+            setIsPrinterModalVisible(false);
+          }}
+          connectedPrinter={printer.connectedPrinter}
+          onTestPrint={printer.testPrint}
+          onDisconnect={printer.disconnectPrinter}
+          onReconnect={() => printer.reconnectPrinter()}
+          isPrinterOffline={printer.isPrinterOffline}
+          paperCount={printer.paperCount}
+          maxPaperCapacity={printer.maxPaperCapacity}
+          paperWarning={printer.paperWarning}
+          onResetPaperRoll={printer.resetPaperRoll}
+        />
+      )}
 
       {/* Tour Overlay */}
       {activeStep !== null && (
