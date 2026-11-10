@@ -162,10 +162,7 @@ export default function ConductorNavbar({
           </>
         ) : isLiveTracking ? (
           <View style={tw`flex-row items-center flex-1`}>
-            <View style={tw`flex-1 items-start flex-row items-center gap-2`}>
-              <TouchableOpacity onPress={() => router.canGoBack() ? router.back() : router.replace('/dashboard')} style={tw`w-10 h-10 rounded-full items-center justify-center bg-white/10`}>
-                <MaterialIcons name="arrow-back" size={24} color="white" />
-              </TouchableOpacity>
+            <View style={tw`flex-1 flex-row items-center gap-2`}>
               {leftElement}
             </View>
             <View style={tw`items-center justify-center`}>

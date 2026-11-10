@@ -25,7 +25,7 @@ export const PAPER_ROLL_COUNT_STORAGE_KEY = 'byahero_printer_roll_count';
 export const DEFAULT_ROLL_CAPACITY = 65; // Average tickets per standard 58mm thermal roll
 export const LOW_PAPER_THRESHOLD = 50;  // Threshold for low paper warning (approx 75-80%)
 
-export function usePrinter() {
+export function usePrinter(enabled: boolean = true) {
   const [devices, setDevices] = useState<IPrinterDevice[]>([]);
   const [pairedDevices, setPairedDevices] = useState<IPrinterDevice[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -40,6 +40,8 @@ export function usePrinter() {
   const [paperWarning, setPaperWarning] = useState<'low' | 'critical_low' | 'out_or_jammed' | null>(null);
 
   useEffect(() => {
+    if (!enabled) return;
+
     if (BLEPrinter && BLEPrinter.init) {
       BLEPrinter.init().catch(console.warn);
     }
@@ -100,11 +102,11 @@ export function usePrinter() {
     });
 
     return () => sub.remove();
-  }, []);
+  }, [enabled]);
 
   // Periodic health check every 15s when a printer is configured
   useEffect(() => {
-    if (!connectedPrinter) return;
+    if (!enabled || !connectedPrinter) return;
 
     const interval = setInterval(() => {
       if (BLEPrinter && BLEPrinter.init) {
@@ -116,7 +118,7 @@ export function usePrinter() {
     }, 15000);
 
     return () => clearInterval(interval);
-  }, [connectedPrinter]);
+  }, [enabled, connectedPrinter]);
 
   const recordPrintedTickets = async (addedTickets = 1) => {
     setPaperCount(prev => {
