@@ -1014,16 +1014,16 @@ export default function LiveTrackingScreen() {
     if (code === 'OUT_OF_PAPER' || code === 'OUT_OF_PAPER_MID_PRINT') {
       const msg =
         code === 'OUT_OF_PAPER_MID_PRINT'
-          ? `The printer ran out of paper while printing ${itemLabel}. Load a new 58mm roll, then tap "New Roll & Retry"${extraOutOfPaperNote}.`
-          : `The printer is out of paper. Load a new 58mm thermal roll, then tap "New Roll & Retry" to print ${itemLabel}${extraOutOfPaperNote}.`;
+          ? `The printer ran out of paper while printing ${itemLabel}. Load a new 58mm roll, then tap "Retry Print"${extraOutOfPaperNote}.`
+          : `The printer is out of paper. Load a new 58mm thermal roll, then tap "Retry Print" to print ${itemLabel}${extraOutOfPaperNote}.`;
       Alert.alert('Printer Out of Paper', msg, [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'New Roll & Retry',
+          text: 'Retry Print',
           onPress: async () => {
             setBusy(true);
             try {
-              await printer.resetPaperRoll(true);
+              printer.clearPaperWarning();
               await retryPrint(false);
             } catch (retryErr: any) {
               if (retryErr?.code === 'OUT_OF_PAPER' || retryErr?.code === 'OUT_OF_PAPER_MID_PRINT') {
@@ -1542,63 +1542,31 @@ export default function LiveTrackingScreen() {
         </View>
       )}
 
-      {/* Low Paper / Paper Out Warning Banner */}
-      {isAutoTicketing && printer.connectedPrinter && printer.paperWarning && (!printer.isPrinterOffline || printer.paperWarning === 'out_of_paper') && (
-        <View style={tw`mx-4 mt-2 mb-1 p-3 ${
-          printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-            ? 'bg-rose-50 border-rose-300'
-            : 'bg-amber-50 border-amber-300'
-        } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+      {/* Hardware Paper Out / Cover Warning Banner */}
+      {isAutoTicketing && printer.connectedPrinter && (printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed') && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 bg-rose-50 border-rose-300 border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
           <View style={tw`flex-row items-center flex-1 mr-2`}>
-            <View style={tw`w-8 h-8 rounded-xl ${
-              printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-                ? 'bg-rose-500/10'
-                : 'bg-amber-500/10'
-            } items-center justify-center mr-2.5`}>
-              <Ionicons
-                name="newspaper-outline"
-                size={18}
-                color={
-                  printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-                    ? '#e11d48'
-                    : '#d97706'
-                }
-              />
+            <View style={tw`w-8 h-8 rounded-xl bg-rose-500/10 items-center justify-center mr-2.5`}>
+              <Ionicons name="newspaper-outline" size={18} color="#e11d48" />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-xs font-black ${
-                printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-                  ? 'text-rose-900'
-                  : 'text-amber-900'
-              }`}>
+              <Text style={tw`text-xs font-black text-rose-900`}>
                 {printer.paperWarning === 'out_of_paper'
                   ? 'Printer Out of Paper'
-                  : printer.paperWarning === 'out_or_jammed'
-                  ? 'Check Paper / Cover Open'
-                  : 'Thermal Paper Low'}
+                  : 'Check Paper / Cover Open'}
               </Text>
-              <Text style={tw`text-[11px] ${
-                printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-                  ? 'text-rose-700'
-                  : 'text-amber-800'
-              }`}>
+              <Text style={tw`text-[11px] text-rose-700`}>
                 {printer.paperWarning === 'out_of_paper'
                   ? 'No paper detected. Load a new 58mm roll, then reprint any failed receipt from Receipts.'
-                  : printer.paperWarning === 'out_or_jammed'
-                  ? 'Printer cover may be open or paper stopped feeding.'
-                  : `~${printer.paperCount}/${printer.maxPaperCapacity} tickets printed. Have a spare 58mm roll ready.`}
+                  : 'Printer cover may be open or paper stopped feeding.'}
               </Text>
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => printer.resetPaperRoll()}
-            style={tw`px-2.5 py-1.5 ${
-              printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
-                ? 'bg-rose-600'
-                : 'bg-amber-600'
-            } rounded-xl`}
+            onPress={() => printer.checkPaperStatus(false, true)}
+            style={tw`px-2.5 py-1.5 bg-rose-600 rounded-xl`}
           >
-            <Text style={tw`text-[11px] font-bold text-white`}>New Roll</Text>
+            <Text style={tw`text-[11px] font-bold text-white`}>Check Paper</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -2240,12 +2208,9 @@ export default function LiveTrackingScreen() {
           connectedPrinter={printer.connectedPrinter}
           isPrinterOffline={printer.isPrinterOffline}
           isScanning={printer.isScanning}
-          paperCount={printer.paperCount}
-          maxPaperCapacity={printer.maxPaperCapacity}
           paperWarning={printer.paperWarning}
           onReconnect={() => printer.reconnectPrinter()}
           onOpenPrinterModal={() => setTimeout(() => setIsPrinterModalVisible(true), 250)}
-          onResetPaperRoll={printer.resetPaperRoll}
           onPressInterimSummary={() => setTimeout(() => setIsInterimModalVisible(true), 250)}
           receipts={sessionReceipts}
           reprintingReceiptId={reprintingReceiptId}
@@ -2271,10 +2236,7 @@ export default function LiveTrackingScreen() {
           onDisconnect={printer.disconnectPrinter}
           onReconnect={() => printer.reconnectPrinter()}
           isPrinterOffline={printer.isPrinterOffline}
-          paperCount={printer.paperCount}
-          maxPaperCapacity={printer.maxPaperCapacity}
           paperWarning={printer.paperWarning}
-          onResetPaperRoll={printer.resetPaperRoll}
         />
       )}
 

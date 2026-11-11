@@ -183,10 +183,10 @@ export default function OperationHistoryScreen() {
             >
               {printer.isPrinterOffline
                 ? 'Offline'
+                : printer.paperWarning === 'out_of_paper'
+                ? 'Out of Paper'
                 : printer.paperWarning === 'out_or_jammed'
                 ? 'Paper Check'
-                : printer.paperWarning
-                ? 'Paper Low'
                 : printer.connectedPrinter
                 ? (printer.connectedPrinter.name || 'Printer')
                 : 'Connect'}
@@ -344,10 +344,7 @@ export default function OperationHistoryScreen() {
         onDisconnect={printer.disconnectPrinter}
         onReconnect={() => printer.reconnectPrinter()}
         isPrinterOffline={printer.isPrinterOffline}
-        paperCount={printer.paperCount}
-        maxPaperCapacity={printer.maxPaperCapacity}
         paperWarning={printer.paperWarning}
-        onResetPaperRoll={printer.resetPaperRoll}
       />
 
       {/* Tour Overlay */}

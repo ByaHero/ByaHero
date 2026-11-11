@@ -21,7 +21,7 @@ try {
   // Library not available, printer features will be disabled
 }
 
-export type PaperWarningStatus = 'low' | 'critical_low' | 'out_of_paper' | 'out_or_jammed' | null;
+export type PaperWarningStatus = 'out_of_paper' | 'out_or_jammed' | null;
 export type PrintFailureCode =
   | 'OUT_OF_PAPER'
   | 'OUT_OF_PAPER_MID_PRINT'
@@ -36,9 +36,6 @@ export interface IPrinterDevice {
 }
 
 export const CONNECTED_PRINTER_STORAGE_KEY = 'byahero_connected_printer';
-export const PAPER_ROLL_COUNT_STORAGE_KEY = 'byahero_printer_roll_count';
-export const DEFAULT_ROLL_CAPACITY = 65; // Average tickets per standard 58mm thermal roll
-export const LOW_PAPER_THRESHOLD = 50;  // Threshold for low paper warning (approx 75-80%)
 
 export function usePrinter(enabled: boolean = true) {
   const [devices, setDevices] = useState<IPrinterDevice[]>([]);
@@ -46,34 +43,16 @@ export function usePrinter(enabled: boolean = true) {
   const [isScanning, setIsScanning] = useState(false);
   const [connectedPrinter, setConnectedPrinter] = useState<IPrinterDevice | null>(null);
 
-  // Live Connection & Offline Health State
+  // Live Connection & Hardware Paper Health State
   const [isPrinterOffline, setIsPrinterOffline] = useState(false);
   const [offlineDismissed, setOfflineDismissed] = useState(false);
-
-  // Paper Roll Status State
-  const [paperCount, setPaperCount] = useState(0);
-  const paperCountRef = useRef(0);
   const isPrintingJobRef = useRef(false);
   const [paperWarning, setPaperWarning] = useState<PaperWarningStatus>(null);
-
-  useEffect(() => {
-    paperCountRef.current = paperCount;
-  }, [paperCount]);
 
   const createPrinterError = (code: PrintFailureCode, message: string) => {
     const err = new Error(message) as Error & { code?: PrintFailureCode };
     err.code = code;
     return err;
-  };
-
-  const applyEstimatedPaperWarning = (count: number) => {
-    if (count >= DEFAULT_ROLL_CAPACITY) {
-      setPaperWarning('critical_low');
-    } else if (count >= LOW_PAPER_THRESHOLD) {
-      setPaperWarning('low');
-    } else {
-      setPaperWarning(null);
-    }
   };
 
   const checkPaperStatus = async (silent = true, forceQuery = false): Promise<string> => {
@@ -87,10 +66,8 @@ export function usePrinter(enabled: boolean = true) {
         setPaperWarning('out_of_paper');
       } else if (status === 'COVER_OPEN' || status === 'PRINTER_ERROR') {
         setPaperWarning('out_or_jammed');
-      } else if (status === 'PAPER_NEAR_END') {
-        setPaperWarning('critical_low');
-      } else if (status === 'OK') {
-        applyEstimatedPaperWarning(paperCountRef.current);
+      } else if (status === 'OK' || status === 'PAPER_NEAR_END') {
+        setPaperWarning(null);
       }
       return status;
     } catch (e: any) {
@@ -100,6 +77,10 @@ export function usePrinter(enabled: boolean = true) {
       }
       return 'DISCONNECTED';
     }
+  };
+
+  const clearPaperWarning = () => {
+    setPaperWarning(null);
   };
 
   useEffect(() => {
@@ -124,21 +105,6 @@ export function usePrinter(enabled: boolean = true) {
             }
           }
         } catch (_) {}
-      }
-    }).catch(console.warn);
-
-    // Restore tracked paper roll count
-    AsyncStorage.getItem(PAPER_ROLL_COUNT_STORAGE_KEY).then(raw => {
-      if (raw) {
-        const count = parseInt(raw, 10);
-        if (!isNaN(count)) {
-          setPaperCount(count);
-          if (count >= DEFAULT_ROLL_CAPACITY) {
-            setPaperWarning('critical_low');
-          } else if (count >= LOW_PAPER_THRESHOLD) {
-            setPaperWarning('low');
-          }
-        }
       }
     }).catch(console.warn);
 
@@ -188,35 +154,6 @@ export function usePrinter(enabled: boolean = true) {
 
     return () => clearInterval(interval);
   }, [enabled, connectedPrinter]);
-
-  const recordPrintedTickets = async (addedTickets = 1, hardwareStatus?: string) => {
-    setPaperCount(prev => {
-      const updated = prev + addedTickets;
-      AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, String(updated)).catch(console.warn);
-      if (hardwareStatus === 'PAPER_NEAR_END') {
-        setPaperWarning('critical_low');
-      } else {
-        applyEstimatedPaperWarning(updated);
-      }
-      return updated;
-    });
-  };
-
-  const resetPaperRoll = async (silent = false) => {
-    try {
-      await AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, '0');
-      setPaperCount(0);
-      setPaperWarning(null);
-      if (connectedPrinter) {
-        await checkPaperStatus(true, true);
-      }
-      if (!silent) {
-        Alert.alert('Paper Roll Reset', 'Thermal paper roll counter reset to 0. A fresh roll is now being tracked.');
-      }
-    } catch (e) {
-      console.warn('Failed to reset paper roll count:', e);
-    }
-  };
 
   const dismissOfflineWarning = () => {
     setOfflineDismissed(true);
@@ -288,9 +225,7 @@ export function usePrinter(enabled: boolean = true) {
       setConnectedPrinter(device);
       setIsPrinterOffline(false);
       setOfflineDismissed(false);
-      if (paperWarning === 'out_or_jammed' || paperWarning === 'out_of_paper') {
-        applyEstimatedPaperWarning(paperCount);
-      }
+      setPaperWarning(null);
       await checkPaperStatus(true, true);
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Success', `Connected to ${device.name || 'Printer'}`);
@@ -329,9 +264,7 @@ export function usePrinter(enabled: boolean = true) {
       setConnectedPrinter(device);
       setIsPrinterOffline(false);
       setOfflineDismissed(false);
-      if (paperWarning === 'out_or_jammed' || paperWarning === 'out_of_paper') {
-        applyEstimatedPaperWarning(paperCount);
-      }
+      setPaperWarning(null);
       await checkPaperStatus(true, true);
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Reconnected', `Bluetooth link refreshed for ${device.name || 'Printer'}.`);
@@ -531,9 +464,9 @@ export function usePrinter(enabled: boolean = true) {
         text += `\n<C>${config.footer_message}</C>`;
       }
 
-      const hwStatus = await safePrintBill(text);
-      await recordPrintedTickets(Math.max(1, Number(ticket.quantity || 1)), hwStatus);
+      await safePrintBill(text);
       setIsPrinterOffline(false);
+      setPaperWarning(null);
       return true;
     } catch (e: any) {
       console.error('printReceipt error:', e);
@@ -624,9 +557,9 @@ export function usePrinter(enabled: boolean = true) {
         text += `\n<C>${summaryConfig.footer_message}</C>`;
       }
 
-      const hwStatus = await safePrintBill(text);
-      await recordPrintedTickets(2, hwStatus);
+      await safePrintBill(text);
       setIsPrinterOffline(false);
+      setPaperWarning(null);
       return true;
     } catch (e: any) {
       console.error('printSummary error:', e);
@@ -652,9 +585,9 @@ export function usePrinter(enabled: boolean = true) {
       text += "<C>Printer is working correctly.</C>\n";
       text += "<C>Ready to print receipts.</C>";
 
-      const hwStatus = await safePrintBill(text);
-      await recordPrintedTickets(1, hwStatus);
+      await safePrintBill(text);
       setIsPrinterOffline(false);
+      setPaperWarning(null);
       Alert.alert('Test Print', 'Test page sent to printer.');
     } catch (e: any) {
       console.error('testPrint error:', e);
@@ -675,11 +608,9 @@ export function usePrinter(enabled: boolean = true) {
     connectedPrinter,
     isPrinterOffline,
     offlineDismissed,
-    paperCount,
-    maxPaperCapacity: DEFAULT_ROLL_CAPACITY,
     paperWarning,
     checkPaperStatus,
-    resetPaperRoll,
+    clearPaperWarning,
     dismissOfflineWarning,
     scanDevices,
     connectPrinter,

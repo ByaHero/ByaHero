@@ -40,12 +40,9 @@ interface Props {
   connectedPrinter: IPrinterDevice | null;
   isPrinterOffline: boolean;
   isScanning: boolean;
-  paperCount: number;
-  maxPaperCapacity: number;
   paperWarning: PaperWarningStatus;
   onReconnect: () => Promise<boolean> | void;
   onOpenPrinterModal: () => void;
-  onResetPaperRoll: () => void;
   onPressInterimSummary: () => void;
   receipts: ISessionReceipt[];
   reprintingReceiptId: string | null;
@@ -64,12 +61,9 @@ export default function AutoTicketingDrawer({
   connectedPrinter,
   isPrinterOffline,
   isScanning,
-  paperCount,
-  maxPaperCapacity,
   paperWarning,
   onReconnect,
   onOpenPrinterModal,
-  onResetPaperRoll,
   onPressInterimSummary,
   receipts,
   reprintingReceiptId,
@@ -170,18 +164,6 @@ export default function AutoTicketingDrawer({
         titleColor: 'text-rose-700',
         label: 'Check Paper / Cover Open',
         detail: `${connectedPrinter.name || 'Printer'} • Check thermal roll.`,
-      };
-    }
-    if (paperWarning) {
-      return {
-        dotColor: 'bg-amber-500',
-        badgeBg: 'bg-amber-50 border-amber-200',
-        iconBg: 'bg-amber-100',
-        iconName: 'newspaper-outline' as const,
-        iconColor: '#d97706',
-        titleColor: 'text-amber-800',
-        label: 'Connected • Paper Low',
-        detail: `${connectedPrinter.name || 'Printer'} • ~${Math.max(0, maxPaperCapacity - paperCount)} tickets left`,
       };
     }
     return {
@@ -286,22 +268,6 @@ export default function AutoTicketingDrawer({
                     </Text>
                   </View>
                 </View>
-
-                {connectedPrinter && (
-                  <View style={tw`bg-slate-50 rounded-xl px-3 py-2 mb-3 flex-row items-center justify-between border border-slate-100`}>
-                    <Text style={tw`text-[11px] font-semibold text-slate-600`}>
-                      Paper Roll: <Text style={tw`font-black text-slate-800`}>{paperCount}/{maxPaperCapacity}</Text> tickets
-                    </Text>
-                    {(paperCount > 0 || paperWarning !== null) && (
-                      <TouchableOpacity
-                        onPress={onResetPaperRoll}
-                        style={tw`px-2.5 py-1 rounded-lg bg-amber-100 border border-amber-200`}
-                      >
-                        <Text style={tw`text-[10px] font-extrabold text-amber-800`}>New Roll</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                )}
 
                 <View style={tw`flex-row gap-2`}>
                   {connectedPrinter && (
