@@ -350,6 +350,8 @@ export default function DashboardScreen() {
       return;
     }
 
+    setPaxCount('');
+
     // Step 2: Check background location permission ("Allow all the time")
     const { status: bgStatus } = await Location.getBackgroundPermissionsAsync();
     if (bgStatus !== 'granted') {
@@ -357,7 +359,6 @@ export default function DashboardScreen() {
       return;
     }
 
-    setPaxCount('');
     setIsPreDepartureVisible(true);
   };
 
@@ -847,10 +848,17 @@ export default function DashboardScreen() {
 
             <TextInput
               value={paxCount}
-              onChangeText={setPaxCount}
+              onChangeText={(text) => setPaxCount(text.replace(/[^0-9]/g, ''))}
               placeholder="0"
+              placeholderTextColor="#1e293b"
+              selectionColor="#1e293b"
+              cursorColor="#1e293b"
+              underlineColorAndroid="transparent"
               keyboardType="number-pad"
-              style={tw`w-28 text-center text-4xl font-extrabold border-0 bg-slate-100 rounded-2xl py-4 mb-4 text-slate-800`}
+              style={[
+                tw`w-28 text-center text-4xl font-extrabold border-0 bg-slate-100 rounded-2xl py-4 mb-4 text-slate-800`,
+                { color: '#1e293b', backgroundColor: '#f1f5f9' }
+              ]}
             />
 
             <Text style={tw`text-slate-400 text-xs mb-6`}>
