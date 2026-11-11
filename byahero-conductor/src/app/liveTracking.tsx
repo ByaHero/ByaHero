@@ -97,6 +97,8 @@ export default function LiveTrackingScreen() {
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
+  const [pendingConfirmCount, setPendingConfirmCount] = useState(0);
+  const [confirmSecondsLeft, setConfirmSecondsLeft] = useState(0);
   const [ticketCounter, setTicketCounter] = useState(1);
   const [sessionInitialized, setSessionInitialized] = useState(false);
   const [activePassengers, setActivePassengers] = useState<any[]>([]);
@@ -156,6 +158,9 @@ export default function LiveTrackingScreen() {
   const pendingBoards = useRef(0);
   const pendingDeparts = useRef(0);
   const syncTimer = useRef<any>(null);
+  const pendingPreDepartureRef = useRef(0);
+  const pendingConfirmCountRef = useRef(0);
+  const pendingConfirmTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Last known coordinate caches for status computation
   const lastCoords = useRef<{ lat: number; lng: number; speed: number } | null>(null);
@@ -304,6 +309,10 @@ export default function LiveTrackingScreen() {
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
     }
+    if (pendingConfirmTimerRef.current) {
+      clearInterval(pendingConfirmTimerRef.current);
+      pendingConfirmTimerRef.current = null;
+    }
     if (Platform.OS === 'android' && LocationServiceModule) {
       LocationServiceModule.stopService();
     }
@@ -357,6 +366,7 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+    boardedCountRef.current = restoredBoarded;
     setBoardedCount(restoredBoarded);
     const restoredServed = isResumed && payload.total_served !== undefined
       ? Math.max(payload.total_served, restoredBoarded)
@@ -394,7 +404,11 @@ export default function LiveTrackingScreen() {
     let restoredPending = (isAutoMode && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
       : (isAutoMode ? preDep : 0);
-    setPendingPreDeparture(isAutoMode ? restoredPending : 0);
+    pendingConfirmCountRef.current = 0;
+    setPendingConfirmCount(0);
+    setConfirmSecondsLeft(0);
+    clearPendingConfirmTimer();
+    syncPendingPreDeparture(isAutoMode ? restoredPending : 0);
 
     try {
       const ticketStr = await AsyncStorage.getItem('byahero_conductor_ticket_counter');
@@ -744,28 +758,76 @@ export default function LiveTrackingScreen() {
     }, 3000);
   };
 
+  const clearPendingConfirmTimer = () => {
+    if (pendingConfirmTimerRef.current) {
+      clearInterval(pendingConfirmTimerRef.current);
+      pendingConfirmTimerRef.current = null;
+    }
+  };
+
+  const syncPendingPreDeparture = (nextCount: number) => {
+    const clamped = Math.max(0, nextCount);
+    pendingPreDepartureRef.current = clamped;
+    setPendingPreDeparture(clamped);
+  };
+
+  const startPendingConfirmCountdown = () => {
+    clearPendingConfirmTimer();
+    if (pendingConfirmCountRef.current <= 0) {
+      pendingConfirmCountRef.current = 0;
+      setPendingConfirmCount(0);
+      setConfirmSecondsLeft(0);
+      return;
+    }
+
+    let secondsRemaining = 5;
+    setConfirmSecondsLeft(secondsRemaining);
+    pendingConfirmTimerRef.current = setInterval(() => {
+      secondsRemaining -= 1;
+      if (secondsRemaining <= 0) {
+        clearPendingConfirmTimer();
+        const confirmed = pendingConfirmCountRef.current;
+        pendingConfirmCountRef.current = 0;
+        setPendingConfirmCount(0);
+        setConfirmSecondsLeft(0);
+        if (confirmed > 0 && sessionRef.current?.ticketing_mode === 'Automatic') {
+          syncPendingPreDeparture(pendingPreDepartureRef.current + confirmed);
+        }
+      } else {
+        setConfirmSecondsLeft(secondsRemaining);
+      }
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearPendingConfirmTimer();
+    };
+  }, []);
+
   const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
     if (!sessionRef.current) return;
-    
-    setBoardedCount(prevBoarded => {
-      const newBoarded = prevBoarded + count;
-      const seatsTotal = sessionRef.current.seats_total || 0;
-      const newSeats = Math.max(0, seatsTotal - newBoarded);
-      
-      setSeats(newSeats);
-      
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
-      }
-      return newBoarded;
-    });
+
+    const newBoarded = boardedCountRef.current + count;
+    boardedCountRef.current = newBoarded;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
+
+    setBoardedCount(prevBoarded => prevBoarded + count);
+    setSeats(newSeats);
+
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
+    }
     setTotalServed(prev => prev + count);
 
     if (!skipPending && sessionRef.current.ticketing_mode === 'Automatic') {
-      setPendingPreDeparture(prev => prev + count);
+      pendingConfirmCountRef.current += count;
+      setPendingConfirmCount(pendingConfirmCountRef.current);
+      startPendingConfirmCountdown();
     }
 
     pendingBoards.current += count;
@@ -773,27 +835,39 @@ export default function LiveTrackingScreen() {
   };
 
   const decrementPassengers = (isManualUi = false) => {
-    if (!sessionRef.current) return;
-    
-    setBoardedCount(prevBoarded => {
-      if (prevBoarded <= 0) return prevBoarded;
-      const newBoarded = prevBoarded - 1;
-      const seatsTotal = sessionRef.current.seats_total || 0;
-      const newSeats = Math.max(0, seatsTotal - newBoarded);
-      
-      setSeats(newSeats);
-      if (sessionRef.current?.ticketing_mode === 'Automatic') {
-        setPendingPreDeparture(prev => Math.min(prev, newBoarded));
+    if (!sessionRef.current || boardedCountRef.current <= 0) return;
+
+    const newBoarded = Math.max(0, boardedCountRef.current - 1);
+    boardedCountRef.current = newBoarded;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
+
+    setBoardedCount(prevBoarded => Math.max(0, prevBoarded - 1));
+    setSeats(newSeats);
+
+    if (sessionRef.current?.ticketing_mode === 'Automatic') {
+      if (pendingConfirmCountRef.current > 0) {
+        pendingConfirmCountRef.current -= 1;
+        if (pendingConfirmCountRef.current <= 0) {
+          pendingConfirmCountRef.current = 0;
+          clearPendingConfirmTimer();
+          setPendingConfirmCount(0);
+          setConfirmSecondsLeft(0);
+        } else {
+          setPendingConfirmCount(pendingConfirmCountRef.current);
+          startPendingConfirmCountdown();
+        }
+      } else {
+        syncPendingPreDeparture(Math.min(pendingPreDepartureRef.current, newBoarded));
       }
-      
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
-      }
-      return newBoarded;
-    });
+    }
+
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
+    }
 
     pendingDeparts.current++;
     scheduleSync();
@@ -1140,13 +1214,19 @@ export default function LiveTrackingScreen() {
         } catch (_) {}
       }
 
+      // Consume confirmed and staged manual pending tickets before boarding new passengers
+      clearPendingConfirmTimer();
+      const stagedPending = pendingConfirmCountRef.current;
+      pendingConfirmCountRef.current = 0;
+      setPendingConfirmCount(0);
+      setConfirmSecondsLeft(0);
+
+      const availablePending = pendingPreDepartureRef.current + stagedPending;
       let remainingToDeduct = ticketQuantity;
-      let preDepartureDeducted = 0;
-      // Use up pending pre-departure queue first
-      if (pendingPreDeparture > 0) {
-        preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
-        setPendingPreDeparture(prev => prev - preDepartureDeducted);
-        remainingToDeduct -= preDepartureDeducted;
+      if (availablePending > 0) {
+        const deducted = Math.min(remainingToDeduct, availablePending);
+        syncPendingPreDeparture(availablePending - deducted);
+        remainingToDeduct -= deducted;
       }
       if (remainingToDeduct > 0) {
         incrementPassengers(remainingToDeduct, true, true);
@@ -1499,6 +1579,21 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
+        {/* PENDING CONFIRMATION COUNTDOWN BANNER (5s double-click guard) */}
+        {session?.ticketing_mode === 'Automatic' && pendingConfirmCount > 0 && (
+          <View style={tw`bg-blue-50 border border-blue-200 rounded-xl p-3.5 mb-3 flex-row items-center`}>
+            <Ionicons name="time-outline" size={22} color="#2563eb" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-blue-800 font-bold text-xs`}>
+                Confirming +{pendingConfirmCount} manual passenger(s)...
+              </Text>
+              <Text style={tw`text-blue-600 text-[11px] mt-0.5`}>
+                Adding to pending tickets in {confirmSecondsLeft}s (tap - to undo if double-clicked).
+              </Text>
+            </View>
+          </View>
+        )}
+
         {/* PENDING PASSENGER TICKETS BANNER */}
         {session?.ticketing_mode === 'Automatic' && pendingPreDeparture > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
@@ -1829,89 +1924,6 @@ export default function LiveTrackingScreen() {
                 <Text style={tw`font-mono text-slate-800 text-[11px]`}>
                   {session?.code || 'MTC T013'}
                 </Text>
-              </View>
-
-              {/* Printer Status in Ticket Preview */}
-              <View style={tw`bg-slate-50 border border-slate-200 rounded-xl p-3 mt-4`}>
-                <View style={tw`flex-row items-center justify-between`}>
-                  <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
-                    <Ionicons 
-                      name={
-                        printer.isPrinterOffline 
-                          ? "alert-circle" 
-                          : printer.paperWarning 
-                          ? "newspaper-outline" 
-                          : printer.connectedPrinter 
-                          ? "print" 
-                          : "print-outline"
-                      } 
-                      size={16} 
-                      color={
-                        printer.isPrinterOffline 
-                          ? "#e11d48" 
-                          : printer.paperWarning 
-                          ? "#d97706" 
-                          : printer.connectedPrinter 
-                          ? "#059669" 
-                          : "#e11d48"
-                      } 
-                    />
-                    <Text 
-                      style={tw`text-xs font-bold ${
-                        printer.isPrinterOffline 
-                          ? 'text-rose-700' 
-                          : printer.paperWarning 
-                          ? 'text-amber-800' 
-                          : printer.connectedPrinter 
-                          ? 'text-emerald-700' 
-                          : 'text-rose-600'
-                      }`} 
-                      numberOfLines={1}
-                    >
-                      {printer.isPrinterOffline 
-                        ? 'Printer Offline / Dropped' 
-                        : printer.paperWarning === 'out_or_jammed' 
-                        ? 'Check Paper / Cover Open' 
-                        : printer.paperWarning 
-                        ? `Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)` 
-                        : printer.connectedPrinter 
-                        ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` 
-                        : 'Printer Disconnected'}
-                    </Text>
-                  </View>
-                  <View style={tw`flex-row items-center gap-1.5`}>
-                    {printer.connectedPrinter && (
-                      <TouchableOpacity
-                        onPress={() => printer.reconnectPrinter()}
-                        style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
-                      >
-                        <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => setIsPrinterModalVisible(true)}
-                      style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
-                    >
-                      <Text style={tw`text-[11px] font-bold text-blue-700`}>
-                        {printer.connectedPrinter ? 'Change' : 'Connect'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Warning note inside ticket preview */}
-                {printer.isPrinterOffline && (
-                  <Text style={tw`text-[10px] text-rose-600 font-bold mt-1.5`}>
-                    ⚠️ Printer connection is lost. Tap "Refresh Link" or turn on printer before pressing Print.
-                  </Text>
-                )}
-                {!printer.isPrinterOffline && printer.paperWarning && (
-                  <Text style={tw`text-[10px] text-amber-700 font-medium mt-1.5`}>
-                    {printer.paperWarning === 'out_or_jammed' 
-                      ? '⚠️ Printer stopped feeding paper. Inspect roll before continuing.' 
-                      : '📄 Roll running low: keep a replacement thermal roll ready.'}
-                  </Text>
-                )}
               </View>
 
               {/* Close / Print Button */}
