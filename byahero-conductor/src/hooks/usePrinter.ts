@@ -1,19 +1,34 @@
-import { useState, useEffect } from 'react';
-import { Alert, PermissionsAndroid, Platform, AppState } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { Alert, NativeModules, PermissionsAndroid, Platform, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const { PrinterStatusModule } = NativeModules;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let BLEPrinter: any = null;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 let COMMANDS: any = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let EPToolkit: any = null;
 try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const printerLib = require('react-native-thermal-receipt-printer-image-qr');
   BLEPrinter = printerLib.BLEPrinter;
   COMMANDS = printerLib.COMMANDS;
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  EPToolkit = require('react-native-thermal-receipt-printer-image-qr/dist/utils/EPToolkit');
 } catch (e) {
   // Library not available, printer features will be disabled
 }
+
+export type PaperWarningStatus = 'low' | 'critical_low' | 'out_of_paper' | 'out_or_jammed' | null;
+export type PrintFailureCode =
+  | 'OUT_OF_PAPER'
+  | 'OUT_OF_PAPER_MID_PRINT'
+  | 'COVER_OPEN'
+  | 'DISCONNECTED'
+  | 'TIMEOUT'
+  | 'UNKNOWN';
 
 export interface IPrinterDevice {
   name: string;
@@ -37,7 +52,55 @@ export function usePrinter(enabled: boolean = true) {
 
   // Paper Roll Status State
   const [paperCount, setPaperCount] = useState(0);
-  const [paperWarning, setPaperWarning] = useState<'low' | 'critical_low' | 'out_or_jammed' | null>(null);
+  const paperCountRef = useRef(0);
+  const isPrintingJobRef = useRef(false);
+  const [paperWarning, setPaperWarning] = useState<PaperWarningStatus>(null);
+
+  useEffect(() => {
+    paperCountRef.current = paperCount;
+  }, [paperCount]);
+
+  const createPrinterError = (code: PrintFailureCode, message: string) => {
+    const err = new Error(message) as Error & { code?: PrintFailureCode };
+    err.code = code;
+    return err;
+  };
+
+  const applyEstimatedPaperWarning = (count: number) => {
+    if (count >= DEFAULT_ROLL_CAPACITY) {
+      setPaperWarning('critical_low');
+    } else if (count >= LOW_PAPER_THRESHOLD) {
+      setPaperWarning('low');
+    } else {
+      setPaperWarning(null);
+    }
+  };
+
+  const checkPaperStatus = async (silent = true, forceQuery = false): Promise<string> => {
+    if (Platform.OS !== 'android' || !PrinterStatusModule?.getPrinterStatus || (!forceQuery && !connectedPrinter)) {
+      return 'UNKNOWN';
+    }
+    try {
+      const status: string = await PrinterStatusModule.getPrinterStatus();
+      setIsPrinterOffline(false);
+      if (status === 'OUT_OF_PAPER') {
+        setPaperWarning('out_of_paper');
+      } else if (status === 'COVER_OPEN' || status === 'PRINTER_ERROR') {
+        setPaperWarning('out_or_jammed');
+      } else if (status === 'PAPER_NEAR_END') {
+        setPaperWarning('critical_low');
+      } else if (status === 'OK') {
+        applyEstimatedPaperWarning(paperCountRef.current);
+      }
+      return status;
+    } catch (e: any) {
+      setIsPrinterOffline(true);
+      if (!silent) {
+        setOfflineDismissed(false);
+      }
+      return 'DISCONNECTED';
+    }
+  };
 
   useEffect(() => {
     if (!enabled) return;
@@ -110,35 +173,46 @@ export function usePrinter(enabled: boolean = true) {
 
     const interval = setInterval(() => {
       if (BLEPrinter && BLEPrinter.init) {
-        BLEPrinter.init().catch(() => {
-          setIsPrinterOffline(true);
-          setOfflineDismissed(false);
-        });
+        BLEPrinter.init()
+          .then(() => {
+            if (!isPrintingJobRef.current) {
+              checkPaperStatus(true);
+            }
+          })
+          .catch(() => {
+            setIsPrinterOffline(true);
+            setOfflineDismissed(false);
+          });
       }
     }, 15000);
 
     return () => clearInterval(interval);
   }, [enabled, connectedPrinter]);
 
-  const recordPrintedTickets = async (addedTickets = 1) => {
+  const recordPrintedTickets = async (addedTickets = 1, hardwareStatus?: string) => {
     setPaperCount(prev => {
       const updated = prev + addedTickets;
       AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, String(updated)).catch(console.warn);
-      if (updated >= DEFAULT_ROLL_CAPACITY) {
+      if (hardwareStatus === 'PAPER_NEAR_END') {
         setPaperWarning('critical_low');
-      } else if (updated >= LOW_PAPER_THRESHOLD) {
-        setPaperWarning('low');
+      } else {
+        applyEstimatedPaperWarning(updated);
       }
       return updated;
     });
   };
 
-  const resetPaperRoll = async () => {
+  const resetPaperRoll = async (silent = false) => {
     try {
       await AsyncStorage.setItem(PAPER_ROLL_COUNT_STORAGE_KEY, '0');
       setPaperCount(0);
       setPaperWarning(null);
-      Alert.alert('Paper Roll Reset', 'Thermal paper roll counter reset to 0. A fresh roll is now being tracked.');
+      if (connectedPrinter) {
+        await checkPaperStatus(true, true);
+      }
+      if (!silent) {
+        Alert.alert('Paper Roll Reset', 'Thermal paper roll counter reset to 0. A fresh roll is now being tracked.');
+      }
     } catch (e) {
       console.warn('Failed to reset paper roll count:', e);
     }
@@ -214,9 +288,10 @@ export function usePrinter(enabled: boolean = true) {
       setConnectedPrinter(device);
       setIsPrinterOffline(false);
       setOfflineDismissed(false);
-      if (paperWarning === 'out_or_jammed') {
-        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      if (paperWarning === 'out_or_jammed' || paperWarning === 'out_of_paper') {
+        applyEstimatedPaperWarning(paperCount);
       }
+      await checkPaperStatus(true, true);
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Success', `Connected to ${device.name || 'Printer'}`);
     } catch (e: any) {
@@ -254,9 +329,10 @@ export function usePrinter(enabled: boolean = true) {
       setConnectedPrinter(device);
       setIsPrinterOffline(false);
       setOfflineDismissed(false);
-      if (paperWarning === 'out_or_jammed') {
-        setPaperWarning(paperCount >= DEFAULT_ROLL_CAPACITY ? 'critical_low' : paperCount >= LOW_PAPER_THRESHOLD ? 'low' : null);
+      if (paperWarning === 'out_or_jammed' || paperWarning === 'out_of_paper') {
+        applyEstimatedPaperWarning(paperCount);
       }
+      await checkPaperStatus(true, true);
       await AsyncStorage.setItem(CONNECTED_PRINTER_STORAGE_KEY, JSON.stringify(device));
       Alert.alert('Reconnected', `Bluetooth link refreshed for ${device.name || 'Printer'}.`);
       return true;
@@ -285,36 +361,125 @@ export function usePrinter(enabled: boolean = true) {
     } catch (_) {}
   };
 
+  const normalizePrintError = (err: any, allowJammedFallback = false) => {
+    const code = err?.code;
+    if (code === 'OUT_OF_PAPER') {
+      setIsPrinterOffline(false);
+      setPaperWarning('out_of_paper');
+      return createPrinterError('OUT_OF_PAPER', 'Printer is out of paper. Load a new 58mm thermal roll before printing.');
+    }
+    if (code === 'OUT_OF_PAPER_MID_PRINT') {
+      setIsPrinterOffline(false);
+      setPaperWarning('out_of_paper');
+      return createPrinterError('OUT_OF_PAPER_MID_PRINT', 'Printer ran out of paper while printing. Load a new roll and reprint.');
+    }
+    if (code === 'COVER_OPEN') {
+      setIsPrinterOffline(false);
+      setPaperWarning('out_or_jammed');
+      return createPrinterError('COVER_OPEN', 'Printer cover is open. Close the cover firmly and retry.');
+    }
+    setIsPrinterOffline(true);
+    setOfflineDismissed(false);
+    if (allowJammedFallback) {
+      setPaperWarning('out_or_jammed');
+    }
+    const finalCode: PrintFailureCode = code === 'TIMEOUT' ? 'TIMEOUT' : 'DISCONNECTED';
+    return createPrinterError(
+      finalCode,
+      err?.message || 'Printer did not respond. The Bluetooth link may have dropped.'
+    );
+  };
+
   /**
-   * Safe printing wrapper that prevents infinite UI freeze on dead Bluetooth sockets
+   * Safe printing wrapper that verifies ESC/POS paper status on Android and avoids socket hangs
    */
-  const safePrintBill = (text: string, timeoutMs = 4500): Promise<any> => {
+  const safePrintBill = async (text: string, timeoutMs = 9500): Promise<string> => {
+    if (Platform.OS === 'android' && PrinterStatusModule?.printRawDataAndVerify && EPToolkit?.exchange_text) {
+      let base64Payload = '';
+      try {
+        const buffer = EPToolkit.exchange_text(text.trimEnd(), {
+          beep: true,
+          cut: true,
+          encoding: 'UTF8',
+          tailingLine: false,
+        });
+        base64Payload = buffer.toString('base64');
+      } catch (encodeErr: any) {
+        throw createPrinterError('UNKNOWN', encodeErr?.message || 'Failed to encode receipt data.');
+      }
+
+      isPrintingJobRef.current = true;
+      return await new Promise<string>((resolve, reject) => {
+        let settled = false;
+        const timer = setTimeout(() => {
+          if (settled) return;
+          settled = true;
+          isPrintingJobRef.current = false;
+          reject(
+            normalizePrintError(
+              createPrinterError(
+                'TIMEOUT',
+                'Printer did not respond. The Bluetooth socket may have closed while in background. Tap "Reconnect" to revive the link.'
+              )
+            )
+          );
+        }, timeoutMs);
+
+        PrinterStatusModule.printRawDataAndVerify(base64Payload)
+          .then((status: string) => {
+            if (settled) return;
+            settled = true;
+            isPrintingJobRef.current = false;
+            clearTimeout(timer);
+            setIsPrinterOffline(false);
+            resolve(status || 'OK');
+          })
+          .catch((err: any) => {
+            if (settled) return;
+            settled = true;
+            isPrintingJobRef.current = false;
+            clearTimeout(timer);
+            reject(normalizePrintError(err, false));
+          });
+      });
+    }
+
     if (!BLEPrinter || !BLEPrinter.printBill) {
-      throw new Error('Printer module unavailable');
+      throw createPrinterError('DISCONNECTED', 'Printer module unavailable');
     }
 
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
-        reject(new Error('Printer did not respond. The Bluetooth socket may have closed while in background. Tap "Reconnect" to revive the link.'));
+        reject(
+          normalizePrintError(
+            createPrinterError(
+              'TIMEOUT',
+              'Printer did not respond. The Bluetooth socket may have closed while in background. Tap "Reconnect" to revive the link.'
+            ),
+            true
+          )
+        );
       }, timeoutMs);
 
       try {
         const res = BLEPrinter.printBill(text.trimEnd(), { tailingLine: false });
         if (res && typeof res.then === 'function') {
-          res.then((val: any) => {
+          res.then(() => {
             clearTimeout(timer);
-            resolve(val);
+            setIsPrinterOffline(false);
+            resolve('UNKNOWN');
           }).catch((err: any) => {
             clearTimeout(timer);
-            reject(err);
+            reject(normalizePrintError(err, true));
           });
         } else {
           clearTimeout(timer);
-          resolve(res);
+          setIsPrinterOffline(false);
+          resolve('UNKNOWN');
         }
       } catch (err) {
         clearTimeout(timer);
-        reject(err);
+        reject(normalizePrintError(err, true));
       }
     });
   };
@@ -366,15 +531,12 @@ export function usePrinter(enabled: boolean = true) {
         text += `\n<C>${config.footer_message}</C>`;
       }
 
-      await safePrintBill(text);
-      await recordPrintedTickets(Math.max(1, Number(ticket.quantity || 1)));
+      const hwStatus = await safePrintBill(text);
+      await recordPrintedTickets(Math.max(1, Number(ticket.quantity || 1)), hwStatus);
       setIsPrinterOffline(false);
       return true;
     } catch (e: any) {
       console.error('printReceipt error:', e);
-      setIsPrinterOffline(true);
-      setOfflineDismissed(false);
-      setPaperWarning('out_or_jammed');
       throw e;
     }
   };
@@ -462,15 +624,12 @@ export function usePrinter(enabled: boolean = true) {
         text += `\n<C>${summaryConfig.footer_message}</C>`;
       }
 
-      await safePrintBill(text);
-      await recordPrintedTickets(2);
+      const hwStatus = await safePrintBill(text);
+      await recordPrintedTickets(2, hwStatus);
       setIsPrinterOffline(false);
       return true;
     } catch (e: any) {
       console.error('printSummary error:', e);
-      setIsPrinterOffline(true);
-      setOfflineDismissed(false);
-      setPaperWarning('out_or_jammed');
       throw e;
     }
   };
@@ -493,16 +652,19 @@ export function usePrinter(enabled: boolean = true) {
       text += "<C>Printer is working correctly.</C>\n";
       text += "<C>Ready to print receipts.</C>";
 
-      await safePrintBill(text);
-      await recordPrintedTickets(1);
+      const hwStatus = await safePrintBill(text);
+      await recordPrintedTickets(1, hwStatus);
       setIsPrinterOffline(false);
       Alert.alert('Test Print', 'Test page sent to printer.');
     } catch (e: any) {
       console.error('testPrint error:', e);
-      setIsPrinterOffline(true);
-      setOfflineDismissed(false);
-      setPaperWarning('out_or_jammed');
-      Alert.alert('Print Error', e.message || 'Failed to send test print.');
+      if (e?.code === 'OUT_OF_PAPER' || e?.code === 'OUT_OF_PAPER_MID_PRINT') {
+        Alert.alert('Printer Out of Paper', e.message || 'Load a new 58mm thermal roll before printing.');
+      } else if (e?.code === 'COVER_OPEN') {
+        Alert.alert('Printer Cover Open', e.message || 'Close the paper cover and try again.');
+      } else {
+        Alert.alert('Print Error', e.message || 'Failed to send test print.');
+      }
     }
   };
 
@@ -516,6 +678,7 @@ export function usePrinter(enabled: boolean = true) {
     paperCount,
     maxPaperCapacity: DEFAULT_ROLL_CAPACITY,
     paperWarning,
+    checkPaperStatus,
     resetPaperRoll,
     dismissOfflineWarning,
     scanDevices,

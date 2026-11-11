@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import tw from 'twrnc';
 import { Ionicons } from '@expo/vector-icons';
-import { IPrinterDevice } from '../hooks/usePrinter';
+import { IPrinterDevice, PaperWarningStatus } from '../hooks/usePrinter';
 
 interface Props {
   visible: boolean;
@@ -19,7 +19,7 @@ interface Props {
   isPrinterOffline?: boolean;
   paperCount?: number;
   maxPaperCapacity?: number;
-  paperWarning?: 'low' | 'critical_low' | 'out_or_jammed' | null;
+  paperWarning?: PaperWarningStatus;
   onResetPaperRoll?: () => void;
 }
 
@@ -158,20 +158,22 @@ export default function PrinterModal({
                   <Text style={tw`text-xs font-bold text-slate-800`}>Thermal Paper Roll (58mm)</Text>
                 </View>
                 <View style={tw`px-2 py-0.5 rounded-full ${
-                  paperWarning === 'out_or_jammed'
+                  paperWarning === 'out_of_paper' || paperWarning === 'out_or_jammed'
                     ? 'bg-rose-100'
                     : paperWarning === 'critical_low' || paperWarning === 'low'
                     ? 'bg-amber-100'
                     : 'bg-emerald-100'
                 }`}>
                   <Text style={tw`text-[10px] font-black ${
-                    paperWarning === 'out_or_jammed'
+                    paperWarning === 'out_of_paper' || paperWarning === 'out_or_jammed'
                       ? 'text-rose-700'
                       : paperWarning === 'critical_low' || paperWarning === 'low'
                       ? 'text-amber-800'
                       : 'text-emerald-700'
                   }`}>
-                    {paperWarning === 'out_or_jammed'
+                    {paperWarning === 'out_of_paper'
+                      ? 'OUT OF PAPER'
+                      : paperWarning === 'out_or_jammed'
                       ? 'CHECK PAPER / COVER'
                       : paperWarning === 'critical_low'
                       ? 'ROLL CRITICAL'

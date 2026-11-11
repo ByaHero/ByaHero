@@ -13,7 +13,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import tw from 'twrnc';
-import { IPrinterDevice } from '../hooks/usePrinter';
+import { IPrinterDevice, PaperWarningStatus } from '../hooks/usePrinter';
 
 export interface ISessionReceipt {
   id: string;
@@ -42,7 +42,7 @@ interface Props {
   isScanning: boolean;
   paperCount: number;
   maxPaperCapacity: number;
-  paperWarning: 'low' | 'critical_low' | 'out_or_jammed' | null;
+  paperWarning: PaperWarningStatus;
   onReconnect: () => Promise<boolean> | void;
   onOpenPrinterModal: () => void;
   onResetPaperRoll: () => void;
@@ -146,6 +146,18 @@ export default function AutoTicketingDrawer({
         titleColor: 'text-rose-700',
         label: 'Offline / Disconnected',
         detail: `${connectedPrinter.name || 'Printer'} lost Bluetooth link.`,
+      };
+    }
+    if (paperWarning === 'out_of_paper') {
+      return {
+        dotColor: 'bg-rose-500',
+        badgeBg: 'bg-rose-50 border-rose-200',
+        iconBg: 'bg-rose-100',
+        iconName: 'newspaper-outline' as const,
+        iconColor: '#e11d48',
+        titleColor: 'text-rose-700',
+        label: 'Out of Paper',
+        detail: `${connectedPrinter.name || 'Printer'} • Load a new 58mm roll.`,
       };
     }
     if (paperWarning === 'out_or_jammed') {

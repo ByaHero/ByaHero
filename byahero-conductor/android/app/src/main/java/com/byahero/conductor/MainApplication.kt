@@ -25,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
             PackageList(this).packages.apply {
               add(MediaSessionPackage())
               add(LocationServicePackage())
+              add(PrinterStatusPackage())
             }
 
           override fun getJSMainModuleName(): String = ".expo/.virtual-metro-entry"

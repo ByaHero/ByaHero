@@ -990,6 +990,106 @@ export default function LiveTrackingScreen() {
     }
   };
 
+  const openPrinterSettingsModal = () => {
+    if (isSessionDrawerVisible) {
+      setIsSessionDrawerVisible(false);
+      setTimeout(() => setIsPrinterModalVisible(true), 250);
+    } else {
+      setIsPrinterModalVisible(true);
+    }
+  };
+
+  const presentPrintFailureRecovery = (
+    err: any,
+    options: {
+      itemLabel: string;
+      setBusy: (busy: boolean) => void;
+      retryPrint: (wasReconnect?: boolean) => Promise<void>;
+      extraOutOfPaperNote?: string;
+    }
+  ) => {
+    const code = err?.code;
+    const { itemLabel, setBusy, retryPrint, extraOutOfPaperNote = '' } = options;
+
+    if (code === 'OUT_OF_PAPER' || code === 'OUT_OF_PAPER_MID_PRINT') {
+      const msg =
+        code === 'OUT_OF_PAPER_MID_PRINT'
+          ? `The printer ran out of paper while printing ${itemLabel}. Load a new 58mm roll, then tap "New Roll & Retry"${extraOutOfPaperNote}.`
+          : `The printer is out of paper. Load a new 58mm thermal roll, then tap "New Roll & Retry" to print ${itemLabel}${extraOutOfPaperNote}.`;
+      Alert.alert('Printer Out of Paper', msg, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'New Roll & Retry',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              await printer.resetPaperRoll(true);
+              await retryPrint(false);
+            } catch (retryErr: any) {
+              if (retryErr?.code === 'OUT_OF_PAPER' || retryErr?.code === 'OUT_OF_PAPER_MID_PRINT') {
+                showAlert('Still Out of Paper', 'No paper detected yet. Make sure the thermal roll is loaded properly and cover is closed.', 'error');
+              } else {
+                showAlert('Print Error', retryErr?.message || 'Failed to print. Check paper and power.', 'error');
+              }
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]);
+      return;
+    }
+
+    if (code === 'COVER_OPEN') {
+      Alert.alert(
+        'Printer Cover Open',
+        'Please close the thermal printer paper cover firmly, then tap "Retry Print".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Retry Print',
+            onPress: async () => {
+              setBusy(true);
+              try {
+                await retryPrint(false);
+              } catch (retryErr: any) {
+                showAlert('Print Error', retryErr?.message || 'Failed to print. Check printer cover and paper.', 'error');
+              } finally {
+                setBusy(false);
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Printer Not Responding',
+      'The printer did not respond. Check the paper roll and power, then tap "Reconnect & Retry" to refresh the Bluetooth link.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reconnect & Retry',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                await retryPrint(true);
+              }
+            } catch (retryErr: any) {
+              showAlert('Print Error', retryErr?.message || 'Failed to print. Check paper and power.', 'error');
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        { text: 'Printer Settings', onPress: openPrinterSettingsModal },
+      ]
+    );
+  };
+
   const handlePrintSummary = async (isInterim = false) => {
     if (!tripSummary) return;
 
@@ -1005,34 +1105,21 @@ export default function LiveTrackingScreen() {
       return;
     }
 
+    const doPrint = async (wasReconnect = false) => {
+      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+      showAlert('Print Successful', wasReconnect ? 'Summary printed after reconnecting.' : 'Summary has been printed.', 'success');
+    };
+
     setIsPrinting(true);
     try {
-      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
-      showAlert('Print Successful', 'Summary has been printed.', 'success');
+      await doPrint(false);
     } catch (e: any) {
       console.error(e);
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
-                  showAlert('Print Successful', 'Summary printed after reconnecting.', 'success');
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print summary.', 'error');
-                }
-              }
-            }
-          },
-          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
-        ]
-      );
+      presentPrintFailureRecovery(e, {
+        itemLabel: 'Trip Summary',
+        setBusy: setIsPrinting,
+        retryPrint: doPrint,
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -1051,48 +1138,31 @@ export default function LiveTrackingScreen() {
       return;
     }
 
+    const doPrintInterim = async (wasReconnect = false) => {
+      const opId = session?.operation_id || session?.id;
+      if (!opId) {
+        showAlert('Error', 'Missing active operation ID.', 'error');
+        return;
+      }
+      const res = await getTripSummary(opId);
+      if (res && res.success) {
+        await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+        showAlert('Print Successful', wasReconnect ? 'Interim Summary printed after reconnecting.' : 'Interim Summary has been printed.', 'success');
+      } else {
+        showAlert('Error', 'Failed to load summary data.', 'error');
+      }
+    };
+
     setIsPrinting(true);
     try {
-      const opId = session?.operation_id || session?.id;
-      if (opId) {
-        const res = await getTripSummary(opId);
-        if (res && res.success) {
-          await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
-          showAlert('Print Successful', 'Interim Summary has been printed.', 'success');
-        } else {
-          showAlert('Error', 'Failed to load summary data.', 'error');
-        }
-      }
-    } catch(e: any) {
+      await doPrintInterim(false);
+    } catch (e: any) {
       console.error(e);
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  const opId = session?.operation_id || session?.id;
-                  if (opId) {
-                    const res = await getTripSummary(opId);
-                    if (res && res.success) {
-                      await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
-                      showAlert('Print Successful', 'Interim Summary printed after reconnecting.', 'success');
-                    }
-                  }
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print interim summary.', 'error');
-                }
-              }
-            }
-          },
-          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
-        ]
-      );
+      presentPrintFailureRecovery(e, {
+        itemLabel: 'Interim Summary',
+        setBusy: setIsPrinting,
+        retryPrint: doPrintInterim,
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -1405,41 +1475,15 @@ export default function LiveTrackingScreen() {
     } catch (e: any) {
       console.error('printReceiptWithRecovery error:', e);
       updateReceiptStatus(ticket.id, ticket.ticketNumber, 'failed');
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. Check the paper roll and power, then tap "Reconnect & Retry" to refresh the Bluetooth link.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              setPrintBusy(true);
-              try {
-                const ok = await printer.reconnectPrinter();
-                if (ok) {
-                  await printer.printReceipt(ticket, receiptConfig);
-                  markSuccess(true);
-                }
-              } catch (retryErr: any) {
-                showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
-              } finally {
-                setPrintBusy(false);
-              }
-            },
-          },
-          {
-            text: 'Printer Settings',
-            onPress: () => {
-              if (isSessionDrawerVisible) {
-                setIsSessionDrawerVisible(false);
-                setTimeout(() => setIsPrinterModalVisible(true), 250);
-              } else {
-                setIsPrinterModalVisible(true);
-              }
-            },
-          },
-        ]
-      );
+      presentPrintFailureRecovery(e, {
+        itemLabel: `Ticket TKT-${ticket.ticketNumber}`,
+        setBusy: setPrintBusy,
+        extraOutOfPaperNote: ' (or reprint later from Receipts in the menu)',
+        retryPrint: async (wasReconnect = false) => {
+          await printer.printReceipt(ticket, receiptConfig);
+          markSuccess(wasReconnect);
+        },
+      });
     } finally {
       setPrintBusy(false);
     }
@@ -1459,7 +1503,14 @@ export default function LiveTrackingScreen() {
       <ConductorNavbar 
         title="Bus Live" 
         rightIcon={isAutoTicketing ? require('../../assets/images/HAMBURGER.svg') : undefined} 
-        onRightIconPress={isAutoTicketing ? () => setIsSessionDrawerVisible(true) : undefined} 
+        onRightIconPress={
+          isAutoTicketing
+            ? () => {
+                printer.checkPaperStatus(true).catch(() => {});
+                setIsSessionDrawerVisible(true);
+              }
+            : undefined
+        } 
       />
 
       {/* Printer Offline Sudden Drop Warning Banner */}
@@ -1492,31 +1543,49 @@ export default function LiveTrackingScreen() {
       )}
 
       {/* Low Paper / Paper Out Warning Banner */}
-      {isAutoTicketing && printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
+      {isAutoTicketing && printer.connectedPrinter && printer.paperWarning && (!printer.isPrinterOffline || printer.paperWarning === 'out_of_paper') && (
         <View style={tw`mx-4 mt-2 mb-1 p-3 ${
-          printer.paperWarning === 'out_or_jammed' ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'
+          printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+            ? 'bg-rose-50 border-rose-300'
+            : 'bg-amber-50 border-amber-300'
         } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
           <View style={tw`flex-row items-center flex-1 mr-2`}>
             <View style={tw`w-8 h-8 rounded-xl ${
-              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-500/10' : 'bg-amber-500/10'
+              printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+                ? 'bg-rose-500/10'
+                : 'bg-amber-500/10'
             } items-center justify-center mr-2.5`}>
               <Ionicons
                 name="newspaper-outline"
                 size={18}
-                color={printer.paperWarning === 'out_or_jammed' ? '#e11d48' : '#d97706'}
+                color={
+                  printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+                    ? '#e11d48'
+                    : '#d97706'
+                }
               />
             </View>
             <View style={tw`flex-1`}>
               <Text style={tw`text-xs font-black ${
-                printer.paperWarning === 'out_or_jammed' ? 'text-rose-900' : 'text-amber-900'
+                printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+                  ? 'text-rose-900'
+                  : 'text-amber-900'
               }`}>
-                {printer.paperWarning === 'out_or_jammed' ? 'Check Paper / Cover Open' : 'Thermal Paper Low'}
+                {printer.paperWarning === 'out_of_paper'
+                  ? 'Printer Out of Paper'
+                  : printer.paperWarning === 'out_or_jammed'
+                  ? 'Check Paper / Cover Open'
+                  : 'Thermal Paper Low'}
               </Text>
               <Text style={tw`text-[11px] ${
-                printer.paperWarning === 'out_or_jammed' ? 'text-rose-700' : 'text-amber-800'
+                printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+                  ? 'text-rose-700'
+                  : 'text-amber-800'
               }`}>
-                {printer.paperWarning === 'out_or_jammed'
-                  ? 'Printer stopped feeding paper or cover is open.'
+                {printer.paperWarning === 'out_of_paper'
+                  ? 'No paper detected. Load a new 58mm roll, then reprint any failed receipt from Receipts.'
+                  : printer.paperWarning === 'out_or_jammed'
+                  ? 'Printer cover may be open or paper stopped feeding.'
                   : `~${printer.paperCount}/${printer.maxPaperCapacity} tickets printed. Have a spare 58mm roll ready.`}
               </Text>
             </View>
@@ -1524,7 +1593,9 @@ export default function LiveTrackingScreen() {
           <TouchableOpacity
             onPress={() => printer.resetPaperRoll()}
             style={tw`px-2.5 py-1.5 ${
-              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-600' : 'bg-amber-600'
+              printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed'
+                ? 'bg-rose-600'
+                : 'bg-amber-600'
             } rounded-xl`}
           >
             <Text style={tw`text-[11px] font-bold text-white`}>New Roll</Text>
