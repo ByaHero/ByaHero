@@ -26,7 +26,7 @@ export default function ConductorNavbar({
   leftElement 
 }: { 
   title?: string; 
-  rightIcon?: string; 
+  rightIcon?: any; 
   onRightIconPress?: () => void;
   rightElement?: React.ReactNode;
   leftElement?: React.ReactNode;

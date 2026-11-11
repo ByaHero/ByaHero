@@ -34,6 +34,7 @@ import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
 import { usePrinter } from '../hooks/usePrinter';
 import PrinterModal from '../components/PrinterModal';
+import AutoTicketingDrawer, { ISessionReceipt } from '../components/AutoTicketingDrawer';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -109,6 +110,9 @@ export default function LiveTrackingScreen() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
   const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
+  const [isSessionDrawerVisible, setIsSessionDrawerVisible] = useState(false);
+  const [sessionReceipts, setSessionReceipts] = useState<ISessionReceipt[]>([]);
+  const [reprintingReceiptId, setReprintingReceiptId] = useState<string | null>(null);
 
   // Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -174,12 +178,13 @@ export default function LiveTrackingScreen() {
         p.total_served = totalServed;
         p.pending_pre_departure = p.ticketing_mode === 'Automatic' ? pendingPreDeparture : 0;
         p.active_passengers = activePassengers;
+        p.session_receipts = sessionReceipts;
         delete p.is_new_session;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
         AsyncStorage.setItem('byahero_conductor_ticket_counter', JSON.stringify(ticketCounter));
       } catch (e) {}
     });
-  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers]);
+  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers, sessionReceipts]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -403,6 +408,7 @@ export default function LiveTrackingScreen() {
     }
     
     setActivePassengers(payload.active_passengers || []);
+    setSessionReceipts(Array.isArray(payload.session_receipts) ? payload.session_receipts : []);
     setSessionInitialized(true);
 
     // Load route features for geofenced location parsing
@@ -758,6 +764,10 @@ export default function LiveTrackingScreen() {
     });
     setTotalServed(prev => prev + count);
 
+    if (!skipPending && sessionRef.current.ticketing_mode === 'Automatic') {
+      setPendingPreDeparture(prev => prev + count);
+    }
+
     pendingBoards.current += count;
     scheduleSync();
   };
@@ -772,6 +782,9 @@ export default function LiveTrackingScreen() {
       const newSeats = Math.max(0, seatsTotal - newBoarded);
       
       setSeats(newSeats);
+      if (sessionRef.current?.ticketing_mode === 'Automatic') {
+        setPendingPreDeparture(prev => Math.min(prev, newBoarded));
+      }
       
       if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
         LocationServiceModule.updateSessionData({
@@ -1136,10 +1149,11 @@ export default function LiveTrackingScreen() {
         remainingToDeduct -= preDepartureDeducted;
       }
       if (remainingToDeduct > 0) {
-        incrementPassengers(remainingToDeduct, true);
+        incrementPassengers(remainingToDeduct, true, true);
       }
 
-      const ticketData = {
+      const ticketData: ISessionReceipt = {
+        id: `${realTicketNumber}_${Date.now()}`,
         busNumber: session ? session.code : '-',
         date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         boarding: boardingStop.location_name,
@@ -1150,8 +1164,11 @@ export default function LiveTrackingScreen() {
         ticketNumber: realTicketNumber,
         breakdown: discountCounts,
         baseRegularFare: baseRegularFare,
-        baseDiscountedFare: baseDiscountedFare
+        baseDiscountedFare: baseDiscountedFare,
+        printStatus: 'pending',
+        reprintCount: 0,
       };
+      setSessionReceipts(prev => [ticketData, ...prev]);
       setIssuedTicket(ticketData);
       
       // Track active passengers for auto-departure if in Automatic mode
@@ -1210,63 +1227,134 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const executePrint = async () => {
+  const updateReceiptStatus = (
+    receiptId: string | undefined,
+    ticketNumber: string | undefined,
+    printStatus: 'printed' | 'failed',
+    incrementReprint = false
+  ) => {
+    setSessionReceipts(prev =>
+      prev.map(r => {
+        const matches = receiptId ? r.id === receiptId : r.ticketNumber === ticketNumber;
+        if (!matches) return r;
+        return {
+          ...r,
+          printStatus,
+          reprintCount: incrementReprint ? (r.reprintCount || 0) + 1 : (r.reprintCount || 0),
+        };
+      })
+    );
+  };
+
+  /**
+   * Prints (or locally reprints) a stored receipt via Bluetooth with reconnect recovery,
+   * without calling the server print-ticket endpoint again.
+   */
+  const printReceiptWithRecovery = async (
+    ticket: ISessionReceipt,
+    { isReprint, onComplete }: { isReprint: boolean; onComplete?: () => void }
+  ) => {
     if (!printer.connectedPrinter) {
       Alert.alert(
         'Printer Required',
         'No Bluetooth printer is currently connected.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+          {
+            text: 'Connect Printer',
+            onPress: () => {
+              if (isSessionDrawerVisible) {
+                setIsSessionDrawerVisible(false);
+                setTimeout(() => setIsPrinterModalVisible(true), 250);
+              } else {
+                setIsPrinterModalVisible(true);
+              }
+            },
+          },
         ]
       );
       return;
     }
 
-    setIsPrinting(true);
+    const setPrintBusy = (busy: boolean) => {
+      if (isReprint) setReprintingReceiptId(busy ? ticket.id : null);
+      else setIsPrinting(busy);
+    };
+    setPrintBusy(true);
+
+    const markSuccess = (wasRetry: boolean) => {
+      updateReceiptStatus(ticket.id, ticket.ticketNumber, 'printed', isReprint && ticket.printStatus === 'printed');
+      showAlert(
+        isReprint ? 'Reprint Successful' : 'Print Successful',
+        wasRetry
+          ? `Ticket TKT-${ticket.ticketNumber} printed successfully after reconnecting.`
+          : `Ticket TKT-${ticket.ticketNumber} has been printed.`,
+        'success'
+      );
+      onComplete?.();
+    };
+
     try {
-      await printer.printReceipt(issuedTicket, receiptConfig);
-      showAlert('Print Successful', 'Ticket has been printed via PT-210.', 'success');
-      closeReceipt();
+      await printer.printReceipt(ticket, receiptConfig);
+      markSuccess(false);
     } catch (e: any) {
-      console.error('executePrint error:', e);
+      console.error('printReceiptWithRecovery error:', e);
+      updateReceiptStatus(ticket.id, ticket.ticketNumber, 'failed');
       Alert.alert(
         'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry" to refresh the Bluetooth link.',
+        'The printer did not respond. Check the paper roll and power, then tap "Reconnect & Retry" to refresh the Bluetooth link.',
         [
           { text: 'Cancel', style: 'cancel' },
           {
             text: 'Reconnect & Retry',
             onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  await printer.printReceipt(issuedTicket, receiptConfig);
-                  showAlert('Print Successful', 'Ticket printed successfully after reconnecting.', 'success');
-                  closeReceipt();
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
+              setPrintBusy(true);
+              try {
+                const ok = await printer.reconnectPrinter();
+                if (ok) {
+                  await printer.printReceipt(ticket, receiptConfig);
+                  markSuccess(true);
                 }
+              } catch (retryErr: any) {
+                showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
+              } finally {
+                setPrintBusy(false);
               }
-            }
+            },
           },
           {
             text: 'Printer Settings',
-            onPress: () => setIsPrinterModalVisible(true)
-          }
+            onPress: () => {
+              if (isSessionDrawerVisible) {
+                setIsSessionDrawerVisible(false);
+                setTimeout(() => setIsPrinterModalVisible(true), 250);
+              } else {
+                setIsPrinterModalVisible(true);
+              }
+            },
+          },
         ]
       );
     } finally {
-      setIsPrinting(false);
+      setPrintBusy(false);
     }
+  };
+
+  const executePrint = async () => {
+    if (!issuedTicket) return;
+    await printReceiptWithRecovery(issuedTicket, { isReprint: false, onComplete: closeReceipt });
+  };
+
+  const handleReprintReceipt = async (receipt: ISessionReceipt) => {
+    await printReceiptWithRecovery(receipt, { isReprint: true });
   };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar 
         title="Bus Live" 
-        rightIcon={isAutoTicketing ? require('../../assets/images/icons/printer.svg') : undefined} 
-        onRightIconPress={isAutoTicketing ? () => setIsInterimModalVisible(true) : undefined} 
+        rightIcon={isAutoTicketing ? require('../../assets/images/HAMBURGER.svg') : undefined} 
+        onRightIconPress={isAutoTicketing ? () => setIsSessionDrawerVisible(true) : undefined} 
       />
 
       {/* Printer Offline Sudden Drop Warning Banner */}
@@ -1411,13 +1499,13 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TERMINAL TICKETS BANNER */}
+        {/* PENDING PASSENGER TICKETS BANNER */}
         {session?.ticketing_mode === 'Automatic' && pendingPreDeparture > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
             <Ionicons name="warning" size={24} color="#d97706" />
             <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Terminal Tickets</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pre-departure passenger(s) to ticket.</Text>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Passenger Tickets</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pending passenger(s) to ticket.</Text>
             </View>
           </View>
         )}
@@ -2031,6 +2119,29 @@ export default function LiveTrackingScreen() {
             </View>
           </View>
         </Modal>
+      )}
+
+      {/* Auto Ticketing Hamburger Session Drawer */}
+      {isAutoTicketing && (
+        <AutoTicketingDrawer
+          visible={isSessionDrawerVisible}
+          onClose={() => setIsSessionDrawerVisible(false)}
+          busCode={session?.code}
+          route={session?.route}
+          connectedPrinter={printer.connectedPrinter}
+          isPrinterOffline={printer.isPrinterOffline}
+          isScanning={printer.isScanning}
+          paperCount={printer.paperCount}
+          maxPaperCapacity={printer.maxPaperCapacity}
+          paperWarning={printer.paperWarning}
+          onReconnect={() => printer.reconnectPrinter()}
+          onOpenPrinterModal={() => setTimeout(() => setIsPrinterModalVisible(true), 250)}
+          onResetPaperRoll={printer.resetPaperRoll}
+          onPressInterimSummary={() => setTimeout(() => setIsInterimModalVisible(true), 250)}
+          receipts={sessionReceipts}
+          reprintingReceiptId={reprintingReceiptId}
+          onReprintReceipt={handleReprintReceipt}
+        />
       )}
 
       {/* Bluetooth Printer Modal */}
