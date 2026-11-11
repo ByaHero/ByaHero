@@ -924,7 +924,28 @@ export default function LiveTrackingScreen() {
     router.replace('/dashboard');
   };
 
+  const getRemainingPendingTickets = () => {
+    const activeSession = sessionRef.current || session;
+    if (activeSession?.ticketing_mode !== 'Automatic') return 0;
+    return pendingPreDepartureRef.current + pendingConfirmCountRef.current;
+  };
+
+  const ensureNoPendingTickets = () => {
+    const remainingPending = getRemainingPendingTickets();
+    if (remainingPending > 0) {
+      showAlert(
+        'Pending Tickets Remaining',
+        `You still have ${remainingPending} pending passenger(s) to ticket. Please issue their tickets or adjust the passenger count before ending the session.`,
+        'warning'
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleStopTracking = async () => {
+    if (!ensureNoPendingTickets()) return;
+
     setIsStopTrackingModalVisible(true);
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
@@ -1079,6 +1100,10 @@ export default function LiveTrackingScreen() {
 
 
   const confirmStopTracking = () => {
+    if (!ensureNoPendingTickets()) {
+      setIsStopTrackingModalVisible(false);
+      return;
+    }
     setIsStopTrackingModalVisible(false);
     performStopTracking();
   };
@@ -2056,7 +2081,8 @@ export default function LiveTrackingScreen() {
 
             <TouchableOpacity
               onPress={confirmStopTracking}
-              style={tw`w-full border-2 border-red-500 bg-red-50 py-3.5 rounded-2xl items-center justify-center shadow-sm`}
+              disabled={isAutoTicketing && (pendingPreDeparture + pendingConfirmCount) > 0}
+              style={tw`w-full border-2 border-red-500 bg-red-50 py-3.5 rounded-2xl items-center justify-center shadow-sm ${(isAutoTicketing && (pendingPreDeparture + pendingConfirmCount) > 0) ? 'opacity-50' : ''}`}
             >
               <Text style={tw`text-red-600 font-bold text-sm`}>Confirm & End Trip</Text>
             </TouchableOpacity>
