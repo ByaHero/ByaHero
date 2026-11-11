@@ -34,6 +34,7 @@ import { handleTourLayout } from '../components/TourRegistry';
 import { useTourSync } from '../hooks/useTourSync';
 import { usePrinter } from '../hooks/usePrinter';
 import PrinterModal from '../components/PrinterModal';
+import AutoTicketingDrawer, { ISessionReceipt } from '../components/AutoTicketingDrawer';
 const { LocationServiceModule } = NativeModules;
 
 // Geofence point-in-polygon helper
@@ -96,6 +97,8 @@ export default function LiveTrackingScreen() {
   const [issuedTicket, setIssuedTicket] = useState<any>(null);
   const [ticketQuantity, setTicketQuantity] = useState(1);
   const [pendingPreDeparture, setPendingPreDeparture] = useState(0);
+  const [pendingConfirmCount, setPendingConfirmCount] = useState(0);
+  const [confirmSecondsLeft, setConfirmSecondsLeft] = useState(0);
   const [ticketCounter, setTicketCounter] = useState(1);
   const [sessionInitialized, setSessionInitialized] = useState(false);
   const [activePassengers, setActivePassengers] = useState<any[]>([]);
@@ -109,6 +112,9 @@ export default function LiveTrackingScreen() {
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
   const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
+  const [isSessionDrawerVisible, setIsSessionDrawerVisible] = useState(false);
+  const [sessionReceipts, setSessionReceipts] = useState<ISessionReceipt[]>([]);
+  const [reprintingReceiptId, setReprintingReceiptId] = useState<string | null>(null);
 
   // Alert State
   const [alertConfig, setAlertConfig] = useState<{
@@ -152,6 +158,9 @@ export default function LiveTrackingScreen() {
   const pendingBoards = useRef(0);
   const pendingDeparts = useRef(0);
   const syncTimer = useRef<any>(null);
+  const pendingPreDepartureRef = useRef(0);
+  const pendingConfirmCountRef = useRef(0);
+  const pendingConfirmTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Last known coordinate caches for status computation
   const lastCoords = useRef<{ lat: number; lng: number; speed: number } | null>(null);
@@ -174,12 +183,13 @@ export default function LiveTrackingScreen() {
         p.total_served = totalServed;
         p.pending_pre_departure = p.ticketing_mode === 'Automatic' ? pendingPreDeparture : 0;
         p.active_passengers = activePassengers;
+        p.session_receipts = sessionReceipts;
         delete p.is_new_session;
         AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(p));
         AsyncStorage.setItem('byahero_conductor_ticket_counter', JSON.stringify(ticketCounter));
       } catch (e) {}
     });
-  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers]);
+  }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers, sessionReceipts]);
 
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
@@ -299,6 +309,10 @@ export default function LiveTrackingScreen() {
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
     }
+    if (pendingConfirmTimerRef.current) {
+      clearInterval(pendingConfirmTimerRef.current);
+      pendingConfirmTimerRef.current = null;
+    }
     if (Platform.OS === 'android' && LocationServiceModule) {
       LocationServiceModule.stopService();
     }
@@ -352,6 +366,7 @@ export default function LiveTrackingScreen() {
     }
 
     setSeats(restoredSeats);
+    boardedCountRef.current = restoredBoarded;
     setBoardedCount(restoredBoarded);
     const restoredServed = isResumed && payload.total_served !== undefined
       ? Math.max(payload.total_served, restoredBoarded)
@@ -389,7 +404,11 @@ export default function LiveTrackingScreen() {
     let restoredPending = (isAutoMode && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
       : (isAutoMode ? preDep : 0);
-    setPendingPreDeparture(isAutoMode ? restoredPending : 0);
+    pendingConfirmCountRef.current = 0;
+    setPendingConfirmCount(0);
+    setConfirmSecondsLeft(0);
+    clearPendingConfirmTimer();
+    syncPendingPreDeparture(isAutoMode ? restoredPending : 0);
 
     try {
       const ticketStr = await AsyncStorage.getItem('byahero_conductor_ticket_counter');
@@ -403,6 +422,7 @@ export default function LiveTrackingScreen() {
     }
     
     setActivePassengers(payload.active_passengers || []);
+    setSessionReceipts(Array.isArray(payload.session_receipts) ? payload.session_receipts : []);
     setSessionInitialized(true);
 
     // Load route features for geofenced location parsing
@@ -738,49 +758,116 @@ export default function LiveTrackingScreen() {
     }, 3000);
   };
 
+  const clearPendingConfirmTimer = () => {
+    if (pendingConfirmTimerRef.current) {
+      clearInterval(pendingConfirmTimerRef.current);
+      pendingConfirmTimerRef.current = null;
+    }
+  };
+
+  const syncPendingPreDeparture = (nextCount: number) => {
+    const clamped = Math.max(0, nextCount);
+    pendingPreDepartureRef.current = clamped;
+    setPendingPreDeparture(clamped);
+  };
+
+  const startPendingConfirmCountdown = () => {
+    clearPendingConfirmTimer();
+    if (pendingConfirmCountRef.current <= 0) {
+      pendingConfirmCountRef.current = 0;
+      setPendingConfirmCount(0);
+      setConfirmSecondsLeft(0);
+      return;
+    }
+
+    let secondsRemaining = 5;
+    setConfirmSecondsLeft(secondsRemaining);
+    pendingConfirmTimerRef.current = setInterval(() => {
+      secondsRemaining -= 1;
+      if (secondsRemaining <= 0) {
+        clearPendingConfirmTimer();
+        const confirmed = pendingConfirmCountRef.current;
+        pendingConfirmCountRef.current = 0;
+        setPendingConfirmCount(0);
+        setConfirmSecondsLeft(0);
+        if (confirmed > 0 && sessionRef.current?.ticketing_mode === 'Automatic') {
+          syncPendingPreDeparture(pendingPreDepartureRef.current + confirmed);
+        }
+      } else {
+        setConfirmSecondsLeft(secondsRemaining);
+      }
+    }, 1000);
+  };
+
+  useEffect(() => {
+    return () => {
+      clearPendingConfirmTimer();
+    };
+  }, []);
+
   const incrementPassengers = (count = 1, isManualUi = false, skipPending = false) => {
     if (!sessionRef.current) return;
-    
-    setBoardedCount(prevBoarded => {
-      const newBoarded = prevBoarded + count;
-      const seatsTotal = sessionRef.current.seats_total || 0;
-      const newSeats = Math.max(0, seatsTotal - newBoarded);
-      
-      setSeats(newSeats);
-      
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
-      }
-      return newBoarded;
-    });
+
+    const newBoarded = boardedCountRef.current + count;
+    boardedCountRef.current = newBoarded;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
+
+    setBoardedCount(prevBoarded => prevBoarded + count);
+    setSeats(newSeats);
+
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
+    }
     setTotalServed(prev => prev + count);
+
+    if (!skipPending && sessionRef.current.ticketing_mode === 'Automatic') {
+      pendingConfirmCountRef.current += count;
+      setPendingConfirmCount(pendingConfirmCountRef.current);
+      startPendingConfirmCountdown();
+    }
 
     pendingBoards.current += count;
     scheduleSync();
   };
 
   const decrementPassengers = (isManualUi = false) => {
-    if (!sessionRef.current) return;
-    
-    setBoardedCount(prevBoarded => {
-      if (prevBoarded <= 0) return prevBoarded;
-      const newBoarded = prevBoarded - 1;
-      const seatsTotal = sessionRef.current.seats_total || 0;
-      const newSeats = Math.max(0, seatsTotal - newBoarded);
-      
-      setSeats(newSeats);
-      
-      if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
-        LocationServiceModule.updateSessionData({
-          seats_available: newSeats,
-          force_seats: true
-        });
+    if (!sessionRef.current || boardedCountRef.current <= 0) return;
+
+    const newBoarded = Math.max(0, boardedCountRef.current - 1);
+    boardedCountRef.current = newBoarded;
+    const seatsTotal = sessionRef.current.seats_total || 0;
+    const newSeats = Math.max(0, seatsTotal - newBoarded);
+
+    setBoardedCount(prevBoarded => Math.max(0, prevBoarded - 1));
+    setSeats(newSeats);
+
+    if (sessionRef.current?.ticketing_mode === 'Automatic') {
+      if (pendingConfirmCountRef.current > 0) {
+        pendingConfirmCountRef.current -= 1;
+        if (pendingConfirmCountRef.current <= 0) {
+          pendingConfirmCountRef.current = 0;
+          clearPendingConfirmTimer();
+          setPendingConfirmCount(0);
+          setConfirmSecondsLeft(0);
+        } else {
+          setPendingConfirmCount(pendingConfirmCountRef.current);
+          startPendingConfirmCountdown();
+        }
+      } else {
+        syncPendingPreDeparture(Math.min(pendingPreDepartureRef.current, newBoarded));
       }
-      return newBoarded;
-    });
+    }
+
+    if (isManualUi && Platform.OS === 'android' && LocationServiceModule) {
+      LocationServiceModule.updateSessionData({
+        seats_available: newSeats,
+        force_seats: true
+      });
+    }
 
     pendingDeparts.current++;
     scheduleSync();
@@ -837,7 +924,28 @@ export default function LiveTrackingScreen() {
     router.replace('/dashboard');
   };
 
+  const getRemainingPendingTickets = () => {
+    const activeSession = sessionRef.current || session;
+    if (activeSession?.ticketing_mode !== 'Automatic') return 0;
+    return pendingPreDepartureRef.current + pendingConfirmCountRef.current;
+  };
+
+  const ensureNoPendingTickets = () => {
+    const remainingPending = getRemainingPendingTickets();
+    if (remainingPending > 0) {
+      showAlert(
+        'Pending Tickets Remaining',
+        `You still have ${remainingPending} pending passenger(s) to ticket. Please issue their tickets or adjust the passenger count before ending the session.`,
+        'warning'
+      );
+      return false;
+    }
+    return true;
+  };
+
   const handleStopTracking = async () => {
+    if (!ensureNoPendingTickets()) return;
+
     setIsStopTrackingModalVisible(true);
     if (syncTimer.current) {
       clearTimeout(syncTimer.current);
@@ -882,6 +990,106 @@ export default function LiveTrackingScreen() {
     }
   };
 
+  const openPrinterSettingsModal = () => {
+    if (isSessionDrawerVisible) {
+      setIsSessionDrawerVisible(false);
+      setTimeout(() => setIsPrinterModalVisible(true), 250);
+    } else {
+      setIsPrinterModalVisible(true);
+    }
+  };
+
+  const presentPrintFailureRecovery = (
+    err: any,
+    options: {
+      itemLabel: string;
+      setBusy: (busy: boolean) => void;
+      retryPrint: (wasReconnect?: boolean) => Promise<void>;
+      extraOutOfPaperNote?: string;
+    }
+  ) => {
+    const code = err?.code;
+    const { itemLabel, setBusy, retryPrint, extraOutOfPaperNote = '' } = options;
+
+    if (code === 'OUT_OF_PAPER' || code === 'OUT_OF_PAPER_MID_PRINT') {
+      const msg =
+        code === 'OUT_OF_PAPER_MID_PRINT'
+          ? `The printer ran out of paper while printing ${itemLabel}. Load a new 58mm roll, then tap "Retry Print"${extraOutOfPaperNote}.`
+          : `The printer is out of paper. Load a new 58mm thermal roll, then tap "Retry Print" to print ${itemLabel}${extraOutOfPaperNote}.`;
+      Alert.alert('Printer Out of Paper', msg, [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Retry Print',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              printer.clearPaperWarning();
+              await retryPrint(false);
+            } catch (retryErr: any) {
+              if (retryErr?.code === 'OUT_OF_PAPER' || retryErr?.code === 'OUT_OF_PAPER_MID_PRINT') {
+                showAlert('Still Out of Paper', 'No paper detected yet. Make sure the thermal roll is loaded properly and cover is closed.', 'error');
+              } else {
+                showAlert('Print Error', retryErr?.message || 'Failed to print. Check paper and power.', 'error');
+              }
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+      ]);
+      return;
+    }
+
+    if (code === 'COVER_OPEN') {
+      Alert.alert(
+        'Printer Cover Open',
+        'Please close the thermal printer paper cover firmly, then tap "Retry Print".',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Retry Print',
+            onPress: async () => {
+              setBusy(true);
+              try {
+                await retryPrint(false);
+              } catch (retryErr: any) {
+                showAlert('Print Error', retryErr?.message || 'Failed to print. Check printer cover and paper.', 'error');
+              } finally {
+                setBusy(false);
+              }
+            },
+          },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Printer Not Responding',
+      'The printer did not respond. Check the paper roll and power, then tap "Reconnect & Retry" to refresh the Bluetooth link.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reconnect & Retry',
+          onPress: async () => {
+            setBusy(true);
+            try {
+              const ok = await printer.reconnectPrinter();
+              if (ok) {
+                await retryPrint(true);
+              }
+            } catch (retryErr: any) {
+              showAlert('Print Error', retryErr?.message || 'Failed to print. Check paper and power.', 'error');
+            } finally {
+              setBusy(false);
+            }
+          },
+        },
+        { text: 'Printer Settings', onPress: openPrinterSettingsModal },
+      ]
+    );
+  };
+
   const handlePrintSummary = async (isInterim = false) => {
     if (!tripSummary) return;
 
@@ -897,34 +1105,21 @@ export default function LiveTrackingScreen() {
       return;
     }
 
+    const doPrint = async (wasReconnect = false) => {
+      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+      showAlert('Print Successful', wasReconnect ? 'Summary printed after reconnecting.' : 'Summary has been printed.', 'success');
+    };
+
     setIsPrinting(true);
     try {
-      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
-      showAlert('Print Successful', 'Summary has been printed.', 'success');
+      await doPrint(false);
     } catch (e: any) {
       console.error(e);
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
-                  showAlert('Print Successful', 'Summary printed after reconnecting.', 'success');
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print summary.', 'error');
-                }
-              }
-            }
-          },
-          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
-        ]
-      );
+      presentPrintFailureRecovery(e, {
+        itemLabel: 'Trip Summary',
+        setBusy: setIsPrinting,
+        retryPrint: doPrint,
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -943,48 +1138,31 @@ export default function LiveTrackingScreen() {
       return;
     }
 
+    const doPrintInterim = async (wasReconnect = false) => {
+      const opId = session?.operation_id || session?.id;
+      if (!opId) {
+        showAlert('Error', 'Missing active operation ID.', 'error');
+        return;
+      }
+      const res = await getTripSummary(opId);
+      if (res && res.success) {
+        await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+        showAlert('Print Successful', wasReconnect ? 'Interim Summary printed after reconnecting.' : 'Interim Summary has been printed.', 'success');
+      } else {
+        showAlert('Error', 'Failed to load summary data.', 'error');
+      }
+    };
+
     setIsPrinting(true);
     try {
-      const opId = session?.operation_id || session?.id;
-      if (opId) {
-        const res = await getTripSummary(opId);
-        if (res && res.success) {
-          await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
-          showAlert('Print Successful', 'Interim Summary has been printed.', 'success');
-        } else {
-          showAlert('Error', 'Failed to load summary data.', 'error');
-        }
-      }
-    } catch(e: any) {
+      await doPrintInterim(false);
+    } catch (e: any) {
       console.error(e);
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry".',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  const opId = session?.operation_id || session?.id;
-                  if (opId) {
-                    const res = await getTripSummary(opId);
-                    if (res && res.success) {
-                      await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
-                      showAlert('Print Successful', 'Interim Summary printed after reconnecting.', 'success');
-                    }
-                  }
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print interim summary.', 'error');
-                }
-              }
-            }
-          },
-          { text: 'Printer Settings', onPress: () => setIsPrinterModalVisible(true) }
-        ]
-      );
+      presentPrintFailureRecovery(e, {
+        itemLabel: 'Interim Summary',
+        setBusy: setIsPrinting,
+        retryPrint: doPrintInterim,
+      });
     } finally {
       setIsPrinting(false);
     }
@@ -992,6 +1170,10 @@ export default function LiveTrackingScreen() {
 
 
   const confirmStopTracking = () => {
+    if (!ensureNoPendingTickets()) {
+      setIsStopTrackingModalVisible(false);
+      return;
+    }
     setIsStopTrackingModalVisible(false);
     performStopTracking();
   };
@@ -1127,19 +1309,26 @@ export default function LiveTrackingScreen() {
         } catch (_) {}
       }
 
+      // Consume confirmed and staged manual pending tickets before boarding new passengers
+      clearPendingConfirmTimer();
+      const stagedPending = pendingConfirmCountRef.current;
+      pendingConfirmCountRef.current = 0;
+      setPendingConfirmCount(0);
+      setConfirmSecondsLeft(0);
+
+      const availablePending = pendingPreDepartureRef.current + stagedPending;
       let remainingToDeduct = ticketQuantity;
-      let preDepartureDeducted = 0;
-      // Use up pending pre-departure queue first
-      if (pendingPreDeparture > 0) {
-        preDepartureDeducted = Math.min(remainingToDeduct, pendingPreDeparture);
-        setPendingPreDeparture(prev => prev - preDepartureDeducted);
-        remainingToDeduct -= preDepartureDeducted;
+      if (availablePending > 0) {
+        const deducted = Math.min(remainingToDeduct, availablePending);
+        syncPendingPreDeparture(availablePending - deducted);
+        remainingToDeduct -= deducted;
       }
       if (remainingToDeduct > 0) {
-        incrementPassengers(remainingToDeduct, true);
+        incrementPassengers(remainingToDeduct, true, true);
       }
 
-      const ticketData = {
+      const ticketData: ISessionReceipt = {
+        id: `${realTicketNumber}_${Date.now()}`,
         busNumber: session ? session.code : '-',
         date: new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         boarding: boardingStop.location_name,
@@ -1150,8 +1339,11 @@ export default function LiveTrackingScreen() {
         ticketNumber: realTicketNumber,
         breakdown: discountCounts,
         baseRegularFare: baseRegularFare,
-        baseDiscountedFare: baseDiscountedFare
+        baseDiscountedFare: baseDiscountedFare,
+        printStatus: 'pending',
+        reprintCount: 0,
       };
+      setSessionReceipts(prev => [ticketData, ...prev]);
       setIssuedTicket(ticketData);
       
       // Track active passengers for auto-departure if in Automatic mode
@@ -1210,63 +1402,115 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const executePrint = async () => {
+  const updateReceiptStatus = (
+    receiptId: string | undefined,
+    ticketNumber: string | undefined,
+    printStatus: 'printed' | 'failed',
+    incrementReprint = false
+  ) => {
+    setSessionReceipts(prev =>
+      prev.map(r => {
+        const matches = receiptId ? r.id === receiptId : r.ticketNumber === ticketNumber;
+        if (!matches) return r;
+        return {
+          ...r,
+          printStatus,
+          reprintCount: incrementReprint ? (r.reprintCount || 0) + 1 : (r.reprintCount || 0),
+        };
+      })
+    );
+  };
+
+  /**
+   * Prints (or locally reprints) a stored receipt via Bluetooth with reconnect recovery,
+   * without calling the server print-ticket endpoint again.
+   */
+  const printReceiptWithRecovery = async (
+    ticket: ISessionReceipt,
+    { isReprint, onComplete }: { isReprint: boolean; onComplete?: () => void }
+  ) => {
     if (!printer.connectedPrinter) {
       Alert.alert(
         'Printer Required',
         'No Bluetooth printer is currently connected.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Connect Printer', onPress: () => setIsPrinterModalVisible(true) }
+          {
+            text: 'Connect Printer',
+            onPress: () => {
+              if (isSessionDrawerVisible) {
+                setIsSessionDrawerVisible(false);
+                setTimeout(() => setIsPrinterModalVisible(true), 250);
+              } else {
+                setIsPrinterModalVisible(true);
+              }
+            },
+          },
         ]
       );
       return;
     }
 
-    setIsPrinting(true);
-    try {
-      await printer.printReceipt(issuedTicket, receiptConfig);
-      showAlert('Print Successful', 'Ticket has been printed via PT-210.', 'success');
-      closeReceipt();
-    } catch (e: any) {
-      console.error('executePrint error:', e);
-      Alert.alert(
-        'Printer Not Responding',
-        'The printer did not respond. If the blue LED is on or the printer restarted, tap "Reconnect & Retry" to refresh the Bluetooth link.',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          {
-            text: 'Reconnect & Retry',
-            onPress: async () => {
-              const ok = await printer.reconnectPrinter();
-              if (ok) {
-                try {
-                  await printer.printReceipt(issuedTicket, receiptConfig);
-                  showAlert('Print Successful', 'Ticket printed successfully after reconnecting.', 'success');
-                  closeReceipt();
-                } catch (retryErr: any) {
-                  showAlert('Print Error', retryErr.message || 'Failed to print. Check paper and power.', 'error');
-                }
-              }
-            }
-          },
-          {
-            text: 'Printer Settings',
-            onPress: () => setIsPrinterModalVisible(true)
-          }
-        ]
+    const setPrintBusy = (busy: boolean) => {
+      if (isReprint) setReprintingReceiptId(busy ? ticket.id : null);
+      else setIsPrinting(busy);
+    };
+    setPrintBusy(true);
+
+    const markSuccess = (wasRetry: boolean) => {
+      updateReceiptStatus(ticket.id, ticket.ticketNumber, 'printed', isReprint && ticket.printStatus === 'printed');
+      showAlert(
+        isReprint ? 'Reprint Successful' : 'Print Successful',
+        wasRetry
+          ? `Ticket TKT-${ticket.ticketNumber} printed successfully after reconnecting.`
+          : `Ticket TKT-${ticket.ticketNumber} has been printed.`,
+        'success'
       );
+      onComplete?.();
+    };
+
+    try {
+      await printer.printReceipt(ticket, receiptConfig);
+      markSuccess(false);
+    } catch (e: any) {
+      console.error('printReceiptWithRecovery error:', e);
+      updateReceiptStatus(ticket.id, ticket.ticketNumber, 'failed');
+      presentPrintFailureRecovery(e, {
+        itemLabel: `Ticket TKT-${ticket.ticketNumber}`,
+        setBusy: setPrintBusy,
+        extraOutOfPaperNote: ' (or reprint later from Receipts in the menu)',
+        retryPrint: async (wasReconnect = false) => {
+          await printer.printReceipt(ticket, receiptConfig);
+          markSuccess(wasReconnect);
+        },
+      });
     } finally {
-      setIsPrinting(false);
+      setPrintBusy(false);
     }
+  };
+
+  const executePrint = async () => {
+    if (!issuedTicket) return;
+    await printReceiptWithRecovery(issuedTicket, { isReprint: false, onComplete: closeReceipt });
+  };
+
+  const handleReprintReceipt = async (receipt: ISessionReceipt) => {
+    await printReceiptWithRecovery(receipt, { isReprint: true });
   };
 
   return (
     <SafeAreaView style={tw`flex-1 bg-slate-50`}>
       <ConductorNavbar 
         title="Bus Live" 
-        rightIcon={isAutoTicketing ? require('../../assets/images/icons/printer.svg') : undefined} 
-        onRightIconPress={isAutoTicketing ? () => setIsInterimModalVisible(true) : undefined} 
+        rightIcon={isAutoTicketing ? require('../../assets/images/HAMBURGER.svg') : undefined} 
+        onRightIconPress={
+          isAutoTicketing
+            ? () => {
+                printer.checkPaperStatus(true).catch(() => {});
+                setIsSessionDrawerVisible(true);
+              }
+            : undefined
+        } 
       />
 
       {/* Printer Offline Sudden Drop Warning Banner */}
@@ -1298,43 +1542,31 @@ export default function LiveTrackingScreen() {
         </View>
       )}
 
-      {/* Low Paper / Paper Out Warning Banner */}
-      {isAutoTicketing && printer.connectedPrinter && !printer.isPrinterOffline && printer.paperWarning && (
-        <View style={tw`mx-4 mt-2 mb-1 p-3 ${
-          printer.paperWarning === 'out_or_jammed' ? 'bg-rose-50 border-rose-300' : 'bg-amber-50 border-amber-300'
-        } border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
+      {/* Hardware Paper Out / Cover Warning Banner */}
+      {isAutoTicketing && printer.connectedPrinter && (printer.paperWarning === 'out_of_paper' || printer.paperWarning === 'out_or_jammed') && (
+        <View style={tw`mx-4 mt-2 mb-1 p-3 bg-rose-50 border-rose-300 border rounded-2xl flex-row items-center justify-between shadow-xs z-40`}>
           <View style={tw`flex-row items-center flex-1 mr-2`}>
-            <View style={tw`w-8 h-8 rounded-xl ${
-              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-500/10' : 'bg-amber-500/10'
-            } items-center justify-center mr-2.5`}>
-              <Ionicons
-                name="newspaper-outline"
-                size={18}
-                color={printer.paperWarning === 'out_or_jammed' ? '#e11d48' : '#d97706'}
-              />
+            <View style={tw`w-8 h-8 rounded-xl bg-rose-500/10 items-center justify-center mr-2.5`}>
+              <Ionicons name="newspaper-outline" size={18} color="#e11d48" />
             </View>
             <View style={tw`flex-1`}>
-              <Text style={tw`text-xs font-black ${
-                printer.paperWarning === 'out_or_jammed' ? 'text-rose-900' : 'text-amber-900'
-              }`}>
-                {printer.paperWarning === 'out_or_jammed' ? 'Check Paper / Cover Open' : 'Thermal Paper Low'}
+              <Text style={tw`text-xs font-black text-rose-900`}>
+                {printer.paperWarning === 'out_of_paper'
+                  ? 'Printer Out of Paper'
+                  : 'Check Paper / Cover Open'}
               </Text>
-              <Text style={tw`text-[11px] ${
-                printer.paperWarning === 'out_or_jammed' ? 'text-rose-700' : 'text-amber-800'
-              }`}>
-                {printer.paperWarning === 'out_or_jammed'
-                  ? 'Printer stopped feeding paper or cover is open.'
-                  : `~${printer.paperCount}/${printer.maxPaperCapacity} tickets printed. Have a spare 58mm roll ready.`}
+              <Text style={tw`text-[11px] text-rose-700`}>
+                {printer.paperWarning === 'out_of_paper'
+                  ? 'No paper detected. Load a new 58mm roll, then reprint any failed receipt from Receipts.'
+                  : 'Printer cover may be open or paper stopped feeding.'}
               </Text>
             </View>
           </View>
           <TouchableOpacity
-            onPress={() => printer.resetPaperRoll()}
-            style={tw`px-2.5 py-1.5 ${
-              printer.paperWarning === 'out_or_jammed' ? 'bg-rose-600' : 'bg-amber-600'
-            } rounded-xl`}
+            onPress={() => printer.checkPaperStatus(false, true)}
+            style={tw`px-2.5 py-1.5 bg-rose-600 rounded-xl`}
           >
-            <Text style={tw`text-[11px] font-bold text-white`}>New Roll</Text>
+            <Text style={tw`text-[11px] font-bold text-white`}>Check Paper</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -1411,13 +1643,28 @@ export default function LiveTrackingScreen() {
           </View>
         </View>
 
-        {/* PENDING TERMINAL TICKETS BANNER */}
+        {/* PENDING CONFIRMATION COUNTDOWN BANNER (5s double-click guard) */}
+        {session?.ticketing_mode === 'Automatic' && pendingConfirmCount > 0 && (
+          <View style={tw`bg-blue-50 border border-blue-200 rounded-xl p-3.5 mb-3 flex-row items-center`}>
+            <Ionicons name="time-outline" size={22} color="#2563eb" />
+            <View style={tw`ml-3 flex-1`}>
+              <Text style={tw`text-blue-800 font-bold text-xs`}>
+                Confirming +{pendingConfirmCount} manual passenger(s)...
+              </Text>
+              <Text style={tw`text-blue-600 text-[11px] mt-0.5`}>
+                Adding to pending tickets in {confirmSecondsLeft}s (tap - to undo if double-clicked).
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* PENDING PASSENGER TICKETS BANNER */}
         {session?.ticketing_mode === 'Automatic' && pendingPreDeparture > 0 && (
           <View style={tw`bg-amber-100 border border-amber-300 rounded-xl p-4 mb-4 flex-row items-center`}>
             <Ionicons name="warning" size={24} color="#d97706" />
             <View style={tw`ml-3 flex-1`}>
-              <Text style={tw`text-amber-800 font-bold`}>Pending Terminal Tickets</Text>
-              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pre-departure passenger(s) to ticket.</Text>
+              <Text style={tw`text-amber-800 font-bold`}>Pending Passenger Tickets</Text>
+              <Text style={tw`text-amber-700 text-xs mt-0.5`}>You have {pendingPreDeparture} pending passenger(s) to ticket.</Text>
             </View>
           </View>
         )}
@@ -1743,89 +1990,6 @@ export default function LiveTrackingScreen() {
                 </Text>
               </View>
 
-              {/* Printer Status in Ticket Preview */}
-              <View style={tw`bg-slate-50 border border-slate-200 rounded-xl p-3 mt-4`}>
-                <View style={tw`flex-row items-center justify-between`}>
-                  <View style={tw`flex-row items-center gap-2 flex-1 mr-2`}>
-                    <Ionicons 
-                      name={
-                        printer.isPrinterOffline 
-                          ? "alert-circle" 
-                          : printer.paperWarning 
-                          ? "newspaper-outline" 
-                          : printer.connectedPrinter 
-                          ? "print" 
-                          : "print-outline"
-                      } 
-                      size={16} 
-                      color={
-                        printer.isPrinterOffline 
-                          ? "#e11d48" 
-                          : printer.paperWarning 
-                          ? "#d97706" 
-                          : printer.connectedPrinter 
-                          ? "#059669" 
-                          : "#e11d48"
-                      } 
-                    />
-                    <Text 
-                      style={tw`text-xs font-bold ${
-                        printer.isPrinterOffline 
-                          ? 'text-rose-700' 
-                          : printer.paperWarning 
-                          ? 'text-amber-800' 
-                          : printer.connectedPrinter 
-                          ? 'text-emerald-700' 
-                          : 'text-rose-600'
-                      }`} 
-                      numberOfLines={1}
-                    >
-                      {printer.isPrinterOffline 
-                        ? 'Printer Offline / Dropped' 
-                        : printer.paperWarning === 'out_or_jammed' 
-                        ? 'Check Paper / Cover Open' 
-                        : printer.paperWarning 
-                        ? `Paper Low (~${Math.max(0, printer.maxPaperCapacity - printer.paperCount)} left)` 
-                        : printer.connectedPrinter 
-                        ? `Printer: ${printer.connectedPrinter.name || 'Connected'}` 
-                        : 'Printer Disconnected'}
-                    </Text>
-                  </View>
-                  <View style={tw`flex-row items-center gap-1.5`}>
-                    {printer.connectedPrinter && (
-                      <TouchableOpacity
-                        onPress={() => printer.reconnectPrinter()}
-                        style={tw`px-2 py-1 rounded-lg bg-amber-50 border border-amber-300`}
-                      >
-                        <Text style={tw`text-[10px] font-bold text-amber-800`}>Refresh Link</Text>
-                      </TouchableOpacity>
-                    )}
-                    <TouchableOpacity
-                      onPress={() => setIsPrinterModalVisible(true)}
-                      style={tw`px-2.5 py-1 rounded-lg bg-blue-50 border border-blue-200`}
-                    >
-                      <Text style={tw`text-[11px] font-bold text-blue-700`}>
-                        {printer.connectedPrinter ? 'Change' : 'Connect'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-
-                {/* Warning note inside ticket preview */}
-                {printer.isPrinterOffline && (
-                  <Text style={tw`text-[10px] text-rose-600 font-bold mt-1.5`}>
-                    ⚠️ Printer connection is lost. Tap "Refresh Link" or turn on printer before pressing Print.
-                  </Text>
-                )}
-                {!printer.isPrinterOffline && printer.paperWarning && (
-                  <Text style={tw`text-[10px] text-amber-700 font-medium mt-1.5`}>
-                    {printer.paperWarning === 'out_or_jammed' 
-                      ? '⚠️ Printer stopped feeding paper. Inspect roll before continuing.' 
-                      : '📄 Roll running low: keep a replacement thermal roll ready.'}
-                  </Text>
-                )}
-              </View>
-
               {/* Close / Print Button */}
               <View style={tw`flex-row gap-3 mt-6`}>
                 <TouchableOpacity
@@ -1956,7 +2120,8 @@ export default function LiveTrackingScreen() {
 
             <TouchableOpacity
               onPress={confirmStopTracking}
-              style={tw`w-full border-2 border-red-500 bg-red-50 py-3.5 rounded-2xl items-center justify-center shadow-sm`}
+              disabled={isAutoTicketing && (pendingPreDeparture + pendingConfirmCount) > 0}
+              style={tw`w-full border-2 border-red-500 bg-red-50 py-3.5 rounded-2xl items-center justify-center shadow-sm ${(isAutoTicketing && (pendingPreDeparture + pendingConfirmCount) > 0) ? 'opacity-50' : ''}`}
             >
               <Text style={tw`text-red-600 font-bold text-sm`}>Confirm & End Trip</Text>
             </TouchableOpacity>
@@ -2033,6 +2198,26 @@ export default function LiveTrackingScreen() {
         </Modal>
       )}
 
+      {/* Auto Ticketing Hamburger Session Drawer */}
+      {isAutoTicketing && (
+        <AutoTicketingDrawer
+          visible={isSessionDrawerVisible}
+          onClose={() => setIsSessionDrawerVisible(false)}
+          busCode={session?.code}
+          route={session?.route}
+          connectedPrinter={printer.connectedPrinter}
+          isPrinterOffline={printer.isPrinterOffline}
+          isScanning={printer.isScanning}
+          paperWarning={printer.paperWarning}
+          onReconnect={() => printer.reconnectPrinter()}
+          onOpenPrinterModal={() => setTimeout(() => setIsPrinterModalVisible(true), 250)}
+          onPressInterimSummary={() => setTimeout(() => setIsInterimModalVisible(true), 250)}
+          receipts={sessionReceipts}
+          reprintingReceiptId={reprintingReceiptId}
+          onReprintReceipt={handleReprintReceipt}
+        />
+      )}
+
       {/* Bluetooth Printer Modal */}
       {isAutoTicketing && (
         <PrinterModal 
@@ -2051,10 +2236,7 @@ export default function LiveTrackingScreen() {
           onDisconnect={printer.disconnectPrinter}
           onReconnect={() => printer.reconnectPrinter()}
           isPrinterOffline={printer.isPrinterOffline}
-          paperCount={printer.paperCount}
-          maxPaperCapacity={printer.maxPaperCapacity}
           paperWarning={printer.paperWarning}
-          onResetPaperRoll={printer.resetPaperRoll}
         />
       )}
 
