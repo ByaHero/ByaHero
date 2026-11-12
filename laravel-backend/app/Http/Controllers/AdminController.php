@@ -600,53 +600,19 @@ class AdminController extends Controller
             $totalSosAlerts = 0;
             $totalWaitingRequests = 0;
 
-            $applyPeriodFilter = function ($query, string $column) use ($period, $request) {
-                switch ($period) {
-                    case 'deployment':
-                        $query->where($column, '>=', '2026-09-09 00:00:00')
-                              ->where($column, '<=', '2026-09-22 23:59:59');
-                        break;
-                    case 'all':
-                        break;
-                    case 'week':
-                        $query->whereRaw("{$column} >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)");
-                        break;
-                    case 'month':
-                        $query->whereRaw("{$column} >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)");
-                        break;
-                    case 'custom':
-                        $start = $request->input('start');
-                        $end = $request->input('end');
-                        if ($start) {
-                            $query->where($column, '>=', "{$start} 00:00:00");
-                        }
-                        if ($end) {
-                            $query->where($column, '<=', "{$end} 23:59:59");
-                        }
-                        break;
-                    case 'today':
-                    default:
-                        $query->whereRaw("DATE({$column}) = CURDATE()");
-                        break;
-                }
-                return $query;
-            };
-
             try {
                 if (Schema::hasTable('users')) {
                     $totalUsers = DB::table('users')->count();
                 }
 
                 if (Schema::hasTable('passenger_rides')) {
-                    $usersWithRides = $applyPeriodFilter(DB::table('passenger_rides'), 'boarded_at')->distinct('user_id')->count('user_id');
-                    $totalPassengerRides = $applyPeriodFilter(DB::table('passenger_rides'), 'boarded_at')->count();
-                    $completedRides = $applyPeriodFilter(DB::table('passenger_rides'), 'boarded_at')->where('status', 'completed')->count();
-                    $activeRides = $applyPeriodFilter(DB::table('passenger_rides'), 'boarded_at')->whereIn('status', ['active', 'ongoing'])->count();
+                    $usersWithRides = DB::table('passenger_rides')->distinct('user_id')->count('user_id');
+                    $totalPassengerRides = DB::table('passenger_rides')->count();
+                    $completedRides = DB::table('passenger_rides')->where('status', 'completed')->count();
+                    $activeRides = DB::table('passenger_rides')->whereIn('status', ['active', 'ongoing'])->count();
 
-                    $topCommutersQuery = DB::table('passenger_rides as pr')
-                        ->leftJoin('users as u', 'u.id', '=', 'pr.user_id');
-                    $applyPeriodFilter($topCommutersQuery, 'pr.boarded_at');
-                    $topCommuters = $topCommutersQuery
+                    $topCommuters = DB::table('passenger_rides as pr')
+                        ->leftJoin('users as u', 'u.id', '=', 'pr.user_id')
                         ->select(
                             'pr.user_id',
                             DB::raw("COALESCE(NULLIF(MAX(u.name), ''), CONCAT('Commuter #', pr.user_id)) as name"),
@@ -674,11 +640,11 @@ class AdminController extends Controller
                 }
 
                 if (Schema::hasTable('sos_alerts')) {
-                    $totalSosAlerts = $applyPeriodFilter(DB::table('sos_alerts'), 'created_at')->count();
+                    $totalSosAlerts = DB::table('sos_alerts')->count();
                 }
 
                 if (Schema::hasTable('waiting_passengers')) {
-                    $totalWaitingRequests = $applyPeriodFilter(DB::table('waiting_passengers'), 'created_at')->count();
+                    $totalWaitingRequests = DB::table('waiting_passengers')->count();
                 }
             } catch (\Throwable $userEx) {
                 Log::warning('User analytics computation fallback: ' . $userEx->getMessage());
