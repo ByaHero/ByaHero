@@ -96,6 +96,7 @@ class AuthController extends Controller
             }
 
             // Hydrate Laravel session
+            Session::regenerate();
             Session::put('user_id', (int)$user->id);
             Session::put('user_email', $user->email);
             Session::put('user_role', $role);
@@ -238,6 +239,7 @@ class AuthController extends Controller
         PasswordReset::where('email', $email)->where('role', 'signup_otp')->delete();
         Session::forget('pending_signup');
 
+        Session::regenerate();
         Session::put('user_id', (int)$user->id);
         Session::put('user_email', $email);
         Session::put('user_role', 'passenger');
@@ -366,28 +368,15 @@ class AuthController extends Controller
     public function googleAuth(Request $request)
     {
         $credential = $request->input('credential');
-        if (empty($credential)) {
-            return response()->json(['success' => false, 'message' => 'Credential token missing']);
+        if (!is_string($credential) || $credential === '') {
+            return response()->json(['success' => false, 'message' => 'Google credential required'], 401);
         }
-        // Parse and decode Google ID Token (JWT)
-        $parts = explode('.', $credential);
-        if (count($parts) !== 3) {
-            return response()->json(['success' => false, 'message' => 'Invalid credential format']);
-        }
-
-        $b64Payload = str_replace(['-', '_'], ['+', '/'], $parts[1]);
-        $remainder = strlen($b64Payload) % 4;
-        if ($remainder) {
-            $b64Payload .= str_repeat('=', 4 - $remainder);
-        }
-        $payloadJson = base64_decode($b64Payload);
-        if (!$payloadJson) {
-            return response()->json(['success' => false, 'message' => 'Failed to decode credential payload']);
-        }
-
-        $payload = json_decode($payloadJson, true);
-        if (!is_array($payload) || empty($payload['email'])) {
-            return response()->json(['success' => false, 'message' => 'Invalid credential payload']);
+        try {
+            $payload = app(\App\Services\GoogleIdentity::class)->verify($credential);
+        } catch (\Illuminate\Http\Client\ConnectionException|\Illuminate\Http\Client\RequestException $e) {
+            return response()->json(['success' => false, 'message' => 'Google sign-in is temporarily unavailable'], 503);
+        } catch (\Throwable $e) {
+            return response()->json(['success' => false, 'message' => 'Invalid Google credential'], 401);
         }
 
         $email = strtolower(trim($payload['email']));
@@ -419,7 +408,12 @@ class AuthController extends Controller
             ]);
             $userRole = 'passenger';
         } else {
-            // Update Google ID, provider, and profile picture if not set or updated
+            if ((!empty($user->google_id) && !hash_equals((string)$user->google_id, (string)$googleId))
+                || (empty($user->google_id) && !str_ends_with($email, '@gmail.com') && empty($payload['hd']))) {
+                return response()->json(['success' => false, 'message' => 'Sign in with your password to link this account'], 401);
+            }
+            // Update verified Google profile details.
+
             $updated = false;
             if (empty($user->google_id) && !empty($googleId)) {
                 $user->google_id = $googleId;
@@ -438,6 +432,7 @@ class AuthController extends Controller
             }
         }
 
+        Session::regenerate();
         Session::put('user_id', (int)$user->id);
         Session::put('user_email', $user->email);
         Session::put('user_role', $userRole);
@@ -465,42 +460,19 @@ class AuthController extends Controller
 
     public function logout(Request $request)
     {
-        $fcmToken = $request->input('fcm_token');
-        if (!empty($fcmToken)) {
-            DB::table('user_fcm_tokens')->where('fcm_token', $fcmToken)->delete();
-        }
-
         $userId = Session::get('user_id');
-        $email = strtolower(trim($request->input('email', '')));
-        if (empty($userId) && !empty($email)) {
-            $userByEmail = User::where('email', $email)->first();
-            if ($userByEmail) {
-                $userId = $userByEmail->id;
-            }
-        }
-
         if ($userId) {
             $this->logLogoutActivity((int)$userId, $request);
-            
-            // Cancel active waiting status on logout
-            DB::table('waiting_passengers')
-                ->where('user_id', $userId)
-                ->where('status', 'waiting')
-                ->update([
-                    'status' => 'cancelled',
-                    'updated_at' => now()
-                ]);
-        } elseif (!empty($email)) {
-            DB::table('waiting_passengers')
-                ->where('email', $email)
-                ->where('status', 'waiting')
-                ->update([
-                    'status' => 'cancelled',
-                    'updated_at' => now()
-                ]);
+            if (Session::get('user_role') === 'passenger') {
+                if ($fcmToken = $request->input('fcm_token')) {
+                    DB::table('user_fcm_tokens')->where('user_id', $userId)->where('fcm_token', $fcmToken)->delete();
+                }
+                DB::table('waiting_passengers')->where('user_id', $userId)->where('status', 'waiting')
+                    ->update(['status' => 'cancelled', 'updated_at' => now()]);
+            }
         }
-
-        Session::flush();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
         return response()->json(['success' => true, 'message' => 'Logged out successfully']);
     }
 
@@ -632,36 +604,17 @@ class AuthController extends Controller
 
     public function restoreSession(Request $request)
     {
-        $email = strtolower(trim($request->input('email', '')));
-        if (empty($email)) {
-            return response()->json(['success' => false, 'message' => 'Email required']);
+        $id = Session::get('user_id');
+        $role = Session::get('user_role');
+        $model = $this->roleTables[$role] ?? null;
+        $user = $id && $model ? $model::find($id) : null;
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'Authentication required'], 401);
         }
-
-        foreach ($this->roleTables as $role => $modelClass) {
-            $user = null;
-            if ($role === 'passenger') {
-                $user = User::where('email', $email)->orWhere('contacts', $email)->first();
-            } elseif ($role === 'conductor') {
-                $user = Conductor::where('email', $email)->orWhere('contacts', $email)->first();
-            } elseif ($role === 'driver') {
-                $user = Driver::where('email', $email)->orWhere('contacts', $email)->first();
-            } else {
-                $user = Admin::where('email', $email)->orWhere('contacts', $email)->first();
-            }
-
-            if ($user) {
-                Session::put('user_id', (int)$user->id);
-                Session::put('user_email', $user->email);
-                Session::put('user_role', $role);
-                Session::put('user_name', $user->name ?? $user->email);
-                Session::put('user_contacts', $user->contacts);
-                Session::put('user_profile_picture', $user->profile_picture);
-                
-                return response()->json(['success' => true, 'message' => 'Session restored']);
-            }
-        }
-
-        return response()->json(['success' => false, 'message' => 'User not found']);
+        return response()->json(['success' => true, 'message' => 'Session is valid', 'user' => [
+            'id' => (int)$user->id, 'email' => $user->email, 'name' => $user->name,
+            'contacts' => $user->contacts, 'profile_picture' => $user->profile_picture, 'role' => $role,
+        ]]);
     }
 
     private function logLoginActivity($userId, Request $request)

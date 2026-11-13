@@ -13,8 +13,12 @@ class AIEtaService
      */
     public function trainModel()
     {
+        if (!config('deployment.ml_enabled', true)) return false;
         try {
             $apiUrl = config('services.python_ml_api.url');
+            if (!config('deployment.ml_enabled', true)) {
+                throw new \RuntimeException('ML service disabled; using local calculation.');
+            }
             $response = \Illuminate\Support\Facades\Http::timeout(60)->post("{$apiUrl}/train");
             
             if ($response->successful()) {
@@ -27,7 +31,9 @@ class AIEtaService
             \Illuminate\Support\Facades\Log::error('Python ML API Training Failed', ['response' => $response->body()]);
             return false;
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            if (config('deployment.ml_enabled', true)) {
+                \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            }
             return false;
         }
     }
@@ -41,6 +47,9 @@ class AIEtaService
 
         try {
             $apiUrl = config('services.python_ml_api.url');
+            if (!config('deployment.ml_enabled', true)) {
+                throw new \RuntimeException('ML service disabled; using local calculation.');
+            }
             $response = \Illuminate\Support\Facades\Http::timeout(5)->post("{$apiUrl}/predict", [
                 'route' => $route ?? '',
                 'current_speed' => (float)($currentSpeed ?? 0),
@@ -58,7 +67,9 @@ class AIEtaService
             
             \Illuminate\Support\Facades\Log::error('Python ML API Predict Failed', ['response' => $response->body()]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            if (config('deployment.ml_enabled', true)) {
+                \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            }
         }
 
         // Fallback calculation if Python API fails
@@ -82,6 +93,9 @@ class AIEtaService
     {
         try {
             $apiUrl = config('services.python_ml_api.url');
+            if (!config('deployment.ml_enabled', true)) {
+                throw new \RuntimeException('ML service disabled; using local calculation.');
+            }
             $response = \Illuminate\Support\Facades\Http::timeout(5)->post("{$apiUrl}/predict-traffic", [
                 'route' => $route ?? '',
                 'current_speed' => (float)($currentSpeed ?? 0),
@@ -100,7 +114,9 @@ class AIEtaService
             
             \Illuminate\Support\Facades\Log::error('Python ML API Predict Traffic Failed', ['response' => $response->body()]);
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            if (config('deployment.ml_enabled', true)) {
+                \Illuminate\Support\Facades\Log::error('Python ML API Connection Error: ' . $e->getMessage());
+            }
         }
 
         // Fallback calculation if Python API fails

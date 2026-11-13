@@ -1,0 +1,24 @@
+FROM php:8.3-apache-bookworm
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq-dev libonig-dev libzip-dev libicu-dev libcurl4-openssl-dev unzip \
+    && docker-php-ext-install -j2 pdo_pgsql pdo_mysql mbstring zip intl bcmath opcache curl \
+    && a2enmod rewrite headers \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=composer:2.8 /usr/bin/composer /usr/local/bin/composer
+WORKDIR /app
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --no-scripts --prefer-dist --no-interaction --no-progress
+COPY . .
+RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
+    && composer dump-autoload --no-dev --optimize --no-interaction \
+    && chown -R www-data:www-data storage bootstrap/cache
+
+COPY deploy/apache.conf /etc/apache2/sites-available/000-default.conf
+COPY deploy/php.ini /usr/local/etc/php/conf.d/byahero.ini
+COPY deploy/start.sh /usr/local/bin/byahero-start
+RUN sed -i 's/\r$//' /usr/local/bin/byahero-start && chmod +x /usr/local/bin/byahero-start
+ENV VERCEL_CONTAINER=1
+EXPOSE 8080
+CMD ["byahero-start"]

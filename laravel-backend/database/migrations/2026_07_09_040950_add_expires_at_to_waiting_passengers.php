@@ -23,7 +23,9 @@ return new class extends Migration
             ->where('status', 'waiting')
             ->whereNull('expires_at')
             ->update([
-                'expires_at' => DB::raw('DATE_ADD(created_at, INTERVAL 1 HOUR)')
+                'expires_at' => DB::raw(DB::connection()->getDriverName() === 'pgsql'
+                    ? "created_at + INTERVAL '1 hour'"
+                    : 'DATE_ADD(created_at, INTERVAL 1 HOUR)')
             ]);
     }
 

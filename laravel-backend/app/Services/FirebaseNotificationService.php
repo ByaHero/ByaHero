@@ -27,7 +27,8 @@ class FirebaseNotificationService
      */
     public function isConfigured(): bool
     {
-        return !empty($this->projectId) && !empty($this->clientEmail) && !empty($this->privateKey);
+        return config('deployment.external_notifications', true)
+            && !empty($this->projectId) && !empty($this->clientEmail) && !empty($this->privateKey);
     }
 
     /**
@@ -129,6 +130,10 @@ class FirebaseNotificationService
         array $data = [],
         string $channelId = 'schedule_updates'
     ): array {
+        if (!config('deployment.external_notifications', true)) {
+            return ['success' => true, 'sent_count' => 0, 'failed_count' => 0, 'message' => 'Push delivery disabled for this deployment.'];
+        }
+
         $uniqueTokens = array_values(array_unique(array_filter(array_map('trim', $tokens))));
         if (empty($uniqueTokens)) {
             return ['success' => true, 'sent_count' => 0, 'failed_count' => 0, 'message' => 'No tokens provided.'];

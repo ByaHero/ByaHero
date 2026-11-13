@@ -19,6 +19,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        \Illuminate\Support\Facades\RateLimiter::for('auth-actions', function (\Illuminate\Http\Request $request) {
+            $email = hash('sha256', strtolower(trim((string) $request->input('email', ''))));
+            return [
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(30)->by('auth-ip:'.$request->ip()),
+                \Illuminate\Cache\RateLimiting\Limit::perMinute(10)->by('auth-account:'.$request->ip().':'.$email),
+            ];
+        });
     }
 }

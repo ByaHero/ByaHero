@@ -58,10 +58,8 @@ class NotificationController extends Controller
             UserFcmToken::where('fcm_token', $fcmToken)->where('user_id', '!=', $userId)->delete();
 
             // Insert or update token assignment
-            DB::statement(
-                "INSERT INTO user_fcm_tokens (user_id, fcm_token) VALUES (?, ?)
-                 ON DUPLICATE KEY UPDATE user_id = VALUES(user_id)",
-                [$userId, $fcmToken]
+            DB::table('user_fcm_tokens')->upsert(
+                [['user_id' => $userId, 'fcm_token' => $fcmToken]], ['fcm_token'], ['user_id']
             );
 
             return response()->json([
@@ -76,6 +74,11 @@ class NotificationController extends Controller
 
     private function ensureNotificationSchema(): void
     {
+        // The Supabase schema is provisioned before deployment, never during requests.
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            return;
+        }
+
         static $ensured = false;
         if ($ensured) {
             return;

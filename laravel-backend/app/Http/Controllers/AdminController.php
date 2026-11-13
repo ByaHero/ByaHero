@@ -21,31 +21,15 @@ use App\Models\Notification;
 use App\Models\UserSetting;
 use App\Models\UserFcmToken;
 use App\Services\FirebaseNotificationService;
+use App\Support\SqlDialect;
 class AdminController extends Controller
 {
     private function checkAuth()
     {
-        $role = Session::get('user_role');
-        if (empty($role) || $role !== 'admin') {
-            $email = request()->header('X-Admin-Email') 
-                ?: request()->header('X-User-Email') 
-                ?: request()->input('email') 
-                ?: request()->input('admin_email');
-            if (!empty($email)) {
-                $cleanEmail = strtolower(trim((string)$email));
-                $admin = Admin::where('email', $cleanEmail)->first();
-                if ($admin) {
-                    Session::put('user_id', (int)$admin->id);
-                    Session::put('user_email', $admin->email);
-                    Session::put('user_role', 'admin');
-                    Session::put('user_name', $admin->name ?? $admin->email);
-                    return;
-                }
-            }
+        if (!Session::get('user_id') || Session::get('user_role') !== 'admin') {
             abort(response()->json(['success' => false, 'error' => 'Admin role required'], 403));
         }
     }
-
 
     public function getDashboardStats(Request $request)
     {
@@ -466,6 +450,18 @@ class AdminController extends Controller
     public function getAnalytics(Request $request)
     {
         $this->checkAuth();
+        $request->validate(['start' => 'nullable|date_format:Y-m-d', 'end' => 'nullable|date_format:Y-m-d']);
+        $busIdColumn = DB::connection()->getQueryGrammar()->wrap('b.Bus_ID');
+        $weekStart = SqlDialect::daysAgo(7);
+        $monthStart = SqlDialect::daysAgo(30);
+        $tripMinutes = SqlDialect::minutes('o.started_at', 'o.ended_at');
+        $operatingMinutes = SqlDialect::minutes('o.started_at', 'COALESCE(o.ended_at, o.started_at)');
+        $durationMinutes = SqlDialect::minutes('o.started_at', 'COALESCE(o.ended_at, NOW())');
+        $routesAggregate = SqlDialect::aggregate('o.route');
+        $conductorsAggregate = SqlDialect::aggregate("COALESCE(NULLIF(c.name, ''), c.email)");
+        $emailsAggregate = SqlDialect::aggregate('c.email');
+        $busesAggregate = SqlDialect::aggregate('b.code');
+        $recordedHour = SqlDialect::hour('pe.recorded_at');
         try {
             $period = $request->input('period', 'today');
             $dateFilter = '';
@@ -478,10 +474,10 @@ class AdminController extends Controller
                     $dateFilter = "";
                     break;
                 case 'week':
-                    $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)";
+                    $dateFilter = "AND o.started_at >= {$weekStart}";
                     break;
                 case 'month':
-                    $dateFilter = "AND o.started_at >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)";
+                    $dateFilter = "AND o.started_at >= {$monthStart}";
                     break;
                 case 'custom':
                     $start = $request->input('start');
@@ -498,7 +494,7 @@ class AdminController extends Controller
                     break;
                 case 'today':
                 default:
-                    $dateFilter = "AND DATE(o.started_at) = CURDATE()";
+                    $dateFilter = "AND DATE(o.started_at) = CURRENT_DATE";
                     break;
             }
 
@@ -508,7 +504,7 @@ class AdminController extends Controller
                 COALESCE(SUM(o.total_boarded), 0) AS total_passengers,
                 COALESCE(SUM(o.pre_departure_count), 0) AS total_pre_departure,
                 COALESCE(SUM(o.total_departed), 0) AS total_departed,
-                COALESCE(AVG(TIMESTAMPDIFF(MINUTE, o.started_at, o.ended_at)), 0) AS avg_trip_minutes
+                COALESCE(AVG({$tripMinutes}), 0) AS avg_trip_minutes
                 FROM bus_operations o WHERE o.status='completed' {$dateFilter}");
 
             // Deployment Period Metadata
@@ -527,7 +523,7 @@ class AdminController extends Controller
             // 3. Buses performance (Fleet Data for Deployment Period)
             $totalFleetCount = DB::table('busses')->count();
             $buses = DB::select("SELECT 
-                b.Bus_ID as bus_id,
+                {$busIdColumn} as bus_id,
                 b.code,
                 COALESCE(b.total_seats, 25) AS total_seats,
                 b.status AS current_status,
@@ -535,17 +531,17 @@ class AdminController extends Controller
                 COALESCE(SUM(o.total_boarded), 0) AS passengers,
                 COALESCE(SUM(o.total_departed), 0) AS departed,
                 COALESCE(AVG(o.total_boarded), 0) AS avg_passengers_per_trip,
-                COALESCE(SUM(TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, o.started_at))), 0) AS total_operating_minutes,
+                COALESCE(SUM({$operatingMinutes}), 0) AS total_operating_minutes,
                 MIN(o.started_at) AS first_deployment_trip,
                 MAX(o.started_at) AS last_deployment_trip,
-                GROUP_CONCAT(DISTINCT o.route SEPARATOR ', ') AS routes,
-                GROUP_CONCAT(DISTINCT COALESCE(NULLIF(c.name, ''), c.email) SEPARATOR ', ') AS conductors,
-                GROUP_CONCAT(DISTINCT c.email SEPARATOR ', ') AS conductor_emails
+                {$routesAggregate} AS routes,
+                {$conductorsAggregate} AS conductors,
+                {$emailsAggregate} AS conductor_emails
                 FROM bus_operations o 
-                JOIN busses b ON b.Bus_ID = o.bus_id
+                JOIN busses b ON {$busIdColumn} = o.bus_id
                 LEFT JOIN conductors c ON c.id = o.conductor_id
                 WHERE 1=1 {$dateFilter} 
-                GROUP BY b.Bus_ID, b.code, b.total_seats, b.status 
+                GROUP BY {$busIdColumn}, b.code, b.total_seats, b.status
                 ORDER BY trips DESC, passengers DESC");
 
             $busDepQueries = DB::select("SELECT o.bus_id, pe.location_name, SUM(pe.count) AS total
@@ -573,14 +569,14 @@ class AdminController extends Controller
                 COALESCE(SUM(o.total_boarded), 0) AS passengers,
                 COALESCE(SUM(o.total_departed), 0) AS departed,
                 COALESCE(AVG(o.total_boarded), 0) AS avg_passengers_per_session,
-                COALESCE(SUM(TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, o.started_at))), 0) AS total_duty_minutes,
+                COALESCE(SUM({$operatingMinutes}), 0) AS total_duty_minutes,
                 MIN(o.started_at) AS first_session,
                 MAX(o.started_at) AS last_session,
-                GROUP_CONCAT(DISTINCT b.code SEPARATOR ', ') AS buses_operated,
-                GROUP_CONCAT(DISTINCT o.route SEPARATOR ', ') AS routes_served
+                {$busesAggregate} AS buses_operated,
+                {$routesAggregate} AS routes_served
                 FROM bus_operations o 
                 JOIN conductors c ON c.id = o.conductor_id
-                LEFT JOIN busses b ON b.Bus_ID = o.bus_id
+                LEFT JOIN busses b ON {$busIdColumn} = o.bus_id
                 WHERE 1=1 {$dateFilter} 
                 GROUP BY c.id, c.name, c.email, c.contacts 
                 ORDER BY trips DESC, passengers DESC");
@@ -670,10 +666,10 @@ class AdminController extends Controller
             ];
 
             // 6. Hourly flow
-            $hourly = DB::select("SELECT HOUR(pe.recorded_at) AS hr, SUM(pe.count) AS total
+            $hourly = DB::select("SELECT {$recordedHour} AS hr, SUM(pe.count) AS total
                 FROM passenger_events pe JOIN bus_operations o ON o.id = pe.operation_id
                 WHERE pe.event_type='board' {$dateFilter}
-                GROUP BY HOUR(pe.recorded_at) ORDER BY hr");
+                GROUP BY {$recordedHour} ORDER BY hr");
 
             // 7. Departures & boardings (all corridor stops)
             $departures = DB::select("SELECT pe.location_name, SUM(pe.count) AS total
@@ -688,9 +684,9 @@ class AdminController extends Controller
 
             // 8. Recent Operations
             $recent = DB::select("SELECT o.*, b.code AS bus_code, c.email AS conductor_email, COALESCE(c.name, c.email) AS conductor_name,
-                TIMESTAMPDIFF(MINUTE, o.started_at, COALESCE(o.ended_at, NOW())) AS duration_min
+                {$durationMinutes} AS duration_min
                 FROM bus_operations o
-                JOIN busses b ON b.Bus_ID = o.bus_id
+                JOIN busses b ON {$busIdColumn} = o.bus_id
                 LEFT JOIN conductors c ON c.id = o.conductor_id
                 WHERE 1=1 {$dateFilter}
                 ORDER BY o.started_at DESC LIMIT 30");
@@ -707,7 +703,7 @@ class AdminController extends Controller
                 (CASE WHEN pe.event_type = 'depart' THEN pe.count ELSE 0 END) AS departed
                 FROM passenger_events pe
                 JOIN bus_operations o ON o.id = pe.operation_id
-                JOIN busses b ON b.Bus_ID = o.bus_id
+                JOIN busses b ON {$busIdColumn} = o.bus_id
                 LEFT JOIN conductors c ON c.id = o.conductor_id
                 WHERE 1=1 {$dateFilter}
                 ORDER BY pe.recorded_at DESC LIMIT 50");
@@ -775,11 +771,12 @@ class AdminController extends Controller
     public function listActiveBuses(Request $request)
     {
         $this->checkAuth();
+        $busIdColumn = DB::connection()->getQueryGrammar()->wrap('b.Bus_ID');
 
         $activeBuses = DB::select("
             SELECT b.*, b.code as bus_no, c.name AS conductor_name, c.email AS conductor_email,
                    b.lat AS latitude, b.lng AS longitude,
-                   ((SELECT speed FROM bus_telemetries WHERE bus_id = b.Bus_ID ORDER BY id DESC LIMIT 1) * 3.6) as speed
+                   ((SELECT speed FROM bus_telemetries WHERE bus_id = {$busIdColumn} ORDER BY id DESC LIMIT 1) * 3.6) as speed
             FROM busses b
             LEFT JOIN conductors c ON b.current_conductor_id = c.id
             WHERE b.current_conductor_id IS NOT NULL
@@ -844,10 +841,7 @@ class AdminController extends Controller
         }
 
         // Remove GeoJSON file
-        $file = base_path('../data/current_locations/bus_' . $busId . '.geojson');
-        if (\Illuminate\Support\Facades\File::exists($file)) {
-            \Illuminate\Support\Facades\File::delete($file);
-        }
+        app(\App\Services\BusLocationStore::class)->forget($busId);
 
         return response()->json([
             'success' => true,
@@ -1158,13 +1152,14 @@ class AdminController extends Controller
                     ]);
 
                 // Run formula
+                $number = SqlDialect::numberParameter();
                 DB::statement("
                     UPDATE bus_fares 
                     SET 
-                        regular_fare = ROUND((? + GREATEST(0, COALESCE(distance_km, 0) - ?) * ?) * 4) / 4,
-                        discounted_fare = ROUND((? + GREATEST(0, COALESCE(distance_km, 0) - ?) * ?) * 4) / 4,
-                        base_regular_fare = ROUND((? + GREATEST(0, COALESCE(distance_km, 0) - ?) * ?) * 4) / 4,
-                        base_discounted_fare = ROUND((? + GREATEST(0, COALESCE(distance_km, 0) - ?) * ?) * 4) / 4,
+                        regular_fare = ROUND(({$number} + GREATEST(0, COALESCE(distance_km, 0) - {$number}) * {$number}) * 4) / 4,
+                        discounted_fare = ROUND(({$number} + GREATEST(0, COALESCE(distance_km, 0) - {$number}) * {$number}) * 4) / 4,
+                        base_regular_fare = ROUND(({$number} + GREATEST(0, COALESCE(distance_km, 0) - {$number}) * {$number}) * 4) / 4,
+                        base_discounted_fare = ROUND(({$number} + GREATEST(0, COALESCE(distance_km, 0) - {$number}) * {$number}) * 4) / 4,
                         updated_at = NOW()
                 ", [
                     $regBase, $baseKm, $regRate,
@@ -1516,18 +1511,21 @@ class AdminController extends Controller
         $movingPoints = DB::table('bus_telemetries')->where('speed', '>', 0)->whereNotNull('route')->count();
         $lastTrained = \Illuminate\Support\Facades\Cache::get('ai_model_last_trained', 'Never');
         
+        $averageMs = SqlDialect::rounded('AVG(speed)', 2);
+        $averageKmh = SqlDialect::rounded('AVG(speed) * 3.6', 1);
+        $createdHour = SqlDialect::hour('created_at');
         $avgSpeeds = DB::select("
-            SELECT route, ROUND(AVG(speed), 2) as avg_speed_ms, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
+            SELECT route, {$averageMs} as avg_speed_ms, {$averageKmh} as avg_speed_kmh
             FROM bus_telemetries 
             WHERE speed >= 0 AND route IS NOT NULL 
             GROUP BY route
         ");
 
         $hourlySpeeds = DB::select("
-            SELECT HOUR(created_at) as hr, ROUND(AVG(speed) * 3.6, 1) as avg_speed_kmh
+            SELECT {$createdHour} as hr, {$averageKmh} as avg_speed_kmh
             FROM bus_telemetries
             WHERE speed >= 0 AND route IS NOT NULL
-            GROUP BY HOUR(created_at)
+            GROUP BY {$createdHour}
             ORDER BY hr
         ");
 

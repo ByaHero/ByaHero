@@ -1,0 +1,104 @@
+name: Backend - protected Vercel releases
+
+on:
+  push:
+    branches: [codex/vercel-backend]
+    paths:
+      - 'laravel-backend/**'
+      - 'byahero-admin-web/**'
+      - '.github/workflows/deploy-vercel-backend.yml'
+      - '.github/scripts/vercel-backend*.mjs'
+
+permissions:
+  contents: read
+
+# A new commit cancels an older pending approval. Only approve the latest run.
+concurrency:
+  group: vercel-backend-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  VERCEL_CLI_VERSION: '65.15.0'
+
+jobs:
+  test:
+    name: Test and deploy protected test backend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    environment:
+      name: vercel-backend-test
+      url: ${{ steps.deploy.outputs.url }}
+    outputs:
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: shivammathur/setup-php@d52fc211a0436f8839a587b3b5b8efddab4744ea # v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, pdo_sqlite, pdo_pgsql, bcmath, intl, zip
+          coverage: none
+          tools: composer:2.8
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: byahero-admin-web/package-lock.json
+      - name: Verify deployment guards
+        run: node --test .github/scripts/vercel-backend.test.mjs
+      - name: Install backend dependencies
+        working-directory: laravel-backend
+        run: composer install --prefer-dist --no-interaction --no-progress
+      - name: Test backend and audit dependencies
+        working-directory: laravel-backend
+        run: |
+          set -euo pipefail
+          php vendor/bin/phpunit
+          composer audit --locked --no-dev
+          sh -n deploy/start.sh
+      - name: Build isolated admin test UI
+        working-directory: byahero-admin-web
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build:test-backend
+      - name: Install pinned Vercel CLI
+        run: npm install --global --ignore-scripts "vercel@$VERCEL_CLI_VERSION"
+      - name: Deploy and check protected test backend
+        id: deploy
+        run: node .github/scripts/vercel-backend.mjs test
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+
+  production:
+    name: Approve protected production candidate
+    needs: test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    # GitHub requires timbibat's approval before this job receives its secret.
+    environment:
+      name: vercel-backend-production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      - name: Install pinned Vercel CLI
+        run: npm install --global --ignore-scripts "vercel@$VERCEL_CLI_VERSION"
+      - name: Stage and check approved production candidate
+        id: deploy
+        run: node .github/scripts/vercel-backend.mjs production
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          GITHUB_TOKEN: ${{ github.token }}
+          TEST_DEPLOYMENT_URL: ${{ needs.test.outputs.url }}
