@@ -1,12 +1,12 @@
 # GitHub backend deployments
 
-The dedicated branch is **`codex/vercel-backend`** in `ByaHero/ByaHero`. Backend, admin test UI, or deployment pipeline changes pushed to this branch run [Backend - protected Vercel releases](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml).
+The release branch is **`main`** in `ByaHero/ByaHero`. Backend, admin test UI, or Vercel pipeline changes pushed or merged into `main` run [Backend - protected Vercel releases](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml). The workflow can also be started manually from `main`.
 
-The branch starts from the existing `main` commit and includes the prepared Laravel/Supabase code and isolated admin test build. It has not been merged into `main`. The existing alwaysdata, admin web, landing page, and APK workflows are unchanged. **Pushing to `main` still triggers the existing alwaysdata backend workflow.**
+The user merged the prepared Laravel/Supabase code into `main` in PR #327 and chose to retain that merge. The prior workflows deployed that merged backend/admin code to live alwaysdata. This routing update does not roll back or repair that live code. The alwaysdata backend and admin workflows are now **manual-only**; pushing to `main` no longer uploads either application to alwaysdata. The separate Python AI, landing page, and APK workflows retain their existing behavior.
 
 ## Normal update
 
-1. Work on `codex/vercel-backend`, review the code, commit, and push that branch. Its push permission is restricted to `timbibat`; force pushes and branch deletion are blocked, including for administrators. Collaborators can propose changes through pull requests for review.
+1. Review and merge backend changes into `main`. Main branch protection requires one approving PR review for normal contributors and blocks force pushes/deletion. Administrators retain their normal main-branch bypass for direct maintenance; that does not bypass the production environment approval below.
 2. GitHub runs deployment-guard tests, the default PHP suite, a Composer production-dependency audit, startup-script syntax checks, and the isolated admin test build. It then deploys to the dedicated **test project / Preview environment**, checks protected readiness and anonymous application rejection, and publishes the new deployment URL in the job summary.
 3. Open that URL while signed in to the owning Vercel account. The admin test app is at `/admin-test/login`. Test the change with the copied test data.
 4. The production job waits for **`timbibat`**. In that workflow run, choose **Review deployments**, select `vercel-backend-production`, and approve only after checking the exact commit and test URL. Reject it if the change should stay in testing.
@@ -14,11 +14,11 @@ The branch starts from the existing `main` commit and includes the prepared Lara
 
 A new matching push cancels an older run and pending approval. The deployment script also checks the branch head before releasing, rejecting a stale commit. Cancelling a workflow after Vercel has already accepted a build does not delete that immutable deployment; it remains protected. Test and production have different runtime configuration and are separately built from the same commit.
 
-The workflow is present on the dedicated branch rather than `main`, so its first successful push run may be the easiest way to open it in Actions. It deliberately has no default-branch manual-dispatch dependency.
+The older `codex/vercel-backend` workflow run was canceled when routing moved to `main`. That branch is no longer authorized to use either Vercel deployment environment. Always review the latest **main** run before approving production.
 
 ## GitHub and Vercel configuration
 
-Two new GitHub environments are restricted to the dedicated branch:
+Both GitHub environments are restricted to `main`:
 
 | GitHub environment | Vercel project | Vercel environment | Approval |
 | --- | --- | --- | --- |
@@ -31,12 +31,14 @@ Both Vercel projects protect **all** deployments with Vercel Authentication. Nei
 
 Container builds run remotely on Vercel using the pinned CLI 65.15.0. The pipeline stages only allowlisted tracked runtime source; private snapshots, developer environments, caches, logs, migration tools, and the admin test UI are excluded from production. Only the test build includes its generated admin bundle. Action versions are pinned to commit SHAs.
 
+For an intentional alwaysdata deployment, choose its backend or admin workflow in Actions, select **Run workflow** on `main`, and enter `DEPLOY_ALWAYSDATA` in the required confirmation field. This is a live deployment and is separate from the Vercel release process. Existing FTP credentials were retained; the routing update did not connect to FTP or modify alwaysdata files/data.
+
 Local verification passed the 24 default backend tests (79 assertions; four opt-in database tests skipped), three deployment-guard tests, workflow lint, and the isolated admin build. The existing admin dependency tree reports ten npm advisories (two moderate, seven high, one critical); its package versions were preserved during this deployment setup. The backend Composer production-dependency audit is a release gate; these frontend dependency warnings need separate remediation.
 
 ## Database changes and current production hold
 
 Deploying code preserves database contents. No workflow step imports, synchronizes, seeds, or migrates either database. Table/column changes require a separately reviewed, compatible migration and backup plan. Do not run the historic migration set, `migrate:fresh`, or seeders against the copied databases.
 
-The production candidate remains on hold for Brevo email delivery and eventual final data reconciliation. Approval in GitHub does **not** disable Brevo IP blocking, remove Vercel protection, change DNS, promote an alias, update app endpoints, or refresh the production snapshot. See [production status](PRODUCTION-STATUS.md). Alwaysdata remains authoritative until a separately authorized cutover.
+The production candidate remains on hold for Brevo email delivery and eventual final data reconciliation. Approval in GitHub does **not** disable Brevo IP blocking, remove Vercel protection, change DNS, promote an alias, update app endpoints, or refresh the production snapshot. See [production status](PRODUCTION-STATUS.md). Alwaysdata remains the live data source until a separately authorized cutover. After the user's merge, alwaysdata `/up` returned 200 but the new `/api/health` returned 503; retaining the merged code does not resolve this readiness issue or verify live login/app compatibility.
 
-The repository also has a pre-existing, entirely commented `.github/workflows/main.yml`, which GitHub reports as an invalid workflow on pushes. It is separate from this release pipeline and was left unchanged with the existing workflows.
+The pre-existing, entirely commented `.github/workflows/main.yml` was removed because GitHub treated it as an invalid workflow on every push. It contained no active jobs.

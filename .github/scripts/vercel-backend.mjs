@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-export const branch = 'codex/vercel-backend';
+export const branch = 'main';
 export const organization = 'team_v3g9PH1rTsopQvRzEZ1sb6h3';
 export const projects = {
   test: 'prj_8KT0zbl5hVNdGERbzw9L58PrsQqA',
@@ -80,7 +80,7 @@ async function copyTree(source, destination) {
 
 async function main(role) {
   if (!projects[role]) throw new Error('Expected test or production.');
-  if (process.env.GITHUB_REPOSITORY !== 'ByaHero/ByaHero' || process.env.GITHUB_REF !== `refs/heads/${branch}`) throw new Error('Only the dedicated deployment branch may release.');
+  if (process.env.GITHUB_REPOSITORY !== 'ByaHero/ByaHero' || process.env.GITHUB_REF !== `refs/heads/${branch}`) throw new Error('Only main may release.');
   if (process.env.VERCEL_PROJECT_ID !== projects[role] || process.env.VERCEL_ORG_ID !== organization) throw new Error('GitHub environment IDs do not match the pinned target.');
   if (!process.env.VERCEL_TOKEN || !process.env.GITHUB_TOKEN) throw new Error('Save VERCEL_TOKEN directly in the matching GitHub environment first.');
   const sha = process.env.GITHUB_SHA;

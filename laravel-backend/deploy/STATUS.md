@@ -2,6 +2,8 @@
 
 Production preparation is recorded separately in [protected production candidate status](PRODUCTION-STATUS.md), updated 14 November. That candidate remains protected at the user's request; the live apps still use alwaysdata.
 
+For current deployment behavior, see [GitHub deployments](GITHUB-DEPLOYMENTS.md): reviewed backend changes on **main** deploy to the protected test project, with production awaiting approval. Alwaysdata backend/admin uploads are manual-only. The test URLs and manual verification record below are historical; use the latest Actions job summary for the current test URL.
+
 The separate Laravel backend is READY on Vercel Hobby:
 
 - [Admin test login](https://byahero-backend-test-hj76bh7bn-byaherosupport-2249.vercel.app/admin-test/login)

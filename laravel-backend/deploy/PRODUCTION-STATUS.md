@@ -8,7 +8,7 @@
 
 Project: `prj_1LnFKHZz3I9mGcr7fk7gVFTMavUo`, owned by `byaherosupport-2249` on Hobby. Current clean deployment: `dpl_AvZfKwkKmNVfSYZFXQqCgUazoMn2`, **READY**, Production environment, Mumbai (`bom1`). It was deployed with `--prod --skip-domain`; its alias list is empty. Vercel Authentication protects **all** deployments (`ssoProtection.deploymentType=all`). There is no Git integration. No paid upgrades or add-ons were enabled.
 
-The new [GitHub release pipeline](GITHUB-DEPLOYMENTS.md) uses a dedicated branch and GitHub Actions rather than Vercel Git integration. It automatically updates the protected test project and requires `timbibat`'s environment approval before staging a new protected production candidate. Existing live workflows remain unchanged.
+The [GitHub release pipeline](GITHUB-DEPLOYMENTS.md) now uses **main** and GitHub Actions rather than Vercel Git integration. It automatically updates the protected test project and requires `timbibat`'s environment approval before staging a new protected production candidate. The user merged PR #327, which triggered the old live alwaysdata backend/admin workflows, and then chose to keep that merged code. The backend/admin alwaysdata workflows have been changed to manual-only. App endpoint configuration and production data were not changed by this routing update. The preparation snapshot and checks described below predate that user-triggered live code deployment.
 
 The local backend's normal `.vercel/project.json` still points to the separate **test** project. Production deployment used an audited, generated source directory at ignored `.vercel/production-source/` with its own project link. Do not accidentally deploy the test admin bundle or test environment into this project.
 

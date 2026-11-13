@@ -4,7 +4,7 @@ This deployment is a separate copy. Keep alwaysdata, its MySQL database, DNS, an
 
 The separate production candidate is now prepared but remains protected at the user's request. See [production status and remaining checks](PRODUCTION-STATUS.md). The instructions below continue to describe the isolated test setup.
 
-For ongoing backend updates, use the [GitHub test deployment and production approval workflow](GITHUB-DEPLOYMENTS.md) on `codex/vercel-backend`. Do not push migration work to `main` while its existing alwaysdata deployment remains active.
+For ongoing backend updates, merge reviewed changes into `main` to use the [GitHub test deployment and production approval workflow](GITHUB-DEPLOYMENTS.md). The alwaysdata backend/admin upload workflows are manual-only. The user retained the previously merged live code; changing deployment routing does not verify or repair that live backend.
 
 ## Free plans only
 

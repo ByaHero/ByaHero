@@ -2,12 +2,13 @@ name: Backend - protected Vercel releases
 
 on:
   push:
-    branches: [codex/vercel-backend]
+    branches: [main]
     paths:
       - 'laravel-backend/**'
       - 'byahero-admin-web/**'
       - '.github/workflows/deploy-vercel-backend.yml'
       - '.github/scripts/vercel-backend*.mjs'
+  workflow_dispatch:
 
 permissions:
   contents: read

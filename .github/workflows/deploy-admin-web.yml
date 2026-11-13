@@ -1,23 +1,24 @@
 name: Deploy Admin Web to AlwaysData
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'byahero-admin-web/**'
-      - '.github/workflows/deploy-admin-web.yml'
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type DEPLOY_ALWAYSDATA to upload the main admin website to live alwaysdata'
+        required: true
+        type: string
 
 jobs:
   build-and-deploy:
+    if: github.ref == 'refs/heads/main' && inputs.confirm == 'DEPLOY_ALWAYSDATA'
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
           node-version: 22
           cache: 'npm'
@@ -34,7 +35,7 @@ jobs:
           npm run build
 
       - name: Upload via FTP to AlwaysData
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.4
+        uses: SamKirkland/FTP-Deploy-Action@8a24039354ee91000cb948cb4a1dbdf1a1b94a3c # v4.3.4
         with:
           server: ${{ secrets.ALWAYSDATA_ADMIN_FTP_SERVER }}
           username: ${{ secrets.ALWAYSDATA_ADMIN_FTP_USERNAME }}
