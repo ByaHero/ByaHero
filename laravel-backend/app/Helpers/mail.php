@@ -25,6 +25,10 @@ if (!defined('SENDER_NAME')) {
  * @return array ['success' => bool, 'message' => string]
  */
 function sendOTPEmail(string $to, string $otp, string $type = 'recovery'): array {
+    if (!config('deployment.external_notifications', true)) {
+        return ['success' => false, 'message' => 'Email delivery is disabled on this test deployment.'];
+    }
+
     if (BREVO_API_KEY === 'YOUR_BREVO_API_KEY_HERE') {
         return [
             'success' => false, 
@@ -90,8 +94,10 @@ function sendOTPEmail(string $to, string $otp, string $type = 'recovery'): array
     if ($httpCode >= 200 && $httpCode < 300) {
         return ['success' => true, 'message' => 'Email sent successfully'];
     } else {
-        $brevoErr = 'Brevo HTTP ' . $httpCode . ': ' . ($response ?: 'Unknown error');
-        error_log('Brevo API Error: ' . $brevoErr);
+        error_log('Brevo API error (HTTP ' . $httpCode . ')');
+        if (config('deployment.role') === 'production') {
+            return ['success' => false, 'message' => 'Email delivery is temporarily unavailable. Please try again later.'];
+        }
 
         // Fallback to PHP native mail() if Brevo API fails
         $headers  = "From: " . SENDER_NAME . " <" . SENDER_EMAIL . ">\r\n";
@@ -104,6 +110,6 @@ function sendOTPEmail(string $to, string $otp, string $type = 'recovery'): array
             return ['success' => true, 'message' => 'Email sent via PHP mailer'];
         }
 
-        return ['success' => false, 'message' => 'Failed to send email. ' . $brevoErr];
+        return ['success' => false, 'message' => 'Email delivery is temporarily unavailable. Please try again later.'];
     }
 }

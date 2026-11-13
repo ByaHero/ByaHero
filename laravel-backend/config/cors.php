@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [
+    'allowed_origins' => env('CORS_ALLOWED_ORIGINS')
+        ? array_values(array_filter(array_map('trim', explode(',', env('CORS_ALLOWED_ORIGINS')))))
+        : [
         'https://byahero1.vercel.app',
         'https://byahero.vercel.app',
         'http://localhost:5173',
@@ -28,7 +30,6 @@ return [
         'http://127.0.0.1:3000',
         'https://byahero.alwaysdata.net',
         'http://byahero.alwaysdata.net',
-        '*',
     ],
 
     'allowed_origins_patterns' => [],

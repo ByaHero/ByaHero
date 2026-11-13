@@ -15,13 +15,29 @@ use App\Http\Controllers\ConductorController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AppVersionController;
 
+// Readiness is independent of the session table, and never returns credentials or user data.
+Route::get('/health', function () {
+    try {
+        \Illuminate\Support\Facades\DB::select('SELECT 1');
+        foreach (['users', 'busses', 'bus_operations', 'sessions', 'cache'] as $table) {
+            if (!\Illuminate\Support\Facades\Schema::hasTable($table)) {
+                return response()->json(['ready' => false], 503);
+            }
+        }
+        return response()->json(['ready' => true]);
+    } catch (\Throwable $e) {
+        return response()->json(['ready' => false], 503);
+    }
+});
+
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
     \Illuminate\Session\Middleware\StartSession::class,
+    \App\Http\Middleware\RequireApiSession::class,
 ])->group(function () {
     Route::get('/app-version', [AppVersionController::class, 'getVersion']);
-    Route::post('/auth', [AuthController::class, 'handle']);
+    Route::post('/auth', [AuthController::class, 'handle'])->middleware('throttle:auth-actions');
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/ping', function () {
         return response()->json(['success' => true, 'status' => 'online', 'message' => 'ByaHero Laravel API is warm']);

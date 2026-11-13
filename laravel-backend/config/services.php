@@ -45,4 +45,8 @@ return [
         'private_key' => env('FIREBASE_PRIVATE_KEY'),
     ],
 
+    'google' => [
+        'client_ids' => array_values(array_filter(array_map('trim', explode(',', (string) env('GOOGLE_CLIENT_IDS', ''))))),
+    ],
+
 ];

@@ -23,9 +23,14 @@ class LostAndFoundController extends Controller
             $busNumber = null;
         }
 
+        $cloudUploads = config('deployment.uploads') === 'supabase';
         $uploadDir = base_path('../assets/images/uploads/lost_and_found/');
-        if (!File::isDirectory($uploadDir)) {
-            File::makeDirectory($uploadDir, 0777, true, true);
+        if (!$cloudUploads && !File::isDirectory($uploadDir)) {
+            File::makeDirectory($uploadDir, 0755, true, true);
+        }
+
+        if ($cloudUploads) {
+            $request->validate(['images' => 'nullable', 'images.*' => 'image|mimes:jpg,jpeg,png,webp|max:1500']);
         }
 
         $image1_path = null;
@@ -42,11 +47,15 @@ class LostAndFoundController extends Controller
             foreach ($files as $file) {
                 if ($count >= 2) break;
                 if ($file->isValid()) {
-                    $ext = strtolower($file->getClientOriginalExtension());
-                    $filename = uniqid('lf_') . '.' . $ext;
-                    $file->move($uploadDir, $filename);
-
-                    $dbPath = 'assets/images/uploads/lost_and_found/' . $filename;
+                    if ($cloudUploads) {
+                        validator(['image' => $file], ['image' => 'required|image|mimes:jpg,jpeg,png,webp|max:1500'])->validate();
+                        $dbPath = app(\App\Services\SupabaseUploads::class)->upload($file);
+                    } else {
+                        $ext = strtolower($file->getClientOriginalExtension());
+                        $filename = uniqid('lf_') . '.' . $ext;
+                        $file->move($uploadDir, $filename);
+                        $dbPath = 'assets/images/uploads/lost_and_found/' . $filename;
+                    }
                     if ($count === 0) {
                         $image1_path = $dbPath;
                     } else {

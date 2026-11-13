@@ -1,0 +1,14 @@
+.env
+.env.*
+.git
+.vercel
+vendor
+node_modules
+storage/migration
+storage/logs
+storage/framework
+bootstrap/cache/*.php
+tests
+test.php
+test_db.php
+public/public

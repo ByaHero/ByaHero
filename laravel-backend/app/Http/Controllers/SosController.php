@@ -79,17 +79,16 @@ class SosController extends Controller
 
             DB::commit();
 
-            // Generate self-signed JWT using FirebaseNotificationService
+            // Dispatch on the server; client responses must never contain FCM credentials or recipient tokens.
             $fcmService = app(\App\Services\FirebaseNotificationService::class);
-            $signedJwt = $fcmService->generateSignedJwt();
-            $projectId = config('services.firebase.project_id', '');
+            $delivery = $fcmService->sendNotification($fcmTokens, 'ByaHero SOS Alert',
+                ($senderName ?: 'A user').' needs help. '.$locationText,
+                ['type' => 'sos', 'sender_id' => (string)$userId, 'location_text' => $locationText], 'sos_alerts');
 
             return response()->json([
                 'success' => true,
                 'sent_to' => $validRecipients,
-                'fcm_tokens' => $fcmTokens,
-                'jwt' => $signedJwt,
-                'project_id' => $projectId,
+                'push_sent_count' => $delivery['sent_count'] ?? 0,
                 'sender_name' => $senderName ?: 'A user',
                 'location_text' => $locationText
             ]);

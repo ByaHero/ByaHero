@@ -1,5 +1,3 @@
-import { User } from '../types';
-
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined
   ? import.meta.env.VITE_API_BASE_URL
   : (import.meta.env.DEV ? '' : 'https://byahero.alwaysdata.net');
@@ -31,7 +29,7 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
         headers.set('X-Admin-Email', parsed.email);
         headers.set('X-User-Email', parsed.email);
       }
-    } catch (e) {}
+    } catch {}
   }
 
   let response = await fetch(url, {
@@ -76,7 +74,7 @@ export async function apiRequest(path: string, options: RequestInit = {}) {
       if (response.status === 419 || response.status === 401 || response.status === 403) {
         // CSRF token mismatch, unauthorized, or forbidden (expired session), remove local cached session
         localStorage.removeItem('byahero_admin_user');
-        window.location.href = '/login';
+        window.location.href = `${import.meta.env.BASE_URL}login`;
       }
       throw new Error(`HTTP Error: ${response.status}`);
     }

@@ -17,13 +17,7 @@ class BusController extends Controller
 {
     private function loadGeojsonFileForBus(int $busId): ?array
     {
-        $file = base_path('../data/current_locations/bus_' . $busId . '.geojson');
-        if (!is_file($file)) return null;
-        $txt = @file_get_contents($file);
-        if ($txt === false) return null;
-        $j = json_decode($txt, true);
-        if (!is_array($j)) return null;
-        return $j;
+        return app(\App\Services\BusLocationStore::class)->get($busId);
     }
 
     private function extractFriendlyNameFromGeojson(array $geojson): ?string
@@ -235,11 +229,7 @@ class BusController extends Controller
 
     public function updateUserLocation(Request $request)
     {
-        $email = $request->input('email');
-        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-        if (empty($userId)) {
-            $userId = Session::get('user_id');
-        }
+        $userId = $this->getAuthUserId($request);
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Not logged in'], 401);
@@ -281,11 +271,7 @@ class BusController extends Controller
 
     public function getMyWaitingStatus(Request $request)
     {
-        $email = $request->input('email');
-        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-        if (empty($userId)) {
-            $userId = Session::get('user_id');
-        }
+        $userId = $this->getAuthUserId($request);
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
@@ -355,11 +341,7 @@ class BusController extends Controller
 
     public function setWaitingStatus(Request $request)
     {
-        $email = $request->input('email');
-        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-        if (empty($userId)) {
-            $userId = Session::get('user_id');
-        }
+        $userId = $this->getAuthUserId($request);
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
@@ -412,11 +394,7 @@ class BusController extends Controller
 
     public function cancelWaitingStatus(Request $request)
     {
-        $email = $request->input('email');
-        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-        if (empty($userId)) {
-            $userId = Session::get('user_id');
-        }
+        $userId = $this->getAuthUserId($request);
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
@@ -439,11 +417,7 @@ class BusController extends Controller
     public function autoBoard(Request $request)
     {
         try {
-            $email = $request->input('email');
-            $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-            if (empty($userId)) {
-                $userId = Session::get('user_id');
-            }
+            $userId = $this->getAuthUserId($request);
 
             if (empty($userId)) {
                 return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);
@@ -588,11 +562,7 @@ class BusController extends Controller
 
     public function autoDepart(Request $request)
     {
-        $email = $request->input('email');
-        $userId = !empty($email) ? DB::table('users')->where('email', strtolower(trim($email)))->value('id') : null;
-        if (empty($userId)) {
-            $userId = Session::get('user_id');
-        }
+        $userId = $this->getAuthUserId($request);
 
         if (empty($userId)) {
             return response()->json(['success' => false, 'message' => 'Unauthorized. Please login.'], 401);

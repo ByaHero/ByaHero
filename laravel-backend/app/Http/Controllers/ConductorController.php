@@ -235,15 +235,12 @@ class ConductorController extends Controller
             ->toArray();
 
         $out = [];
-        $dir = base_path('../data/current_locations');
-
         foreach ($rows as $r) {
             $busId = $r->Bus_ID;
-            $file = $dir . "/bus_{$busId}.geojson";
-            
-            if (File::exists($file)) {
-                $geoText = File::get($file);
-                $geo = json_decode($geoText, true);
+            $geo = app(\App\Services\BusLocationStore::class)->get((int) $busId);
+
+            if ($geo !== null) {
+                $geoText = json_encode($geo, JSON_UNESCAPED_SLASHES);
                 $r->current_location = $geoText;
                 if ($geo && isset($geo['properties']['friendly_name'])) {
                     $r->current_location_name = $geo['properties']['friendly_name'];
@@ -297,11 +294,7 @@ class ConductorController extends Controller
         Conductor::where('id', $userId)->update(['current_bus_id' => $busId]);
 
         // Delete old GeoJSON file to clear stale location and seats data
-        $dir = base_path('../data/current_locations');
-        $file = $dir . "/bus_{$busId}.geojson";
-        if (\Illuminate\Support\Facades\File::exists($file)) {
-            \Illuminate\Support\Facades\File::delete($file);
-        }
+        app(\App\Services\BusLocationStore::class)->forget($busId);
 
         // Close any dangling operations for this bus or conductor
         BusOperation::where('bus_id', $busId)
@@ -357,12 +350,13 @@ class ConductorController extends Controller
             $locationName = $geojson['properties']['friendly_name'];
         }
 
-        $dir = base_path('../data/current_locations');
-        if (!File::isDirectory($dir)) {
-            File::makeDirectory($dir, 0755, true, true);
+        if (is_string($geojson)) {
+            $geojson = json_decode($geojson, true);
         }
-        $file = $dir . "/bus_{$busId}.geojson";
-        File::put($file, json_encode($geojson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
+        if (!is_array($geojson)) {
+            return response()->json(['success' => false, 'error' => 'Invalid GeoJSON'], 422);
+        }
+        app(\App\Services\BusLocationStore::class)->put($busId, $geojson);
 
         // Update database properties
         $updateData = ['current_location' => $locationName];
@@ -473,10 +467,7 @@ class ConductorController extends Controller
         Session::forget('current_bus');
 
         // Remove GeoJSON file
-        $file = base_path('../data/current_locations/bus_' . $busId . '.geojson');
-        if (File::exists($file)) {
-            File::delete($file);
-        }
+        app(\App\Services\BusLocationStore::class)->forget($busId);
 
         return response()->json([
             'success' => true,

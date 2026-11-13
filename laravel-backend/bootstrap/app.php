@@ -12,7 +12,13 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        if (getenv('VERCEL') || getenv('VERCEL_CONTAINER') === '1') {
+            $middleware->trustProxies(at: '*', headers:
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_FOR |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_PROTO |
+                \Illuminate\Http\Request::HEADER_X_FORWARDED_PORT
+            );
+        }
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

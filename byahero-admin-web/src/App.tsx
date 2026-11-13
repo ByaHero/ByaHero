@@ -30,7 +30,7 @@ export default function App() {
         if (parsed && parsed.email) {
           setAdminEmail(parsed.email);
         }
-      } catch (e) {
+      } catch {
         localStorage.removeItem('byahero_admin_user');
       }
     }
@@ -51,7 +51,12 @@ export default function App() {
   }
 
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={import.meta.env.BASE_URL}>
+      {import.meta.env.VITE_TEST_DEPLOYMENT === 'true' && (
+        <div role="status" className="fixed bottom-3 left-1/2 z-[100] -translate-x-1/2 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-center text-xs font-bold text-amber-950 shadow-lg">
+          TEST ENVIRONMENT · Supabase copy · Live apps are unchanged
+        </div>
+      )}
       <WebAlertContainer />
       <Routes>
         <Route 
