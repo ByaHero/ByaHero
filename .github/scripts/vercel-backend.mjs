@@ -44,7 +44,12 @@ export function assertProject(project, role, environmentVariables) {
 function command(program, args, cwd = root) {
   const result = spawnSync(program, args, { cwd, encoding: 'utf8', maxBuffer: 12 * 1024 * 1024, timeout: 15 * 60 * 1000 });
   // Do not echo arbitrary provider responses or environment-variable payloads.
-  if (result.status !== 0) throw new Error(`${program} ${args[0]} failed (exit ${result.status ?? 'timeout'}); inspect the protected Vercel build dashboard.`);
+  if (result.status !== 0) {
+    let detail = `${result.stderr ?? ''}\n${result.stdout ?? ''}`.match(/(?:Error:|"message"\s*:)\s*([^\r\n]{1,400})/)?.[1] ?? 'No safe CLI error detail available.';
+    for (const secret of [process.env.VERCEL_TOKEN, process.env.GITHUB_TOKEN].filter(Boolean)) detail = detail.replaceAll(secret, '[redacted]');
+    detail = detail.replace(/Bearer\s+\S+/gi, 'Bearer [redacted]').replace(/https?:\/\/[^\s/@]+:[^\s/@]+@/g, 'https://[redacted]@');
+    throw new Error(`${program} ${args[0]} failed (exit ${result.status ?? 'timeout'}): ${detail}`);
+  }
   return result.stdout.trim();
 }
 
