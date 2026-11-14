@@ -144,7 +144,9 @@ Passenger 2.0.14 and older retain the old alwaysdata callback until updated. Kee
 
 Passenger web's Google button uses `https://passenger.byahero.app` as an authorized JavaScript origin on the existing Google Web client. Keep the existing Vercel website origin too. This browser origin setting is separate from the mobile callback redirect URI above.
 
-Email signup/OTP and password reset are **temporarily unavailable** by the operator's choice because Brevo's outbound-IP restriction still blocks Vercel delivery. Existing password sign-in and Google sign-in remain available. Brevo IP blocking has not been disabled.
+Email signup/OTP and password reset are enabled on the **passenger website**. The production backend sends directly through Brevo as **ByaHero Support <noreply@byahero.app>**; the domain is authenticated and the sender is verified. Brevo's API-key unknown-IP blocking is disabled to support Vercel's changing outgoing IPs; SMTP IP blocking remains enabled. No alwaysdata email relay is used. The Brevo API key stays in the production backend's Secret settings, and the isolated test backend keeps external notifications disabled.
+
+The existing passenger, conductor and admin Android APKs still have email features disabled. Restoring them requires separate app changes and new APK releases; a website or backend deployment does not update installed APKs. Existing password sign-in and Google sign-in remain available.
 
 Alwaysdata's backend, MySQL data, and files remain a **manual rollback copy**, not an automatically synchronized failover. Before reverting after Supabase has received writes, pause app writes and reconcile the data. Its readiness check previously returned HTTP 503; it is not a verified hot standby. One migrated attachment's original file was missing and has no backup; its stored reference was preserved.
 
