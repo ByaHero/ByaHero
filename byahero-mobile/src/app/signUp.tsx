@@ -1,3 +1,4 @@
+import { GOOGLE_CALLBACK_URL } from '../config/backend';
 import React, { useState } from 'react';
 import {
   View,
@@ -133,7 +134,7 @@ export default function SignUpScreen() {
   const handleGoogleSignUp = async () => {
     setIsLoading(true);
     try {
-      const redirectUri = 'https://byahero.alwaysdata.net/public/login.php';
+      const redirectUri = GOOGLE_CALLBACK_URL;
       const appRedirectUrl = Linking.createURL('/');
 
       const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?response_type=id_token&nonce=byaheromobile123&client_id=299495970056-35hqu1hnl0ugisp6270he24qugv24skl.apps.googleusercontent.com&redirect_uri=${encodeURIComponent(redirectUri)}&scope=openid%20email%20profile&state=${encodeURIComponent(appRedirectUrl)}`;

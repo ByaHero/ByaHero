@@ -1,3 +1,4 @@
+import { GOOGLE_CALLBACK_URL } from '../config/backend';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -247,7 +248,7 @@ export default function LoginScreen() {
 
     try {
       const baseUrl = await getServerUrl();
-      const redirectUri = 'https://byahero.alwaysdata.net/public/login.php';
+      const redirectUri = GOOGLE_CALLBACK_URL;
       const appRedirectUrl = Linking.createURL('/'); // Resolves exp://... for Expo Go or byaheromobile:// for production
 
       // Request response_type=id_token and supply a nonce to get a JWT ID token verified by backend

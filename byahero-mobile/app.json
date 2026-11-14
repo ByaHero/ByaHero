@@ -2,7 +2,7 @@
   "expo": {
     "name": "ByaHero",
     "slug": "ByaHero",
-    "version": "2.0.14",
+    "version": "2.0.15",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "splash": {
@@ -38,7 +38,7 @@
         "backgroundColor": "#ffffff",
         "barStyle": "dark-content"
       },
-      "versionCode": 23
+      "versionCode": 24
     },
     "web": {
       "output": "static",

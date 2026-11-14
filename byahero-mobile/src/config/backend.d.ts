@@ -1,5 +1,6 @@
 export const PRIMARY_SERVER_URL: string;
 export const API_BASE_URL: string;
+export const GOOGLE_CALLBACK_URL: string;
 export const BACKUP_SERVER_URL: string;
 export const EMAIL_FEATURES_AVAILABLE: boolean;
 export function normalizeServerUrl(value: unknown): string;

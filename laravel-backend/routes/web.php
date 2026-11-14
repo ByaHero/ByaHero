@@ -7,6 +7,20 @@ Route::get('/', function () {
     return redirect()->away('https://byahero.app');
 });
 
+// Google returns the ID token in the URL fragment; it never reaches Laravel.
+Route::get('/auth/google/callback', function () {
+    return response()->view('auth.google-callback')->withHeaders([
+        'Cache-Control' => 'no-store, private',
+        'Referrer-Policy' => 'no-referrer',
+        'X-Content-Type-Options' => 'nosniff',
+        'Content-Security-Policy' => "default-src 'none'; script-src 'self'; style-src 'unsafe-inline'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+    ]);
+})->withoutMiddleware([
+    \Illuminate\Session\Middleware\StartSession::class,
+    \Illuminate\View\Middleware\ShareErrorsFromSession::class,
+    \Illuminate\Foundation\Http\Middleware\ValidateCsrfToken::class,
+]);
+
 // Optional static admin test build, included only in the isolated test deployment.
 Route::get('/admin-test/{path?}', function () {
     abort_unless(config('deployment.admin_test_enabled', false), 404);

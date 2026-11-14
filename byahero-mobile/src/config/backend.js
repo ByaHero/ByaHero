@@ -1,5 +1,6 @@
 export const PRIMARY_SERVER_URL = 'https://api.byahero.app';
 export const API_BASE_URL = `${PRIMARY_SERVER_URL}/api`;
+export const GOOGLE_CALLBACK_URL = `${PRIMARY_SERVER_URL}/auth/google/callback`;
 export const BACKUP_SERVER_URL = 'https://byahero.alwaysdata.net';
 export const EMAIL_FEATURES_AVAILABLE = false;
 const MIGRATION_KEY = 'byahero_backend_migration';

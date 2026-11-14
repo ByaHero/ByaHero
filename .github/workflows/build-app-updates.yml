@@ -36,7 +36,7 @@ jobs:
           distribution: temurin
           java-version: '17'
       - name: Verify backend migration settings
-        run: node --test .github/scripts/backend-settings.test.mjs
+        run: node --test .github/scripts/backend-settings.test.mjs .github/scripts/google-callback.test.mjs
       - name: Install app dependencies
         working-directory: ${{ matrix.directory }}
         run: npm ci --legacy-peer-deps

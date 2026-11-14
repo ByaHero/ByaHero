@@ -8,6 +8,7 @@ on:
       - 'byahero-admin-web/**'
       - '.github/workflows/deploy-vercel-backend.yml'
       - '.github/scripts/vercel-backend*.mjs'
+      - '.github/scripts/google-callback.test.mjs'
   workflow_dispatch:
 
 permissions:
@@ -47,7 +48,7 @@ jobs:
           cache: npm
           cache-dependency-path: byahero-admin-web/package-lock.json
       - name: Verify deployment guards
-        run: node --test .github/scripts/vercel-backend.test.mjs
+        run: node --test .github/scripts/vercel-backend.test.mjs .github/scripts/google-callback.test.mjs
       - name: Install backend dependencies
         working-directory: laravel-backend
         run: composer install --prefer-dist --no-interaction --no-progress

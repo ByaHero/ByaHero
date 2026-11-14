@@ -26,7 +26,7 @@ Each client upgrades the saved old default backend on first run, expires cached 
 
 Browser clients use same-origin requests to preserve authenticated cookies. The admin proxy has a fixed API upstream, validates incoming origins, forwards the production session cookie, and does not access MySQL. Its PHP proxy is excluded from the isolated `/admin-test` build. The conductor foreground location service uses `/api/conductor/update-location` on the new origin and shares the React Native cookie store for authenticated background updates.
 
-Mobile Google's OAuth `redirect_uri` remains the already registered `https://byahero.alwaysdata.net/public/login.php`. That page is a static token/deep-link bridge and performs no application database requests. The ID token is verified by the new API. Moving this OAuth bridge requires registering a new URI in Google Cloud; do not replace the registered URL blindly.
+Passenger Android 2.0.15 (version code 24) moves Google's OAuth `redirect_uri` to `https://api.byahero.app/auth/google/callback`. Register that exact URI on the existing Google Web OAuth client before publishing the update. The new callback only returns fragment ID tokens or Google errors to the ByaHero app's root deep link; it rejects arbitrary destinations, does not use database sessions, and disables caching/referrers. The API still verifies the Google ID token. Version 2.0.14 and older use the already registered alwaysdata bridge, so retain that old Google entry and page for those installations and manual rollback. See `GOOGLE-CALLBACK.md` for rollout checks.
 
 ## Backup and rollback
 
