@@ -98,7 +98,7 @@ Publishing backend code does not update installed Android apps. Publish a new AP
 | Conductor / `conductor` | `conductor-vX.Y.Z` | `byahero-conductor.apk` | `byahero-conductor-update` |
 | Admin / `admin` | `admin-vX.Y.Z` | `byahero-admin.apk` | `byahero-admin-update` |
 
-Release snapshot on 14 November 2026: **passenger 2.0.15 / Android code 24**, **conductor 3.0.17 / code 35**, and **admin 3.0.7 / code 217**. Use a new version/tag and a larger version code for each subsequent app release; the apps have independent version sequences.
+Published release snapshot on 14 November 2026: **[passenger 2.0.16 / Android code 25](https://github.com/ByaHero/ByaHero/releases/tag/v2.0.16)** (GitHub Latest), **[conductor 3.0.18 / code 36](https://github.com/ByaHero/ByaHero/releases/tag/conductor-v3.0.18)**, and **[admin 3.0.8 / code 218](https://github.com/ByaHero/ByaHero/releases/tag/admin-v3.0.8)**. Each release contains its verified APK and SHA-256 file, built from commit `09378d1b56624ba3820485ba8b9ac450f0f0f2e3`. Use a new version/tag and a larger version code for each subsequent app release; the apps have independent version sequences.
 
 ### 1. Update the app's version
 
@@ -146,7 +146,7 @@ Passenger web's Google button uses `https://passenger.byahero.app` as an authori
 
 Email signup/OTP and password reset are enabled on the **passenger website**. The production backend sends directly through Brevo as **ByaHero Support <noreply@byahero.app>**; the domain is authenticated and the sender is verified. Brevo's API-key unknown-IP blocking is disabled to support Vercel's changing outgoing IPs; SMTP IP blocking remains enabled. No alwaysdata email relay is used. The Brevo API key stays in the production backend's Secret settings, and the isolated test backend keeps external notifications disabled.
 
-The prepared Android updates enable email signup/recovery in passenger **2.0.16 / code 25** and email recovery for existing staff in conductor **3.0.18 / code 36** and admin **3.0.8 / code 218**. Staff accounts continue to be created through admin controls. These builds must be installed before the Android changes take effect; the previously published APKs retain the temporary email block. Preparing build artifacts does not publish a GitHub release. Existing password sign-in and Google sign-in remain available.
+The published Android updates enable email signup/recovery in passenger **2.0.16 / code 25** and email recovery for existing staff in conductor **3.0.18 / code 36** and admin **3.0.8 / code 218**. Staff accounts continue to be created through admin controls. Users must install these APKs before the Android changes take effect; older installations retain the temporary email block. The production version endpoint recognizes all three updates, and the generic GitHub Latest download remains the passenger APK. Existing password sign-in and Google sign-in remain available.
 
 Alwaysdata's backend, MySQL data, and files remain a **manual rollback copy**, not an automatically synchronized failover. Before reverting after Supabase has received writes, pause app writes and reconcile the data. Its readiness check previously returned HTTP 503; it is not a verified hot standby. One migrated attachment's original file was missing and has no backup; its stored reference was preserved.
 
