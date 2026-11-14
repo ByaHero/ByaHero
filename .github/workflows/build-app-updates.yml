@@ -2,6 +2,13 @@ name: Build Android backend updates
 
 on:
   workflow_dispatch:
+    inputs:
+      app:
+        description: 'Application to build'
+        type: choice
+        required: true
+        default: all
+        options: [all, passenger, conductor, admin]
 
 permissions:
   contents: read
@@ -14,16 +21,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - directory: byahero-mobile
-            artifact: byahero-passenger-update
-            filename: byahero.apk
-          - directory: byahero-conductor
-            artifact: byahero-conductor-update
-            filename: byahero-conductor.apk
-          - directory: byahero-admin
-            artifact: byahero-admin-update
-            filename: byahero-admin.apk
+        include: ${{ fromJSON(inputs.app == 'passenger' && '[{"directory":"byahero-mobile","artifact":"byahero-passenger-update","filename":"byahero.apk"}]' || inputs.app == 'conductor' && '[{"directory":"byahero-conductor","artifact":"byahero-conductor-update","filename":"byahero-conductor.apk"}]' || inputs.app == 'admin' && '[{"directory":"byahero-admin","artifact":"byahero-admin-update","filename":"byahero-admin.apk"}]' || '[{"directory":"byahero-mobile","artifact":"byahero-passenger-update","filename":"byahero.apk"},{"directory":"byahero-conductor","artifact":"byahero-conductor-update","filename":"byahero-conductor.apk"},{"directory":"byahero-admin","artifact":"byahero-admin-update","filename":"byahero-admin.apk"}]') }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

@@ -47,6 +47,7 @@ export function useAutoBoarding({
       const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
       const res = await fetch(`${currentBaseUrl}/api/passenger/board`, {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -96,6 +97,7 @@ export function useAutoBoarding({
       const email = await AsyncStorage.getItem('byahero_cached_email') || '';
 
       const res = await fetch(`${currentBaseUrl}/api/passenger/depart`, {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -101,6 +101,7 @@ export default function PassengerProfileScreen() {
       const serverUrl = await getServerUrl();
       const email = await AsyncStorage.getItem('byahero_cached_email') || '';
       const res = await fetch(`${serverUrl}/api/passenger/profile/update-phone`, {
+        credentials: 'include',
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: fullPhone, email: email }),
