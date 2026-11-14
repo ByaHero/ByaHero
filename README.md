@@ -12,7 +12,7 @@ Deployment and release information below reflects the setup on **14 November 202
 | API readiness | <https://api.byahero.app/api/health> — HTTP 200 with `{"ready":true}` when ready |
 | Protected backend test | Vercel project `byahero-backend-test`, Preview environment; use the latest successful GitHub Actions deployment URL |
 | Passenger website | **<https://passenger.byahero.app>** — Vercel; <https://byahero1.vercel.app> remains available |
-| Admin website | <https://byahero-admin.alwaysdata.net> — alwaysdata frontend, forwarding API requests to Vercel |
+| Admin website | **<https://admin.byahero.app>** — Vercel project `byahero-admin-web`; the old alwaysdata admin site remains a backup |
 | Public website | <https://byahero.app> — landing page on GitHub Pages |
 | Database and uploaded files | Supabase Free: PostgreSQL and private Storage buckets |
 | Legacy backend backup | <https://byahero.alwaysdata.net> and its existing MySQL database; coordinated manual rollback only |
@@ -53,15 +53,18 @@ The final alwaysdata cutover copy verified **30 application tables / 29,090 rows
 
 **Code deployments do not import, synchronize, seed, or migrate data.** Schema changes need a separate compatible migration and backup plan. Do not run the historic migration set, `migrate:fresh`, or seeders against the imported databases; the historic migrations are not a safe baseline for those copies.
 
-## Backend updates and production approval
+## Backend and admin updates with production approval
 
-Use [Backend - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml).
+Use [Backend and admin - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml).
 
 1. Review and merge changes into `main`. Relevant changes under `laravel-backend/`, `byahero-admin-web/`, and the deployment workflow/scripts trigger the pipeline. It can also be run manually on `main`. A README-only change does not automatically trigger this backend workflow.
-2. GitHub runs deployment and callback guards, PHP tests, the Composer production-dependency audit, startup checks, and the isolated admin test build. It deploys to `byahero-backend-test` in Preview and checks readiness and application authentication behind Vercel protection.
+2. GitHub runs backend/admin deployment and callback guards, PHP tests, the Composer production-dependency audit, startup checks, the isolated admin test build, and the static Vercel admin build. It deploys to `byahero-backend-test` in Preview and checks readiness and application authentication behind Vercel protection.
 3. Open the test URL from the successful job summary using an authorized ByaHero Vercel session. The isolated admin UI is at `/admin-test/login`. Verify the change against the test data.
 4. The production job waits for **`timbibat`**. In that run, choose **Review deployments**, select `vercel-backend-production`, and approve the exact commit only after testing it.
 5. Approval builds that same Git commit separately in `byahero-backend` with Production configuration. It stages with `--prod --skip-domain`, verifies the immutable deployment, then updates **only `api.byahero.app`** and checks it again. Readiness must return HTTP 200; an anonymous private dashboard request must return Laravel HTTP 401.
+6. In the same approved job, GitHub stages the admin frontend in the separate `byahero-admin-web` project. It checks the protected deployment's HTML, SPA refresh routes, API proxy readiness and anonymous rejection, then updates **only `admin.byahero.app`** and repeats public checks. The admin project has no automatic Git production integration. Its preview/generated deployment URLs stay Vercel-protected; the production custom hostname uses ByaHero's normal admin login.
+
+This gate covers both the API and admin frontend from the same commit. The API deploys first; a later admin deployment failure does not automatically roll back the already verified API. Keep backend changes compatible with the previous frontend, and inspect the job summaries before retrying. Neither step changes alwaysdata or synchronizes databases.
 
 The Preview and Production builds have different configuration; production is not a promotion of the Preview artifact. A new matching push cancels the older run. The release script also rejects stale commits that are no longer the head of `main`; rerun the workflow for current `main` if an approval has become stale.
 
@@ -70,20 +73,20 @@ Both GitHub environments are restricted to `main`:
 | GitHub environment | Vercel target | Gate |
 | --- | --- | --- |
 | `vercel-backend-test` | `byahero-backend-test` / Preview | Automatic after checks |
-| `vercel-backend-production` | `byahero-backend` / Production | Required reviewer approval |
+| `vercel-backend-production` | `byahero-backend` and `byahero-admin-web` / Production | One required reviewer approval |
 
 Each environment contains `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` variables and a `VERCEL_TOKEN` secret entered directly in GitHub. Application secrets remain in the matching Vercel environment. The backend projects use this workflow rather than automatic Vercel Git deployments. The workflow changes no client endpoints, Cloudflare records, or database data.
 
 ### Frontend and legacy deployment paths
 
 - **Passenger web:** its existing Vercel Git integration deploys `main`. The backend approval gate does not gate this frontend integration.
-- **Admin web:** [Deploy Admin Web to AlwaysData](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-admin-web.yml) is manual-only on `main`, requiring `DEPLOY_ALWAYSDATA`. This updates the admin frontend, not the backup backend database.
+- **Admin web:** deploys to Vercel through the backend/admin approval workflow above. [Deploy Admin Web to AlwaysData](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-admin-web.yml) remains manual-only on `main`, requiring `DEPLOY_ALWAYSDATA`, for an intentional update of the backup admin frontend.
 - **Backup backend:** [Deploy to AlwaysData via FTP](https://github.com/ByaHero/ByaHero/actions/workflows/alwaysdata.yml) is also manual-only on `main`, requiring `DEPLOY_ALWAYSDATA`. A normal merge no longer uploads the backend to alwaysdata.
 - **Landing page and Python AI:** retain their separate workflows and path triggers. The AI workflow's existence does not enable the Python service in the Vercel backend.
 
-The browser apps use same-origin `/api` requests: passenger web has Vercel rewrites, and admin web has a fixed-upstream PHP proxy. Both forward to the production API so browser session cookies can work. Native clients use the API origin directly. Configuration that appends `/api/...` internally should use `https://api.byahero.app`, avoiding `/api/api`.
+The browser apps use same-origin `/api` requests through Vercel rewrites to the production API so browser session cookies can work. The backup alwaysdata admin site retains its fixed-upstream PHP proxy. The Vercel admin build uses `npm run build:vercel` and excludes the PHP proxy and Apache `.htaccess`; the normal `npm run build` still supports alwaysdata. Native clients use the API origin directly. Configuration that appends `/api/...` internally should use `https://api.byahero.app`, avoiding `/api/api`.
 
-Production `CORS_ALLOWED_ORIGINS` includes `https://passenger.byahero.app`, retaining the existing `https://byahero1.vercel.app` and `https://byahero.app` entries. Add a new website's exact origin before serving authenticated requests from it. Browser storage and sessions are scoped to the hostname, so sign in again when moving to the passenger custom domain. This website-domain change requires no new Android APK or API endpoint change.
+Production `CORS_ALLOWED_ORIGINS` includes `https://passenger.byahero.app` and `https://admin.byahero.app`, retaining the existing `https://byahero1.vercel.app` and `https://byahero.app` entries. Add a new website's exact origin before serving authenticated requests from it. Browser storage and sessions are scoped to the hostname, so sign in again when moving to either custom domain. These website-domain changes require no new Android APK or API endpoint change.
 
 ## Android APK releases
 
@@ -155,7 +158,8 @@ Never commit `.env` files, database passwords, Vercel tokens, Firebase private k
 
 Further reading:
 
-- [Backend workflow details](laravel-backend/deploy/GITHUB-DEPLOYMENTS.md)
+- [Backend/admin workflow details](laravel-backend/deploy/GITHUB-DEPLOYMENTS.md)
+- [Admin Vercel deployment and backup](byahero-admin-web/VERCEL.md)
 - [App cutover checkpoint and rollback record](laravel-backend/deploy/APP-CUTOVER.md)
 - [Google callback migration](laravel-backend/deploy/GOOGLE-CALLBACK.md)
 - [Initial isolated test setup](laravel-backend/deploy/README.md)

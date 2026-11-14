@@ -1,6 +1,14 @@
 # GitHub backend deployments
 
-The release branch is **`main`** in `ByaHero/ByaHero`. Backend, admin test UI, or Vercel pipeline changes pushed or merged into `main` run [Backend - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml). The workflow can also be started manually from `main`.
+The release branch is **`main`** in `ByaHero/ByaHero`. Backend, admin UI, or Vercel pipeline changes pushed or merged into `main` run [Backend and admin - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml). The workflow can also be started manually from `main`.
+
+## Admin frontend on Vercel — 14 November 2026
+
+The approved production job now deploys **both** the API and the admin frontend from the same commit. The test job validates the protected `/admin-test/` bundle and the separate static Vercel build. After `timbibat` approves `vercel-backend-production`, the API is deployed first and its `api.byahero.app` alias is verified. Then `.github/scripts/vercel-admin-web.mjs` stages the static frontend in `byahero-admin-web` (`prj_GFkKrp2D72tr3LZLOcUhmSyVwq9P`), checks its protected URL, assigns only `admin.byahero.app`, and checks the public login/SPA/API routes again. No automatic Git production integration is enabled for this admin project.
+
+The existing environment's team-scoped `VERCEL_TOKEN` is used after that one approval. The admin script independently pins the same owner and its own project. Preview/generated URLs stay Vercel-protected; the production custom hostname uses normal ByaHero admin authentication. The Vercel build strips the alwaysdata PHP proxy and Apache files. The old admin site and its manual FTP workflow remain available as a backup. Add `https://admin.byahero.app` to the API's Production origin allowlist before releasing it.
+
+The API and admin aliases have separate guards. Neither script can replace the landing page or passenger domain. A later admin step failure does not automatically revert a completed API release; keep backend changes compatible with the previous UI and inspect both summaries before retrying. See [admin deployment details](../../byahero-admin-web/VERCEL.md) and the [current root README](../../README.md). The older cutover/preparation notes below are historical where they describe endpoints that had not yet switched.
 
 The user merged the prepared Laravel/Supabase code into `main` in PR #327 and chose to retain that merge. The prior workflows deployed that merged backend/admin code to live alwaysdata. This routing update does not roll back or repair that live code. The alwaysdata backend and admin workflows are now **manual-only**; pushing to `main` no longer uploads either application to alwaysdata. The separate Python AI, landing page, and APK workflows retain their existing behavior.
 
@@ -11,6 +19,7 @@ The user merged the prepared Laravel/Supabase code into `main` in PR #327 and ch
 3. Open that URL while signed in to the owning Vercel account. The admin test app is at `/admin-test/login`. Test the change with the copied test data.
 4. The production job waits for **`timbibat`**. In that workflow run, choose **Review deployments**, select `vercel-backend-production`, and approve only after checking the exact commit and test URL. Reject it if the change should stay in testing.
 5. Approval deploys the **same Git commit** in the separate production project. The production API is publicly reachable at the user's request; private routes still require Laravel session authentication. The pipeline first builds with `--prod --skip-domain` and verifies readiness/authentication on the immutable deployment URL. It then checks that the approved commit is still current on main, assigns **only `api.byahero.app`** to that healthy deployment, confirms the alias points to the exact production project/deployment, and repeats the public health/private HTTP 401 checks on the custom domain. It switches no live application endpoint and performs no data cutover.
+6. The same approved job stages and verifies the separate admin website, then assigns only `admin.byahero.app`. Verify dashboard sign-in and navigation on this hostname. Existing alwaysdata uploads are not part of either deployment step.
 
 A new matching push cancels an older run and pending approval. The deployment script also checks the branch head before releasing, rejecting a stale commit. Cancelling a workflow after Vercel has already accepted a build does not delete that immutable deployment. Test URLs remain protected; production project URLs are public. Test and production have different runtime configuration and are separately built from the same commit.
 

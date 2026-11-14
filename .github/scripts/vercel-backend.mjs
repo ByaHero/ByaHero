@@ -44,7 +44,7 @@ export function assertProject(project, role, environmentVariables) {
   }
 }
 
-function command(program, args, cwd = root) {
+export function command(program, args, cwd = root) {
   const result = spawnSync(program, args, { cwd, encoding: 'utf8', maxBuffer: 12 * 1024 * 1024, timeout: 15 * 60 * 1000 });
   // Do not echo arbitrary provider responses or environment-variable payloads.
   if (result.status !== 0) {
@@ -56,7 +56,7 @@ function command(program, args, cwd = root) {
   return result.stdout.trim();
 }
 
-function api(endpoint) {
+export function api(endpoint) {
   return JSON.parse(command('vercel', ['api', endpoint, '--scope', scope]));
 }
 
@@ -74,7 +74,7 @@ export function assertProductionAliases(aliases) {
   if ((aliases ?? []).some(alias => (typeof alias === 'string' ? alias : alias.alias) !== productionDomain)) throw new Error('Unexpected production alias; only the API domain may be changed.');
 }
 
-async function assertLatestCommit(sha) {
+export async function assertLatestCommit(sha) {
   const response = await fetch(`https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/${branch}`, {
     headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' },
     signal: AbortSignal.timeout(15000),
