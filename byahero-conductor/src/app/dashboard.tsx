@@ -72,7 +72,7 @@ export default function DashboardScreen() {
   const [rawBusesList, setRawBusesList] = useState<any[]>([]);
 
   const webViewRef = useRef<WebView>(null);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   const { activeStep, setActiveStep } = useTourSync('/dashboard');
 

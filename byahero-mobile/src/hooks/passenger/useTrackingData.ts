@@ -8,7 +8,7 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   const [isWaiting, setIsWaitingState] = useState(false);
   const waitingStatusRevision = useRef(0);

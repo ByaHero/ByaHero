@@ -34,7 +34,7 @@ export default function AdminStops() {
   const [currentFilter, setCurrentFilter] = useState('ALL ROUTES');
   const [iconSize, setIconSize] = useState(42);
   const webViewRef = useRef<WebView>(null);
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   // Modals
   const [isFormOpen, setIsFormOpen] = useState(false);

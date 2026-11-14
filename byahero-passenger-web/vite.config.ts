@@ -8,9 +8,9 @@ export default defineConfig({
     port: 5175,
     proxy: {
       '/api': {
-        target: 'https://byahero.alwaysdata.net',
+        target: 'https://api.byahero.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     }
   }

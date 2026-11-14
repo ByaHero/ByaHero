@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   build-apk:
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') && !contains(github.event.release.assets.*.name, 'byahero.apk')
     runs-on: ubuntu-latest
 
     steps:

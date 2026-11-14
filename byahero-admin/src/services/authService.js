@@ -1,26 +1,14 @@
+import { createBackendSettings, EMAIL_FEATURES_AVAILABLE } from '../config/backend';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Platform } from 'react-native';
 
-const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
+const backendSettings = createBackendSettings(AsyncStorage);
 
 export async function getServerUrl() {
-  if (Platform.OS === 'web') {
-    return window.location.origin;
-  }
-  return DEFAULT_SERVER_URL;
+  return backendSettings.getServerUrl();
 }
 
 export async function setServerUrl(url) {
-  try {
-    if (!url || url.trim() === '' || url === DEFAULT_SERVER_URL) {
-      await AsyncStorage.removeItem('byahero_server_url');
-    } else {
-      const trimmed = url.trim().replace(/\/$/, "");
-      await AsyncStorage.setItem('byahero_server_url', trimmed);
-    }
-  } catch (e) {
-    console.error(e);
-  }
+  return backendSettings.setServerUrl(url);
 }
 
 export async function preWarmServer() {
@@ -45,6 +33,9 @@ export async function preWarmServer() {
 }
 
 async function apiRequest(action, dataObj) {
+  if (!EMAIL_FEATURES_AVAILABLE && ['signup_request_otp', 'signup_verify_otp', 'request_otp', 'verify_otp', 'reset_password'].includes(action)) {
+    throw new Error('Email signup and password reset are temporarily unavailable. Existing accounts can still sign in.');
+  }
   const baseUrl = await getServerUrl();
   const endpoint = `${baseUrl}/api/auth`;
 

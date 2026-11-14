@@ -42,6 +42,7 @@ export default function LoginScreen() {
 
     const checkAutoLogin = async () => {
       try {
+          await getServerUrl();
         const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
         const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
         const hasLivePayload = await AsyncStorage.getItem('byahero_conductor_payload');
@@ -283,12 +284,12 @@ export default function LoginScreen() {
           <View style={tw`bg-white w-full max-w-[320px] rounded-3xl p-6 border border-slate-100 shadow-xl`}>
             <Text style={tw`text-slate-800 text-lg font-bold mb-2`}>Developer Settings</Text>
             <Text style={tw`text-slate-500 text-xs mb-4`}>
-              Enter Backend Base URL (e.g. http://10.0.2.2/ByaHero or https://byahero.alwaysdata.net)
+              Enter Backend Base URL (e.g. http://10.0.2.2/ByaHero or https://api.byahero.app)
             </Text>
             <TextInput
               value={inputServerUrl}
               onChangeText={setInputServerUrl}
-              placeholder="https://byahero.alwaysdata.net"
+              placeholder="https://api.byahero.app"
               placeholderTextColor="#94a3b8"
               autoCapitalize="none"
               autoCorrect={false}

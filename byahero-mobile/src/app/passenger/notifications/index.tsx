@@ -19,7 +19,7 @@ import { getServerUrl } from '../../../services/authService';
 import { PassengerHeader } from '../../../components/passenger-navbar';
 
 export default function NotificationsScreen() {
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
   const [loading, setLoading] = useState(true);
   const [sosAlerts, setSosAlerts] = useState<any[]>([]);
   const [smartNotifications, setSmartNotifications] = useState<any[]>([]);
@@ -55,24 +55,10 @@ export default function NotificationsScreen() {
           data = await res.json();
         }
       } catch (e) {
-        console.warn(`Failed fetching notifications from ${currentBaseUrl}, trying alwaysdata fallback...`, e);
+        console.warn(`Failed fetching notifications from ${currentBaseUrl}, using the saved offline cache...`, e);
       }
 
-      // Fallback to alwaysdata if configured URL fails
-      if (!data && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
-        try {
-          const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/notifications${emailParam}`, {
-            headers: authHeaders,
-            credentials: 'include',
-            cache: 'no-store'
-          });
-          if (fallbackRes.ok) {
-            data = await fallbackRes.json();
-          }
-        } catch (e) {
-          console.error('Fallback notifications fetch failed:', e);
-        }
-      }
+
 
       setLoading(false);
       setRefreshing(false);

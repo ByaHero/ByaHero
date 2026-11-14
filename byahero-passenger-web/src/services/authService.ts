@@ -1,3 +1,4 @@
+import { createBackendSettings, EMAIL_FEATURES_AVAILABLE } from '../config/backend';
 import { debugLogger, ApiDiagnosticInfo } from '../utils/debugLogger';
 
 export class ApiError extends Error {
@@ -12,7 +13,7 @@ export class ApiError extends Error {
   }
 }
 
-const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
+const backendSettings = createBackendSettings(localStorage, window.location.origin);
 
 export function isMessengerOrInAppBrowser(): boolean {
   if (typeof navigator === 'undefined') return false;
@@ -21,33 +22,11 @@ export function isMessengerOrInAppBrowser(): boolean {
 }
 
 export async function getServerUrl(): Promise<string> {
-  try {
-    const storedUrl = localStorage.getItem('byahero_server_url');
-    if (storedUrl && !storedUrl.includes('vercel.app')) {
-      return storedUrl;
-    }
-    if (storedUrl && storedUrl.includes('vercel.app')) {
-      localStorage.removeItem('byahero_server_url');
-    }
-  } catch (error) {
-    console.error('Error getting server URL:', error);
-  }
-  return DEFAULT_SERVER_URL;
+  return backendSettings.getServerUrl();
 }
 
-export async function setServerUrl(url: string): Promise<void> {
-  try {
-    if (!url || url.trim() === '' || url === DEFAULT_SERVER_URL) {
-      localStorage.removeItem('byahero_server_url');
-      debugLogger.log('info', 'Config', `Reset server URL to default: ${DEFAULT_SERVER_URL}`);
-    } else {
-      const trimmed = url.trim().replace(/\/$/, "");
-      localStorage.setItem('byahero_server_url', trimmed);
-      debugLogger.log('info', 'Config', `Updated custom server URL to: ${trimmed}`);
-    }
-  } catch (e) {
-    console.error(e);
-  }
+export async function setServerUrl(url: string) {
+  return backendSettings.setServerUrl(url);
 }
 
 export async function preWarmServer(): Promise<void> {
@@ -74,6 +53,9 @@ export async function preWarmServer(): Promise<void> {
 }
 
 async function apiRequest(action: string, dataObj: Record<string, any>) {
+  if (!EMAIL_FEATURES_AVAILABLE && ['signup_request_otp', 'signup_verify_otp', 'request_otp', 'verify_otp', 'reset_password'].includes(action)) {
+    throw new Error('Email signup and password reset are temporarily unavailable. Existing accounts can still sign in.');
+  }
   const baseUrl = await getServerUrl();
   const endpoint = `${baseUrl}/api/auth`;
 

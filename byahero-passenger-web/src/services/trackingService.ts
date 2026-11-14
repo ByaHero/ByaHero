@@ -85,26 +85,7 @@ export async function fetchLiveBuses(userLat?: number, userLng?: number): Promis
     console.warn(`Failed to fetch buses from primary server URL: ${baseUrl}`, err);
   }
 
-  // 2. Try alwaysdata.net production failover if primary failed
-  if (!isSuccess && baseUrl !== 'https://byahero.alwaysdata.net') {
-    let fallbackUrl = `https://byahero.alwaysdata.net/api/buses`;
-    if (userLat !== undefined && userLng !== undefined) {
-      fallbackUrl += `?user_lat=${userLat}&user_lng=${userLng}`;
-    }
-    try {
-      const res = await fetch(fallbackUrl, {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        list = data.buses || (Array.isArray(data) ? data : []);
-        isSuccess = true;
-      }
-    } catch (fallbackErr) {
-      console.error('Fallback fetch buses to alwaysdata failed:', fallbackErr);
-    }
-  }
+
 
   if (isSuccess) {
     // Resolve location names if missing
@@ -156,24 +137,7 @@ export async function fetchBusStops(): Promise<BusStopItem[]> {
     console.warn(`Failed to fetch stops from primary server URL: ${baseUrl}`, err);
   }
 
-  // 2. Try alwaysdata.net production url failover if primary failed
-  if (!isSuccess && baseUrl !== 'https://byahero.alwaysdata.net') {
-    try {
-      const res = await fetch('https://byahero.alwaysdata.net/api/buses/stops', {
-        method: 'GET',
-        credentials: 'include',
-      });
-      if (res.ok) {
-        const data = await res.json();
-        list = data.stops || (Array.isArray(data) ? data : []);
-        if (list.length > 0) {
-          isSuccess = true;
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch stops from alwaysdata backup URL', err);
-    }
-  }
+
 
   if (isSuccess && list.length > 0) {
     localStorage.setItem('byahero_cached_bus_stops', JSON.stringify(list));

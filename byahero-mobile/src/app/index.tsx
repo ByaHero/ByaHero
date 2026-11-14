@@ -95,6 +95,7 @@ export default function LoginScreen() {
 
       const checkAutoLogin = async () => {
         try {
+          await getServerUrl();
           const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
           const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
           const cachedContacts = await AsyncStorage.getItem('byahero_cached_contacts') || '';
@@ -482,7 +483,7 @@ export default function LoginScreen() {
             <TextInput
               value={inputServerUrl}
               onChangeText={setInputServerUrl}
-              placeholder="https://byahero.alwaysdata.net"
+              placeholder="https://api.byahero.app"
               placeholderTextColor="#9ca3af"
               autoCapitalize="none"
               autoCorrect={false}

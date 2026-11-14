@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [serverUrl, setServerUrlState] = useState('https://byahero.alwaysdata.net');
+  const [serverUrl, setServerUrlState] = useState(window.location.origin);
 
   const loadSession = async () => {
     try {

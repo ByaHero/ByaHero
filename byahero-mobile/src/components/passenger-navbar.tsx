@@ -49,7 +49,7 @@ export function PassengerHeader({
   const [userName, setUserName] = useState('Guest');
   const [userInitial, setUserInitial] = useState('?');
   const [userProfilePic, setUserProfilePic] = useState('');
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
 

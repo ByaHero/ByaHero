@@ -40,7 +40,7 @@ const EMERGENCY_CONTACTS = [
 ];
 
 export default function SOSScreen() {
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
   const [locationText, setLocationText] = useState('Locating...');
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [friends, setFriends] = useState<any[]>([]);

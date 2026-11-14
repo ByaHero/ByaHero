@@ -1,4 +1,4 @@
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rm } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
@@ -10,9 +10,12 @@ const entryUrl = html.match(/<script[^>]+src="([^"]+\.js)"/)?.[1];
 if (!entryUrl?.startsWith('/admin-test/assets/')) throw new Error('Missing test JavaScript entry.');
 const entry = path.basename(entryUrl);
 const javascript = await readFile(path.join(output, 'assets', entry), 'utf8');
-if (javascript.includes('https://byahero.alwaysdata.net') || !javascript.includes('TEST ENVIRONMENT')) {
+if (javascript.includes('https://byahero.alwaysdata.net/api') || !javascript.includes('TEST ENVIRONMENT')) {
   throw new Error('Refusing a test build that uses the live API or lacks its test banner.');
 }
+
+// The test UI talks directly to its own Laravel origin; never ship the production proxy.
+await rm(path.join(output, 'api-proxy.php'), { force: true });
 
 // The normal admin .htaccess assumes a root deployment. This build lives in a subdirectory.
 await writeFile(path.join(output, '.htaccess'), `DirectoryIndex index.html

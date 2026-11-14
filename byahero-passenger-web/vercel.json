@@ -2,7 +2,15 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://byahero.alwaysdata.net/api/:path*"
+      "destination": "https://api.byahero.app/api/:path*"
+    },
+    {
+      "source": "/assets/images/uploads/:path*",
+      "destination": "https://api.byahero.app/assets/images/uploads/:path*"
+    },
+    {
+      "source": "/routes/:path*",
+      "destination": "https://api.byahero.app/routes/:path*"
     },
     {
       "source": "/(.*)",

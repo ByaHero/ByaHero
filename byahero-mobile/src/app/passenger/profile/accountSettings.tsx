@@ -200,7 +200,7 @@ export default function AccountSettingsScreen() {
       if (profilePic.startsWith('http') || profilePic.startsWith('data:')) {
         return { uri: profilePic };
       }
-      return { uri: `https://byahero.alwaysdata.net/${profilePic}` };
+      return { uri: `https://api.byahero.app/${profilePic}` };
     }
     return null;
   };

@@ -14,7 +14,7 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
       return [];
     }
   });
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   const [isWaiting, setIsWaiting] = useState(false);
   const [waitingLocation, setWaitingLocation] = useState('');

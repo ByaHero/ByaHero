@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import Constants from 'expo-constants';
 import * as Application from 'expo-application';
 import pkg from '../../package.json';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getServerUrl } from '../services/authService';
 
 export interface UpdateInfo {
   latest_version: string;
@@ -12,17 +12,8 @@ export interface UpdateInfo {
   force_update?: boolean;
 }
 
-const DEFAULT_SERVER_URL = 'https://byahero.alwaysdata.net';
 
-async function getServerUrl() {
-  try {
-    const storedUrl = await AsyncStorage.getItem('byahero_server_url');
-    if (storedUrl) return storedUrl;
-  } catch (error) {
-    console.error('Error getting server URL:', error);
-  }
-  return DEFAULT_SERVER_URL;
-}
+
 
 function isVersionLower(currentVersion: string, targetVersion: string): boolean {
   const currentParts = currentVersion.split('.').map((v) => parseInt(v, 10) || 0);

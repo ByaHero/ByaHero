@@ -83,7 +83,7 @@ export const AlertModal: React.FC<AlertModalProps> = ({
   };
 
   const handlePingBackend = async () => {
-    const targetUrl = diagObj?.baseUrl || 'https://byahero.alwaysdata.net';
+    const targetUrl = diagObj?.baseUrl || 'https://api.byahero.app';
     setIsPinging(true);
     setPingResult('Pinging server...');
     const startTime = Date.now();

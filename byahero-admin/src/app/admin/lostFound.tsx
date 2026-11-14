@@ -21,7 +21,7 @@ interface LostFoundTicket {
 }
 
 // In a real app, this should match your backend config
-const SERVER_URL = 'https://byahero.alwaysdata.net';
+const SERVER_URL = 'https://api.byahero.app';
 
 export default function AdminLostFound() {
   const [tickets, setTickets] = useState<LostFoundTicket[]>([]);

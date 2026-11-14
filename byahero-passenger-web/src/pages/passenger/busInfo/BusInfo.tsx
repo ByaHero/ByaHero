@@ -63,21 +63,7 @@ export const BusInfo: React.FC = () => {
           console.warn(`Failed to fetch sync data from configured server URL: ${serverUrl}`, err);
         }
 
-        // Failover fallback to alwaysdata production URL if primary failed
-        if (!isNetworkSuccess && serverUrl !== 'https://byahero.alwaysdata.net') {
-          try {
-            const fallbackRes = await fetch('https://byahero.alwaysdata.net/api/buses/sync');
-            if (fallbackRes.ok) {
-              const data = await fallbackRes.json();
-              if (data && data.success) {
-                responseData = data;
-                isNetworkSuccess = true;
-              }
-            }
-          } catch (fallbackErr) {
-            console.error('Fallback to alwaysdata failed:', fallbackErr);
-          }
-        }
+
 
         if (isNetworkSuccess && responseData && active) {
           setIsOffline(false);

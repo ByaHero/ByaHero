@@ -7,9 +7,9 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://byahero.alwaysdata.net',
+        target: 'https://api.byahero.app',
         changeOrigin: true,
-        secure: false,
+        secure: true,
       }
     }
   }

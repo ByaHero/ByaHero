@@ -1,12 +1,16 @@
+import { createBackendSettings } from '../config/backend';
+const backendSession = createBackendSettings(localStorage, window.location.origin);
+
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL !== undefined
   ? import.meta.env.VITE_API_BASE_URL
-  : (import.meta.env.DEV ? '' : 'https://byahero.alwaysdata.net');
+  : '';
 
 // Helper to construct full API endpoints
 export const getApiUrl = (path: string) => `${API_BASE_URL}${path}`;
 
 // Custom fetch client with credentials support
 export async function apiRequest(path: string, options: RequestInit = {}) {
+  await backendSession.getServerUrl();
   const url = getApiUrl(path);
   
   // Set default headers

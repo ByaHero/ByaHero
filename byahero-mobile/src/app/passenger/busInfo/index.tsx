@@ -20,7 +20,7 @@ import { saveBusData, loadBusData, getBusDataAgeHours, formatTimeAgo } from '../
 import { triggerSOS } from '../../../utils/sosUtils';
 
 export default function BusInfoScreen() {
-  const [baseUrl, setBaseUrl] = useState('https://byahero.alwaysdata.net');
+  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [fareStops, setFareStops] = useState<any[]>([]);
@@ -84,21 +84,7 @@ export default function BusInfoScreen() {
           }
         }
 
-        // Fallback to alwaysdata if configured URL failed or was offline
-        if (!isNetworkSuccess && currentBaseUrl !== 'https://byahero.alwaysdata.net') {
-          try {
-            const fallbackRes = await fetch(`https://byahero.alwaysdata.net/api/buses/sync`);
-            if (fallbackRes.ok) {
-              const data = await fallbackRes.json();
-              if (data && data.success) {
-                responseData = data;
-                isNetworkSuccess = true;
-              }
-            }
-          } catch (e) {
-            console.error('Fallback to alwaysdata failed:', e);
-          }
-        }
+
 
         if (isNetworkSuccess && responseData && active) {
           setIsOffline(false);

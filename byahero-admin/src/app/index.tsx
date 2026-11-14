@@ -1,3 +1,4 @@
+import { getServerUrl } from '../services/authService';
 import React, { useState, useEffect } from 'react';
 import {
   View,
@@ -67,6 +68,7 @@ export default function LoginScreen() {
   // Check if already logged in
   useEffect(() => {
     const checkLogin = async () => {
+      await getServerUrl();
       const user = await AsyncStorage.getItem('byahero_admin_user');
       if (user) {
         router.replace('/admin');

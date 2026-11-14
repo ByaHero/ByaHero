@@ -159,7 +159,7 @@ class DebugLogger {
       !window.location.hostname.includes('localhost')
     ) {
       probableCauses.push(
-        'Localhost Unreachable on Mobile: "localhost" points to the phone, not your computer server. Use https://byahero.alwaysdata.net or your PC LAN IP.'
+        'Localhost Unreachable on Mobile: "localhost" points to the phone, not your computer server. Use https://api.byahero.app or your PC LAN IP.'
       );
     }
 

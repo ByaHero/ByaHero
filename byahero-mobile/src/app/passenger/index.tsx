@@ -710,7 +710,7 @@ export default function PassengerDashboard() {
               <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
-                source={{ html: leafletHTML, baseUrl: baseUrl || 'https://byahero.alwaysdata.net/' }}
+                source={{ html: leafletHTML, baseUrl: baseUrl || 'https://api.byahero.app/' }}
                 onMessage={handleWebViewMessage}
                 onConsoleMessage={(e: any) => console.log('WebView Console:', e.nativeEvent.message)}
                 style={[tw`flex-1`, { width: '100%', height: '100%' }]}

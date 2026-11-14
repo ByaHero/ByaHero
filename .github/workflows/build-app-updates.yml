@@ -1,0 +1,60 @@
+name: Build Android backend updates
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - directory: byahero-mobile
+            artifact: byahero-passenger-update
+            filename: byahero.apk
+          - directory: byahero-conductor
+            artifact: byahero-conductor-update
+            filename: byahero-conductor.apk
+          - directory: byahero-admin
+            artifact: byahero-admin-update
+            filename: byahero-admin.apk
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ${{ matrix.directory }}/package-lock.json
+      - uses: actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3 # v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Verify backend migration settings
+        run: node --test .github/scripts/backend-settings.test.mjs
+      - name: Install app dependencies
+        working-directory: ${{ matrix.directory }}
+        run: npm ci --legacy-peer-deps
+      - name: Build installable Android update
+        working-directory: ${{ matrix.directory }}/android
+        run: |
+          set -euo pipefail
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+          cp app/build/outputs/apk/release/app-release.apk "${{ matrix.filename }}"
+          sha256sum "${{ matrix.filename }}" > "${{ matrix.filename }}.sha256"
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: |
+            ${{ matrix.directory }}/android/${{ matrix.filename }}
+            ${{ matrix.directory }}/android/${{ matrix.filename }}.sha256
+          if-no-files-found: error
+          retention-days: 14

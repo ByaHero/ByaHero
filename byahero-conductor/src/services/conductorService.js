@@ -17,7 +17,7 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET', t
   // Resolve absolute URL
   let cleanRel = relativeUrl.replace(/^\.\.\/\.\.\/|^\.\.\//, '');
   if (cleanRel.startsWith('api.php') || cleanRel.startsWith('map_data.php') || cleanRel.startsWith('update_geo_location.php') || cleanRel.startsWith('logout.php')) {
-    if (!baseUrl.includes('alwaysdata.net')) {
+    if (!baseUrl.includes('alwaysdata.net') && !baseUrl.includes('api.byahero.app')) {
       cleanRel = 'public/' + cleanRel;
     }
   }

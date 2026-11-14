@@ -40,7 +40,7 @@ export const DevSettingsModal: React.FC<DevSettingsModalProps> = ({ visible, onC
   };
 
   const handleReset = async () => {
-    const defaultUrl = 'https://byahero.alwaysdata.net';
+    const defaultUrl = 'https://api.byahero.app';
     setUrl(defaultUrl);
     await setServerUrl(defaultUrl);
     onSaved(defaultUrl);
@@ -48,7 +48,7 @@ export const DevSettingsModal: React.FC<DevSettingsModalProps> = ({ visible, onC
   };
 
   const handleTestPing = async () => {
-    const target = url.trim() || 'https://byahero.alwaysdata.net';
+    const target = url.trim() || 'https://api.byahero.app';
     setIsPinging(true);
     setPingResult('Pinging server...');
     const start = Date.now();
@@ -155,7 +155,7 @@ export const DevSettingsModal: React.FC<DevSettingsModalProps> = ({ visible, onC
                   type="text"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
-                  placeholder="https://byahero.alwaysdata.net"
+                  placeholder="https://api.byahero.app"
                   className="w-full px-4 py-3 rounded-2xl bg-slate-50 border border-slate-200 text-slate-800 text-sm focus:outline-none focus:ring-2 focus:ring-[#1d72f8]/40"
                 />
                 {pingResult && (
@@ -170,7 +170,7 @@ export const DevSettingsModal: React.FC<DevSettingsModalProps> = ({ visible, onC
                 <div className="flex flex-wrap gap-2 pt-1">
                   <button
                     type="button"
-                    onClick={() => setUrl('https://byahero.alwaysdata.net')}
+                    onClick={() => setUrl('https://api.byahero.app')}
                     className="px-2.5 py-1 rounded-lg bg-white border border-slate-200 hover:bg-blue-50 hover:text-blue-600 font-mono text-[11px] cursor-pointer"
                   >
                     AlwaysData (Production)

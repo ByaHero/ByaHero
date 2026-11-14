@@ -35,7 +35,7 @@ class LocationForegroundService : Service() {
         @Volatile var route = ""
         @Volatile var seatsTotal = 25
         @Volatile var seatsAvailable = 25
-        @Volatile var serverUrl = "https://byahero.alwaysdata.net"
+        @Volatile var serverUrl = "https://api.byahero.app"
         @Volatile var cachedEmail = ""
         @Volatile var lastLat = 0.0
         @Volatile var lastLng = 0.0
@@ -211,11 +211,8 @@ class LocationForegroundService : Service() {
 
         java.util.concurrent.Executors.newSingleThreadExecutor().execute {
             try {
-                val cleanBase = if (sUrl.endsWith("/")) sUrl.dropLast(1) else sUrl
-                var targetUrl = "$cleanBase/api/conductor/update-location"
-                if (!cleanBase.contains("alwaysdata.net") && !cleanBase.contains("public/")) {
-                    targetUrl = "$cleanBase/public/api/conductor/update-location"
-                }
+                val cleanBase = sUrl.trim().trimEnd('/').removeSuffix("/api")
+                val targetUrl = "$cleanBase/api/conductor/update-location"
 
                 val url = java.net.URL(targetUrl)
                 val conn = url.openConnection() as java.net.HttpURLConnection
@@ -226,6 +223,10 @@ class LocationForegroundService : Service() {
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8")
                 conn.setRequestProperty("Accept", "application/json")
                 conn.setRequestProperty("User-Agent", "ByaHeroConductor/1.0")
+
+                val cookieManager = android.webkit.CookieManager.getInstance()
+                val sessionCookie = cookieManager.getCookie("$cleanBase/")
+                if (!sessionCookie.isNullOrEmpty()) conn.setRequestProperty("Cookie", sessionCookie)
 
                 val statusStr = if (seatsAvailable <= 0) "full" else "available"
 
@@ -268,6 +269,12 @@ class LocationForegroundService : Service() {
                 }
 
                 val responseCode = conn.responseCode
+                conn.headerFields.forEach { (name, values) ->
+                    if (name?.equals("Set-Cookie", ignoreCase = true) == true) {
+                        values.forEach { cookieManager.setCookie("$cleanBase/", it, null) }
+                    }
+                }
+                cookieManager.flush()
                 if (responseCode == 403) {
                     broadcastMediaButton("admin_stop")
                     stopSelf()
