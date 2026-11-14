@@ -21,7 +21,7 @@ for (const app of ['byahero-mobile', 'byahero-conductor', 'byahero-admin', 'byah
     await client.setServerUrl('https://byahero.alwaysdata.net');
     assert.equal(await client.getServerUrl(), 'https://byahero.alwaysdata.net');
     assert.equal(await settings.createBackendSettings(storage).getServerUrl(), 'https://byahero.alwaysdata.net');
-    assert.equal(settings.EMAIL_FEATURES_AVAILABLE, app === 'byahero-passenger-web');
+    assert.equal(settings.EMAIL_FEATURES_AVAILABLE, app !== 'byahero-admin-web');
   });
   test(`${app}: browser defaults use the same-origin session proxy`, async () => {
     const data = new Map();

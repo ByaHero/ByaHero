@@ -189,7 +189,7 @@ export default function LoginScreen() {
 
               {/* Forgot Password Link */}
               <TouchableOpacity
-                onPress={() => showCustomAlert('Forgot Password', 'Not implemented for admin.', 'error')}
+                onPress={() => router.push('/forgotPassword')}
                 style={tw`self-start mb-6 ml-3`}
               >
                 <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>

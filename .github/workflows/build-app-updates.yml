@@ -37,6 +37,8 @@ jobs:
           java-version: '17'
       - name: Verify backend migration settings
         run: node --test .github/scripts/backend-settings.test.mjs .github/scripts/google-callback.test.mjs
+      - name: Verify Android email recovery requests
+        run: node --experimental-vm-modules --test .github/scripts/android-email.test.mjs
       - name: Install app dependencies
         working-directory: ${{ matrix.directory }}
         run: npm ci --legacy-peer-deps

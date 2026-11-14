@@ -239,12 +239,7 @@ export default function LoginScreen() {
 
               {/* Forgot Password */}
               <TouchableOpacity
-                onPress={() => setAuthModalConfig({
-                  visible: true,
-                  type: 'info',
-                  title: 'Information',
-                  message: 'Please contact ByaHero Admin to request a password reset.'
-                })}
+                onPress={() => router.push('/forgotPassword')}
                 style={tw`self-start mb-6 ml-3`}
               >
                 <Text style={tw`text-slate-500 text-xs font-semibold`}>Forgot Password?</Text>

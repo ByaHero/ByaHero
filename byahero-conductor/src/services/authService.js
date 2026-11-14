@@ -138,3 +138,40 @@ export async function logout() {
     console.error('Logout error', e);
   }
 }
+
+export async function forgotRequestOtp(email) {
+  const data = await apiRequest('request_otp', { email: email.trim() });
+
+  if (data.success) {
+    return { success: true, devOtp: data.dev_otp };
+  } else {
+    throw new Error(data.message || 'Failed to send recovery code');
+  }
+}
+
+export async function forgotVerifyOtp(email, otp) {
+  const data = await apiRequest('verify_otp', {
+    email: email.trim(),
+    otp: otp.trim(),
+  });
+
+  if (data.success) {
+    return { success: true };
+  } else {
+    throw new Error(data.message || 'Invalid verification code');
+  }
+}
+
+export async function forgotResetPassword(email, otp, newPassword) {
+  const data = await apiRequest('reset_password', {
+    email: email.trim(),
+    otp: otp.trim(),
+    new_password: newPassword,
+  });
+
+  if (data.success) {
+    return { success: true };
+  } else {
+    throw new Error(data.message || 'Failed to reset password');
+  }
+}
