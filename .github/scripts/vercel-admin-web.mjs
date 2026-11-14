@@ -11,7 +11,11 @@ const root = fileURLToPath(new URL('../../', import.meta.url));
 
 export function adminSourceFile(relative) {
   if (relative.includes('\\') || relative.split('/').some(part => part === '..' || part.startsWith('.')) || /\.php$/i.test(relative)) return false;
+  if (/^(public|assets)\/.*(?:uploads|storage)(?:\/|$)/i.test(relative)) return false;
   if (/^(src|public)\//.test(relative)) return true;
+  if (/^assets\/data\/[^/]+\.json$/.test(relative)) return true;
+  if (/^assets\/images\/icons\/[^/]+\.svg$/.test(relative)) return true;
+  if (relative === 'assets/images/byaheroLogoBlue.svg') return true;
   return ['package.json', 'package-lock.json', 'index.html', 'vite.config.ts', 'vercel.json',
     'tsconfig.json', 'tsconfig.app.json', 'tsconfig.node.json', 'scripts/finalize-vercel.mjs',
     'postcss.config.js', 'tailwind.config.js'].includes(relative);
@@ -50,16 +54,7 @@ export async function verifyAdminSite(url, { request = fetch } = {}) {
   if (/<\?php/i.test(await php.text())) throw new Error('Apache PHP source leaked from the static admin deployment.');
 }
 
-async function main() {
-  if (process.env.GITHUB_REPOSITORY !== 'ByaHero/ByaHero' || process.env.GITHUB_REF !== 'refs/heads/main'
-    || !process.env.VERCEL_TOKEN || !process.env.GITHUB_TOKEN) throw new Error('Only an approved main workflow may release admin web.');
-  const sha = process.env.GITHUB_SHA;
-  if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Missing exact admin release commit.');
-  await assertLatestCommit(sha);
-  assertAdminProject(api(`/v9/projects/${adminProject}`));
-  const binding = api(`/v9/projects/${adminProject}/domains/${adminDomain}`);
-  if (binding.name !== adminDomain || binding.verified !== true || binding.redirect != null || binding.gitBranch != null) throw new Error('Admin production domain binding is not verified.');
-
+export async function stageAdminSource() {
   const stage = await mkdtemp(path.join(process.env.RUNNER_TEMP || tmpdir(), 'byahero-admin-web-'));
   const files = command('git', ['ls-files', '-z', '--', 'byahero-admin-web']).split('\0').filter(Boolean);
   let copied = 0;
@@ -77,6 +72,19 @@ async function main() {
   await mkdir(path.join(stage, '.vercel'));
   await writeFile(path.join(stage, '.vercel/project.json'), JSON.stringify({ projectId: adminProject, orgId: organization }));
   await writeFile(path.join(stage, '.vercelignore'), '.env\n.env.*\n.git\n.vercel\nnode_modules\ndist\n');
+  return stage;
+}
+
+async function main() {
+  if (process.env.GITHUB_REPOSITORY !== 'ByaHero/ByaHero' || process.env.GITHUB_REF !== 'refs/heads/main'
+    || !process.env.VERCEL_TOKEN || !process.env.GITHUB_TOKEN) throw new Error('Only an approved main workflow may release admin web.');
+  const sha = process.env.GITHUB_SHA;
+  if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Missing exact admin release commit.');
+  await assertLatestCommit(sha);
+  assertAdminProject(api(`/v9/projects/${adminProject}`));
+  const binding = api(`/v9/projects/${adminProject}/domains/${adminDomain}`);
+  if (binding.name !== adminDomain || binding.verified !== true || binding.redirect != null || binding.gitBranch != null) throw new Error('Admin production domain binding is not verified.');
+  const stage = await stageAdminSource();
   const url = deploymentUrl(command('vercel', ['deploy', '--prod', '--skip-domain', '--yes', '--scope', scope,
     '--meta', `githubCommitSha=${sha}`], stage).split(/\r?\n/).at(-1));
   const deployment = api(`/v13/deployments/${new URL(url).hostname}`);
@@ -100,5 +108,13 @@ async function main() {
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
-  main().catch(error => { console.error(error.message); process.exitCode = 1; });
+  const action = process.argv[2] === 'check-build'
+    ? async () => {
+      const stage = await stageAdminSource();
+      command('npm', ['ci'], stage);
+      command('npm', ['run', 'build:vercel'], stage);
+      console.log('The exact admin upload source builds successfully.');
+    }
+    : main;
+  action().catch(error => { console.error(error.message); process.exitCode = 1; });
 }

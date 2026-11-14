@@ -6,12 +6,16 @@ import { organization, projects } from './vercel-backend.mjs';
 test('admin upload excludes environment files, PHP, operator data, and generated output', () => {
   for (const file of ['.env', '.env.production', '.vercel/project.json', 'public/api-proxy.php', 'public/test.PHP',
     'public/.htaccess', 'src/.env.secret', 'node_modules/package/index.js', 'dist/index.html', '../package.json',
-    'src/../../.env', 'src\\secret.ts', 'scripts/finalize-backend-test.mjs', 'README.md']) {
+    'src/../../.env', 'src\\secret.ts', 'scripts/finalize-backend-test.mjs', 'README.md',
+    'assets/images/uploads/lost_and_found/private.png', 'public/assets/images/uploads/private.png',
+    'public/storage/private.png', 'assets/images/js/auth/login.js']) {
     assert.equal(adminSourceFile(file), false, file);
   }
   for (const file of ['package.json', 'package-lock.json', 'index.html', 'vercel.json', 'vite.config.ts',
     'tailwind.config.js', 'postcss.config.js', 'tsconfig.app.json', 'src/services/api.ts',
-    'public/assets/images/byaheroLogoBlue.svg', 'scripts/finalize-vercel.mjs']) assert.equal(adminSourceFile(file), true, file);
+    'public/assets/images/byaheroLogoBlue.svg', 'assets/data/laurel-talisay-tanauan.json',
+    'assets/images/icons/busStopMarkerFinal1.svg', 'assets/images/byaheroLogoBlue.svg',
+    'scripts/finalize-vercel.mjs']) assert.equal(adminSourceFile(file), true, file);
 });
 
 test('admin release pins its project and account and preserves protected previews', () => {
