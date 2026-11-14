@@ -11,13 +11,13 @@ Deployment and release information below reflects the setup on **14 November 202
 | Production API | **<https://api.byahero.app/api>** — Laravel on Vercel, project `byahero-backend` |
 | API readiness | <https://api.byahero.app/api/health> — HTTP 200 with `{"ready":true}` when ready |
 | Protected backend test | Vercel project `byahero-backend-test`, Preview environment; use the latest successful GitHub Actions deployment URL |
-| Passenger website | <https://byahero1.vercel.app> — Vercel |
+| Passenger website | **<https://passenger.byahero.app>** — Vercel; <https://byahero1.vercel.app> remains available |
 | Admin website | <https://byahero-admin.alwaysdata.net> — alwaysdata frontend, forwarding API requests to Vercel |
 | Public website | <https://byahero.app> — landing page on GitHub Pages |
 | Database and uploaded files | Supabase Free: PostgreSQL and private Storage buckets |
 | Legacy backend backup | <https://byahero.alwaysdata.net> and its existing MySQL database; coordinated manual rollback only |
 
-The Vercel projects belong to ByaHero's `byaherosupport-2249` account on Hobby. The apex `byahero.app` remains the public website; `api.byahero.app` is the backend. Cloudflare manages DNS for the API hostname, which points to Vercel's DNS target rather than a changing deployment URL.
+The Vercel projects belong to ByaHero's `byaherosupport-2249` account on Hobby. The apex `byahero.app` remains the landing page; `passenger.byahero.app` is the passenger website, and `api.byahero.app` is the backend. Cloudflare manages DNS. Each Vercel hostname uses its own DNS-only CNAME target supplied by its project rather than a changing deployment URL. The passenger domain is attached to project `byahero`; it does not replace the landing page or API binding.
 
 The production API is publicly reachable without Vercel sign-in. **Private API routes still require Laravel session authentication and the appropriate role.** The test project keeps Vercel Authentication enabled for all deployments because it contains copied application data.
 
@@ -83,6 +83,8 @@ Each environment contains `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` variables and 
 
 The browser apps use same-origin `/api` requests: passenger web has Vercel rewrites, and admin web has a fixed-upstream PHP proxy. Both forward to the production API so browser session cookies can work. Native clients use the API origin directly. Configuration that appends `/api/...` internally should use `https://api.byahero.app`, avoiding `/api/api`.
 
+Production `CORS_ALLOWED_ORIGINS` includes `https://passenger.byahero.app`, retaining the existing `https://byahero1.vercel.app` and `https://byahero.app` entries. Add a new website's exact origin before serving authenticated requests from it. Browser storage and sessions are scoped to the hostname, so sign in again when moving to the passenger custom domain. This website-domain change requires no new Android APK or API endpoint change.
+
 ## Android APK releases
 
 Publishing backend code does not update installed Android apps. Publish a new APK whenever native app code, its embedded server configuration, or the Google callback changes.
@@ -136,6 +138,8 @@ References: [running a GitHub workflow](https://docs.github.com/en/actions/how-t
 Passenger **2.0.15 and later** use **<https://api.byahero.app/auth/google/callback>** for Google sign-in/sign-up. The exact URL is registered on the existing Google Web OAuth client. The browser callback returns the fragment ID token to the installed ByaHero app; Laravel verifies it through the production API. It accepts only the production app's root deep link, not arbitrary websites or Expo Go destinations.
 
 Passenger 2.0.14 and older retain the old alwaysdata callback until updated. Keep the old Google redirect entry and page while those installations or the rollback path are needed. The new APK does not require alwaysdata for its Google callback.
+
+Passenger web's Google button uses `https://passenger.byahero.app` as an authorized JavaScript origin on the existing Google Web client. Keep the existing Vercel website origin too. This browser origin setting is separate from the mobile callback redirect URI above.
 
 Email signup/OTP and password reset are **temporarily unavailable** by the operator's choice because Brevo's outbound-IP restriction still blocks Vercel delivery. Existing password sign-in and Google sign-in remain available. Brevo IP blocking has not been disabled.
 
