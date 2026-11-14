@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 export const branch = 'main';
 export const organization = 'team_v3g9PH1rTsopQvRzEZ1sb6h3';
+export const productionDomain = 'api.byahero.app';
 export const projects = {
   test: 'prj_8KT0zbl5hVNdGERbzw9L58PrsQqA',
   production: 'prj_1LnFKHZz3I9mGcr7fk7gVFTMavUo',
@@ -37,6 +38,7 @@ export function assertProject(project, role, environmentVariables) {
     APP_DEBUG: 'false', ADMIN_TEST_ENABLED: role === 'test' ? 'true' : 'false',
   };
   if (role === 'test') expected.EXTERNAL_NOTIFICATIONS_ENABLED = 'false';
+  if (role === 'production') expected.APP_URL = `https://${productionDomain}`;
   for (const [key, value] of Object.entries(expected)) {
     if (configuration[key] !== value) throw new Error(`Unexpected ${target} configuration for ${key}.`);
   }
@@ -62,6 +64,22 @@ export function deploymentUrl(value) {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.origin !== value || !url.hostname.endsWith(`-${scope}.vercel.app`)) throw new Error('Unexpected deployment URL.');
   return url.origin;
+}
+
+export function assertProductionAlias(alias, deploymentId) {
+  if (alias.alias !== productionDomain || alias.projectId !== projects.production || alias.deploymentId !== deploymentId) throw new Error('API domain does not point to the verified production deployment.');
+}
+
+export function assertProductionAliases(aliases) {
+  if ((aliases ?? []).some(alias => (typeof alias === 'string' ? alias : alias.alias) !== productionDomain)) throw new Error('Unexpected production alias; only the API domain may be changed.');
+}
+
+async function assertLatestCommit(sha) {
+  const response = await fetch(`https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/${branch}`, {
+    headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' },
+    signal: AbortSignal.timeout(15000),
+  });
+  if (!response.ok || (await response.json()).object?.sha !== sha) throw new Error('This run is stale; deploy and approve the latest branch commit.');
 }
 
 export async function verifyHttpAccess(role, url, { request = fetch, protectedGet } = {}) {
@@ -108,17 +126,14 @@ async function main(role) {
   if (!process.env.VERCEL_TOKEN || !process.env.GITHUB_TOKEN) throw new Error('Save VERCEL_TOKEN directly in the matching GitHub environment first.');
   const sha = process.env.GITHUB_SHA;
   if (!/^[a-f0-9]{40}$/.test(sha ?? '')) throw new Error('Missing exact release commit.');
-  const headResponse = await fetch(`https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/${branch}`, {
-    headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!headResponse.ok || (await headResponse.json()).object?.sha !== sha) throw new Error('This run is stale; deploy and approve the latest branch commit.');
+  await assertLatestCommit(sha);
   if (role === 'production') deploymentUrl(process.env.TEST_DEPLOYMENT_URL ?? '');
 
   const project = api(`/v9/projects/${projects[role]}`);
   // Read only the named, non-secret guard settings. Never log environment responses.
   const listedVariables = api(`/v10/projects/${projects[role]}/env`).envs ?? [];
   const guardKeys = ['DB_CONNECTION', 'DB_SCHEMA', 'DEPLOYMENT_ROLE', 'APP_DEBUG', 'ADMIN_TEST_ENABLED', 'EXTERNAL_NOTIFICATIONS_ENABLED'];
+  if (role === 'production') guardKeys.push('APP_URL');
   const target = role === 'test' ? 'preview' : 'production';
   const variables = listedVariables.filter(variable => guardKeys.includes(variable.key) && variable.target?.includes(target)).map(variable => {
     if (variable.visibility === 'secret' || variable.type === 'sensitive') throw new Error('Guard configuration must use Config values.');
@@ -159,7 +174,7 @@ async function main(role) {
   const deployment = api(`/v13/deployments/${new URL(url).hostname}`);
   if (deployment.projectId !== projects[role] || deployment.readyState !== 'READY') throw new Error('Deployment did not become READY on the intended project.');
   if ((role === 'test' && deployment.target === 'production') || (role === 'production' && deployment.target !== 'production')) throw new Error('Deployment environment mismatch.');
-  if (role === 'production' && deployment.alias?.length) throw new Error('Unexpected production aliases; review before proceeding.');
+  if (role === 'production') assertProductionAliases(deployment.alias);
   assertProject(api(`/v9/projects/${projects[role]}`), role, variables);
 
   await verifyHttpAccess(role, url, { protectedGet(endpoint) {
@@ -167,9 +182,18 @@ async function main(role) {
     const statusStart = response.lastIndexOf('\n');
     return { status: Number(response.slice(statusStart + 1)), body: JSON.parse(response.slice(0, statusStart)) };
   } });
+  if (role === 'production') {
+    const binding = api(`/v9/projects/${projects.production}/domains/${productionDomain}`);
+    if (binding.name !== productionDomain || binding.verified !== true || binding.redirect != null || binding.gitBranch != null) throw new Error('API domain binding is not verified for production.');
+    await assertLatestCommit(sha);
+    command('vercel', ['alias', 'set', url, productionDomain, '--scope', scope], stage);
+    assertProductionAlias(api(`/v4/aliases/${productionDomain}`), deployment.id);
+    await verifyHttpAccess('production', `https://${productionDomain}`);
+    if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `api_url=https://${productionDomain}/api\n`);
+  }
   if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `url=${url}\n`);
   const access = role === 'test' ? 'Vercel sign-in protected' : 'Public API with Laravel authentication on private routes';
-  const summary = `### ${role} backend\n\nCommit: \`${sha}\`\n\n[Open deployment](${url})\n\nREADY; health and authentication checks passed. ${access}.\n\n${role === 'test' ? 'Check this test deployment before approving the production job.' : 'No alias promotion, endpoint change, migration, or data sync was performed.'}\n`;
+  const summary = `### ${role} backend\n\nCommit: \`${sha}\`\n\n[Open deployment](${url})\n\nREADY; health and authentication checks passed. ${access}.\n\n${role === 'test' ? 'Check this test deployment before approving the production job.' : `[Production API](https://${productionDomain}/api) now points to this approved deployment. No live app endpoint change, migration, or data sync was performed.`}\n`;
   if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, summary);
   console.log(`${role} deployment verified: ${url}`);
 }

@@ -83,7 +83,7 @@ jobs:
     # GitHub requires timbibat's approval before this job receives its secret.
     environment:
       name: vercel-backend-production
-      url: ${{ steps.deploy.outputs.url }}
+      url: ${{ steps.deploy.outputs.api_url }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

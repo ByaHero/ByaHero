@@ -4,6 +4,8 @@ This deployment is a separate copy. Keep alwaysdata, its MySQL database, DNS, an
 
 The separate production API is now public at the user's request; Laravel authentication remains required on private routes. Existing app endpoints have not switched. See [production status and remaining checks](PRODUCTION-STATUS.md). The instructions below continue to describe the protected, isolated test setup.
 
+The stable production API base is **`https://api.byahero.app/api`**. The root domain remains the landing page. Future approved production releases move only the API alias after readiness and authentication checks.
+
 For ongoing backend updates, merge reviewed changes into `main` to use the [GitHub test deployment and production approval workflow](GITHUB-DEPLOYMENTS.md). The alwaysdata backend/admin upload workflows are manual-only. The user retained the previously merged live code; changing deployment routing does not verify or repair that live backend.
 
 ## Free plans only
