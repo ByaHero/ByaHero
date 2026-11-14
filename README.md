@@ -1,107 +1,172 @@
 # ByaHero
-Capstone project
 
-## DEVELOPERS
+ByaHero is a capstone project for bus tracking, passenger information, conductor operations, and administration. This repository contains the Laravel API, three Android apps, two React web apps, the public landing page, and an optional Python AI service.
 
-- CJ
-- EDGAR
-- TIMOTHY
-- CHELSEA
-- MIEL
-- PAUL
+## Current deployment
 
-A lightweight PHP prototype for real-time bus tracking.
+Deployment and release information below reflects the setup on **14 November 2026**.
 
-## Features
+| Service | Address / setup |
+| --- | --- |
+| Production API | **<https://api.byahero.app/api>** — Laravel on Vercel, project `byahero-backend` |
+| API readiness | <https://api.byahero.app/api/health> — HTTP 200 with `{"ready":true}` when ready |
+| Protected backend test | Vercel project `byahero-backend-test`, Preview environment; use the latest successful GitHub Actions deployment URL |
+| Passenger website | <https://byahero1.vercel.app> — Vercel |
+| Admin website | <https://byahero-admin.alwaysdata.net> — alwaysdata frontend, forwarding API requests to Vercel |
+| Public website | <https://byahero.app> — landing page on GitHub Pages |
+| Database and uploaded files | Supabase Free: PostgreSQL and private Storage buckets |
+| Legacy backend backup | <https://byahero.alwaysdata.net> and its existing MySQL database; coordinated manual rollback only |
 
-- 🗺️ **Real-time Bus Tracking** - View live bus locations on an interactive map
-- 📍 **GPS Location Sharing** - Conductors can share their GPS location in real-time
-- 🚌 **Bus Management** - Select from pre-seeded buses and manage routes
-- 💺 **Seat Availability** - Track and update available seats on each bus
-- 🎨 **Status Indicators** - Visual indicators for bus status (available, on stop, full, unavailable)
-- 📱 **Mobile Responsive** - Works on both desktop and mobile devices
+The Vercel projects belong to ByaHero's `byaherosupport-2249` account on Hobby. The apex `byahero.app` remains the public website; `api.byahero.app` is the backend. Cloudflare manages DNS for the API hostname, which points to Vercel's DNS target rather than a changing deployment URL.
 
-## Technologies Used
+The production API is publicly reachable without Vercel sign-in. **Private API routes still require Laravel session authentication and the appropriate role.** The test project keeps Vercel Authentication enabled for all deployments because it contains copied application data.
 
-- **Backend**: PHP 7.4+ with SQLite (PDO)
-- **Frontend**: HTML5, CSS3, JavaScript (Vanilla)
-- **Mapping**: Leaflet.js with OpenStreetMap tiles
-- **Database**: SQLite (no external services required)
+## Repository and technology
 
-## Installation
+| Directory | Purpose |
+| --- | --- |
+| [`laravel-backend/`](laravel-backend/) | Laravel 12 API; PHP 8.2 minimum, PHP 8.3 in the Vercel Apache container |
+| [`byahero-mobile/`](byahero-mobile/) | Passenger Android app; Expo 54 / React Native 0.81.5 |
+| [`byahero-conductor/`](byahero-conductor/) | Conductor Android app |
+| [`byahero-admin/`](byahero-admin/) | Admin Android app |
+| [`byahero-passenger-web/`](byahero-passenger-web/) | Passenger website; React, TypeScript, Vite and Leaflet |
+| [`byahero-admin-web/`](byahero-admin-web/) | Admin website; React, TypeScript, Vite and Leaflet |
+| [`landing-page/`](landing-page/) | Public website and passenger APK download links |
+| [`byahero-ai/`](byahero-ai/) | Separate Python AI service; disabled in the current Vercel backend configuration |
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/ByaHero/ByaHero.git
-   ```
+Application features include live bus locations, seat availability, routes and schedules, conductor trips and ticketing, passenger boarding, circles and location sharing, SOS alerts, lost-and-found reports, notifications, and administrative analytics. The production backend currently uses its local ETA fallback rather than the separate Python service.
 
-2. **Ask for access for the database**
+## Supabase data and authentication
 
-### For Conductors
+Test and production use separate schemas and private buckets within the same Supabase project:
 
-2. Select your bus from the dropdown
-3. Enter the route name for your trip
-4. Click "Start Tracking" to begin sharing your location
-5. Update bus status and available seats as needed
-6. Your location will be shared every 3 seconds while tracking is active
-7. Click "Stop Tracking" when your shift ends
+| Backend | PostgreSQL schema | Storage bucket |
+| --- | --- | --- |
+| Protected test | `byahero_test` | `byahero-test-uploads` |
+| Production | `byahero_production` | `byahero-uploads` |
+
+Laravel connects through the Supabase **Session pooler on port 5432**. The production runtime uses a restricted database role. Application tables have row-level security enabled, and anonymous/authenticated Supabase Data API roles have no access to the private production schema. Accounts and password hashes are managed by Laravel; this setup does **not** replace application login with Supabase Auth.
+
+Sessions, cache, and live bus locations persist in PostgreSQL. Uploaded lost-and-found images use private Storage with authorized, short-lived links. Database passwords and server Storage credentials stay on the backend, outside frontend bundles and Git.
+
+The final alwaysdata cutover copy verified **30 application tables / 29,090 rows** on 14 November 2026. Those are checkpoint counts, not current live totals. Subsequent production writes go to Supabase. Neither the test copy nor alwaysdata is continuously synchronized with production.
+
+**Code deployments do not import, synchronize, seed, or migrate data.** Schema changes need a separate compatible migration and backup plan. Do not run the historic migration set, `migrate:fresh`, or seeders against the imported databases; the historic migrations are not a safe baseline for those copies.
+
+## Backend updates and production approval
+
+Use [Backend - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml).
+
+1. Review and merge changes into `main`. Relevant changes under `laravel-backend/`, `byahero-admin-web/`, and the deployment workflow/scripts trigger the pipeline. It can also be run manually on `main`. A README-only change does not automatically trigger this backend workflow.
+2. GitHub runs deployment and callback guards, PHP tests, the Composer production-dependency audit, startup checks, and the isolated admin test build. It deploys to `byahero-backend-test` in Preview and checks readiness and application authentication behind Vercel protection.
+3. Open the test URL from the successful job summary using an authorized ByaHero Vercel session. The isolated admin UI is at `/admin-test/login`. Verify the change against the test data.
+4. The production job waits for **`timbibat`**. In that run, choose **Review deployments**, select `vercel-backend-production`, and approve the exact commit only after testing it.
+5. Approval builds that same Git commit separately in `byahero-backend` with Production configuration. It stages with `--prod --skip-domain`, verifies the immutable deployment, then updates **only `api.byahero.app`** and checks it again. Readiness must return HTTP 200; an anonymous private dashboard request must return Laravel HTTP 401.
+
+The Preview and Production builds have different configuration; production is not a promotion of the Preview artifact. A new matching push cancels the older run. The release script also rejects stale commits that are no longer the head of `main`; rerun the workflow for current `main` if an approval has become stale.
+
+Both GitHub environments are restricted to `main`:
+
+| GitHub environment | Vercel target | Gate |
+| --- | --- | --- |
+| `vercel-backend-test` | `byahero-backend-test` / Preview | Automatic after checks |
+| `vercel-backend-production` | `byahero-backend` / Production | Required reviewer approval |
+
+Each environment contains `VERCEL_ORG_ID` and `VERCEL_PROJECT_ID` variables and a `VERCEL_TOKEN` secret entered directly in GitHub. Application secrets remain in the matching Vercel environment. The backend projects use this workflow rather than automatic Vercel Git deployments. The workflow changes no client endpoints, Cloudflare records, or database data.
+
+### Frontend and legacy deployment paths
+
+- **Passenger web:** its existing Vercel Git integration deploys `main`. The backend approval gate does not gate this frontend integration.
+- **Admin web:** [Deploy Admin Web to AlwaysData](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-admin-web.yml) is manual-only on `main`, requiring `DEPLOY_ALWAYSDATA`. This updates the admin frontend, not the backup backend database.
+- **Backup backend:** [Deploy to AlwaysData via FTP](https://github.com/ByaHero/ByaHero/actions/workflows/alwaysdata.yml) is also manual-only on `main`, requiring `DEPLOY_ALWAYSDATA`. A normal merge no longer uploads the backend to alwaysdata.
+- **Landing page and Python AI:** retain their separate workflows and path triggers. The AI workflow's existence does not enable the Python service in the Vercel backend.
+
+The browser apps use same-origin `/api` requests: passenger web has Vercel rewrites, and admin web has a fixed-upstream PHP proxy. Both forward to the production API so browser session cookies can work. Native clients use the API origin directly. Configuration that appends `/api/...` internally should use `https://api.byahero.app`, avoiding `/api/api`.
+
+## Android APK releases
+
+Publishing backend code does not update installed Android apps. Publish a new APK whenever native app code, its embedded server configuration, or the Google callback changes.
+
+| App / workflow choice | Release tag pattern | APK filename | Build artifact |
+| --- | --- | --- | --- |
+| Passenger / `passenger` | `vX.Y.Z` | `byahero.apk` | `byahero-passenger-update` |
+| Conductor / `conductor` | `conductor-vX.Y.Z` | `byahero-conductor.apk` | `byahero-conductor-update` |
+| Admin / `admin` | `admin-vX.Y.Z` | `byahero-admin.apk` | `byahero-admin-update` |
+
+Release snapshot on 14 November 2026: **passenger 2.0.15 / Android code 24**, **conductor 3.0.17 / code 35**, and **admin 3.0.7 / code 217**. Use a new version/tag and a larger version code for each subsequent app release; the apps have independent version sequences.
+
+### 1. Update the app's version
+
+Keep these fields consistent in the selected app directory:
+
+| File | Fields |
+| --- | --- |
+| `android/app/build.gradle` | `versionName` and increasing `versionCode` |
+| `app.json` | `expo.version` and `expo.android.versionCode` |
+| `package.json` | `version` |
+| `package-lock.json` | Top-level `version` and root `packages[""].version` |
+
+Keep the existing application ID and signing keystore so users can install over the previous app. Review and merge the app/version changes into `main` before building.
+
+### 2. Build before publishing
+
+1. Open [Build Android backend updates](https://github.com/ByaHero/ByaHero/actions/workflows/build-app-updates.yml).
+2. Choose **Run workflow**, select **main**, and select `passenger`, `conductor`, `admin`, or `all`.
+3. Wait for success, then download and extract the appropriate artifact. It contains the named APK and its `.sha256` file. Artifacts are retained for 14 days; they are not public releases.
+4. Verify the version, checksum, and signing certificate against the previous app, and test installation and sign-in on a device.
+
+The workflow uses Node 22, Java 17, `npm ci --legacy-peer-deps`, client-settings and callback tests, and Gradle `assembleRelease`. It **builds artifacts only** and does not publish them automatically. Recent full builds took about 22 minutes.
+
+For a local build, install the app's locked dependencies and use Java 17 plus its required Android SDK. From the app's `android/` directory, run `./gradlew assembleRelease` (`.\gradlew.bat assembleRelease` in PowerShell). The output is `app/build/outputs/apk/release/app-release.apk`; rename it using the table above before uploading. Follow any app-specific `AGENTS.md` instructions before changing native source.
+
+### 3. Attach and publish the release
+
+1. Open [Draft a new release](https://github.com/ByaHero/ByaHero/releases/new). Create the matching version tag using the **same commit that produced the APK**; do not accidentally tag a newer, different build of `main`.
+2. Enter a title and release notes. Attach the **APK first**, followed by its `.sha256` file. Save as a draft until the files are uploaded and checked.
+3. Publish the release with the APK already attached. The existing release-triggered APK workflows skip rebuilding when their matching APK asset is present.
+4. Keep the passenger release as GitHub's **Latest** release for the generic passenger download link. Conductor/admin releases should use their own tag and asset links without replacing that default.
+5. Verify the public APK link and install it over the previous app. Publishing makes the update discoverable; users still need to install it.
+
+The app update hooks check GitHub Releases directly first, then fall back to `GET /api/app-version?app=passenger`, `conductor`, or `admin`. The backend selects the matching app release and caches its metadata for up to five minutes. The public landing page also finds the passenger APK from GitHub Releases.
+
+References: [running a GitHub workflow](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/manually-run-a-workflow) and [managing GitHub releases](https://docs.github.com/en/repositories/releasing-projects-on-github/managing-releases-in-a-repository).
+
+## Google sign-in and current limitations
+
+Passenger **2.0.15 and later** use **<https://api.byahero.app/auth/google/callback>** for Google sign-in/sign-up. The exact URL is registered on the existing Google Web OAuth client. The browser callback returns the fragment ID token to the installed ByaHero app; Laravel verifies it through the production API. It accepts only the production app's root deep link, not arbitrary websites or Expo Go destinations.
+
+Passenger 2.0.14 and older retain the old alwaysdata callback until updated. Keep the old Google redirect entry and page while those installations or the rollback path are needed. The new APK does not require alwaysdata for its Google callback.
+
+Email signup/OTP and password reset are **temporarily unavailable** by the operator's choice because Brevo's outbound-IP restriction still blocks Vercel delivery. Existing password sign-in and Google sign-in remain available. Brevo IP blocking has not been disabled.
+
+Alwaysdata's backend, MySQL data, and files remain a **manual rollback copy**, not an automatically synchronized failover. Before reverting after Supabase has received writes, pause app writes and reconcile the data. Its readiness check previously returned HTTP 503; it is not a verified hot standby. One migrated attachment's original file was missing and has no backup; its stored reference was preserved.
+
+## Development and operational notes
+
+Use a separate development/test backend and database for development work. **The current native defaults and both Vite development proxies target the production API**; starting a local UI does not make its writes local. Retarget the client/proxy to an isolated backend before using it for data-changing tests. Use the protected `/admin-test/login` deployment for isolated admin acceptance checks.
+
+Backend tooling needs PHP 8.2+ and Composer 2; CI uses PHP 8.3. The backend, admin-web, and manual Android build workflows use Node 22; Android builds use Java 17. Install locked dependencies in the component being worked on rather than upgrading frameworks as part of an unrelated change.
+
+Never commit `.env` files, database passwords, Vercel tokens, Firebase private keys, Supabase server keys, or migration snapshots. Ignored operator files such as `.env.migration`, `.env.supabase`, `.env.supabase.production`, `.env.production.runtime`, `.vercel/`, and `storage/migration/` are not deployment artifacts. Share only the credential-free example templates and keep test/production settings separate.
+
+Further reading:
+
+- [Backend workflow details](laravel-backend/deploy/GITHUB-DEPLOYMENTS.md)
+- [App cutover checkpoint and rollback record](laravel-backend/deploy/APP-CUTOVER.md)
+- [Google callback migration](laravel-backend/deploy/GOOGLE-CALLBACK.md)
+- [Initial isolated test setup](laravel-backend/deploy/README.md)
+- [Admin test UI](byahero-admin-web/TEST-BACKEND.md)
+
+Some deployment notes record earlier preparation stages. Use this README's dated overview for current routing/releases and the checked-in workflows for exact automation behavior.
+
+## Developers
+
+CJ, EDGAR, TIMOTHY, CHELSEA, MIEL, and PAUL.
+
+## Historical panel suggestions
+
+The pre-oral defense notes included thermal scanning/ticket printing, additional AI/ML speed detection, route optimization, conductor ticketing improvements, fare integration, native applications, and e-ticket transfer. These are historical suggestions, not a statement that every item remains unimplemented.
 
 ## License
 
-See [LICENSE](LICENSE) file for details.
-
----
-
-## 📱 App Release & In-App Update Guide
-
-The ByaHero ecosystem consists of 3 mobile applications:
-- **Passenger App**: `byahero-mobile`
-- **Conductor App**: `byahero-conductor`
-- **Admin App**: `byahero-admin`
-
-Each mobile application features an automatic in-app version check and popup notification system.
-
-### How In-App Updates Work:
-1. When any mobile app launches, it queries `GET /api/app-version?app=<app_name>` (`passenger`, `conductor`, or `admin`).
-2. The Laravel backend (`AppVersionController.php`) dynamically queries the GitHub Releases API (`https://api.github.com/repos/ByaHero/ByaHero/releases`).
-3. If a newer release exists for that specific app, a popup modal appears with release notes and a direct APK download link.
-
----
-
-### Step-by-Step Release Process for App Updates
-
-#### Step 1: Bump Version Numbers
-Before building the target app:
-1. Open `android/app/build.gradle` inside the target app directory (`byahero-mobile`, `byahero-conductor`, or `byahero-admin`).
-2. Increment `versionCode` (e.g. `2` ➔ `3`) and update `versionName` (e.g. `"1.0.1"` ➔ `"1.0.2"`).
-3. Update `version` in `app.json` and `package.json` to match.
-
-#### Step 2: Build the Release APK
-Navigate to the `android/` directory of the app you want to build and run:
-```powershell
-.\gradlew assembleRelease
-```
-The generated release APK file will be located at:
-`android/app/build/outputs/apk/release/app-release.apk`
-
-#### Step 3: Publish Release on GitHub
-1. Go to **[GitHub Releases](https://github.com/ByaHero/ByaHero/releases)** ➔ Click **Draft a new release**.
-2. **Tag Conventions**:
-   - For **Passenger App**: Tag `v1.0.2` (e.g. `v1.0.2`) and attach `byahero.apk`.
-   - For **Conductor App**: Tag `conductor-v1.0.2` and attach `byahero-conductor.apk`.
-   - For **Admin App**: Tag `admin-v1.0.2` and attach `byahero-admin.apk`.
-3. Add release notes in the description box.
-4. Click **Publish Release**.
-
----
-
-## Post Pre-Oral Defense
-
-Panel Suggestions:
-1. Thermal Scanning/ thermal printer for printing of tickets
-2. More AI/ML model for faster bus speed detection and etc
-3. Route Optimization
-4. Enhanced conductor ticketing system
-5. Add Fare integration 
-6. Native Application
-7. E-ticket transfer
+See [LICENSE](LICENSE).
