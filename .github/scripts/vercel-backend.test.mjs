@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { assertProject, assertProductionAlias, assertProductionAliases, deploymentUrl, organization, productionDomain, projects, runtimeFile, verifyHttpAccess } from './vercel-backend.mjs';
+import { assertLatestCommit, assertProject, assertProductionAlias, assertProductionAliases, deploymentUrl, organization, productionDomain, projects, runtimeFile, verifyHttpAccess } from './vercel-backend.mjs';
 
 test('deployment source excludes private state, credentials, migrations tools and test UI', () => {
   for (const file of ['.env', '.env.production.runtime', 'storage/migration/export/users.jsonl', '.vercel/project.json', 'vendor/autoload.php', 'scripts/migrate-production.php', 'deploy/provider-check.php', 'deploy/PRODUCTION-STATUS.md', 'tests/Feature/ExampleTest.php', 'bootstrap/cache/config.php', 'public/public/login.php', 'public/admin-test/index.html', 'public/storage/photo.jpg', '../config/app.php', 'app/.env.secret']) {
@@ -66,4 +66,39 @@ test('test checks reject public access and verify Laravel auth behind Vercel pro
 test('URLs are confined to dedicated-account Vercel origins', () => {
   assert.equal(deploymentUrl('https://byahero-backend-abc-byaherosupport-2249.vercel.app'), 'https://byahero-backend-abc-byaherosupport-2249.vercel.app');
   for (const url of ['https://example.com', 'http://byahero-backend-abc-byaherosupport-2249.vercel.app', 'https://byahero-backend-abc-byaherosupport-2249.vercel.app/path', 'https://byahero-backend-abc-byaherosupport-2249.vercel.app.evil.test']) assert.throws(() => deploymentUrl(url));
+});
+
+test('branch checks retry bounded network failures using fresh connections', async () => {
+  const sha = 'a'.repeat(40);
+  let calls = 0;
+  const pauses = [];
+  await assertLatestCommit(sha, {
+    async request(url, options) {
+      assert.equal(url, 'https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/main');
+      assert.equal(options.headers.Connection, 'close');
+      if (++calls === 1) throw new TypeError('fetch failed');
+      return Response.json({ object: { sha } });
+    },
+    async pause(ms) { pauses.push(ms); },
+  });
+  assert.equal(calls, 2);
+  assert.deepEqual(pauses, [500]);
+});
+
+test('unreachable or stale branch checks always stop the release', async () => {
+  const sha = 'a'.repeat(40);
+  let calls = 0;
+  await assert.rejects(assertLatestCommit(sha, {
+    async request() { calls++; throw new TypeError('fetch failed'); },
+    async pause() {},
+  }), /unreachable/);
+  assert.equal(calls, 3);
+  for (const response of [Response.json({ object: { sha: 'b'.repeat(40) } }), new Response(null, { status: 403 })]) {
+    calls = 0;
+    await assert.rejects(assertLatestCommit(sha, {
+      async request() { calls++; return response; },
+      async pause() { assert.fail('A stale/denied response must not be retried'); },
+    }), /stale|failed/);
+    assert.equal(calls, 1);
+  }
 });

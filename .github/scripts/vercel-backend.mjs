@@ -74,12 +74,22 @@ export function assertProductionAliases(aliases) {
   if ((aliases ?? []).some(alias => (typeof alias === 'string' ? alias : alias.alias) !== productionDomain)) throw new Error('Unexpected production alias; only the API domain may be changed.');
 }
 
-export async function assertLatestCommit(sha) {
-  const response = await fetch(`https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/${branch}`, {
-    headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json' },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!response.ok || (await response.json()).object?.sha !== sha) throw new Error('This run is stale; deploy and approve the latest branch commit.');
+export async function assertLatestCommit(sha, { request = fetch, pause = ms => new Promise(resolve => setTimeout(resolve, ms)) } = {}) {
+  let response;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      response = await request(`https://api.github.com/repos/ByaHero/ByaHero/git/ref/heads/${branch}`, {
+        // Long synchronous CLI builds can leave an idle connection unusable.
+        headers: { Authorization: `Bearer ${process.env.GITHUB_TOKEN}`, Accept: 'application/vnd.github+json', Connection: 'close' },
+        signal: AbortSignal.timeout(15000),
+      });
+      break;
+    } catch {
+      if (attempt === 2) throw new Error('GitHub branch check is unreachable; release stopped without bypassing the check.');
+      await pause(500 * (attempt + 1));
+    }
+  }
+  if (!response.ok || (await response.json()).object?.sha !== sha) throw new Error('This run is stale or the branch check failed; deploy and approve the latest branch commit.');
 }
 
 export async function verifyHttpAccess(role, url, { request = fetch, protectedGet } = {}) {
