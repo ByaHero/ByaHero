@@ -1,14 +1,14 @@
-# Protected production candidate — 14 November 2026
+# Production backend status — 14 November 2026
 
-**Prepared, but not serving the live apps.** The user chose to retain Brevo's unknown-IP blocking and keep the backend protected. Alwaysdata remains the live source of truth. No app endpoints, DNS, published frontend settings, or alwaysdata files/data were changed.
+**Public API access enabled; live app endpoints unchanged.** The user explicitly requested removal of Vercel sign-in protection from the production backend. Brevo's unknown-IP blocking remains enabled. Alwaysdata remains the live source of truth; no endpoint cutover, DNS change, data refresh, or alwaysdata upload was performed by this access change. Private API routes still require Laravel authentication.
 
-- [Protected candidate health](https://byahero-backend-8dijii74a-byaherosupport-2249.vercel.app/api/health)
+- [Public production API health](https://byahero-backend-mltedke5l-byaherosupport-2249.vercel.app/api/health)
 - [Dedicated Vercel project](https://vercel.com/byaherosupport-2249/byahero-backend)
 - [Supabase project](https://supabase.com/dashboard/project/dvkpbydrrpurlbjsjlux)
 
-Project: `prj_1LnFKHZz3I9mGcr7fk7gVFTMavUo`, owned by `byaherosupport-2249` on Hobby. Current clean deployment: `dpl_AvZfKwkKmNVfSYZFXQqCgUazoMn2`, **READY**, Production environment, Mumbai (`bom1`). It was deployed with `--prod --skip-domain`; its alias list is empty. Vercel Authentication protects **all** deployments (`ssoProtection.deploymentType=all`). There is no Git integration. No paid upgrades or add-ons were enabled.
+Project: `prj_1LnFKHZz3I9mGcr7fk7gVFTMavUo`, owned by `byaherosupport-2249` on Hobby. Latest approved production deployment at the access change: `dpl_JBcmajE1hhVWekj1YwkiJAdTyCTr`, **READY**, commit `b8c63bcda5bc5b7a6c9b00c25c0a41b413d49b07`, Production environment, Mumbai (`bom1`). GitHub run `43467663622` completed its test and approved production jobs successfully. It was deployed with `--prod --skip-domain`; no alias promotion is included in this access change. Production Vercel Authentication is disabled (`ssoProtection=null`); the separate test project retains `deploymentType=all`. There is no backend Git integration. No paid upgrades or add-ons were enabled.
 
-The [GitHub release pipeline](GITHUB-DEPLOYMENTS.md) now uses **main** and GitHub Actions rather than Vercel Git integration. It automatically updates the protected test project and requires `timbibat`'s environment approval before staging a new protected production candidate. The user merged PR #327, which triggered the old live alwaysdata backend/admin workflows, and then chose to keep that merged code. The backend/admin alwaysdata workflows have been changed to manual-only. App endpoint configuration and production data were not changed by this routing update. The preparation snapshot and checks described below predate that user-triggered live code deployment.
+The [GitHub release pipeline](GITHUB-DEPLOYMENTS.md) uses **main** and GitHub Actions rather than Vercel Git integration. It automatically updates the protected test project and requires `timbibat`'s environment approval before deploying production. Production checks now require direct public health access plus Laravel HTTP 401 on private routes, without bypass credentials. The user merged PR #327, which triggered the old live alwaysdata backend/admin workflows, and then chose to keep that merged code. The backend/admin alwaysdata workflows are manual-only. App endpoint configuration and production data were not changed by the routing or public-access updates. The preparation snapshot and checks described below predate that user-triggered live code deployment.
 
 The local backend's normal `.vercel/project.json` still points to the separate **test** project. Production deployment used an audited, generated source directory at ignored `.vercel/production-source/` with its own project link. Do not accidentally deploy the test admin bundle or test environment into this project.
 
@@ -36,14 +36,14 @@ Dependencies were updated within the existing Laravel 12/PHP 8.2-compatible rang
 - The final clean candidate returned `{"ready":true}` with HTTP 200 through authorized access. An ordinary unauthenticated health request returned HTTP 302 to Vercel Authentication. After passing that protection, an anonymous dashboard request with an email header returned application HTTP 401.
 - The existing live frontend project's configuration timestamp was verified unchanged (`1794493876647`). No Git push or alwaysdata deployment workflow was triggered.
 
-The existing protected test deployments still contain their earlier authentication implementation. These production hardening changes have not been redeployed to them.
+The newer GitHub test deployments also include the authentication hardening. Historical manual test deployments may retain earlier code and remain protected.
 
 ## Hold and remaining acceptance
 
-**Email is not ready:** Brevo rejects the Vercel runtime with HTTP 401 for unknown outbound IPs. This was observed from more than one Vercel outbound address. The user explicitly chose to retain account-wide API-key IP blocking and keep this backend protected. The key's validity cannot be established while Brevo rejects the source IP. No email was sent. A compatible email delivery arrangement must be tested before making OTP/password-reset flows available to users.
+**Email is not ready:** Brevo rejects the Vercel runtime with HTTP 401 for unknown outbound IPs. This was observed from more than one Vercel outbound address. The user retained account-wide API-key IP blocking and subsequently authorized public API access separately. The key's validity cannot be established while Brevo rejects the source IP. No email was sent. A compatible email delivery arrangement must be tested before relying on OTP/password-reset flows.
 
 Firebase service-account OAuth authentication succeeded (HTTP 200). Actual push delivery has not been tested, and no push was sent. Copied production device tokens were omitted. The separate Python ML service remains disabled; ETA uses the existing local fallback. The candidate excludes the admin test UI. Its cookie policy is `SameSite=Lax`; any future separate-origin browser frontend needs a reviewed same-origin proxy or a verified cookie/CORS configuration before switching.
 
-The temporary provider probe is absent from the current source and deployment. An earlier diagnostic deployment remains protected in Vercel history; it was not publicly promoted or deleted.
+The temporary provider probe is absent from the current source and deployment. An earlier diagnostic deployment remains in Vercel history; it was not promoted or deleted. Removing project-level Vercel Authentication also makes older production-project URLs public; their Laravel authentication checks still apply.
 
 Before a future cutover: resolve email delivery, complete affected-ISP and real frontend/native-app acceptance, arrange the agreed short pause in live writes, take fresh backups, and reconcile the latest alwaysdata data into the candidate. **This snapshot is not continuous replication.** No pause or final sync/switch has occurred. Do not run historic migrations, seeders, or destructive refresh commands against either imported schema. Keep alwaysdata available; reverting endpoints after new Supabase writes would require data reconciliation.

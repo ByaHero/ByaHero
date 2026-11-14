@@ -1,6 +1,6 @@
 # Test deployment status — 13 November 2026
 
-Production preparation is recorded separately in [protected production candidate status](PRODUCTION-STATUS.md), updated 14 November. That candidate remains protected at the user's request; the live apps still use alwaysdata.
+Production access is recorded separately in [production backend status](PRODUCTION-STATUS.md), updated 14 November. The production API is public at the user's request, with private routes still requiring Laravel authentication. The test backend remains protected; live app endpoints still use alwaysdata.
 
 For current deployment behavior, see [GitHub deployments](GITHUB-DEPLOYMENTS.md): reviewed backend changes on **main** deploy to the protected test project, with production awaiting approval. Alwaysdata backend/admin uploads are manual-only. The test URLs and manual verification record below are historical; use the latest Actions job summary for the current test URL.
 

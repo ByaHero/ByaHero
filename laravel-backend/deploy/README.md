@@ -2,7 +2,7 @@
 
 This deployment is a separate copy. Keep alwaysdata, its MySQL database, DNS, and the published apps unchanged until the new deployment has passed testing. Do not push these changes into a branch that automatically deploys to alwaysdata during this trial.
 
-The separate production candidate is now prepared but remains protected at the user's request. See [production status and remaining checks](PRODUCTION-STATUS.md). The instructions below continue to describe the isolated test setup.
+The separate production API is now public at the user's request; Laravel authentication remains required on private routes. Existing app endpoints have not switched. See [production status and remaining checks](PRODUCTION-STATUS.md). The instructions below continue to describe the protected, isolated test setup.
 
 For ongoing backend updates, merge reviewed changes into `main` to use the [GitHub test deployment and production approval workflow](GITHUB-DEPLOYMENTS.md). The alwaysdata backend/admin upload workflows are manual-only. The user retained the previously merged live code; changing deployment routing does not verify or repair that live backend.
 

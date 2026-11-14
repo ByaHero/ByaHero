@@ -1,4 +1,4 @@
-name: Backend - protected Vercel releases
+name: Backend - Vercel releases with production approval
 
 on:
   push:
@@ -76,7 +76,7 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
 
   production:
-    name: Approve protected production candidate
+    name: Approve production backend deployment
     needs: test
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -94,7 +94,7 @@ jobs:
           node-version: '22'
       - name: Install pinned Vercel CLI
         run: npm install --global --ignore-scripts "vercel@$VERCEL_CLI_VERSION"
-      - name: Stage and check approved production candidate
+      - name: Deploy and check approved production backend
         id: deploy
         run: node .github/scripts/vercel-backend.mjs production
         env:

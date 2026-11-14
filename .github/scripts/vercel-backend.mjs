@@ -27,7 +27,8 @@ export function runtimeFile(relative) {
 
 export function assertProject(project, role, environmentVariables) {
   if (!projects[role] || project.id !== projects[role] || project.accountId !== organization) throw new Error('Wrong Vercel project or owner.');
-  if (project.ssoProtection?.deploymentType !== 'all') throw new Error('All deployment URLs must remain protected.');
+  if (role === 'test' && project.ssoProtection?.deploymentType !== 'all') throw new Error('All test deployment URLs must remain protected.');
+  if (role === 'production' && (project.ssoProtection != null || project.passwordProtection != null || project.trustedIps != null)) throw new Error('Production API must be publicly reachable; Laravel authentication stays required.');
   if (project.link) throw new Error('Unexpected Git integration; review automatic deployment behavior first.');
   const target = role === 'test' ? 'preview' : 'production';
   const configuration = Object.fromEntries(environmentVariables.filter(variable => variable.target?.includes(target)).map(variable => [variable.key, variable.value]));
@@ -61,6 +62,28 @@ export function deploymentUrl(value) {
   const url = new URL(value);
   if (url.protocol !== 'https:' || url.origin !== value || !url.hostname.endsWith(`-${scope}.vercel.app`)) throw new Error('Unexpected deployment URL.');
   return url.origin;
+}
+
+export async function verifyHttpAccess(role, url, { request = fetch, protectedGet } = {}) {
+  const options = { redirect: 'manual', signal: AbortSignal.timeout(30000) };
+  const healthResponse = await request(`${url}/api/health`, options);
+  let health;
+  let privateRoute;
+  if (role === 'test') {
+    if (![302, 401, 403].includes(healthResponse.status)) throw new Error('Test deployment did not reject unauthenticated public access.');
+    health = await protectedGet('/api/health');
+    privateRoute = await protectedGet('/api/admin/dashboard-stats');
+  } else if (role === 'production') {
+    if (healthResponse.status !== 200) throw new Error('Production health is not publicly reachable.');
+    health = { status: healthResponse.status, body: await healthResponse.json() };
+    const response = await request(`${url}/api/admin/dashboard-stats`, options);
+    if (response.status !== 401) throw new Error('Public production API did not enforce Laravel authentication.');
+    privateRoute = { status: response.status, body: await response.json() };
+  } else {
+    throw new Error('Unknown deployment role.');
+  }
+  if (health.status !== 200 || health.body.ready !== true) throw new Error('Backend readiness failed.');
+  if (privateRoute.status !== 401 || privateRoute.body.success !== false || privateRoute.body.message !== 'Authentication required') throw new Error('Anonymous application authorization check failed.');
 }
 
 async function copyTree(source, destination) {
@@ -139,18 +162,16 @@ async function main(role) {
   if (role === 'production' && deployment.alias?.length) throw new Error('Unexpected production aliases; review before proceeding.');
   assertProject(api(`/v9/projects/${projects[role]}`), role, variables);
 
-  const publicResponse = await fetch(`${url}/api/health`, { redirect: 'manual', signal: AbortSignal.timeout(30000) });
-  if (![302, 401, 403].includes(publicResponse.status)) throw new Error('Deployment did not reject unauthenticated public access.');
-  const health = JSON.parse(command('vercel', ['curl', `${url}/api/health`, '--scope', scope, '--', '--silent', '--show-error', '--fail-with-body'], stage));
-  if (health.ready !== true) throw new Error('Protected backend readiness failed.');
-  const privateResponse = command('vercel', ['curl', `${url}/api/admin/dashboard-stats`, '--scope', scope, '--', '--silent', '--show-error', '--write-out', '\n%{http_code}'], stage);
-  const statusStart = privateResponse.lastIndexOf('\n');
-  const privateRoute = JSON.parse(privateResponse.slice(0, statusStart));
-  if (privateResponse.slice(statusStart + 1) !== '401' || privateRoute.success !== false || privateRoute.message !== 'Authentication required') throw new Error('Anonymous application authorization check failed.');
+  await verifyHttpAccess(role, url, { protectedGet(endpoint) {
+    const response = command('vercel', ['curl', `${url}${endpoint}`, '--scope', scope, '--', '--silent', '--show-error', '--write-out', '\n%{http_code}'], stage);
+    const statusStart = response.lastIndexOf('\n');
+    return { status: Number(response.slice(statusStart + 1)), body: JSON.parse(response.slice(0, statusStart)) };
+  } });
   if (process.env.GITHUB_OUTPUT) await appendFile(process.env.GITHUB_OUTPUT, `url=${url}\n`);
-  const summary = `### Protected ${role} backend\n\nCommit: \`${sha}\`\n\n[Open deployment](${url})\n\nREADY; health passed; Vercel protection and application authentication checked.\n\n${role === 'test' ? 'Check this test deployment before approving the production job.' : 'Production candidate only: no alias promotion, endpoint change, migration, or data sync was performed.'}\n`;
+  const access = role === 'test' ? 'Vercel sign-in protected' : 'Public API with Laravel authentication on private routes';
+  const summary = `### ${role} backend\n\nCommit: \`${sha}\`\n\n[Open deployment](${url})\n\nREADY; health and authentication checks passed. ${access}.\n\n${role === 'test' ? 'Check this test deployment before approving the production job.' : 'No alias promotion, endpoint change, migration, or data sync was performed.'}\n`;
   if (process.env.GITHUB_STEP_SUMMARY) await appendFile(process.env.GITHUB_STEP_SUMMARY, summary);
-  console.log(`Protected ${role} deployment verified: ${url}`);
+  console.log(`${role} deployment verified: ${url}`);
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
