@@ -1,6 +1,6 @@
 # GitHub backend deployments
 
-The release branch is **`main`** in `ByaHero/ByaHero`. Backend, admin UI, or Vercel pipeline changes pushed or merged into `main` run [Backend and admin - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml). The workflow can also be started manually from `main`.
+The release branch is **`main`** in `ByaHero/ByaHero`. Every push or merge into `main` runs [Backend and admin - Vercel releases with production approval](https://github.com/ByaHero/ByaHero/actions/workflows/deploy-vercel-backend.yml), including mobile-only and documentation changes. The release guards require the exact branch head, so every new commit needs a replacement test and approval run. The workflow can also be started manually from `main`.
 
 ## Admin frontend on Vercel — 14 November 2026
 
@@ -21,7 +21,7 @@ The user merged the prepared Laravel/Supabase code into `main` in PR #327 and ch
 5. Approval deploys the **same Git commit** in the separate production project. The production API is publicly reachable at the user's request; private routes still require Laravel session authentication. The pipeline first builds with `--prod --skip-domain` and verifies readiness/authentication on the immutable deployment URL. It then checks that the approved commit is still current on main, assigns **only `api.byahero.app`** to that healthy deployment, confirms the alias points to the exact production project/deployment, and repeats the public health/private HTTP 401 checks on the custom domain. It switches no live application endpoint and performs no data cutover.
 6. The same approved job stages and verifies the separate admin website, then assigns only `admin.byahero.app`. Verify dashboard sign-in and navigation on this hostname. Existing alwaysdata uploads are not part of either deployment step.
 
-A new matching push cancels an older run and pending approval. The deployment script also checks the branch head before releasing, rejecting a stale commit. Cancelling a workflow after Vercel has already accepted a build does not delete that immutable deployment. Test URLs remain protected; production project URLs are public. Test and production have different runtime configuration and are separately built from the same commit.
+A new push to `main` cancels an older run and pending approval. The deployment script also checks the branch head before releasing, rejecting a stale commit. If a run reports that it is stale, approve the newest run instead of rerunning the old commit. If there is no newer run, use **Run workflow** on `main` to test the current head before approving production. Cancelling a workflow after Vercel has already accepted a build does not delete that immutable deployment. Test URLs remain protected; production project URLs are public. Test and production have different runtime configuration and are separately built from the same commit.
 
 The older `codex/vercel-backend` workflow run was canceled when routing moved to `main`. That branch is no longer authorized to use either Vercel deployment environment. Always review the latest **main** run before approving production.
 

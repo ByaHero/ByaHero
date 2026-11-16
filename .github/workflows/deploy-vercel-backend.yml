@@ -3,13 +3,8 @@ name: Backend and admin - Vercel releases with production approval
 on:
   push:
     branches: [main]
-    paths:
-      - 'laravel-backend/**'
-      - 'byahero-admin-web/**'
-      - '.github/workflows/deploy-vercel-backend.yml'
-      - '.github/scripts/vercel-backend*.mjs'
-      - '.github/scripts/vercel-admin-web*.mjs'
-      - '.github/scripts/google-callback.test.mjs'
+    # Release guards require the exact main head, including mobile-only commits.
+    # Every push must replace stale runs with a new test and approval run.
   workflow_dispatch:
 
 permissions:
