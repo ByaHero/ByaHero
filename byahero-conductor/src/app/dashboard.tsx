@@ -371,12 +371,26 @@ export default function DashboardScreen() {
 
     try {
       const startLocName = 'Terminal';
-      const res = await startOperation({
+      let res = await startOperation({
         bus_id: selectedBus.id || selectedBus.Bus_ID,
         route: selectedRoute,
         pre_departure_count: boardingCount,
         start_location: startLocName
       });
+
+      // Quick retry once if initial start attempt timed out or failed due to backend wake-up
+      if ((!res?.success || !res?.operation_id) && res?.error !== 'bus_taken') {
+        await new Promise(r => setTimeout(r, 1000));
+        const retryRes = await startOperation({
+          bus_id: selectedBus.id || selectedBus.Bus_ID,
+          route: selectedRoute,
+          pre_departure_count: boardingCount,
+          start_location: startLocName
+        });
+        if (retryRes?.success && retryRes?.operation_id) {
+          res = retryRes;
+        }
+      }
 
       let operationId = res?.operation_id;
       let isOfflineSession = false;

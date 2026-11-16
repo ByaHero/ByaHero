@@ -71,7 +71,16 @@ class BusController extends Controller
                     $r['status'] = $geo['properties']['status'];
                 }
             } else {
-                $r['current_location'] = null;
+                // Fallback to coordinates stored on the bus row
+                if ($bus->lat !== null && $bus->lng !== null) {
+                    $r['lat'] = (float)$bus->lat;
+                    $r['lng'] = (float)$bus->lng;
+                    $r['latitude'] = (float)$bus->lat;
+                    $r['longitude'] = (float)$bus->lng;
+                }
+                if (!empty($bus->current_location)) {
+                    $r['current_location_name'] = $bus->current_location;
+                }
             }
 
             if (isset($r['seat_availability']) && (int)$r['seat_availability'] < 0) {

@@ -36,6 +36,11 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET', t
     'X-Requested-With': 'XMLHttpRequest'
   };
 
+  if (cachedEmail) {
+    headers['X-User-Email'] = cachedEmail;
+    headers['X-Conductor-Email'] = cachedEmail;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 

@@ -27,7 +27,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary, startOperation } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -690,6 +690,28 @@ export default function LiveTrackingScreen() {
         }
       }
       setNetStatus('Live');
+
+      // If this session was started offline, try promoting it to a live DB operation
+      if (activeSession.operation_id && String(activeSession.operation_id).startsWith('offline_op_')) {
+        try {
+          const startRes = await startOperation({
+            bus_id: activeSession.bus_id,
+            route: activeSession.route,
+            pre_departure_count: activeSession.pre_departure_count || 0,
+            start_location: activeSession.start_location || locName || 'Terminal'
+          });
+          if (startRes && startRes.success && startRes.operation_id) {
+            const updated = {
+              ...activeSession,
+              operation_id: startRes.operation_id,
+              is_offline_session: false
+            };
+            sessionRef.current = updated;
+            setSession(updated);
+            AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(updated)).catch(() => {});
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       if (e instanceof Error && e.message.includes('403')) {
         handleAdminStop();
