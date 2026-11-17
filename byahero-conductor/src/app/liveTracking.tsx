@@ -27,7 +27,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary, startOperation } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary, startOperation, getActiveBuses } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -191,6 +191,68 @@ export default function LiveTrackingScreen() {
     });
   }, [session, sessionInitialized, seats, boardedCount, totalServed, pendingPreDeparture, ticketCounter, activePassengers, sessionReceipts]);
 
+  const postToMap = (message: any) => {
+    const payload = JSON.stringify(message);
+    if (Platform.OS === 'web') {
+      (webViewRef.current as any)?.contentWindow?.postMessage(payload, '*');
+    } else {
+      webViewRef.current?.postMessage(payload);
+    }
+  };
+
+  const fetchOtherBusesForMap = async () => {
+    try {
+      const res = await getActiveBuses();
+      if (res && res.success && Array.isArray(res.buses)) {
+        const myBusId = sessionRef.current?.bus_id ?? session?.bus_id;
+        const myCode = sessionRef.current?.code ?? session?.code;
+
+        const normalized = res.buses.map((bus: any) => {
+          let coords = null;
+          if (bus.current_location) {
+            try {
+              const geo = JSON.parse(bus.current_location);
+              if (geo.geometry) coords = [geo.geometry.coordinates[1], geo.geometry.coordinates[0]];
+            } catch (e) {}
+          }
+          if (!coords && bus.lat && bus.lng) coords = [parseFloat(bus.lat), parseFloat(bus.lng)];
+
+          return {
+            id: bus.Bus_ID || bus.id,
+            code: bus.code || 'BUS',
+            route: bus.route || '',
+            status: bus.status || 'unavailable',
+            coords: coords,
+            locName: bus.current_location_name || 'Updating...'
+          };
+        });
+
+        const otherBuses = normalized.filter((b: any) =>
+          (!myBusId || String(b.id) !== String(myBusId)) &&
+          (!myCode || b.code !== myCode) &&
+          b.status !== 'unavailable' &&
+          b.coords !== null &&
+          !isNaN(b.coords[0]) &&
+          !isNaN(b.coords[1])
+        );
+
+        postToMap({
+          type: 'UPDATE_BUSES',
+          buses: otherBuses
+        });
+      }
+    } catch (e) {
+      console.warn('Failed to fetch other live buses for map:', e);
+    }
+  };
+
+  // Periodic poll for other active buses on the map during live tracking
+  useEffect(() => {
+    fetchOtherBusesForMap();
+    const interval = setInterval(fetchOtherBusesForMap, 10000);
+    return () => clearInterval(interval);
+  }, [session?.bus_id]);
+
   useEffect(() => {
     getServerUrl().then(url => setBaseUrl(url));
     
@@ -234,6 +296,8 @@ export default function LiveTrackingScreen() {
                 },
                 timestamp: Date.now(),
               } as any);
+            } else if (data.type === 'MAP_READY') {
+              fetchOtherBusesForMap();
             }
           } catch (err) {}
         };
@@ -424,6 +488,7 @@ export default function LiveTrackingScreen() {
     setActivePassengers(payload.active_passengers || []);
     setSessionReceipts(Array.isArray(payload.session_receipts) ? payload.session_receipts : []);
     setSessionInitialized(true);
+    fetchOtherBusesForMap();
 
     // Load route features for geofenced location parsing
     try {
@@ -530,15 +595,6 @@ export default function LiveTrackingScreen() {
     }
   };
 
-  const postToMap = (message: any) => {
-    const payload = JSON.stringify(message);
-    if (Platform.OS === 'web') {
-      (webViewRef.current as any)?.contentWindow?.postMessage(payload, '*');
-    } else {
-      webViewRef.current?.postMessage(payload);
-    }
-  };
-
   const onLocationUpdate = (location: Location.LocationObject) => {
     if (sessionRef.current?.isSimulation) return;
     const lat = location.coords.latitude;
@@ -620,6 +676,7 @@ export default function LiveTrackingScreen() {
       lat,
       lng,
       status: computedStatus,
+      code: sessionRef.current?.code || session?.code,
       pan: true
     });
 
@@ -1608,7 +1665,14 @@ export default function LiveTrackingScreen() {
               originWhitelist={['*']}
               source={{ html: getConductorLeafletHTML(baseUrl) }}
               style={StyleSheet.absoluteFillObject}
-              onMessage={() => { }}
+              onMessage={(event) => {
+                try {
+                  const data = JSON.parse(event.nativeEvent.data);
+                  if (data.type === 'MAP_READY') {
+                    fetchOtherBusesForMap();
+                  }
+                } catch (e) {}
+              }}
             />
           )}
         </View>
