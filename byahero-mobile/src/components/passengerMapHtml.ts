@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Generates the Leaflet HTML source code for the passenger map WebView.
  * 
@@ -321,38 +319,42 @@ export function getLeafletHTML(baseUrl: string): string {
               }
             } 
             else if (data.type === 'UPDATE_BUSES') {
-              Object.keys(busMarkers).forEach(function(key) {
-                map.removeLayer(busMarkers[key]);
-              });
-              busMarkers = {};
-              data.buses.forEach(function(bus) {
-                var lat = bus.lat || bus.latitude;
-                var lng = bus.lng || bus.longitude;
-                if (lat && lng) {
-                  var busIcon = L.divIcon({
-                    className: 'bus-marker-svg-container',
-                    html: '<div style="width:28px;height:28px;">' +
-                          '<svg width="28" height="28" viewBox="0 0 3429 3429" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-                          '<circle cx="1714.5" cy="1714.5" r="1714.5" fill="white"/>' +
-                          '<rect x="931" y="1365" width="202" height="439" rx="59" fill="#021F53"/>' +
-                          '<rect x="1114" y="2213" width="308" height="322" rx="59" fill="#021F53"/>' +
-                          '<rect x="2297" y="1365" width="202" height="439" rx="59" fill="#021F53"/>' +
-                          '<rect x="2013" y="2261" width="308" height="274" rx="59" fill="#021F53"/>' +
-                          '<path d="M2148 969C2275.03 969 2378 1071.97 2378 1199V2316H1052V1199C1052 1071.97 1154.97 969 1282 969H2148ZM1268.5 1962C1205.26 1962 1154 2013.26 1154 2076.5C1154 2139.74 1205.26 2191 1268.5 2191C1331.74 2191 1383 2139.74 1383 2076.5C1383 2013.26 1331.74 1962 1268.5 1962ZM2182.5 1962C2119.26 1962 2068 2013.26 2068 2076.5C2068 2139.74 2119.26 2191 2182.5 2191C2245.74 2191 2297 2139.74 2297 2076.5C2297 2013.26 2245.74 1962 2182.5 1962ZM1173 1804H1636V1263H1173V1804ZM1808 1804H2271V1263H1808V1804Z" fill="#021F53"/>' +
-                          '<path d="M1714.5 168C2568.61 168 3261 860.392 3261 1714.5C3261 2568.61 2568.61 3261 1714.5 3261C860.392 3261 168 2568.61 168 1714.5C168 860.392 860.392 168 1714.5 168ZM1714.5 598C1097.87 598 598 1097.87 598 1714.5C598 2331.13 1097.87 2831 1714.5 2831C2331.13 2831 2831 2331.13 2831 1714.5C2831 1097.87 2331.13 598 1714.5 598Z" fill="#021F53"/>' +
-                          '</svg>' +
-                          '</div>',
-                    iconSize: [28, 28],
-                    iconAnchor: [14, 14],
-                    popupAnchor: [0, -14]
-                  });
-                  var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon, zIndexOffset: 800 })
-                    .bindPopup('<b>Bus Plate:</b> ' + (bus.plate_number || 'N/A') + '<br/><b>Route:</b> ' + (bus.route || 'N/A'))
-                    .addTo(map);
-                  var busKey = bus.Bus_ID || bus.bus_id || bus.plate_number;
-                  busMarkers[busKey] = m;
-                }
-              });
+              if (Array.isArray(data.buses) && data.buses.length > 0) {
+                Object.keys(busMarkers).forEach(function(key) {
+                  map.removeLayer(busMarkers[key]);
+                });
+                busMarkers = {};
+                data.buses.forEach(function(bus) {
+                  var lat = bus.lat || bus.latitude;
+                  var lng = bus.lng || bus.longitude;
+                  if (lat && lng) {
+                    var busIcon = L.divIcon({
+                      className: 'bus-marker-svg-container',
+                      html: '<div style="width:28px;height:28px;">' +
+                            '<svg width="28" height="28" viewBox="0 0 3429 3429" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+                            '<circle cx="1714.5" cy="1714.5" r="1714.5" fill="white"/>' +
+                            '<rect x="931" y="1365" width="202" height="439" rx="59" fill="#021F53"/>' +
+                            '<rect x="1114" y="2213" width="308" height="322" rx="59" fill="#021F53"/>' +
+                            '<rect x="2297" y="1365" width="202" height="439" rx="59" fill="#021F53"/>' +
+                            '<rect x="2013" y="2261" width="308" height="274" rx="59" fill="#021F53"/>' +
+                            '<path d="M2148 969C2275.03 969 2378 1071.97 2378 1199V2316H1052V1199C1052 1071.97 1154.97 969 1282 969H2148ZM1268.5 1962C1205.26 1962 1154 2013.26 1154 2076.5C1154 2139.74 1205.26 2191 1268.5 2191C1331.74 2191 1383 2139.74 1383 2076.5C1383 2013.26 1331.74 1962 1268.5 1962ZM2182.5 1962C2119.26 1962 2068 2013.26 2068 2076.5C2068 2139.74 2119.26 2191 2182.5 2191C2245.74 2191 2297 2139.74 2297 2076.5C2297 2013.26 2245.74 1962 2182.5 1962ZM1173 1804H1636V1263H1173V1804ZM1808 1804H2271V1263H1808V1804Z" fill="#021F53"/>' +
+                            '<path d="M1714.5 168C2568.61 168 3261 860.392 3261 1714.5C3261 2568.61 2568.61 3261 1714.5 3261C860.392 3261 168 2568.61 168 1714.5C168 860.392 860.392 168 1714.5 168ZM1714.5 598C1097.87 598 598 1097.87 598 1714.5C598 2331.13 1097.87 2831 1714.5 2831C2331.13 2831 2831 2331.13 2831 1714.5C2831 1097.87 2331.13 598 1714.5 598Z" fill="#021F53"/>' +
+                            '</svg>' +
+                            '</div>',
+                      iconSize: [28, 28],
+                      iconAnchor: [14, 14],
+                      popupAnchor: [0, -14]
+                    });
+                    var busLabel = bus.code || bus.plate_number || ('BUS-' + (bus.Bus_ID || ''));
+                    var seatsText = (bus.seat_availability !== undefined && bus.seat_availability !== null) ? ('<br/><b>Seats:</b> ' + bus.seat_availability + ' available') : '';
+                    var m = L.marker([parseFloat(lat), parseFloat(lng)], { icon: busIcon, zIndexOffset: 800 })
+                      .bindPopup('<b>Bus:</b> ' + busLabel + '<br/><b>Route:</b> ' + (bus.route || 'N/A') + seatsText)
+                      .addTo(map);
+                    var busKey = bus.Bus_ID || bus.bus_id || bus.plate_number || bus.code;
+                    busMarkers[busKey] = m;
+                  }
+                });
+              }
             }
             else if (data.type === 'UPDATE_STOPS') {
               Object.keys(stopMarkers).forEach(function(key) {

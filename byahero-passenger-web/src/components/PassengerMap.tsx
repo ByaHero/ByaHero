@@ -281,13 +281,16 @@ export const PassengerMap: React.FC<PassengerMapProps> = ({ onOpenWaitingModal, 
         }
     });
 
-    // Remove deleted buses
-    busMarkersRef.current.forEach((marker, key) => {
-      if (!currentBusIds.has(key)) {
-        marker.remove();
-        busMarkersRef.current.delete(key);
-      }
-    });
+    // Remove deleted buses only when we have a valid list of buses to reconcile with
+    // (prevents wiping out markers if an offline glitch or empty response occurs)
+    if (filteredBuses.length > 0) {
+      busMarkersRef.current.forEach((marker, key) => {
+        if (!currentBusIds.has(key)) {
+          marker.remove();
+          busMarkersRef.current.delete(key);
+        }
+      });
+    }
   }, [filteredBuses, isBoarded, boardedBus, currentZoom]);
 
   // Update Bus Stops Markers – only visible on the 'busstops' tab
