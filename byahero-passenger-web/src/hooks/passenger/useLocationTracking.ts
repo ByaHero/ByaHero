@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getServerUrl } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
 
 export type LocationPermissionStatus = 'prompt' | 'granted' | 'denied' | 'unavailable';
 
@@ -8,6 +8,14 @@ interface LocationHookProps {
 }
 
 export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}) {
+  const { session } = useAuth();
+  const sessionRef = useRef(session);
+  const lastSyncTimeRef = useRef<number>(0);
+  useEffect(() => {
+    sessionRef.current = session;
+    lastSyncTimeRef.current = 0;
+  }, [session]);
+
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [permissionStatus, setPermissionStatus] = useState<LocationPermissionStatus>('prompt');
   const [isLocating, setIsLocating] = useState(false);
@@ -18,18 +26,16 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
     onCenterLocationRef.current = onCenterLocation;
   }, [onCenterLocation]);
 
-  const lastSyncTimeRef = useRef<number>(0);
   const syncLocationToServer = useCallback(async (lat: number, lng: number, accuracy?: number) => {
+    const currentSession = sessionRef.current;
+    if (!currentSession || currentSession.signal.aborted) return;
+    const { email } = currentSession;
     const now = Date.now();
     if (now - lastSyncTimeRef.current < 10000) return;
     lastSyncTimeRef.current = now;
 
-    const email = localStorage.getItem('byahero_cached_email');
-    if (!email) return;
-
     try {
-      const baseUrl = await getServerUrl();
-      fetch(`${baseUrl}/api/location/update`, {
+      await currentSession.fetch('location/update', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -41,8 +47,7 @@ export function useLocationTracking({ onCenterLocation }: LocationHookProps = {}
           longitude: lng,
           accuracy: accuracy || 10
         }),
-        credentials: 'include'
-      }).catch(() => {});
+      });
     } catch (e) {}
   }, []);
 

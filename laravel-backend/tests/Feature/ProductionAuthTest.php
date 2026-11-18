@@ -92,9 +92,76 @@ class ProductionAuthTest extends TestCase
             ->getJson('/assets/images/uploads/lost_and_found/photo.png')->assertNotFound();
     }
 
-    public function test_sos_push_runs_on_the_server_without_returning_credentials_or_device_tokens(): void
+    public function test_notification_poll_returns_exact_unread_count_and_preserves_active_sos(): void
     {
-        Schema::create('sos_alerts',function(Blueprint $table) {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->integer('user_id');
+            $table->timestamp('read_at')->nullable();
+            $table->boolean('is_cleared')->default(false);
+        });
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email');
+        });
+        Schema::create('user_settings', function (Blueprint $table) {
+            $table->id();
+            $table->integer('user_id');
+        });
+        Schema::create('sos_alerts', function (Blueprint $table) {
+            $table->id();
+            $table->integer('sender_user_id');
+            $table->integer('recipient_user_id');
+            $table->string('location_text');
+            $table->string('status');
+            $table->boolean('is_cleared')->default(false);
+            $table->timestamps();
+        });
+
+        DB::table('notifications')->insert(array_fill(0, 51, ['user_id' => 1]));
+        DB::table('notifications')->insert(['user_id' => 1, 'read_at' => now()]);
+        DB::table('notifications')->insert(['user_id' => 1, 'is_cleared' => true]);
+        DB::table('notifications')->insert(['user_id' => 2]);
+        DB::table('users')->insert(['id' => 2, 'name' => 'Sender', 'email' => 'sender@example.test']);
+        $alertId = DB::table('sos_alerts')->insertGetId([
+            'sender_user_id' => 2,
+            'recipient_user_id' => 1,
+            'location_text' => 'Test terminal',
+            'status' => 'active',
+            'created_at' => now(),
+        ]);
+
+        $this->getJson('/api/notifications?include_unread_count=1')->assertUnauthorized();
+        $this->withSession(['user_id' => 1, 'user_role' => 'passenger'])
+            ->getJson('/api/notifications?include_unread_count=1')
+            ->assertOk()
+            ->assertJsonPath('unread', 51)
+            ->assertJsonCount(50, 'notifications')
+            ->assertJsonPath('sos_alerts.0.id', $alertId)
+            ->assertJsonPath('sos_alerts.0.status', 'active');
+
+        $this->getJson('/api/notifications/unread-count')->assertOk()->assertJsonPath('unread', 51);
+        $this->getJson('/api/notifications')->assertOk()->assertJsonMissingPath('unread');
+        $this->assertDatabaseHas('sos_alerts', ['id' => $alertId, 'status' => 'active']);
+    }
+
+    private function createSosTables(): void
+    {
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+        });
+        Schema::create('circles', function (Blueprint $table) {
+            $table->id();
+            $table->integer('owner_user_id');
+        });
+        Schema::create('circle_members', function (Blueprint $table) {
+            $table->id();
+            $table->integer('circle_id');
+            $table->integer('user_id');
+        });
+        Schema::create('sos_alerts', function (Blueprint $table) {
             $table->id();
             $table->integer('sender_user_id');
             $table->integer('recipient_user_id');
@@ -102,19 +169,64 @@ class ProductionAuthTest extends TestCase
             $table->string('status');
             $table->timestamps();
         });
-        Schema::create('user_fcm_tokens',function(Blueprint $table) {
+        Schema::create('user_fcm_tokens', function (Blueprint $table) {
             $table->id();
             $table->integer('user_id');
             $table->string('fcm_token');
         });
-        DB::table('user_fcm_tokens')->insert(['user_id'=>2,'fcm_token'=>'private-recipient-token']);
-        $this->mock(\App\Services\FirebaseNotificationService::class,function($mock) {
-            $mock->shouldReceive('sendNotification')->once()->andReturn(['sent_count'=>1]);
+        DB::table('users')->insert([
+            ['id' => 1, 'name' => 'Sender'],
+            ['id' => 2, 'name' => 'Passenger'],
+            ['id' => 3, 'name' => 'Other passenger'],
+        ]);
+    }
+
+    public function test_sos_requires_circle_members_even_with_client_supplied_recipients(): void
+    {
+        $this->createSosTables();
+        $this->mock(\App\Services\FirebaseNotificationService::class, function ($mock) {
+            $mock->shouldNotReceive('sendNotification');
+        });
+        $this->withSession(['user_id' => 1, 'user_role' => 'passenger']);
+
+        $this->postJson('/api/sos/send', ['location_text' => 'Test location'])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Your circle is empty. Add someone to your circle before sending an SOS.');
+
+        DB::table('circles')->insert(['owner_user_id' => 1]);
+        $this->postJson('/api/sos/send', ['recipients' => [2, 3], 'location_text' => 'Test location'])
+            ->assertUnprocessable()
+            ->assertJsonPath('success', false);
+        $this->assertDatabaseCount('sos_alerts', 0);
+    }
+
+    public function test_sos_sends_only_to_circle_members_without_returning_credentials_or_device_tokens(): void
+    {
+        $this->createSosTables();
+        $circleId = DB::table('circles')->insertGetId(['owner_user_id' => 1]);
+        DB::table('circle_members')->insert(['circle_id' => $circleId, 'user_id' => 2]);
+        DB::table('user_fcm_tokens')->insert([
+            ['user_id' => 2, 'fcm_token' => 'private-recipient-token'],
+            ['user_id' => 3, 'fcm_token' => 'unrelated-device-token'],
+        ]);
+        $this->mock(\App\Services\FirebaseNotificationService::class, function ($mock) {
+            $mock->shouldReceive('sendNotification')->once()
+                ->withArgs(fn (array $tokens, string $title, string $body, array $data, string $channelId) =>
+                    $tokens === ['private-recipient-token'] && $channelId === 'sos_alerts_v2')
+                ->andReturn(['sent_count' => 1]);
             $mock->shouldNotReceive('generateSignedJwt');
         });
-        $response = $this->withSession(['user_id'=>1,'user_role'=>'passenger','user_name'=>'Test user'])
-            ->postJson('/api/sos/send',['recipients'=>[2],'location_text'=>'Test location']);
-        $response->assertOk()->assertJsonPath('success',true)->assertJsonPath('push_sent_count',1);
-        foreach (['jwt','fcm_tokens','project_id'] as $key) $this->assertArrayNotHasKey($key,$response->json());
+        $response = $this->withSession(['user_id' => 1, 'user_role' => 'passenger', 'user_name' => 'Test user'])
+            ->postJson('/api/sos/send', ['recipients' => [1, 3], 'location_text' => 'Test location']);
+        $response->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('sent_to', [2])
+            ->assertJsonPath('push_sent_count', 1)
+            ->assertJsonMissingPath('jwt')
+            ->assertJsonMissingPath('fcm_tokens')
+            ->assertJsonMissingPath('project_id');
+        $this->assertDatabaseCount('sos_alerts', 1);
+        $this->assertDatabaseHas('sos_alerts', ['sender_user_id' => 1, 'recipient_user_id' => 2, 'status' => 'active']);
     }
 }

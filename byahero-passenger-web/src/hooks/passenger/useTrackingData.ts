@@ -1,9 +1,15 @@
-import { useState, useEffect } from 'react';
-import { getServerUrl } from '../../services/authService';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import { resolveBusLocationName } from '../../utils/locationUtils';
 import { loadBusData } from '../../services/offlineCache';
 
 export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
+  const { session } = useAuth();
+  const locationRef = useRef(userLocation);
+  useEffect(() => {
+    locationRef.current = userLocation;
+  }, [userLocation]);
+
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>(() => {
@@ -14,7 +20,6 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
       return [];
     }
   });
-  const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   const [isWaiting, setIsWaiting] = useState(false);
   const [waitingLocation, setWaitingLocation] = useState('');
@@ -24,17 +29,17 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
   const [boardedRoute, setBoardedRoute] = useState('');
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
 
-  const fetchGroupMembers = async (currentBaseUrl: string) => {
+  const fetchGroupMembers = useCallback(async () => {
+    if (!session || session.signal.aborted) return;
+    const { email, signal } = session;
     try {
-      const email = localStorage.getItem('byahero_cached_email') || '';
-      const url = email ? `${currentBaseUrl}/api/group/view?email=${encodeURIComponent(email)}` : `${currentBaseUrl}/api/group/view`;
-      const res = await fetch(url, {
-        headers: email ? { 'X-User-Email': email } : {},
-        credentials: 'include',
+      const res = await session.fetch(`group/view?email=${encodeURIComponent(email)}`, {
+        headers: { 'X-User-Email': email },
         cache: 'no-store'
       });
       if (res.ok) {
         const data = await res.json();
+        if (signal.aborted) return;
         if (data.success && Array.isArray(data.friends)) {
           const loggedInEmail = email.toLowerCase().trim();
           
@@ -55,33 +60,42 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
         }
       }
     } catch (err: any) {
-      if (err.message !== 'Failed to fetch') {
+      if (!signal.aborted && err.message !== 'Failed to fetch') {
         console.error('Error fetching group members:', err);
       }
     }
-  };
+  }, [session]);
 
   useEffect(() => {
     let active = true;
+    if (!session) {
+      void loadBusData().then(cached => {
+        if (!active) return;
+        if (cached?.pickup_points?.length) setBusStops(cached.pickup_points);
+        setIsInitialFetchDone(true);
+      });
+      return () => { active = false; };
+    }
+
+    const { email, signal } = session;
     let isFetching = false;
     let hasFetchedStops = false;
 
     const fetchData = async () => {
-      if (isFetching) return;
+      if (!active || signal.aborted || isFetching) return;
       isFetching = true;
       try {
-        const currentBaseUrl = await getServerUrl();
-        setBaseUrl(currentBaseUrl);
-
         // Fetch live buses
         try {
-          let busesUrl = `${currentBaseUrl}/api/buses`;
-          if (userLocation && userLocation.lat && userLocation.lng) {
-            busesUrl += `?user_lat=${userLocation.lat}&user_lng=${userLocation.lng}`;
+          let busesUrl = 'buses';
+          const location = locationRef.current;
+          if (location) {
+            busesUrl += `?user_lat=${location.lat}&user_lng=${location.lng}`;
           }
-          const busesRes = await fetch(busesUrl);
+          const busesRes = await session.fetch(busesUrl);
           if (busesRes.ok && active) {
             const busesData = await busesRes.json();
+            if (!active || signal.aborted) return;
             if (busesData && busesData.success && Array.isArray(busesData.buses)) {
               const activeBuses = busesData.buses
                 .filter((bus: any) =>
@@ -103,21 +117,24 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
             }
           }
         } catch (e: any) {
+          if (signal.aborted) return;
           if (e.message !== 'Failed to fetch') console.error('Error fetching buses:', e);
         }
 
         // Fetch bus stops
-        if (!hasFetchedStops) {
+        if (active && !hasFetchedStops) {
           let fetchedStops = null;
           try {
-            const stopsRes = await fetch(`${currentBaseUrl}/api/buses/stops-terminal`);
+            const stopsRes = await session.fetch('buses/stops-terminal');
             if (stopsRes.ok && active) {
               const stopsData = await stopsRes.json();
+              if (!active || signal.aborted) return;
               if (stopsData && stopsData.success && Array.isArray(stopsData.data)) {
                 fetchedStops = stopsData.data;
               }
             }
           } catch (err: any) {
+            if (signal.aborted) return;
             if (err.message !== 'Failed to fetch') {
               console.error('Error fetching stops:', err);
             }
@@ -129,6 +146,7 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
           } else if (active) {
             // Fallback to offline cache
             const cached = await loadBusData();
+            if (!active || signal.aborted) return;
             if (cached && cached.pickup_points && cached.pickup_points.length > 0) {
               const pts = cached.pickup_points || [];
               hasFetchedStops = true;
@@ -138,15 +156,16 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
         }
 
         // Fetch group members
-        await fetchGroupMembers(currentBaseUrl);
+        if (!active || signal.aborted) return;
+        await fetchGroupMembers();
 
         // Fetch my waiting status
         try {
-          const loggedInEmail = localStorage.getItem('byahero_cached_email') || '';
-          if (loggedInEmail && active) {
-            const waitStatusRes = await fetch(`${currentBaseUrl}/api/waiting/status?email=${encodeURIComponent(loggedInEmail)}`);
+          if (active && !signal.aborted) {
+            const waitStatusRes = await session.fetch(`waiting/status?email=${encodeURIComponent(email)}`);
             if (waitStatusRes.ok) {
               const waitData = await waitStatusRes.json();
+              if (!active || signal.aborted) return;
               if (waitData.success) {
                 setIsWaiting(!!waitData.is_waiting);
                 setWaitingLocation(waitData.location_name || '');
@@ -162,10 +181,10 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
             }
           }
         } catch (e: any) {
-          if (e.message !== 'Failed to fetch') console.error('Error fetching waiting status:', e);
+          if (!signal.aborted && e.message !== 'Failed to fetch') console.error('Error fetching waiting status:', e);
         }
         
-        if (active) {
+        if (active && !signal.aborted) {
           setIsInitialFetchDone(true);
         }
       } catch (err: any) {
@@ -184,13 +203,12 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
       active = false;
       clearInterval(interval);
     };
-  }, [userLocation?.lat, userLocation?.lng]);
+  }, [session, fetchGroupMembers]);
 
   return {
     buses,
     busStops,
     circles,
-    baseUrl,
     isWaiting,
     setIsWaiting,
     waitingLocation,
