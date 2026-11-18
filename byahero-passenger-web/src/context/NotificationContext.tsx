@@ -9,6 +9,7 @@ import {
 } from '../services/notificationService';
 import { playSosAlarm, playNotificationPing, stopSosAlarm } from '../services/soundEffects';
 import { IncomingSosData } from '../components/IncomingSosModal';
+import { parseServerDate } from '../utils/userUtils';
 
 export interface ToastNotification {
   id: string;
@@ -35,7 +36,7 @@ interface NotificationContextType {
 const NotificationContext = createContext<NotificationContextType | undefined>(undefined);
 
 export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { user, serverUrl } = useAuth();
+  const { session } = useAuth();
 
   const [unreadCount, setUnreadCount] = useState<number>(0);
   const [hasUnread, setHasUnread] = useState<boolean>(false);
@@ -50,6 +51,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const seenSosIdsRef = useRef<Set<string | number>>(new Set());
   const seenNotifIdsRef = useRef<Set<string | number>>(new Set());
   const isInitialFetchRef = useRef<boolean>(true);
+  const inFlight = useRef<AbortSignal | null>(null);
 
   // Check saved smart notifications setting
   useEffect(() => {
@@ -75,7 +77,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       if (perm === 'granted') {
         await registerServiceWorker();
         const token = getOrCreateWebPushToken();
-        const success = await registerPushTokenToServer(token, user?.email);
+        const success = session ? await registerPushTokenToServer(session, token) : false;
 
         setIsPushEnabled(true);
         const saved = localStorage.getItem('byahero_smart_notifs');
@@ -92,28 +94,29 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       console.warn('[NotificationContext] Push registration error:', err);
       return false;
     }
-  }, [user?.email]);
+  }, [session]);
 
   /**
    * Fetch unread status and new alerts from backend
    */
   const refreshNotifications = useCallback(async () => {
-    if (!serverUrl || !user?.email) return;
+    if (!session || session.signal.aborted || inFlight.current === session.signal) return;
+    const { email, signal } = session;
+    inFlight.current = signal;
 
     try {
-      const emailParam = `email=${encodeURIComponent(user.email)}`;
+      const emailParam = `email=${encodeURIComponent(email)}`;
       const authHeaders: Record<string, string> = {
-        'X-User-Email': user.email,
+        'X-User-Email': email,
       };
 
       // 1. Fetch unread status and count
-      const countRes = await fetch(`${serverUrl}/api/notifications/unread-count?${emailParam}`, {
-        headers: authHeaders,
-        credentials: 'include',
-      }).catch(() => null);
+      const countRes = await session.fetch(`notifications/unread-count?${emailParam}`, { headers: authHeaders }).catch(() => null);
+      if (signal.aborted) return;
 
-      if (countRes && countRes.ok) {
+      if (countRes?.ok) {
         const countData = await countRes.json();
+        if (signal.aborted) return;
         if (countData && countData.success) {
           setUnreadCount(countData.unread || 0);
           setHasUnread((countData.unread || 0) > 0);
@@ -121,13 +124,11 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
       }
 
       // 2. Fetch full notification & SOS data (without mark_read so background polling preserves unread state)
-      const notifRes = await fetch(`${serverUrl}/api/notifications?${emailParam}`, {
-        headers: authHeaders,
-        credentials: 'include',
-      }).catch(() => null);
+      const notifRes = await session.fetch(`notifications?${emailParam}`, { headers: authHeaders });
 
-      if (notifRes && notifRes.ok) {
+      if (notifRes.ok) {
         const notifData = await notifRes.json();
+        if (signal.aborted) return;
         if (notifData && notifData.success) {
           const sosAlerts: any[] = notifData.sos_alerts || [];
           const notifications: any[] = notifData.notifications || [];
@@ -147,11 +148,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
               if (isInitialFetchRef.current) {
                 // On initial load, only alert if the active SOS was created in the last 2 minutes
-                const sosTime = newestSos.created_at ? new Date(newestSos.created_at.replace(/-/g, "/")).getTime() : 0;
-                const isRecent = sosTime > 0 && (Date.now() - sosTime < 120000);
-                if (!isRecent) {
-                  shouldAlert = false;
-                }
+                const sosTime = parseServerDate(newestSos.created_at);
+                shouldAlert = sosTime !== null && Date.now() - sosTime.getTime() < 120000;
               }
 
               seenSosIdsRef.current.add(sosKey);
@@ -220,14 +218,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
               }
             }
           }
+          isInitialFetchRef.current = false;
         }
       }
-
-      isInitialFetchRef.current = false;
     } catch (err) {
       // Ignore background polling network dropouts
+    } finally {
+      if (inFlight.current === signal) inFlight.current = null;
     }
-  }, [serverUrl, user?.email]);
+  }, [session]);
 
   /**
    * Listen for Service Worker postMessage broadcasts
@@ -278,16 +277,15 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
    * Auto-initialize Service Worker and push registration on user login
    */
   useEffect(() => {
-    if (user?.email) {
-      registerServiceWorker();
-      registerPushTokenToServer(undefined, user.email);
-      refreshNotifications();
+    if (!session) return;
+    void registerServiceWorker();
+    void registerPushTokenToServer(session);
+    void refreshNotifications();
 
-      // Poll periodically every 4 seconds for real-time SOS & Admin updates
-      const interval = setInterval(refreshNotifications, 4000);
-      return () => clearInterval(interval);
-    }
-  }, [user?.email, refreshNotifications]);
+    // Keep receiving SOS alerts when browser push is unavailable.
+    const interval = setInterval(refreshNotifications, 4000);
+    return () => clearInterval(interval);
+  }, [session, refreshNotifications]);
 
   const clearUnreadCount = useCallback(() => {
     setUnreadCount(0);

@@ -52,7 +52,7 @@ export async function preWarmServer(): Promise<void> {
   }
 }
 
-async function apiRequest(action: string, dataObj: Record<string, any>) {
+async function apiRequest(action: string, dataObj: Record<string, any>, signal?: AbortSignal) {
   if (!EMAIL_FEATURES_AVAILABLE && ['signup_request_otp', 'signup_verify_otp', 'request_otp', 'verify_otp', 'reset_password'].includes(action)) {
     throw new Error('Email signup and password reset are temporarily unavailable. Existing accounts can still sign in.');
   }
@@ -82,7 +82,8 @@ async function apiRequest(action: string, dataObj: Record<string, any>) {
       headers: {
         'Accept': 'application/json',
       },
-      credentials: 'include'
+      credentials: 'include',
+      signal,
     });
   } catch (networkError: any) {
     const report = debugLogger.createDiagnosticReport(action, endpoint, baseUrl, networkError);
@@ -179,12 +180,19 @@ export async function login(email: string, password: string, isOnline: boolean =
   }
 }
 
-export async function restoreSession(email: string) {
+export async function restoreSession(email: string, signal: AbortSignal): Promise<{
+  success: boolean;
+  user?: { email: string };
+  statusCode?: number;
+}> {
   try {
-    const data = await apiRequest('restore_session', { email: email.trim() });
+    const data = await apiRequest('restore_session', { email: email.trim() }, signal);
     return data;
   } catch (error) {
-    console.error('Failed to restore session:', error);
+    if (error instanceof ApiError && error.statusCode === 401) {
+      return { success: false, statusCode: 401 };
+    }
+    if (!signal.aborted) console.error('Failed to restore session:', error);
     return { success: false };
   }
 }

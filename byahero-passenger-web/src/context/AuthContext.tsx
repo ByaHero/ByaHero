@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useCallback, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import {
   getServerUrl,
   preWarmServer,
@@ -15,13 +15,20 @@ interface UserProfile {
   profile_picture?: string;
 }
 
+export interface ConfirmedSession {
+  email: string;
+  serverUrl: string;
+  signal: AbortSignal;
+  fetch: (path: string, options?: RequestInit) => Promise<Response>;
+}
+
 interface AuthContextType {
   user: UserProfile | null;
+  session: ConfirmedSession | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   serverUrl: string;
   setServerUrl: (url: string) => Promise<void>;
-  setServerUrlState: (url: string) => void;
   login: (userData: UserProfile) => void;
   updateUserProfile: (updates: Partial<UserProfile>) => void;
   logout: () => void;
@@ -34,42 +41,100 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [serverUrl, setServerUrlState] = useState(window.location.origin);
+  const [session, setSession] = useState<ConfirmedSession | null>(null);
+  const sessionController = useRef<AbortController | null>(null);
 
-  const loadSession = async () => {
+  const logout = useCallback(() => {
+    sessionController.current?.abort();
+    sessionController.current = null;
+    setSession(null);
+    clearCachedSession();
+    setUser(null);
+    setIsLoading(false);
+  }, []);
+
+  const loadSession = useCallback(async () => {
+    sessionController.current?.abort();
+    const controller = new AbortController();
+    const { signal } = controller;
+    sessionController.current = controller;
+    setSession(null);
+    let confirmed = false;
+
     try {
       const url = await getServerUrl();
+      if (signal.aborted) return;
       setServerUrlState(url);
-      preWarmServer();
 
       const cachedEmail = localStorage.getItem('byahero_cached_email');
+      if (!cachedEmail) {
+        setUser(null);
+        void preWarmServer();
+        return;
+      }
       const cachedRole = localStorage.getItem('byahero_cached_role') || 'passenger';
       const cachedName =
-        localStorage.getItem('byahero_cached_name') || (cachedEmail ? cachedEmail.split('@')[0] : 'Guest');
+        localStorage.getItem('byahero_cached_name') || cachedEmail.split('@')[0];
       const cachedPhone = localStorage.getItem('byahero_cached_phone') || '';
       const cachedPic = localStorage.getItem('byahero_cached_profile_picture') || undefined;
 
-      if (cachedEmail) {
-        setUser({
-          email: cachedEmail,
-          name: cachedName,
-          phone: cachedPhone,
-          role: cachedRole,
-          profile_picture: cachedPic,
-        });
+      setUser({ email: cachedEmail, name: cachedName, phone: cachedPhone, role: cachedRole, profile_picture: cachedPic });
+      if (!navigator.onLine) return;
 
-        // Restore session on server
-        restoreSession(cachedEmail).catch(console.warn);
+      const timeout = window.setTimeout(() => controller.abort(), 12000);
+      const restored = await restoreSession(cachedEmail, signal).finally(() => window.clearTimeout(timeout));
+      if (signal.aborted) return;
+      if (restored.statusCode === 401 || (restored.success && restored.user?.email?.toLowerCase() !== cachedEmail.toLowerCase())) {
+        logout();
+        return;
       }
+      if (!restored.success) return;
+
+      confirmed = true;
+      setSession({
+        email: cachedEmail,
+        serverUrl: url,
+        signal,
+        async fetch(path, options) {
+          signal.throwIfAborted();
+          const response = await fetch(`${url}/api/${path}`, {
+            ...options,
+            credentials: 'include',
+            signal,
+          });
+          signal.throwIfAborted();
+          if (response.status === 401) {
+            logout();
+            signal.throwIfAborted();
+          }
+          return response;
+        },
+      });
     } catch (e) {
       console.error('Session load error:', e);
     } finally {
-      setIsLoading(false);
+      if (sessionController.current === controller) {
+        if (!confirmed) sessionController.current = null;
+        setIsLoading(false);
+      }
     }
-  };
+  }, [logout]);
 
   useEffect(() => {
-    loadSession();
-  }, []);
+    void loadSession();
+    const checkSession = () => {
+      if (!sessionController.current && navigator.onLine && localStorage.getItem('byahero_cached_email')) {
+        void loadSession();
+      }
+    };
+    window.addEventListener('online', checkSession);
+    window.addEventListener('focus', checkSession);
+    return () => {
+      window.removeEventListener('online', checkSession);
+      window.removeEventListener('focus', checkSession);
+      sessionController.current?.abort();
+    };
+  }, [loadSession]);
 
   const login = (userData: UserProfile) => {
     setUser(userData);
@@ -80,11 +145,16 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (userData.profile_picture) {
       localStorage.setItem('byahero_cached_profile_picture', userData.profile_picture);
     }
+    void loadSession();
   };
 
   const setServerUrl = async (url: string) => {
     await authServiceSetServerUrl(url);
-    setServerUrlState(url);
+    const configuredUrl = await getServerUrl();
+    if (configuredUrl !== serverUrl) {
+      logout();
+      setServerUrlState(configuredUrl);
+    }
   };
 
   const updateUserProfile = (updates: Partial<UserProfile>) => {
@@ -103,28 +173,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     });
   };
 
-  const logout = () => {
-    clearCachedSession();
-    setUser(null);
-  };
-
-  const refreshSession = async () => {
-    await loadSession();
-  };
-
   return (
     <AuthContext.Provider
       value={{
         user,
+        session,
         isAuthenticated: !!user?.email,
         isLoading,
         serverUrl,
         setServerUrl,
-        setServerUrlState,
         login,
         updateUserProfile,
         logout,
-        refreshSession,
+        refreshSession: loadSession,
       }}
     >
       {children}
