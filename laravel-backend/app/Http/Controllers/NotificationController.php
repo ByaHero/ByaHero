@@ -112,14 +112,16 @@ class NotificationController extends Controller
 
         $this->ensureNotificationSchema();
 
-        $count = 0;
-        try {
-            $count = Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->count();
-        } catch (\Throwable $e) {
-            $count = Notification::where('user_id', $userId)->whereNull('read_at')->count();
-        }
+        return response()->json(['success' => true, 'unread' => $this->countUnreadNotifications($userId)]);
+    }
 
-        return response()->json(['success' => true, 'unread' => $count]);
+    private function countUnreadNotifications(int $userId): int
+    {
+        try {
+            return Notification::where('user_id', $userId)->whereNull('read_at')->where('is_cleared', false)->count();
+        } catch (\Throwable $e) {
+            return Notification::where('user_id', $userId)->whereNull('read_at')->count();
+        }
     }
 
     public function getUnreadStatus(Request $request)
@@ -289,6 +291,16 @@ class NotificationController extends Controller
                     ->get();
             }
 
+            $unread = null;
+            if ($request->boolean('include_unread_count')) {
+                try {
+                    $unread = $this->countUnreadNotifications($userId);
+                } catch (\Throwable $e) {
+                    // The notification badge can retry independently of SOS delivery.
+                    report($e);
+                }
+            }
+
             // 4. Only mark unread as read and active SOS as seen if explicitly requested
             if ($markRead) {
                 try {
@@ -300,14 +312,18 @@ class NotificationController extends Controller
                 } catch (\Throwable $e) {}
             }
 
-            return response()->json([
+            $response = [
                 'success' => true,
                 'sos_alerts' => $sosAlerts,
                 'notifications' => $notifications,
                 'notify_bus_schedule' => $notifySchedule,
                 'notify_bus_arrival' => $notifyArrival,
                 'notify_seat_availability' => $notifySeat
-            ]);
+            ];
+            if ($unread !== null) {
+                $response['unread'] = $unread;
+            }
+            return response()->json($response);
 
         } catch (Exception $e) {
             return response()->json(['success' => false, 'message' => 'Failed to load notifications: ' . $e->getMessage()], 500);

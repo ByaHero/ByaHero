@@ -92,6 +92,60 @@ class ProductionAuthTest extends TestCase
             ->getJson('/assets/images/uploads/lost_and_found/photo.png')->assertNotFound();
     }
 
+    public function test_notification_poll_returns_exact_unread_count_and_preserves_active_sos(): void
+    {
+        Schema::create('notifications', function (Blueprint $table) {
+            $table->id();
+            $table->integer('user_id');
+            $table->timestamp('read_at')->nullable();
+            $table->boolean('is_cleared')->default(false);
+        });
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email');
+        });
+        Schema::create('user_settings', function (Blueprint $table) {
+            $table->id();
+            $table->integer('user_id');
+        });
+        Schema::create('sos_alerts', function (Blueprint $table) {
+            $table->id();
+            $table->integer('sender_user_id');
+            $table->integer('recipient_user_id');
+            $table->string('location_text');
+            $table->string('status');
+            $table->boolean('is_cleared')->default(false);
+            $table->timestamps();
+        });
+
+        DB::table('notifications')->insert(array_fill(0, 51, ['user_id' => 1]));
+        DB::table('notifications')->insert(['user_id' => 1, 'read_at' => now()]);
+        DB::table('notifications')->insert(['user_id' => 1, 'is_cleared' => true]);
+        DB::table('notifications')->insert(['user_id' => 2]);
+        DB::table('users')->insert(['id' => 2, 'name' => 'Sender', 'email' => 'sender@example.test']);
+        $alertId = DB::table('sos_alerts')->insertGetId([
+            'sender_user_id' => 2,
+            'recipient_user_id' => 1,
+            'location_text' => 'Test terminal',
+            'status' => 'active',
+            'created_at' => now(),
+        ]);
+
+        $this->getJson('/api/notifications?include_unread_count=1')->assertUnauthorized();
+        $this->withSession(['user_id' => 1, 'user_role' => 'passenger'])
+            ->getJson('/api/notifications?include_unread_count=1')
+            ->assertOk()
+            ->assertJsonPath('unread', 51)
+            ->assertJsonCount(50, 'notifications')
+            ->assertJsonPath('sos_alerts.0.id', $alertId)
+            ->assertJsonPath('sos_alerts.0.status', 'active');
+
+        $this->getJson('/api/notifications/unread-count')->assertOk()->assertJsonPath('unread', 51);
+        $this->getJson('/api/notifications')->assertOk()->assertJsonMissingPath('unread');
+        $this->assertDatabaseHas('sos_alerts', ['id' => $alertId, 'status' => 'active']);
+    }
+
     public function test_sos_push_runs_on_the_server_without_returning_credentials_or_device_tokens(): void
     {
         Schema::create('sos_alerts',function(Blueprint $table) {
