@@ -30,18 +30,23 @@ Route::get('/health', function () {
     }
 });
 
+// Public stateless endpoints (outside StartSession so they never emit Set-Cookie that overwrites an active session)
+Route::get('/app-version', [AppVersionController::class, 'getVersion']);
+Route::get('/ping', function () {
+    return response()->json(['success' => true, 'status' => 'online', 'message' => 'ByaHero Laravel API is warm']);
+});
+Route::get('/buses', [BusController::class, 'getBuses']);
+Route::get('/buses/stops-terminal', [BusController::class, 'getBusStopsTerminal']);
+Route::get('/map-data', [BusController::class, 'getMapData']);
+
 Route::middleware([
     \Illuminate\Cookie\Middleware\EncryptCookies::class,
     \Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse::class,
     \Illuminate\Session\Middleware\StartSession::class,
     \App\Http\Middleware\RequireApiSession::class,
 ])->group(function () {
-    Route::get('/app-version', [AppVersionController::class, 'getVersion']);
     Route::post('/auth', [AuthController::class, 'handle'])->middleware('throttle:auth-actions');
     Route::post('/logout', [AuthController::class, 'logout']);
-    Route::get('/ping', function () {
-        return response()->json(['success' => true, 'status' => 'online', 'message' => 'ByaHero Laravel API is warm']);
-    });
 
     Route::post('/sos/send', [SosController::class, 'sendSosAlert']);
     Route::get('/sos/alerts', [SosController::class, 'getSosAlerts']);
@@ -68,11 +73,8 @@ Route::middleware([
     Route::get('/notifications', [NotificationController::class, 'notificationsIndex']);
     Route::delete('/notifications/clear', [NotificationController::class, 'clearAll']);
 
-    Route::get('/buses', [BusController::class, 'getBuses']);
-    Route::get('/buses/stops-terminal', [BusController::class, 'getBusStopsTerminal']);
     Route::get('/buses/sync', [BusController::class, 'getSyncData']);
     Route::get('/buses/history', [BusController::class, 'getRideHistory']);
-    Route::get('/map-data', [BusController::class, 'getMapData']);
     Route::post('/location/update', [BusController::class, 'updateUserLocation']);
     Route::get('/waiting/status', [BusController::class, 'getMyWaitingStatus']);
     Route::post('/waiting/set', [BusController::class, 'setWaitingStatus']);

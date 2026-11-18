@@ -7,6 +7,15 @@ export const CONDUCTOR_BUSES_CACHE_KEY = 'byahero_conductor_cached_buses';
 export const CONDUCTOR_BUSES_CACHED_AT_KEY = 'byahero_conductor_buses_cached_at';
 export const CONDUCTOR_LAST_SELECTED_BUS_KEY = 'byahero_conductor_last_selected_bus';
 export const CONDUCTOR_HISTORY_CACHE_KEY = 'byahero_conductor_history_cache';
+export const CONDUCTOR_RECEIPT_CONFIG_CACHE_KEY = 'byahero_conductor_receipt_config';
+
+export const DEFAULT_RECEIPT_CONFIG = {
+  company_name: 'ByaHero',
+  client_name: 'Magnificat Transport Cooperative',
+  tin_number: '',
+  header_message: 'Welcome aboard!',
+  footer_message: 'Thank you for your cooperation',
+};
 
 /**
  * Standardized Fetch helper matching HTML client's safePost logic with timeout protection.
@@ -63,7 +72,18 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET', t
     const response = await fetch(url, options);
     clearTimeout(timer);
     if (!response.ok) {
-      throw new Error(`HTTP status ${response.status}`);
+      let serverBody = null;
+      try {
+        serverBody = await response.json();
+      } catch (_) {}
+      const errMsg = serverBody?.error || serverBody?.message || `HTTP status ${response.status}`;
+      return {
+        success: false,
+        error: errMsg,
+        status: response.status,
+        isUnauthorized: response.status === 401,
+        isTimeout: false
+      };
     }
     const json = await response.json();
     return json;
@@ -74,7 +94,8 @@ export async function safeRequest(relativeUrl, payload = null, method = 'GET', t
     return { 
       success: false, 
       error: isTimeout ? 'Network timeout: server took too long to respond.' : error.message,
-      isTimeout 
+      isTimeout,
+      isUnauthorized: false
     };
   }
 }
@@ -240,13 +261,20 @@ export async function getMapFeatures() {
     const baseUrl = await getServerUrl();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 7000);
-    const response = await fetch(`${baseUrl}/api/map-data`, { cache: 'no-store', signal: controller.signal });
+    const response = await fetch(`${baseUrl}/api/map-data`, {
+      cache: 'no-store',
+      credentials: 'include',
+      signal: controller.signal
+    });
     clearTimeout(timer);
     if (response.ok) {
       return await response.json();
     }
     // Fallback to stops list if map-data is unavailable
-    const fallbackRes = await fetch(`${baseUrl}/api/buses/stops-terminal`, { cache: 'no-store' });
+    const fallbackRes = await fetch(`${baseUrl}/api/buses/stops-terminal`, {
+      cache: 'no-store',
+      credentials: 'include'
+    });
     const json = await fallbackRes.json();
     if (json.success && json.data) {
       return { features: json.data };
@@ -318,10 +346,48 @@ export async function getOperationHistory() {
 }
 
 /**
- * Fetches receipt configuration (header, footer, etc.) for PT-210 portable printer.
+ * Returns the last cached admin receipt configuration from AsyncStorage, if available.
  */
-export async function getReceiptConfig() {
-  return safeRequest('api/conductor/receipt-config', null, 'GET', 6000);
+export async function getCachedReceiptConfig() {
+  try {
+    const raw = await AsyncStorage.getItem(CONDUCTOR_RECEIPT_CONFIG_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        return parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Error reading cached receipt config:', e);
+  }
+  return null;
+}
+
+/**
+ * Fetches receipt configuration (header, cooperative, messages, and latest ticket number)
+ * from the admin configuration on the server, caching the latest config for offline resilience.
+ */
+export async function getReceiptConfig(timeoutMs = 6000) {
+  const res = await safeRequest('api/conductor/receipt-config', null, 'GET', timeoutMs);
+  if (res && res.success && res.config) {
+    try {
+      await AsyncStorage.setItem(CONDUCTOR_RECEIPT_CONFIG_CACHE_KEY, JSON.stringify(res.config));
+    } catch (_) {}
+    return { ...res, source: 'live' };
+  }
+
+  // If unauthorized (401), propagate so callers know the session expired
+  if (res && res.isUnauthorized) {
+    return res;
+  }
+
+  // Truly offline / timeout fallback: use last saved admin configuration if available
+  const cached = await getCachedReceiptConfig();
+  if (cached) {
+    return { success: true, config: cached, source: 'cache', isOffline: true };
+  }
+
+  return res;
 }
 
 /**

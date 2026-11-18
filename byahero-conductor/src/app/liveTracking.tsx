@@ -27,7 +27,7 @@ import ConductorNavbar from '../components/ConductorNavbar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getConductorLeafletHTML } from '../components/conductorMapHtml';
 import { getServerUrl } from '../services/authService';
-import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, printTicket, getTripSummary, startOperation, getActiveBuses } from '../services/conductorService';
+import { updateGeoLocation, logPassengerEvent, stopTracking, getMapFeatures, getSyncData, getReceiptConfig, getCachedReceiptConfig, printTicket, getTripSummary, startOperation, getActiveBuses } from '../services/conductorService';
 import { NativeModules } from 'react-native';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -109,6 +109,7 @@ export default function LiveTrackingScreen() {
   const isAutoTicketing = session?.ticketing_mode === 'Automatic';
   const printer = usePrinter(isAutoTicketing);
   const [receiptConfig, setReceiptConfig] = useState<any>(null);
+  const receiptConfigRef = useRef<any>(null);
   const [isPrinting, setIsPrinting] = useState(false);
   const [isInterimModalVisible, setIsInterimModalVisible] = useState(false);
   const [isPrinterModalVisible, setIsPrinterModalVisible] = useState(false);
@@ -437,8 +438,17 @@ export default function LiveTrackingScreen() {
       : restoredBoarded;
     setTotalServed(restoredServed);
 
+    try {
+      const cachedCfg = await getCachedReceiptConfig();
+      if (cachedCfg) {
+        receiptConfigRef.current = cachedCfg;
+        setReceiptConfig(cachedCfg);
+      }
+    } catch (_) {}
+
     if (payload.isSimulation) {
       setSessionInitialized(true);
+      refreshReceiptConfig();
       return; // SIMULATION MODE: Do not connect to background location services or real backend tracking
     }
 
@@ -462,9 +472,6 @@ export default function LiveTrackingScreen() {
     }
     
     const isAutoMode = payload.ticketing_mode === 'Automatic';
-    if (isAutoMode) {
-      openPrinterSetup();
-    }
     let restoredPending = (isAutoMode && payload.pending_pre_departure !== undefined)
       ? payload.pending_pre_departure
       : (isAutoMode ? preDep : 0);
@@ -483,6 +490,10 @@ export default function LiveTrackingScreen() {
       }
     } catch (e) {
       setTicketCounter(1);
+    }
+
+    if (isAutoMode) {
+      refreshReceiptConfig();
     }
     
     setActivePassengers(payload.active_passengers || []);
@@ -1185,7 +1196,8 @@ export default function LiveTrackingScreen() {
     }
 
     const doPrint = async (wasReconnect = false) => {
-      await printer.printSummary(tripSummary, summaryConfig, receiptConfig, false, isInterim);
+      const latestConfig = (await refreshReceiptConfig(3500)) || receiptConfigRef.current || receiptConfig;
+      await printer.printSummary(tripSummary, summaryConfig, latestConfig, false, isInterim);
       showAlert('Print Successful', wasReconnect ? 'Summary printed after reconnecting.' : 'Summary has been printed.', 'success');
     };
 
@@ -1225,7 +1237,8 @@ export default function LiveTrackingScreen() {
       }
       const res = await getTripSummary(opId);
       if (res && res.success) {
-        await printer.printSummary(res.summary, summaryConfig, receiptConfig, false, true);
+        const latestConfig = (await refreshReceiptConfig(3500)) || receiptConfigRef.current || receiptConfig;
+        await printer.printSummary(res.summary, summaryConfig, latestConfig, false, true);
         showAlert('Print Successful', wasReconnect ? 'Interim Summary printed after reconnecting.' : 'Interim Summary has been printed.', 'success');
       } else {
         showAlert('Error', 'Failed to load summary data.', 'error');
@@ -1358,8 +1371,40 @@ export default function LiveTrackingScreen() {
     setIsLoading(true);
 
     try {
+      // Refresh admin receipt configuration in parallel so latest title/cooperative/messages are ready
+      const configPromise = refreshReceiptConfig(3500);
+
+      let activeSession = sessionRef.current || session;
+
+      // If this session was started offline, promote to a live DB operation before saving the ticket
+      if (
+        activeSession &&
+        !activeSession.isSimulation &&
+        (!activeSession.operation_id || String(activeSession.operation_id).startsWith('offline_op_'))
+      ) {
+        try {
+          const startRes = await startOperation({
+            bus_id: activeSession.bus_id,
+            route: activeSession.route,
+            pre_departure_count: activeSession.pre_departure_count || 0,
+            start_location: activeSession.start_location || locationName || 'Terminal'
+          });
+          if (startRes && startRes.success && startRes.operation_id) {
+            const updated = {
+              ...activeSession,
+              operation_id: startRes.operation_id,
+              is_offline_session: false
+            };
+            activeSession = updated;
+            sessionRef.current = updated;
+            setSession(updated);
+            AsyncStorage.setItem('byahero_conductor_payload', JSON.stringify(updated)).catch(() => {});
+          }
+        } catch (_) {}
+      }
+
       const payload = {
-        operation_id: session?.operation_id,
+        operation_id: activeSession?.operation_id,
         fare: ticketFare,
         discount_type: ticketQuantity > 1 ? 'Mixed' : discountType,
         quantity: ticketQuantity,
@@ -1367,12 +1412,23 @@ export default function LiveTrackingScreen() {
         alighting_location: alightingStop.location_name
       };
       
-      const res = await printTicket(payload);
+      const [res] = await Promise.all([printTicket(payload), configPromise]);
       let realTicketNumber = String(ticketCounter).padStart(5, '0');
       
       if (res && res.success && res.ticket_number) {
-        realTicketNumber = res.ticket_number;
-        setTicketCounter(parseInt(realTicketNumber, 10) + 1);
+        realTicketNumber = String(res.ticket_number).padStart(5, '0');
+        const parsedNum = parseInt(realTicketNumber, 10);
+        if (!isNaN(parsedNum)) {
+          setTicketCounter(parsedNum + 1);
+        }
+      } else if (res && res.isUnauthorized) {
+        showAlert(
+          'Session Expired',
+          'Your conductor session expired, so the server could not assign the live ticket number. Please sign in again after stopping this session.',
+          'warning'
+        );
+        realTicketNumber = String(ticketCounter).padStart(5, '0');
+        setTicketCounter(prev => prev + 1);
       } else {
         console.warn('Network unavailable for live ticket sync, using offline ticket:', res?.error);
         realTicketNumber = String(ticketCounter).padStart(5, '0');
@@ -1467,18 +1523,25 @@ export default function LiveTrackingScreen() {
     }).start(() => setIssuedTicket(null));
   };
 
-  const openPrinterSetup = async () => {
-    // Already setup in dashboard, just fetch config if missing
-    if (!receiptConfig) {
-      try {
-        const res = await getReceiptConfig();
-        if (res && res.success) {
-          setReceiptConfig(res.config);
+  const refreshReceiptConfig = async (timeoutMs = 5000): Promise<any> => {
+    try {
+      const res = await getReceiptConfig(timeoutMs);
+      if (res && res.success && res.config) {
+        receiptConfigRef.current = res.config;
+        setReceiptConfig(res.config);
+        // Sync local ticket counter with server's latest printed_tickets sequence
+        if (res.next_ticket_number) {
+          const nextNum = parseInt(String(res.next_ticket_number), 10);
+          if (!isNaN(nextNum) && nextNum > 0) {
+            setTicketCounter(prev => Math.max(prev, nextNum));
+          }
         }
-      } catch(e) {
-        console.warn('Failed to fetch receipt config', e);
+        return res.config;
       }
+    } catch (e) {
+      console.warn('Failed to fetch receipt config', e);
     }
+    return receiptConfigRef.current || receiptConfig;
   };
 
   const updateReceiptStatus = (
@@ -1549,7 +1612,8 @@ export default function LiveTrackingScreen() {
     };
 
     try {
-      await printer.printReceipt(ticket, receiptConfig);
+      const latestConfig = (await refreshReceiptConfig(3500)) || receiptConfigRef.current || receiptConfig;
+      await printer.printReceipt(ticket, latestConfig);
       markSuccess(false);
     } catch (e: any) {
       console.error('printReceiptWithRecovery error:', e);
@@ -1559,7 +1623,8 @@ export default function LiveTrackingScreen() {
         setBusy: setPrintBusy,
         extraOutOfPaperNote: ' (or reprint later from Receipts in the menu)',
         retryPrint: async (wasReconnect = false) => {
-          await printer.printReceipt(ticket, receiptConfig);
+          const retryConfig = (await refreshReceiptConfig(3500)) || receiptConfigRef.current || receiptConfig;
+          await printer.printReceipt(ticket, retryConfig);
           markSuccess(wasReconnect);
         },
       });
@@ -1996,17 +2061,24 @@ export default function LiveTrackingScreen() {
               </View>
 
               <View style={tw`items-center mb-6`}>
-                <Text style={tw`font-mono text-slate-800 text-[11px] mb-1`}>
-                  {issuedTicket.busNumber} {issuedTicket.ticketNumber}
+                <Text style={tw`font-mono text-slate-900 text-base font-bold mb-0.5`}>
+                  {receiptConfig?.company_name || 'ByaHero'}
                 </Text>
-                <Text style={tw`font-mono text-slate-800 text-sm mb-1`}>
-                  {receiptConfig?.company_name || 'ByaHero Transport'}
+                {(receiptConfig ? receiptConfig.client_name : 'Magnificat Transport Cooperative') ? (
+                  <Text style={tw`font-mono text-slate-700 text-xs mb-0.5 text-center`}>
+                    {receiptConfig ? receiptConfig.client_name : 'Magnificat Transport Cooperative'}
+                  </Text>
+                ) : null}
+                <Text style={tw`font-mono text-slate-800 text-xs font-bold mb-1`}>
+                  TICKET NO: {issuedTicket.ticketNumber}
                 </Text>
-                <Text style={tw`font-mono text-slate-800 text-[13px] font-bold mb-1`}>
-                  Fare Payment
-                </Text>
-                <Text style={tw`font-mono text-slate-800 text-[11px]`}>
-                  {issuedTicket.date}
+                {(receiptConfig ? receiptConfig.header_message : 'Welcome aboard!') ? (
+                  <Text style={tw`font-mono text-slate-700 text-xs mb-1 text-center`}>
+                    {receiptConfig ? receiptConfig.header_message : 'Welcome aboard!'}
+                  </Text>
+                ) : null}
+                <Text style={tw`font-mono text-slate-500 text-[11px]`}>
+                  {issuedTicket.busNumber} • {issuedTicket.date}
                 </Text>
               </View>
 
@@ -2071,7 +2143,12 @@ export default function LiveTrackingScreen() {
               </View>
 
               <View style={tw`items-center`}>
-                <Text style={tw`font-mono text-slate-800 text-[11px]`}>
+                {(receiptConfig ? receiptConfig.footer_message : 'Thank you for your cooperation') ? (
+                  <Text style={tw`font-mono text-slate-700 text-xs text-center mb-1`}>
+                    {receiptConfig ? receiptConfig.footer_message : 'Thank you for your cooperation'}
+                  </Text>
+                ) : null}
+                <Text style={tw`font-mono text-slate-500 text-[11px]`}>
                   {session?.code || 'MTC T013'}
                 </Text>
               </View>

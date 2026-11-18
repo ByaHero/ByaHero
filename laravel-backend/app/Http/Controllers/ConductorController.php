@@ -552,6 +552,29 @@ class ConductorController extends Controller
         ]);
     }
 
+    private function getLatestTicketNumber(): int
+    {
+        try {
+            $maxNum = 0;
+            $numbers = DB::table('printed_tickets')
+                ->whereNotNull('ticket_number')
+                ->pluck('ticket_number');
+
+            foreach ($numbers as $raw) {
+                $digits = preg_replace('/\D/', '', (string)$raw);
+                if ($digits !== '') {
+                    $num = (int)$digits;
+                    if ($num > $maxNum) {
+                        $maxNum = $num;
+                    }
+                }
+            }
+            return $maxNum;
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
     public function getReceiptConfig(Request $request)
     {
         $this->checkAuth();
@@ -565,8 +588,12 @@ class ConductorController extends Controller
             // In case table doesn't exist yet, return defaults
         }
 
+        $latestTicketNumber = $this->getLatestTicketNumber();
+
         return response()->json([
             'success' => true,
+            'latest_ticket_number' => str_pad((string)$latestTicketNumber, 5, '0', STR_PAD_LEFT),
+            'next_ticket_number' => $latestTicketNumber + 1,
             'config' => [
                 'company_name' => $settings['receipt_company_name'] ?? 'ByaHero',
                 'client_name' => $settings['receipt_client_name'] ?? 'Magnificat Transport Cooperative',
@@ -587,24 +614,23 @@ class ConductorController extends Controller
         $boardingLoc = $request->input('boarding_location');
         $alightingLoc = $request->input('alighting_location');
 
-        if (!$opId) {
-            return response()->json(['success' => false, 'error' => 'Missing operation ID']);
-        }
-
-        $op = BusOperation::find($opId);
+        $op = $opId ? BusOperation::find($opId) : null;
         if (!$op || (int)$op->conductor_id !== $userId) {
-            return response()->json(['success' => false, 'error' => 'Unauthorized operation'], 403);
+            // Fallback to the conductor's active ongoing operation (e.g. if client sent an offline_op_ placeholder)
+            $op = BusOperation::where('conductor_id', $userId)
+                ->where('status', 'ongoing')
+                ->orderBy('id', 'desc')
+                ->first();
         }
 
-        // Get the latest ticket number to sequentially generate the next one
-        $lastTicket = DB::table('printed_tickets')->orderBy('id', 'desc')->first();
-        $nextTicketNumber = 1;
-        
-        if ($lastTicket && !empty($lastTicket->ticket_number)) {
-            $nextTicketNumber = (int)$lastTicket->ticket_number + 1;
+        if (!$op || (int)$op->conductor_id !== $userId) {
+            return response()->json(['success' => false, 'error' => 'Unauthorized or missing operation'], $opId ? 403 : 400);
         }
-        
-        $formattedTicketNumber = str_pad($nextTicketNumber, 5, '0', STR_PAD_LEFT);
+        $opId = (int)$op->id;
+
+        // Sequentially generate the next ticket number based on the highest current ticket number in printed_tickets
+        $nextTicketNumber = $this->getLatestTicketNumber() + 1;
+        $formattedTicketNumber = str_pad((string)$nextTicketNumber, 5, '0', STR_PAD_LEFT);
 
         DB::table('printed_tickets')->insert([
             'operation_id' => $opId,

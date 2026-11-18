@@ -15,7 +15,8 @@ import { router } from 'expo-router';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import tw from 'twrnc';
-import { login, getServerUrl, setServerUrl, preWarmServer } from '../services/authService';
+import { login, logout, getServerUrl, setServerUrl, preWarmServer } from '../services/authService';
+import { getReceiptConfig } from '../services/conductorService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AlertModal from '../components/AlertModal';
 
@@ -42,7 +43,7 @@ export default function LoginScreen() {
 
     const checkAutoLogin = async () => {
       try {
-          await getServerUrl();
+        await getServerUrl();
         const cachedEmail = await AsyncStorage.getItem('byahero_cached_email');
         const cachedRole = await AsyncStorage.getItem('byahero_cached_role');
         const hasLivePayload = await AsyncStorage.getItem('byahero_conductor_payload');
@@ -50,9 +51,24 @@ export default function LoginScreen() {
         if (cachedEmail && cachedRole === 'conductor') {
           if (hasLivePayload) {
             router.replace('/liveTracking');
-          } else {
-            router.replace('/dashboard');
+            return;
           }
+
+          // Verify server session cookie is still valid before skipping login
+          const sessionCheck = await getReceiptConfig(5000);
+          if (sessionCheck?.isUnauthorized) {
+            setEmail(cachedEmail);
+            await logout();
+            setAuthModalConfig({
+              visible: true,
+              type: 'info',
+              title: 'Session Expired',
+              message: 'Please sign in again to sync live tracking, ticket numbers, and receipt settings.',
+            });
+            return;
+          }
+
+          router.replace('/dashboard');
         }
       } catch (err) {
         console.error('Auto-login session restoration failed:', err);

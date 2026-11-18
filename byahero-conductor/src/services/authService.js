@@ -17,7 +17,7 @@ export async function preWarmServer() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    fetch(`${baseUrl}/api/ping`, { signal: controller.signal })
+    fetch(`${baseUrl}/api/ping`, { credentials: 'include', signal: controller.signal })
       .then(res => res.json())
       .then(data => {
         console.log('Pre-warm response:', data);

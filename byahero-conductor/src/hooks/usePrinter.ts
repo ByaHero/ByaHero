@@ -423,13 +423,19 @@ export function usePrinter(enabled: boolean = true) {
     }
 
     try {
+      const hasConfig = Boolean(config && typeof config === 'object');
+      const companyName = (hasConfig ? config.company_name : null) || 'ByaHero';
+      const clientName = hasConfig ? (config.client_name ?? '') : 'Magnificat Transport Cooperative';
+      const headerMessage = hasConfig ? (config.header_message ?? '') : 'Welcome aboard!';
+      const footerMessage = hasConfig ? (config.footer_message ?? '') : 'Thank you for your cooperation';
+
       let text = "";
-      text += `<CB>${config?.company_name || 'ByaHero Transit'}</CB>\n`;
-      if (config?.client_name) text += `<C>${config.client_name}</C>\n`;
+      text += `<CB>${companyName}</CB>\n`;
+      if (clientName) text += `<C>${clientName}</C>\n`;
       text += `<C>TICKET NO: ${ticket.ticketNumber || 'N/A'}</C>\n`;
       
-      if (config?.header_message) {
-        text += `\n<C>${config.header_message}</C>\n`;
+      if (headerMessage) {
+        text += `\n<C>${headerMessage}</C>\n`;
       } else {
         text += "\n";
       }
@@ -460,8 +466,8 @@ export function usePrinter(enabled: boolean = true) {
       text += printRow("TOTAL:", `PHP ${Number(ticket.fare).toFixed(2)}`);
       text += "--------------------------------\n";
       
-      if (config?.footer_message) {
-        text += `\n<C>${config.footer_message}</C>`;
+      if (footerMessage) {
+        text += `\n<C>${footerMessage}</C>`;
       }
 
       await safePrintBill(text);
@@ -480,9 +486,13 @@ export function usePrinter(enabled: boolean = true) {
     }
 
     try {
+      const hasReceiptConfig = Boolean(receiptConfig && typeof receiptConfig === 'object');
+      const companyName = (hasReceiptConfig ? receiptConfig.company_name : null) || 'ByaHero';
+      const clientName = hasReceiptConfig ? (receiptConfig.client_name ?? '') : 'Magnificat Transport Cooperative';
+
       let text = "";
-      text += `<CB>${receiptConfig?.company_name || 'ByaHero Transit'}</CB>\n`;
-      if (receiptConfig?.client_name) text += `<C>${receiptConfig.client_name}</C>\n`;
+      text += `<CB>${companyName}</CB>\n`;
+      if (clientName) text += `<C>${clientName}</C>\n`;
       
       const title = summaryConfig?.summary_title || 'TRIP SUMMARY';
       text += `<C>${title}</C>\n`;
