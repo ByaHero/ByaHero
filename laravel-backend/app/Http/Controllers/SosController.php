@@ -68,7 +68,7 @@ class SosController extends Controller
             $fcmService = app(\App\Services\FirebaseNotificationService::class);
             $delivery = $fcmService->sendNotification($fcmTokens, 'ByaHero SOS Alert',
                 ($senderName ?: 'A user').' needs help. '.$locationText,
-                ['type' => 'sos', 'sender_id' => (string)$userId, 'location_text' => $locationText], 'sos_alerts');
+                ['type' => 'sos', 'sender_id' => (string)$userId, 'location_text' => $locationText], 'sos_alerts_v2');
 
             return response()->json([
                 'success' => true,
