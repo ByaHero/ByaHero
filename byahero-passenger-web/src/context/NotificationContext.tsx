@@ -39,7 +39,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const { session } = useAuth();
 
   const [unreadCount, setUnreadCount] = useState<number>(0);
-  const [hasUnread, setHasUnread] = useState<boolean>(false);
+  const [hasActiveSos, setHasActiveSos] = useState<boolean>(false);
   const [permission, setPermission] = useState<NotificationPermission>(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
@@ -52,6 +52,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   const seenNotifIdsRef = useRef<Set<string | number>>(new Set());
   const isInitialFetchRef = useRef<boolean>(true);
   const inFlight = useRef<AbortSignal | null>(null);
+  const unreadFallback = useRef<{ signal: AbortSignal } | null>(null);
 
   // Check saved smart notifications setting
   useEffect(() => {
@@ -110,21 +111,8 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         'X-User-Email': email,
       };
 
-      // 1. Fetch unread status and count
-      const countRes = await session.fetch(`notifications/unread-count?${emailParam}`, { headers: authHeaders }).catch(() => null);
-      if (signal.aborted) return;
-
-      if (countRes?.ok) {
-        const countData = await countRes.json();
-        if (signal.aborted) return;
-        if (countData && countData.success) {
-          setUnreadCount(countData.unread || 0);
-          setHasUnread((countData.unread || 0) > 0);
-        }
-      }
-
-      // 2. Fetch full notification & SOS data (without mark_read so background polling preserves unread state)
-      const notifRes = await session.fetch(`notifications?${emailParam}`, { headers: authHeaders });
+      // Background checks preserve unread state by omitting mark_read.
+      const notifRes = await session.fetch(`notifications?${emailParam}&include_unread_count=1`, { headers: authHeaders });
 
       if (notifRes.ok) {
         const notifData = await notifRes.json();
@@ -135,9 +123,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
 
           // Process SOS alerts
           const activeSosAlerts = sosAlerts.filter((a) => a.status === 'active');
-          if (activeSosAlerts.length > 0) {
-            setHasUnread(true);
-          }
+          setHasActiveSos(activeSosAlerts.length > 0);
 
           if (activeSosAlerts.length > 0) {
             const newestSos = activeSosAlerts[0];
@@ -219,6 +205,27 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
             }
           }
           isInitialFetchRef.current = false;
+
+          if (typeof notifData.unread === 'number') {
+            unreadFallback.current = null;
+            setUnreadCount(notifData.unread);
+          } else if (unreadFallback.current?.signal !== signal) {
+            // Older backends return the badge count separately. Keep that request out of the SOS cycle.
+            const badgeRequest = { signal };
+            unreadFallback.current = badgeRequest;
+            void session.fetch(`notifications/unread-count?${emailParam}`, { headers: authHeaders })
+              .then(async response => {
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!signal.aborted && unreadFallback.current === badgeRequest && data.success) {
+                  setUnreadCount(data.unread || 0);
+                }
+              })
+              .catch(() => {})
+              .finally(() => {
+                if (unreadFallback.current === badgeRequest) unreadFallback.current = null;
+              });
+          }
         }
       }
     } catch (err) {
@@ -288,8 +295,9 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
   }, [session, refreshNotifications]);
 
   const clearUnreadCount = useCallback(() => {
+    unreadFallback.current = null;
     setUnreadCount(0);
-    setHasUnread(false);
+    setHasActiveSos(false);
   }, []);
 
   const dismissSosModal = useCallback(() => {
@@ -305,7 +313,7 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
     <NotificationContext.Provider
       value={{
         unreadCount,
-        hasUnread,
+        hasUnread: unreadCount > 0 || hasActiveSos,
         permission,
         isPushEnabled,
         latestSosAlert,
