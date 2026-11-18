@@ -212,7 +212,8 @@ class ProductionAuthTest extends TestCase
         ]);
         $this->mock(\App\Services\FirebaseNotificationService::class, function ($mock) {
             $mock->shouldReceive('sendNotification')->once()
-                ->withArgs(fn (array $tokens) => $tokens === ['private-recipient-token'])
+                ->withArgs(fn (array $tokens, string $title, string $body, array $data, string $channelId) =>
+                    $tokens === ['private-recipient-token'] && $channelId === 'sos_alerts_v2')
                 ->andReturn(['sent_count' => 1]);
             $mock->shouldNotReceive('generateSignedJwt');
         });

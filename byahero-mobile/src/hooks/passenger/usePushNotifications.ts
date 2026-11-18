@@ -48,13 +48,8 @@ export function usePushNotifications() {
         if (finalStatus === 'granted') {
           const tokenData = await Notifications.getDevicePushTokenAsync();
           const token = tokenData.data;
-          
-          const storedToken = await AsyncStorage.getItem('sos_fcm_active_token');
-          if (storedToken === token) {
-            console.log('[Auto-FCM] Token unchanged. No need to update server.');
-            return;
-          }
 
+          // The device can still have a cached token after the backend loses its registration.
           const currentBaseUrl = await getServerUrl();
           const cachedEmail = await AsyncStorage.getItem('byahero_cached_email') || '';
           const formData = new FormData();
