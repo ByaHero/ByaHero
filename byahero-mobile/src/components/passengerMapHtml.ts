@@ -400,6 +400,20 @@ export function getLeafletHTML(baseUrl: string): string {
                 }
               });
             }
+            else if (data.type === 'FOCUS_FRIEND') {
+              var targetLat = parseFloat(data.lat);
+              var targetLng = parseFloat(data.lng);
+              if (!isNaN(targetLat) && !isNaN(targetLng)) {
+                map.setView([targetLat, targetLng], data.zoom || 16);
+              }
+              if (window.groupMarkerLookup) {
+                var targetKey = data.email ? String(data.email).toLowerCase() : (data.id ? String(data.id) : '');
+                var targetMarker = window.groupMarkerLookup[targetKey] || (data.id ? window.groupMarkerLookup[String(data.id)] : null);
+                if (targetMarker && targetMarker.openPopup) {
+                  targetMarker.openPopup();
+                }
+              }
+            }
             else if (data.type === 'UPDATE_FRIENDS') {
               if (window.groupMarkers) {
                 window.groupMarkers.forEach(function(m) {
@@ -407,19 +421,69 @@ export function getLeafletHTML(baseUrl: string): string {
                 });
               }
               window.groupMarkers = [];
+              window.groupMarkerLookup = {};
+
+              var isFriendsOffline = !!data.isOffline;
+              var cachedAtFallback = data.cachedAt || null;
+
+              function formatFriendTimeAgo(rawDate) {
+                if (!rawDate) return '';
+                var str = String(rawDate).trim();
+                if (str.indexOf('Z') === -1 && !/[+-]\\d{2}(:\\d{2})?$/.test(str)) {
+                  str = str.replace(' ', 'T') + '+08:00';
+                }
+                var parsed = new Date(str);
+                if (isNaN(parsed.getTime())) return '';
+                var diffMins = Math.floor((Date.now() - parsed.getTime()) / 60000);
+                if (diffMins < 1) return 'just now';
+                if (diffMins < 60) return diffMins + 'm ago';
+                var diffHrs = Math.floor(diffMins / 60);
+                if (diffHrs < 24) return diffHrs + 'h ago';
+                var diffDays = Math.floor(diffHrs / 24);
+                return diffDays + (diffDays === 1 ? ' day ago' : ' days ago');
+              }
+
+              function buildFriendStatusHtml(member, inlineBreak) {
+                var prefix = inlineBreak ? '<br/>' : '';
+                if (isFriendsOffline) {
+                  var ago = formatFriendTimeAgo(member.updated_at || cachedAtFallback);
+                  var locPart = member.last_location_name ? ('<b>' + member.last_location_name + '</b>') : '';
+                  var meta = 'Last known location' + (ago ? (' &bull; ' + ago) : '');
+                  if (locPart) {
+                    return prefix + '<span style="font-size:11px;color:#b45309;">' + meta + '</span><br/><span style="font-size:11px;color:#334155;">' + locPart + '</span>';
+                  }
+                  return prefix + '<span style="font-size:11px;color:#b45309;">' + meta + '</span>';
+                }
+                var isWaiting = member.waiting_status === 'waiting';
+                var isBoarded = member.ride_status === 'active';
+                if (isWaiting) {
+                  return prefix + '<span style="font-size:11px;color:#d97706;">Waiting at <b>' + (member.waiting_location || '') + '</b></span>';
+                }
+                if (isBoarded) {
+                  return prefix + '<span style="font-size:11px;color:#15803d;">Onboard Bus <b>' + (member.boarded_bus_code || '') + '</b></span>';
+                }
+                var seenAgo = formatFriendTimeAgo(member.updated_at);
+                if (member.last_location_name) {
+                  return prefix + '<span style="font-size:11px;color:#64748b;">' + member.last_location_name + (seenAgo ? (' &bull; ' + seenAgo) : '') + '</span>';
+                }
+                return prefix + '<span style="font-size:11px;color:#64748b;">' + (seenAgo ? ('Last seen ' + seenAgo) : 'Live location available') + '</span>';
+              }
 
               // Group friends by coordinates (rounded to 5 decimal places, ~1 meter precision for clustering)
               var coordGroups = {};
               if (data.friends && Array.isArray(data.friends)) {
                 data.friends.forEach(function(friend) {
-                  if (friend.latitude && friend.longitude) {
-                    var flat = parseFloat(friend.latitude);
-                    var flng = parseFloat(friend.longitude);
+                  var rawLat = friend.latitude !== undefined && friend.latitude !== null ? friend.latitude : friend.lat;
+                  var rawLng = friend.longitude !== undefined && friend.longitude !== null ? friend.longitude : friend.lng;
+                  var flat = parseFloat(rawLat);
+                  var flng = parseFloat(rawLng);
+                  if (!isNaN(flat) && !isNaN(flng)) {
+                    var normalizedFriend = Object.assign({}, friend, { latitude: flat, longitude: flng });
                     var key = flat.toFixed(5) + ',' + flng.toFixed(5);
                     if (!coordGroups[key]) {
                       coordGroups[key] = [];
                     }
-                    coordGroups[key].push(friend);
+                    coordGroups[key].push(normalizedFriend);
                   }
                 });
               }
@@ -457,8 +521,7 @@ export function getLeafletHTML(baseUrl: string): string {
                 if (groupMembers.length === 1 && !userOverlaps) {
                   var friend = groupMembers[0];
                   var initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
-                  var isWaiting = friend.waiting_status === 'waiting';
-                  var isBoarded = friend.ride_status === 'active';
+                  var isWaiting = !isFriendsOffline && friend.waiting_status === 'waiting';
                   
                   var profilePicUrl = '';
                   if (friend.profile_picture) {
@@ -467,12 +530,13 @@ export function getLeafletHTML(baseUrl: string): string {
                       : '${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/' + friend.profile_picture.replace(/^\\//, '');
                   }
 
+                  var safeInitials = initials.replace(/'/g, '');
                   var avatarHtml = (profilePicUrl && profilePicUrl !== '')
-                    ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
+                    ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.parentNode.innerText=\\'' + safeInitials + '\\';" />'
                     : initials;
 
                   var badgeHtml = '';
-                  var avatarBorder = 'border-color: white;';
+                  var avatarBorder = isFriendsOffline ? 'border-color: #f59e0b; box-shadow: 0 0 0 2px #f59e0b, 0 3px 8px rgba(0,0,0,0.25);' : 'border-color: white;';
                   
                   if (isWaiting) {
                     badgeHtml = '<div class="waiting-badge" style="background: #10b981; border-color: #10b981; color: white;">Waiting!</div>';
@@ -490,19 +554,15 @@ export function getLeafletHTML(baseUrl: string): string {
                     popupAnchor: [0, -30]
                   });
 
-                  var popupHtml = '<div><strong>' + (friend.name || friend.email) + '</strong></div>';
-                  if (isWaiting) {
-                    popupHtml += '<div style="font-size:11px;color:#d97706;">Waiting at <b>' + (friend.waiting_location || '') + '</b></div>';
-                  } else if (isBoarded) {
-                    popupHtml += '<div style="font-size:11px;color:#15803d;">Onboard Bus <b>' + (friend.boarded_bus_code || '') + '</b></div>';
-                  } else {
-                    popupHtml += '<div style="font-size:11px;color:#64748b;">Live location available</div>';
-                  }
+                  var popupHtml = '<div><strong>' + (friend.name || friend.email) + '</strong></div>' +
+                    '<div>' + buildFriendStatusHtml(friend, false) + '</div>';
 
                   var m = L.marker([lat, lng], { icon: friendIcon, zIndexOffset: 700 })
                     .bindPopup(popupHtml)
                     .addTo(map);
                   window.groupMarkers.push(m);
+                  if (friend.email) window.groupMarkerLookup[String(friend.email).toLowerCase()] = m;
+                  if (friend.id) window.groupMarkerLookup[String(friend.id)] = m;
                 } else {
                   // Render a beautiful Life360-style clustered bubble
                   var innerHtml = '<div class="avatar-bubble-cluster" style="display: flex; flex-direction: row; align-items: center; background: white; border-radius: 20px; padding: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.25); border: 2px solid white; position: relative;">';
@@ -520,30 +580,22 @@ export function getLeafletHTML(baseUrl: string): string {
                         : '${baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl}/' + member.profile_picture.replace(/^\\//, '');
                     }
 
+                    var safeInitials = initials.replace(/'/g, '');
                     var avatarHtml = (profilePicUrl && profilePicUrl !== '')
-                      ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.style.display=\\'none\\';" />'
+                      ? '<img src="' + profilePicUrl + '" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;" onerror="this.parentNode.innerText=\\'' + safeInitials + '\\';" />'
                       : initials;
 
                     var mlStyle = idx > 0 ? 'margin-left: -10px;' : '';
                     
-                    var isWaiting = member.waiting_status === 'waiting';
-                    var isBoarded = member.ride_status === 'active';
-                    var borderCol = member.isUser ? '#2563eb' : (isWaiting ? '#10b981' : 'white');
+                    var isWaiting = !isFriendsOffline && member.waiting_status === 'waiting';
+                    var borderCol = member.isUser ? '#2563eb' : (isFriendsOffline ? '#f59e0b' : (isWaiting ? '#10b981' : 'white'));
                     var bgCol = member.isUser ? '#2563eb' : '#3b82f6';
 
                     innerHtml += '<div style="width: 32px; height: 32px; border-radius: 50%; border: 2px solid ' + borderCol + '; background: ' + bgCol + '; color: white; display: flex; align-items: center; justify-content: center; overflow: hidden; ' + mlStyle + ' font-size: 10px; font-weight: bold; box-shadow: 0 1px 3px rgba(0,0,0,0.15);">' + avatarHtml + '</div>';
 
                     var statusText = '';
                     if (!member.isUser) {
-                      var isWaiting = member.waiting_status === 'waiting';
-                      var isBoarded = member.ride_status === 'active';
-                      if (isWaiting) {
-                        statusText = '<br/><span style="font-size:11px;color:#d97706;">Waiting at <b>' + (member.waiting_location || '') + '</b></span>';
-                      } else if (isBoarded) {
-                        statusText = '<br/><span style="font-size:11px;color:#15803d;">Onboard Bus <b>' + (member.boarded_bus_code || '') + '</b></span>';
-                      } else {
-                        statusText = '<br/><span style="font-size:11px;color:#64748b;">Live location available</span>';
-                      }
+                      statusText = buildFriendStatusHtml(member, true);
                       popupHtml += '<li style="margin-bottom:6px;"><b>' + (member.name || member.email) + '</b>' + statusText + '</li>';
                     } else {
                       statusText = '<br/><span style="font-size:11px;color:#2563eb;text-decoration:underline;cursor:pointer;" onclick="if(window.postMessageFn) window.postMessageFn(JSON.stringify({type:\\'USER_MARKER_CLICKED\\'}));">Tap to view your status</span>';
@@ -571,6 +623,12 @@ export function getLeafletHTML(baseUrl: string): string {
                     .addTo(map);
 
                   window.groupMarkers.push(m);
+                  groupMembers.forEach(function(member) {
+                    if (!member.isUser) {
+                      if (member.email) window.groupMarkerLookup[String(member.email).toLowerCase()] = m;
+                      if (member.id) window.groupMarkerLookup[String(member.id)] = m;
+                    }
+                  });
                 }
               });
 

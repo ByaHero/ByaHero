@@ -105,6 +105,16 @@ async function apiRequest(action, dataObj, retries = 2) {
  */
 export async function cacheSession(email, role, userDetails = {}) {
   try {
+    const previousEmail = (await AsyncStorage.getItem('byahero_cached_email') || '').trim().toLowerCase();
+    const nextEmail = String(email || '').trim().toLowerCase();
+    if (previousEmail && nextEmail && previousEmail !== nextEmail) {
+      await AsyncStorage.multiRemove([
+        'byahero_friends_cache',
+        'byahero_cached_invite_code',
+        'byahero_offline_friends',
+      ]);
+    }
+
     await AsyncStorage.setItem('byahero_cached_email', email);
     await AsyncStorage.setItem('byahero_cached_role', role);
 
@@ -368,6 +378,8 @@ export async function logout() {
       'byahero_cached_user_feedback',
       'byahero_pending_profile_edits',
       'byahero_offline_friends',
+      'byahero_friends_cache',
+      'byahero_cached_invite_code',
     ];
     await AsyncStorage.multiRemove(keysToRemove);
 

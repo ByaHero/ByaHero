@@ -18,9 +18,11 @@ import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { WebView } from 'react-native-webview';
 import { Image } from 'expo-image';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNetInfo } from '@react-native-community/netinfo';
 import tw from 'twrnc';
 import { MaterialIcons } from '@expo/vector-icons';
 import { getServerUrl } from '../../services/authService';
+import { loadInviteCode, saveInviteCode } from '../../services/offlineCache';
 import { sendFcmPushes } from '../../services/notificationService';
 import { PassengerHeader, PassengerFooter } from '../../components/passenger-navbar';
 import PassengerBottomSheet from '../../components/passenger-bottomsheet';
@@ -127,13 +129,18 @@ export default function PassengerDashboard() {
     }, [])
   });
 
+  const netInfo = useNetInfo();
+  const isNetworkOffline = netInfo.isConnected === false || netInfo.isInternetReachable === false;
+
   const {
-    buses, busStops, circles, baseUrl,
+    buses, busStops, circles, isCirclesOffline, circlesCachedAt, baseUrl,
     isWaiting, setIsWaiting, waitingLocation, setWaitingLocation,
     waitingExpiresAt, setWaitingExpiresAt,
     isBoarded, setIsBoarded, boardedBus, setBoardedBus, boardedRoute, setBoardedRoute,
     fetchGroupMembers, isInitialFetchDone
   } = useTrackingData(userLocation);
+
+  const effectiveCirclesOffline = isNetworkOffline || isCirclesOffline;
 
   const postToMap = React.useCallback((message: any) => {
     let finalMessage = message;
@@ -234,6 +241,8 @@ export default function PassengerDashboard() {
     postToMap({
       type: 'UPDATE_FRIENDS',
       friends: sheetTab === 'groups' ? circles : [],
+      isOffline: effectiveCirclesOffline,
+      cachedAt: circlesCachedAt,
       user: userLocation ? {
         lat: userLocation.lat,
         lng: userLocation.lng,
@@ -241,9 +250,23 @@ export default function PassengerDashboard() {
         profilePic: getFullProfilePicUrl(baseUrl)
       } : null
     });
-  }, [circles, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap, sheetTab]);
+  }, [circles, effectiveCirclesOffline, circlesCachedAt, userLocation, userInitial, getFullProfilePicUrl, baseUrl, postToMap, sheetTab]);
+
+  // Hydrate cached invite code immediately on mount so offline mode doesn't show '------'
+  useEffect(() => {
+    (async () => {
+      const cachedCode = await loadInviteCode();
+      if (cachedCode) {
+        setInviteCode(cachedCode);
+      }
+    })();
+  }, []);
 
   const fetchInviteCode = async (reset = false) => {
+    if (reset && isNetworkOffline) {
+      showAlert('Offline Mode', 'An internet connection is required to generate a new invite code.', 'warning');
+      return;
+    }
     try {
       const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
       const emailQuery = email ? `email=${encodeURIComponent(email)}` : '';
@@ -259,13 +282,26 @@ export default function PassengerDashboard() {
         const data = await res.json();
         if (data.success && data.invite_code) {
           setInviteCode(data.invite_code);
-            if (reset) {
-              showAlert('New Code Generated', `Your new circle invite code is: ${data.invite_code}`, 'success');
-            }
+          await saveInviteCode(data.invite_code, email || null);
+          if (reset) {
+            showAlert('New Code Generated', `Your new circle invite code is: ${data.invite_code}`, 'success');
+          }
+          return;
         }
       }
+      if (reset) {
+        showAlert('Offline Mode', 'An internet connection is required to generate a new invite code.', 'warning');
+      } else {
+        const cachedCode = await loadInviteCode(email || null);
+        if (cachedCode) setInviteCode(cachedCode);
+      }
     } catch (err) {
-      console.error('Error fetching invite code:', err);
+      if (reset) {
+        showAlert('Offline Mode', 'An internet connection is required to generate a new invite code.', 'warning');
+      } else {
+        const cachedCode = await loadInviteCode();
+        if (cachedCode) setInviteCode(cachedCode);
+      }
     }
   };
 
@@ -320,7 +356,9 @@ export default function PassengerDashboard() {
             });
             postToMap({
               type: 'UPDATE_FRIENDS',
-              friends: circles,
+              friends: sheetTab === 'groups' ? circles : [],
+              isOffline: effectiveCirclesOffline,
+              cachedAt: circlesCachedAt,
               user: userLocation ? {
                 lat: userLocation.lat,
                 lng: userLocation.lng,
@@ -337,7 +375,7 @@ export default function PassengerDashboard() {
       window.addEventListener('message', handleWebMessage);
       return () => window.removeEventListener('message', handleWebMessage);
     }
-  }, [userLocation, buses, filteredStops, sheetTab, circles]);
+  }, [userLocation, buses, filteredStops, sheetTab, circles, effectiveCirclesOffline, circlesCachedAt]);
 
   const handleWebViewMessage = (event: any) => {
     try {
@@ -363,7 +401,9 @@ export default function PassengerDashboard() {
         });
         postToMap({
           type: 'UPDATE_FRIENDS',
-          friends: circles,
+          friends: sheetTab === 'groups' ? circles : [],
+          isOffline: effectiveCirclesOffline,
+          cachedAt: circlesCachedAt,
           user: userLocation ? {
             lat: userLocation.lat,
             lng: userLocation.lng,
@@ -575,17 +615,19 @@ export default function PassengerDashboard() {
 
   const handleFriendPress = React.useCallback((friend: any) => {
     setIsFollowingUser(false);
-    const lat = parseFloat(friend.latitude);
-    const lng = parseFloat(friend.longitude);
+    const lat = parseFloat(friend.latitude ?? friend.lat);
+    const lng = parseFloat(friend.longitude ?? friend.lng);
     if (!isNaN(lat) && !isNaN(lng)) {
       postToMap({
-        type: 'SET_CENTER',
+        type: 'FOCUS_FRIEND',
+        id: friend.id,
+        email: friend.email,
         lat,
         lng,
         zoom: 16
       });
     } else {
-      showAlert('Location Unavailable', `${friend.name || friend.email}'s location is currently unavailable.`, 'warning');
+      showAlert('Location Unavailable', `${friend.name || friend.email}'s last location is currently unavailable.`, 'warning');
     }
   }, [postToMap]);
 
@@ -594,6 +636,10 @@ export default function PassengerDashboard() {
   };
 
   const handleJoinCircle = async () => {
+    if (isNetworkOffline) {
+      showAlert('Offline Mode', 'An internet connection is required to join a circle.', 'warning');
+      return;
+    }
     if (joinCode.trim().length !== 6) {
       showAlert('Error', 'Invite code must be 6 alphanumeric characters.', 'warning');
       return;
@@ -622,12 +668,15 @@ export default function PassengerDashboard() {
         showAlert('Error', 'Server error joining circle.', 'error');
       }
     } catch (err) {
-      console.error('Error joining circle:', err);
-      showAlert('Error', 'Network error joining circle.', 'error');
+      showAlert('Offline Mode', 'An internet connection is required to join a circle.', 'warning');
     }
   };
 
   const handleRemoveCircleMember = async (friendId: number, friendName: string) => {
+    if (isNetworkOffline) {
+      showAlert('Offline Mode', 'An internet connection is required to remove a circle member.', 'warning');
+      return;
+    }
     const performRemove = async () => {
       try {
         const currentBaseUrl = await getServerUrl();
@@ -653,8 +702,7 @@ export default function PassengerDashboard() {
           showAlert('Error', 'Server error removing member.', 'error');
         }
       } catch (err) {
-        console.error('Error removing member:', err);
-        showAlert('Error', 'Network error removing member.', 'error');
+        showAlert('Offline Mode', 'An internet connection is required to remove a circle member.', 'warning');
       }
     };
 
@@ -737,11 +785,14 @@ export default function PassengerDashboard() {
               selectedRoute={selectedRoute}
               setSelectedRoute={setSelectedRoute}
               inviteCode={inviteCode}
-              generateInviteCode={fetchInviteCode}
+              generateInviteCode={generateInviteCode}
               joinCode={joinCode}
               setJoinCode={setJoinCode}
               handleJoinCircle={handleJoinCircle}
               circles={circles}
+              isCirclesOffline={effectiveCirclesOffline}
+              circlesCachedAt={circlesCachedAt}
+              onOfflineAction={(msg: string) => showAlert('Offline Mode', msg, 'warning')}
               stopsRoute={stopsRoute}
               setStopsRoute={setStopsRoute}
               filteredStops={filteredStops}

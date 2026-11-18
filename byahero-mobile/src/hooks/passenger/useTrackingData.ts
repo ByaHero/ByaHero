@@ -2,14 +2,43 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServerUrl } from '../../services/authService';
 import { resolveBusLocationName } from '../../utils/locationUtils';
-import { loadBusData, saveLiveBusesCache, loadLiveBusesCache } from '../../services/offlineCache';
+import {
+  loadBusData,
+  loadFriendsCache,
+  saveFriendsData,
+  saveLiveBusesCache,
+  loadLiveBusesCache,
+} from '../../services/offlineCache';
 
-const LIVE_BUSES_KEY = 'byahero_live_buses_cache';
+function enrichFriendWithLocation(friend: any) {
+  const rawLat = friend.latitude ?? friend.lat;
+  const rawLng = friend.longitude ?? friend.lng;
+  const lat = rawLat !== null && rawLat !== undefined && rawLat !== '' ? parseFloat(String(rawLat)) : NaN;
+  const lng = rawLng !== null && rawLng !== undefined && rawLng !== '' ? parseFloat(String(rawLng)) : NaN;
+  const hasCoords = !isNaN(lat) && !isNaN(lng);
+
+  let resolvedName = friend.last_location_name || friend.location_name || null;
+  if (!resolvedName && hasCoords) {
+    resolvedName = resolveBusLocationName(lat, lng) || `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  }
+
+  return {
+    ...friend,
+    latitude: hasCoords ? lat : friend.latitude,
+    longitude: hasCoords ? lng : friend.longitude,
+    lat: hasCoords ? lat : friend.lat,
+    lng: hasCoords ? lng : friend.lng,
+    last_location_name: resolvedName,
+  };
+}
 
 export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
+  const circlesRef = useRef<any[]>([]);
+  const [isCirclesOffline, setIsCirclesOffline] = useState(false);
+  const [circlesCachedAt, setCirclesCachedAt] = useState<string | null>(null);
   const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
 
   // Immediately hydrate buses from cache on mount so last known bus locations appear instantly
@@ -40,34 +69,82 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
   const [boardedRoute, setBoardedRoute] = useState('');
   const [isInitialFetchDone, setIsInitialFetchDone] = useState(false);
 
-  const fetchGroupMembers = async (currentBaseUrl: string) => {
+  const hydrateCirclesFromCache = useCallback(async (loggedInEmail?: string) => {
     try {
-      const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+      const email = (loggedInEmail ?? (await AsyncStorage.getItem('byahero_cached_email')) ?? '').toLowerCase().trim();
+      const cached = await loadFriendsCache(email || null);
+      if (cached && Array.isArray(cached.friends)) {
+        const uniqueFriends = new Map<string, any>();
+        cached.friends.forEach((friend: any) => {
+          const friendEmail = (friend.email || '').toLowerCase().trim();
+          const key = friendEmail || String(friend.id || '');
+          if (key && friendEmail !== email && !uniqueFriends.has(key)) {
+            uniqueFriends.set(key, enrichFriendWithLocation(friend));
+          }
+        });
+        const cachedList = Array.from(uniqueFriends.values());
+        if (cachedList.length > 0 && circlesRef.current.length === 0) {
+          circlesRef.current = cachedList;
+          setCircles(cachedList);
+        }
+        if (cached.cached_at) {
+          setCirclesCachedAt(cached.cached_at);
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to hydrate cached circle members:', e);
+    }
+  }, []);
+
+  // Immediately hydrate cached circle members on mount so offline mode shows them right away
+  useEffect(() => {
+    hydrateCirclesFromCache();
+  }, [hydrateCirclesFromCache]);
+
+  const fetchGroupMembers = async (currentBaseUrl: string) => {
+    const email = (await AsyncStorage.getItem('byahero_cached_email') || '').trim();
+    const loggedInEmail = email.toLowerCase();
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 7000);
+    try {
       const url = email ? `${currentBaseUrl}/api/group/view?email=${encodeURIComponent(email)}` : `${currentBaseUrl}/api/group/view`;
       const res = await fetch(url, {
         headers: email ? { 'X-User-Email': email } : {},
         credentials: 'include',
-        cache: 'no-store'
+        cache: 'no-store',
+        signal: controller.signal
       });
+      clearTimeout(timer);
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.friends)) {
-          const loggedInEmail = email.toLowerCase().trim();
-          
           // Deduplicate by email and filter out the logged in user
           const uniqueFriends = new Map();
           data.friends.forEach((friend: any) => {
             const friendEmail = (friend.email || '').toLowerCase().trim();
             if (friendEmail && friendEmail !== loggedInEmail && !uniqueFriends.has(friendEmail)) {
-              uniqueFriends.set(friendEmail, friend);
+              uniqueFriends.set(friendEmail, enrichFriendWithLocation(friend));
             }
           });
-          
-          setCircles(Array.from(uniqueFriends.values()));
+
+          const enrichedFriends = Array.from(uniqueFriends.values());
+          circlesRef.current = enrichedFriends;
+          setCircles(enrichedFriends);
+          setIsCirclesOffline(false);
+
+          const savedAt = await saveFriendsData(enrichedFriends, loggedInEmail || null);
+          setCirclesCachedAt(savedAt);
+          return;
         }
       }
+      // Non-OK response: keep existing / cached circles and flag offline/fallback state
+      setIsCirclesOffline(true);
+      await hydrateCirclesFromCache(loggedInEmail);
     } catch (err: any) {
-      if (err.message !== 'Network request failed') {
+      clearTimeout(timer);
+      setIsCirclesOffline(true);
+      await hydrateCirclesFromCache(loggedInEmail);
+      if (err.name !== 'AbortError' && err.message !== 'Network request failed') {
         console.error('Error fetching group members:', err);
       }
     }
@@ -227,6 +304,8 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
     buses,
     busStops,
     circles,
+    isCirclesOffline,
+    circlesCachedAt,
     baseUrl,
     isWaiting,
     setIsWaiting,

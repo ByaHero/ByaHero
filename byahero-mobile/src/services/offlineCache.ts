@@ -1,8 +1,9 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'byahero_bus_data_cache';
-const FRIENDS_CACHE_KEY = 'byahero_friends_cache';
-const LIVE_BUSES_CACHE_KEY = 'byahero_live_buses_cache';
+export const FRIENDS_CACHE_KEY = 'byahero_friends_cache';
+export const INVITE_CODE_CACHE_KEY = 'byahero_cached_invite_code';
+export const LIVE_BUSES_CACHE_KEY = 'byahero_live_buses_cache';
 
 export interface CachedBusData {
   cached_at: string; // ISO 8601 string
@@ -42,6 +43,12 @@ export async function loadLiveBusesCache(): Promise<any[]> {
     console.error('Failed to load live buses from cache:', error);
   }
   return [];
+}
+
+export interface CachedFriendsData {
+  cached_at: string | null;
+  owner_email?: string | null;
+  friends: any[];
 }
 
 /**
@@ -134,19 +141,61 @@ export async function getBusDataAgeHours(): Promise<number> {
   return -1;
 }
 
-export async function saveFriendsData(friends: any[]): Promise<void> {
+async function resolveCurrentEmail(explicitEmail?: string | null): Promise<string> {
+  if (explicitEmail && explicitEmail.trim()) {
+    return explicitEmail.trim().toLowerCase();
+  }
   try {
-    await AsyncStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify(friends));
-  } catch (error) {
-    console.error('Failed to save friends data to cache:', error);
+    const stored = await AsyncStorage.getItem('byahero_cached_email');
+    return (stored || '').trim().toLowerCase();
+  } catch {
+    return '';
   }
 }
 
-export async function loadFriendsData(): Promise<any[] | null> {
+export async function saveFriendsData(friends: any[], ownerEmail?: string | null): Promise<string> {
+  const cachedAt = new Date().toISOString();
+  try {
+    const normalizedOwner = await resolveCurrentEmail(ownerEmail);
+    const payload: CachedFriendsData = {
+      cached_at: cachedAt,
+      owner_email: normalizedOwner || null,
+      friends: Array.isArray(friends) ? friends : [],
+    };
+    await AsyncStorage.setItem(FRIENDS_CACHE_KEY, JSON.stringify(payload));
+  } catch (error) {
+    console.error('Failed to save friends data to cache:', error);
+  }
+  return cachedAt;
+}
+
+export async function loadFriendsCache(ownerEmail?: string | null): Promise<CachedFriendsData | null> {
   try {
     const jsonString = await AsyncStorage.getItem(FRIENDS_CACHE_KEY);
-    if (jsonString) {
-      return JSON.parse(jsonString) as any[];
+    if (!jsonString) return null;
+
+    const parsed = JSON.parse(jsonString);
+    const currentEmail = await resolveCurrentEmail(ownerEmail);
+
+    // Backwards compatibility with legacy array format
+    if (Array.isArray(parsed)) {
+      return {
+        cached_at: null,
+        owner_email: currentEmail || null,
+        friends: parsed,
+      };
+    }
+
+    if (parsed && Array.isArray(parsed.friends)) {
+      const cachedOwner = (parsed.owner_email || '').trim().toLowerCase();
+      if (cachedOwner && currentEmail && cachedOwner !== currentEmail) {
+        return null;
+      }
+      return {
+        cached_at: parsed.cached_at || null,
+        owner_email: parsed.owner_email || null,
+        friends: parsed.friends,
+      };
     }
   } catch (error) {
     console.error('Failed to load friends data from cache:', error);
@@ -154,11 +203,74 @@ export async function loadFriendsData(): Promise<any[] | null> {
   return null;
 }
 
+export async function loadFriendsData(ownerEmail?: string | null): Promise<any[] | null> {
+  const cached = await loadFriendsCache(ownerEmail);
+  return cached ? cached.friends : null;
+}
+
+export async function saveInviteCode(inviteCode: string, ownerEmail?: string | null): Promise<void> {
+  try {
+    if (!inviteCode || inviteCode === '------') return;
+    const normalizedOwner = await resolveCurrentEmail(ownerEmail);
+    await AsyncStorage.setItem(
+      INVITE_CODE_CACHE_KEY,
+      JSON.stringify({
+        invite_code: inviteCode,
+        owner_email: normalizedOwner || null,
+        cached_at: new Date().toISOString(),
+      })
+    );
+  } catch (error) {
+    console.error('Failed to save invite code to cache:', error);
+  }
+}
+
+export async function loadInviteCode(ownerEmail?: string | null): Promise<string | null> {
+  try {
+    const raw = await AsyncStorage.getItem(INVITE_CODE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    const currentEmail = await resolveCurrentEmail(ownerEmail);
+
+    if (typeof parsed === 'string') {
+      return parsed;
+    }
+    if (parsed && typeof parsed.invite_code === 'string') {
+      const cachedOwner = (parsed.owner_email || '').trim().toLowerCase();
+      if (cachedOwner && currentEmail && cachedOwner !== currentEmail) {
+        return null;
+      }
+      return parsed.invite_code;
+    }
+  } catch (error) {
+    console.error('Failed to load invite code from cache:', error);
+  }
+  return null;
+}
+
+export async function clearCircleCache(): Promise<void> {
+  try {
+    await AsyncStorage.multiRemove([
+      FRIENDS_CACHE_KEY,
+      INVITE_CODE_CACHE_KEY,
+      'byahero_offline_friends',
+    ]);
+  } catch (error) {
+    console.error('Failed to clear circle cache:', error);
+  }
+}
+
 /**
  * Formats a given date to a relative time string. (e.g. "2 hours ago")
  */
 export function formatTimeAgo(isoString: string): string {
-    const date = new Date(isoString);
+    if (!isoString) return 'recently';
+    let normalized = String(isoString).trim();
+    if (!normalized.includes('Z') && !/[+-]\d{2}(:\d{2})?$/.test(normalized)) {
+      normalized = normalized.replace(' ', 'T') + '+08:00';
+    }
+    const date = new Date(normalized);
+    if (isNaN(date.getTime())) return 'recently';
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffMins = Math.floor(diffMs / (1000 * 60));
