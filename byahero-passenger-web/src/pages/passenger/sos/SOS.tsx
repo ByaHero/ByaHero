@@ -228,15 +228,12 @@ export const SOS: React.FC = () => {
                 </div>
 
                 <p className="text-sm font-black text-slate-700">
-                  Your SOS will be sent to {circles.length} people in your circle.
+                  Your SOS alert and location will be sent to {circles.length} {circles.length === 1 ? 'member' : 'members'} of your circle.
                 </p>
               </>
             ) : (
-              <span className="text-xs text-slate-400 font-medium italic">No friends in your circle yet.</span>
+              <p className="text-sm font-semibold text-slate-700">Add someone to your circle before sending an SOS.</p>
             )}
-            <p className="text-[11px] text-slate-400 font-semibold text-center mt-2 leading-relaxed px-6">
-              Alerts will broadcast your live coordinates immediately to your circle members.
-            </p>
           </div>
 
           {/* Emergency Municipal Hotlines */}
