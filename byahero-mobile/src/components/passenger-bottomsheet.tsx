@@ -19,6 +19,7 @@ import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import tw from 'twrnc';
 import { handleTourLayout } from './TourRegistry';
+import { formatTimeAgo } from '../services/offlineCache';
 
 interface PassengerBottomSheetProps {
   sheetTab: 'location' | 'routes' | 'groups' | 'busstops';
@@ -32,6 +33,9 @@ interface PassengerBottomSheetProps {
   setJoinCode: (code: string) => void;
   handleJoinCircle: () => void;
   circles: any[];
+  isCirclesOffline?: boolean;
+  circlesCachedAt?: string | null;
+  onOfflineAction?: (msg: string) => void;
   stopsRoute: 'LAUREL - TANAUAN' | 'TANAUAN - LAUREL';
   setStopsRoute: (route: 'LAUREL - TANAUAN' | 'TANAUAN - LAUREL') => void;
   filteredStops: any[];
@@ -82,6 +86,9 @@ export default function PassengerBottomSheet({
   setJoinCode,
   handleJoinCircle,
   circles,
+  isCirclesOffline = false,
+  circlesCachedAt = null,
+  onOfflineAction,
   stopsRoute,
   setStopsRoute,
   filteredStops,
@@ -768,6 +775,14 @@ export default function PassengerBottomSheet({
                   <Text style={tw`text-[15px] font-black text-slate-800`}>Join a Circle</Text>
                   <TouchableOpacity
                     onPress={async () => {
+                      if (isCirclesOffline) {
+                        if (onOfflineAction) {
+                          onOfflineAction('An internet connection is required to scan and join a circle.');
+                        } else {
+                          showAlert('Offline Mode', 'An internet connection is required to scan and join a circle.', 'warning');
+                        }
+                        return;
+                      }
                       setScanned(false);
                       setScannerModalVisible(true);
                       if (!permission?.granted) {
@@ -795,22 +810,44 @@ export default function PassengerBottomSheet({
                 </View>
               </View>
 
+              {/* Offline Cached Circle Notice */}
+              {isCirclesOffline && circles.length > 0 && (
+                <View style={tw`bg-amber-50 border border-amber-200 rounded-2xl px-3.5 py-2.5 mb-3 flex-row items-center`}>
+                  <MaterialIcons name="cloud-off" size={16} color="#b45309" style={tw`mr-2`} />
+                  <Text style={tw`text-[11px] font-bold text-amber-800 flex-1`}>
+                    Offline mode — showing last known locations
+                    {circlesCachedAt ? ` (updated ${formatTimeAgo(circlesCachedAt)})` : ''}
+                  </Text>
+                </View>
+              )}
+
               {/* Circle Members List Container */}
               {circles.length === 0 ? (
                 <View style={tw`bg-[#f8fafc] rounded-3xl p-5 border border-[#e2e8f0]/40 items-center justify-center`}>
-                  <Text style={tw`text-xs text-slate-400 font-medium italic`}>No circle members yet.</Text>
+                  <Text style={tw`text-xs text-slate-400 font-medium italic text-center`}>
+                    {isCirclesOffline ? 'No cached circle members available offline.' : 'No circle members yet.'}
+                  </Text>
                 </View>
               ) : (
                 <View style={tw`bg-[#f8fafc] rounded-3xl p-4 border border-[#e2e8f0]/40 shadow-sm mb-6`}>
                   {circles.map((friend, index) => {
                     const initials = (friend.name || friend.email || '?').substring(0, 2).toUpperCase();
+                    const latVal = parseFloat(friend.latitude ?? friend.lat);
+                    const lngVal = parseFloat(friend.longitude ?? friend.lng);
+                    const hasCoords = !isNaN(latVal) && !isNaN(lngVal);
+                    const lastLocationLabel =
+                      friend.last_location_name ||
+                      friend.location_name ||
+                      (friend.waiting_location ? friend.waiting_location : null) ||
+                      (hasCoords ? `${latVal.toFixed(4)}, ${lngVal.toFixed(4)}` : null);
 
                     // Compute live online status from updated_at timestamp
                     let isOnline = false;
                     let relativeSeenText = 'Location unavailable';
 
-                    if (friend.updated_at) {
-                      let dateString = friend.updated_at.trim();
+                    const timestampToUse = friend.updated_at || (isCirclesOffline ? circlesCachedAt : null);
+                    if (timestampToUse) {
+                      let dateString = String(timestampToUse).trim();
                       if (!dateString.includes('Z') && !/[+-]\d{2}(:\d{2})?$/.test(dateString)) {
                         dateString = dateString.replace(' ', 'T') + '+08:00';
                       }
@@ -821,34 +858,54 @@ export default function PassengerBottomSheet({
                         const diffHrs = Math.floor(diffMin / 60);
                         const diffDays = Math.floor(diffHrs / 24);
 
-                        if (diffMin >= -2 && diffMin < 5) {
+                        if (!isCirclesOffline && diffMin >= -2 && diffMin < 5) {
                           isOnline = true;
                           relativeSeenText = 'Active now';
-                        } else if (diffMin >= 5 && diffMin < 60) {
-                          relativeSeenText = `Last seen ${diffMin}m ago`;
+                        } else if (diffMin < 1) {
+                          relativeSeenText = isCirclesOffline ? 'just now' : 'Last seen just now';
+                        } else if (diffMin < 60) {
+                          relativeSeenText = isCirclesOffline ? `${diffMin}m ago` : `Last seen ${diffMin}m ago`;
                         } else if (diffHrs >= 1 && diffHrs < 24) {
-                          relativeSeenText = `Last seen ${diffHrs}h ago`;
+                          relativeSeenText = isCirclesOffline ? `${diffHrs}h ago` : `Last seen ${diffHrs}h ago`;
                         } else if (diffDays >= 1) {
-                          relativeSeenText = `Last seen ${diffDays} ${diffDays === 1 ? 'day' : 'days'} ago`;
+                          const dayUnit = diffDays === 1 ? 'day' : 'days';
+                          relativeSeenText = isCirclesOffline ? `${diffDays} ${dayUnit} ago` : `Last seen ${diffDays} ${dayUnit} ago`;
                         } else {
                           relativeSeenText = 'Offline';
                         }
                       }
                     }
 
-                    // Customize location status text if they are online
+                    // Customize location status text
                     let statusText = relativeSeenText;
-                    if (isOnline) {
+                    if (isCirclesOffline) {
+                      if (lastLocationLabel) {
+                        statusText = timestampToUse
+                          ? `${lastLocationLabel} • ${relativeSeenText}`
+                          : lastLocationLabel;
+                      } else if (timestampToUse) {
+                        statusText = `Last seen ${relativeSeenText}`;
+                      }
+                    } else if (isOnline) {
                       const isWaiting = friend.waiting_status === 'waiting';
                       const isBoarded = friend.ride_status === 'active';
                       if (isWaiting) {
                         statusText = `Waiting at ${friend.waiting_location}`;
                       } else if (isBoarded) {
                         statusText = `Onboard Bus ${friend.boarded_bus_code || ''}`;
-                      } else if (friend.latitude && friend.longitude) {
+                      } else if (lastLocationLabel) {
+                        statusText = lastLocationLabel;
+                      } else if (hasCoords) {
                         statusText = 'Live location available';
                       }
+                    } else if (lastLocationLabel) {
+                      statusText = `${lastLocationLabel} • ${relativeSeenText}`;
                     }
+
+                    const badgeBg = isOnline ? '#dcfce7' : (isCirclesOffline ? '#fef3c7' : '#f1f5f9');
+                    const badgeColor = isOnline ? '#15803d' : (isCirclesOffline ? '#b45309' : '#64748b');
+                    const badgeLabel = isOnline ? 'ONLINE' : (isCirclesOffline ? 'LAST KNOWN' : 'OFFLINE');
+                    const dotColor = isOnline ? '#10b981' : (isCirclesOffline ? '#f59e0b' : '#94a3b8');
 
                     return (
                       <TouchableOpacity
@@ -862,7 +919,7 @@ export default function PassengerBottomSheet({
                       >
                         {/* Avatar with Status Dot Overlay */}
                         <View style={tw`relative mr-3.5`}>
-                          {friend.profile_picture ? (
+                          {friend.profile_picture && !isCirclesOffline ? (
                             <Image
                               source={{ uri: (friend.profile_picture.startsWith('http') || friend.profile_picture.startsWith('data:')) ? friend.profile_picture : `${baseUrl}/${friend.profile_picture}` }}
                               style={tw`w-12 h-12 rounded-full border border-slate-200`}
@@ -876,7 +933,7 @@ export default function PassengerBottomSheet({
                           <View
                             style={[
                               tw`absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white`,
-                              { backgroundColor: isOnline ? '#10b981' : '#94a3b8' }
+                              { backgroundColor: dotColor }
                             ]}
                           />
                         </View>
@@ -887,13 +944,13 @@ export default function PassengerBottomSheet({
                           <View style={tw`flex-row items-center mt-1`}>
                             <View style={[
                               tw`px-2 py-0.5 rounded-md`,
-                              { backgroundColor: isOnline ? '#dcfce7' : '#f1f5f9' }
+                              { backgroundColor: badgeBg }
                             ]}>
                               <Text style={[
                                 tw`text-[9px] font-black tracking-wider`,
-                                { color: isOnline ? '#15803d' : '#64748b' }
+                                { color: badgeColor }
                               ]}>
-                                {isOnline ? 'ONLINE' : 'OFFLINE'}
+                                {badgeLabel}
                               </Text>
                             </View>
                             <Text style={tw`text-[10px] text-[#64748b] font-bold ml-2 flex-1`} numberOfLines={1}>
@@ -907,7 +964,7 @@ export default function PassengerBottomSheet({
                           onPress={() => handleRemoveCircleMember(friend.id, friend.name || friend.email)}
                           style={tw`p-2`}
                         >
-                          <MaterialIcons name="person-remove-alt-1" size={22} color="#103d7c" />
+                          <MaterialIcons name="person-remove-alt-1" size={22} color={isCirclesOffline ? '#94a3b8' : '#103d7c'} />
                         </TouchableOpacity>
                       </TouchableOpacity>
                     );
