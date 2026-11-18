@@ -37,7 +37,6 @@ import {
   BarChart3, 
   Printer,
   RefreshCw, 
-  BrainCircuit,
   Maximize,
   X
 } from 'lucide-react';
@@ -66,15 +65,12 @@ export default function Dashboard() {
     analytics_boarded: 0,
   });
 
-  const [aiStats, setAiStats] = useState<any>(null);
-
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const [data, analyticsData, aiData, activeBusesData] = await Promise.all([
+      const [data, analyticsData, activeBusesData] = await Promise.all([
         adminService.getDashboardStats(),
         adminService.getAnalytics({ period: 'today' }).catch(() => null),
-        adminService.getAiStats().catch(() => null),
         adminService.listActiveBuses().catch(() => null)
       ]);
 
@@ -92,10 +88,6 @@ export default function Dashboard() {
           ...data.stats,
           analytics_boarded: analyticsBoarded
         });
-      }
-      
-      if (aiData && aiData.success && aiData.stats) {
-        setAiStats(aiData.stats);
       }
     } catch (e) {
       console.error('Failed to fetch dashboard stats', e);
@@ -156,32 +148,9 @@ export default function Dashboard() {
       <div className="flex flex-wrap justify-between items-center gap-4 bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
         <div>
           <h2 className="text-xl font-black text-[#0f3878] tracking-tight">System Monitor & Control Center</h2>
-          <p className="text-xs text-slate-500 font-medium mt-1">Real-time status overview of bus telemetry, schedules, staff, and AI predictors.</p>
+          <p className="text-xs text-slate-500 font-medium mt-1">Real-time status overview of bus telemetry, schedules, and staff.</p>
         </div>
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button 
-            className="inline-flex items-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-slate-100 border border-slate-200 text-slate-700 hover:bg-slate-200 transition cursor-pointer disabled:opacity-60" 
-            onClick={async () => {
-              showConfirm(
-                'Retrain ETA AI Model',
-                'Retrain the ETA AI Model using latest historical data?',
-                async () => {
-                  setLoading(true);
-                  try {
-                    const res = await adminService.trainAiModel();
-                    showAlert('Model Trained', res.message || 'Model trained successfully.', 'success');
-                  } catch (e: any) {
-                    showAlert('Training Failed', e.message || 'Failed to train model.', 'error');
-                  }
-                  setLoading(false);
-                }
-              );
-            }} 
-            disabled={loading}
-          >
-            <Activity size={14} />
-            Retrain ETA AI
-          </button>
           <button 
             className="inline-flex items-center gap-2 py-2 px-3.5 text-xs font-bold rounded-xl bg-[#0f3878] text-white hover:bg-[#0a2958] transition cursor-pointer disabled:opacity-60 shadow-sm" 
             onClick={fetchStats} 
@@ -255,7 +224,7 @@ export default function Dashboard() {
               </div>
             </div>
 
-            <div className="h-[280px] rounded-2xl overflow-hidden border border-slate-200 relative">
+            <div className="h-[540px] rounded-2xl overflow-hidden border border-slate-200 relative">
               <MapContainer 
                 center={[14.076, 120.931]}
                 zoom={12} 
@@ -294,91 +263,6 @@ export default function Dashboard() {
                   return null;
                 })}
               </MapContainer>
-            </div>
-          </div>
-
-          {/* AI Intelligence Card */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm space-y-5">
-            <div className="flex items-center gap-3.5">
-              <div className="p-3 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100">
-                <BrainCircuit size={26} />
-              </div>
-              <div>
-                <h4 className="text-base font-black text-slate-900 leading-tight">ETA Prediction Engine</h4>
-                <p className="text-[11px] text-slate-400 font-medium">Last Trained: {aiStats ? new Date(aiStats.last_trained).toLocaleString() : 'Loading...'}</p>
-              </div>
-            </div>
-            
-            <div className="flex justify-between items-center pb-4 border-b border-slate-100">
-              <div>
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Training Dataset Size</span>
-                <span className="text-xl font-black text-[#0f3878]">{aiStats?.total_data_points ? aiStats.total_data_points.toLocaleString() : 0} Records</span>
-                <div className="text-[10px] text-slate-500 mt-0.5 space-x-1">
-                  <span className="text-emerald-600 font-bold">{aiStats?.moving_points ? aiStats.moving_points.toLocaleString() : 0} moving</span>
-                  <span>•</span>
-                  <span className="text-red-500 font-bold">{aiStats?.stationary_points ? aiStats.stationary_points.toLocaleString() : 0} stops</span>
-                </div>
-              </div>
-              <div className="text-right">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Engine State</span>
-                <span className="inline-block mt-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 py-1 px-3 rounded-full">
-                  Active & Learning
-                </span>
-              </div>
-            </div>
-
-            <div>
-              <span className="text-xs font-bold text-slate-700 block mb-2">Average Speeds by Route</span>
-              <div className="space-y-2">
-                {aiStats?.routes?.length > 0 ? aiStats.routes.map((r: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center p-2.5 bg-slate-50 border border-slate-100 rounded-xl">
-                    <span className="text-xs font-semibold text-slate-700">{r.route}</span>
-                    <span className="text-xs font-extrabold text-[#0f3878]">{r.avg_speed_kmh} km/h</span>
-                  </div>
-                )) : (
-                  <div className="text-xs text-slate-400 italic py-2">Not enough trip telemetry yet.</div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <span className="text-xs font-bold text-slate-700 block mb-2">Detected Rush Hours</span>
-              <div className="space-y-2">
-                {(() => {
-                  if (aiStats?.hourly_speeds?.length > 0) {
-                    const sorted = [...aiStats.hourly_speeds].sort((a: any, b: any) => a.avg_speed_kmh - b.avg_speed_kmh).slice(0, 3);
-                    return sorted.map((h: any, idx: number) => {
-                      const hour = h.hr % 12 || 12;
-                      const ampm = h.hr >= 12 ? 'PM' : 'AM';
-                      return (
-                        <div key={idx} className="flex justify-between items-center p-2.5 bg-red-50/70 border border-red-100 rounded-xl">
-                          <div className="flex items-center gap-2 text-red-700">
-                            <AlertTriangle size={14} className="text-red-500" />
-                            <span className="text-xs font-bold">{hour}:00 {ampm}</span>
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <span className="text-[11px] font-semibold text-red-700">Heavy Traffic</span>
-                            <span className="text-xs font-black text-red-600">{h.avg_speed_kmh} km/h</span>
-                          </div>
-                        </div>
-                      );
-                    });
-                  }
-                  return <div className="text-xs text-slate-400 italic py-2">Not enough historical data to detect rush hours yet.</div>;
-                })()}
-              </div>
-            </div>
-
-            <div className="p-4 bg-emerald-50/70 rounded-2xl border border-emerald-100 space-y-2">
-              <div className="text-xs font-black text-emerald-900 flex items-center gap-2">
-                <Activity size={15} />
-                <span>Why this AI is smart</span>
-              </div>
-              <ul className="text-[11px] text-emerald-800 space-y-1.5 list-disc list-inside font-medium leading-relaxed">
-                <li><strong>Rush Hour Aware:</strong> Dynamically factors in seasonal traffic peaks to calibrate passenger ETAs.</li>
-                <li><strong>No Jumping ETAs:</strong> Eliminates erratic predictions when buses make brief traffic signal stops.</li>
-                <li><strong>Continuous Learning:</strong> Auto-updates speed profiles on every newly concluded conductor session.</li>
-              </ul>
             </div>
           </div>
         </div>

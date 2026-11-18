@@ -1,8 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import { Smartphone, ArrowRight, X, Sparkles } from 'lucide-react';
+import { getApiUrl } from '../services/api';
+
+const DEFAULT_ADMIN_APK_URL = 'https://github.com/ByaHero/ByaHero/releases/download/admin-v3.0.8/byahero-admin.apk';
 
 interface LayoutProps {
   adminEmail: string;
@@ -11,6 +14,56 @@ interface LayoutProps {
 
 export default function Layout({ adminEmail, onLogout }: LayoutProps) {
   const [showBanner, setShowBanner] = useState(true);
+  const [downloadUrl, setDownloadUrl] = useState(DEFAULT_ADMIN_APK_URL);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function fetchLatestAdminApk() {
+      // 1. Try Backend App Version endpoint
+      try {
+        const res = await fetch(getApiUrl('/api/app-version?app=admin'));
+        if (res.ok) {
+          const data = await res.json();
+          if (data?.download_url && isMounted) {
+            setDownloadUrl(data.download_url);
+            return;
+          }
+        }
+      } catch {
+        // Continue to fallback
+      }
+
+      // 2. Fallback to direct GitHub Releases API
+      try {
+        const ghRes = await fetch('https://api.github.com/repos/ByaHero/ByaHero/releases');
+        if (ghRes.ok) {
+          const releases = await ghRes.json();
+          for (const release of releases) {
+            const tagName = release.tag_name || '';
+            if (tagName.toLowerCase().includes('admin')) {
+              const asset = release.assets?.find((a: any) =>
+                a.name && a.name.toLowerCase().includes('admin') && a.name.endsWith('.apk')
+              ) || release.assets?.[0];
+
+              if (asset?.browser_download_url && isMounted) {
+                setDownloadUrl(asset.browser_download_url);
+                return;
+              }
+            }
+          }
+        }
+      } catch {
+        // Fallback to default if network fails
+      }
+    }
+
+    fetchLatestAdminApk();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex min-h-screen bg-slate-50 text-slate-900">
@@ -32,7 +85,7 @@ export default function Layout({ adminEmail, onLogout }: LayoutProps) {
 
             <div className="flex items-center gap-3 shrink-0">
               <a
-                href="https://github.com/ByaHero/ByaHero/releases/latest/download/byahero-admin.apk"
+                href={downloadUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="bg-white text-[#0f3878] hover:bg-slate-100 py-1.5 px-3.5 rounded-xl font-bold text-xs no-underline inline-flex items-center gap-1.5 shadow-sm transition"

@@ -37,6 +37,12 @@ class AppVersionController extends Controller
                         if ($appName === 'conductor') {
                             if (str_contains(strtolower($tagName), 'conductor')) {
                                 $isMatch = true;
+                                foreach ($assets as $asset) {
+                                    if (str_contains(strtolower($asset['name']), 'conductor')) {
+                                        $matchedAssetUrl = $asset['browser_download_url'];
+                                        break;
+                                    }
+                                }
                             } else {
                                 foreach ($assets as $asset) {
                                     if (str_contains(strtolower($asset['name']), 'conductor')) {
@@ -49,6 +55,12 @@ class AppVersionController extends Controller
                         } elseif ($appName === 'admin') {
                             if (str_contains(strtolower($tagName), 'admin')) {
                                 $isMatch = true;
+                                foreach ($assets as $asset) {
+                                    if (str_contains(strtolower($asset['name']), 'admin')) {
+                                        $matchedAssetUrl = $asset['browser_download_url'];
+                                        break;
+                                    }
+                                }
                             } else {
                                 foreach ($assets as $asset) {
                                     if (str_contains(strtolower($asset['name']), 'admin')) {
@@ -98,9 +110,19 @@ class AppVersionController extends Controller
                 // Fallback on timeout
             }
 
+            $fallbackVersion = '2.0.18';
+            $fallbackUrl = 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk';
+            if ($appName === 'admin') {
+                $fallbackVersion = '3.0.8';
+                $fallbackUrl = 'https://github.com/ByaHero/ByaHero/releases/download/admin-v3.0.8/byahero-admin.apk';
+            } elseif ($appName === 'conductor') {
+                $fallbackVersion = '3.0.21';
+                $fallbackUrl = 'https://github.com/ByaHero/ByaHero/releases/download/conductor-v3.0.21/byahero-conductor.apk';
+            }
+
             return [
-                'latest_version' => '1.0.1',
-                'download_url' => 'https://github.com/ByaHero/ByaHero/releases/latest/download/byahero.apk',
+                'latest_version' => $fallbackVersion,
+                'download_url' => $fallbackUrl,
                 'release_notes' => 'Bug fixes and performance improvements.',
             ];
         });
