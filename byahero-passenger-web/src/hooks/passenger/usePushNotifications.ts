@@ -7,11 +7,11 @@ import { useAuth } from '../../context/AuthContext';
  */
 export function usePushNotifications() {
   const { isPushEnabled, requestPermissionAndEnablePush } = useNotifications();
-  const { user } = useAuth();
+  const { session } = useAuth();
 
   useEffect(() => {
-    if (user?.email && isPushEnabled) {
+    if (session && isPushEnabled) {
       requestPermissionAndEnablePush().catch(console.warn);
     }
-  }, [user?.email, isPushEnabled, requestPermissionAndEnablePush]);
+  }, [session, isPushEnabled, requestPermissionAndEnablePush]);
 }

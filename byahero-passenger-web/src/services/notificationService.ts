@@ -1,4 +1,4 @@
-import { getServerUrl } from './authService';
+import type { ConfirmedSession } from '../context/AuthContext';
 
 /**
  * Register Service Worker for background notifications
@@ -88,31 +88,24 @@ export function getOrCreateWebPushToken(): string {
 /**
  * Register push token with Laravel backend (/api/fcm/register)
  */
-export async function registerPushTokenToServer(token?: string, email?: string): Promise<boolean> {
+export async function registerPushTokenToServer(session: ConfirmedSession, token?: string): Promise<boolean> {
+  const { email, signal } = session;
+  if (signal.aborted) return false;
   try {
     const activeToken = token || getOrCreateWebPushToken();
-    const currentEmail = email || localStorage.getItem('byahero_cached_email') || '';
-    const baseUrl = await getServerUrl();
 
     const formData = new FormData();
     formData.append('fcm_token', activeToken);
-    if (currentEmail) {
-      formData.append('email', currentEmail);
-    }
+    formData.append('email', email);
 
-    const headers: Record<string, string> = {};
-    if (currentEmail) {
-      headers['X-User-Email'] = currentEmail;
-    }
-
-    const res = await fetch(`${baseUrl}/api/fcm/register`, {
+    const res = await session.fetch('fcm/register', {
       method: 'POST',
       body: formData,
-      headers,
-      credentials: 'include'
+      headers: { 'X-User-Email': email },
     });
 
     const data = await res.json();
+    if (signal.aborted) return false;
     if (data && data.success) {
       localStorage.setItem('sos_fcm_active_token', activeToken);
       console.log('[PushNotification] Successfully registered push token to server:', activeToken);
@@ -122,7 +115,7 @@ export async function registerPushTokenToServer(token?: string, email?: string):
       return false;
     }
   } catch (err) {
-    console.warn('[PushNotification] Failed to register push token with server:', err);
+    if (!signal.aborted) console.warn('[PushNotification] Failed to register push token with server:', err);
     return false;
   }
 }

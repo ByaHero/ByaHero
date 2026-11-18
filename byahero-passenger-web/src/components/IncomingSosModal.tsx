@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AlertTriangle, MapPin, X, Bell, ExternalLink, ShieldAlert } from 'lucide-react';
+import { parseServerDate } from '../utils/userUtils';
 
 export interface IncomingSosData {
   id?: number | string;
@@ -24,9 +25,9 @@ export const IncomingSosModal: React.FC<IncomingSosModalProps> = ({ alert, onClo
 
   const sender = alert.sender_name || alert.sender_email || 'A family circle member';
   const location = alert.location_text || 'Live coordinates shared';
-  const timeStr = alert.created_at
-    ? new Date(alert.created_at.replace(/-/g, '/')).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    : 'Just now';
+  const timeStr = parseServerDate(alert.created_at)?.toLocaleTimeString([], {
+    hour: '2-digit', minute: '2-digit',
+  }) ?? 'Just now';
 
   const handleViewNotifications = () => {
     onClose();

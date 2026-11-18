@@ -5,7 +5,7 @@ import { useAuth } from '../../../context/AuthContext';
 import { loadBusData, saveBusData } from '../../../services/offlineCache';
 
 export const BusInfo: React.FC = () => {
-  const { serverUrl } = useAuth();
+  const { session } = useAuth();
 
   const [schedules, setSchedules] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -35,6 +35,7 @@ export const BusInfo: React.FC = () => {
           setSchedules(prev => prev.length ? prev : (cachedData.schedules || []));
           setFareStops(prev => prev.length ? prev : (cachedData.fare_stops || []));
           setFareRules(prev => prev.length ? prev : (cachedData.fare_rules || []));
+          if (!session) setCacheTime(cachedData.cached_at);
           if (cachedData.schedules && cachedData.schedules.length > 0) {
             setIsLoading(false);
           }
@@ -42,16 +43,26 @@ export const BusInfo: React.FC = () => {
       } catch (e) {}
     };
     
-    loadInitialCache();
+    void loadInitialCache();
+    if (!session) {
+      setIsOffline(true);
+      setIsLoading(false);
+      return () => { active = false; };
+    }
+
+    const { signal, serverUrl } = session;
+    let isFetching = false;
 
     const fetchSyncData = async () => {
+      if (!active || signal.aborted || isFetching) return;
+      isFetching = true;
       try {
         let responseData: any = null;
         let isNetworkSuccess = false;
 
         // Try primary configured URL
         try {
-          const res = await fetch(`${serverUrl}/api/buses/sync`);
+          const res = await session.fetch('buses/sync');
           if (res.ok) {
             const data = await res.json();
             if (data && data.success) {
@@ -60,11 +71,11 @@ export const BusInfo: React.FC = () => {
             }
           }
         } catch (err) {
+          if (signal.aborted) return;
           console.warn(`Failed to fetch sync data from configured server URL: ${serverUrl}`, err);
         }
 
-
-
+        if (!active || signal.aborted) return;
         if (isNetworkSuccess && responseData && active) {
           setIsOffline(false);
           setIsLoading(false);
@@ -80,6 +91,7 @@ export const BusInfo: React.FC = () => {
         } else if (!isNetworkSuccess && active) {
           setIsLoading(false);
           const cachedData = await loadBusData();
+          if (!active || signal.aborted) return;
           if (cachedData) {
             setIsOffline(true);
             setCacheTime(cachedData.cached_at);
@@ -92,9 +104,10 @@ export const BusInfo: React.FC = () => {
           }
         }
       } catch (err: any) {
-        if (active) {
+        if (active && !signal.aborted) {
           setIsLoading(false);
           const cachedData = await loadBusData();
+          if (!active || signal.aborted) return;
           if (cachedData) {
             setIsOffline(true);
             setCacheTime(cachedData.cached_at);
@@ -106,6 +119,8 @@ export const BusInfo: React.FC = () => {
             setCacheTime(null);
           }
         }
+      } finally {
+        isFetching = false;
       }
     };
 
@@ -116,7 +131,7 @@ export const BusInfo: React.FC = () => {
       active = false;
       clearInterval(interval);
     };
-  }, [serverUrl]);
+  }, [session]);
 
   const calculateFare = (pickup: any, dropoff: any, discount: 'regular' | 'discounted') => {
     setFareError('');
