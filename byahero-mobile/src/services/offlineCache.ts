@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const CACHE_KEY = 'byahero_bus_data_cache';
 const FRIENDS_CACHE_KEY = 'byahero_friends_cache';
+const LIVE_BUSES_CACHE_KEY = 'byahero_live_buses_cache';
 
 export interface CachedBusData {
   cached_at: string; // ISO 8601 string
@@ -9,6 +10,38 @@ export interface CachedBusData {
   fare_stops: any[];
   fare_rules: any[];
   pickup_points?: any[];
+  live_buses?: any[];
+}
+
+/**
+ * Saves the latest active bus locations to persistent storage.
+ */
+export async function saveLiveBusesCache(buses: any[]): Promise<void> {
+  try {
+    if (Array.isArray(buses) && buses.length > 0) {
+      await AsyncStorage.setItem(LIVE_BUSES_CACHE_KEY, JSON.stringify(buses));
+    }
+  } catch (error) {
+    console.error('Failed to save live buses to cache:', error);
+  }
+}
+
+/**
+ * Loads the last saved active bus locations from persistent storage.
+ */
+export async function loadLiveBusesCache(): Promise<any[]> {
+  try {
+    const raw = await AsyncStorage.getItem(LIVE_BUSES_CACHE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load live buses from cache:', error);
+  }
+  return [];
 }
 
 /**

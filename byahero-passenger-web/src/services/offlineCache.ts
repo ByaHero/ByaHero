@@ -1,6 +1,7 @@
 import defaultData from '../constants/defaultBusDataSync.json';
 
 const CACHE_KEY = 'byahero_bus_data_cache';
+const LIVE_BUSES_KEY = 'byahero_live_buses_cache';
 
 export interface CachedBusData {
   cached_at: string; // ISO 8601 string
@@ -8,6 +9,38 @@ export interface CachedBusData {
   fare_stops: any[];
   fare_rules: any[];
   pickup_points?: any[];
+  live_buses?: any[];
+}
+
+/**
+ * Saves the latest active bus locations to localStorage.
+ */
+export function saveLiveBusesCache(buses: any[]): void {
+  try {
+    if (Array.isArray(buses) && buses.length > 0) {
+      localStorage.setItem(LIVE_BUSES_KEY, JSON.stringify(buses));
+    }
+  } catch (error) {
+    console.error('Failed to save live buses to cache:', error);
+  }
+}
+
+/**
+ * Loads the last saved active bus locations from localStorage.
+ */
+export function loadLiveBusesCache(): any[] {
+  try {
+    const raw = localStorage.getItem(LIVE_BUSES_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (error) {
+    console.error('Failed to load live buses from cache:', error);
+  }
+  return [];
 }
 
 export async function saveBusData(schedules: any[], fareStops: any[], fareRules: any[], pickupPoints: any[] = []): Promise<void> {

@@ -308,8 +308,11 @@ export const TrackingProvider: React.FC<{ children: ReactNode }> = ({ children }
   };
 
   const filteredBuses = buses.filter(b => {
-    if (!selectedRoute) return true;
-    return b.route?.toUpperCase().includes(selectedRoute.toUpperCase());
+    if (!selectedRoute || selectedRoute === 'ALL') return true;
+    if (!b.route) return true;
+    const bRoute = b.route.trim().toUpperCase();
+    const sRoute = selectedRoute.trim().toUpperCase();
+    return bRoute === sRoute || bRoute.includes(sRoute) || sRoute.includes(bRoute);
   });
   
   const filteredStops = busStops.filter(s => {
