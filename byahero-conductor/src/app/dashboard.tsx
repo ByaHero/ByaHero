@@ -34,7 +34,8 @@ import {
   getLocalCachedBuses,
   saveBusesToCache,
   saveLastSelectedBus,
-  getLastSelectedBus
+  getLastSelectedBus,
+  getReceiptConfig
 } from '../services/conductorService';
 import TourOverlay from '../components/TourOverlay';
 import { handleTourLayout } from '../components/TourRegistry';
@@ -167,6 +168,21 @@ export default function DashboardScreen() {
         if (forceUserFeedback) {
           showAlert('Fleet Synchronized', 'Updated active bus units.', 'success');
         }
+        // Pre-warm and cache latest admin receipt config
+        getReceiptConfig().catch(() => {});
+      } else if (res?.isUnauthorized) {
+        setIsOfflineFleet(true);
+        showAlert(
+          'Session Expired',
+          'Your conductor session has expired. Please sign in again to sync live buses and receipt settings.',
+          'warning',
+          async () => {
+            await logout();
+            router.replace('/');
+          },
+          undefined,
+          'Sign In Again'
+        );
       } else {
         // Backend unreachable or returned empty; keep local cached fleet
         setIsOfflineFleet(true);
@@ -379,7 +395,7 @@ export default function DashboardScreen() {
       });
 
       // Quick retry once if initial start attempt timed out or failed due to backend wake-up
-      if ((!res?.success || !res?.operation_id) && res?.error !== 'bus_taken') {
+      if ((!res?.success || !res?.operation_id) && res?.error !== 'bus_taken' && !res?.isUnauthorized) {
         await new Promise(r => setTimeout(r, 1000));
         const retryRes = await startOperation({
           bus_id: selectedBus.id || selectedBus.Bus_ID,
@@ -397,6 +413,21 @@ export default function DashboardScreen() {
 
       // Handle offline or unreachable network gracefully
       if (!res?.success || !operationId) {
+        if (res?.isUnauthorized) {
+          setIsLoading(false);
+          showAlert(
+            'Session Expired',
+            'Your session has expired. Please sign in again before starting live tracking.',
+            'warning',
+            async () => {
+              await logout();
+              router.replace('/');
+            },
+            undefined,
+            'Sign In Again'
+          );
+          return;
+        }
         if (res?.error === 'bus_taken') {
           showAlert('Bus In Use', 'This bus is currently being operated by another conductor. Please select an available bus.', 'error');
           loadSetupData(true);

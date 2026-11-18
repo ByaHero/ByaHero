@@ -97,7 +97,7 @@ export function useAppUpdate() {
       // 2. Fallback to Backend
       try {
         const baseUrl = await getServerUrl();
-        const response = await fetch(`${baseUrl}/api/app-version?app=conductor`);
+        const response = await fetch(`${baseUrl}/api/app-version?app=conductor`, { credentials: 'include' });
         if (!response.ok) return;
 
         const data = await response.json();
