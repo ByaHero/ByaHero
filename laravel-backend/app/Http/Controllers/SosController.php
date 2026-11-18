@@ -6,7 +6,6 @@ use Illuminate\Http\Request;
 use App\Models\SosAlert;
 use App\Models\Circle;
 use App\Models\CircleMember;
-use App\Models\User;
 use App\Models\UserFcmToken;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\DB;
@@ -26,53 +25,39 @@ class SosController extends Controller
             return response()->json(['success' => false, 'message' => 'Not logged in']);
         }
 
-        $recipients = $request->input('recipients', []);
         $locationText = trim($request->input('location_text', ''));
 
-        // If recipients list is empty, fetch all members of the sender's circle
-        if (empty($recipients) || !is_array($recipients)) {
-            $recipients = [];
-            $circle = Circle::where('owner_user_id', $userId)->first();
-            if ($circle) {
-                $recipients = CircleMember::where('circle_id', $circle->id)
-                    ->pluck('user_id')
-                    ->map(fn($id) => (int)$id)
-                    ->toArray();
-            }
-        }
-
-        // If circle is empty or not set, broadcast to all other registered users
-        if (empty($recipients)) {
-            $recipients = User::where('id', '!=', $userId)
-                ->pluck('id')
-                ->map(fn($id) => (int)$id)
-                ->toArray();
-        }
+        // Resolve the audience using the sender's circle on the server.
+        $circleId = Circle::where('owner_user_id', $userId)->value('id');
+        $recipients = $circleId === null ? [] : CircleMember::where('circle_id', $circleId)
+            ->where('user_id', '>', 0)
+            ->where('user_id', '!=', $userId)
+            ->distinct()
+            ->pluck('user_id')
+            ->map(fn ($id) => (int) $id)
+            ->all();
 
         if (empty($recipients)) {
-            return response()->json(['success' => false, 'message' => 'No recipients available to send SOS alert.']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Your circle is empty. Add someone to your circle before sending an SOS.',
+            ], 422);
         }
-
-        $recipients = array_values(array_unique(array_map('intval', $recipients)));
 
         try {
             DB::beginTransaction();
 
-            $validRecipients = [];
             foreach ($recipients as $recipientId) {
-                if ($recipientId <= 0) continue;
-                
                 SosAlert::create([
                     'sender_user_id' => $userId,
                     'recipient_user_id' => $recipientId,
                     'location_text' => $locationText,
                     'status' => 'active'
                 ]);
-                $validRecipients[] = $recipientId;
             }
 
             // Look up FCM tokens for recipients
-            $fcmTokens = UserFcmToken::whereIn('user_id', $validRecipients)
+            $fcmTokens = UserFcmToken::whereIn('user_id', $recipients)
                 ->where('fcm_token', '!=', '')
                 ->pluck('fcm_token')
                 ->toArray();
@@ -87,7 +72,7 @@ class SosController extends Controller
 
             return response()->json([
                 'success' => true,
-                'sent_to' => $validRecipients,
+                'sent_to' => $recipients,
                 'push_sent_count' => $delivery['sent_count'] ?? 0,
                 'sender_name' => $senderName ?: 'A user',
                 'location_text' => $locationText

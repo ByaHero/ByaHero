@@ -43,7 +43,6 @@ export const executeSOS = async ({ baseUrl, locationText = 'Web Client', lat = n
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         email,
-        recipients: [],
         location_text: locationText,
         lat,
         lng
@@ -65,11 +64,13 @@ export const executeSOS = async ({ baseUrl, locationText = 'Web Client', lat = n
         () => stopSosAlarm()
       );
     } else {
-      displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error', () => stopSosAlarm());
+      stopSosAlarm();
+      displayAlert('SOS Failed', data.message || 'Failed to send SOS.', 'error');
     }
   } catch (err) {
     console.error('SOS Alert send error:', err);
-    displayAlert('SOS Failed', 'Network error. Failed to broadcast SOS.', 'error', () => stopSosAlarm());
+    stopSosAlarm();
+    displayAlert('SOS Failed', 'Network error. Failed to send SOS.', 'error');
   }
 };
 
@@ -81,13 +82,13 @@ export const triggerSOS = (params: TriggerSOSParams) => {
   if (params.showAlertFn) {
     params.showAlertFn(
       'Emergency Center',
-      params.promptMessage || 'Trigger Panic Alert? This will broadcast your SOS alert to emergency contacts and nearby buses.',
+      params.promptMessage || 'Send your SOS alert and location to your circle members?',
       'confirm',
       () => executeSOS(params),
       () => {}
     );
   } else {
-    const confirmed = window.confirm(params.promptMessage || 'Trigger Panic Alert? This will broadcast your SOS alert to emergency contacts.');
+    const confirmed = window.confirm(params.promptMessage || 'Send your SOS alert and location to your circle members?');
     if (confirmed) {
       executeSOS(params);
     }
