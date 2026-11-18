@@ -2,13 +2,29 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getServerUrl } from '../../services/authService';
 import { resolveBusLocationName } from '../../utils/locationUtils';
-import { loadBusData } from '../../services/offlineCache';
+import { loadBusData, saveLiveBusesCache, loadLiveBusesCache } from '../../services/offlineCache';
+
+const LIVE_BUSES_KEY = 'byahero_live_buses_cache';
 
 export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const [buses, setBuses] = useState<any[]>([]);
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>([]);
   const [baseUrl, setBaseUrl] = useState('https://api.byahero.app');
+
+  // Immediately hydrate buses from cache on mount so last known bus locations appear instantly
+  useEffect(() => {
+    let isMounted = true;
+    (async () => {
+      try {
+        const cached = await loadLiveBusesCache();
+        if (isMounted && cached && cached.length > 0) {
+          setBuses(prev => prev.length === 0 ? cached : prev);
+        }
+      } catch (e) {}
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   const [isWaiting, setIsWaitingState] = useState(false);
   const waitingStatusRevision = useRef(0);
@@ -82,24 +98,44 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
               const activeBuses = busesData.buses
                 .filter((bus: any) =>
                   bus.status !== 'unavailable' &&
-                  bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
-                  bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
+                  (bus.lat || bus.latitude) &&
+                  (bus.lng || bus.longitude)
                 )
                 .map((bus: any) => {
-                  if (!bus.current_location_name) {
-                    const lat = parseFloat(bus.lat);
-                    const lng = parseFloat(bus.lng);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
-                    }
+                  const rawLat = bus.lat ?? bus.latitude;
+                  const rawLng = bus.lng ?? bus.longitude;
+                  const parsedLat = parseFloat(String(rawLat));
+                  const parsedLng = parseFloat(String(rawLng));
+
+                  if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                    bus.lat = String(parsedLat);
+                    bus.lng = String(parsedLng);
+                    bus.latitude = parsedLat;
+                    bus.longitude = parsedLng;
+                  }
+
+                  if (!bus.current_location_name && !isNaN(parsedLat) && !isNaN(parsedLng)) {
+                    bus.current_location_name = resolveBusLocationName(parsedLat, parsedLng) || undefined;
                   }
                   return bus;
                 });
-              setBuses(activeBuses);
+
+              if (activeBuses.length > 0) {
+                setBuses(activeBuses);
+                // Save latest bus locations in persistent cache
+                void saveLiveBusesCache(activeBuses);
+              }
             }
           }
         } catch (e: any) {
           if (e.message !== 'Network request failed') console.error('Error fetching buses:', e);
+          // When offline (mobile data or wifi turned off), retain existing buses or load from cache
+          try {
+            const cached = await loadLiveBusesCache();
+            if (cached && cached.length > 0 && active) {
+              setBuses(prev => prev.length > 0 ? prev : cached);
+            }
+          } catch (cacheErr) {}
         }
 
         // Fetch bus stops

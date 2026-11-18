@@ -183,7 +183,16 @@ export default function PassengerDashboard() {
     isInitialFetchDone
   });
 
-  const filteredBuses = buses.filter(bus => !selectedRoute || bus.route === selectedRoute);
+  const filteredBuses = React.useMemo(() => {
+    return buses.filter(bus => {
+      if (!selectedRoute || selectedRoute === 'ALL') return true;
+      if (!bus.route) return true;
+      const bRoute = bus.route.trim().toUpperCase();
+      const sRoute = selectedRoute.trim().toUpperCase();
+      return bRoute === sRoute || bRoute.includes(sRoute) || sRoute.includes(bRoute);
+    });
+  }, [buses, selectedRoute]);
+
   const filteredStops = React.useMemo(() => {
     return busStops.filter(stop => stop.route === stopsRoute);
   }, [busStops, stopsRoute]);
@@ -198,11 +207,13 @@ export default function PassengerDashboard() {
 
   // Sync filtered buses to map whenever buses or selectedRoute changes
   useEffect(() => {
-    postToMap({
-      type: 'UPDATE_BUSES',
-      buses: filteredBuses
-    });
-  }, [buses, selectedRoute, postToMap]);
+    if (filteredBuses.length > 0) {
+      postToMap({
+        type: 'UPDATE_BUSES',
+        buses: filteredBuses
+      });
+    }
+  }, [filteredBuses, postToMap]);
 
   // Sync user location marker to map whenever location, profile details or waiting status update
   useEffect(() => {

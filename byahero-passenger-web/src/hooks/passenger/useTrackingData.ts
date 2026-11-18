@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { resolveBusLocationName } from '../../utils/locationUtils';
-import { loadBusData } from '../../services/offlineCache';
+import { loadBusData, saveLiveBusesCache, loadLiveBusesCache } from '../../services/offlineCache';
 
 export function useTrackingData(userLocation?: { lat: number; lng: number } | null) {
   const { session } = useAuth();
@@ -10,7 +10,14 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
     locationRef.current = userLocation;
   }, [userLocation]);
 
-  const [buses, setBuses] = useState<any[]>([]);
+  // Immediately initialize buses with cached buses so offline / launch shows last known locations
+  const [buses, setBuses] = useState<any[]>(() => {
+    try {
+      const cached = loadLiveBusesCache();
+      if (cached && cached.length > 0) return cached;
+    } catch (e) {}
+    return [];
+  });
   const [busStops, setBusStops] = useState<any[]>([]);
   const [circles, setCircles] = useState<any[]>(() => {
     try {
@@ -20,6 +27,22 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
       return [];
     }
   });
+
+  // Watch for offline/online events to immediately preserve or restore cached buses
+  useEffect(() => {
+    const handleConnectivity = () => {
+      const cached = loadLiveBusesCache();
+      if (cached && cached.length > 0) {
+        setBuses(prev => prev.length > 0 ? prev : cached);
+      }
+    };
+    window.addEventListener('offline', handleConnectivity);
+    window.addEventListener('online', handleConnectivity);
+    return () => {
+      window.removeEventListener('offline', handleConnectivity);
+      window.removeEventListener('online', handleConnectivity);
+    };
+  }, []);
 
   const [isWaiting, setIsWaiting] = useState(false);
   const [waitingLocation, setWaitingLocation] = useState('');
@@ -69,6 +92,10 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
   useEffect(() => {
     let active = true;
     if (!session) {
+      const cachedBuses = loadLiveBusesCache();
+      if (cachedBuses && cachedBuses.length > 0 && active) {
+        setBuses(prev => prev.length > 0 ? prev : cachedBuses);
+      }
       void loadBusData().then(cached => {
         if (!active) return;
         if (cached?.pickup_points?.length) setBusStops(cached.pickup_points);
@@ -100,25 +127,43 @@ export function useTrackingData(userLocation?: { lat: number; lng: number } | nu
               const activeBuses = busesData.buses
                 .filter((bus: any) =>
                   bus.status !== 'unavailable' &&
-                  bus.lat !== null && bus.lat !== undefined && bus.lat !== '' &&
-                  bus.lng !== null && bus.lng !== undefined && bus.lng !== ''
+                  (bus.lat || bus.latitude) &&
+                  (bus.lng || bus.longitude)
                 )
                 .map((bus: any) => {
-                  if (!bus.current_location_name) {
-                    const lat = parseFloat(bus.lat);
-                    const lng = parseFloat(bus.lng);
-                    if (!isNaN(lat) && !isNaN(lng)) {
-                      bus.current_location_name = resolveBusLocationName(lat, lng) || undefined;
-                    }
+                  const rawLat = bus.lat ?? bus.latitude;
+                  const rawLng = bus.lng ?? bus.longitude;
+                  const parsedLat = parseFloat(String(rawLat));
+                  const parsedLng = parseFloat(String(rawLng));
+
+                  if (!isNaN(parsedLat) && !isNaN(parsedLng)) {
+                    bus.lat = String(parsedLat);
+                    bus.lng = String(parsedLng);
+                    bus.latitude = parsedLat;
+                    bus.longitude = parsedLng;
+                  }
+
+                  if (!bus.current_location_name && !isNaN(parsedLat) && !isNaN(parsedLng)) {
+                    bus.current_location_name = resolveBusLocationName(parsedLat, parsedLng) || undefined;
                   }
                   return bus;
                 });
-              setBuses(activeBuses);
+
+              if (activeBuses.length > 0) {
+                setBuses(activeBuses);
+                // Save latest bus locations in cache
+                saveLiveBusesCache(activeBuses);
+              }
             }
           }
         } catch (e: any) {
           if (signal.aborted) return;
           if (e.message !== 'Failed to fetch') console.error('Error fetching buses:', e);
+          // If offline / disconnected, ensure last known bus locations are restored from cache
+          const cachedBuses = loadLiveBusesCache();
+          if (cachedBuses && cachedBuses.length > 0 && active) {
+            setBuses(prev => prev.length > 0 ? prev : cachedBuses);
+          }
         }
 
         // Fetch bus stops
